@@ -180,12 +180,12 @@ also defined in GeoInterface and GeoStatsBase
 function coordinates end
 
 """
-Return lattitude for the point, polygon, range or array.
+Return lattitude(s) for the point, polygon, range or array.
 """
 function lattitude end
 
 """
-Return longitude for the point, polygon, range or array.
+Return longitude(s) for the point, polygon, range or array.
 """
 function longitude end
 
@@ -296,11 +296,26 @@ Or something. Allowing units would be useful if the dimension has units.
 function bounds end
 
 """
+Returns a tuple of the cell ranges for long, lat, vertical, time 
+points, ranges polygons etc.
+
+Have to think about how to do this.
+"""
+function cells end
+
+"""
 Return the value/vector/matrix/list? at the specified 
 coordinates, rectangle, line, polygon, etc, and time and level
 when required.
 """
 function extract end
+
+"""
+Masks the raster by a polygon. Creates a new raster where points falling outside
+the polygon have been replaced by `missing` or whatever is used for missing
+in this type.
+"""
+function mask end
 
 """
 Name(s) of the included data.
