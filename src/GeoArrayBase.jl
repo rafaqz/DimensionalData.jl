@@ -16,77 +16,9 @@ Method names need more thought, please change them at will.
 """
 module GeoArrayBase
 
-# For points, lines, polygons etc
-using GeoInterface 
+export AbstractGeoArray, LongDim, LatDim, VertDim, TimeDim
 
-
-"""
-Define some common Coordinate Reference System formats.
-May belong in another package like ProjectionsBase.jl
-
-In some other package like Projections.jl etc:
-
-`convert(::Type{Proj4}, wkt::WellKnowText) = GDAL/Proj4 does something...`
-
-See https://github.com/evetion/GeoArrays.jl/blob/master/src/crs.jl
-
-But we should use the type system and `convert` instead of specific functions
-"""
-abstract type AbstractCRSformat end
-
-struct Proj4 <: AbstractCRSformat
-    crs::String
-end
-
-struct WellKnownText <: AbstractCRSformat
-    crs::String
-end
-
-struct EPSGcode <: AbstractCRSformat
-    crs::Int
-end
-
-
-
-"""
-AbstractGeoDim formalises the dimensions in an AbstractGeoArray
-
-This could be acomplished by using axis arrays, but that locks
-us into a particular implementation, while this is flexible.
-
-It should facilitate conversion between the most common dimension arrangements.
-
-Can also be used in methods like `bounds` to get the bounds for a particular dimension,
-Instead of passing an Int.
-"""
-abstract type AbstractGeoDim end
-
-struct LattitudeDim <: AbstractGeoDim end
-
-struct LongitudeDim <: AbstractGeoDim end
-
-struct LevelDim <: AbstractGeoDim end
-
-struct TimeDim <: AbstractGeoDim end
-
-"""
-Returns the GeoDim of a dimension, or a tuple for all dimensions.
-
-eg. LongitudeDim() or `(LattitudeDim(), LongitudeDim(), TimeDim())`
-"""
-function dimtype end
-
-"""
-Get the name of a dimension. Might be usefull for printing
-and working with axis arrays etc. I'm not sure.
-"""
-function dimname end
-
-dimname(::Type{LattitudeDim}) = :lattitude
-dimname(::Type{LongitudeDim}) = :longitude
-dimname(::Type{LevelDim}) = :level
-dimname(::Type{TimeDim}) = :time
-
+export extract, bounds, dimtype, dimname, dimunits
 
 
 """
@@ -104,7 +36,7 @@ iterable interface?
 
 # Required methods
 crs
-dimtypes
+dimtype
 coordinates
 lattitude
 longitude
@@ -141,7 +73,7 @@ iterable interface?
 
 # Required methods
 crs
-dimtypes
+dimtype
 coordinates
 lattitude
 longitude
@@ -163,14 +95,80 @@ with the same spatial metadata and bounds. As in Rs raster stack.
 abstract type AbstractGeoStack end
 
 
-# Spatial methods
+"""
+AbstractGeoDim formalises the dimensions in an AbstractGeoArray
+
+This could be acomplished by using axis arrays, but that locks
+us into a particular implementation, while this is flexible.
+
+It should facilitate conversion between the most common dimension arrangements.
+
+Can also be used in methods like `bounds` to get the bounds for a particular dimension,
+Instead of passing an Int.
+"""
+abstract type AbstractGeoDim end
+
+struct LatDim{T} <: AbstractGeoDim
+    val::T
+end
+LatDim() = LatDim(:)
+
+struct LongDim{T}<: AbstractGeoDim
+    val::T
+end
+LongDim() = LongDim(:)
+
+struct VertDim{T} <: AbstractGeoDim
+    val::T
+end
+VertDim() = VertDim(:)
+
+struct TimeDim{T} <: AbstractGeoDim
+    val::T
+end
+TimeDim() = TimeDim(:)
+
+val(dim::AbstractGeoDim) = dim.val
+
+
+# Coordinate traits
+
+struct HasAffineMap end
+struct HasDimCoords end
+struct HasNoCoords end
+
+coordtype(a::AbstractGeoArray) = HasNoCoords()
+
+lattitude(a::AbstractGeoArray, i) = lattitude(coordtype(a), a, i)
+lattitude(::HasAffineMap, a::AbstractGeoArray, i) = lattitude(a, LatDim(i))
+lattitude(::HasDimCoords , a::AbstractGeoArray, i) = lattitude(a, LatDim(i))
+lattitude(::HasNoCoords , a::AbstractGeoArray, i) = error(typeof(a).name, "has no coordinates")
+
 
 """
-Returns the coordinate reference system used as an AbstractCRSFormat
-
-crs is also defined in GeoInterface but not very clearly
+Return an AffineMap that maps indices to coordinates
 """
-function crs end
+function affinemap end
+
+"""
+Returns the GeoDim of a dimension, or a tuple for all dimensions.
+
+eg. LongDim or `(LatDim, LongDim, TimeDim)`
+"""
+function dimtype end
+
+function dimnum end
+
+"""
+Get the name of a dimension. Might be usefull for printing
+and working with axis arrays etc. I'm not sure.
+"""
+function dimname end
+
+dimname(::Type{LatDim}) = :lattitude
+dimname(::Type{LongDim}) = :longitude
+dimname(::Type{VertDim}) = :vertical
+dimname(::Type{TimeDim}) = :time
 
 """
 Return 2d coordinates for a point, polygon, range or the complete array.
@@ -195,7 +193,6 @@ Return the vertical level at a z axis position or range, or for the complete arr
 Should this be called vertical or elevation?
 
 """
-function level end
 
 """
 Handling units is a big question.
@@ -203,65 +200,24 @@ Handling units is a big question.
 Ubiquitous Unitful units is my preference but it's not practical,
 so a method like this might be required, with some wrapper types.
 
-A utility package that does conversion between standard 
+A utility package that does conversion between standard
 unit strings in NetCDF etc. and Unitful units would help bridge the gap and alow
-automated conversion between unitless and unitful GeoArray types.  
+automated conversion between unitless and unitful GeoArray types.
 
 This might help:
 https://github.com/Alexander-Barth/UDUnits.jl
 """
-function levelunits end
+function dimunits end
 
 abstract type AbstractUnitFormat end
 
-struct UnitfulUnitFormat{U} 
+struct UnitfulUnitFormat{U}
     unit::U
 end
 
 struct NetCDFUnitFormat
     unit::String
 end
-
-
-# Temporal methods
-
-"""
-Return the time at an index, range or the complete dataset
-
-Unitful days or hours are very fast and powerful for simulations, but limited to 
-periods of days and shorter. DataTime and calendars are needed for longer timespans 
-and calender months etc.
-
-What name as `time` is taken in Base?
-"""
-function times end
-
-"""
-The same units questions as for `level`, but with the complication of calendars.
-"""
-function timeunits end # ?
-
-
-# Calendars are implemented in NCDatasets with lots of helper methods
-# https://github.com/Alexander-Barth/NCDatasets.jl/blob/85c0bd07ade58d2c20308c8da6653f6d80cab20d/src/time.jl#L281
-#
-# We should pull them out into a separate CalendarBase package
-# Although I like the `Calendar` prefix better than the `DateTime` prefix in NCDatasets
-
-abstract type AbstractCalendar end
-
-# Calendars taken from the NetCDF standard
-struct CalendarGregorian <: AbstractCalendar end
-struct CalendarProlepticGregorian <: AbstractCalendar end
-struct CalendarNoLeap <: AbstractCalendar end
-struct CalendarAllLeap <: AbstractCalendar end
-struct Calendar360Day <: AbstractCalendar end
-struct CalendarJulian <: AbstractCalendar end
-struct CalendarNone <: AbstractCalendar end
-
-# And add any additional calendars outside of the NetCDF spec
-# Like my favourite high-performance modelling calendar: equal month/year lengths
-struct CalendarEqualised <: AbstractCalendar end
 
 """
 Calendar used for the temporal dimension
@@ -285,7 +241,7 @@ bounds(a)
 
 For the vertical dimension of a 3d raster array:
 ```
-bounds(LevelDim, x)
+bounds(a, LevelDim)
 (0.0m, 2000.0m)
 
 etc.
@@ -296,7 +252,7 @@ Or something. Allowing units would be useful if the dimension has units.
 function bounds end
 
 """
-Returns a tuple of the cell ranges for long, lat, vertical, time 
+Returns a tuple of the cell ranges for long, lat, vertical, time
 points, ranges polygons etc.
 
 Have to think about how to do this.
@@ -304,7 +260,7 @@ Have to think about how to do this.
 function cells end
 
 """
-Return the value/vector/matrix/list? at the specified 
+Return the value/vector/matrix/list? at the specified
 coordinates, rectangle, line, polygon, etc, and time and level
 when required.
 """
@@ -327,8 +283,54 @@ Maybe we should suggest an existing naming standard as well.
 # use Base.names
 
 
-dimname(a::AbstractGeoArray) = dimname.(dimtypes(a))
-dimname(a::AbstractGeoData) = dimname.(dimtypes(a))
+dimname(a::AbstractGeoArray) = dimname.(dimtype(a))
+dimname(a::AbstractGeoData) = dimname.(dimtype(a))
 
+dimnum(a::AbstractGeoArray, d::AbstractGeoDim) = findfirst(x -> x == d, dimtype(a))
 
-end # module
+# coordinates(d::AbstractGeoDim) =
+extract(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) =
+    extract(a, dimstoargs(dimtype(a), dims)...)
+
+dimstoargs(a::AbstractGeoArray, dims::Tuple) = dimstoargs(dimtype(a), dims)
+@generated dimstoargs(dimtypes::Type{DT}, dims::Tuple) where DT = dimstoargs_inner(DT, dims)
+
+dimstoargs_inner(dimtypes::Type, dims::Type) = begin
+    indexexps = []
+    for dimtype in dimtypes.parameters
+        index = findfirst(d -> d <: dimtype, dims.parameters)
+        if index == nothing
+            push!(indexexps, :(Colon()))
+        else
+            push!(indexexps, :(GeoArrayBase.val(dims[$index])))
+        end
+    end
+    Expr(:tuple, indexexps...)
+end
+
+argstodims(a::AbstractGeoArray, I::Tuple) = argstodims(dimtype(a), I)
+@generated argstodims(dimtypes::Type{DT}, dims::Tuple) where DT = argstodims_inner(DT, dims)
+
+argstodims_inner(dimtypes::Type, dims::Type) = begin
+    indexexps = []
+    for (i, dim) in enumerate(dims.parameters)
+        dim <: Number || push!(indexexps, dimtypes.parameters[i])
+    end
+    Expr(:curly, Tuple, indexexps...)
+end
+
+    # (finddim(dimtypes[1], dims), sortdims(Base.tail(dimtypes), dims)...)
+# sortdims(dimtype::Tuple{}, dims::Tuple) = ()
+
+# finddim(::Type{D}, dims::Tuple{T,Vararg}) where {D,T} = begin
+    # T <: D ? :(val($(dims[1]))) : finddim(D, Base.tail(dims))
+# end
+# finddim(::Type{D}, dims::Tuple{}) where {D,T} = :(Colon())
+
+Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) =
+    getindex(a, dimstoargs(a, dims)...)
+
+Base.view(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) =
+    view(a, dimstoargs(a, dims)...)
+
+end
