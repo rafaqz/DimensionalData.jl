@@ -1,13 +1,17 @@
 using GeoArrayBase, Test, BenchmarkTools, CoordinateReferenceSystemsBase
 
-struct GeoArray{T,N,A<:AbstractArray{T,N},D,CR,CA} <: GeoArrayBase.AbstractGeoArray{T,N}
+using GeoArrayBase: sortdims, indices2dims, indices2dims_inner, dims2type
+
+struct GeoArray{T,N,A<:AbstractArray{T,N},D,Cr,Ca} <: AbstractGeoArray{T,N}
     data::A
-    crs::CR
-    calendar::CA
+    dims::D
+    crs::Cr
+    calendar::Ca
 end
-GeoArray(a::AbstractArray{T,N}, dims::Type; crs=nothing, calendar=nothing) where {T,N} = begin
-    length(dims.parameters) == N || throw(ArgumentError, "Dims don't match array dimensions")
-    GeoArray{T,N,typeof(a),dims,typeof(crs),typeof(calendar)}(a, crs, calendar)
+GeoArray(a::AbstractArray{T,N}, dims; crs=nothing, calendar=nothing) where {T,N} = begin
+    dimlen = length(dims)
+    dimlen == N || throw(ArgumentError, "dims ($dimlen) don't match array dimensions $(N)")
+    GeoArray(a, dims, crs, calendar)
 end
 
 # Array interface
@@ -18,31 +22,40 @@ Base.length(a::GeoArray) = length(a.data)
 Base.eltype(::Type{GeoArray{T}}) where T = T
 
 Base.getindex(a::GeoArray, I::Vararg{<:Number}) = getindex(a.data, I...)
-Base.getindex(a::GeoArray{T,N,A,D,CR,CA}, I::Vararg{<:Union{AbstractArray,Colon,Number}}
-             ) where {T,N,A,D,CR,CA} = begin
-    a1 = getindex(a.data, i...)
-    GeoArray{T,ndims(a1),typeof(a1),GeoArrayBase.argstodims(a, I),CR,CA}(a1, a.crs, a.calendar)
+Base.getindex(a::GeoArray{T}, I::Vararg{<:Union{AbstractArray,Colon,Number}}) where T = begin
+    a1 = getindex(a.data, I...)
+    dims = indices2dims(a, I)
+    GeoArray(a1, dims, a.crs, a.calendar)
 end
 
-Base.view(a::GeoArray{T,N,A,D,CR,CA}, I::Vararg{<:Union{Number,AbstractArray,Colon}}
-         ) where {T,N,A,D,CR,CA} = begin
+Base.view(a::GeoArray, I::Vararg{<:Union{Number,AbstractArray,Colon}}) = begin
     v = view(a.data, I...) 
-    GeoArray{T,ndims(v),typeof(v),GeoArrayBase.argstodims(a, I),CR,CA}(v, a.crs, a.calendar)
+    dims = indices2dims(a, I)
+    GeoArray(v, dims, a.crs, a.calendar)
 end
 
 # GeoArray interface
-GeoArrayBase.dimtype(a::GeoArray{T,N,A,D,CR,CA}) where {T,N,A,D,CR,CA} = D
+GeoArrayBase.dimtype(a::GeoArray) = dims2type(a.dims)
+
+GeoArrayBase.coords(a::GeoArray) = a.dims
+
 GeoArrayBase.calendar(a::GeoArray) = a.calendar
 
 # CoordinateReferenceSystemsBase interface
 CoordinateReferenceSystemsBase.crs(a::GeoArray) = a.crs
 
 
-g = GeoArray([1 2; 3 4], Tuple{LongDim, LatDim}; crs=EPSGcode("EPSG:28992"))
+
+g = GeoArray([1 2; 3 4], (LongDim(144:145), LatDim(-38:-37)); crs=EPSGcode("EPSG:28992"))
+
+# dimensions.jl
 
 # Using LatDim, LongDim etc for indexing
 # view() and getindex() defined above use specific types 
 # to avoid ambiguities with AbstractGeoArray
+
+@test sortdims(g, (LatDim(1:2), LongDim(1))) == (LongDim(1), LatDim(1:2))
+@test dimtype(g) == Tuple{LongDim,LatDim}
 
 # getindex returns values
 @test g[LongDim(1), LatDim(2)] == 2
@@ -89,6 +102,23 @@ v = view(g, LatDim(1:2), LongDim(1))
 @test crs(v) == EPSGcode("EPSG:28992")
 
 
+# coordinates.jl
+
+# What should the behaviour be for coords??
+# This is what getindex returns for Int, UnitRange etc inputs
+
+@test coords(g, LatDim(1:2), LongDim(1:2)) == ([144, 145], [-38, -37])
+@test coords(g, LatDim(1:2), LongDim(1)) == (144, [-38, -37])
+@test coords(g, LongDim(1), LatDim(2)) == (144, -37)
+
+@test lattitude(g, 1:2) == [-38, -37]
+@test longitude(g, 1:2) == [144, 145]
+# @test vertical(g, 1:2) == 
+# @test timespan(g, 1:2) == 
+
+
+# Benchmarks
+
 vd1() = view(g, LongDim(1))
 vd2() = view(g, LongDim(1), LatDim(:))
 vd3() = view(g, LongDim(1), LatDim(1:2))
@@ -117,3 +147,4 @@ i2() = g[1:2, 1]
 @btime d3()
 @btime i1()
 @btime i2()
+
