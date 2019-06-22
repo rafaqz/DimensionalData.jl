@@ -120,35 +120,48 @@ v = view(g, LatDim(1:2), LongDim(1))
 # @test vertical(g, 1:2) == 
 # @test timespan(g, 1:2) == 
 
+using ProfileView
 
 # Benchmarks
 
-vd1() = view(g, LongDim(1))
-vd2() = view(g, LongDim(1), LatDim(:))
-vd3() = view(g, LongDim(1), LatDim(1:2))
-v1() = view(g.data, 1, 1:2)
-v2() = view(g.data, 1, :)
+vd1(g) = view(g, LongDim(1), LatDim(1))
+vd2(g) = view(g, LongDim(:), LatDim(:))
+vd3(g) = view(g, LongDim(1:2), LatDim(1:2))
+vi1(g) = view(g.data, 1, 2)
+vi2(g) = view(g.data, :, :)
+vi3(g) = view(g.data, 1:2, 1:2)
 
-@test vd1() == vd2() == vd3() == v1() == v2()
+println("Dims with Number")
+@btime vd1(g) 
+println("Dims with Colon")
+@btime vd2(g)
+println("Dims with UnitRange")
+@btime vd3(g)
+println("indices with Number")
+@btime vi1(g)
+println("indices with Colon")
+@btime vi2(g)
+println("indices with UnitRange")
+@btime vi3(g)
 
-@btime vd1() 
-@btime vd2()
-@btime vd3()
-@btime v1()
-@btime v2()
 
-d1() = g[LatDim(1)]
-d2() = g[LatDim(1), LongDim(:)]
-d3() = g[LatDim(1), LongDim(1:2)]
-i1() = g[:, 1]
-i2() = g[1:2, 1]
+d1(g) = g[LatDim(1), LongDim(1)]
+d2(g) = g[LatDim(:), LongDim(:)]
+d3(g) = g[LatDim(1:2), LongDim(1:2)]
+i1(g) = g.data[1, 1]
+i2(g) = g.data[:, :]
+i3(g) = g.data[1:2, 1:2]
 
-# These are all equivalent
-@test d1() == d2() == d3() == i1() == i2()
-
-@btime d1() 
-@btime d2()
-@btime d3()
-@btime i1()
-@btime i2()
+println("Dims with Number")
+@btime d1(g) 
+println("Dims with Colon")
+@btime d2(g)
+println("Dims with UnitRange")
+@btime d3(g)
+println("indices with Number")
+@btime i1(g)
+println("indices with Colon")
+@btime i2(g)
+println("indices with UnitRange")
+@btime i3(g)
 
