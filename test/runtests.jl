@@ -2,6 +2,14 @@ using GeoArrayBase, Test, BenchmarkTools, CoordinateReferenceSystemsBase
 
 using GeoArrayBase: sortdims, indices2dims, indices2dims_inner, dims2dimtypes, subsetdim
 
+
+
+# A basic GeoArray type to test the framework.
+# This type just stores ranges for dimension coortinates/heights
+# timespans. Still nee to make sure this all works and makes sense for
+# AffineMap, and how these will integrate.
+
+
 struct GeoArray{T,N,A<:AbstractArray{T,N},D,Cr,Ca} <: AbstractGeoArray{T,N}
     data::A
     dimcoords::D
@@ -45,18 +53,17 @@ GeoArrayBase.calendar(a::GeoArray) = a.calendar
 CoordinateReferenceSystemsBase.crs(a::GeoArray) = a.crs
 
 
+# Tests
 
+# Define a base, small GeoArray
 g = GeoArray([1 2; 3 4], (LongDim(143:2:145), LatDim(-38:2:-36)); crs=EPSGcode("EPSG:28992"))
-GeoArrayBase.subsetdim(g.dimcoords, (1:2, [1:2]))
 
-# dimensions.jl
-
-# Using LatDim, LongDim etc for indexing
-# view() and getindex() defined above use specific types 
-# to avoid ambiguities with AbstractGeoArray
-
-@test sortdims(g, (LatDim(1:2), LongDim(1))) == (LongDim(1), LatDim(1:2))
+# Make sure dimtypes is correct and sorts in the right order
 @test dimtype(g) == Tuple{LongDim,LatDim}
+@test sortdims(g, (LatDim(1:2), LongDim(1))) == (LongDim(1), LatDim(1:2))
+
+# Using LatDim, LongDim etc methods defined for ABstractGeoArray 
+# to eventually call view() and getindex() defined above.
 
 # getindex returns values
 @test g[LongDim(1), LatDim(2)] == 2
@@ -110,19 +117,24 @@ v = view(g, LatDim(1:2), LongDim(1))
 @test coords(v) == (LongDim(143), LatDim(-38:-36))
 
 
-# coordinates.jl
 
-# What should the behaviour be for coords??
-# This is what getindex returns for Int, UnitRange etc inputs
+# Simpler versions of coords(), using coords() underneath unless
+# methods are added for the type
 
 @test lattitude(g, 1:2) == [-38, -36]
 @test longitude(g, 1:2) == [143, 145]
 # @test vertical(g, 1:2) == 
 # @test timespan(g, 1:2) == 
 
-using ProfileView
 
+
+#####################################################################
 # Benchmarks
+#
+# Test how much the recalculation of coordinates and dimtypes
+# costs over standard getindex/view.
+#
+# Seems to be about 50% slower for small arrays sizes - so still really fast.
 
 vd1(g) = view(g, LongDim(1), LatDim(1))
 vd2(g) = view(g, LongDim(:), LatDim(:))
