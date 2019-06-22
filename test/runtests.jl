@@ -1,10 +1,10 @@
 using GeoArrayBase, Test, BenchmarkTools, CoordinateReferenceSystemsBase
 
-using GeoArrayBase: sortdims, indices2dims, indices2dims_inner, dims2type
+using GeoArrayBase: sortdims, indices2dims, indices2dims_inner, dims2dimtypes, subsetdim
 
 struct GeoArray{T,N,A<:AbstractArray{T,N},D,Cr,Ca} <: AbstractGeoArray{T,N}
     data::A
-    dims::D
+    dimcoords::D
     crs::Cr
     calendar::Ca
 end
@@ -24,20 +24,20 @@ Base.eltype(::Type{GeoArray{T}}) where T = T
 Base.getindex(a::GeoArray, I::Vararg{<:Number}) = getindex(a.data, I...)
 Base.getindex(a::GeoArray{T}, I::Vararg{<:Union{AbstractArray,Colon,Number}}) where T = begin
     a1 = getindex(a.data, I...)
-    dims = indices2dims(a, I)
-    GeoArray(a1, dims, a.crs, a.calendar)
+    dimcoords = subsetdim(a, I)
+    GeoArray(a1, dimcoords, a.crs, a.calendar)
 end
 
 Base.view(a::GeoArray, I::Vararg{<:Union{Number,AbstractArray,Colon}}) = begin
     v = view(a.data, I...) 
-    dims = indices2dims(a, I)
-    GeoArray(v, dims, a.crs, a.calendar)
+    dimcoords = subsetdim(a, I)
+    GeoArray(v, dimcoords, a.crs, a.calendar)
 end
 
 # GeoArray interface
-GeoArrayBase.dimtype(a::GeoArray) = dims2type(a.dims)
+GeoArrayBase.dimtype(a::GeoArray) = dims2dimtypes(a.dimcoords)
 
-GeoArrayBase.coords(a::GeoArray) = a.dims
+GeoArrayBase.coords(a::GeoArray) = a.dimcoords
 
 GeoArrayBase.calendar(a::GeoArray) = a.calendar
 
@@ -46,7 +46,8 @@ CoordinateReferenceSystemsBase.crs(a::GeoArray) = a.crs
 
 
 
-g = GeoArray([1 2; 3 4], (LongDim(144:145), LatDim(-38:-37)); crs=EPSGcode("EPSG:28992"))
+g = GeoArray([1 2; 3 4], (LongDim(143:2:145), LatDim(-38:2:-36)); crs=EPSGcode("EPSG:28992"))
+GeoArrayBase.subsetdim(g.dimcoords, (1:2, [1:2]))
 
 # dimensions.jl
 
@@ -67,18 +68,23 @@ a = g[LongDim(1:2), LatDim(1)]
 @test typeof(a) <: GeoArray{Int,1} 
 @test dimtype(a) == Tuple{LongDim}
 @test crs(a) == EPSGcode("EPSG:28992")
+@test coords(a) == (LongDim(143:145), LatDim(-38))
+
+GeoArrayBase.dims2dimtypes(a.dimcoords)
 
 a = g[LongDim(1), LatDim(1:2)]
 @test a == [1, 2]
 @test typeof(a) <: GeoArray{Int,1} 
 @test dimtype(a) == Tuple{LatDim}
 @test crs(a) == EPSGcode("EPSG:28992")
+@test coords(a) == (LongDim(143), LatDim(-38:-36))
 
 a = g[LatDim(:)]
 @test a == [1 2; 3 4]
 @test typeof(a) <: GeoArray{Int,2} 
 @test dimtype(a) == Tuple{LongDim,LatDim}
 @test crs(a) == EPSGcode("EPSG:28992")
+@test coords(a) == (LongDim(143:2:145), LatDim(-38:2:-36))
 
 
 # view() returns GeoArrays containing views 
@@ -87,19 +93,21 @@ v = view(g, LatDim(1), LongDim(1))
 @test typeof(v) <: GeoArray{Int,0,<:SubArray} 
 @test dimtype(v) == Tuple{}
 @test crs(v) == EPSGcode("EPSG:28992")
+@test coords(v) == (LongDim(143), LatDim(-38))
 
 v = view(g, LatDim(1), LongDim(1:2))
 @test v == [1, 3]
 @test typeof(v) <: GeoArray{Int,1,<:SubArray} 
 @test dimtype(v) == Tuple{LongDim}
 @test crs(v) == EPSGcode("EPSG:28992")
-v = view(g, LatDim(1:2), LongDim(1))
+@test coords(v) == (LongDim(143:145), LatDim(-38))
 
 v = view(g, LatDim(1:2), LongDim(1))
 @test v == [1, 2]
 @test typeof(v) <: GeoArray{Int,1,<:SubArray} 
 @test dimtype(v) == Tuple{LatDim}
 @test crs(v) == EPSGcode("EPSG:28992")
+@test coords(v) == (LongDim(143), LatDim(-38:-36))
 
 
 # coordinates.jl
@@ -107,12 +115,8 @@ v = view(g, LatDim(1:2), LongDim(1))
 # What should the behaviour be for coords??
 # This is what getindex returns for Int, UnitRange etc inputs
 
-@test coords(g, LatDim(1:2), LongDim(1:2)) == ([144, 145], [-38, -37])
-@test coords(g, LatDim(1:2), LongDim(1)) == (144, [-38, -37])
-@test coords(g, LongDim(1), LatDim(2)) == (144, -37)
-
-@test lattitude(g, 1:2) == [-38, -37]
-@test longitude(g, 1:2) == [144, 145]
+@test lattitude(g, 1:2) == [-38, -36]
+@test longitude(g, 1:2) == [143, 145]
 # @test vertical(g, 1:2) == 
 # @test timespan(g, 1:2) == 
 
