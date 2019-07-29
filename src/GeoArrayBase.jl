@@ -1,33 +1,38 @@
 """
 Some thoughts on this module.
 
-The core goal is to define common types and methods for accessing and working with spatial
-rasters in the form of matrices or multidimensional arrays - as opposed to a list of points
-also refered to as rasters. But an interface for both types of data would be best.
+The core goal is to define common types and methods for accessing and working with spatial 
+data to simplify development and use of spatial packages in Julia.
 
 Other goals:
 - The ability to convert data between different types would be very useful, say to extract a
-  2d spatial matrix from a NetCDF file that keeps information about its coordinates and
+  matrix from a NetCDF file that keeps information about its coordinates and
   projection, and plots correctly.
-- Common plotting recipes
+- Spatial data remains attached to arrays after subsetting with getindex or view, and is updated
+  to match the subset where necessary.
+- N dimensions can be handled in any order: lat, long, vertical and time. Custom dims can be added.
+- Common plotting recipes work for all AbstractGeoArrays
 
 
 Method names need more thought, please change them at will.
 """
 module GeoArrayBase
 
+using RecipesBase, CoordinateReferenceSystemsBase
+
 using Base: tail
 
-export AbstractGeoArray, AbstractGeoDim, LongDim, LatDim, VertDim, TimeDim
-
-export extract, bounds, coords, dimtype, dimname, dimunits
-
+export AbstractGeoDim, LongDim, LatDim, VertDim, TimeDim
+export AbstractGeoArray, GeoArray
+export dims, refdims, label, dimname, dimtype, dimunits, extract, bounds
 export lattitude, longitude, vertical, timespan
 
 include("types.jl")
 include("interface.jl")
 include("dimensions.jl")
 include("coordinates.jl")
+include("geoarray.jl")
+include("plotrecipes.jl")
 
 
 end

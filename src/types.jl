@@ -62,7 +62,7 @@ convert (from any AbstractGeoArray)
 level
 time
 """
-abstract type AbstractGeoArray{T,N} <: AbstractArray{T,N} end
+abstract type AbstractGeoArray{T,N,D} <: AbstractArray{T,N} end
 
 
 """
@@ -70,3 +70,5 @@ Stack object for holding multiple arrays and datasets
 with the same spatial metadata and bounds. As in Rs raster stack.
 """
 abstract type AbstractGeoStack end
+
+

@@ -1,37 +1,38 @@
 #= We need to be able to handle both affine maps and simple bounding
 box style coordinates.
 
-Generalising this becomes interesting when we add vertical and time dimenstions
-How much is included in an affine map?
-If the vertical dimensions is not in the affine map, how do we generalise the problem?
+Generalising this becomes interesting when we add vertical and time dimenstions:
+how much is included in an affine map?
+
+Do we need traits for all combinations?
 
 I assume time allways has its own separate map (ie a start/stop times/dataes and calendar).
 
 Cases:
 - all dimensions are tracked separately
-- lat/long transforms are stored in an affine map
-- lat/long/vert are stored in an affine map?? (does anyone use this?)
+- lat/long transforms are stored in an affine map, vert (and maybe time) stored separately
+- lat/long/vert are stored in an affine map   with time separate (does anyone use/need this?)
 
 =#
 
 # Coordinate trait
 
-struct HasAffineMap end
-struct HasDimCoords end
-struct NoCoords end
-
-coordtype(a::AbstractGeoArray) = NoCoords()
-
-coords(a::AbstractGeoArray, dims...) = coords(coords(a), sortdims(a, dims))
-coords(coorddims::Tuple, indexdims::Tuple) = 
+coords(a::AbstractGeoArray, dims...) = coords(dims(a), sortdims(a, dims))
+coords(coorddims::Tuple, indexdims) = 
     (coords(coorddims[1], indexdims[1])..., coords(tail(coorddims), tail(indexdims))...)
 coords(coorddims::Tuple{}, indexdims::Tuple{}) = ()
+
 coords(coorddim::AbstractGeoDim, indexdim::Nothing) = ()
 coords(coorddim::AbstractGeoDim, indexdim::AbstractGeoDim) = 
-    (collect(val(coorddim))[val(indexdim)],)
+    (basetype(coorddim)(collect(val(coorddim))[val(indexdim)]),)
 
+# Generate upper left coordinates for specic index
+coords(aff::AbsractAffineDims, point) = val(aff)(point .- 1)
 
-lattitude(a::AbstractGeoArray, i) = coords(a, LatDim(i))[1]
-longitude(a::AbstractGeoArray, i) = coords(a, LongDim(i))[1]
-vertical(a::AbstractGeoArray, i) = coords(a, VertDim(i))[1]
-timespan(a::AbstractGeoArray, i) = coords(a, TimeDim(i))[1]
+# Generate center coordinates for specific index
+centercoords(aff::AbsractAffineDims, point) = val(aff)(point .- 0.5)
+
+# Convert coordinates to indices
+indices(aff:AbstractAffinceDims, point) = 
+    map(x -> round(Int, x), inv(val(aff))(point)) .+ 1
+
