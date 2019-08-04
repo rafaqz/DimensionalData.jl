@@ -1,31 +1,31 @@
 # A basic GeoArray type to test the framework.
 
-struct GeoArray{T,N,D,R,L,A<:AbstractArray{T,N},Mi,Me} <: AbstractGeoArray{T,N,D}
+struct GeoArray{T,N,D,R,A<:AbstractArray{T,N},Mi,U,Me} <: AbstractGeoArray{T,N,D}
     data::A
     dims::D
     refdims::R
-    label::L
     missingval::Mi
+    units::U
     metadata::Me
 end
-GeoArray(a::AbstractArray{T,N}, dims; refdims=(), label="",
-         missingval=missing, metadata=Dict()) where {T,N} = begin
-    GeoArray(a, checkdim(dims, a), refdims, label, missingval, metadata)
-end
+GeoArray(a::AbstractArray{T,N}, dims; refdims=(), missingval=missing, units="", 
+         metadata=Dict()) where {T,N} = 
+    GeoArray(a, checkdim(a, dims), refdims, missingval, units, metadata)
 
 # Array interface
 Base.parent(a::GeoArray) = a.data
 
+# CoordinateReferenceSystemsBase interface
+CoordinateReferenceSystemsBase.crs(a::GeoArray) = get(metadata(a), :crs, nothing)
+
+rebuild(a::GeoArray, data, dims, refdims) =
+    GeoArray(data, dims, refdims, a.missingval, a.units, a.metadata)
+
 # GeoArray interface
 dims(a::GeoArray) = a.dims
 refdims(a::GeoArray) = a.refdims
-label(a::GeoArray) = a.label
 missingval(a::GeoArray) = a.missingval
 metadata(a::GeoArray) = a.metadata
+key(a::GeoArray) = get(metadata(a), :key, "")
+name(a::GeoArray) = get(metadata(a), :name, "")
 
-rebuild(a::GeoArray, data, dims, refdims) =
-    GeoArray(data, dims, refdims, a.label, a.missingval, a.metadata)
-
-# CoordinateReferenceSystemsBase interface
-CoordinateReferenceSystemsBase.crs(a::GeoArray) = 
-    haskey(metadata(a), :crs) ? metadata(a)[:crs] : error("No crs metadata associated with this array")

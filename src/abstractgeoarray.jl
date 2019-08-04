@@ -7,20 +7,20 @@
 # Concrete types can mostly ignore Dims, except args... for view()
 # and getindex() must have specific types to avoid abimguity.
 
-Base.getindex(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = getindex(a, dims2indices(a, dims)...)
-Base.getindex(a::AbstractGeoArray, I::Vararg{<:Number}) = getindex(parent(a), I...)
-Base.getindex(a::AbstractGeoArray) = getindex(parent(a))
-Base.getindex(a::AbstractGeoArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) = begin
+Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = getindex(a, dims2indices(a, dims)...)
+Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, I::Vararg{<:Number}) = getindex(parent(a), I...)
+Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray) = getindex(parent(a))
+Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) = begin
     data = getindex(parent(a), I...)
     newdims, newrefdims = slicedim(a, I)
     rebuild(a, data, newdims, (refdims(a)..., newrefdims...))
 end
 
-Base.setindex!(a::AbstractGeoArray, x, dims::Vararg{<:AbstractGeoDim}) = setindex!(a, x, dims2indices(a, dims)...)
-Base.setindex!(a::AbstractGeoArray, x, I...) = setindex!(parent(a), x, I...)
+Base.@propagate_inbounds Base.setindex!(a::AbstractGeoArray, x, dims::Vararg{<:AbstractGeoDim}) = setindex!(a, x, dims2indices(a, dims)...)
+Base.@propagate_inbounds Base.setindex!(a::AbstractGeoArray, x, I...) = setindex!(parent(a), x, I...)
 
-Base.view(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = view(a, dims2indices(a, dims)...)
-Base.view(a::AbstractGeoArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) = begin
+Base.@propagate_inbounds Base.view(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = view(a, dims2indices(a, dims)...)
+Base.@propagate_inbounds Base.view(a::AbstractGeoArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) = begin
     v = view(parent(a), I...) 
     newdims, newrefdims = slicedim(a, I)
     rebuild(a, v, newdims, (refdims(a)..., newrefdims...))
@@ -47,10 +47,11 @@ Base.accumulate(f, A::AbstractGeoArray, dims::Tuple{<:AbstractGeoDim, Vararg}) =
 
 Base.permutedims(a::AbstractGeoArray{T,2}) where T =  
     rebuild(a, permutedims(parent(a)), reverse(dims(a)), refdims(a))
-# Base.permutedims(a::GeoArray{T,N}, dims) where T,N = begin
-#     dimnums = [dimnum(dims)...]
-#     rebuild(a, permutedims(parent(a), dimnums), a.dims[dimnums], refdims(a))
-# end
+Base.permutedims(a::AbstractGeoArray, dims::GeoDims) = permutedims(a, dimnum(a, dims))
+Base.permutedims(a::AbstractGeoArray{T,N}, dims) where {T,N} = begin
+    dimnums = [dimnum(a, dims)...]
+    rebuild(a, permutedims(parent(a), dimnums), a.dims[dimnums], refdims(a))
+end
 
 Base.size(a::AbstractGeoArray) = size(parent(a))
 Base.IndexStyle(::Type{<:AbstractGeoArray}) = IndexLinear()
@@ -60,7 +61,7 @@ Base.length(a::AbstractGeoArray) = length(parent(a))
 
 # Statistics methods
 import Statistics: _mean, _median, _std, _var
-import Base: _sum, _prod, _maximum, _minimum
+import Base: _sum, _prod, _maximum, _minimum, _mapreduce_dim
 
 @inline others(a, d, n) = begin
     axes = setdiff(collect(1:n), dimnum(a, d))
@@ -73,21 +74,18 @@ for fname in [:sum, :prod, :maximum, :minimum, :mean]
     _fname = Symbol('_', fname)
     @eval begin
         @inline ($_fname)(a::AbstractGeoArray{T,N}, dims::GeoDims) where {T,N} = begin
-            otherdims, otherindices = others(a, dims, N)
-            newdims, newrefdims = slicedim(a, otherindices)
-            newdata = ($_fname)(a, dimnum(a, dims))[otherindices...]
-            rebuild(a, newdata, newdims, newrefdims)
+            ($_fname)(a, dimnum(a, dims))
         end
         @inline ($_fname)(f, a::AbstractGeoArray{T,N}, dims::GeoDims) where {T,N} = begin
-            otherdims, otherindices = others(a, dims, N)
-            newdims, newrefdims = slicedim(a, otherindices)
-            newdata = ($_fname)(f, a, dimnum(a, dims))[otherindices...]
-            rebuild(a, newdata, newdims, newrefdims)
+            ($_fname)(f, a, dimnum(a, dims))
         end
     end
 end
 
 @inline _median(a::AbstractGeoArray, dims::GeoDims) = _median(a, dimnum(a, dims))
+@inline _mapreduce_dim(f, op, nt, A::AbstractArray, dims::GeoDims) =
+    _mapreduce_dim(f, op, nt, A, dimnum(dims))
+
 
 for fname in [:std, :var]
     _fname = Symbol('_', fname)
@@ -130,7 +128,7 @@ slicedim(a::AbstractGeoArray, I::Tuple) = slicedim(dims(a), I)
 
 dims2indices(a::AbstractGeoArray, dims::Tuple, args...) = dims2indices(dimtype(a), dims, args...)
 
-dimnum(a::AbstractGeoArray, dim) = dimnum(dimtype(a), dim)
+dimnum(a::AbstractGeoArray, dims) = dimnum(dimtype(a), dims)
 
 bounds(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = bounds(a, dimnum(a, dims)...)
 bounds(a::AbstractGeoArray, args::Vararg{Integer}) = bounds.(Ref(a), args)  

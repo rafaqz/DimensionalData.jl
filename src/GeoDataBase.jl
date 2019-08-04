@@ -22,7 +22,7 @@ using RecipesBase, CoordinateReferenceSystemsBase
 
 using Base: tail, OneTo
 
-export AbstractGeoDim, LongDim, LatDim, VertDim, TimeDim
+export AbstractGeoDim, Lon, Lat, Vert, Time
 
 export AbstractGeoArray, GeoArray
 

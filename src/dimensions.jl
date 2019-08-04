@@ -40,10 +40,10 @@ macro geodim(typ, name, shortname=name)
     end)
 end
 
-@geodim LatDim "Lattitude" "Lat"
-@geodim LongDim "Longitude" "Long"
-@geodim VertDim "Vertical" "Vert"
-@geodim TimeDim "Time"
+@geodim Lat "Lattitude" "Lat"
+@geodim Lon "Longitude" "Lon"
+@geodim Vert "Vertical" "Vert"
+@geodim Time "Time"
 
 
 
@@ -58,6 +58,7 @@ Base.to_shape(dims::GeoDims) = dims
 # GeoDataBase methods
 
 dimname(d::AbstractGeoDim) = dimname(typeof(d))
+dimname(d::GeoDims) = dimname.(d)
 
 shortname(d::AbstractGeoDim) = shortname(typeof(d))
 shortname(d::Type{<:AbstractGeoDim}) = dimname(d)
@@ -114,8 +115,9 @@ end
 @generated sortdims(dimtypes::Type{DT}, dims::Tuple) where DT = sortdims_inner(DT, dims)
 
 
-dimnum(dimtypes, dim::Number) = dim
-dimnum(dimtypes, dims::Tuple) = (dimnum(dimtypes, dims[1]), dimnum(dimtypes, tail(dims))...,)
+dimnum(dimtypes::Type, dim::Number) = dim
+dimnum(dimtypes::Type, dims::Tuple) = (dimnum(dimtypes, dims[1]), dimnum(dimtypes, tail(dims))...,)
+dimnum(dimtypes::Type, dims::Tuple{}) = ()
 @generated dimnum(dimtypes::Type{DTS}, dim::AbstractGeoDim) where DTS = begin
     index = findfirst(dt -> dim <: basetype(dt), DTS.parameters)
     if index == nothing
@@ -133,31 +135,31 @@ slicedim(dims::Tuple, I::Tuple) = begin
     out
 end
 slicedim(dims::Tuple{}, I::Tuple{}) = ((), ())
-slicedim(d::AbstractGeoDim, i::Number) = ((), (basetype(d)(val(d)[i]),))
-slicedim(d::AbstractGeoDim, i::AbstractVector) = ((basetype(d)(val(d)[i]),), ())
+slicedim(d::AbstractGeoDim, i::Number) = ((), (basetype(d)(val(d)[i], d.units),))
+slicedim(d::AbstractGeoDim, i::AbstractVector) = ((basetype(d)(val(d)[i], d.units),), ())
 slicedim(d::AbstractGeoDim, i::Colon) = ((d,), ())
-slicedim(d::AbstractGeoDim, i::AbstractRange) = ((basetype(d)(val(d)[i]),), ())
+slicedim(d::AbstractGeoDim, i::AbstractRange) = ((basetype(d)(val(d)[i], d.units),), ())
 slicedim(d::AbstractGeoDim{<:StepRange}, i::AbstractRange) = begin
     start = first(val(d))
     stp = getste((val(d)))
-    d = basetype(d)(start+stp*(first(i) - 1):stp:start+stp*(last(i) - 1))
+    d = basetype(d)(start+stp*(first(i) - 1):stp:start+stp*(last(i) - 1), d.units)
     ((d,), ())
 end
 
-checkdim(dims::Tuple, a::AbstractArray{T,N}) where {T,N} = begin
+checkdim(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    checkdim(dims, a, 1)
+    checkdim(a, dims, 1)
 end
-@inline checkdim(dims::Tuple, a, n) = (checkdim(dims[1], a, n), checkdim(tail(dims), a, n+1)...,) 
-@inline checkdim(dims::Tuple{}, a, n) = ()
-@inline checkdim(dim::AbstractGeoDim{<:AbstractArray}, a, n) = 
+@inline checkdim(a, dims::Tuple, n) = (checkdim(a, dims[1], n), checkdim(a, tail(dims), n+1)...,) 
+@inline checkdim(a, dims::Tuple{}, n) = ()
+@inline checkdim(a, dim::AbstractGeoDim{<:AbstractArray}, n) = 
     if length(val(dim)) == size(a, n) 
         dim 
     else
         throw(ArgumentError("length of $dim $(length(val(dim))) does not match size of array dimension $n $(size(a, n))"))
     end
-@inline checkdim(dim::AbstractGeoDim{<:Union{UnitRange,NTuple{2}}}, a, n) = begin
+@inline checkdim(a, dim::AbstractGeoDim{<:Union{UnitRange,NTuple{2}}}, n) = begin
     range = val(dim)
     start, stop = first(range), last(range)
     steprange = start:(stop-start)/(size(a, n)-1):stop
