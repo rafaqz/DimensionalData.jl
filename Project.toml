@@ -1,4 +1,4 @@
-name = "GeoArrayBase"
+name = "GeoDataBase"
 uuid = "9b6fcbb8-86d6-11e9-1ce7-23a6bb139a78"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
 version = "0.1.0"

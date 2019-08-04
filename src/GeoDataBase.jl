@@ -16,23 +16,32 @@ Other goals:
 
 Method names need more thought, please change them at will.
 """
-module GeoArrayBase
+module GeoDataBase
 
 using RecipesBase, CoordinateReferenceSystemsBase
 
-using Base: tail
+using Base: tail, OneTo
 
 export AbstractGeoDim, LongDim, LatDim, VertDim, TimeDim
+
 export AbstractGeoArray, GeoArray
-export dims, refdims, label, dimname, dimtype, dimunits, extract, bounds
-export lattitude, longitude, vertical, timespan
+
+export AbstractGeoData, GeoData
+
+export AbstractGeoStack, GeoStack
+
+export dims, refdims, dimname, dimtype, dimunits 
+
+export label, coordinates, coordinates!, extract, bounds
 
 include("types.jl")
 include("interface.jl")
 include("dimensions.jl")
 include("coordinates.jl")
+include("abstractgeoarray.jl")
 include("geoarray.jl")
 include("plotrecipes.jl")
+include("utils.jl")
 
 
 end

@@ -1,11 +1,11 @@
-using GeoArrayBase, Test, BenchmarkTools, CoordinateReferenceSystemsBase
+using GeoDataBase, Test, BenchmarkTools, CoordinateReferenceSystemsBase, Statistics
 
-using GeoArrayBase: subsetdim, val, basetype, sortdims
+using GeoDataBase: val, basetype, sortdims
 
 # Define a small GeoArray
 a = [1 2; 3 4]
 dimz = (LongDim((143, 145)), LatDim((-38, -36)))
-g = GeoArray(a, dimz; crs=EPSGcode("EPSG:28992"))
+g = GeoArray(a, dimz; metadata=Dict(:crs => EPSGcode("EPSG:28992")))
 
 # Make sure dimtypes is correct and sorts in the right order
 @test dimtype(g) <: Tuple{<:LongDim,<:LatDim}
@@ -21,7 +21,7 @@ a = g[LongDim(1:2), LatDim(1)]
 @test dims(a) == (LongDim(143:2.0:145),)
 @test refdims(a) == (LatDim(-38.0),)
 @test crs(a) == EPSGcode("EPSG:28992")
-@test bounds(a, LongDim()) == (143, 145)
+# @test bounds(a, LongDim()) == (143, 145)
 
 a = g[LongDim(1), LatDim(1:2)]
 @test a == [1, 2]
@@ -41,7 +41,7 @@ a = g[LatDim(:)]
 
 
 # view() returns GeoArrays containing views
-v = view(g, LatDim(1), LongDim(1))
+v = view(g, LatDim(1), LongDim(1));
 @test v[] == 1
 @test typeof(parent(v)) <:SubArray
 @test dimtype(v) == Tuple{}
@@ -65,11 +65,34 @@ v = view(g, LatDim(1:2), LongDim(1))
 @test refdims(v) == (LongDim(143.0),)
 @test crs(v) == EPSGcode("EPSG:28992")
 
+v = view(g, LatDim(Base.OneTo(2)), LongDim(1))
+@test v == [1, 2]
+@test typeof(parent(v)) <: SubArray
+@test dimtype(v) <: Tuple{<:LatDim}
+@test dims(v) == (LatDim(-38:2.0:-36),)
+@test refdims(v) == (LongDim(143.0),)
+@test crs(v) == EPSGcode("EPSG:28992")
 
-# @test lattitude(g, 1:2) == [-38.0, -36.0]
-# @test longitude(g, 1:2) == [143.0, 145.0]
-# @test vertical(g, 1:2) ==
-# @test timespan(g, 1:2) ==
+
+a = [1 2; 3 4]
+dimz = (LongDim((143, 145)), LatDim((-38, -36)))
+g = GeoArray(a, dimz; metadata=Dict(:crs => EPSGcode("EPSG:28992")))
+
+# sum, mean etc with dims kwarg
+@test sum(g; dims=LongDim()) == GeoArray([4, 6], (dimz[2],))
+@test sum(g; dims=LatDim()) == GeoArray([3, 7], (dimz[2],))
+@test prod(g; dims=LongDim()) == [3, 8]
+@test prod(g; dims=LatDim()) == [2, 12]
+@test maximum(g; dims=LongDim()) == [3, 4]
+@test maximum(g; dims=LatDim()) == [2, 4]
+@test minimum(g; dims=LongDim()) == [1, 2]
+@test minimum(g; dims=LatDim()) == [1, 3]
+@test mean(g; dims=LongDim()) == [2.0, 3.0]
+@test mean(g; dims=LatDim()) == [1.5, 3.5]
+@test std(g; dims=LongDim()) == [1.4142135623730951, 1.4142135623730951]
+@test std(g; dims=LatDim()) == [0.7071067811865476, 0.7071067811865476]
+@test var(g; dims=LongDim()) == [2.0, 2.0]
+@test var(g; dims=LatDim()) == [0.5, 0.5]
 
 
 
@@ -85,23 +108,23 @@ println("\n\nPerformance of view()\n")
 vd1(g) = view(g, LongDim(1), LatDim(1))
 vd2(g) = view(g, LongDim(:), LatDim(:))
 vd3(g) = view(g, LongDim(1:2), LatDim(1:2))
-vi1(g) = view(g.data, 1, 2)
-vi2(g) = view(g.data, :, :)
-vi3(g) = view(g.data, 1:2, 1:2)
+vi1(g) = view(parent(g), 1, 2)
+vi2(g) = view(parent(g), :, :)
+vi3(g) = view(parent(g), 1:2, 1:2)
 
 println("Dims with Number")
 @btime vd1(g)
-println("Indices with Number")
+println("Parent indices with Number")
 @btime vi1(g)
 println()
 println("Dims with Colon")
 @btime vd2(g)
-println("Indices with Colon")
+println("Parent indices with Colon")
 @btime vi2(g)
 println()
 println("Dims with UnitRange")
 @btime vd3(g)
-println("Indices with UnitRange")
+println("Parent indices with UnitRange")
 @btime vi3(g)
 
 
@@ -109,42 +132,50 @@ println("\n\nPerformance of getindex()\n")
 d1(g) = g[LatDim(1), LongDim(1)]
 d2(g) = g[LatDim(:), LongDim(:)]
 d3(g) = g[LatDim(1:2), LongDim(1:2)]
-i1(g) = g.data[1, 1]
-i2(g) = g.data[:, :]
-i3(g) = g.data[1:2, 1:2]
+i1(g) = parent(g)[1, 1]
+i2(g) = parent(g)[:, :]
+i3(g) = parent(g)[1:2, 1:2]
 
 println("Dims with Number")
 @btime d1(g)
-println("Indices with Number")
+println("Parent indices with Number")
 @btime i1(g)
 println()
 println("Dims with Colon")
 @btime d2(g)
-println("Indices with Colon")
+println("Parent indices with Colon")
 @btime i2(g)
 println()
 println("Dims with UnitRange")
 @btime d3(g)
-println("Indices with UnitRange")
+println("Parent indices with UnitRange")
 @btime i3(g)
 
 
-using HDF5, Plots
-datafile = "../DispersalScripts/spread_inputs_US_SWD.h5"
-data = h5open(datafile, "r")
-array = replace(read(data["x_y_month_intrinsicGrowthRate"]) , NaN => missing)
-array = read(data["x_y_month_intrinsicGrowthRate"])
-dimz = (LatDim((20.0, 50.0)), LongDim((80, 105)), TimeDim(1:12))
-a = GeoArray(array, dimz; label="Growth rate")
-ll = view(a, TimeDim(5))
-lt = view(a, LatDim(35))
-tl = permutedims(lt)
-@test dims(lt) == reverse(dims(tl))
-t = a[LongDim(25), LatDim(32)]
+using GeoDataBase, NCDatasets, Plots
+filename = "tos_O1_2001-2002.nc"
+# download("https://www.unidata.ucar.edu/software/netcdf/examples/$filename", filename)
+ds = Dataset(filename)
+d = ds["tos"]
+ncfields(ds, index) = ds[index][:], ds[index].attrib["units"]
+dimz = (LongDim(ncfields(ds, "lon")...,), LatDim(ncfields(ds, "lat")...,), 
+        TimeDim(ncfields(ds, "time")...,))
 
-plot(ll)
-plot(lt)
-plot(tl)
-plot(t)
+g = GeoArray(ds["tos"][:,:,:], dimz; label=string(ds["tos"].attrib["standard_name"], "\n"));
+plot(replace(g, missing=>0)[TimeDim(4)])
+similar(g)
+
+r = replace(x->ismissing(x) ? 0 : x, g)
+plot(minimum(x-> ismissing(x) ? 0 : x, g; dims=TimeDim()))
+plot(minimum(x-> ismissing(x) ? 0 : x, g; dims=TimeDim()))
+v = var(g, dims=TimeDim())
+length.(val.(dims(v)))
+size(v)
+plot(v)
+parent(v)
+
+
+plot(a[TimeDim(4)])
+plot(a[LongDim(25), LatDim(32)])
 # pyplot()
 # gr()

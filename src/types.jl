@@ -20,7 +20,7 @@ longitude
 bounds
 extract
 """
-abstract type AbstractGeoData{T,N} end
+abstract type AbstractGeoData{T,N,D} end
 
 
 """
@@ -45,8 +45,7 @@ abstract type AbstractGeoData{T,N} end
 
 Interface:
 
-basic array interface
-iterable interface?
+basic array interface iterable interface?
 
 # Required methods
 crs
@@ -68,7 +67,9 @@ abstract type AbstractGeoArray{T,N,D} <: AbstractArray{T,N} end
 """
 Stack object for holding multiple arrays and datasets
 with the same spatial metadata and bounds. As in Rs raster stack.
+
+Contained objects must share common dims D?
 """
-abstract type AbstractGeoStack end
+abstract type AbstractGeoStack{D} end
 
 

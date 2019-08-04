@@ -1,5 +1,8 @@
+cleanup(x::AbstractFloat) = round(x, sigdigits=4)
+cleanup(x) = x
+
 datalabel(ga::AbstractGeoArray) = begin
-    reflabels = join(join.(zip(lowercase.(shortname.(refdims(ga))), round.(val.(refdims(ga)); sigdigits=4)), ": ", ), ", ")
+    reflabels = join(join.(zip(lowercase.(shortname.(refdims(ga))), cleanup(val.(refdims(ga)))), ": ", ), ", ")
     reflabels == "" ? label(ga) : string(label(ga), " at ", reflabels)
 end
 
@@ -11,7 +14,7 @@ end
     ylabel --> dimname(ga)[1] 
     xlabel --> dimname(ga)[2]
     colorbar_title --> datalabel(ga)
-    data = @view replace(parent(ga), missingval(ga) => NaN)[end:-1:1, :]
+    data = @view replace(parent(ga), missingval(ga) => NaN)[:, :]
     reverse(val.(dims(ga)))..., data
 end
 
@@ -22,7 +25,7 @@ end
     xlabel --> dimname(ga)[1]
     ylabel --> dimname(ga)[2] 
     colorbar_title --> datalabel(ga)
-    data = replace(parent(ga), missingval(ga) => NaN)[:, end:-1:1]'
+    data = replace(parent(ga), missingval(ga) => NaN)[:, :]'
     val.(dims(ga))..., data
 end
 
