@@ -4,14 +4,18 @@ cleanup(x) = x
 getstring(::Nothing) = ""
 getstring(x) = string(x)
 
-dimlabel(dim) = join((dimname(dim), getstring(dim.units)), " ")
+dimlabel(dim) = join((dimname(dim), getstring(units(dim))), " ")
 
 reflabel(a) = join(join.(zip(shortname.(refdims(a)), cleanup(val.(refdims(a)))), ": ", ), ", ")
 
+datalabel(a) = join(name(a), getstring(units(a)), " ")
+
 @recipe function f(ga::AbstractGeoArray{T,3,<:Tuple{<:Lat,<:Lon,D}}) where {T,D}
     nplots = size(ga, 3)
-    layout --> nplots
     if nplots > 1
+        layout --> nplots
+        # How to make this work?
+        plot_title --> join(datalabel(ga), dimlabel(dims(ga)[3]), " ")
         for i in 1:nplots
             @series begin
                 seriestype := :heatmap
@@ -36,7 +40,7 @@ end
     grid --> false
     ylabel --> dimlabel(dims(ga)[1])
     xlabel --> dimlabel(dims(ga)[2])
-    colorbar_title --> name(ga)
+    colorbar_title --> datalabel(ga)
     title --> reflabel(ga)
     data = replace(parent(ga), missingval(ga) => NaN)
     reverse(val.(dims(ga)))..., data
@@ -48,7 +52,7 @@ end
 
 @recipe function f(ga::AbstractGeoArray{T,2,<:Tuple{<:AbstractGeoDim,<:Time}}) where T
     ticks --> true
-    ylabel --> name(ga)
+    ylabel --> datalabel(ga)
     xlabel --> dimlabel(dims(ga)[1])
     legendtitle --> dimlabel(dims(ga)[1])
     title --> reflabel(ga)
@@ -60,7 +64,7 @@ end
 end
 
 @recipe function f(ga::AbstractGeoArray{T,1,<:Tuple{<:AbstractGeoDim}}) where T
-    ylabel --> name(ga)
+    ylabel --> datalabel(ga)
     xlabel --> dimlabel(dims(ga)[1])
     legend --> false
     title --> reflabel(ga)
