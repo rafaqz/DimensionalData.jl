@@ -34,11 +34,11 @@ export dims, refdims, dimname, dimtype, dimunits
 
 export label, coordinates, coordinates!, extract, bounds
 
-include("types.jl")
 include("interface.jl")
+include("types.jl")
 include("dimensions.jl")
-include("coordinates.jl")
 include("abstractgeoarray.jl")
+include("coordinates.jl")
 include("geoarray.jl")
 include("plotrecipes.jl")
 include("utils.jl")

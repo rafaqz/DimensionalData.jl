@@ -10,22 +10,24 @@ struct GeoArray{T,N,D,R,A<:AbstractArray{T,N},Mi,U,Me} <: AbstractGeoArray{T,N,D
 end
 GeoArray(a::AbstractArray{T,N}, dims; refdims=(), missingval=missing, units="", 
          metadata=Dict()) where {T,N} = 
-    GeoArray(a, checkdim(a, dims), refdims, missingval, units, metadata)
+    GeoArray(a, checkdims(a, dims), refdims, missingval, units, metadata)
 
-# Array interface
+# Array interface (AbstractGeoArray takes care of everything else)
 Base.parent(a::GeoArray) = a.data
 
 # CoordinateReferenceSystemsBase interface
 CoordinateReferenceSystemsBase.crs(a::GeoArray) = get(metadata(a), :crs, nothing)
 
+
+# GeoArray interface
 rebuild(a::GeoArray, data, dims, refdims) =
     GeoArray(data, dims, refdims, a.missingval, a.units, a.metadata)
 
-# GeoArray interface
 dims(a::GeoArray) = a.dims
 refdims(a::GeoArray) = a.refdims
 missingval(a::GeoArray) = a.missingval
+units(a::GeoArray) = a.units
 metadata(a::GeoArray) = a.metadata
-key(a::GeoArray) = get(metadata(a), :key, "")
 name(a::GeoArray) = get(metadata(a), :name, "")
+shortname(a::GeoArray) = get(metadata(a), :shortname, "")
 

@@ -23,31 +23,18 @@ struct CoordDims{T} <: AbstractAffineDims{T}
     dims::T 
 end
 
-function shortname end
-function dimname end
+val(aff::AbstractAffineDims) = aff.dims
 
+# Getters 
 
-# Define dims with a macro, so new dims are easy to add when required
-macro geodim(typ, name, shortname=name)
-    esc(quote
-        struct $typ{T,U} <: AbstractGeoDim{T}
-            val::T
-            units::U
-        end
-        $typ(val; units=nothing) = $typ(val, units)
-        GeoDataBase.shortname(::Type{<:$typ}) = $shortname
-        GeoDataBase.dimname(::Type{<:$typ}) = $name
-    end)
-end
+val(dim::AbstractGeoDim) = dim.val
+val(dim) = dim
 
-@geodim Lat "Lattitude" "Lat"
-@geodim Lon "Longitude" "Lon"
-@geodim Vert "Vertical" "Vert"
-@geodim Time "Time"
-
+units(dim) = dim.units
 
 
 # Base methods
+
 Base.eltype(dim::AbstractGeoDim) = eltype(typeof(dim))
 Base.eltype(dim::Type{AbstractGeoDim{T}}) where T = T
 
@@ -55,31 +42,26 @@ Base.eltype(dim::Type{AbstractGeoDim{T}}) where T = T
 Base.to_shape(dims::GeoDims) = dims
 
 
+
 # GeoDataBase methods
 
-dimname(d::AbstractGeoDim) = dimname(typeof(d))
-dimname(d::GeoDims) = dimname.(d)
+name(d::AbstractGeoDim) = name(typeof(d))
+name(d::GeoDims) = name.(d)
 
 shortname(d::AbstractGeoDim) = shortname(typeof(d))
-shortname(d::Type{<:AbstractGeoDim}) = dimname(d)
+shortname(d::Type{<:AbstractGeoDim}) = name(d)
 
 bounds(dims::Tuple) = (bounds(dim2[1]), bounds(tail(dims)...,))
 bounds(dim::AbstractGeoDim{<:AbstractArray}) = first(val(dim)), last(val(dim))
 bounds(dim::AbstractGeoDim{<:Number}) = val(dim)
 
-# Utility methods
-
-val(dim::AbstractGeoDim) = dim.val
-val(aff::AbstractAffineDims) = aff.dims
-val(dim) = dim
 
 
+# Lowe-level utility methods. 
+#
+# These do most of the work in the package and are all @generated or recusive 
+# functions for performance reasons.
 
-"""
-Convert AbstractGeoDims to index args in the right order
-
-Adds Colon() for any missing dim.
-"""
 dims2indices_inner(dimtypes::Type, dims::Type) = begin
     indexexps = []
     for dimtype in flattendimtypes(dimtypes)
@@ -128,38 +110,38 @@ dimnum(dimtypes::Type, dims::Tuple{}) = ()
 end
 
 
-slicedim(dims::Tuple, I::Tuple) = begin
-    d = slicedim(dims[1], I[1])
-    ds = slicedim(tail(dims), tail(I))
+slicedims(dims::Tuple, I::Tuple) = begin
+    d = slicedims(dims[1], I[1])
+    ds = slicedims(tail(dims), tail(I))
     out = (d[1]..., ds[1]...), (d[2]..., ds[2]...)
     out
 end
-slicedim(dims::Tuple{}, I::Tuple{}) = ((), ())
-slicedim(d::AbstractGeoDim, i::Number) = ((), (basetype(d)(val(d)[i], d.units),))
-slicedim(d::AbstractGeoDim, i::AbstractVector) = ((basetype(d)(val(d)[i], d.units),), ())
-slicedim(d::AbstractGeoDim, i::Colon) = ((d,), ())
-slicedim(d::AbstractGeoDim, i::AbstractRange) = ((basetype(d)(val(d)[i], d.units),), ())
-slicedim(d::AbstractGeoDim{<:StepRange}, i::AbstractRange) = begin
+slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
+slicedims(d::AbstractGeoDim, i::Number) = ((), (basetype(d)(val(d)[i], d.units),))
+slicedims(d::AbstractGeoDim, i::AbstractVector) = ((basetype(d)(val(d)[i], d.units),), ())
+slicedims(d::AbstractGeoDim, i::Colon) = ((d,), ())
+slicedims(d::AbstractGeoDim, i::AbstractRange) = ((basetype(d)(val(d)[i], d.units),), ())
+slicedims(d::AbstractGeoDim{<:StepRange}, i::AbstractRange) = begin
     start = first(val(d))
     stp = getste((val(d)))
     d = basetype(d)(start+stp*(first(i) - 1):stp:start+stp*(last(i) - 1), d.units)
     ((d,), ())
 end
 
-checkdim(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
+checkdims(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    checkdim(a, dims, 1)
+    checkdims(a, dims, 1)
 end
-@inline checkdim(a, dims::Tuple, n) = (checkdim(a, dims[1], n), checkdim(a, tail(dims), n+1)...,) 
-@inline checkdim(a, dims::Tuple{}, n) = ()
-@inline checkdim(a, dim::AbstractGeoDim{<:AbstractArray}, n) = 
+@inline checkdims(a, dims::Tuple, n) = (checkdims(a, dims[1], n), checkdims(a, tail(dims), n+1)...,) 
+@inline checkdims(a, dims::Tuple{}, n) = ()
+@inline checkdims(a, dim::AbstractGeoDim{<:AbstractArray}, n) = 
     if length(val(dim)) == size(a, n) 
         dim 
     else
         throw(ArgumentError("length of $dim $(length(val(dim))) does not match size of array dimension $n $(size(a, n))"))
     end
-@inline checkdim(a, dim::AbstractGeoDim{<:Union{UnitRange,NTuple{2}}}, n) = begin
+@inline checkdims(a, dim::AbstractGeoDim{<:Union{UnitRange,NTuple{2}}}, n) = begin
     range = val(dim)
     start, stop = first(range), last(range)
     steprange = start:(stop-start)/(size(a, n)-1):stop
@@ -171,3 +153,35 @@ flattendimtypes(dimtypes::Tuple) = (flattendimtypes(dimtypes[1]), flattendimtype
 flattendimtypes(dimtypes::Tuple{}) = ()
 flattendimtypes(geodim::Type{<:AbstractGeoDim}) = geodim
 flattendimtypes(affdims::Type{<:AbstractAffineDims}) = flattendimtypes((affdims.parameters...,))
+
+
+
+"""
+    @geodim typ name [shortname=name]
+
+Define new dimensions with a macro
+"""
+macro geodim(typ, name, shortname=name)
+    esc(quote
+        struct $typ{T,U} <: AbstractGeoDim{T}
+            val::T
+            units::U
+        end
+        $typ(val; units=nothing) = $typ(val, units)
+        GeoDataBase.shortname(::Type{<:$typ}) = $shortname
+        GeoDataBase.name(::Type{<:$typ}) = $name
+    end)
+end
+
+
+#= Define some common dimensions
+
+These are intentionally a little more standardised than axis 
+arrays arbitrary axis symbols. They should be used in packages
+and expected to work accross multiple AbstractGeoArray/Data types.
+=#
+
+@geodim Lat "Lattitude" "Lat"
+@geodim Lon "Longitude" "Lon"
+@geodim Vert "Vertical" "Vert"
+@geodim Time "Time"

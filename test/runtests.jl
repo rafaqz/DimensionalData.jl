@@ -166,7 +166,7 @@ ncfields(ds, index) = ds[index][:], ds[index].attrib["units"]
 dimz = (Lon(ncfields(ds, "lon")...,), Lat(ncfields(ds, "lat")...,), 
         Time(ncfields(ds, "time")...,))
 attrib = ds["tos"].attrib
-metadata = Dict(:key=>attrib["standard_name"], 
+metadata = Dict(:shortname=>attrib["standard_name"], 
                 :name=>attrib["long_name"], 
                 :history=>attrib["history"]) 
 g = GeoArray(ds["tos"][:,:,:], dimz; units=attrib["units"], metadata=metadata);
@@ -206,8 +206,6 @@ normalindex(g) = @inbounds parent(g)[80, 17, 20]
 # gitindex() for a single value has no performance penalty using Lat(80) etc
 @btime dimindex($g)
 @btime normalindex($g)
-
-
 
 pyplot()
 # gr()

@@ -1,3 +1,9 @@
+
+abstract type AbstractGeoArray{T,N,D} <: AbstractArray{T,N} end
+
+(::Type{T})(a::AbstractGeoArray) where T<:AbstractGeoDim = T(dims(a)[dimnum(a, T())])
+
+
 # Base methods
 
 # We handle getindex() and view() called with AbstractGeoDim args,
@@ -6,7 +12,7 @@
 # Dims are put in order with missing dims filled with Colon().
 # Concrete types can mostly ignore Dims, except args... for view()
 # and getindex() must have specific types to avoid abimguity.
-
+#
 Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = getindex(a, dims2indices(a, dims)...)
 Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray, I::Vararg{<:Number}) = getindex(parent(a), I...)
 Base.@propagate_inbounds Base.getindex(a::AbstractGeoArray) = getindex(parent(a))
@@ -25,6 +31,7 @@ Base.@propagate_inbounds Base.view(a::AbstractGeoArray, I::Vararg{<:Union{Abstra
     newdims, newrefdims = slicedim(a, I)
     rebuild(a, v, newdims, (refdims(a)..., newrefdims...))
 end
+
 
 
 Base.similar(a::AbstractGeoArray, ::Type{T}) where T = 
@@ -105,18 +112,13 @@ end
 
 # FIXME
 
-abstract type AbstractSelectionMode end
 
-struct Nearest <: AbstractSelectionMode end
-struct Contained <: AbstractSelectionMode end
-struct Exact <: AbstractSelectionMode end
-struct Interpolated <: AbstractSelectionMode end
+missingval(a::AbstractGeoArray) = missing
 
+select(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}; mode=Nearest()) =
+    select(a, coords2indices(dimtype(a), dims)...; mode=mode)
 
-extract(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}; mode=Nearest()) =
-    extract(a, dims2indices(dimtype(a), dims)...; mode=mode)
-
-dimname(a::AbstractGeoArray) = dimname.(dimtype(a).parameters)
+name(a::AbstractGeoArray) = name.(dimtype(a).parameters)
 
 dimtype(a::AbstractGeoArray{T,N,D}) where {T,N,D} = D
 
@@ -124,14 +126,13 @@ dimtype(a::AbstractGeoArray{T,N,D}) where {T,N,D} = D
 
 sortdims(a::AbstractGeoArray, dims::Tuple) = sortdims(dimtype(a), dims)
 
-slicedim(a::AbstractGeoArray, I::Tuple) = slicedim(dims(a), I)
+slicedims(a::AbstractGeoArray, I::Tuple) = slicedims(dims(a), I)
 
 dims2indices(a::AbstractGeoArray, dims::Tuple, args...) = dims2indices(dimtype(a), dims, args...)
+coords2indices(a::AbstractGeoArray, coorddims::Tuple, args...) = coords2indices(dimtype(a), dims, args...)
 
 dimnum(a::AbstractGeoArray, dims) = dimnum(dimtype(a), dims)
 
-bounds(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = bounds(a, dimnum(a, dims)...)
-bounds(a::AbstractGeoArray, args::Vararg{Integer}) = bounds.(Ref(a), args)  
-bounds(a::AbstractGeoArray, i::Integer) = bounds(dims(a)[i])
-
-(::Type{T})(a::AbstractGeoArray) where T<:AbstractGeoDim = T(dims(a)[dimnum(a, T())])
+# bounds(a::AbstractGeoArray, dims::Vararg{<:AbstractGeoDim}) = bounds(a, dimnum(a, dims)...)
+# bounds(a::AbstractGeoArray, args::Vararg{Integer}) = bounds.(Ref(a), args)  
+# bounds(a::AbstractGeoArray, i::Integer) = bounds(dims(a)[i])
