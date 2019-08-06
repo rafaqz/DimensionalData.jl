@@ -1,4 +1,4 @@
-@recipe function f(ga::AbstractDimensionArray{T,2,<:Tuple{<:AbstractDimension,<:Time}}) where T
+@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:AbstractDimension,<:Time}}) where T
     # ylabel --> label(ga)
     # xlabel --> label(dims(ga)[1])
     # legendtitle --> label(dims(ga)[1])
@@ -6,11 +6,11 @@
     parent(ga)
 end
 
-@recipe function f(ga::AbstractDimensionArray{T,2,<:Tuple{<:Time,<:AbstractDimension}}) where T
+@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:Time,<:AbstractDimension}}) where T
     permutedims(ga)
 end
 
-@recipe function f(ga::AbstractDimensionArray{T,1,<:Tuple{<:AbstractDimension}}) where T
+@recipe function f(ga::AbstractDimensionalArray{T,1,<:Tuple{<:AbstractDimension}}) where T
     # ylabel --> label(ga)
     # xlabel --> label(dims(ga)[1])
     # legend --> false

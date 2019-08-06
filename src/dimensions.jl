@@ -42,6 +42,7 @@ label(dims::Dimensions) = join(join.(zip(dimname.(dims), string.(cleanup.(val.(d
 
 Base.eltype(dim::AbstractDimension) = eltype(typeof(dim))
 Base.eltype(dim::Type{AbstractDimension{T}}) where T = T
+Base.size(dim::AbstractDimension, args...) = size(val(dim), args...)
 
 # Dimensions interface methods
 
@@ -105,7 +106,7 @@ end
 @generated sortdims(dimtypes::Type{DT}, dims::Tuple) where DT = sortdims_inner(DT, dims)
 @inline sortdims(a::AbstractArray, dims::Tuple) = sortdims(dimtype(a), dims)
 
-@inline dimnum(a::AbstractArray, dims) = dimnum(dimtype(a), dims)
+@inline dimnum(a, dims) = dimnum(dimtype(a), dims)
 @inline dimnum(dimtypes::Type, dims::AbstractArray) = dimnum(dimtypes, (dims...,)) 
 @inline dimnum(dimtypes::Type, dim::Number) = dim
 @inline dimnum(dimtypes::Type, dims::Tuple) = 
@@ -118,6 +119,18 @@ end
         :(throw(ArgumentError("No $dim in dimensions $dimtypes")))
     else
         :($index)
+    end
+end
+
+@inline getdim(a::AbstractArray, dim) = getdim(dims(a), basetype(dim))
+@inline getdim(dims::Dimensions, dim::Integer) = dims[dim]
+@inline getdim(dims::Dimensions, dim) = getdim(dims, basetype(dim))
+@generated getdim(dims::DTS, dim::Type{D}) where {DTS<:Dimensions,D} = begin
+    index = findfirst(dt -> dt <: D, DTS.parameters)
+    if index == nothing
+        :(throw(ArgumentError("No $dim in dimensions $dimtypes")))
+    else
+        :(dims[$index])
     end
 end
 

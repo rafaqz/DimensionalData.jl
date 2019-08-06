@@ -1,24 +1,28 @@
 module DimensionalData
 
-using RecipesBase
+using RecipesBase, Statistics
 
 using Base: tail, OneTo
 
 export AbstractDimension, Lat, Lon, Vert, Time
 
-export AbstractDimensionArray, DimensionArray
+export AbstractDimensionalArray, DimensionalArray
+
+export AbstractDimensionalDataset, DimensionalDataset
 
 export AbstractSelectionMode, Nearest, Contained, Exact
 
-export AbstractDimensionData, DimensionData
+export dims, refdims, dimname, dimtype, dimunits, name, shortname, label 
 
-export dims, refdims, dimname, dimtype, dimunits, name, shortname, label, select, bounds
+export select, bounds, getdim, dimnum
+
+
 
 include("interface.jl")
 include("dimensions.jl")
 include("select.jl")
 include("abstract.jl")
-include("dimensionarray.jl")
+include("array.jl")
 include("reducedims.jl")
 include("macros.jl")
 include("plotrecipes.jl")
