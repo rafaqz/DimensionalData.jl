@@ -1,7 +1,7 @@
-# GeoDataBase
+# DimensionalData
 
-[![Build Status](https://travis-ci.com/rafaqz/GeoDataBase.jl.svg?branch=master)](https://travis-ci.com/rafaqz/GeoDataBase.jl)
-[![Codecov](https://codecov.io/gh/rafaqz/GeoDataBase.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/GeoDataBase.jl)
+[![Build Status](https://travis-ci.com/rafaqz/DimensionalData.jl.svg?branch=master)](https://travis-ci.com/rafaqz/DimensionalData.jl)
+[![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl)
 
 
-Dimension and metadata aware Arrays and datatypes for julia.
+DimensionalData and metadata aware Arrays and datatypes for julia.
