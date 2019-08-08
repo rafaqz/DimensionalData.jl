@@ -2,7 +2,7 @@
 """
 An AbstractDimension tags the dimensions in an AbstractArray.
 
-It can also contain spatial coordinates and their units. For simplicity,
+It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T} end
@@ -16,31 +16,24 @@ const AllDimensions = Union{AbstractDimension,Dimensions,Type{<:AbstractDimensio
                             Tuple{Vararg{<:Type{<:AbstractDimension}}},
                             Vector{<:AbstractDimension}}
 
-abstract type AbstractAffineDimensions{T} end
+"""
+AbstractDimensionsWrapper Wraps other dimensions, for
+situations where they share an affine map or similar transformation
+instead of linear maps, but need to work as usual for direct indexing.
+"""
+abstract type AbstractDimensionWrapper{T} end
 
-struct CoordDims{T} <: AbstractAffineDimensions{T}
-    dims::T
-end
 
 # Getters
 
-val(aff::AbstractAffineDimensions) = aff.dims
 val(dim::AbstractDimension) = dim.val
 val(dim) = dim
 
-label(dim::AbstractDimension) = join((dimname(dim), getstring(units(dim))), " ")
-label(dims::Dimensions) = join(join.(zip(dimname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
-
-# This shouldn't be hard coded, but makes plots tolerable for now
-shorten(x::AbstractFloat) = round(x, sigdigits=4)
-shorten(x) = x
-
-# Nothing doesn't string
-getstring(::Nothing) = ""
-getstring(x) = string(x)
+metadata(dim::AbstractDimension) = dim.metadata
 
 
 # Base methods
+
 Base.eltype(dim::AbstractDimension) = eltype(typeof(dim))
 Base.eltype(dim::Type{AbstractDimension{T}}) where T = T
 Base.size(dim::AbstractDimension, args...) = size(val(dim), args...)
@@ -67,23 +60,33 @@ bounds(dims::Dimensions, lookupdims::Tuple) = bounds(dims[[dimnums(dims)...]])
 bounds(dims::Dimensions) = (bounds(dim2[1]), bounds(tail(dims)...,))
 bounds(dim::AbstractDimension) = first(val(dim)), last(val(dim))
 
+label(dim::AbstractDimension) = join((dimname(dim), getstring(metadata(dim))), " ")
+label(dims::Dimensions) = join(join.(zip(dimname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
 
-#= Lowe-level utility methods.
+# This shouldn't be hard coded, but it makes plots tolerable for now
+shorten(x::AbstractFloat) = round(x, sigdigits=4)
+shorten(x) = x
 
-These do most of the work in the package, and are all @generated or recusive
-functions for performance reasons.
-=#
+# Nothing doesn't string
+getstring(::Nothing) = ""
+getstring(x) = string(x)
 
-@inline hasdim(x::AbstractArray, lookup::AllDimensions) = hasdim(dims(x), lookup) 
-@inline hasdim(dims::Dimensions, lookup::Tuple) = 
-    hasdim(dims, lookup[1]) & hasdim(dims, tail(lookup)) 
+
+# Primitives
+
+# These do most of the work in the package, and are all @generated or recusive
+# functions for performance reasons.
+
+@inline hasdim(x::AbstractArray, lookup::AllDimensions) = hasdim(dims(x), lookup)
+@inline hasdim(dims::Dimensions, lookup::Tuple) =
+    hasdim(dims, lookup[1]) & hasdim(dims, tail(lookup))
 @inline hasdim(dims::Dimensions, lookup::Tuple{}) = true
 @inline hasdim(dims::Dimensions, lookup::AbstractDimension) = hasdim(dims, typeof(lookup))
-@inline hasdim(dims::Dimensions, lookup::Type{<:AbstractDimension}) = 
+@inline hasdim(dims::Dimensions, lookup::Type{<:AbstractDimension}) =
     hasdim(typeof(dims), basetype(lookup))
-@inline hasdim(dimtypes::Type, lookup::Type{<:AbstractDimension}) = 
+@inline hasdim(dimtypes::Type, lookup::Type{<:AbstractDimension}) =
     basetype(lookup) in basetype.(dimtypes.parameters)
-@inline hasdim(dimtypes::Type, lookup::Type{UnionAll}) = 
+@inline hasdim(dimtypes::Type, lookup::Type{UnionAll}) =
     basetype(lookup) in basetype.(dimtypes.parameters)
 
 
@@ -104,22 +107,26 @@ dims2indices_inner(dimtypes::Type{<:Tuple}, lookup::Type{<:Tuple}) = begin
 end
 @generated dims2indices(dimtypes::Type{DT}, lookup::Tuple, emptyval=:) where DT =
     dims2indices_inner(DT, lookup)
-@inline dims2indices(a::AbstractArray, dims::Tuple, args...) = dims2indices(dimtype(a), dims, args...)
+@inline dims2indices(a::AbstractArray, dims::Tuple, args...) = 
+    dims2indices(dimtype(a), dims, args...)
 @inline dims2indices(a, dim::AbstractDimension, args...) = dims2indices(a, (dim,), args...)
+
 
 @inline mapdims(f, dims::Dimensions) =
     (mapdims(f, dims[1]), mapdims(f, tail(dims))...,)
 @inline mapdims(f, dims::Tuple{}) = ()
 @inline mapdims(f, dim::AbstractDimension) = map(f, dim)
 
+
 # Not type stable, but only runs inside @generated
 @inline flattendimtypes(dimtypes::Type) = flattendimtypes((dimtypes.parameters...,))
-@inline flattendimtypes(dimtypes::Tuple) = 
+@inline flattendimtypes(dimtypes::Tuple) =
     (flattendimtypes(dimtypes[1]), flattendimtypes(tail(dimtypes))...,)
 @inline flattendimtypes(dimtypes::Tuple{}) = ()
 @inline flattendimtypes(dim::Type{<:AbstractDimension}) = dim
-@inline flattendimtypes(affdims::Type{<:AbstractAffineDimensions}) = 
+@inline flattendimtypes(affdims::Type{<:AbstractDimensionWrapper}) =
     flattendimtypes((affdims.parameters...,))
+
 
 sortdims_inner(dimtypes::Type, dims::Type) = begin
     indexexps = []
@@ -136,6 +143,7 @@ end
 @generated sortdims(dimtypes::Type{DT}, dims::Tuple) where DT = sortdims_inner(DT, dims)
 @inline sortdims(a::AbstractArray, dims::Tuple) = sortdims(dimtype(a), dims)
 
+
 @inline dimnum(a, dims) = dimnum(dimtype(a), dims)
 @inline dimnum(dimtypes::Type, dims::AbstractArray) = dimnum(dimtypes, (dims...,))
 @inline dimnum(dimtypes::Type, dim::Number) = dim
@@ -143,14 +151,15 @@ end
     (dimnum(dimtypes, dims[1]), dimnum(dimtypes, tail(dims))...,)
 @inline dimnum(dimtypes::Type, dims::Tuple{}) = ()
 @inline dimnum(dimtypes::Type, dim::AbstractDimension) = dimnum(dimtypes, typeof(dim))
-@generated dimnum(::Type{DTS}, ::Type{D}) where {DTS,D} = begin
+@generated dimnum(dimtypes::Type{DTS}, dim::Type{D}) where {DTS,D} = begin
     index = findfirst(dt -> D <: basetype(dt), DTS.parameters)
     if index == nothing
-        :(throw(ArgumentError("No $dim in dimensions $dimtypes")))
+        :(throw(ArgumentError("No $dim in $dimtypes")))
     else
         :($index)
     end
 end
+
 
 @inline getdim(a::AbstractArray, dim) = getdim(dims(a), basetype(dim))
 @inline getdim(dims::Dimensions, dim::Integer) = dims[dim]
@@ -163,6 +172,7 @@ end
         :(dims[$index])
     end
 end
+
 
 @inline slicedims(a::AbstractArray, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims(a), I)
@@ -177,17 +187,18 @@ end
 end
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
 @inline slicedims(d::AbstractDimension, i::Number) =
-    ((), (basetype(d)(val(d)[i], d.units),))
+    ((), (basetype(d)(val(d)[i], metadata(d)),))
 @inline slicedims(d::AbstractDimension, i::Colon) =
-    ((basetype(d)(val(d), d.units),), ())
+    ((basetype(d)(val(d), metadata(d)),), ())
 @inline slicedims(d::AbstractDimension, i::AbstractVector) =
-    ((basetype(d)(val(d)[i], d.units),), ())
-@inline slicedims(d::AbstractDimension{<:StepRange}, i::AbstractRange) = begin
-    start = first(val(d))
-    stp = step(val(d))
-    d = basetype(d)(start+stp*(first(i) - 1):stp:start+stp*(last(i) - 1), d.units)
+    ((basetype(d)(val(d)[i], metadata(d)),), ())
+@inline slicedims(d::AbstractDimension{<:LinRange}, i::AbstractRange) = begin
+    range = val(d)
+    start, stop, len = range[first(i)], range[last(i)], length(i)
+    d = basetype(d)(LinRange(start, stop, len), metadata(d))
     ((d,), ())
 end
+
 
 # Should only be used from kwargs constructors, so performance doesn't matter
 @inline formatdims(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
@@ -195,7 +206,8 @@ end
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(a, dims, 1)
 end
-@inline formatdims(a, dims::Tuple, n) = (formatdims(a, dims[1], n), formatdims(a, tail(dims), n+1)...,)
+@inline formatdims(a, dims::Tuple, n) = 
+    (formatdims(a, dims[1], n), formatdims(a, tail(dims), n + 1)...,)
 @inline formatdims(a, dims::Tuple{}, n) = ()
 @inline formatdims(a, dim::AbstractDimension{<:AbstractArray}, n) =
     if length(val(dim)) == size(a, n)
@@ -205,41 +217,27 @@ end
     end
 @inline formatdims(a, dim::AbstractDimension{<:Union{UnitRange,NTuple{2}}}, n) = begin
     range = val(dim)
-    start, stop = first(range), last(range)
-    steprange = start:(stop-start)/(size(a, n)-1):stop
-    basetype(dim)(steprange)
+    start, stop, len = first(range), last(range), size(a, n)
+    basetype(dim)(LinRange(start, stop, len))
 end
 
 
-#= AbstractArray methods where dims are an argument
-
-These use AbstractArray instead of AbstractDimensionArray, which means most of
-the interface can be used without inheriting from it.
-=#
-
-Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbstractDimension}) =
-    getindex(a, dims2indices(a, dims)...)
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, rims::Vararg{<:AbstractDimension}) =
-    setindex!(a, x, dims2indices(a, dims)...)
-Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbstractDimension}) =
-    view(a, dims2indices(a, dims)...)
-Base.similar(a::AbstractArray, ::Type{T}, dims::AllDimensions) where T =
-    similar(a, T, dims2indices(a, dims))
-Base.to_shape(dims::AllDimensions) = dims # For use in similar()
-Base.accumulate(f, A::AbstractArray, dims::AllDimensions) = accumulate(f, A, dimnum(a, dims))
-Base.permutedims(a::AbstractArray, dims::AllDimensions) = permutedims(a, dimnum(a, dims))
-Base.adjoint(a::AbstractArray, dims::AllDimensions) = adjoint(a, dimnum(a, dims))
-Base.transpose(a::AbstractArray, dims::AllDimensions) = transpose(a, dimnum(a, dims))
+otherdimnums(n, removedims) =
+    if n < 1
+        ()
+    elseif n in removedims
+        (otherdimnums(n-1, removedims)...,)
+    else
+        (otherdimnums(n-1, removedims)..., n)
+    end
 
 
-#= SplitApplyCombine methods?
-Should allow groupby using dims lookup to make this worth the dependency
-Like group by time/lattitude/height band etc.
-
-SplitApplyCombine.splitdims(a::AbstractArray, dims::AllDimensions) =
-    SplitApplyCombine.splitdims(a, dimnum(a, dims))
-
-SplitApplyCombine.splitdimsview(a::AbstractArray, dims::AllDimensions) =
-    SplitApplyCombine.splitdimsview(a, dimnum(a, dims))
-=#
-
+reduceindices(a::AbstractArray{T,N}, reducedims) where {T,N} = reduceindices(N, reducedims)
+reduceindices(n::Integer, reducedims) =
+    if n < 1
+        ()
+    elseif n in reducedims
+        (reduceindices(n-1, reducedims)..., 1)
+    else
+        (reduceindices(n-1, reducedims)..., :)
+    end

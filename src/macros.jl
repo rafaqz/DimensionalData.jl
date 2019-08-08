@@ -1,15 +1,15 @@
 """
-    @geodim typ name [shortname=name]
+    @dim typ name [shortname=name]
 
 Define dimensions for array indexing
 """
 macro dim(typ, name, shortname=name)
     esc(quote
-        struct $typ{T,U} <: AbstractDimension{T}
+        struct $typ{T,M} <: AbstractDimension{T}
             val::T
-            units::U
+            metadata::M
         end
-        $typ(val; units=nothing) = $typ(val, units)
+        $typ(val; metadata=nothing) = $typ(val, metadata)
         DimensionalData.dimname(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)

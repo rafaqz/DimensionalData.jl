@@ -9,7 +9,7 @@ DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
     DimensionalArray(a, formatdims(a, dims), refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
-@inline Base.parent(a::DimensionalArray) = a.data
+Base.parent(a::DimensionalArray) = a.data
 
 # DimensionalArray interface
 @inline rebuild(a::DimensionalArray, data, dims, refdims) = DimensionalArray(data, dims, refdims)

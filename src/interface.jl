@@ -30,6 +30,11 @@ refdims(x) = ()
 # Methods defined in Dimesions.jl
 
 """
+Return the metadata of a dimensions.
+"""
+function metadata end
+
+"""
 Return the units of a dimensions. This could be a string, a unitful unit, or nothing. 
 """
 function units end
@@ -58,7 +63,7 @@ units if they exist, and anything else that should be shown on
 a plot.
 """
 function label end
-label(x) = ""
+label(x) = string(string(name(x)), " ", getstring(units(x)))
 
 """
 Returns a tuple containing the start and end values

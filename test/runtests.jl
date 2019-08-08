@@ -1,10 +1,11 @@
 using DimensionalData, Statistics, Test, BenchmarkTools
 
 using DimensionalData: val, basetype, sortdims, flattendimtypes, 
-      slicedims, dims2indices, formatdims, hasdim, mapdims, @dim
+      slicedims, dims2indices, formatdims, hasdim, mapdims, @dim,
+      otherdimnums, reduceindices
 
 
-# Dims creation
+# Dims creation macro
 @dim TestDim "Test dimension" "Testdim"
 
 @test dimname(TestDim) == "Test dimension"
@@ -12,25 +13,27 @@ using DimensionalData: val, basetype, sortdims, flattendimtypes,
 @test val(TestDim(:test)) == :test
 
 
+# Basic dim and array initialisation
+
+a = ones(5, 4)
+da = DimensionalArray(a, (Lon((140, 148)), Lat((2, 11))))
+dimz = dims(da)
+@test slicedims(dimz, (2:4, 3)) == ((Lon(LinRange(142,146,3)),), (Lat(8.0),))
+
 a = [1 2 3 4 
      2 3 4 5
-     3 4 5 6
-     4 5 6 7]
-dimz = (Lon((143, 146)), Lat((-38, -32)))
-dimz = formatdims(a, dimz) 
-da = DimensionalArray(a, dimz)
+     3 4 5 6]
+da = DimensionalArray(a, (Lon((143, 145)), Lat((-38, -35))))
+dimz = dims(da)
 
-@test dimz == (Lon((143.0:1.0:146.0)), Lat((-38.0:2.0:-32.0)))
-@test dims(dimz) == dimz
-@test dimtype(dimz) == Tuple{Lon{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Nothing},Lat{StepRangeLen{Float64,Base.
-                             TwicePrecision{Float64},Base.TwicePrecision{Float64}},Nothing}}
+@test dimz == (Lon(LinRange(143, 145, 3)), Lat(LinRange(-38, -35, 4)))
+@test dimtype(dimz) == Tuple{Lon{LinRange{Float64},Nothing},Lat{LinRange{Float64},Nothing}}
 
 
-# Dim primitives
-
+# Primitives
                                    # dims                      # refdims 
-@test slicedims(dimz, (1:2, 2)) == ((Lon((143.0:1.0:144.0)),), (Lat(-36.0),))
-@test slicedims(dimz, (2:4, :)) == ((Lon((144.0:146.0)),        Lat(-38.0:2.0:-32.0)), ())
+@test slicedims(dimz, (1:2, 3)) == ((Lon(LinRange(143,144,2)),), (Lat(-36.0),))
+@test slicedims(dimz, (2:3, :)) == ((Lon(LinRange(144,145,2)), Lat(LinRange(-38.0,-35.0,4))), ())
 
 @test dims2indices(dimtype(dimz), (Lat,)) == (Colon(), Colon())
 @test dims2indices(dimtype(dimz), (Lat(1),)) == (Colon(), 1)
@@ -61,23 +64,25 @@ da = DimensionalArray(a, dimz)
 @test hasdim(typeof(dimz), Lon) == true
 @test hasdim(typeof(dimz), Time) == false
 
-
 a = [1 2; 3 4]
 dimz = (Lon((143, 145)), Lat((-38, -36)))
 g = DimensionalArray(a, dimz)
 
+@test sortdims(g, (Lat(1:2), Lon(1))) == (Lon(1), Lat(1:2))
+
 @test flattendimtypes(typeof(dimz))[1] <: Lon{<:Tuple,Nothing}
 @test flattendimtypes(typeof(dimz))[2] <: Lat{<:Tuple,Nothing}
 # Only deal with arrays and step ranges
-@test flattendimtypes(typeof(dims(g)))[1] <: Lon{<:StepRangeLen,Nothing}
-@test flattendimtypes(typeof(dims(g)))[2] <: Lat{<:StepRangeLen,Nothing}
+@test flattendimtypes(typeof(dims(g)))[1] <: Lon{<:LinRange,Nothing}
+@test flattendimtypes(typeof(dims(g)))[2] <: Lat{<:LinRange,Nothing}
+
+@test otherdimnums(5, (1, 3)) == (2, 4, 5)
+@test reduceindices(2, 1) == (1, Colon())
+@test reduceindices(g, 2) == (Colon(), 1)
 
 
 
-
-# Make sure dimtypes is correct and sorts in the right order
-@test dimtype(g) <: Tuple{<:Lon,<:Lat}
-@test sortdims(g, (Lat(1:2), Lon(1))) == (Lon(1), Lat(1:2))
+# Indexing: getindex/view with rebuild and dimension slicing 
 
 # getindex for single integers returns values
 @test g[Lon(1), Lat(2)] == 2
@@ -86,21 +91,21 @@ g = DimensionalArray(a, dimz)
 a = g[Lon(1:2), Lat(1)]
 @test a == [1, 3]
 @test typeof(a) <: DimensionalArray{Int,1}
-@test dims(a) == (Lon(143:2.0:145),)
+@test dims(a) == (Lon(LinRange(143.0, 145.0, 2)),)
 @test refdims(a) == (Lat(-38.0),)
 # @test bounds(a, Lon()) == (143, 145)
 
 a = g[Lon(1), Lat(1:2)]
 @test a == [1, 2]
 @test typeof(a) <: DimensionalArray{Int,1}
-@test dims(a) == (Lat(-38:2.0:-36),)
+@test dims(a) == (Lat(LinRange(-38, -36, 2)),)
 @test refdims(a) == (Lon(143.0),)
 # @test bounds(a, Lon(), Lat()) == (143, (-38, -36))
 
 a = g[Lat(:)]
 @test a == [1 2; 3 4]
 @test typeof(a) <: DimensionalArray{Int,2}
-@test dims(a) == (Lon(143:2.0:145), Lat(-38:2.0:-36))
+@test dims(a) == (Lon(LinRange(143, 145, 2)), Lat(LinRange(-38, -36, 2)))
 @test refdims(a) == ()
 @test dimtype(a) <: Tuple{<:Lon,<:Lat}
 
@@ -119,7 +124,7 @@ v = view(g, Lat(1), Lon(1:2))
 @test typeof(v) <: DimensionalArray{Int,1}
 @test typeof(parent(v)) <: SubArray
 @test dimtype(v) <: Tuple{<:Lon}
-@test dims(v) == (Lon(143:2.0:145),)
+@test dims(v) == (Lon(LinRange(143, 145, 2)),)
 @test refdims(v) == (Lat(-38.0),)
 
 v = view(g, Lat(1:2), Lon(1:1))
@@ -127,15 +132,18 @@ v = view(g, Lat(1:2), Lon(1:1))
 @test typeof(v) <: DimensionalArray{Int,2}
 @test typeof(parent(v)) <: SubArray
 @test dimtype(v) <: Tuple{<:Lon,<:Lat}
-@test dims(v) == (Lon(143.0:2.0:143), Lat(-38:2.0:-36))
+@test dims(v) == (Lon(LinRange(143.0, 143, 1)), Lat(LinRange(-38, -36, 2)))
 
 v = view(g, Lat(Base.OneTo(2)), Lon(1))
 @test v == [1, 2]
 @test typeof(parent(v)) <: SubArray
 @test dimtype(v) <: Tuple{<:Lat}
-@test dims(v) == (Lat(-38:2.0:-36),)
+@test dims(v) == (Lat(LinRange(-38, -36, 2)),)
 @test refdims(v) == (Lon(143.0),)
 
+
+
+# Dimension reducing functions 
 
 a = [1 2; 3 4]
 dimz = (Lon((143, 145)), Lat((-38, -36)))
@@ -143,73 +151,128 @@ g = DimensionalArray(a, dimz)
 
 # sum, mean etc with dims kwarg
 @test sum(g; dims=Lon()) == sum(g; dims=1)
-@test dims(sum(g; dims=Lat())) sum(g; dims=2) 
-# @test prod(g; dims=Lon()) == [3, 8]
-# @test prod(g; dims=Lat()) == [2, 12]
-# @test maximum(g; dims=Lon()) == [3, 4]
-# @test maximum(g; dims=Lat()) == [2, 4]
-# @test minimum(g; dims=Lon()) == [1, 2]
-# @test minimum(g; dims=Lat()) == [1, 3]
-# @test mean(g; dims=Lon()) == [2.0, 3.0]
-# @test mean(g; dims=Lat()) == [1.5, 3.5]
-# @test std(g; dims=Lon()) == [1.4142135623730951, 1.4142135623730951]
-# @test std(g; dims=Lat()) == [0.7071067811865476, 0.7071067811865476]
-# @test var(g; dims=Lon()) == [2.0, 2.0]
-# @test var(g; dims=Lat()) == [0.5, 0.5]
+@test sum(g; dims=Lat()) == sum(g; dims=2) 
+@test prod(g; dims=Lon()) == [3 8]
+@test prod(g; dims=Lat()) == [2 12]'
+@test maximum(g; dims=Lon()) == [3 4]
+@test maximum(g; dims=Lat()) == [2 4]'
+@test minimum(g; dims=Lon()) == [1 2]
+@test minimum(g; dims=Lat()) == [1 3]'
+@test mean(g; dims=Lon()) == [2.0 3.0]
+@test mean(g; dims=Lat()) == [1.5 3.5]'
+@test std(g; dims=Lon()) == [1.4142135623730951 1.4142135623730951]
+@test std(g; dims=Lat()) == [0.7071067811865476 0.7071067811865476]'
+@test var(g; dims=Lon()) == [2.0 2.0]
+@test var(g; dims=Lat()) == [0.5 0.5]'
 
+# mapslices
+a = [1 2 3 4
+     3 4 5 6
+     5 6 7 8]
+da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
+ms = mapslices(sum, da; dims=Lat)
+@test ms == [9 12 15 18]
+@test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
+@test refdims(ms) == (Lat(10.0),)
+ms = mapslices(sum, da; dims=Time)
+@test ms == [10 18 25]'
+@test dims(ms) == (Lat(LinRange(10.0, 30.0, 3)),)
+@test refdims(ms) == (Time(1.0),)
 
+# Iteration
 
-#####################################################################
-# Benchmarks
-#
-# Test how much the recalculation of coordinates and dimtypes
-# costs over standard getindex/view.
-#
-# Seems to be about 50% slower for small arrays sizes - so still really fast.
+# eachslice
+da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
+@test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
+slices = [s .* 2 for s in eachslice(da; dims=Lat)] 
+@test slices[1] == [2, 4, 6, 8]
+@test slices[2] == [6, 8, 10, 12]
+@test slices[3] == [10, 12, 14, 16]
+dims(slices[1]) == (Time(1.0:1.0:4.0),)
+slices = [s .* 2 for s in eachslice(da; dims=Time)] 
+@test slices[1] == [2, 6, 10]
+dims(slices[1]) == (Lat(10.0:10.0:30.0),)
+
+# Dimension reordering
+
+da = DimensionalArray(zeros(5, 4), (Lat(10:20), Lon(1:4)))
+tda = transpose(da)
+@test dims(tda) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)))
+@test size(tda) == (4, 5)
+ada = adjoint(da)
+@test dims(ada) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)))
+@test size(ada) == (4, 5)
+dsp = permutedims(da)
+@test parent(dsp) == permutedims(parent(da))
+@test dims(dsp) == reverse(dims(da))
+da = DimensionalArray(ones(5, 2, 4), (Lat(10:20), Time(10:11), Lon(1:4)))
+dsp = permutedims(da, [3, 1, 2])
+dsp = permutedims(da, [Lon, Lat, Time])
+@test dims(dsp) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)), Time(LinRange(10.0, 11.0, 2)))
+
+# Broadcast 
+
+da = DimensionalArray(ones(5, 2, 4), (Lat(10:20), Time(10:11), Lon(1:4)))
+da2 = da .* 2
+@test da2 == ones(5, 2, 4) .* 2
+@test dims(da2) == (Lat(LinRange(10, 20, 5)), Time(LinRange(10.0, 11.0, 2)), Lon(LinRange(1.0, 4.0, 4)))
+
+#= Benchmarks
+
+Test how much the recalculation of coordinates and dimtypes
+costs over standard getindex/view.
+
+Indexing with Lat(1) has no overhead at all, but ranges
+have an overhead for constructing the neew GeoArray and slicing
+the dimensions.
+=#
+
+g = DimensionalArray(rand(100, 50), (Lon(51:150), Lat(-40:9)))
 
 println("\n\nPerformance of view()\n")
-vd1(g) = view(g, Lon(1), Lat(1))
-vd2(g) = view(g, Lon(:), Lat(:))
-vd3(g) = view(g, Lon(1:2), Lat(1:2))
 vi1(g) = view(parent(g), 1, 2)
+vd1(g) = view(g, Lon(1), Lat(2))
 vi2(g) = view(parent(g), :, :)
-vi3(g) = view(parent(g), 1:2, 1:2)
+vd2(g) = view(g, Lon(:), Lat(:))
+vi3(g) = view(parent(g), 10:40, 1:20)
+vd3(g) = view(g, Lon(10:40), Lat(1:20))
 
-println("Dims with Number")
-@btime vd1($g)
 println("Parent indices with Number")
 @btime vi1($g)
+println("Dims with Number")
+@btime vd1($g)
 println()
-println("Dims with Colon")
-@btime vd2($g)
 println("Parent indices with Colon")
 @btime vi2($g)
+println("Dims with Colon")
+@btime vd2($g)
 println()
-println("Dims with UnitRange")
-@btime vd3($g)
 println("Parent indices with UnitRange")
 @btime vi3($g)
+println("Dims with UnitRange")
+@btime vd3($g)
 
 
 println("\n\nPerformance of getindex()\n")
-d1(g) = g[Lat(1), Lon(1)]
-d2(g) = g[Lat(:), Lon(:)]
-d3(g) = g[Lat(1:2), Lon(1:2)]
-i1(g) = parent(g)[1, 1]
+i1(g) = parent(g)[10, 20]
+d1(g) = g[Lat(10), Lon(20)]
 i2(g) = parent(g)[:, :]
-i3(g) = parent(g)[1:2, 1:2]
+d2(g) = g[Lat(:), Lon(:)]
+i3(g) = parent(g)[1:20, 10:40]
+d3(g) = g[Lat(1:20), Lon(10:40)]
 
-println("Dims with Number")
-@btime d1($g)
 println("Parent indices with Number")
 @btime i1($g)
+println("Dims with Number")
+@btime d1($g)
 println()
-println("Dims with Colon")
-@btime d2($g)
 println("Parent indices with Colon")
 @btime i2($g)
+println("Dims with Colon")
+@btime d2($g)
 println()
-println("Dims with UnitRange")
-@btime d3($g)
 println("Parent indices with UnitRange")
 @btime i3($g)
+println("Dims with UnitRange")
+@btime d3($g)
+

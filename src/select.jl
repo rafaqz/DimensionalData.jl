@@ -24,11 +24,12 @@ struct Exact <: SelectionMode end
 
 const sel = select
 
-select(a, seldims::Tuple, mode=Contained()) = begin
+select(a::AbstractDimensionalArray, seldims::Tuple, mode=Contained()) = begin
     indices = sel2indices(a, sortdims(a, seldims), mode)
     a[indices...]
 end
-selectview(a, seldims::Tuple, mode) = view(a, sel2indices(a, sortdims(a, seldims), mode))
+selectview(a::AbstractDimensionalArray, seldims::Tuple, mode) = 
+    view(a, sel2indices(a, sortdims(a, seldims), mode))
 
 sel2indices(a, seldims::Tuple, mode) =
     (sel2indices(a, seldims[1], mode), sel2indices(a, tail(seldims), mode)...)
