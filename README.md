@@ -3,7 +3,7 @@
 [![Build Status](https://travis-ci.com/rafaqz/DimensionalData.jl.svg?branch=master)](https://travis-ci.com/rafaqz/DimensionalData.jl)
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl)
 
-Add named dimensions to Julia data types. This is a work in progress
+Add named dimensions to Julia arrays and other types. This is a work in progress
 under active development, it may be a while before the interface stabilises and
 things are fully documented.
 
