@@ -1,16 +1,17 @@
 using DimensionalData, Statistics, Test, BenchmarkTools
 
-using DimensionalData: val, basetype, sortdims, flattendimtypes, 
-      slicedims, dims2indices, formatdims, hasdim, mapdims, @dim,
-      otherdimnums, reduceindices
+using DimensionalData: val, basetype, sortdims, slicedims, 
+      dims2indices, formatdims, hasdim, mapdims, @dim,
+      otherdimnums, reduceindices, dimnum, basetype
 
 
 # Dims creation macro
-@dim TestDim "Test dimension" "Testdim"
+@dim TestDim "Test dimension" 
 
 @test dimname(TestDim) == "Test dimension"
-@test shortname(TestDim) == "Testdim"
+@test shortname(TestDim) == "TestDim"
 @test val(TestDim(:test)) == :test
+@test metadata(TestDim(1, "metadata")) == "metadata"
 
 
 # Basic dim and array initialisation
@@ -29,7 +30,6 @@ dimz = dims(da)
 @test dimz == (Lon(LinRange(143, 145, 3)), Lat(LinRange(-38, -35, 4)))
 @test dimtype(dimz) == Tuple{Lon{LinRange{Float64},Nothing},Lat{LinRange{Float64},Nothing}}
 
-
 # Primitives
                                    # dims                      # refdims 
 @test slicedims(dimz, (1:2, 3)) == ((Lon(LinRange(143,144,2)),), (Lat(-36.0),))
@@ -41,8 +41,8 @@ dimz = dims(da)
 @test dims2indices(dimtype(dimz), (Lon(2), Lat([1, 3, 4]))) == (2, [1, 3, 4])
 @test dims2indices(da, (Lon(2), Lat([1, 3, 4]))) == (2, [1, 3, 4])
 @test_broken dims2indices(dimtype(dimz), (Lon(2), Time(4)))
-# With emptyval=()
-@test dims2indices(dimtype(dimz), (Lat,), ()) == ((), ())
+emptyval=()
+@test dims2indices(dimtype(dimz), (Lat,), emptyval) == ((), ())
 
 @test dimnum(da, Lon) == 1
 @test dimnum(da, Lat()) == 2
@@ -55,26 +55,21 @@ dimz = dims(da)
 @test getdim(dimz, Lat) == dimz[2]
 @test_throws ArgumentError getdim(dimz, Time)
 
-@test hasdim(dimz, Time) == false
-@test hasdim(dimz, Lon) == true
-@test hasdim(da, Time()) == false
-@test hasdim(da, Lon()) == true
-@test hasdim(dimz, (Time(), Lat(), Lon())) == false
-@test hasdim(dimz, (Lon, Lat)) == true
-@test hasdim(typeof(dimz), Lon) == true
-@test hasdim(typeof(dimz), Time) == false
+# Not being used currently
+# @test hasdim(dimz, Time) == false
+# @test hasdim(dimz, Lon) == true
+# @test hasdim(da, Time()) == false
+# @test hasdim(da, Lon()) == true
+# @test hasdim(dimz, (Time(), Lat(), Lon())) == false
+# @test hasdim(dimz, (Lon, Lat)) == true
+# @test hasdim(typeof(dimz), Lon) == true
+# @test hasdim(typeof(dimz), Time) == false
 
 a = [1 2; 3 4]
 dimz = (Lon((143, 145)), Lat((-38, -36)))
 g = DimensionalArray(a, dimz)
 
 @test sortdims(g, (Lat(1:2), Lon(1))) == (Lon(1), Lat(1:2))
-
-@test flattendimtypes(typeof(dimz))[1] <: Lon{<:Tuple,Nothing}
-@test flattendimtypes(typeof(dimz))[2] <: Lat{<:Tuple,Nothing}
-# Only deal with arrays and step ranges
-@test flattendimtypes(typeof(dims(g)))[1] <: Lon{<:LinRange,Nothing}
-@test flattendimtypes(typeof(dims(g)))[2] <: Lat{<:LinRange,Nothing}
 
 @test otherdimnums(5, (1, 3)) == (2, 4, 5)
 @test reduceindices(2, 1) == (1, Colon())
@@ -142,28 +137,44 @@ v = view(g, Lat(Base.OneTo(2)), Lon(1))
 @test refdims(v) == (Lon(143.0),)
 
 
+# Arbitrary dimension names also work
+a = [1 2 3 4 
+     3 4 5 6 
+     4 5 6 7]
+dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
+g = DimensionalArray(a, dimz)
+@test g[Dim{:row}(2)] == [3, 4, 5, 6]
+@test g[Dim{:column}(4)] == [4, 6, 7]
+@test g[Dim{:column}(1), Dim{:row}(3)] == 4
 
-# Dimension reducing functions 
+# Dimension reducing methods
 
-a = [1 2; 3 4]
+a = [1 2 
+     3 4]
 dimz = (Lon((143, 145)), Lat((-38, -36)))
 g = DimensionalArray(a, dimz)
 
 # sum, mean etc with dims kwarg
 @test sum(g; dims=Lon()) == sum(g; dims=1)
 @test sum(g; dims=Lat()) == sum(g; dims=2) 
+@test dims(sum(g; dims=Lat())) == (Lon(LinRange(143.0, 145.0, 2)), Lat(LinRange(-38.0, -38.0, 1)))
 @test prod(g; dims=Lon()) == [3 8]
 @test prod(g; dims=Lat()) == [2 12]'
+@test dims(prod(g; dims=Lon())) == (Lon(LinRange(143.0, 143.0, 1)), Lat(LinRange(-38.0, -36.0, 2)))
 @test maximum(g; dims=Lon()) == [3 4]
 @test maximum(g; dims=Lat()) == [2 4]'
 @test minimum(g; dims=Lon()) == [1 2]
 @test minimum(g; dims=Lat()) == [1 3]'
+@test dims(minimum(g; dims=Lon())) == (Lon(LinRange(143.0, 143.0, 1)), Lat(LinRange(-38.0, -36.0, 2)))
 @test mean(g; dims=Lon()) == [2.0 3.0]
 @test mean(g; dims=Lat()) == [1.5 3.5]'
+@test dims(mean(g; dims=Lat())) == (Lon(LinRange(143.0, 145.0, 2)), Lat(LinRange(-38.0, -38.0, 1)))
+
 @test std(g; dims=Lon()) == [1.4142135623730951 1.4142135623730951]
 @test std(g; dims=Lat()) == [0.7071067811865476 0.7071067811865476]'
 @test var(g; dims=Lon()) == [2.0 2.0]
 @test var(g; dims=Lat()) == [0.5 0.5]'
+@test dims(var(g; dims=Lat())) == (Lon(LinRange(143.0, 145.0, 2)), Lat(LinRange(-38.0, -38.0, 1)))
 
 # mapslices
 a = [1 2 3 4
@@ -179,7 +190,8 @@ ms = mapslices(sum, da; dims=Time)
 @test dims(ms) == (Lat(LinRange(10.0, 30.0, 3)),)
 @test refdims(ms) == (Time(1.0),)
 
-# Iteration
+
+# Iteration methods
 
 # eachslice
 da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
@@ -193,7 +205,8 @@ slices = [s .* 2 for s in eachslice(da; dims=Time)]
 @test slices[1] == [2, 6, 10]
 dims(slices[1]) == (Lat(10.0:10.0:30.0),)
 
-# Dimension reordering
+
+# Dimension reordering methods
 
 da = DimensionalArray(zeros(5, 4), (Lat(10:20), Lon(1:4)))
 tda = transpose(da)
@@ -209,6 +222,25 @@ da = DimensionalArray(ones(5, 2, 4), (Lat(10:20), Time(10:11), Lon(1:4)))
 dsp = permutedims(da, [3, 1, 2])
 dsp = permutedims(da, [Lon, Lat, Time])
 @test dims(dsp) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)), Time(LinRange(10.0, 11.0, 2)))
+
+
+# Dimension mirroring methods
+
+# Need to think about dims for these, currently (Lat, Lat) etc.
+# But you can't index (Lat, Lat). It will plot correctly at least
+a = rand(5, 4)
+da = DimensionalArray(a, (Lat(10:20), Lon(1:4)))
+cvda = cov(da; dims=Lon)
+@test cvda == cov(a; dims=2)
+crda = cor(da; dims=Lat)
+@test crda == cor(a; dims=1)
+
+# These need fixes in base. kwargs are ::Integer so we can't add methods
+# or dispatch on AbstractDimension in underscore _methods
+accumulate
+cumsum
+cumprod
+
 
 # Broadcast 
 

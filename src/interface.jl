@@ -26,8 +26,17 @@ captions empty.
 function refdims end
 refdims(x) = ()
 
+"""
+Define rebuild to rebuild your sctuct after a dims operation.
+"""
+function rebuild end
+rebuild(original, newdata, newdims, newrefdims) = data
+
 
 # Methods defined in Dimesions.jl
+
+function val end
+val(x) = x
 
 """
 Return the metadata of a dimensions.
