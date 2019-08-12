@@ -7,11 +7,14 @@ Add named dimensions to Julia arrays and other types. This is a work in progress
 under active development, it may be a while before the interface stabilises and
 things are fully documented.
 
+Axia
+
 
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions. It's a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
 syntax. It has similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/).
+
 
 The core component is the `AbstractDimension`, and types that inherit from it,
 such as `Time`, `Lat`, `Lon`, `Vert`, the generic `Dim{:x}` or others you
@@ -25,13 +28,43 @@ Vert, Time])`.
 
 # For package developers
 
-Goals:
+## Goals:
+
 - Flexibility: types are all parametric, new functionality is easy to add 
-- Abstraction: never dispatch on concrete types, maximum reusability of methods
-- Minimal interface: implementing a dimension aware type should be very easy.
-- Metadata: everything has a metadata field (that defaults to `nothing`).
-- Functional style: structs are always rebuild, and other than the array data, 
-  fields are never mutated
+- Abstraction: never dispatch on concrete types, maximum re-usability of methods
+- Minimal interface: implementing a dimension-aware type should be very easy.
+- Functional style: structs are always rebuilt, and other than the array data,
+  fields are not mutated in place.
+- Zero cost dimensional indexing `a[Lat(4), Lon(5)]` of a single value. This is
+  very important for use in simulations.
+- Low cost for range getindex and views: these cant be zero as dim ranges have
+  to be updated for plots to be accurate.
+- Plots are easy: data should plot sensibly with useful labels
+- Least surprise: everything works the same as in Base, but with dim wrappers.
+  If you can use `dims` in base, you can use DimensionalData dims.
+- Prioritise spatial data, as in xarray: other use cases are a free bonus of the
+  modular approach, but will be supported as much as possible.
+
+## Why this package
+
+Why not [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) or
+[NamedDims.jl](https://github.com/invenia/NamedDims.jl/)?
+
+### Structure
+
+Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and
+dimension type in AxisArrays. That means the array type must be a wrapper, which
+can mess with existing method dispatch in a package. It's a less invasive change
+to either inherit from AbstractDimensionalArray or just implement `dims` and
+`rebuild` and add a `dims` field to a type.
+
+### Syntax
+
+AxisArrays is verbose: `a[Axis{:lat}(1)]` vs `a[Lat(1)]` used here. NamedDims
+has nice syntax, but the dimensions are no longer types. This makes it harder to
+extend the package, and makes performance depend on the a dark art of constant
+propagation, instead of relatively simple `@generated` functions and recursion
+that predictably compiles away.
 
 
 Array dimensions use the same types that are used for indexing. The `dims(a)`

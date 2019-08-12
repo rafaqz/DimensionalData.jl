@@ -80,6 +80,8 @@ Base.show(io::IO, dim::AbstractDimension) = begin
     show(io, metadata(dim))
     print(io, "\n")
 end
+# Base.axes(f, dim::Dimensions) = 
+# Base.broadcast
 
 
 # AbstractArray methods where dims are the dispatch argument
