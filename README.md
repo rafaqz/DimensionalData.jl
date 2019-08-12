@@ -7,9 +7,6 @@ Add named dimensions to Julia arrays and other types. This is a work in progress
 under active development, it may be a while before the interface stabilises and
 things are fully documented.
 
-Axia
-
-
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions. It's a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
