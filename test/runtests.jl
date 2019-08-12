@@ -194,16 +194,18 @@ ms = mapslices(sum, da; dims=Time)
 # Iteration methods
 
 # eachslice
-da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
-@test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
-slices = [s .* 2 for s in eachslice(da; dims=Lat)] 
-@test slices[1] == [2, 4, 6, 8]
-@test slices[2] == [6, 8, 10, 12]
-@test slices[3] == [10, 12, 14, 16]
-dims(slices[1]) == (Time(1.0:1.0:4.0),)
-slices = [s .* 2 for s in eachslice(da; dims=Time)] 
-@test slices[1] == [2, 6, 10]
-dims(slices[1]) == (Lat(10.0:10.0:30.0),)
+if VERSION > v"1.1-"
+    da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
+    @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
+    slices = [s .* 2 for s in eachslice(da; dims=Lat)] 
+    @test slices[1] == [2, 4, 6, 8]
+    @test slices[2] == [6, 8, 10, 12]
+    @test slices[3] == [10, 12, 14, 16]
+    dims(slices[1]) == (Time(1.0:1.0:4.0),)
+    slices = [s .* 2 for s in eachslice(da; dims=Time)] 
+    @test slices[1] == [2, 6, 10]
+    dims(slices[1]) == (Lat(10.0:10.0:30.0),)
+end
 
 
 # Dimension reordering methods
