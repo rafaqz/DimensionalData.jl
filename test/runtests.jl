@@ -1,7 +1,7 @@
 using DimensionalData, Statistics, Test, BenchmarkTools
 
 using DimensionalData: val, basetype, sortdims, slicedims, 
-      dims2indices, formatdims, hasdim, mapdims, @dim,
+      dims2indices, formatdims, @dim,
       otherdimnums, reduceindices, dimnum, basetype
 
 
@@ -48,8 +48,8 @@ emptyval=()
 @test dimnum(da, Lat()) == 2
 @test dimnum(da, (Lat, Lon())) == (2, 1)
 
-@test mapdims(x->2x, Lon(3)) == Lon(6)
-@test mapdims(x->x^2, (Lon(3), Time(10))) == (Lon(9), Time(100))
+# @test mapdims(x->2x, Lon(3)) == Lon(6)
+# @test mapdims(x->x^2, (Lon(3), Time(10))) == (Lon(9), Time(100))
 
 @test getdim(dimz, Lon) == dimz[1]
 @test getdim(dimz, Lat) == dimz[2]
@@ -186,7 +186,7 @@ ms = mapslices(sum, da; dims=Lat)
 @test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
 @test refdims(ms) == (Lat(10.0),)
 ms = mapslices(sum, da; dims=Time)
-@test ms == [10 18 25]'
+@test ms == [10 18 26]'
 @test dims(ms) == (Lat(LinRange(10.0, 30.0, 3)),)
 @test refdims(ms) == (Time(1.0),)
 
