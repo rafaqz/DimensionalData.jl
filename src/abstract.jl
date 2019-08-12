@@ -1,13 +1,12 @@
 abstract type AbstractDimensionalArray{T,N,D} <: AbstractArray{T,N} end
 
-abstract type AbstractDimensionalDataset{N,D} end
+# This will be a non-array type that has dimensional data,
+# like a database of coordinate points.
+# abstract type AbstractDimensionalDataset{N,D} end
 
 # Array interface
 Base.size(a::AbstractDimensionalArray) = size(parent(a))
-Base.IndexStyle(::Type{<:AbstractDimensionalArray}) = IndexLinear()
-Base.iterate(a::AbstractDimensionalArray) = iterate(parent(a))
-Base.length(a::AbstractDimensionalArray) = length(parent(a))
-Base.ndims(a::AbstractDimensionalArray{T,N,D}) where {T,N,D} = N
+Base.iterate(a::AbstractDimensionalArray, args...) = iterate(parent(a), args...)
 Base.show(io::IO, a::AbstractDimensionalArray) = begin
     printstyled(io, "\n", label(a), ": "; color=:red)
     show(io, typeof(a))
@@ -17,7 +16,6 @@ Base.show(io::IO, a::AbstractDimensionalArray) = begin
     show(io, refdims(a))
     printstyled(io, "\n\nmetadata:\n"; color=:cyan)
 end
-
 
 # These methods are needed to rebuild the array when normal integer dims are used.
 

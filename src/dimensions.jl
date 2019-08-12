@@ -24,13 +24,6 @@ All AbstractDimension are assumed to `val` and `metadata` fields.
 """
 abstract type AbstractDimCombination end
 
-# Wrapper for reverse indices so we don't have to do the lookup 
-# all the timeaa
-# struct Reverse{T}
-    # val::T
-# end
-# val(reverse::Reverse) = reverse.val
-
 # Getters
 val(dim::AbstractDimension) = val(dim.val)
 val(dim) = dim
@@ -174,8 +167,6 @@ end
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
-@inline slicedims(d::AbstractDimension{<:Reverse}, i) =
-    ((basetype(d)(val(d)[i], metadata(d)),), ())
 @inline slicedims(d::AbstractDimension, i::Number) =
     ((), (basetype(d)(val(d)[i], metadata(d)),))
 @inline slicedims(d::AbstractDimension, i::Colon) =
