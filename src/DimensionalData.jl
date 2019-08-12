@@ -20,12 +20,11 @@ export select, bounds, getdim, dimnum
 
 include("utils.jl")
 include("interface.jl")
-include("dimensions.jl")
-include("abstract.jl")
+include("abstractdimension.jl")
+include("abstractarray.jl")
 include("select.jl")
+include("dimension.jl")
 include("array.jl")
-include("dim_methods.jl")
-include("macros.jl")
 include("plotrecipes.jl")
 
 

@@ -30,56 +30,6 @@ val(dim) = dim
 
 metadata(dim::AbstractDimension) = dim.metadata
 
-
-# Base methods
-
-Base.eltype(dim::AbstractDimension) = eltype(typeof(dim))
-Base.eltype(dim::Type{AbstractDimension{T}}) where T = T
-Base.size(dim::AbstractDimension, args...) = size(val(dim), args...)
-Base.map(f, dim::AbstractDimension) = basetype(dim)(f(val(dim)))
-Base.show(io::IO, dim::AbstractDimension) = begin 
-    printstyled(io, "\n", dimname(dim), ": "; color=:red)
-    show(io, typeof(dim))
-    printstyled(io, "\nval:\n"; color=:green)
-    show(io, val(dim))
-
-    # printstyled(io, indent, name(v), color=:green)
-    printstyled(io, "\nmetadata:\n"; color=:blue)
-    show(io, metadata(dim))
-    print(io, "\n")
-end
-
-# AbstractArray methods where dims are the dispatch argument
-
-# These use AbstractArray instead of AbstractDimensionArray, which means some of
-# the interface can be used without inheriting from it.
-
-rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
-
-Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbstractDimension{<:Number}}) =
-    getindex(a, dims2indices(a, dims)...)
-Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbstractDimension}) = begin
-    I = dims2indices(a, dims)
-    rebuildsliced(a, getindex(parent(a), I...), I)
-end
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, dims::Vararg{<:AbstractDimension}) = begin
-    I = dims2indices(a, dims)
-    rebuildsliced(a, setindex!(parent(a), x, I...), I)
-end
-Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbstractDimension}) = begin
-    I = dims2indices(a, dims)
-    rebuildsliced(a, view(parent(a), I...), I)
-end
-Base.permutedims(a::AbstractArray, dims::AllDimensions) = begin
-    perm = [dimnum(a, dims)...]
-    rebuild(a, permutedims(parent(a), perm), a.dims[perm], refdims(a))
-end
-Base.axes(a::AbstractArray, dims::Union{AbstractDimension,Type{AbstractDimension}}) = 
-    axes(a, dimnum(a, dims))
-Base.size(a::AbstractArray, dims::Union{AbstractDimension,Type{AbstractDimension}}) = 
-    size(a, dimnum(a, dims))
-
-
 # DimensionalData interface methods
 
 dimname(a::AbstractArray) = dimname(dims(a))
@@ -111,6 +61,99 @@ shorten(x) = x
 # Nothing doesn't string
 getstring(::Nothing) = ""
 getstring(x) = string(x)
+
+
+# Base methods
+
+Base.eltype(dim::AbstractDimension) = eltype(typeof(dim))
+Base.eltype(dim::Type{AbstractDimension{T}}) where T = T
+Base.size(dim::AbstractDimension, args...) = size(val(dim), args...)
+Base.map(f, dim::AbstractDimension) = basetype(dim)(f(val(dim)))
+Base.show(io::IO, dim::AbstractDimension) = begin 
+    printstyled(io, "\n", dimname(dim), ": "; color=:red)
+    show(io, typeof(dim))
+    printstyled(io, "\nval:\n"; color=:green)
+    show(io, val(dim))
+
+    # printstyled(io, indent, name(v), color=:green)
+    printstyled(io, "\nmetadata:\n"; color=:blue)
+    show(io, metadata(dim))
+    print(io, "\n")
+end
+
+
+# AbstractArray methods where dims are the dispatch argument
+
+# These use AbstractArray instead of AbstractDimensionArray, which means some of
+# the interface can be used without inheriting from it.
+
+rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
+
+Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbstractDimension{<:Number}}) =
+    getindex(a, dims2indices(a, dims)...)
+Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbstractDimension}) = begin
+    I = dims2indices(a, dims)
+    rebuildsliced(a, getindex(parent(a), I...), I)
+end
+Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, dims::Vararg{<:AbstractDimension}) = begin
+    I = dims2indices(a, dims)
+    rebuildsliced(a, setindex!(parent(a), x, I...), I)
+end
+Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbstractDimension}) = begin
+    I = dims2indices(a, dims)
+    rebuildsliced(a, view(parent(a), I...), I)
+end
+Base.permutedims(a::AbstractArray, dims::AllDimensions) = begin
+    perm = [dimnum(a, dims)...]
+    rebuild(a, permutedims(parent(a), perm), a.dims[perm], refdims(a))
+end
+Base.axes(a::AbstractArray, dims::Union{AbstractDimension,Type{AbstractDimension}}) = 
+    axes(a, dimnum(a, dims))
+Base.size(a::AbstractArray, dims::Union{AbstractDimension,Type{AbstractDimension}}) = 
+    size(a, dimnum(a, dims))
+
+# Dimension reduction methods where dims are an argument
+# targeting underscore _methods so we can use dispatch ont the dims arg
+
+for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
+    _fname = Symbol('_', fname)
+    @eval begin
+        ($mod.$_fname)(a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
+            ($mod.$_fname)(a, dimnum(a, dims))
+        ($mod.$_fname)(f, a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
+            ($mod._fname)(f, a, dimnum(a, dims))
+    end
+end
+
+for fname in (:std, :var)
+    _fname = Symbol('_', fname)
+    @eval function (Statistics.$_fname)(a::AbstractArray{T,N} , corrected::Bool, mean, dims::AllDimensions) where {T,N}
+        dimnums = dimnum(a, dims)
+        (Statistics.$_fname)(a, corrected, mean, dimnums)
+    end
+end
+
+Statistics._median(a::AbstractArray, dims::AllDimensions) = 
+    Base._median(a, dimnum(a, dims))
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDimensions) =
+    Base._mapreduce_dim(f, op, nt, A, dimnum(A, dims))
+# Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
+# accumulate wont work unless that is relaxed, or we copy half of the file here.
+Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
+    Base._accumulate!(op, B, A, dimnum(A, dims), init)
+
+
+#= SplitApplyCombine methods?
+Should allow groupby using dims lookup to make this worth the dependency
+Like group by time/lattitude/height band etc.
+
+SplitApplyCombine.splitdims(a::AbstractArray, dims::AllDimensions) =
+    SplitApplyCombine.splitdims(a, dimnum(a, dims))
+
+SplitApplyCombine.splitdimsview(a::AbstractArray, dims::AllDimensions) =
+    SplitApplyCombine.splitdimsview(a, dimnum(a, dims))
+=#
+
 
 
 

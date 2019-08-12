@@ -1,7 +1,6 @@
 """
     @dim typ name [shortname=name]
-
-Define dimensions for array indexing
+Define dimensions
 """
 macro dim(typ, name=string(typ), shortname=string(typ))
     esc(quote
