@@ -1,8 +1,8 @@
 using DimensionalData, Statistics, Test, BenchmarkTools
 
-using DimensionalData: val, basetype, sortdims, slicedims, 
+using DimensionalData: val, basetype, slicedims, 
       dims2indices, formatdims, @dim,
-      otherdimnums, reduceindices, dimnum, basetype
+      reducedims, dimnum, basetype
 
 
 # Dims creation macro
@@ -31,18 +31,27 @@ dimz = dims(da)
 @test dimtype(dimz) == Tuple{Lon{LinRange{Float64},Nothing},Lat{LinRange{Float64},Nothing}}
 
 # Primitives
-                                   # dims                      # refdims 
+
+@test permutedims((Lat(1:2), Lon(1)), da) == (Lon(1), Lat(1:2))
+@test permutedims((Lon(1),), da) == (Lon(1), nothing)
+@test permutedims((Lat, Lon,), da) == (Lon(:), Lat(:))
+
 @test slicedims(dimz, (1:2, 3)) == ((Lon(LinRange(143,144,2)),), (Lat(-36.0),))
 @test slicedims(dimz, (2:3, :)) == ((Lon(LinRange(144,145,2)), Lat(LinRange(-38.0,-35.0,4))), ())
 
-@test dims2indices(dimtype(dimz), (Lat,)) == (Colon(), Colon())
-@test dims2indices(dimtype(dimz), (Lat(1),)) == (Colon(), 1)
-@test dims2indices(dimtype(dimz), (Lat(2), Lon(3:7))) == (3:7, 2)
-@test dims2indices(dimtype(dimz), (Lon(2), Lat([1, 3, 4]))) == (2, [1, 3, 4])
-@test dims2indices(da, (Lon(2), Lat([1, 3, 4]))) == (2, [1, 3, 4])
-@test_broken dims2indices(dimtype(dimz), (Lon(2), Time(4)))
+emptyval = Colon()
+@test dims2indices(dimz, (Lat(),), emptyval) == (Colon(), Colon())
+@test dims2indices(dimz, (Lat(1),), emptyval) == (Colon(), 1)
+# Time is just ignored if it's not in dims. Should this be an error?
+@test dims2indices(dimz, (Time(4), Lon(2))) == (2, Colon())
+@test dims2indices(dimz, (Lat(2), Lon(3:7)), emptyval) == (3:7, 2)
+@test dims2indices(dimz, (Lon(2), Lat([1, 3, 4])), emptyval) == (2, [1, 3, 4])
+@test dims2indices(da, (Lon(2), Lat([1, 3, 4])), emptyval) == (2, [1, 3, 4])
 emptyval=()
-@test dims2indices(dimtype(dimz), (Lat,), emptyval) == ((), ())
+@test dims2indices(dimz, (Lat,), emptyval) == ((), Colon())
+@test dims2indices(dimz, (Lat, Lon), emptyval) == (Colon(), Colon())
+@test dims2indices(da, Lon, emptyval) == (Colon(), ())
+
 
 @test dimnum(da, Lon) == 1
 @test dimnum(da, Lat()) == 2
@@ -51,9 +60,9 @@ emptyval=()
 # @test mapdims(x->2x, Lon(3)) == Lon(6)
 # @test mapdims(x->x^2, (Lon(3), Time(10))) == (Lon(9), Time(100))
 
-@test getdim(dimz, Lon) == dimz[1]
-@test getdim(dimz, Lat) == dimz[2]
-@test_throws ArgumentError getdim(dimz, Time)
+# @test getdim(dimz, Lon) == dimz[1]
+# @test getdim(dimz, Lat) == dimz[2]
+# @test_throws ArgumentError getdim(dimz, Time)
 
 # Not being used currently
 # @test hasdim(dimz, Time) == false
@@ -69,12 +78,7 @@ a = [1 2; 3 4]
 dimz = (Lon((143, 145)), Lat((-38, -36)))
 g = DimensionalArray(a, dimz)
 
-@test sortdims(g, (Lat(1:2), Lon(1))) == (Lon(1), Lat(1:2))
-
-@test otherdimnums(5, (1, 3)) == (2, 4, 5)
-@test reduceindices(2, 1) == (1, Colon())
-@test reduceindices(g, 2) == (Colon(), 1)
-
+@test reducedims((Lon(:), Lat(1:5))) == (Lon(1), Lat(1))
 
 
 # Indexing: getindex/view with rebuild and dimension slicing 
@@ -98,6 +102,8 @@ a = g[Lon(1), Lat(1:2)]
 # @test bounds(a, Lon(), Lat()) == (143, (-38, -36))
 
 a = g[Lat(:)]
+
+dims2indices(g, (Lat(:),))
 @test a == [1 2; 3 4]
 @test typeof(a) <: DimensionalArray{Int,2}
 @test dims(a) == (Lon(LinRange(143, 145, 2)), Lat(LinRange(-38, -36, 2)))
@@ -186,7 +192,7 @@ ms = mapslices(sum, da; dims=Lat)
 @test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
 @test refdims(ms) == (Lat(10.0),)
 ms = mapslices(sum, da; dims=Time)
-@test ms == [10 18 26]'
+@test parent(ms) == [10 18 26]'
 @test dims(ms) == (Lat(LinRange(10.0, 30.0, 3)),)
 @test refdims(ms) == (Time(1.0),)
 
@@ -194,18 +200,16 @@ ms = mapslices(sum, da; dims=Time)
 # Iteration methods
 
 # eachslice
-if VERSION > v"1.1-"
-    da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
-    @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
-    slices = [s .* 2 for s in eachslice(da; dims=Lat)] 
-    @test slices[1] == [2, 4, 6, 8]
-    @test slices[2] == [6, 8, 10, 12]
-    @test slices[3] == [10, 12, 14, 16]
-    dims(slices[1]) == (Time(1.0:1.0:4.0),)
-    slices = [s .* 2 for s in eachslice(da; dims=Time)] 
-    @test slices[1] == [2, 6, 10]
-    dims(slices[1]) == (Lat(10.0:10.0:30.0),)
-end
+da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
+@test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
+slices = [s .* 2 for s in eachslice(da; dims=Lat)] 
+@test slices[1] == [2, 4, 6, 8]
+@test slices[2] == [6, 8, 10, 12]
+@test slices[3] == [10, 12, 14, 16]
+dims(slices[1]) == (Time(1.0:1.0:4.0),)
+slices = [s .* 2 for s in eachslice(da; dims=Time)] 
+@test slices[1] == [2, 6, 10]
+dims(slices[1]) == (Lat(10.0:10.0:30.0),)
 
 
 # Dimension reordering methods
@@ -232,6 +236,7 @@ dsp = permutedims(da, [Lon, Lat, Time])
 # But you can't index (Lat, Lat). It will plot correctly at least
 a = rand(5, 4)
 da = DimensionalArray(a, (Lat(10:20), Lon(1:4)))
+
 cvda = cov(da; dims=Lon)
 @test cvda == cov(a; dims=2)
 crda = cor(da; dims=Lat)
@@ -261,6 +266,27 @@ have an overhead for constructing the neew GeoArray and slicing
 the dimensions.
 =#
 
+# Band
+a = [1 2 3 4
+     3 4 5 6
+     5 6 7 8]
+formatdims(a, (Lon((143, 145)), Lat(Band{2}((-38, -35)))))
+da = DimensionalArray(a, (Lon((143, 145)), Lat(Band{2}((-38, -35)))))
+dimz = dims(da)
+@test dims2indices(dimz, (Lat(Band{2}(2)),), Colon()) == (Colon(), 4)
+@test dims2indices(dimz, (Lat(Band{2}(1:1)),), Colon()) == (Colon(), 2:2:2)
+@test dims2indices(dimz, (Lat(Band{1}(1:2)),), Colon()) == (Colon(), 1:2:3)
+@test dims2indices(dimz, (Lat(Band{1}([1,2])),), Colon()) == (Colon(), [1,3])
+@test dims2indices(dimz, (Lat(Band{2}([1,2])),), Colon()) == (Colon(), [2,4])
+@test dims2indices(dimz, (Lat(Band{2}(:)),), Colon()) == (Colon(), 2:2:4)
+# da[Lat(Band{1}())] 
+
+
+@code_native dims2indices(da, Lat(1), Colon())
+@code_native dims2indices(da, (Lat(1), Lon(3:4)), Colon())
+@code_native dimnum(da, (Lat(), Lon(3:4)))
+
+
 g = DimensionalArray(rand(100, 50), (Lon(51:150), Lat(-40:9)))
 
 println("\n\nPerformance of view()\n")
@@ -277,14 +303,14 @@ println("Dims with Number")
 @btime vd1($g)
 println()
 println("Parent indices with Colon")
-@btime vi2($g)
+@btime vi2($g);
 println("Dims with Colon")
-@btime vd2($g)
+@btime vd2($g);
 println()
 println("Parent indices with UnitRange")
-@btime vi3($g)
+@btime vi3($g);
 println("Dims with UnitRange")
-@btime vd3($g)
+@btime vd3($g);
 
 
 println("\n\nPerformance of getindex()\n")
@@ -308,5 +334,5 @@ println()
 println("Parent indices with UnitRange")
 @btime i3($g)
 println("Dims with UnitRange")
-@btime d3($g)
+@btime d3($g);
 

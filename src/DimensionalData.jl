@@ -4,7 +4,7 @@ using RecipesBase, Statistics
 
 using Base: tail, OneTo
 
-export AbstractDimension, Dim, Lat, Lon, Vert, Time
+export AbstractDimension, Dim, Lat, Lon, Vert, Time, Band
 
 export AbstractDimensionalArray, DimensionalArray
 
@@ -22,9 +22,11 @@ include("utils.jl")
 include("interface.jl")
 include("abstractdimension.jl")
 include("abstractarray.jl")
-include("select.jl")
 include("dimension.jl")
 include("array.jl")
+include("primitives.jl")
+include("select.jl")
+include("band.jl")
 include("plotrecipes.jl")
 
 

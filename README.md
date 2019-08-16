@@ -17,11 +17,12 @@ The core component is the `AbstractDimension`, and types that inherit from it,
 such as `Time`, `Lat`, `Lon`, `Vert`, the generic `Dim{:x}` or others you
 define manually using the `@dim` macro.
 
-These can be used to select data from dimensional arrays: `select(a,
+Dims can be used to select data from dimensional arrays: `select(a,
 Time(DateTime(2002, 08)))`, for indexing and views without knowing dimension
 order: `a[Lon(20)]`, `view(a, Lon(1:20), Lat(30:40))`  and for indicating
 dimesions to reduce `mean(a, dims=Time)`, or permute `permutedims(a, [Long, Lat,
-Vert, Time])`.
+Vert, Time])` in julia `Base` and `Statistics` functions that have dims
+arguments.
 
 # For package developers
 
@@ -38,7 +39,7 @@ Vert, Time])`.
   to be updated for plots to be accurate.
 - Plots are easy: data should plot sensibly with useful labels
 - Least surprise: everything works the same as in Base, but with dim wrappers.
-  If you can use `dims` in base, you can use DimensionalData dims.
+  If you can use `dims` in base, you can probably use DimensionalData dims.
 - Prioritise spatial data, as in xarray: other use cases are a free bonus of the
   modular approach, but will be supported as much as possible.
 

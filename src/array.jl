@@ -5,14 +5,14 @@ struct DimensionalArray{T,N,D,R,A<:AbstractArray{T,N}} <: AbstractDimensionalArr
     dims::D
     refdims::R
 end
-DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
+@inline DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
     DimensionalArray(a, formatdims(a, dims), refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
-Base.parent(a::DimensionalArray) = a.data
+@inline Base.parent(a::DimensionalArray) = a.data
 
 # DimensionalArray interface
 @inline rebuild(a::DimensionalArray, data, dims, refdims) = DimensionalArray(data, dims, refdims)
 
-dims(a::DimensionalArray) = a.dims
-refdims(a::DimensionalArray) = a.refdims
+@inline dims(a::DimensionalArray) = a.dims
+@inline refdims(a::DimensionalArray) = a.refdims

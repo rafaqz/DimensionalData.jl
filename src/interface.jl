@@ -12,7 +12,7 @@ This is the only method required for this package to work. It probably
 requires defining a dims field on your object to store dims in.
 """
 function dims end
-dims(x) = ()
+dims(x::T) where T = error("`dims` not defined for type $T")
 
 """
 Reference dimensions for an array that is a slice or view of another 
@@ -57,14 +57,16 @@ function dimtype end
 """
 Get the name of data or a dimension.
 """
-function name end
-name(x) = ""
+function dimname end
+dimname(x) = dimname(typeof(x))
+dimname(x::Type) = ""
 
 """
 Get the short name of array data or a dimension.
 """
 function shortname end
 shortname(x) = ""
+name(x) = dimname(x)
 
 """
 Get a plot label of data or a dimension. This should include

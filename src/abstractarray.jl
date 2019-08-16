@@ -17,17 +17,19 @@ Base.show(io::IO, a::AbstractDimensionalArray) = begin
     printstyled(io, "\n\nmetadata:\n"; color=:cyan)
 end
 
+rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
+
 # These methods are needed to rebuild the array when normal integer dims are used.
 
-Base.@propagate_inbounds Base.getindex(a::AbstractDimensionalArray, I::Vararg{<:Number}) =
+Base.@propagate_inbounds Base.getindex(a::AbstractDimensionalArray, I::Vararg{<:Integer}) =
     getindex(parent(a), I...)
-Base.@propagate_inbounds Base.getindex(a::AbstractDimensionalArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) =
+Base.@propagate_inbounds Base.getindex(a::AbstractDimensionalArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, getindex(parent(a), I...), I)
 
 Base.@propagate_inbounds Base.setindex!(a::AbstractDimensionalArray, x, I...) =
     setindex!(parent(a), x, I...)
 
-Base.@propagate_inbounds Base.view(a::AbstractDimensionalArray, I::Vararg{<:Union{AbstractArray,Colon,Number}}) =
+Base.@propagate_inbounds Base.view(a::AbstractDimensionalArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, view(parent(a), I...), I)
 
 for fname in [:permutedims, :transpose, :adjoint]
@@ -36,9 +38,10 @@ for fname in [:permutedims, :transpose, :adjoint]
             rebuild(a, $fname(parent(a)), reverse(dims(a)), refdims(a))
     end
 end
-Base.permutedims(a::AbstractDimensionalArray{T,N}, perm) where {T,N} = begin
+Base.permutedims(a::AbstractDimensionalArray{T,N}, perm::Vector) where {T,N} = begin
     perm = [dimnum(a, perm)...]
-    rebuild(a, permutedims(parent(a), perm), a.dims[perm], refdims(a))
+    println(perm)
+    rebuild(a, permutedims(parent(a), perm), dims(a)[perm], refdims(a))
 end
 Base.convert(::Type{Array{T,N}}, a::AbstractDimensionalArray{T,N}) where {T,N} = 
     convert(Array{T,N}, parent(a))
@@ -73,27 +76,31 @@ find_dimensional(::Any, rest) = find_dimensional(rest)
 # passes AbstractDimension dims
 
 Base.mapslices(f, a::AbstractDimensionalArray; dims=1, kwargs...) = begin
-    dimnums = dimnum(a, dims)
-    data = mapslices(f, parent(a); dims=dimnums, kwargs...)
-    rebuildsliced(a, data, reduceindices(a, dimnums))
+    data = mapslices(f, parent(a); dims=dimnum(a, dims), kwargs...)
+    rebuildsliced(a, data, dims2indices(a, reducedims(dims)))
 end
 
+# This is copied from base as we can't efficiently wrap this function
+# through the kwarg with a rebuild in the generator. Doing it this way 
+# wierdly makes it 2x faster to use a dim than an integer.
 if VERSION > v"1.1-"
-    Base.eachslice(a::AbstractDimensionalArray; dims=1, kwargs...) = begin
-        dimnums = dimnum(a, dims)
-        slices = eachslice(parent(a); dims=dimnums, kwargs...)
-        return Base.Generator(slices) do slice
-            rebuildsliced(a, slice, reduceindices(a, dimnums))
+    Base.eachslice(A::AbstractDimensionalArray; dims=1, kwargs...) = begin
+        if dims isa Tuple && length(dims) == 1 
+            throw(ArgumentError("only single dimensions are supported"))
         end
+        dim = first(dimnum(A, dims))
+        dim <= ndims(A) || throw(DimensionMismatch("A doesn't have $dim dimensions"))
+        idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
+        return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
     end
 end
 
 for fname in (:cor, :cov)
     @eval Statistics.$fname(a::AbstractDimensionalArray{T,2}; dims=1, kwargs...) where T = begin
-        dimnums = dimnum(a, dims)
-        newdata = Statistics.$fname(parent(a); dims=dimnums, kwargs...)
-        newdims, newrefdims = slicedims(a, reduceindices(a, otherdimnums(a, dimnums)))
-        println(dims)
+        newdata = Statistics.$fname(parent(a); dims=dimnum(a, dims), kwargs...)
+        I = dims2indices(a, dims, 1)
+        println((I, dims))
+        newdims, newrefdims = slicedims(a, I)
         rebuild(a, newdata, (newdims[1], newdims[1]), newrefdims)
     end
 end
