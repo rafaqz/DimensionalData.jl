@@ -302,27 +302,6 @@ da = DimensionalArray(a, dimz)
 
 
 
-# Bands
-a = [1 2 3 4
-     3 4 5 6
-     5 6 7 8]
-formatdims(a, (Lon((143, 145)), Lat(Band{2}((-38, -35)))))
-da = DimensionalArray(a, (Lon((143, 145)), Lat(Band{2}((-38, -35)))))
-dimz = dims(da)
-@test dims2indices(dimz, (Lat(Band{2}(2)),), Colon()) == (Colon(), 4)
-@test dims2indices(dimz, (Lat(Band{2}(1:1)),), Colon()) == (Colon(), 2:2:2)
-@test dims2indices(dimz, (Lat(Band{1}(1:2)),), Colon()) == (Colon(), 1:2:3)
-@test dims2indices(dimz, (Lat(Band{1}([1,2])),), Colon()) == (Colon(), [1,3])
-@test dims2indices(dimz, (Lat(Band{2}([1,2])),), Colon()) == (Colon(), [2,4])
-@test dims2indices(dimz, (Lat(Band{2}(:)),), Colon()) == (Colon(), 2:2:4)
-@test da[Lat(Band{1}())] == [1 3
-                             3 5
-                             5 7]
-@test da[Lat(Band{2}()), Lon(1:2)] == [2 4
-                                       4 6]
-# @test select(da, (Lat(Band{2}(37.5:35.5)), Lon(143))) == 
-
-
 #= Benchmarks
 
 Test how much the recalculation of coordinates and dimtypes
