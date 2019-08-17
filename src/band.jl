@@ -27,9 +27,8 @@ end
 @inline formatdims(a, dim::AbDim{<:Band{B}}, n) where B =
     basetype(dim)(linrange(val(dim), size(a, n) ÷ B))
 
-@inline slicedims(d::AbDim, i::Band{X}) where X = begin
-    range = val(d)
-    start, stop, len = range[first(i)], range[last(i)], length(i)
-    d = typeof(d)(LinRange(start, stop, len), metadata(d))
-    ((d,), ())
-end
+@inline slicedims(d::AbDim{<:Band{B}}, i) where B = 
+    slicedims(basetype(d)(val(val(d))), (i .- 1) .÷ B .+ 1)
+
+@inline sel2indices(dims::AbDimTuple, seldim::AbDim, mode) =
+    sel2indices(dims[dimnum(dims, seldim)], val(seldim), mode)

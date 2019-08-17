@@ -22,38 +22,45 @@ passed in dimensions, or throws an error.
 """
 struct Exact <: SelectionMode end
 
-@inline select(a::AbstractDimensionalArray, seldim::AbstractDimension, args...) = 
+@inline select(a::AbDimArray, seldim::AbDim, args...) = 
     select(a, (seldim,), args...)
-@inline select(a::AbstractDimensionalArray, seldims::Tuple, mode=Contained()) = begin
-    indices = sel2indices(a, sortdims(a, seldims), mode)
+@inline select(a::AbDimArray, seldims::Tuple, mode=Contained()) = begin
+    indices = sel2indices(dims(a), permutedims(seldims, dims(a)), mode)
     a[indices...]
 end
-@inline selectview(a::AbstractDimensionalArray, seldim::AbstractDimension, args...) = 
+
+@inline selectview(a::AbDimArray, seldim::AbDim, args...) = 
     selectview(a, (seldim,), args...) 
-@inline selectview(a::AbstractDimensionalArray, seldims::Tuple, mode) = 
-    view(a, sel2indices(a, sortdims(a, seldims), mode))
+@inline selectview(a::AbDimArray, seldims::Tuple, mode) = 
+    view(a, sel2indices(dims(a), permutedims(seldims, dims(a)), mode))
 
-@inline sel2indices(a, seldims::Tuple, mode) =
-    (sel2indices(a, seldims[1], mode), sel2indices(a, tail(seldims), mode)...)
-@inline sel2indices(a, seldim::Tuple{}, mode) = ()
 
-@inline sel2indices(a, seldim::Nothing, mode) = Colon()
-@inline sel2indices(a, seldim::AbstractDimension{<:Colon}, mode) = Colon()
-@inline sel2indices(a, seldim::AbstractDimension, mode) =
-    sel2indices(val(dims(a)[dimnum(a, seldim)]), val(seldim), mode)
+@inline sel2indices(dims::AbDimTuple, seldims::Tuple, mode) =
+    (sel2indices(dims, seldims[1], mode), sel2indices(dims, tail(seldims), mode)...)
+@inline sel2indices(dims::AbDimTuple, seldim::Tuple{}, mode) = ()
+
+@inline sel2indices(dims::AbDimTuple, seldim::Nothing, mode) = Colon()
+@inline sel2indices(dims::AbDimTuple, seldim::AbDim{<:Colon}, mode) = Colon()
+@inline sel2indices(dims::AbDimTuple, seldim::AbDim, mode) =
+    sel2indices(dims[dimnum(dims, seldim)], val(seldim), mode)
 
 # Contained
-@inline sel2indices(dim::AbstractDimension, selval, mode::Contained) = 
-    searchsortedfirst(dim, selval)
-@inline sel2indices(dim::AbstractDimension, selvals::Union{AbstractVector,Tuple}, mode::Contained) =
-    searchsortedfirst(dim::AbstractDimension, first(selvals)):searchsortedlast(dim, last(selvals))
+@inline sel2indices(dim::AbDim, selval, mode::Contained) = 
+    searchsortedfirst(val(dim), selval)
+@inline sel2indices(dim::AbDim, selvals::Tuple, mode::Contained) =
+    searchsortedfirst(val(dim), first(selvals)):searchsortedlast(val(dim), last(selvals))
+# Vectors can't use Contained(). Use Exact().
+@inline sel2indices(dim::AbDim, selvals::AbstractVector, mode::Contained) =
+    sel2indices(dim, selvals, Exact())
 
 # Exact
-@inline sel2indices(dim::AbstractDimension, selval, ::Exact) = findorerror(selval, dim)
-@inline sel2indices(dim::AbstractDimension, selvals::Union{AbstractVector,Tuple}, ::Exact) =
-    findorerror(first(selvals), dim):findorerror(last(selvals), dim)
+@inline sel2indices(dim::AbDim, selval, ::Exact) = findorerror(selval, val(dim))
+@inline sel2indices(dim::AbDim, selvals::Tuple, ::Exact) =
+    findorerror(first(selvals), val(dim)):findorerror(last(selvals), val(dim))
+@inline sel2indices(dim::AbDim, selvals::AbstractVector, mode::Exact) =
+    findorerror.(selvals, Ref(val(dim)))
 
 @inline findorerror(selval, dim) = begin
-    ind = findfirst(x -> x == selval, dim)
+    ind = findfirst(x -> x == selval, val(dim))
     isnothing(ind) ? error("$selval not found in $dim") : ind
 end

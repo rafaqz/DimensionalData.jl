@@ -35,6 +35,8 @@ metadata(dim::AbDim) = dim.metadata
 
 # DimensionalData interface methods
 
+rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim))
+
 dimname(a::AbstractArray) = dimname(dims(a))
 dimname(dims::AbDimTuple) = (dimname(dims[1]), dimname(tail(dims))...)
 dimname(dims::Tuple{}) = ()
@@ -89,7 +91,7 @@ end
 
 # AbstractArray methods where dims are the dispatch argument
 
-rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
+@inline rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
 
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, dims::Vararg{<:AbDim{<:Number}}) =
     getindex(a, dims2indices(a, dims)...)
@@ -102,10 +104,6 @@ Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, dims::Vararg{<:AbDi
 Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbDim}) = 
     rebuildsliced(a, view(parent(a), dims2indices(a, dims)...), dims)
 
-@inline Base.permutedims(a::AbstractArray, perm::AllDimensions) = begin
-    perm = dimnum(a, perm)
-    rebuild(a, permutedims(parent(a), [perm...]), permutedims(a.dims, perm), refdims(a))
-end
 @inline Base.axes(a::AbstractArray, dims::DimOrDimType) = axes(a, dimnum(a, dims))
 @inline Base.size(a::AbstractArray, dims::DimOrDimType) = size(a, dimnum(a, dims))
 

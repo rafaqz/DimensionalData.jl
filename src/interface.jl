@@ -27,10 +27,10 @@ function refdims end
 refdims(x) = ()
 
 """
-Define rebuild to rebuild your sctuct after a dims operation.
+Rebuild an array or dim struct after an operation.
 """
 function rebuild end
-rebuild(original, newdata, newdims, newrefdims) = data
+rebuild(array, newdata, newdims, newrefdims) = data
 
 
 # Methods defined in Dimesions.jl

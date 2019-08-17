@@ -1,4 +1,4 @@
-using DimensionalData, Statistics, Test, BenchmarkTools
+using DimensionalData, Statistics, Test, BenchmarkTools, Unitful
 
 using DimensionalData: val, basetype, slicedims, 
       dims2indices, formatdims, @dim,
@@ -30,11 +30,23 @@ dimz = dims(da)
 @test dimz == (Lon(LinRange(143, 145, 3)), Lat(LinRange(-38, -35, 4)))
 @test dimtype(dimz) == Tuple{Lon{LinRange{Float64},Nothing},Lat{LinRange{Float64},Nothing}}
 
-# Primitives
 
-@test permutedims((Lat(1:2), Lon(1)), da) == (Lon(1), Lat(1:2))
-@test permutedims((Lon(1),), da) == (Lon(1), nothing)
-@test permutedims((Lat, Lon,), da) == (Lon(:), Lat(:))
+# Dim Primitives
+
+dz = (Lon(), Lat())
+@test permutedims((Lat(1:2), Lon(1)), dz) == (Lon(1), Lat(1:2))
+@test permutedims((Lon(1),), dz) == (Lon(1), nothing)
+
+@test permutedims((Lat(), Lon()), dz) == (Lon(:), Lat(:))
+@test permutedims([Lat(), Lon()], dz) == (Lon(:), Lat(:))
+@test permutedims((Lat, Lon),     dz) == (Lon(:), Lat(:))
+@test permutedims([Lat, Lon],     dz) == (Lon(:), Lat(:))
+
+@test permutedims(dz, (Lat(), Lon())) == (Lat(:), Lon(:))
+@test permutedims(dz, [Lat(), Lon()]) == (Lat(:), Lon(:))
+@test permutedims(dz, (Lat, Lon)    ) == (Lat(:), Lon(:))
+@test permutedims(dz, [Lat, Lon]    ) == (Lat(:), Lon(:))
+
 
 @test slicedims(dimz, (1:2, 3)) == ((Lon(LinRange(143,144,2)),), (Lat(-36.0),))
 @test slicedims(dimz, (2:3, :)) == ((Lon(LinRange(144,145,2)), Lat(LinRange(-38.0,-35.0,4))), ())
@@ -51,7 +63,6 @@ emptyval=()
 @test dims2indices(dimz, (Lat,), emptyval) == ((), Colon())
 @test dims2indices(dimz, (Lat, Lon), emptyval) == (Colon(), Colon())
 @test dims2indices(da, Lon, emptyval) == (Colon(), ())
-
 
 @test dimnum(da, Lon) == 1
 @test dimnum(da, Lat()) == 2
@@ -79,6 +90,7 @@ dimz = (Lon((143, 145)), Lat((-38, -36)))
 g = DimensionalArray(a, dimz)
 
 @test reducedims((Lon(:), Lat(1:5))) == (Lon(1), Lat(1))
+
 
 
 # Indexing: getindex/view with rebuild and dimension slicing 
@@ -221,12 +233,20 @@ tda = transpose(da)
 ada = adjoint(da)
 @test dims(ada) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)))
 @test size(ada) == (4, 5)
+
+# Array dispatch
 dsp = permutedims(da)
 @test parent(dsp) == permutedims(parent(da))
 @test dims(dsp) == reverse(dims(da))
 da = DimensionalArray(ones(5, 2, 4), (Lat(10:20), Time(10:11), Lon(1:4)))
 dsp = permutedims(da, [3, 1, 2])
+dsp = permutedims(da, (3, 1, 2))
+# Dim dispatch
 dsp = permutedims(da, [Lon, Lat, Time])
+dsp = permutedims(da, (Lon, Lat, Time))
+dsp = permutedims(da, [Lon(), Lat(), Time()])
+dsp = permutedims(da, (Lon(), Lat(), Time()))
+
 @test dims(dsp) == (Lon(LinRange(1.0, 4.0, 4)), Lat(LinRange(10.0, 20.0, 5)), Time(LinRange(10.0, 11.0, 2)))
 
 
@@ -250,23 +270,39 @@ cumprod
 
 
 # Broadcast 
-
 da = DimensionalArray(ones(5, 2, 4), (Lat(10:20), Time(10:11), Lon(1:4)))
 da2 = da .* 2
 @test da2 == ones(5, 2, 4) .* 2
 @test dims(da2) == (Lat(LinRange(10, 20, 5)), Time(LinRange(10.0, 11.0, 2)), Lon(LinRange(1.0, 4.0, 4)))
 
-#= Benchmarks
 
-Test how much the recalculation of coordinates and dimtypes
-costs over standard getindex/view.
+# Select
+a = [1 2  3  4
+     5 6  7  8
+     9 10 11 12]
+da = DimensionalArray(a, (Lat(10:30), Time(1:4)))
+@test select(da, (Lat((20:10:30)), Time(1))) == [5, 9]
+@test select(da, (Lat([10, 30]), Time([1, 4]))) == [1 4; 9 12]
+@test select(da, (Lat((10, 30)), Time(3:4))) == [3 4; 7 8; 11 12]
+@test select(da, (Lat((20)), Time(3:4))) == [7, 8]
 
-Indexing with Lat(1) has no overhead at all, but ranges
-have an overhead for constructing the neew GeoArray and slicing
-the dimensions.
-=#
 
-# Band
+# Unitful units
+dimz = (Time(1.0u"s":1.0u"s":3.0u"s"), Lat((1u"km", 4u"km")))
+da = DimensionalArray(a, dimz)
+@test select(da, (Lat((2u"km", 3.9u"km")), Time(3.0u"s"))) == [10, 11]
+
+
+# Ad-hoc categorical indices. They work, but could be formalized?
+# Should they always use Exact() no matter what type you pass in?
+dimz = (Time([:one, :two, :three]), Lat([:a, :b, :c, :d]))
+da = DimensionalArray(a, dimz)
+@test select(da, (Time((:one, :two)), Lat(:b)), Exact()) == [2, 6]
+@test select(da, (Time([:one, :three]), Lat((:b, :d))), Exact()) == [2 3 4; 10 11 12]
+
+
+
+# Bands
 a = [1 2 3 4
      3 4 5 6
      5 6 7 8]
@@ -279,13 +315,23 @@ dimz = dims(da)
 @test dims2indices(dimz, (Lat(Band{1}([1,2])),), Colon()) == (Colon(), [1,3])
 @test dims2indices(dimz, (Lat(Band{2}([1,2])),), Colon()) == (Colon(), [2,4])
 @test dims2indices(dimz, (Lat(Band{2}(:)),), Colon()) == (Colon(), 2:2:4)
-# da[Lat(Band{1}())] 
+@test da[Lat(Band{1}())] == [1 3
+                             3 5
+                             5 7]
+@test da[Lat(Band{2}()), Lon(1:2)] == [2 4
+                                       4 6]
+# @test select(da, (Lat(Band{2}(37.5:35.5)), Lon(143))) == 
 
 
-@code_native dims2indices(da, Lat(1), Colon())
-@code_native dims2indices(da, (Lat(1), Lon(3:4)), Colon())
-@code_native dimnum(da, (Lat(), Lon(3:4)))
+#= Benchmarks
 
+Test how much the recalculation of coordinates and dimtypes
+costs over standard getindex/view.
+
+Indexing with Lat(1) has no overhead at all, but ranges
+have an overhead for constructing the neew GeoArray and slicing
+the dimensions.
+=#
 
 g = DimensionalArray(rand(100, 50), (Lon(51:150), Lat(-40:9)))
 
@@ -312,7 +358,6 @@ println("Parent indices with UnitRange")
 println("Dims with UnitRange")
 @btime vd3($g);
 
-
 println("\n\nPerformance of getindex()\n")
 i1(g) = parent(g)[10, 20]
 d1(g) = g[Lat(10), Lon(20)]
@@ -336,3 +381,27 @@ println("Parent indices with UnitRange")
 println("Dims with UnitRange")
 @btime d3($g);
 
+a = rand(5, 4, 3);
+dimz = (Lat((1u"m", 5u"m")), Lon(1:4), Time(1:3))
+da = DimensionalArray(a, dimz)
+println("eachslice: normal, numbers + rebuild, dims + rebuild")
+@btime (() -> eachslice($a; dims=2))();
+@btime (() -> eachslice($da; dims=2))();
+@btime (() -> eachslice($da; dims=Lat))();
+println("eachslice to vector: normal, numbers + rebuild, dims + rebuild")
+@btime [slice for slice in eachslice($a; dims=2)];
+@btime [slice for slice in eachslice($da; dims=2)];
+@btime [slice for slice in eachslice($da; dims=Lon)];
+@test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Lat)]
+println("mean: normal, numbers + rebuild, dims + rebuild")
+@btime mean($a; dims=2);
+@btime mean($da; dims=2);
+@btime mean($da; dims=Lon);
+println("permutedims: normal, numbers + rebuild, dims + rebuild")
+@btime permutedims($a, (2, 1, 3))
+@btime permutedims($da, (2, 1, 3))
+@btime permutedims($da, (Lat(), Lon(), Time()))
+println("reverse: normal, numbers + rebuild, dims + rebuild")
+@btime reverse($a; dims=1) 
+@btime reverse($da; dims=1) 
+@btime reverse($da; dims=Lat()) 

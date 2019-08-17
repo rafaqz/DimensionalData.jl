@@ -35,16 +35,7 @@ macro dim(typ, name=string(typ), shortname=string(typ))
     end)
 end
 
-#= Define some common dimensions
-
-Dimension types are intentionally a little more standardised than AxisArrays 
-arbitrary Axis{:x} symbols, which also requires less keystrokes. 
-They should be used in packages and expected to work accross multiple 
-AbstractDimensionArray/Data types.
-
-What should go here exactly?
-=#
-
+# Define some common dimensions
 @dim Time
 @dim Lat "Latitude"
 @dim Lon "Longitude"

@@ -12,7 +12,8 @@ end
 @inline Base.parent(a::DimensionalArray) = a.data
 
 # DimensionalArray interface
-@inline rebuild(a::DimensionalArray, data, dims, refdims) = DimensionalArray(data, dims, refdims)
+@inline rebuild(a::DimensionalArray, data, dims, refdims) = 
+    DimensionalArray(data, dims, refdims)
 
 @inline dims(a::DimensionalArray) = a.dims
 @inline refdims(a::DimensionalArray) = a.refdims
