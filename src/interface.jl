@@ -30,7 +30,9 @@ refdims(x) = ()
 Rebuild an array or dim struct after an operation.
 """
 function rebuild end
-rebuild(array, newdata, newdims, newrefdims) = data
+rebuild(x, newdata, newdims=dims(x)) = 
+    rebuild(x, newdata, newdims, refdims(x))
+rebuild(x, newdata, newdims, newrefdims) = data
 
 
 # Methods defined in Dimesions.jl
@@ -39,7 +41,7 @@ function val end
 val(x) = x
 
 """
-Return the metadata of a dimensions.
+Return the metadata of a dimension or data object.
 """
 function metadata end
 

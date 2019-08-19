@@ -2,6 +2,8 @@ abstract type AbstractDimensionalArray{T,N,D} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray
 
+dims(a::AbDimArray) = a.dims
+
 # Array interface
 Base.size(a::AbDimArray) = size(parent(a))
 Base.iterate(a::AbDimArray, args...) = iterate(parent(a), args...)

@@ -15,5 +15,4 @@ end
 @inline rebuild(a::DimensionalArray, data, dims, refdims) = 
     DimensionalArray(data, dims, refdims)
 
-@inline dims(a::DimensionalArray) = a.dims
 @inline refdims(a::DimensionalArray) = a.refdims
