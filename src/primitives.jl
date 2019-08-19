@@ -161,18 +161,18 @@ Used in mean, reduce, etc.
 """
 Get the dimension(s) matching the type(s) of the lookup dimension.
 """
-@inline getdim(a::AbstractArray, lookup) = getdim(dims(a), lookup)
-@inline getdim(dims::AbDimTuple, lookup::Integer) = dims[lookup]
-@inline getdim(a::AbDimTuple, lookup) = getdim(dims(a), Tuple(lookup))
-@inline getdim(dims::AbDimTuple, lookup::Tuple) =
-    (getdim(dims, lookup[1]), getdim(dims, tail(lookup))...)
-@inline getdim(dims::AbDimTuple, lookup::Tuple{}) = ()
-@inline getdim(dims::AbDimTuple, lookup) = getdim(dims, basetype(lookup))
-@generated getdim(dims::DT, lookup::Type{L}) where {DT<:AbDimTuple,L} = begin
+@inline dims(a::AbstractArray, lookup) = dims(dims(a), lookup)
+@inline dims(ds::AbDimTuple, lookup::Integer) = dms[lookup]
+@inline dims(a::AbDimTuple, lookup) = dims(dims(a), Tuple(lookup))
+@inline dims(ds::AbDimTuple, lookup::Tuple) =
+    (dims(dims, lookup[1]), dims(dims, tail(lookup))...)
+@inline dims(ds::AbDimTuple, lookup::Tuple{}) = ()
+@inline dims(ds::AbDimTuple, lookup) = dims(ds, basetype(lookup))
+@generated dims(ds::DT, lookup::Type{L}) where {DT<:AbDimTuple,L} = begin
     index = findfirst(dt -> dt <: L, DT.parameters)
     if index == nothing
         :(throw(ArgumentError("No $lookup in $dims")))
     else
-        :(dims[$index])
+        :(ds[$index])
     end
 end
