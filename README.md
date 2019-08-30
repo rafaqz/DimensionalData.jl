@@ -14,14 +14,14 @@ syntax. It has similar goals to pythons [xarray](http://xarray.pydata.org/en/sta
 
 
 The core component is the `AbstractDimension`, and types that inherit from it,
-such as `Time`, `Lat`, `Lon`, `Vert`, the generic `Dim{:x}` or others you
+such as `Time`, `X`, `Y`, `Z`, the generic `Dim{:x}` or others you
 define manually using the `@dim` macro.
 
 Dims can be used to select data from dimensional arrays: `select(a,
 Time(DateTime(2002, 08)))`, for indexing and views without knowing dimension
-order: `a[Lon(20)]`, `view(a, Lon(1:20), Lat(30:40))`  and for indicating
-dimesions to reduce `mean(a, dims=Time)`, or permute `permutedims(a, [Long, Lat,
-Vert, Time])` in julia `Base` and `Statistics` functions that have dims
+order: `a[X(20)]`, `view(a, X(1:20), Y(30:40))`  and for indicating
+dimesions to reduce `mean(a, dims=Time)`, or permute `permutedims(a, [X, Y,
+Z, Time])` in julia `Base` and `Statistics` functions that have dims
 arguments.
 
 # For package developers
@@ -33,7 +33,7 @@ arguments.
 - Minimal interface: implementing a dimension-aware type should be very easy.
 - Functional style: structs are always rebuilt, and other than the array data,
   fields are not mutated in place.
-- Zero cost dimensional indexing `a[Lat(4), Lon(5)]` of a single value. This is
+- Zero cost dimensional indexing `a[Y(4), X(5)]` of a single value. This is
   very important for use in simulations.
 - Low cost for range getindex and views: these cant be zero as dim ranges have
   to be updated for plots to be accurate.
@@ -46,36 +46,24 @@ arguments.
 ## Why this package
 
 Why not [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) or
-[NamedDims.jl](https://github.com/invenia/NamedDims.jl/)?
+[NamedDims.jl](https://github.com/invenia/NamedDims.jl/)? 
 
 ### Structure
 
-Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and
-dimension type in AxisArrays. That means the array type must be a wrapper, which
-can mess with existing method dispatch in a package. It's a less invasive change
-to either inherit from AbstractDimensionalArray or just implement `dims` and
+Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and for
+dimension type in AxisArrays. This makes them harder to extend. In contrast its 
+easy to inherit from AbstractDimensionalArray or just implement `dims` and
 `rebuild` and add a `dims` field to a type.
 
 ### Syntax
 
-AxisArrays is verbose: `a[Axis{:lat}(1)]` vs `a[Lat(1)]` used here. NamedDims
-has nice syntax, but the dimensions are no longer types. This makes it harder to
-extend the package, and makes performance depend on the a dark art of constant
+AxisArrays is verbose: `a[Axis{:y}(1)]` vs `a[Y(1)]` used here. NamedDims
+has nice syntax, but the dimensions are no longer types. Again this makes it harder to
+extend the package, and makes performance depend on the dark art of constant
 propagation, instead of relatively simple `@generated` functions and recursion
 that predictably compiles away.
 
-
-Array dimensions use the same types that are used for indexing. The `dims(a)`
-method should return a tuple something like this:
-
-```julia
-(Lat(-40.5:40.5, Dict(units=>"degrees_north"), Lon(1.0:40.0, Dict(units=>"degrees_east"))`) 
-```
-
-either stored or generated from other data (obviously storing them will be
-faster). The metadata can be anything, but some standards will be introduced as
-they are worked out.
-
+## Data types and the interface
 
 DimensionalData.jl provides the `DimenstionalArray` type. But its
 real focus is to be easily used with existing types.
@@ -86,7 +74,7 @@ that returns a `Tuple` of `AbstractDimension` that matches the dimension order
 and axis values of your data. Define `rebuild`, and base methods for `similar`
 and `parent` if you want the metadata to persist through transformations (see
 the `DimensionalArray` and `AbstractDimensionalArray` types). A `refdims` method
-returns the lost dimensions of a previous transformation, past in to the
+returns the lost dimensions of a previous transformation, passed in to the
 `rebuild` method. Refdims can be discarded, the main loss being plot labels.
 
 Inheriting from `AbstractDimensionalArray` will give a few benefits, such as
@@ -97,10 +85,16 @@ new dims.
 New dimensions can be generated with the `@dim` macro  at top level scope:
 
 ```julia
-@dim Cloud "Cloud cover"
+@dim Band "Raster band"
 ```
 
-Dims have val and metadata fields, each of which accept any type for maximum
-flexibility. `dims(x)` should return a tuple of dimensions that contain types
-that represent the dimension of the data - vectors, ranges or a tuple of end
-points. `Tuple` and `UnitRange` are converted to `LinRange` by `formatdims`.
+Dimensions use the same types that are used for indexing. The `dims(a)`
+method should return a tuple something like this:
+
+```julia
+(Y(-40.5:40.5, (units="degrees_north"), X(1.0:40.0, (units="degrees_east"))`) 
+```
+
+either stored or generated from other data. The metadata can be anything,
+preferably in a NamedTuple. Some standards may be introduced as they are worked
+out over time.
