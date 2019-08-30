@@ -6,6 +6,7 @@ It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,M} end
+abstract type AbstractParametricDimension{X,T,M} <: AbstractDimension{T,M} end
 
 const AbDim = AbstractDimension
 const AbDimType = Type{<:AbDim}
@@ -33,22 +34,21 @@ abstract type AbstractDimCombination end
 val(dim::AbDim) = dim.val
 metadata(dim::AbDim) = dim.metadata
 
+
 # DimensionalData interface methods
-
 rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim))
-
-dimname(a::AbstractArray) = dimname(dims(a))
-dimname(dims::AbDimTuple) = (dimname(dims[1]), dimname(tail(dims))...)
-dimname(dims::Tuple{}) = ()
-dimname(dim::AbDim) = dimname(typeof(dim))
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
 dimtype(x) = typeof(dims(x))
 dimtype(x::Type) = x
 
+longname(dims::AbDimTuple) = (longname(dims[1]), longname(tail(dims))...)
+longname(dims::Tuple{}) = ()
+
+longname(dim::AbDim) = longname(typeof(dim))
 shortname(d::AbDim) = shortname(typeof(d))
-shortname(d::Type{<:AbDim}) = dimname(d)
+shortname(d::Type{<:AbDim}) = longname(d)
 
 bounds(a, args...) = bounds(dims(a), args...)
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnums(dims)...]])
@@ -57,8 +57,8 @@ bounds(dim::AbDim) = first(val(dim)), last(val(dim))
 
 units(dim::AbDim) = isnothing(metadata(dim)) ? "" : get(metadata(dim), :units, "")
 
-label(dim::AbDim) = join((dimname(dim), getstring(units(dim))), " ")
-label(dims::AbDimTuple) = join(join.(zip(dimname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
+label(dim::AbDim) = join((longname(dim), getstring(units(dim))), " ")
+label(dims::AbDimTuple) = join(join.(zip(longname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
 
 # This shouldn't be hard coded, but it makes plots tolerable for now
 shorten(x::AbstractFloat) = round(x, sigdigits=4)
@@ -75,7 +75,7 @@ getstring(x) = string(x)
 # Base.eltype(dim::Type{AbDim{T}}) where T = T
 Base.length(dim::AbDim) = 1
 Base.show(io::IO, dim::AbDim) = begin
-    printstyled(io, "\n", dimname(dim), ": "; color=:red)
+    printstyled(io, "\n", longname(dim), ": "; color=:red)
     show(io, typeof(dim))
     printstyled(io, "\nval: "; color=:green)
     show(io, val(dim))
@@ -137,6 +137,11 @@ end
 @inline Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
     Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
+Base._dropdims(a::AbstractArray, dims::Union{AbDim,AbDimTuple,Type{<:AbDim}}) = 
+    rebuildsliced(a, Base._dropdims(a, dimnum(a, dims)), 
+                  dims2indices(a, 
+                               collect((basetype(i)(1) for i in Lon()))
+                              ))
 
 #= SplitApplyCombine methods?
 Should allow groupby using dims lookup to make this worth the dependency

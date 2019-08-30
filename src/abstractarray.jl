@@ -3,6 +3,7 @@ abstract type AbstractDimensionalArray{T,N,D} <: AbstractArray{T,N} end
 const AbDimArray = AbstractDimensionalArray
 
 dims(a::AbDimArray) = a.dims
+label(a::AbDimArray) = ""
 
 # Array interface
 Base.size(a::AbDimArray) = size(parent(a))
@@ -49,10 +50,11 @@ Base.convert(::Type{Array{T,N}}, a::AbDimArray{T,N}) where {T,N} =
 # Similar
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
+Base.similar(a::AbDimArray) where {T,N}=
+    rebuild(a, similar(parent(a)), dims(a), refdims(a))
 Base.similar(a::AbDimArray, ::Type{T}, I::Dims) where {T,N}=
     rebuild(a, similar(parent(a), T, I...), slicedims(a, I)...)
-Base.similar(a::AbDimArray, ::Type{T},
-             I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
+Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(a, similar(parent(a), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     da = find_dimensional(bc)

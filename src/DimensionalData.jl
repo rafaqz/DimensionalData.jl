@@ -4,23 +4,22 @@ using RecipesBase, Statistics
 
 using Base: tail, OneTo
 
-export AbstractDimension, Dim, Lat, Lon, Vert, Time, Band
+export AbstractDimension, Dim
 
 export AbstractDimensionalArray, DimensionalArray
 
 export AbstractDimensionalDataset, DimensionalDataset
 
-export AbstractSelectionMode, Nearest, Contained, Exact
+export AbstractSelectionMode, Near, Between, At
 
 export AbstractMetadata
 
-export dims, refdims, dimname, dimtype, 
-       name, shortname, val, metadata, label, units
+export dims, refdims, metadata, longname, shortname, 
+       val, dimnum, label, units, <|
 
-export select, bounds, getdim, dimnum
+export select, selectview, bounds
 
 
-include("utils.jl")
 include("interface.jl")
 include("metadata.jl")
 include("abstractdimension.jl")
@@ -29,6 +28,7 @@ include("dimension.jl")
 include("array.jl")
 include("primitives.jl")
 include("select.jl")
+include("utils.jl")
 include("plotrecipes.jl")
 
 

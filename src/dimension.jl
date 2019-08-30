@@ -1,6 +1,3 @@
-
-abstract type AbstractParametricDimension{X,T,M} <: AbstractDimension{T,M} end
-
 """
 A generic dimension. For use when custom dims are required when loading
 data from a file. The sintax is ugly and verbose to use for indexing, 
@@ -15,7 +12,7 @@ struct Dim{X,T,M} <: AbstractParametricDimension{X,T,M}
 end
 
 @inline Dim{X}(val=:; metadata=nothing) where X = Dim{X}(val, metadata)
-dimname(::Type{<:Dim{X}}) where X = "Dim $X"
+longname(::Type{<:Dim{X}}) where X = "Dim $X"
 basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
 
 
@@ -23,20 +20,29 @@ basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
     @dim typ name [shortname=name]
 Macro to easily define specific dimensions.
 """
-macro dim(typ, name=string(typ), shortname=string(typ))
+macro dim(typ, longname=string(typ), shortname=string(typ))
     esc(quote
         struct $typ{T,M} <: AbstractDimension{T,M}
             val::T
             metadata::M
         end
         $typ(val=:; metadata=nothing) = $typ(val, metadata)
-        DimensionalData.dimname(::Type{<:$typ}) = $name
+        DimensionalData.longname(::Type{<:$typ}) = $longname
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
 end
 
 # Define some common dimensions
 @dim Time
-@dim Lat "Latitude"
-@dim Lon "Longitude"
-@dim Vert "Vertical"
+@dim X 
+@dim Y 
+@dim Z 
+
+# """
+# A wrapper to indicate a reversed dimension
+# """
+# struct Reverse{V}
+#     val::V
+# end
+
+# val(r::Reverse) = r.val

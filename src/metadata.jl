@@ -1,4 +1,4 @@
-abstract type AbstractMetadata end
+abstract type AbstractMetadata{K,V} <: AbstractDict{K,V} end
 
 # Dict interface
 Base.parent(m::AbstractMetadata) = m.metadata

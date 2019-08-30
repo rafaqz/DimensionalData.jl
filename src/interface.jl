@@ -30,12 +30,9 @@ refdims(x) = ()
 Rebuild an array or dim struct after an operation.
 """
 function rebuild end
-rebuild(x, newdata, newdims=dims(x)) = 
-    rebuild(x, newdata, newdims, refdims(x))
+rebuild(x, newdata, newdims=dims(x)) = rebuild(x, newdata, newdims, refdims(x))
 rebuild(x, newdata, newdims, newrefdims) = data
 
-
-# Methods defined in Dimesions.jl
 
 function val end
 val(x) = x
@@ -52,23 +49,18 @@ function units end
 units(x) = ""
 
 """
-Returns the type for dims, either singular `AbstractDimension` or wrapped in `Tuple{}`
-"""
-function dimtype end
-
-"""
 Get the name of data or a dimension.
 """
-function dimname end
-dimname(x) = dimname(typeof(x))
-dimname(x::Type) = ""
+function longname end
+longname(x) = longname(typeof(x))
+longname(x::Type) = ""
 
 """
 Get the short name of array data or a dimension.
 """
 function shortname end
+shortname(x) = shortname(typeof(x))
 shortname(x) = ""
-name(x) = dimname(x)
 
 """
 Get a plot label of data or a dimension. This should include
@@ -76,16 +68,9 @@ units if they exist, and anything else that should be shown on
 a plot.
 """
 function label end
-label(x) = string(string(name(x)), " ", getstring(units(x)))
-
-"""
-Returns a tuple containing the start and end values
-of the dimension.
-"""
-function bounds end
+label(x) = string(string(longname(x)), " ", getstring(units(x)))
 
 """
 Select the value/array/dataset? within the specified values
 """
 function select end
-

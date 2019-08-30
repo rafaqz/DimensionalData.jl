@@ -10,6 +10,8 @@ Missing dimensions are replaced with `nothing`
 """
 @inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
     map(p -> tosort[p], Tuple(perm))
+@inline Base.permutedims(tosort::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}, perm::AbDimTuple) =
+    tosort
 
 @inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector ) =
     permutedims(tosort, Tuple(map(u -> u(), order)))
@@ -39,7 +41,7 @@ end
 """
 Convert a tuple of AbstractDimension to indices or ranges to index the parent array.
 """
-@inline dims2indices(a::AbstractArray, lookup, emptyval=Colon()) =
+@inline dims2indices(a, lookup, emptyval=Colon()) =
     dims2indices(dims(a), lookup, emptyval)
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
@@ -68,14 +70,15 @@ the new struct but are useful to give context to plots.
 Called at the array level the returned tuple will also include the
 previous reference dims.
 """
-@inline slicedims(a::AbstractArray, dims::AbDimTuple) =
+@inline slicedims(a, dims::AbDimTuple) =
     slicedims(a, dims2indices(a, dims))
-@inline slicedims(a::AbstractArray, I::Tuple) = begin
-    newdims, newrefdims = slicedims(dims(a), I)
-    newdims, (refdims(a)..., newrefdims...)
+@inline slicedims(a, I::Tuple) = slicedims(dims(a), refdims(a), I)
+@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
+    newdims, newrefdims = slicedims(dims, I)
+    newdims, (refdims..., newrefdims...)
 end
 @inline slicedims(dims::Tuple{}, I::Tuple) = ((), ())
-@inline slicedims(dims::Tuple, I::Tuple) = begin
+@inline slicedims(dims::AbDimTuple, I::Tuple) = begin
     d = slicedims(dims[1], I[1])
     ds = slicedims(tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
@@ -125,20 +128,19 @@ Errors are thrown if dims don't match the array dims or size.
 @inline formatdims(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    formatdims(a, dims, 1)
+    formatdims(size(a), dims)
 end
-@inline formatdims(a, dims::Tuple, n) =
-    (formatdims(a, dims[1], n), formatdims(a, tail(dims), n + 1)...,)
-@inline formatdims(a, dims::Tuple{}, n) = ()
-@inline formatdims(a, dim::AbDim{<:AbstractArray}, n) =
-    if length(val(dim)) == size(a, n)
+@inline formatdims(size::Tuple, dims::Tuple) =
+    (formatdims(size[1], dims[1]), formatdims(tail(size), tail(dims))...,)
+@inline formatdims(size::Tuple{}, dims::Tuple{}) = ()
+@inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) =
+    if length(val(dim)) == len
         dim
     else
         throw(ArgumentError("length of $dim $(length(val(dim))) does not match
-                             size of array dimension $n $(size(a, n))"))
+                             size of array dimension $len"))
     end
-@inline formatdims(a, dim::AbDim{<:Union{UnitRange,NTuple{2}}}, n) =
-    linrange(dim, size(a, n))
+@inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
 
 linrange(dim, len) = begin
     range = val(dim)
@@ -162,10 +164,10 @@ Used in mean, reduce, etc.
 Get the dimension(s) matching the type(s) of the lookup dimension.
 """
 @inline dims(a::AbstractArray, lookup) = dims(dims(a), lookup)
-@inline dims(ds::AbDimTuple, lookup::Integer) = dms[lookup]
+@inline dims(ds::AbDimTuple, lookup::Integer) = ds[lookup]
 @inline dims(a::AbDimTuple, lookup) = dims(dims(a), Tuple(lookup))
 @inline dims(ds::AbDimTuple, lookup::Tuple) =
-    (dims(dims, lookup[1]), dims(dims, tail(lookup))...)
+    (dims(ds, lookup[1]), dims(ds, tail(lookup))...)
 @inline dims(ds::AbDimTuple, lookup::Tuple{}) = ()
 @inline dims(ds::AbDimTuple, lookup) = dims(ds, basetype(lookup))
 @generated dims(ds::DT, lookup::Type{L}) where {DT<:AbDimTuple,L} = begin
