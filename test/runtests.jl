@@ -367,15 +367,19 @@ println("Dims with UnitRange")
 a = rand(5, 4, 3);
 dimz = (Y((1u"m", 5u"m")), X(1:4), Time(1:3))
 da = DimensionalArray(a, dimz)
-println("eachslice: normal, numbers + rebuild, dims + rebuild")
-@btime (() -> eachslice($a; dims=2))();
-@btime (() -> eachslice($da; dims=2))();
-@btime (() -> eachslice($da; dims=Y))();
-println("eachslice to vector: normal, numbers + rebuild, dims + rebuild")
-@btime [slice for slice in eachslice($a; dims=2)];
-@btime [slice for slice in eachslice($da; dims=2)];
-@btime [slice for slice in eachslice($da; dims=X)];
-@test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
+
+if VERSION > v"1.1-"
+    println("eachslice: normal, numbers + rebuild, dims + rebuild")
+    @btime (() -> eachslice($a; dims=2))();
+    @btime (() -> eachslice($da; dims=2))();
+    @btime (() -> eachslice($da; dims=Y))();
+    println("eachslice to vector: normal, numbers + rebuild, dims + rebuild")
+    @btime [slice for slice in eachslice($a; dims=2)];
+    @btime [slice for slice in eachslice($da; dims=2)];
+    @btime [slice for slice in eachslice($da; dims=X)];
+    @test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
+end
+
 println("mean: normal, numbers + rebuild, dims + rebuild")
 @btime mean($a; dims=2);
 @btime mean($da; dims=2);
