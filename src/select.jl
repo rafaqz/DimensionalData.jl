@@ -100,7 +100,7 @@ sel2indices(dim::AbDim, selvals::AbstractVector, ::Near) =
 
 exactorerror(selval, dim) = begin
     ind = findfirst(x -> x == selval, val(dim))
-    isnothing(ind) ? throw(ArgumentError("$selval not found in $dim")) : ind
+    ind == nothing ? throw(ArgumentError("$selval not found in $dim")) : ind
 end
 
 near(selval, list) = begin

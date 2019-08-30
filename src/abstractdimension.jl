@@ -55,7 +55,7 @@ bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnums(dims)...]])
 bounds(dims::AbDimTuple) = (bounds(dim2[1]), bounds(tail(dims)...,))
 bounds(dim::AbDim) = first(val(dim)), last(val(dim))
 
-units(dim::AbDim) = isnothing(metadata(dim)) ? "" : get(metadata(dim), :units, "")
+units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
 
 label(dim::AbDim) = join((longname(dim), getstring(units(dim))), " ")
 label(dims::AbDimTuple) = join(join.(zip(longname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
