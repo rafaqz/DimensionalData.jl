@@ -6,6 +6,9 @@ that may not match the values at any specific indices.
 abstract type SelectionMode{V} end
 val(m::SelectionMode) = m.val 
 
+(::Type{T})(args...) where T <: SelectionMode = T{typeof(args)}(args)
+(::Type{T})()  where T <: SelectionMode = T{Nothing}(nothing)
+
 """
     At()
 Selection mode for `select()` that exactly matches the value on the 
@@ -16,94 +19,44 @@ To select (inclusively) between exact dimension endpoints, use a 2 tuple.
 struct At{V} <: SelectionMode{V}
     val::V
 end
-At(args...) = At{typeof(args)}(args)
-At() = At{Nothing}(nothing)
 
+"""
+Select the nearest index to the contained value
+"""
 struct Near{V} <: SelectionMode{V}
     val::V
 end
-Near(args...) = Near{typeof(args)}(args)
-Near() = Near{Nothing}(nothing)
 
 """
     Between()
-Selection mode for `select()`, retreiving values inside a 
-2 tuple of bounds passed in with a dimension. Only
-available for NTuple{2}.
+Retreiving indices located between a 2 tuple of values.
 """
 struct Between{V<:Union{Tuple{Any,Any},Nothing}} <: SelectionMode{V}
     val::V
 end
-Between() = Between{Nothing}(nothing)
-Between(args...) = Between{typeof(args)}(args)
 Between(x::Tuple) = Between{typeof(x)}(x)
-
-"""
-Allows the X.Near(2) syntax
-
-Should it allow lower and title case, or just title?
-Title would be safer for avoiding field clashes and 
-does suggest its converted to a constructor. But lower 
-is simpler and easier to type.
-"""
-Base.getproperty(t::Type{T}, x::Symbol) where T <: AbstractDimension = begin
-    if x === :At || x === :at
-        (args...) -> T(At(args...))
-    elseif x === :Near || x === :near
-        (args...) -> T(Near(args...))
-    elseif x === :Between || x === :between
-        (args...) -> T(Between(args...))
-    else
-        getfield(t, x)
-    end
-end
-
-select(a, I...) = a[sel2indices(dims(a), permutedims(I, dims(a)))...]
-selectview(a, I...) = view(a, sel2indices(dims(a), permutedims(I, dims(a)))...)
-
-sel2indices(dims::AbDimTuple, I) =
-    (sel2indices(dims[1], I[1]), sel2indices(tail(dims), tail(I))...)
-sel2indices(::Tuple{}, ::Tuple{}) = ()
-
-
-# Default is At()
-sel2indices(dim::AbDim, seldim) = sel2indices(dim::AbDim, val(seldim), At()) 
-sel2indices(dims::AbDim, seldim::Nothing, args...) = Colon()
-sel2indices(dims::AbDim, seldim::Colon, args...) = Colon()
-
 
 # TODO: make these efficient
 
 # At
-sel2indices(dim::AbDim, seldim::AbDim{<:At}) = 
-    sel2indices(dim, val(val(seldim)), At())
-sel2indices(dim::AbDim, selval, ::At) = 
-    exactorerror(selval, dim)
-sel2indices(dim::AbDim, selvals::Tuple, ::At) =
-    exactorerror(first(selvals), dim):exactorerror(last(selvals), dim)
-sel2indices(dim::AbDim, selvals::AbstractVector, ::At) =
-    exactorerror.(selvals, Ref(dim))
-
-# Between
-sel2indices(dim::AbDim, seldim::AbDim{<:Between}) = 
-    sel2indices(dim, val(val(seldim)), Between())
-sel2indices(dim::AbDim, selvals::Tuple, ::Between) =
-    searchsortedfirst(val(dim), first(selvals)):searchsortedlast(val(dim), last(selvals))
-
+sel2indices(dim::AbDim, sel::At) = at(dim, val(sel))
+sel2indices(dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
+sel2indices(dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))
 # Near
-sel2indices(dim::AbDim, seldim::AbDim{<:Near}) = 
-    sel2indices(dim, val(val(seldim)), Near())
-sel2indices(dim::AbDim, selval, ::Near) = 
-    near(selval, val(dim))
-sel2indices(dim::AbDim, selvals::AbstractVector, ::Near) =
-    near.(selvals, Ref(val(dim)))
+sel2indices(dim::AbDim, sel::Near) = near(dim, val(sel))
+sel2indices(dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
+sel2indices(dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
+# Between
+sel2indices(dim::AbDim, sel::Between{<:Tuple}) =
+    searchsortedfirst(val(dim), first(val(sel))):searchsortedlast(val(dim), last(val(sel)))
 
-exactorerror(selval, dim) = begin
+at(dim, selval) = begin
     ind = findfirst(x -> x == selval, val(dim))
     ind == nothing ? throw(ArgumentError("$selval not found in $dim")) : ind
 end
 
-near(selval, list) = begin
+near(list, selval) = begin
+    list = val(list)
     ind = searchsortedfirst(list, selval)
     if ind <= firstindex(list) 
         ind

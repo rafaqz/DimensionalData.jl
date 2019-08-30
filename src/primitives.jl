@@ -55,9 +55,11 @@ Convert a tuple of AbstractDimension to indices or ranges to index the parent ar
     (emptyval, _dims2indices(tail(dims), (), emptyval)...)
 @inline _dims2indices(dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
 
-@inline dims2indices(dim::AbDim, lookup, emptyval) = val(lookup)
+@inline dims2indices(dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
 @inline dims2indices(dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
 @inline dims2indices(dim::AbDim, lookup::Nothing, emptyval) = emptyval
+@inline dims2indices(dim::AbDim, lookup::AbDim{<:SelectionMode}, emptyval) = 
+    sel2indices(dim, val(lookup))
 
 
 """

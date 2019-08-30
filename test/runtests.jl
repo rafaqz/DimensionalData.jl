@@ -1,8 +1,7 @@
 using DimensionalData, Statistics, Test, BenchmarkTools, Unitful
 
-using DimensionalData: val, basetype, slicedims, 
-      dims2indices, formatdims, @dim,
-      reducedims, dimnum, basetype, X, Y, Z, Time
+using DimensionalData: val, basetype, slicedims, dims2indices, formatdims, 
+      @dim, reducedims, dimnum, basetype, X, Y, Z, Time
 
 
 # Dims creation macro
@@ -63,6 +62,9 @@ emptyval=()
 @test dims2indices(dimz, (Y,), emptyval) == ((), Colon())
 @test dims2indices(dimz, (Y, X), emptyval) == (Colon(), Colon())
 @test dims2indices(da, X, emptyval) == (Colon(), ())
+@test dims2indices(da, (X<|At<|143.0, Y<|[1, 3, 4]), emptyval) == (1, [1, 3, 4])
+@test dims2indices(da, (X<|Near<|142.5, Y<|Near<|[-37.8, -36.1, -35.3]), emptyval) == (1, [1, 3, 4])
+@test dims2indices(da, (X<|Between(143, 145), Y<|Between(-37, -35.0)), emptyval) == (1:3, 2:4)
 
 @test dimnum(da, X) == 1
 @test dimnum(da, Y()) == 2
@@ -285,27 +287,25 @@ a = [1 2  3  4
      9 10 11 12]
 da = DimensionalArray(a, (Y(10:30), Time(1:4)))
 # At() is the default
-@test select(da, Y([10, 30]), Time([1, 4])) == [1 4; 9 12]
-@test_throws ArgumentError select(da, Y([9, 30]), Time([1, 4]))
-@test select(da, Y(20:10:30), Time.At(1)) == [5, 9]
-@test selectview(da, Y.at(20), Time(3:4)) == [7, 8]
-@test selectview(da, Y.between(9, 31), Time.At(3:4)) == [3 4; 7 8; 11 12]
-@test selectview(da, Y.Between(9, 31), Time.Near(3:4)) == [3 4; 7 8; 11 12]
-@test selectview(da, Y(Near(22)), Time(3:4)) == [7, 8]
-@test selectview(da, Y.near(17), Time.Near([1.3, 3.3])) == [5, 7]
+@test da[Y<|At([10, 30]), Time<|At([1, 4])] == [1 4; 9 12]
+@test_throws ArgumentError da[Y<|At([9, 30]), Time<|At([1, 4])]
+@test da[Y<|At(20:10:30), Time<|At(1)] == [5, 9]
+@test view(da, Y<|At(20), Time<|At(3:4)) == [7, 8]
+@test view(da, Y<|Between(9, 31), Time<|At(3:4)) == [3 4; 7 8; 11 12]
+@test view(da, Y<|Between(9, 31), Time<|Near(3:4)) == [3 4; 7 8; 11 12]
+@test view(da, Y(Near(22)), Time(3:4)) == [7, 8]
+@test view(da, Y<|Near(17), Time<|Near([1.3, 3.3])) == [5, 7]
 
 # Unitful units
-dimz = (Time(1.0u"s":1.0u"s":3.0u"s"), Y((1u"km", 4u"km")))
+dimz = Time<|1.0u"s":1.0u"s":3.0u"s", Y<|(1u"km", 4u"km")
 da = DimensionalArray(a, dimz)
-@test select(da, Y.between(2u"km", 3.9u"km") , Time(3.0u"s")) == [10, 11]
+@test da[Y<|Between(2u"km", 3.9u"km"), Time<|At<|3.0u"s"] == [10, 11]
 
-# Ad-hoc categorical indices. They work, but could be formalized?
-# Should they always use Exact() no matter what type you pass in?
-dimz = (Time([:one, :two, :three]), Y([:a, :b, :c, :d]))
+# Ad-hoc categorical indices. Syntax could be simplified?
+dimz = Time<|[:one, :two, :three], Y<|[:a, :b, :c, :d]
 da = DimensionalArray(a, dimz)
-@test select(da, Time((:one, :two)), Y(:b)) == [2, 6]
-@test select(da, Time([:one, :three]), Y((:b, :d))) == [2 3 4; 10 11 12]
-
+@test da[Time<|At(:one, :two), Y<|At(:b)] == [2, 6]
+@test da[Time<|At([:one, :three]), Y<|At([:b, :c, :d])] == [2 3 4; 10 11 12]
 
 
 #= Benchmarks

@@ -35,12 +35,12 @@ Base.@propagate_inbounds Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArra
 
 for fname in [:permutedims, :transpose, :adjoint]
     @eval begin
-        Base.$fname(a::AbDimArray{T,2}) where T =
+        @inline Base.$fname(a::AbDimArray{T,2}) where T =
             rebuild(a, $fname(parent(a)), reverse(dims(a)), refdims(a))
     end
 end
 
-Base.permutedims(a::AbDimArray{T,N}, perm) where {T,N} = 
+@inline Base.permutedims(a::AbDimArray{T,N}, perm) where {T,N} = 
     rebuild(a, permutedims(parent(a), dimnum(a, perm)), 
             permutedims(dims(a), perm), refdims(a))
             
@@ -48,24 +48,24 @@ Base.convert(::Type{Array{T,N}}, a::AbDimArray{T,N}) where {T,N} =
     convert(Array{T,N}, parent(a))
 
 # Similar
-Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
+@inline Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
-Base.similar(a::AbDimArray) where {T,N}=
+@inline Base.similar(a::AbDimArray) where {T,N}=
     rebuild(a, similar(parent(a)), dims(a), refdims(a))
-Base.similar(a::AbDimArray, ::Type{T}, I::Dims) where {T,N}=
+@inline Base.similar(a::AbDimArray, ::Type{T}, I::Dims) where {T,N}=
     rebuild(a, similar(parent(a), T, I...), slicedims(a, I)...)
-Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
+@inline Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(a, similar(parent(a), T, I...), I)
-Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
+@inline Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     da = find_dimensional(bc)
     rebuildsliced(da, similar(Array{ElType}, axes(bc)), axes(bc))
 end
 
-find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
-find_dimensional(args::Tuple) = find_dimensional(find_dimensional(args[1]), tail(args))
-find_dimensional(x) = x
-find_dimensional(a::AbDimArray, rest) = a
-find_dimensional(::Any, rest) = find_dimensional(rest)
+@inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
+@inline find_dimensional(args::Tuple) = find_dimensional(find_dimensional(args[1]), tail(args))
+@inline find_dimensional(x) = x
+@inline find_dimensional(a::AbDimArray, rest) = a
+@inline find_dimensional(::Any, rest) = find_dimensional(rest)
 
 
 # TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
