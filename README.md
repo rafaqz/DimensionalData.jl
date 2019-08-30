@@ -8,42 +8,47 @@ under active development, it may be a while before the interface stabilises and
 things are fully documented.
 
 DimensionalData.jl provides tools and abstractions for working with datasets
-that have named dimensions. It's a pluggable, generalised version of
-[AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
-syntax. It has similar goals to pythons
-[xarray](http://xarray.pydata.org/en/stable/), and is primarily written for use
-with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
+that have named dimensions with positional values. It's a pluggable, generalised
+version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a
+cleaner syntax, and additional functionality found in NamedDimensions.jl. It has
+similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is
+primarily written for use with spatial data in
+[GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
 
 The core component is the `AbstractDimension`, and types that inherit from it,
 such as `Time`, `X`, `Y`, `Z`, the generic `Dim{:x}` or others you
 define manually using the `@dim` macro.
 
-Dims can be used to select data from dimensional arrays: `select(a,
-Time(DateTime(2002, 08)))`, for indexing and views without knowing dimension
-order: `a[X(20)]`, `view(a, X(1:20), Y(30:40))`  and for indicating
-dimesions to reduce `mean(a, dims=Time)`, or permute `permutedims(a, [X, Y,
-Z, Time])` in julia `Base` and `Statistics` functions that have dims
-arguments.
+Dims can be used to select data from dimensional arrays:
+`a[Time<|At(DateTime(2002, 08))]`, for indexing and views without knowing
+dimension order: `a[X(20)]`, `view(a, X(1:20), Y(30:40))`  and for indicating
+dimesions to reduce `mean(a, dims=Time)`, or permute `permutedims(a, [X, Y, Z,
+Time])` in julia `Base` and `Statistics` functions that have dims arguments.
 
 # For package developers
 
 ## Goals:
 
-- Flexibility: types are all parametric, new functionality is easy to add 
+- Maximum extensibility: always use method dispatch. Regular types over special
+  syntax. Recursion over @generated.
+- Flexibility: dims and selectors are parametric types with multiple uses
 - Abstraction: never dispatch on concrete types, maximum re-usability of methods
-- Minimal interface: implementing a dimension-aware type should be very easy.
+- Clean, readable syntax. Minimise required parentheses, minimise of exported
+  methods, and instead extend Base methods whenever possible.
+- Minimal interface: implementing a dimension-aware type should be easy.
 - Functional style: structs are always rebuilt, and other than the array data,
   fields are not mutated in place.
-- Zero cost dimensional indexing `a[Y(4), X(5)]` of a single value. This is
-  very important for use in simulations.
-- Low cost for range getindex and views: these cant be zero as dim ranges have
-  to be updated for plots to be accurate.
-- Plots are easy: data should plot sensibly with useful labels
-- Least surprise: everything works the same as in Base, but with dim wrappers.
-  If you can use `dims` in base, you can probably use DimensionalData dims.
-- Prioritise spatial data, as in xarray: other use cases are a free bonus of the
-  modular approach, but will be supported as much as possible.
+- Least surprise: everything works the same as in Base, but with named dims. If
+  a method accepts numeric indices or `dims=X` in base, you should be able to
+  use DimensionalData.jl dims.
+- Zero cost dimensional indexing `a[Y(4), X(5)]` of a single value.
+- Low cost indexing for range getindex and views: these cant be zero cost as dim
+  ranges have to be updated.
+- Plotting is easy: data should plot sensibly and correctly with useful labels -
+  after all transformations using dims or indices
+- Prioritise spatial data: other use cases are a free bonus of the modular
+  approach.
 
 ## Why this package
 
@@ -53,21 +58,24 @@ Why not [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) or
 ### Structure
 
 Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and for
-dimension type in AxisArrays. This makes them harder to extend. In contrast its 
-easy to inherit from AbstractDimensionalArray or just implement `dims` and
-`rebuild` and add a `dims` field to a type.
+dimension type `Axis` in AxisArrays. This makes them hard to extend. In contrast
+it's easy to inherit from `AbstractDimensionalArray`, or to implement `dims` and
+`rebuild` methods. Further, dims, selectors and array types in
+DimensionalData.jl are all extensible. Recursive primitive methods allow
+inserting methods for extra types. `@generated` is only used to match and
+permute arbitrary tuples of types, and contain no type-specific details. The `@generated`
+functions in AxisArrays internalise axis/index conversion behaviour preventing
+extension in external packages and scripts.
 
 ### Syntax
 
-AxisArrays is verbose: `a[Axis{:y}(1)]` vs `a[Y(1)]` used here. NamedDims
-has nice syntax, but the dimensions are no longer types. Again this makes it harder to
-extend the package, and makes performance depend on the dark art of constant
-propagation, instead of relatively simple `@generated` functions and recursion
-that predictably compiles away.
+AxisArrays.jl is verbose: `a[Axis{:y}(1)]` vs `a[Y(1)]` used here. NamedDims.jl
+has concise syntax, but the dimensions are no longer types.
+
 
 ## Data types and the interface
 
-DimensionalData.jl provides the `DimenstionalArray` type. But its
+DimensionalData.jl provides the concrete `DimenstionalArray` type. But it's
 real focus is to be easily used with existing types.
 
 Some of the functionality in DimensionalData.jl will work without inheriting
@@ -80,7 +88,7 @@ returns the lost dimensions of a previous transformation, passed in to the
 `rebuild` method. Refdims can be discarded, the main loss being plot labels.
 
 Inheriting from `AbstractDimensionalArray` will give a few benefits, such as
-methods currently blocked by problems with `dims` dispatch in julia Base, and
+methods currently blocked by problems with `dims` dispatch in Julia Base, and
 indexing using regular integer dimensions but updating your wrapper type with
 new dims. 
 
@@ -94,9 +102,9 @@ Dimensions use the same types that are used for indexing. The `dims(a)`
 method should return a tuple something like this:
 
 ```julia
-(Y(-40.5:40.5, (units="degrees_north"), X(1.0:40.0, (units="degrees_east"))`) 
+(Y(-40.5:40.5, (units="degrees_north",), X(1.0:40.0, (units="degrees_east",))`) 
 ```
 
 either stored or generated from other data. The metadata can be anything,
-preferably in a NamedTuple. Some standards may be introduced as they are worked
-out over time.
+preferably in a `NamedTuple`. Some standards may be introduced as they are
+worked out over time.
