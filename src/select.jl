@@ -1,55 +1,59 @@
 """
-Selection modes define how indexed data will be selected 
-when given coordinates, times or other dimension criteria 
-that may not match the values at any specific indices.
+Selectors indicate that index values are not indices, but points to 
+be selected from the dimension values, such as DateTime objects on a Time dimension.
 """
-abstract type SelectionMode{V} end
-val(m::SelectionMode) = m.val 
+abstract type Selector{T} end
 
-(::Type{T})(args...) where T <: SelectionMode = T{typeof(args)}(args)
-(::Type{T})()  where T <: SelectionMode = T{Nothing}(nothing)
+val(m::Selector) = m.val 
+
+(::Type{T})(args...) where T <: Selector = T{typeof(args)}(args)
+(::Type{T})()  where T <: Selector = T{Nothing}(nothing)
 
 """
-    At()
-Selection mode for `select()` that exactly matches the value on the 
-passed-in dimensions, or throws an error. For ranges and arrays, every
-value must match an existing value - not just the end points. 
-To select (inclusively) between exact dimension endpoints, use a 2 tuple.
+    At(x)
+
+Selector that exactly matches the value on the passed-in dimensions, or throws an error. 
+For ranges and arrays, every value must match an existing value - not just the end points. 
 """
-struct At{V} <: SelectionMode{V}
-    val::V
+struct At{T} <: Selector{T}
+    val::T
 end
 
 """
-Select the nearest index to the contained value
+    Near(x)
+
+Selector that selects the nearest index to its contained value(s)
 """
-struct Near{V} <: SelectionMode{V}
-    val::V
+struct Near{T} <: Selector{T}
+    val::T
 end
 
 """
-    Between()
-Retreiving indices located between a 2 tuple of values.
+    Between(a, b)
+
+Selector that retreive all indices located between 2 values.
 """
-struct Between{V<:Union{Tuple{Any,Any},Nothing}} <: SelectionMode{V}
-    val::V
+struct Between{T<:Union{Tuple{Any,Any},Nothing}} <: Selector{T}
+    val::T
 end
 Between(x::Tuple) = Between{typeof(x)}(x)
 
-# TODO: make these efficient
+@inline dims2indices(dim::AbDim, lookup::AbDim{<:Selector}, emptyval) = sel2indices(dim, val(lookup))
 
-# At
+sel2indices(a, lookup) = sel2indices(dims(a), lookup)
+sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
+sel2indices(dims::Tuple, lookup::Tuple) =
+    (sel2indices(dims[1], lookup[1]), sel2indices(tail(dims), tail(lookup))...)
+sel2indices(dims::Tuple{}, lookup::Tuple{}) = ()
 sel2indices(dim::AbDim, sel::At) = at(dim, val(sel))
 sel2indices(dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
 sel2indices(dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))
-# Near
 sel2indices(dim::AbDim, sel::Near) = near(dim, val(sel))
 sel2indices(dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
 sel2indices(dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
-# Between
-sel2indices(dim::AbDim, sel::Between{<:Tuple}) =
-    searchsortedfirst(val(dim), first(val(sel))):searchsortedlast(val(dim), last(val(sel)))
+sel2indices(dim::AbDim, sel::Between{<:Tuple}) = between(dim, val(sel))
 
+at(dim::AbDim, selval) = at(val(dim), selval) 
 at(dim, selval) = begin
     ind = findfirst(x -> x == selval, val(dim))
     ind == nothing ? throw(ArgumentError("$selval not found in $dim")) : ind
@@ -66,3 +70,17 @@ near(list, selval) = begin
         ind - 1
     end
 end
+
+between(dim::AbDim, sel) = between(order(dim), val(dim), sel)
+between(::Forward, dim, sel) = 
+    searchsortedfirst(dim, first(sel)):searchsortedlast(dim, last(sel))
+between(::Reverse, dim, sel) = 
+    searchsortedfirst(dim, first(sel); rev=true):-1:searchsortedlast(dim, last(sel); rev=true)
+
+Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) = 
+    getindex(a, sel2indices(a, I)...) 
+Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
+    setindex!(a, x, sel2indices(a, I)...)
+Base.view(a::AbstractArray, I::Vararg{Selector}) = 
+    view(a, sel2indices(a, I)...)
+

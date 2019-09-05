@@ -1,7 +1,7 @@
 using DimensionalData, Statistics, Test, BenchmarkTools, Unitful
 
 using DimensionalData: val, basetype, slicedims, dims2indices, formatdims, 
-      @dim, reducedims, dimnum, basetype, X, Y, Z, Time
+      @dim, reducedims, dimnum, basetype, X, Y, Z, Time, Forward
 
 
 # Dims creation macro
@@ -10,7 +10,7 @@ using DimensionalData: val, basetype, slicedims, dims2indices, formatdims,
 @test longname(TestDim) == "Test dimension"
 # @test shortname(TestDim) == "TestDim"
 @test val(TestDim(:test)) == :test
-@test metadata(TestDim(1, "metadata")) == "metadata"
+@test metadata(TestDim(1, "metadata", Forward())) == "metadata"
 
 
 # Basic dim and array initialisation
@@ -27,7 +27,7 @@ da = DimensionalArray(a, (X((143, 145)), Y((-38, -35))))
 dimz = dims(da)
 
 @test dimz == (X(LinRange(143, 145, 3)), Y(LinRange(-38, -35, 4)))
-@test typeof(dimz) == Tuple{X{LinRange{Float64},Nothing},Y{LinRange{Float64},Nothing}}
+@test typeof(dimz) == Tuple{X{LinRange{Float64},Nothing,Forward},Y{LinRange{Float64},Nothing,Forward}}
 
 
 # Dim Primitives
@@ -176,21 +176,26 @@ dimz = (X((143, 145)), Y((-38, -36)))
 g = DimensionalArray(a, dimz)
 
 # sum, mean etc with dims kwarg
-@test sum(g; dims=X()) == sum(g; dims=1)
+@test sum(g; dims=X) == sum(g; dims=1)
 @test sum(g; dims=Y()) == sum(g; dims=2) 
 @test dims(sum(g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-@test prod(g; dims=X()) == [3 8]
+@test prod(g; dims=X) == [3 8]
 @test prod(g; dims=Y()) == [2 12]'
 @test dims(prod(g; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
-@test maximum(g; dims=X()) == [3 4]
+@test maximum(g; dims=X) == [3 4]
 @test maximum(g; dims=Y()) == [2 4]'
-@test minimum(g; dims=X()) == [1 2]
+@test minimum(g; dims=X) == [1 2]
 @test minimum(g; dims=Y()) == [1 3]'
 @test dims(minimum(g; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
-@test mean(g; dims=X()) == [2.0 3.0]
+@test mean(g; dims=X) == [2.0 3.0]
 @test mean(g; dims=Y()) == [1.5 3.5]'
 @test dims(mean(g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-
+@test reduce(+, g; dims=X) == [4 6]
+@test reduce(+, g; dims=Y()) == [3 7]'
+@test dims(reduce(+, g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test mapreduce(x-> x > 3, +, g; dims=X) == [0 1]
+@test mapreduce(x-> x > 3, +, g; dims=Y()) == [0 1]'
+@test dims(mapreduce(x-> x > 3, +, g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
 @test std(g; dims=X()) == [1.4142135623730951 1.4142135623730951]
 @test std(g; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
 @test var(g; dims=X()) == [2.0 2.0]
@@ -295,6 +300,12 @@ da = DimensionalArray(a, (Y(10:30), Time(1:4)))
 @test view(da, Y<|Between(9, 31), Time<|Near(3:4)) == [3 4; 7 8; 11 12]
 @test view(da, Y(Near(22)), Time(3:4)) == [7, 8]
 @test view(da, Y<|Near(17), Time<|Near([1.3, 3.3])) == [5, 7]
+
+# Direct select without dims
+@test view(da, Between(11, 20), At(2:3)) == [6 7]
+@test view(da, At(20), At(2:3)) == [6, 7]
+@test view(da, Near<|13, Near<|[1.3, 3.3]) == [1, 3]
+
 
 # Unitful units
 dimz = Time<|1.0u"s":1.0u"s":3.0u"s", Y<|(1u"km", 4u"km")
