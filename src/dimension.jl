@@ -71,9 +71,8 @@ getstring(x) = string(x)
 
 # Base methods
 
-# Base.eltype(dim::AbDim) = eltype(typeof(dim))
-# Base.eltype(dim::Type{AbDim{T}}) where T = T
-# Base.length(dim::AbDim) = 1
+Base.eltype(dim::Type{AbDim{T}}) where T = T
+Base.length(dim::AbDim) = length(val(dim))
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", longname(dim), ": "; color=:red)
     show(io, typeof(dim))
@@ -116,15 +115,14 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         ($mod.$_fname)(a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
             ($mod.$_fname)(a, dimnum(a, dims))
         ($mod.$_fname)(f, a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
-            ($mod._fname)(f, a, dimnum(a, dims))
+            ($mod.$_fname)(f, a, dimnum(a, dims))
     end
 end
 
 for fname in (:std, :var)
     _fname = Symbol('_', fname)
-    @eval function (Statistics.$_fname)(a::AbstractArray{T,N} , corrected::Bool, mean, dims::AllDimensions) where {T,N}
-        dimnums = dimnum(a, dims)
-        (Statistics.$_fname)(a, corrected, mean, dimnums)
+    @eval function (Statistics.$_fname)(a::AbstractArray, corrected::Bool, mean, dims::AllDimensions)
+        (Statistics.$_fname)(a, corrected, mean, dimnum(a, dims))
     end
 end
 

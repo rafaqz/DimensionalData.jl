@@ -22,15 +22,15 @@ rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
 
 # These methods are needed to rebuild the array when normal integer dims are used.
 
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Integer}) =
+Base.getindex(a::AbDimArray, I::Vararg{<:Integer}) =
     getindex(parent(a), I...)
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
+Base.getindex(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, getindex(parent(a), I...), I)
 
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I...) =
+Base.setindex!(a::AbDimArray, x, I...) =
     setindex!(parent(a), x, I...)
 
-Base.@propagate_inbounds Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
+Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, view(parent(a), I...), I)
 
 for fname in [:permutedims, :transpose, :adjoint]
@@ -48,20 +48,26 @@ Base.convert(::Type{Array{T,N}}, a::AbDimArray{T,N}) where {T,N} =
     convert(Array{T,N}, parent(a))
 
 # Similar
-@inline Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
+Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
-@inline Base.similar(a::AbDimArray) where {T,N}=
+Base.similar(a::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
+    rebuild(a, similar(parent(a), T, I...), dims.(Ref(a), I))
+Base.similar(a::AbDimArray, ::Type{T}) where T = 
+    rebuild(a, similar(parent(a), T))
+Base.similar(a::AbDimArray) =
     rebuild(a, similar(parent(a)), dims(a), refdims(a))
-@inline Base.similar(a::AbDimArray, ::Type{T}, I::Dims) where {T,N}=
-    rebuild(a, similar(parent(a), T, I...), slicedims(a, I)...)
-@inline Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
+Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(a, similar(parent(a), T, I...), I)
-@inline Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
+Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
+    # println(typeof(bc.args))
     da = find_dimensional(bc)
+    # println(dims(da))
     rebuildsliced(da, similar(Array{ElType}, axes(bc)), axes(bc))
 end
 
 @inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
+@inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)
+@inline find_dimensional(args::Tuple{}) = error("dimensional array not found")
 @inline find_dimensional(args::Tuple) = find_dimensional(find_dimensional(args[1]), tail(args))
 @inline find_dimensional(x) = x
 @inline find_dimensional(a::AbDimArray, rest) = a
@@ -125,14 +131,14 @@ struct DimensionalArray{T,N,D,R,A<:AbstractArray{T,N}} <: AbstractDimensionalArr
     dims::D
     refdims::R
 end
-@inline DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
+DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
     DimensionalArray(a, formatdims(a, dims), refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
-@inline Base.parent(a::DimensionalArray) = a.data
+Base.parent(a::DimensionalArray) = a.data
 
 # DimensionalArray interface
-@inline rebuild(a::DimensionalArray, data, dims, refdims) = 
+rebuild(a::DimensionalArray, data, dims, refdims) = 
     DimensionalArray(data, dims, refdims)
 
-@inline refdims(a::DimensionalArray) = a.refdims
+refdims(a::DimensionalArray) = a.refdims
