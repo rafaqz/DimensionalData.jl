@@ -7,8 +7,8 @@ using DimensionalData: val, basetype, slicedims, dims2indices, formatdims,
 # Dims creation macro
 @dim TestDim "Test dimension" 
 
-@test longname(TestDim) == "Test dimension"
-# @test shortname(TestDim) == "TestDim"
+@test name(TestDim) == "Test dimension"
+@test shortname(TestDim) == "TestDim"
 @test val(TestDim(:test)) == :test
 @test metadata(TestDim(1, "metadata", Forward())) == "metadata"
 
@@ -70,32 +70,19 @@ emptyval=()
 @test dimnum(da, Y()) == 2
 @test dimnum(da, (Y, X())) == (2, 1)
 
-# @test mapdims(x->2x, X(3)) == X(6)
-# @test mapdims(x->x^2, (X(3), Time(10))) == (X(9), Time(100))
-
-# @test getdim(dimz, X) == dimz[1]
-# @test getdim(dimz, Y) == dimz[2]
-# @test_throws ArgumentError getdim(dimz, Time)
-
-# Not being used currently
-# @test hasdim(dimz, Time) == false
-# @test hasdim(dimz, X) == true
-# @test hasdim(da, Time()) == false
-# @test hasdim(da, X()) == true
-# @test hasdim(dimz, (Time(), Y(), X())) == false
-# @test hasdim(dimz, (X, Y)) == true
-# @test hasdim(typeof(dimz), X) == true
-# @test hasdim(typeof(dimz), Time) == false
-
-a = [1 2; 3 4]
-dimz = (X((143, 145)), Y((-38, -36)))
-g = DimensionalArray(a, dimz)
+@test dims(dimz) === dimz
+@test dims(dimz, X) === dimz[1]
+@test dims(dimz, Y) === dimz[2]
+@test_throws ArgumentError dims(dimz, Time)
 
 @test reducedims((X(:), Y(1:5))) == (X(1), Y(1))
 
 
-
 # Indexing: getindex/view with rebuild and dimension slicing 
+
+a = [1 2; 3 4]
+dimz = (X((143, 145)), Y((-38, -36)))
+g = DimensionalArray(a, dimz)
 
 # getindex for single integers returns values
 @test g[X(1), Y(2)] == 2
@@ -106,23 +93,29 @@ a = g[X(1:2), Y(1)]
 @test typeof(a) <: DimensionalArray{Int,1}
 @test dims(a) == (X(LinRange(143.0, 145.0, 2)),)
 @test refdims(a) == (Y(-38.0),)
-# @test bounds(a, X()) == (143, 145)
+@test bounds(a) == ((143.0, 145.0),)
+@test bounds(a, X) == (143.0, 145.0)
 
 a = g[X(1), Y(1:2)]
 @test a == [1, 2]
 @test typeof(a) <: DimensionalArray{Int,1}
+@test typeof(parent(a)) <: Array{Int,1}
 @test dims(a) == (Y(LinRange(-38, -36, 2)),)
 @test refdims(a) == (X(143.0),)
-# @test bounds(a, X(), Y()) == (143, (-38, -36))
+@test bounds(a) == ((-38, -36),)
+@test bounds(a, Y()) == (-38, -36)
 
 a = g[Y(:)]
 
 dims2indices(g, (Y(:),))
 @test a == [1 2; 3 4]
 @test typeof(a) <: DimensionalArray{Int,2}
+@test typeof(parent(a)) <: Array{Int,2}
+@test typeof(dims(a)) <: Tuple{<:X,<:Y}
 @test dims(a) == (X(LinRange(143, 145, 2)), Y(LinRange(-38, -36, 2)))
 @test refdims(a) == ()
-@test typeof(dims(a)) <: Tuple{<:X,<:Y}
+@test bounds(a) == ((143, 145), (-38, -36))
+@test bounds(a, X) == (143, 145)
 
 
 # view() returns DimensionArray containing views
@@ -133,6 +126,7 @@ v = view(g, Y(1), X(1))
 @test typeof(dims(v)) == Tuple{}
 @test dims(v) == ()
 @test refdims(v) == (X(143.0), Y(-38.0))
+@test bounds(v) == ()
 
 v = view(g, Y(1), X(1:2))
 @test v == [1, 3]
@@ -141,13 +135,15 @@ v = view(g, Y(1), X(1:2))
 @test typeof(dims(v)) <: Tuple{<:X}
 @test dims(v) == (X(LinRange(143, 145, 2)),)
 @test refdims(v) == (Y(-38.0),)
+@test bounds(v) == ((143.0, 145.0),)
 
 v = view(g, Y(1:2), X(1:1))
 @test v == [1 2]
 @test typeof(v) <: DimensionalArray{Int,2}
 @test typeof(parent(v)) <: SubArray{Int,2}
 @test typeof(dims(v)) <: Tuple{<:X,<:Y}
-@test dims(v) == (X(LinRange(143.0, 143, 1)), Y(LinRange(-38, -36, 2)))
+@test dims(v) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38, -36, 2)))
+@test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
 v = view(g, Y(Base.OneTo(2)), X(1))
 @test v == [1, 2]
@@ -155,6 +151,7 @@ v = view(g, Y(Base.OneTo(2)), X(1))
 @test typeof(dims(v)) <: Tuple{<:Y}
 @test dims(v) == (Y(LinRange(-38, -36, 2)),)
 @test refdims(v) == (X(143.0),)
+@test bounds(v) == ((-38.0, -36.0),)
 
 x = [1 2; 3 4]
 
@@ -216,7 +213,6 @@ ms = mapslices(sum, da; dims=Time)
 @test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
 @test refdims(ms) == (Time(1.0),)
 
-
 # Iteration methods
 
 if VERSION > v"1.1-"
@@ -263,14 +259,17 @@ dsp = permutedims(da, (X(), Y(), Time()))
 # Dimension mirroring methods
 
 # Need to think about dims for these, currently (Y, Y) etc.
-# But you can't index (Y, Y). It will plot correctly at least
+# But you can't currently index (Y, Y) with dims as you get the
+# first Y both times. It will plot correctly at least.
 a = rand(5, 4)
 da = DimensionalArray(a, (Y(10:20), X(1:4)))
 
 cvda = cov(da; dims=X)
 @test cvda == cov(a; dims=2)
+@test dims(cvda) == (X(LinRange(1.0, 4.0, 4)), X(LinRange(1.0, 4.0, 4)))
 crda = cor(da; dims=Y)
 @test crda == cor(a; dims=1)
+@test dims(crda) == (Y(LinRange(10.0, 20.0, 5)), Y(LinRange(10.0, 20.0, 5)))
 
 # These need fixes in base. kwargs are ::Integer so we can't add methods
 # or dispatch on AbstractDimension in underscore _methods

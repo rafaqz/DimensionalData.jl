@@ -31,18 +31,19 @@ function refdims end
 refdims(x) = ()
 
 """
-    rebuild(x, newdata, [newdims])
+    rebuild(x, data, [dims], [refdims])
 
 Rebuild an object struct with an updated value 
 """
 function rebuild end
-@inline rebuild(x, newdata, newdims=dims(x)) = rebuild(x, newdata, newdims, refdims(x))
+@inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
+@inline rebuild(x; data=data(x), dims=dims(x), refdims=refdims(x)) = 
+    rebuild(x, data, dims, refdims)
 
 """
     val(x)
 
-Return the contained value of a wrapper object,
-otherwise just returns the object.
+Return the contained value of a wrapper object, otherwise just returns the object.
 """
 function val end
 val(x) = x
@@ -78,14 +79,13 @@ Get the short name of array data or a dimension.
 """
 function shortname end
 shortname(x) = shortname(typeof(x))
-shortname(x) = ""
+shortname(x::Type) = ""
 
 """
     label(x)
 
-Get a plot label for data or a dimension. This will include
-the dimensions or data name and units if they exist, and anything 
-else that should be shown on a plot.
+Get a plot label for data or a dimension. This will include the name and units 
+if they exist, and anything else that should be shown on a plot.
 """
 function label end
 label(x) = string(string(name(x)), " ", getstring(units(x)))

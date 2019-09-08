@@ -18,19 +18,17 @@ Base.show(io::IO, a::AbDimArray) = begin
     printstyled(io, "\n\nmetadata:\n"; color=:cyan)
 end
 
-rebuildsliced(a, data, I) = rebuild(a, data, slicedims(a, I)...)
-
 # These methods are needed to rebuild the array when normal integer dims are used.
 
-Base.getindex(a::AbDimArray, I::Vararg{<:Integer}) =
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Integer}) =
     getindex(parent(a), I...)
-Base.getindex(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, getindex(parent(a), I...), I)
 
-Base.setindex!(a::AbDimArray, x, I...) =
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I...) =
     setindex!(parent(a), x, I...)
 
-Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
+Base.@propagate_inbounds Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, view(parent(a), I...), I)
 
 for fname in [:permutedims, :transpose, :adjoint]
@@ -40,9 +38,8 @@ for fname in [:permutedims, :transpose, :adjoint]
     end
 end
 
-@inline Base.permutedims(a::AbDimArray{T,N}, perm) where {T,N} = 
-    rebuild(a, permutedims(parent(a), dimnum(a, perm)), 
-            permutedims(dims(a), perm), refdims(a))
+Base.permutedims(a::AbDimArray{T,N}, perm) where {T,N} = 
+    rebuild(a, permutedims(parent(a), dimnum(a, perm)), permutedims(dims(a), perm))
             
 Base.convert(::Type{Array{T,N}}, a::AbDimArray{T,N}) where {T,N} = 
     convert(Array{T,N}, parent(a))
@@ -52,18 +49,12 @@ Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(a::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
     rebuild(a, similar(parent(a), T, I...), dims.(Ref(a), I))
-Base.similar(a::AbDimArray, ::Type{T}) where T = 
-    rebuild(a, similar(parent(a), T))
-Base.similar(a::AbDimArray) =
-    rebuild(a, similar(parent(a)), dims(a), refdims(a))
+Base.similar(a::AbDimArray, ::Type{T}) where T = rebuild(a, similar(parent(a), T))
+Base.similar(a::AbDimArray) = rebuild(a, similar(parent(a)))
 Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(a, similar(parent(a), T, I...), I)
-Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
-    # println(typeof(bc.args))
-    da = find_dimensional(bc)
-    # println(dims(da))
-    rebuildsliced(da, similar(Array{ElType}, axes(bc)), axes(bc))
-end
+Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType =
+    rebuildsliced(find_dimensional(bc), similar(Array{ElType}, axes(bc)), axes(bc))
 
 @inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
 @inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)
@@ -76,10 +67,7 @@ end
 
 # TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
 # we can dispatch on dims. Instead we dispatch on array type for now, which means
-# these aren't used unless you inherit from AbDimArray.
-
-# If that can happen, these can move to dim_methods.jl and work for anything that
-# passes AbstractDimension dims
+# these aren't usefull unless you inherit from AbDimArray.
 
 Base.mapslices(f, a::AbDimArray; dims=1, kwargs...) = begin
     data = mapslices(f, parent(a); dims=dimnum(a, dims), kwargs...)
@@ -131,8 +119,10 @@ struct DimensionalArray{T,N,D,R,A<:AbstractArray{T,N}} <: AbstractDimensionalArr
     dims::D
     refdims::R
 end
-DimensionalArray(a::AbstractArray{T,N}, dims; refdims=()) where {T,N} =
+DimensionalArray(a::AbstractArray, dims, refdims) =
     DimensionalArray(a, formatdims(a, dims), refdims)
+DimensionalArray(a::AbstractArray, dims; refdims=()) =
+    DimensionalArray(a, dims, refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.parent(a::DimensionalArray) = a.data

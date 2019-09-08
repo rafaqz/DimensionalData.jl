@@ -90,8 +90,7 @@ end
     ((rebuild(d, val(d)[i]),), ())
 @inline slicedims(d::AbDim{<:LinRange}, i::UnitRange) = begin
     range = val(d)
-    # FIXME handle range step
-    start, stop, len = range[first(i)], range[last(i)], length(i)
+    start, stop, len = range[first(i)], range[last(i)], length(i) ÷ step(i)
     ((rebuild(d, LinRange(start, stop, len)),), ())
 end
 
@@ -99,17 +98,17 @@ end
 """
 Get the number of an AbstractDimension as ordered in the array
 """
-@inline dimnum(a, dims) = dimnum(dimtype(a), dims)
-@inline dimnum(dimtypes::Type, dims::AbstractArray) = dimnum(dimtypes, (dims...,))
-@inline dimnum(dimtypes::Type, dim::Number) = dim
-@inline dimnum(dimtypes::Type, dims::Tuple) =
-    (dimnum(dimtypes, dims[1]), dimnum(dimtypes, tail(dims))...,)
-@inline dimnum(dimtypes::Type, dims::Tuple{}) = ()
-@inline dimnum(dimtypes::Type, dim::AbDim) = dimnum(dimtypes, typeof(dim))
-@generated dimnum(dimtypes::Type{DTS}, dim::Type{D}) where {DTS,D} = begin
+@inline dimnum(a, lookup) = dimnum(typeof(dims(a)), lookup)
+@inline dimnum(dimtypes::Type, lookup::AbstractArray) = dimnum(dimtypes, (lookup...,))
+@inline dimnum(dimtypes::Type, lookup::Number) = lookup
+@inline dimnum(dimtypes::Type, lookup::Tuple) =
+    (dimnum(dimtypes, lookup[1]), dimnum(dimtypes, tail(lookup))...,)
+@inline dimnum(dimtypes::Type, lookup::Tuple{}) = ()
+@inline dimnum(dimtypes::Type, lookup::AbDim) = dimnum(dimtypes, typeof(lookup))
+@generated dimnum(dimtypes::Type{DTS}, lookup::Type{D}) where {DTS,D} = begin
     index = findfirst(dt -> D <: basetype(dt), DTS.parameters)
     if index == nothing
-        :(throw(ArgumentError("No $dim in $dimtypes")))
+        :(throw(ArgumentError("No $lookup in $dimtypes")))
     else
         :($index)
     end

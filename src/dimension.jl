@@ -1,10 +1,25 @@
 """
+Trait indicating that the dimension is in the normal forward order. 
+"""
+struct Forward end
+
+"""
+Trait indicating that the dimension is in the reverse order. 
+Selector lookup and plotting will be reverse.
+"""
+struct Reverse end
+
+"""
 An AbstractDimension tags the dimensions in an AbstractArray.
 
 It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,M,O} end
+
+"""
+Dimensions with user-set type paremeters
+"""
 abstract type AbstractParametricDimension{X,T,M,O} <: AbstractDimension{T,M,O} end
 
 """
@@ -28,45 +43,35 @@ const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
                             Tuple{Vararg{AbDimType}},
                             Vector{<:AbDim}}
 
-# """
-# A flaf to indicate a reversed dimension
-# """
-struct Forward end
-struct Reverse end
-
+# Getters
+val(dim::AbDim) = dim.val
+metadata(dim::AbDim) = dim.metadata
+order(dim::AbDim) = dim.order
 
 # DimensionalData interface methods
 rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim), order(dim))
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
-dimtype(x) = typeof(dims(x))
-dimtype(x::Type) = x
 
-longname(dims::AbDimTuple) = (longname(dims[1]), longname(tail(dims))...)
-longname(dims::Tuple{}) = ()
+name(dims::AbDimTuple) = (name(dims[1]), name(tail(dims))...)
+name(dims::Tuple{}) = ()
+name(dim::AbDim) = name(typeof(dim))
 
-longname(dim::AbDim) = longname(typeof(dim))
 shortname(d::AbDim) = shortname(typeof(d))
-shortname(d::Type{<:AbDim}) = longname(d)
-
-bounds(a, args...) = bounds(dims(a), args...)
-bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnums(dims)...]])
-bounds(dims::AbDimTuple) = (bounds(dim2[1]), bounds(tail(dims)...,))
-bounds(dim::AbDim) = first(val(dim)), last(val(dim))
+shortname(d::Type{<:AbDim}) = name(d)
 
 units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
 
-label(dim::AbDim) = join((longname(dim), getstring(units(dim))), " ")
-label(dims::AbDimTuple) = join(join.(zip(longname.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
+label(dim::AbDim) = join((name(dim), getstring(units(dim))), " ")
+label(dims::AbDimTuple) = join(join.(zip(name.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
 
-# This shouldn't be hard coded, but it makes plots tolerable for now
-shorten(x::AbstractFloat) = round(x, sigdigits=4)
-shorten(x) = x
-
-# Nothing doesn't string
-getstring(::Nothing) = ""
-getstring(x) = string(x)
+bounds(a, args...) = bounds(dims(a), args...)
+bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]])
+bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
+bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
+bounds(dims::Tuple{}) = ()
+bounds(dim::AbDim) = first(val(dim)), last(val(dim))
 
 
 # Base methods
@@ -74,7 +79,7 @@ getstring(x) = string(x)
 Base.eltype(dim::Type{AbDim{T}}) where T = T
 Base.length(dim::AbDim) = length(val(dim))
 Base.show(io::IO, dim::AbDim) = begin
-    printstyled(io, "\n", longname(dim), ": "; color=:red)
+    printstyled(io, "\n", name(dim), ": "; color=:red)
     show(io, typeof(dim))
     printstyled(io, "\nval: "; color=:green)
     show(io, val(dim))
@@ -84,8 +89,7 @@ Base.show(io::IO, dim::AbDim) = begin
     show(io, metadata(dim))
     print(io, "\n")
 end
-# Base.axes(f, dim::AbDimTuple) =
-# Base.broadcast
+
 
 
 # AbstractArray methods where dims are the dispatch argument
@@ -105,6 +109,7 @@ Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbstractDime
 
 @inline Base.axes(a::AbstractArray, dims::DimOrDimType) = axes(a, dimnum(a, dims))
 @inline Base.size(a::AbstractArray, dims::DimOrDimType) = size(a, dimnum(a, dims))
+
 
 # Dimension reduction methods where dims are an argument
 # targeting underscore _methods so we can use dispatch ont the dims arg
@@ -137,9 +142,7 @@ end
 
 Base._dropdims(a::AbstractArray, dims::Union{AbDim,AbDimTuple,Type{<:AbDim}}) = 
     rebuildsliced(a, Base._dropdims(a, dimnum(a, dims)), 
-                  dims2indices(a, 
-                               collect((basetype(i)(1) for i in Lon()))
-                              ))
+                  dims2indices(a, collect((basetype(i)(1) for i in Lon()))))
 
 #= SplitApplyCombine methods?
 Should allow groupby using dims lookup to make this worth the dependency
@@ -169,7 +172,7 @@ end
 
 @inline Dim{X}(val=:; metadata=nothing, order=Forward()) where X = 
     Dim{X}(val, metadata, order)
-longname(::Type{<:Dim{X}}) where X = "Dim $X"
+name(::Type{<:Dim{X}}) where X = "Dim $X"
 basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
 
 
@@ -183,7 +186,7 @@ Example:
 @dim Lat "Lattitude"
 ```
 """
-macro dim(typ, longname=string(typ), shortname=string(typ))
+macro dim(typ, name=string(typ), shortname=string(typ))
     esc(quote
         struct $typ{T,M,O} <: AbstractDimension{T,M,O}
             val::T
@@ -191,7 +194,7 @@ macro dim(typ, longname=string(typ), shortname=string(typ))
             order::O
         end
         $typ(val=:; metadata=nothing, order=Forward()) = $typ(val, metadata, order)
-        DimensionalData.longname(::Type{<:$typ}) = $longname
+        DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
 end
@@ -201,7 +204,3 @@ end
 @dim X 
 @dim Y 
 @dim Z 
-# Getters
-val(dim::AbDim) = dim.val
-metadata(dim::AbDim) = dim.metadata
-order(dim::AbDim) = dim.order
