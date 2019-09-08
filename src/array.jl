@@ -70,8 +70,10 @@ Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type
 # these aren't usefull unless you inherit from AbDimArray.
 
 Base.mapslices(f, a::AbDimArray; dims=1, kwargs...) = begin
-    data = mapslices(f, parent(a); dims=dimnum(a, dims), kwargs...)
-    rebuildsliced(a, data, dims2indices(a, reducedims(dims)))
+    println((f, dims, dimnum(a, dims)))
+    dimnums = dimnum(a, dims)
+    data = mapslices(f, parent(a); dims=dimnums, kwargs...)
+    rebuildsliced(a, data, dims2indices(a, reducedims(DimensionalData.dims(a, dimnums))))
 end
 
 # This is copied from base as we can't efficiently wrap this function

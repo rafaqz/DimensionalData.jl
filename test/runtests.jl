@@ -179,6 +179,12 @@ da = DimensionalArray(a, dimz)
 @test axes(da, Dim{:row}()) == 1:3  
 @test axes(da, Dim{:column}) == 1:4  
 
+# dropdims
+@test dropdims(da[Dim{:column}(1:1)]; dims=Dim{:column}()) == [1, 3, 4]
+@test dropdims(da[3:3, 2:2]; dims=(Dim{:row}(), Dim{:column}()))[] == 5
+# TODO: test refdims after dropdims
+@test typeof(dropdims(da[3:3, 2:2]; dims=(Dim{:row}(), Dim{:column}()))) <: DimensionalArray{Int,0,Tuple{}}
+
 
 # Dimension reducing methods
 
@@ -213,19 +219,24 @@ da = DimensionalArray(a, dimz)
 @test var(da; dims=Y()) == [0.5 0.5]'
 @test dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
 
+a = [1 2 3; 4 5 6]
+da = DimensionalArray(a, dimz)
+@test median(da; dims=Y()) == [2.0 5.0]'
+@test median(da; dims=X()) == [2.5 3.5 4.5]
+
 # mapslices
 a = [1 2 3 4
      3 4 5 6
      5 6 7 8]
-# da = DimensionalArray(a, (Y(10:30), Time(1:4)))
-# ms = mapslices(sum, da; dims=Y)
-# @test ms == [9 12 15 18]
-# @test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
-# @test refdims(ms) == (Y(10.0),)
-# ms = mapslices(sum, da; dims=Time)
-# @test parent(ms) == [10 18 26]'
-# @test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
-# @test refdims(ms) == (Time(1.0),)
+da = DimensionalArray(a, (Y(10:30), Time(1:4)))
+ms = mapslices(sum, da; dims=Y)
+@test ms == [9 12 15 18]
+@test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
+@test refdims(ms) == (Y(10.0),)
+ms = mapslices(sum, da; dims=Time)
+@test parent(ms) == [10 18 26]'
+@test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
+@test refdims(ms) == (Time(1.0),)
 
 # Iteration methods
 
