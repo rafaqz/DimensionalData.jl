@@ -70,7 +70,6 @@ Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type
 # these aren't usefull unless you inherit from AbDimArray.
 
 Base.mapslices(f, a::AbDimArray; dims=1, kwargs...) = begin
-    println((f, dims, dimnum(a, dims)))
     dimnums = dimnum(a, dims)
     data = mapslices(f, parent(a); dims=dimnums, kwargs...)
     rebuildsliced(a, data, dims2indices(a, reducedims(DimensionalData.dims(a, dimnums))))
@@ -100,15 +99,23 @@ for fname in (:cor, :cov)
     end
 end
 
-Base.reverse(a::AbDimArray{T,N}; dims=1) where {T,N} = begin
+@inline Base.reverse(a::AbDimArray{T,N}; dims=1) where {T,N} = begin
     dnum = dimnum(a, dims)
     # Reverse the dimension. TODO: make this type stable
-    newdims = Tuple(map((x, n) -> n == dnum ? basetype(x)(reverse(val(x))) : x, DimensionalData.dims(a), 1:N))
+    newdims = revdims(DimensionalData.dims(a), dnum)
     # Reverse the data
     newdata = reverse(parent(a); dims=dnum)
     rebuild(a, newdata, newdims, refdims(a))
 end
 
+@inline revdims(dimstorev::Tuple, dnum) = begin
+    dim = dimstorev[end]
+    if length(dimstorev) == dnum 
+        dim = rebuild(dim, reverse(val(dim)))
+    end
+    (revdims(Base.front(dimstorev), dnum)..., dim) 
+end
+@inline revdims(dims::Tuple{}, i) = ()
 
 
 """
@@ -128,7 +135,7 @@ DimensionalArray(a::AbstractArray, dims; refdims=()) =
 Base.parent(a::DimensionalArray) = a.data
 
 # DimensionalArray interface
-rebuild(a::DimensionalArray, data, dims, refdims) = 
+@inline rebuild(a::DimensionalArray, data, dims, refdims) = 
     DimensionalArray(data, dims, refdims)
 
 refdims(a::DimensionalArray) = a.refdims

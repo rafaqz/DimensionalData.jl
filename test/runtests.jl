@@ -12,8 +12,7 @@ using DimensionalData: val, basetype, slicedims, dims2indices, formatdims,
 @test val(TestDim(:test)) == :test
 @test metadata(TestDim(1, "metadata", Forward())) == "metadata"
 @test units(TestDim) == ""
-# TODO get rid of the trailing whitespace 
-@test_broken label(TestDim) == "Test dimension" 
+@test label(TestDim) == "Test dimension" 
 @test eltype(TestDim(1)) == Int
 @test eltype(TestDim([1,2,3])) == Vector{Int}
 @test length(TestDim(1)) == 1
@@ -26,6 +25,10 @@ a = ones(5, 4)
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 dimz = dims(da)
 @test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3)),), (Y(8.0),))
+@test name(dimz) == ("X", "Y") 
+@test shortname(dimz) == ("X", "Y") 
+@test units(dimz) == ("", "") 
+@test label(dimz) == ("X, Y") 
 
 a = [1 2 3 4 
      2 3 4 5
@@ -169,6 +172,8 @@ a = [1 2 3 4
 dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 da = DimensionalArray(a, dimz)
 @test name(dimz) == ("Dim row", "Dim column")
+@test shortname(dimz) == ("row", "column")
+@test label(dimz) == ("Dim row, Dim column")
 @test da[Dim{:row}(2)] == [3, 4, 5, 6]
 @test da[Dim{:column}(4)] == [4, 6, 7]
 @test da[Dim{:column}(1), Dim{:row}(3)] == 4
@@ -218,7 +223,6 @@ da = DimensionalArray(a, dimz)
 @test var(da; dims=X()) == [2.0 2.0]
 @test var(da; dims=Y()) == [0.5 0.5]'
 @test dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-
 a = [1 2 3; 4 5 6]
 da = DimensionalArray(a, dimz)
 @test median(da; dims=Y()) == [2.0 5.0]'
@@ -271,8 +275,7 @@ dsp = permutedims(da)
 @test dims(dsp) == reverse(dims(da))
 da = DimensionalArray(ones(5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
 dsp = permutedims(da, [3, 1, 2])
-dsp = permutedims(da, (3, 1, 2))
-# Dim dispatch
+# Dim dispatch arg possibilities
 dsp = permutedims(da, [X, Y, Time])
 dsp = permutedims(da, (X, Y, Time))
 dsp = permutedims(da, [X(), Y(), Time()])
@@ -416,11 +419,11 @@ println("Dims with UnitRange")
 @btime d3($g);
 
 a = rand(5, 4, 3);
-dimz = (Y((1u"m", 5u"m")), X(1:4), Time(1:3))
-da = DimensionalArray(a, dimz)
+da = DimensionalArray(a, (Y((1u"m", 5u"m")), X(1:4), Time(1:3)))
+dimz = dims(da)
 
 if VERSION > v"1.1-"
-    println("eachslice: normal, numbers + rebuild, dims + rebuild")
+    println("\n\neachslice: normal, numbers + rebuild, dims + rebuild")
     @btime (() -> eachslice($a; dims=2))();
     @btime (() -> eachslice($da; dims=2))();
     @btime (() -> eachslice($da; dims=Y))();
@@ -431,7 +434,8 @@ if VERSION > v"1.1-"
     @test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
 end
 
-println("mean: normal, numbers + rebuild, dims + rebuild")
+
+println("\n\nmean: normal, numbers + rebuild, dims + rebuild")
 @btime mean($a; dims=2);
 @btime mean($da; dims=2);
 @btime mean($da; dims=X);
@@ -442,4 +446,4 @@ println("permutedims: normal, numbers + rebuild, dims + rebuild")
 println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($a; dims=1) 
 @btime reverse($da; dims=1) 
-@btime reverse($da; dims=Y()) 
+@btime reverse($da; dims=Y) 

@@ -62,6 +62,7 @@ Return the units of a dimension. This could be a string, a unitful unit, or noth
 """
 function units end
 units(x) = ""
+units(xs::Tuple) = map(units, xs)
 
 """
     name(x)
@@ -71,6 +72,7 @@ Get the name of data or a dimension.
 function name end
 name(x) = name(typeof(x))
 name(x::Type) = ""
+name(xs::Tuple) = map(name, xs)
 
 """
     shortname(x)
@@ -79,6 +81,7 @@ Get the short name of array data or a dimension.
 """
 function shortname end
 shortname(x) = shortname(typeof(x))
+shortname(xs::Tuple) = map(shortname, xs)
 shortname(x::Type) = ""
 
 """
@@ -88,4 +91,8 @@ Get a plot label for data or a dimension. This will include the name and units
 if they exist, and anything else that should be shown on a plot.
 """
 function label end
-label(x) = string(string(name(x)), " ", getstring(units(x)))
+label(x) = begin
+    u = getstring(units(x))
+    string(name(x), (u == "" ? "" : string(" ", u)))
+end
+label(xs::Tuple) = join(map(label, xs), ", ")

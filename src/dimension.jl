@@ -48,17 +48,10 @@ rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim), order(dim))
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
-
-name(dims::AbDimTuple) = (name(dims[1]), name(tail(dims))...)
-name(dims::Tuple{}) = ()
 name(dim::AbDim) = name(typeof(dim))
-
 shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d)
-
 units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
-
-label(dims::AbDimTuple) = join(join.(zip(name.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
 
 bounds(a, args...) = bounds(dims(a), args...)
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]])
@@ -174,6 +167,7 @@ end
 @inline Dim{X}(val=:; metadata=nothing, order=Forward()) where X = 
     Dim{X}(val, metadata, order)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
+shortname(::Type{<:Dim{X}}) where X = "$X"
 basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
 
 
