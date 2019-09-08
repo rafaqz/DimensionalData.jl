@@ -119,10 +119,8 @@ struct DimensionalArray{T,N,D,R,A<:AbstractArray{T,N}} <: AbstractDimensionalArr
     dims::D
     refdims::R
 end
-DimensionalArray(a::AbstractArray, dims, refdims) =
+DimensionalArray(a::AbstractArray, dims; refdims=()) = 
     DimensionalArray(a, formatdims(a, dims), refdims)
-DimensionalArray(a::AbstractArray, dims; refdims=()) =
-    DimensionalArray(a, dims, refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.parent(a::DimensionalArray) = a.data

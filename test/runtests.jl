@@ -203,15 +203,15 @@ g = DimensionalArray(a, dimz)
 a = [1 2 3 4
      3 4 5 6
      5 6 7 8]
-da = DimensionalArray(a, (Y(10:30), Time(1:4)))
-ms = mapslices(sum, da; dims=Y)
-@test ms == [9 12 15 18]
-@test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
-@test refdims(ms) == (Y(10.0),)
-ms = mapslices(sum, da; dims=Time)
-@test parent(ms) == [10 18 26]'
-@test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
-@test refdims(ms) == (Time(1.0),)
+# da = DimensionalArray(a, (Y(10:30), Time(1:4)))
+# ms = mapslices(sum, da; dims=Y)
+# @test ms == [9 12 15 18]
+# @test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
+# @test refdims(ms) == (Y(10.0),)
+# ms = mapslices(sum, da; dims=Time)
+# @test parent(ms) == [10 18 26]'
+# @test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
+# @test refdims(ms) == (Time(1.0),)
 
 # Iteration methods
 
