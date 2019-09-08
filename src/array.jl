@@ -25,7 +25,7 @@ Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Integer}) =
 Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     rebuildsliced(a, getindex(parent(a), I...), I)
 
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I...) =
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =
     setindex!(parent(a), x, I...)
 
 Base.@propagate_inbounds Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArray,Colon,Integer}}) =

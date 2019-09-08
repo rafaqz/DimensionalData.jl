@@ -102,6 +102,7 @@ mean(a, dims=X)
 - Least surprise: everything works the same as in Base, but with named dims. If
   a method accepts numeric indices or `dims=X` in base, you should be able to
   use DimensionalData.jl dims.
+- Type stability: dimensional methods should be type stable _more often_ than Base methods
 - Zero cost dimensional indexing `a[Y(4), X(5)]` of a single value.
 - Low cost indexing for range getindex and views: these cant be zero cost as dim
   ranges have to be updated.

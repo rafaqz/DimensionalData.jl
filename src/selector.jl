@@ -7,7 +7,6 @@ abstract type Selector{T} end
 val(m::Selector) = m.val 
 
 (::Type{T})(args...) where T <: Selector = T{typeof(args)}(args)
-(::Type{T})()  where T <: Selector = T{Nothing}(nothing)
 
 """
     At(x)
@@ -79,8 +78,10 @@ between(::Reverse, dim, sel) =
 
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) = 
     getindex(a, sel2indices(a, I)...) 
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
+Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) = begin
+    println(sel2indices(a, I))
     setindex!(a, x, sel2indices(a, I)...)
+end
 Base.view(a::AbstractArray, I::Vararg{Selector}) = 
     view(a, sel2indices(a, I)...)
 
