@@ -11,6 +11,13 @@ using DimensionalData: val, basetype, slicedims, dims2indices, formatdims,
 @test shortname(TestDim) == "TestDim"
 @test val(TestDim(:test)) == :test
 @test metadata(TestDim(1, "metadata", Forward())) == "metadata"
+@test units(TestDim) == ""
+# TODO get rid of the trailing whitespace 
+@test_broken label(TestDim) == "Test dimension" 
+@test eltype(TestDim(1)) == Int
+@test eltype(TestDim([1,2,3])) == Vector{Int}
+@test length(TestDim(1)) == 1
+@test length(TestDim([1,2,3])) == 3
 
 
 # Basic dim and array initialisation
@@ -160,44 +167,51 @@ a = [1 2 3 4
      3 4 5 6 
      4 5 6 7]
 dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-g = DimensionalArray(a, dimz)
-@test g[Dim{:row}(2)] == [3, 4, 5, 6]
-@test g[Dim{:column}(4)] == [4, 6, 7]
-@test g[Dim{:column}(1), Dim{:row}(3)] == 4
+da = DimensionalArray(a, dimz)
+@test name(dimz) == ("Dim row", "Dim column")
+@test da[Dim{:row}(2)] == [3, 4, 5, 6]
+@test da[Dim{:column}(4)] == [4, 6, 7]
+@test da[Dim{:column}(1), Dim{:row}(3)] == 4
+
+# size and axes
+@test size(da, Dim{:row}) == 3  
+@test size(da, Dim{:column}()) == 4  
+@test axes(da, Dim{:row}()) == 1:3  
+@test axes(da, Dim{:column}) == 1:4  
+
 
 # Dimension reducing methods
 
-a = [1 2 
-     3 4]
+a = [1 2; 3 4]
 dimz = (X((143, 145)), Y((-38, -36)))
-g = DimensionalArray(a, dimz)
+da = DimensionalArray(a, dimz)
 
 # sum, mean etc with dims kwarg
-@test sum(g; dims=X) == sum(g; dims=1)
-@test sum(g; dims=Y()) == sum(g; dims=2) 
-@test dims(sum(g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-@test prod(g; dims=X) == [3 8]
-@test prod(g; dims=Y()) == [2 12]'
-@test dims(prod(g; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
-@test maximum(g; dims=X) == [3 4]
-@test maximum(g; dims=Y()) == [2 4]'
-@test minimum(g; dims=X) == [1 2]
-@test minimum(g; dims=Y()) == [1 3]'
-@test dims(minimum(g; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
-@test mean(g; dims=X) == [2.0 3.0]
-@test mean(g; dims=Y()) == [1.5 3.5]'
-@test dims(mean(g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-@test reduce(+, g; dims=X) == [4 6]
-@test reduce(+, g; dims=Y()) == [3 7]'
-@test dims(reduce(+, g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-@test mapreduce(x-> x > 3, +, g; dims=X) == [0 1]
-@test mapreduce(x-> x > 3, +, g; dims=Y()) == [0 1]'
-@test dims(mapreduce(x-> x > 3, +, g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-@test std(g; dims=X()) == [1.4142135623730951 1.4142135623730951]
-@test std(g; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
-@test var(g; dims=X()) == [2.0 2.0]
-@test var(g; dims=Y()) == [0.5 0.5]'
-@test dims(var(g; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test sum(da; dims=X) == sum(da; dims=1)
+@test sum(da; dims=Y()) == sum(da; dims=2) 
+@test dims(sum(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test prod(da; dims=X) == [3 8]
+@test prod(da; dims=Y()) == [2 12]'
+@test dims(prod(da; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
+@test maximum(da; dims=X) == [3 4]
+@test maximum(da; dims=Y()) == [2 4]'
+@test minimum(da; dims=X) == [1 2]
+@test minimum(da; dims=Y()) == [1 3]'
+@test dims(minimum(da; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
+@test mean(da; dims=X) == [2.0 3.0]
+@test mean(da; dims=Y()) == [1.5 3.5]'
+@test dims(mean(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test reduce(+, da; dims=X) == [4 6]
+@test reduce(+, da; dims=Y()) == [3 7]'
+@test dims(reduce(+, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test mapreduce(x-> x > 3, +, da; dims=X) == [0 1]
+@test mapreduce(x-> x > 3, +, da; dims=Y()) == [0 1]'
+@test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+@test std(da; dims=X()) == [1.4142135623730951 1.4142135623730951]
+@test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
+@test var(da; dims=X()) == [2.0 2.0]
+@test var(da; dims=Y()) == [0.5 0.5]'
+@test dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
 
 # mapslices
 a = [1 2 3 4

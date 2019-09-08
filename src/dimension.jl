@@ -63,7 +63,6 @@ shortname(d::Type{<:AbDim}) = name(d)
 
 units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
 
-label(dim::AbDim) = join((name(dim), getstring(units(dim))), " ")
 label(dims::AbDimTuple) = join(join.(zip(name.(dims), string.(shorten.(val.(dims)))), ": ", ), ", ")
 
 bounds(a, args...) = bounds(dims(a), args...)
@@ -76,7 +75,7 @@ bounds(dim::AbDim) = first(val(dim)), last(val(dim))
 
 # Base methods
 
-Base.eltype(dim::Type{AbDim{T}}) where T = T
+Base.eltype(dim::Type{<:AbDim{T}}) where T = T
 Base.length(dim::AbDim) = length(val(dim))
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", name(dim), ": "; color=:red)
