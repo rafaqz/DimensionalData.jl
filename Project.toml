@@ -1,7 +1,7 @@
 name = "DimensionalData"
 uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"

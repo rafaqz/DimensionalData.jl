@@ -1,4 +1,4 @@
-abstract type AbstractDimensionalArray{T,N,D} <: AbstractArray{T,N} end
+abstract type AbstractDimensionalArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray
 
@@ -123,7 +123,7 @@ A basic DimensionalArray type
 
 Maintains and updates its dimensions through transformations
 """
-struct DimensionalArray{T,N,D,R,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D}
+struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D}
     data::A
     dims::D
     refdims::R
