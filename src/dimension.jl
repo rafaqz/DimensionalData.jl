@@ -54,12 +54,13 @@ shortname(d::Type{<:AbDim}) = name(d)
 units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
 
 bounds(a, args...) = bounds(dims(a), args...)
-bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]])
+bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
-bounds(dim::AbDim) = first(val(dim)), last(val(dim))
-
+bounds(dim::AbDim) = bounds(order(dim), dim)
+bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim))
+bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim))
 
 # Base methods
 
