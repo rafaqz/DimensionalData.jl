@@ -63,7 +63,6 @@ bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim))
 bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim))
 
 # Base methods
-
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
 Base.length(dim::AbDim) = length(val(dim))
 Base.show(io::IO, dim::AbDim) = begin
@@ -77,8 +76,6 @@ Base.show(io::IO, dim::AbDim) = begin
     show(io, metadata(dim))
     print(io, "\n")
 end
-
-
 
 # AbstractArray methods where dims are the dispatch argument
 
@@ -99,41 +96,6 @@ Base.@propagate_inbounds Base.view(a::AbstractArray, dims::Vararg{<:AbstractDime
 @inline Base.size(a::AbstractArray, dims::DimOrDimType) = size(a, dimnum(a, dims))
 
 
-# Dimension reduction methods where dims are an argument
-# targeting underscore _methods so we can use dispatch ont the dims arg
-
-for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
-    _fname = Symbol('_', fname)
-    @eval begin
-        ($mod.$_fname)(a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
-            ($mod.$_fname)(a, dimnum(a, dims))
-        ($mod.$_fname)(f, a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
-            ($mod.$_fname)(f, a, dimnum(a, dims))
-    end
-end
-
-for fname in (:std, :var)
-    _fname = Symbol('_', fname)
-    @eval function (Statistics.$_fname)(a::AbstractArray, corrected::Bool, mean, dims::AllDimensions)
-        (Statistics.$_fname)(a, corrected, mean, dimnum(a, dims))
-    end
-end
-
-Statistics._median(a::AbstractArray, dims::AllDimensions) =
-    Statistics._median(a, dimnum(a, dims))
-Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDimensions) =
-    Base._mapreduce_dim(f, op, nt, A, dimnum(A, dims))
-# Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
-# accumulate wont work unless that is relaxed, or we copy half of the file here.
-Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
-    Base._accumulate!(op, B, A, dimnum(A, dims), init)
-
-Base._dropdims(a::AbstractArray, dim::Union{AbDim,Type{<:AbDim}}) = 
-    rebuildsliced(a, Base._dropdims(a, dimnum(a, dim)), dims2indices(a, basetype(dim)(1)))
-Base._dropdims(a::AbstractArray, dims::AbDimTuple) = 
-    rebuildsliced(a, Base._dropdims(a, dimnum(a, dims)), 
-                  dims2indices(a, Tuple((basetype(d)(1) for d in dims))))
-
 #= SplitApplyCombine methods?
 Should allow groupby using dims lookup to make this worth the dependency
 Like group by time/lattitude/height band etc.
@@ -144,6 +106,8 @@ SplitApplyCombine.splitdims(a::AbstractArray, dims::AllDimensions) =
 SplitApplyCombine.splitdimsview(a::AbstractArray, dims::AllDimensions) =
     SplitApplyCombine.splitdimsview(a, dimnum(a, dims))
 =#
+
+
 
 
 """
