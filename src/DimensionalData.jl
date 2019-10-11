@@ -36,12 +36,15 @@ export AbstractDimension, Dim
 
 export Selector, Near, Between, At
 
+export Order
+
 export AbstractDimensionalArray, DimensionalArray
 
 export dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, <|
 
 include("interface.jl")
+include("order.jl")
 include("dimension.jl")
 include("selector.jl")
 include("array.jl")

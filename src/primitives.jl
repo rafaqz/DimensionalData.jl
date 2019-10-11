@@ -41,8 +41,8 @@ end
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.
 """
-@inline dims2indices(a, lookup::Tuple, emptyval=Colon()) =
-    dims2indices(dims(a), lookup::Tuple, emptyval)
+@inline dims2indices(a, lookup, emptyval=Colon()) =
+    dims2indices(dims(a), lookup, emptyval)
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =

@@ -4,7 +4,7 @@
     @test name(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
-    @test metadata(TestDim(1, "metadata", Forward())) == "metadata"
+    @test metadata(TestDim(1, "metadata", Order())) == "metadata"
     @test units(TestDim) == ""
     @test label(TestDim) == "Test dimension" 
     @test eltype(TestDim(1)) == Int
@@ -40,7 +40,7 @@ dimz = dims(da)
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Time)
     @test dimz == (X(LinRange(143, 145, 3)), Y(LinRange(-38, -35, 4)))
-    @test typeof(dimz) == Tuple{X{LinRange{Float64},Nothing,Forward},Y{LinRange{Float64},Nothing,Forward}}
+    @test typeof(dimz) == Tuple{X{LinRange{Float64},Nothing,Order{Forward,Forward}},Y{LinRange{Float64},Nothing,Order{Forward,Forward}}}
 end
 
 @testset "arbitrary dim names" begin
