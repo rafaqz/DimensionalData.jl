@@ -3,62 +3,81 @@ Indicate the position of coordinates on the grid, wrapping with size
 of the grid step as an optional field (if it is constant or pseudo-constant 
 like `Month(1)`.
 """
-abstract type CoordType{T} end
+abstract type CoordLocation end
 
 """
-    Center{T}
-
 Indicates dimensions that are defined by their center coordinates/time/position.  
 """
-struct Center{T} <: CoordType{T} 
-    span::T
-end
-"""
-    Start{T}
+struct Center <: CoordLocation end
 
+"""
 Indicates dimensions that are defined by their start coordinates/time/position.
 """
-struct Start{T} <: CoordType{T}  
-    span::T
-end
+struct Start <: CoordLocation  end
 
 """
-    End{T}
-
 Indicates dimensions that are defined by their end coordinates/time/position
 """
-struct End{T} <: CoordType{T}  
-    span::T
-end
+struct End <: CoordLocation  end
 
 
-abstract type GridTrait end
-
-abstract type RegularGrid{T} <: GridTrait  
-    span::T
-end
 
 """
-    RegularProductGrid
+Traits describing the grid type of a dimension
+"""
+abstract type AbstractGrid end
 
+"""
+Traits describing regular grids
+"""
+abstract type AbstractRegularGrid <: AbstractGrid end
+
+"""
 Trait describing a regular grid along a dimension. 
 """
-struct RegularProductGrid{T} <: RegularGrid{T} end
-
-#Fallback for regular arrays
-struct UnknownGrid <: RegularGrid{Center{Nothing}} end
-
-"""
-    IrregularGrid
-
-Traits describing a dimension whos coordinates change along another dimension. 
-"""
-abstract type IrregularGrid{T} end
-
+struct RegularGrid{T,S} <: AbstractRegularGrid 
+    span::S
+end
+RegularGrid(span=nothing) = RegularGrid{Center, typeof(span)}(span) 
 
 """
-    CategoricalGrid
+Fallback grid type for regular arrays
+"""
+struct UnknownGrid <: AbstractRegularGrid end
 
+
+
+"""
 Traits describing a dimension where the dimension values are categories.
 """
-abstract type CategoricalGrid <: GridTrait end
+abstract type AbstractCategoricalGrid <: AbstractGrid end
+
+struct CategoricalGrid <: AbstractCategoricalGrid end
+
+
+
+"""
+Traits describing a dimension whos coordinates change along another dimension. 
+"""
+abstract type AbstractIrregularGrid end
+
+dims(grid::AbstractIrregularGrid) = grid.dims
+
+"""
+Grid type using an affine transformation to convert dimension from 
+`dim(grid)` to `dims(array)`.
+"""
+struct TransformedGrid{T,D} <: AbstractIrregularGrid 
+    transform::T
+    dims::D
+end
+
+"""
+Grid type using an array lookup to convert dimension from 
+`dim(grid)` to `dims(array)`.
+"""
+struct LookupGrid{D} <: AbstractIrregularGrid 
+    data::L
+    dims::D
+end
+
