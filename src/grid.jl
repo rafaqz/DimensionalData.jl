@@ -1,36 +1,64 @@
-abstract type RegularGrid{T} end
+"""
+Indicate the position of coordinates on the grid, wrapping with size 
+of the grid step as an optional field (if it is constant or pseudo-constant 
+like `Month(1)`.
+"""
+abstract type CoordType{T} end
+
+"""
+    Center{T}
+
+Indicates dimensions that are defined by their center coordinates/time/position.  
+"""
+struct Center{T} <: CoordType{T} 
+    span::T
+end
+"""
+    Start{T}
+
+Indicates dimensions that are defined by their start coordinates/time/position.
+"""
+struct Start{T} <: CoordType{T}  
+    span::T
+end
+
+"""
+    End{T}
+
+Indicates dimensions that are defined by their end coordinates/time/position
+"""
+struct End{T} <: CoordType{T}  
+    span::T
+end
+
+
+abstract type GridTrait end
+
+abstract type RegularGrid{T} <: GridTrait  
+    span::T
+end
 
 """
     RegularProductGrid
 
-Trait describing a regular grid along all axes. 
-To implement the trait, a dims() function is required, returning a list of 
-dimension objects for each axis, which provide a `name` and a `vals` method.
+Trait describing a regular grid along a dimension. 
 """
 struct RegularProductGrid{T} <: RegularGrid{T} end
 
-"""
-    Center
-
-To be used as a type parameter to described grids that are defined by their center coordinates.  
-"""
-struct Center end
-
 #Fallback for regular arrays
-struct UnknownGrid <: RegularGrid{Center} end
-#One might think about using Base.axes here to support things like OffsetArrays etc...
-hasgrid(::AbstractArray) = UnknownGrid()
-
-struct UnknownDimension{I}
-    length::Int
-end
-
-# Now an example for moving grids or grids that are not a product of some axes
+struct UnknownGrid <: RegularGrid{Center{Nothing}} end
 
 """
     IrregularGrid
 
-Traits describing a grid where the coordinates of one or more axes change along another axis. 
-Subtypes of this should directly implement the functions `gridcoordinates` as well as `gridbounds`
+Traits describing a dimension whos coordinates change along another dimension. 
 """
 abstract type IrregularGrid{T} end
+
+
+"""
+    CategoricalGrid
+
+Traits describing a dimension where the dimension values are categories.
+"""
+abstract type CategoricalGrid <: GridTrait end
