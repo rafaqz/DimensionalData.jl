@@ -41,8 +41,8 @@ end
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.
 """
-@inline dims2indices(a, lookup, emptyval=Colon()) =
-    dims2indices(dims(a), lookup, emptyval)
+@inline dims2indices(a, lookup::Tuple, emptyval=Colon()) =
+    dims2indices(dims(a), lookup::Tuple, emptyval)
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
@@ -70,8 +70,9 @@ the new struct but are useful to give context to plots.
 Called at the array level the returned tuple will also include the
 previous reference dims attached to the array.
 """
-@inline slicedims(a, dims::AbDimTuple) =
-    slicedims(a, dims2indices(a, dims))
+@inline slicedims(a, dims::AbDimTuple) = slicedims(a, dims2indices(a, dims))
+@inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
+    slicedims(dims2slice, dims2indices(dims2slice, dims))
 @inline slicedims(a, I::Tuple) = slicedims(dims(a), refdims(a), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims, I)
@@ -161,7 +162,7 @@ Used in mean, reduce, etc.
 """
 Get the dimension(s) matching the type(s) of the lookup dimension.
 """
-@inline dims(a::AbstractArray, lookup) = dims(dims(a), lookup)
+@inline dims(a, lookup) = dims(dims(a), lookup)
 @inline dims(ds::AbDimTuple, lookup::Integer) = ds[lookup]
 @inline dims(ds::AbDimTuple, lookup::Tuple) =
     (dims(ds, lookup[1]), dims(ds, tail(lookup))...)
