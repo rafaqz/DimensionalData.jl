@@ -46,18 +46,30 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
-    _dims2indices(dims, permutedims(lookup, dims), emptyval)
-
-@inline _dims2indices(dims::Tuple, lookup::Tuple, emptyval) =
-    (dims2indices(dims[1], lookup[1], emptyval),
-     _dims2indices(tail(dims), tail(lookup), emptyval)...)
-@inline _dims2indices(dims::Tuple, lookup::Tuple{}, emptyval) =
-    (emptyval, _dims2indices(tail(dims), (), emptyval)...)
-@inline _dims2indices(dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+    grid2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
 @inline dims2indices(dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
 @inline dims2indices(dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
 @inline dims2indices(dim::AbDim, lookup::Nothing, emptyval) = emptyval
+
+# Deal with irregular grid types that need multiple dimensions indexed together
+@inline grid2indices(grids::Tuple{IrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (_, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
+    (dims2indices(grid[1], irreglookup)..., grid2indices(map(grid, regdims), regdims, reglookup)...)
+end
+@inline grid2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
+    (dims2indices(grid[1], dims[1], lookup[1], emptyval),
+     grid2indices(tail(dims), tail(lookup), emptyval)...)
+@inline grid2indices(dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+
+
+@inline splitgridtypes(grids::Tuple{Irregular,Vararg}, dims, lookup) = begin
+    (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup)) 
+    irreg = (dims[1], irregdims...), (lookup[1], irreglookup...) 
+    irreg, reg
+end
+@inline splitgridtypes(grids::Tuple, dims, lookup) = ((), ()), (dims, lookup)
+@inline splitgridtypes(grids::Tuple{}, dims, lookup) = ((), ()), ((), ())
 
 
 """

@@ -29,8 +29,10 @@ const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
 
 # Getters
 val(dim::AbDim) = dim.val
-metadata(dim::AbDim) = dim.metadata
+grid(dim::AbDim) = dim.grid
 order(dim::AbDim) = dim.order
+metadata(dim::AbDim) = dim.metadata
+
 dimorder(dim::AbDim) = dimorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
@@ -104,7 +106,7 @@ SplitApplyCombine.splitdimsview(a::AbstractArray, dims::AllDimensions) =
 """
 Dimensions with user-set type paremeters
 """
-abstract type AbstractParametricDimension{X,T,M,O} <: AbstractDimension{T,M,O} end
+abstract type AbstractParametricDimension{X,T,G,O,M} <: AbstractDimension{T,G,O,M} end
 
 """
 A generic dimension. For use when custom dims are required when loading
@@ -112,13 +114,13 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason 
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,M,O} <: AbstractParametricDimension{X,T,M,O} 
+struct Dim{X,T,G,O,M} <: AbstractParametricDimension{X,T,G,O,M} 
     val::T
-    metadata::M
-    order::O
     grid::G
-    Dim{X}(val, metadata, order, grid) where X = 
-        new{X,typeof(val),typeof(metadata),typeof(order),typeof(grid)}(val, metadata, order, grid)
+    order::O
+    metadata::M
+    Dim{X}(val, grid, order, metadata) where X = 
+        new{X,typeof(val),typeof(grid),typeof(order),typeof(metadata)}(val, grid, order, metadata)
 end
 
 @inline Dim{X}(val=:; metadata=nothing, order=Order()) where X = 
@@ -140,13 +142,14 @@ Example:
 """
 macro dim(typ, name=string(typ), shortname=string(typ))
     esc(quote
-        struct $typ{T,M,O,G} <: AbstractDimension{T,M,O}
+        struct $typ{T,G,O,M} <: AbstractDimension{T,G,O,M}
             val::T
-            metadata::M
-            order::O
             grid::G
+            order::O
+            metadata::M
         end
-        $typ(; val=:, metadata=nothing, order=nothing, grid=nothing) = $typ(val, metadata, order, grid)
+        $typ(; val=:, grid=nothing, order=nothing, metadata=nothing) = 
+            $typ(val, grid, order, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
