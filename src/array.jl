@@ -29,13 +29,18 @@ Base.@propagate_inbounds Base.view(a::AbDimArray, I::Vararg{<:Union{AbstractArra
 Base.convert(::Type{Array{T,N}}, a::AbDimArray{T,N}) where {T,N} = 
     convert(Array{T,N}, parent(a))
 
+Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(src), parent(dst))
+
 # Similar. TODO this need a rethink. How do we know what the new dims are?
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(a::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
     rebuildsliced(a, similar(parent(a), T, I...), I)
-Base.similar(a::AbDimArray, ::Type{T}) where T = rebuild(a, similar(parent(a), T))
+
 Base.similar(a::AbDimArray) = rebuild(a, similar(parent(a)))
+Base.similar(a::AbDimArray, ::Type{T}) where T = rebuild(a, similar(parent(a), T))
+Base.similar(a::AbDimArray, ::Type{T}, ::Tuple{Int64,Vararg{Int64}}) where T = 
+    rebuild(a, similar(parent(a), T))
 Base.similar(a::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(a, similar(parent(a), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType =
