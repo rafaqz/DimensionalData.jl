@@ -1,15 +1,4 @@
 """
-Trait indicating that the dimension is in the normal forward order. 
-"""
-struct Forward end
-
-"""
-Trait indicating that the dimension is in the reverse order. 
-Selector lookup and plotting will be reverse.
-"""
-struct Reverse end
-
-"""
 An AbstractDimension tags the dimensions in an AbstractArray.
 
 It can also contain spatial coordinates and their metadata. For simplicity,
@@ -42,6 +31,8 @@ const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
 val(dim::AbDim) = dim.val
 metadata(dim::AbDim) = dim.metadata
 order(dim::AbDim) = dim.order
+dimorder(dim::AbDim) = dimorder(order(dim))
+arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
 rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim), order(dim))
@@ -58,7 +49,7 @@ bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdi
 bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
-bounds(dim::AbDim) = bounds(order(dim), dim)
+bounds(dim::AbDim) = bounds(dimorder(dim), dim)
 bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim))
 bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim))
 
@@ -130,7 +121,7 @@ struct Dim{X,T,M,O} <: AbstractParametricDimension{X,T,M,O}
         new{X,typeof(val),typeof(metadata),typeof(order),typeof(grid)}(val, metadata, order, grid)
 end
 
-@inline Dim{X}(val=:; metadata=nothing, order=Forward()) where X = 
+@inline Dim{X}(val=:; metadata=nothing, order=Order()) where X = 
     Dim{X}(val, metadata, order)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
@@ -155,7 +146,7 @@ macro dim(typ, name=string(typ), shortname=string(typ))
             order::O
             grid::G
         end
-        $typ(val=:; metadata=nothing, order=Forward(), grid=RegularGrid{Cell}()) = $typ(val, metadata, order, grid)
+        $typ(; val=:, metadata=nothing, order=nothing, grid=nothing) = $typ(val, metadata, order, grid)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
