@@ -155,15 +155,15 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 """
-reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,)) 
-reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce) 
-reducedims(dims::AbDimTuple, dimstoreduce::Tuple) = 
+@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,)) 
+@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce) 
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) = 
     map(reducedims, dims, permutedims(dimstoreduce, dims))
-reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) = 
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) = 
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
-reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))
-reducedims(dim::AbDim, dimtoreduce::Nothing) = dim
+@inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))
+@inline reducedims(dim::AbDim, dimtoreduce::Nothing) = dim
 
 
 """
