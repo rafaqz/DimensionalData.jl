@@ -13,7 +13,7 @@ Missing dimensions are replaced with `nothing`
 @inline Base.permutedims(tosort::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}, perm::AbDimTuple) =
     tosort
 
-@inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector ) =
+@inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
     permutedims(tosort, Tuple(map(u -> u(), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
     permutedims(Tuple(map(u -> u(), tosort)), order)
@@ -41,8 +41,8 @@ end
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.
 """
-@inline dims2indices(a, lookup, emptyval=Colon()) =
-    dims2indices(dims(a), lookup, emptyval)
+@inline dims2indices(A, lookup, emptyval=Colon()) =
+    dims2indices(dims(A), lookup, emptyval)
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
@@ -70,10 +70,10 @@ the new struct but are useful to give context to plots.
 Called at the array level the returned tuple will also include the
 previous reference dims attached to the array.
 """
-@inline slicedims(a, dims::AbDimTuple) = slicedims(a, dims2indices(a, dims))
+@inline slicedims(A, dims::AbDimTuple) = slicedims(A, dims2indices(A, dims))
 @inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
     slicedims(dims2slice, dims2indices(dims2slice, dims))
-@inline slicedims(a, I::Tuple) = slicedims(dims(a), refdims(a), I)
+@inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
@@ -99,7 +99,7 @@ end
 """
 Get the number of an AbstractDimension as ordered in the array
 """
-@inline dimnum(a, lookup) = dimnum(typeof(dims(a)), lookup)
+@inline dimnum(A, lookup) = dimnum(typeof(dims(A)), lookup)
 @inline dimnum(dimtypes::Type, lookup::AbstractArray) = dimnum(dimtypes, (lookup...,))
 @inline dimnum(dimtypes::Type, lookup::Number) = lookup
 @inline dimnum(dimtypes::Type, lookup::Tuple) =
@@ -124,10 +124,10 @@ which is easier to handle.
 
 Errors are thrown if dims don't match the array dims or size.
 """
-@inline formatdims(a::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
+@inline formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    formatdims(size(a), dims)
+    formatdims(size(A), dims)
 end
 @inline formatdims(size::Tuple, dims::Tuple) =
     (formatdims(size[1], dims[1]), formatdims(tail(size), tail(dims))...,)
@@ -155,14 +155,21 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 """
-@inline reducedims(dim) = reducedims((dim,))
-@inline reducedims(dims::Tuple) = map(d -> basetype(d)(1), dims)
+reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,)) 
+reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce) 
+reducedims(dims::AbDimTuple, dimstoreduce::Tuple) = 
+    map(reducedims, dims, permutedims(dimstoreduce, dims))
+reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) = 
+    map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
+
+reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))
+reducedims(dim::AbDim, dimtoreduce::Nothing) = dim
 
 
 """
 Get the dimension(s) matching the type(s) of the lookup dimension.
 """
-@inline dims(a, lookup) = dims(dims(a), lookup)
+@inline dims(A, lookup) = dims(dims(A), lookup)
 @inline dims(ds::AbDimTuple, lookup::Integer) = ds[lookup]
 @inline dims(ds::AbDimTuple, lookup::Tuple) =
     (dims(ds, lookup[1]), dims(ds, tail(lookup))...)

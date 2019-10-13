@@ -44,5 +44,5 @@ end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(:), Y(1:5))) == (X(1), Y(1))
+    @test reducedims((X(3:4), Y(1:5)), (X, Y)) == (X(3), Y(1))
 end

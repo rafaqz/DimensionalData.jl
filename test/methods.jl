@@ -5,40 +5,46 @@
     dimz = (X((143, 145)), Y((-38, -36)))
     da = DimensionalArray(a, dimz)
 
-    @test sum(da; dims=X) == sum(da; dims=1)
+    @test sum(da; dims=X()) == sum(da; dims=1)
     @test sum(da; dims=Y()) == sum(da; dims=2) 
-    @test dims(sum(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+    @test dims(sum(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=Y()) == [2 12]'
-    @test dims(prod(da; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
+    @test dims(prod(da; dims=X())) == (X(143.0), Y(LinRange(-38.0, -36.0, 2)))
     @test maximum(da; dims=X) == [3 4]
     @test maximum(da; dims=Y()) == [2 4]'
     @test minimum(da; dims=X) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
-    @test dims(minimum(da; dims=X())) == (X(LinRange(143.0, 143.0, 1)), Y(LinRange(-38.0, -36.0, 2)))
+    @test dims(minimum(da; dims=X())) == (X(143.0), Y(LinRange(-38.0, -36.0, 2)))
     @test mean(da; dims=X) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
-    @test dims(mean(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+    @test dims(mean(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
+    @test mapreduce(x -> x > 3, +, da; dims=Y()) == [0 1]'
+    @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
-    @test dims(reduce(+, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
-    @test mapreduce(x-> x > 3, +, da; dims=X) == [0 1]
-    @test mapreduce(x-> x > 3, +, da; dims=Y()) == [0 1]'
-    @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+    @test dims(reduce(+, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     @test std(da; dims=X()) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
     @test var(da; dims=X()) == [2.0 2.0]
     @test var(da; dims=Y()) == [0.5 0.5]'
-    @test dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(LinRange(-38.0, -38.0, 1)))
+    @test dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da; dims=Y()) == [2.0 5.0]'
     @test median(da; dims=X()) == [2.5 3.5 4.5]
+end
 
+@testset "dimension dropping methods" begin
+    a = [1 2 3; 4 5 6]
+    dimz = (X((143, 145)), Y((-38, -36)))
+    da = DimensionalArray(a, dimz)
+    # Dimensions must have length 1 to be dropped 
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
-    # TODO: test refdims after dropdims
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) == (X(143.0),)
 end
 
 if VERSION > v"1.1-"
@@ -104,12 +110,10 @@ end
     da = DimensionalArray(a, (Y(10:30), Time(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test dims(ms) == (Time(LinRange(1.0, 4.0, 4)),)
-    @test refdims(ms) == (Y(10.0),)
+    @test dims(ms) == (Y(10.0),Time(LinRange(1.0, 4.0, 4)))
+    @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Time)
     @test parent(ms) == [10 18 26]'
-    @test dims(ms) == (Y(LinRange(10.0, 30.0, 3)),)
-    @test refdims(ms) == (Time(1.0),)
 end
 
 # These need fixes in base. kwargs are ::Integer so we can't add methods

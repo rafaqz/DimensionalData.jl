@@ -84,3 +84,26 @@ println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($a; dims=1) 
 @btime reverse($da; dims=1) 
 @btime reverse($da; dims=Y) 
+arrays. I've included an example below for mean, but I see the same thing for other reductions like sum or maximum and even methods like copy.
+
+# Sparse
+using SparseArrays, Statistics
+
+@dim Var "Variable"
+@dim Obs "Observation"
+
+sparsear = sprand(10000, 10000, 0.1)
+sparsed = DimensionalArray(
+    sparsear,
+    (Var <| ["var$i" for i in 1:10000], Obs <| ["obs$i" for i in 1:10000])
+)
+
+# Jit warmups
+mean(sparsear, dims=1)
+mean(sparsear, dims=2)
+mean(sparsed, dims=Var())
+mean(sparsed, dims=Obs())
+
+# Benchmarks
+@benchmark mean($sparsear, dims=$1)
+@benchmark mean($sparsed, dims=$Var)
