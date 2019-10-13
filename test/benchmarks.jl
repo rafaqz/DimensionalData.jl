@@ -63,11 +63,11 @@ if VERSION > v"1.1-"
     println("\n\neachslice: normal, numbers + rebuild, dims + rebuild")
     @btime (() -> eachslice($a; dims=2))();
     @btime (() -> eachslice($da; dims=2))();
-    @btime (() -> eachslice($da; dims=Y))();
+    @btime (() -> eachslice($da; dims=Y()))();
     println("eachslice to vector: normal, numbers + rebuild, dims + rebuild")
     @btime [slice for slice in eachslice($a; dims=2)];
     @btime [slice for slice in eachslice($da; dims=2)];
-    @btime [slice for slice in eachslice($da; dims=X)];
+    @btime [slice for slice in eachslice($da; dims=X())];
     @test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
 end
 
@@ -75,7 +75,7 @@ end
 println("\n\nmean: normal, numbers + rebuild, dims + rebuild")
 @btime mean($a; dims=2);
 @btime mean($da; dims=2);
-@btime mean($da; dims=X);
+@btime mean($da; dims=X());
 println("permutedims: normal, numbers + rebuild, dims + rebuild")
 @btime permutedims($a, (2, 1, 3))
 @btime permutedims($da, (2, 1, 3))
@@ -83,4 +83,28 @@ println("permutedims: normal, numbers + rebuild, dims + rebuild")
 println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($a; dims=1) 
 @btime reverse($da; dims=1) 
-@btime reverse($da; dims=Y) 
+@btime reverse($da; dims=Y()) 
+
+# Sparse
+using SparseArrays, Statistics
+
+@dim Var "Variable"
+@dim Obs "Observation"
+
+sparsear = sprand(10000, 10000, 0.1)
+sparsed = DimensionalArray(
+    sparsear,
+    (Var <| ["var$i" for i in 1:10000], Obs <| ["obs$i" for i in 1:10000])
+)
+
+# Jit warmups
+mean(sparsear, dims=1)
+mean(sparsear, dims=2)
+mean(sparsed, dims=Var())
+mean(sparsed, dims=Obs())
+
+# Benchmarks
+println("Regular sparse")
+@btime mean($sparsear, dims=$1)
+println("Dims sparse")
+@btime mean($sparsed, dims=$Var)

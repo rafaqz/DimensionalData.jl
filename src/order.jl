@@ -22,3 +22,7 @@ Trait indicating that the array or dimension is in the reverse order.
 Selector lookup or plotting will be reversed.
 """
 struct Reverse end
+
+Base.reverse(::Reverse) = Forward()
+Base.reverse(::Forward) = Reverse()
+Base.reverse(o::Order) = Order(revese(dimorder(o)), revese(arrayorder(o)))

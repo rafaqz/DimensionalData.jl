@@ -1,57 +1,62 @@
 
-# Methods where dims are an argument. This is an experimental approach
-# that might need to change.
-# targeting underscore _methods so we can use dispatch on the dims arg
-
-# TODO hanbdle rebuild in the array dispatch, the dimensions are probably wrong in some cases. 
 for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
     _fname = Symbol('_', fname)
     @eval begin
-        @inline ($mod.$_fname)(a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
-            ($mod.$_fname)(a, dimnum(a, dims))
-        @inline ($mod.$_fname)(f, a::AbstractArray{T,N}, dims::AllDimensions) where {T,N} =
-            ($mod.$_fname)(f, a, dimnum(a, dims))
+        @inline ($mod.$_fname)(A::AbstractArray, dims::AllDimensions) =
+            rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims)), reducedims(A, dims))
+        @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDimensions) =
+            rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims)), reducedims(A, dims))
+        @inline ($mod.$_fname)(A::AbDimArray, dims::Union{Int,Base.Dims}) =
+            rebuild(A, ($mod.$_fname)(parent(A), dims), reducedims(A, dims))
+        @inline ($mod.$_fname)(f, A::AbDimArray, dims::Union{Int,Base.Dims}) =
+            rebuild(A, ($mod.$_fname)(f, parent(A), dims), reducedims(A, dims))
     end
 end
 
 for fname in (:std, :var)
     _fname = Symbol('_', fname)
     @eval begin
-        @inline (Statistics.$_fname)(a::AbstractArray, corrected::Bool, mean, dims::AllDimensions) =
-            (Statistics.$_fname)(a, corrected, mean, dimnum(a, dims))
+        @inline (Statistics.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDimensions) =
+            rebuild(A, (Statistics.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
+        @inline (Statistics.$_fname)(A::AbDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =
+            rebuild(A, (Statistics.$_fname)(parent(A), corrected, mean, dims), reducedims(A, dims))
     end
 end
 
-Statistics._median(a::AbstractArray, dims::AllDimensions) =
-    Statistics._median(a, dimnum(a, dims))
+Statistics._median(A::AbstractArray, dims::AllDimensions) =
+    rebuild(A, Statistics._median(parent(A), dimnum(A, dims)), reducedims(A, dims))
+Statistics._median(A::AbDimArray, dims::Union{Int,Base.Dims}) =
+    rebuild(A, Statistics._median(parent(A), dims), reducedims(A, dims))
+
 Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDimensions) =
-    Base._mapreduce_dim(f, op, nt, A, dimnum(A, dims))
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Union{Int,Base.Dims}) =
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 # Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
 Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
     Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
-Base._dropdims(a::AbstractArray, dim::Union{AbDim,Type{<:AbDim}}) = 
-    rebuildsliced(a, Base._dropdims(a, dimnum(a, dim)), dims2indices(a, basetype(dim)(1)))
-Base._dropdims(a::AbstractArray, dims::AbDimTuple) = 
-    rebuildsliced(a, Base._dropdims(a, dimnum(a, dims)), 
-                  dims2indices(a, Tuple((basetype(d)(1) for d in dims))))
-
+Base._dropdims(A::AbstractArray, dim::Union{AbDim,Type{<:AbDim}}) = 
+    rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetype(dim)(1)))
+Base._dropdims(A::AbstractArray, dims::AbDimTuple) = 
+    rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)), 
+                  dims2indices(A, Tuple((basetype(d)(1) for d in dims))))
 
 
 # TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
 # we can dispatch on dims. Instead we dispatch on array type for now, which means
 # these aren't usefull unless you inherit from AbDimArray.
 
-Base.mapslices(f, a::AbDimArray; dims=1, kwargs...) = begin
-    dimnums = dimnum(a, dims)
-    data = mapslices(f, parent(a); dims=dimnums, kwargs...)
-    rebuildsliced(a, data, dims2indices(a, reducedims(DimensionalData.dims(a, dimnums))))
+Base.mapslices(f, A::AbDimArray; dims=1, kwargs...) = begin
+    dimnums = dimnum(A, dims)
+    data = mapslices(f, parent(A); dims=dimnums, kwargs...)
+    rebuild(A, data, reducedims(A, DimensionalData.dims(A, dimnums)))
 end
 
 # This is copied from base as we can't efficiently wrap this function
 # through the kwarg with a rebuild in the generator. Doing it this way 
-# wierdly makes it 2x faster to use a dim than an integer.
+# wierdly makes it faster to use a dim than an integer.
 if VERSION > v"1.1-"
     Base.eachslice(A::AbDimArray; dims=1, kwargs...) = begin
         if dims isa Tuple && length(dims) == 1 
@@ -65,23 +70,24 @@ if VERSION > v"1.1-"
 end
 
 for fname in (:cor, :cov)
-    @eval Statistics.$fname(a::AbDimArray{T,2}; dims=1, kwargs...) where T = begin
-        newdata = Statistics.$fname(parent(a); dims=dimnum(a, dims), kwargs...)
-        I = dims2indices(a, dims, 1)
-        newdims, newrefdims = slicedims(a, I)
-        rebuild(a, newdata, (newdims[1], newdims[1]), newrefdims)
+    @eval Statistics.$fname(A::AbDimArray{T,2}; dims=1, kwargs...) where T = begin
+        newdata = Statistics.$fname(parent(A); dims=dimnum(A, dims), kwargs...)
+        I = dims2indices(A, dims, 1)
+        newdims, newrefdims = slicedims(A, I)
+        rebuild(A, newdata, (newdims[1], newdims[1]), newrefdims)
     end
 end
 
-@inline Base.reverse(a::AbDimArray{T,N}; dims=1) where {T,N} = begin
-    dnum = dimnum(a, dims)
+@inline Base.reverse(A::AbDimArray{T,N}; dims=1) where {T,N} = begin
+    dnum = dimnum(A, dims)
     # Reverse the dimension. TODO: make this type stable
-    newdims = revdims(DimensionalData.dims(a), dnum)
+    newdims = revdims(DimensionalData.dims(A), dnum)
     # Reverse the data
-    newdata = reverse(parent(a); dims=dnum)
-    rebuild(a, newdata, newdims, refdims(a))
+    newdata = reverse(parent(A); dims=dnum)
+    rebuild(A, newdata, newdims, refdims(A))
 end
 
+# TODO change order after reverse
 @inline revdims(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
     if length(dimstorev) == dnum 
@@ -93,10 +99,10 @@ end
 
 for fname in [:permutedims, :transpose, :adjoint]
     @eval begin
-        @inline Base.$fname(a::AbDimArray{T,2}) where T =
-            rebuild(a, $fname(parent(a)), reverse(dims(a)), refdims(a))
+        @inline Base.$fname(A::AbDimArray{T,2}) where T =
+            rebuild(A, $fname(parent(A)), reverse(dims(A)), refdims(A))
     end
 end
 
-Base.permutedims(a::AbDimArray{T,N}, perm) where {T,N} = 
-    rebuild(a, permutedims(parent(a), dimnum(a, perm)), permutedims(dims(a), perm))
+Base.permutedims(A::AbDimArray{T,N}, perm) where {T,N} = 
+    rebuild(A, permutedims(parent(A), dimnum(A, perm)), permutedims(dims(A), perm))
