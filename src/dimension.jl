@@ -4,7 +4,7 @@ An AbstractDimension tags the dimensions in an AbstractArray.
 It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
-abstract type AbstractDimension{T,M,O} end
+abstract type AbstractDimension{T,G,O,M} end
 
 """
 AbstractCombined holds mapping that require multiple dimension
@@ -37,7 +37,7 @@ dimorder(dim::AbDim) = dimorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
-rebuild(dim::AbDim, val) = basetype(dim)(val, metadata(dim), order(dim))
+rebuild(dim::AbDim, val) = basetype(dim)(val, grid(dim), order(dim), metadata(dim))
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
@@ -148,7 +148,7 @@ macro dim(typ, name=string(typ), shortname=string(typ))
             order::O
             metadata::M
         end
-        $typ(; val=:, grid=nothing, order=nothing, metadata=nothing) = 
+        $typ(val=:; grid=nothing, order=nothing, metadata=nothing) = 
             $typ(val, grid, order, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname

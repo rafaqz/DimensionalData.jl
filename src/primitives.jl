@@ -21,17 +21,26 @@ Missing dimensions are replaced with `nothing`
     permutedims(tosort, Tuple(order))
 @inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
     permutedims(Tuple(tosort), order)
+@inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
+    Base.permutedims(tosort, order, map(d -> dims(grid(d)), order))
 
-@generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    permutedims_inner(tosort, order)
-permutedims_inner(tosort::Type, order::Type) = begin
+@generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple, griddims) =
+    permutedims_inner(tosort, order, griddims)
+permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
     indexexps = []
-    for dim in order.parameters
-        index = findfirst(d -> basetype(d) <: basetype(dim), tosort.parameters)
-        if index == nothing
-            push!(indexexps, :(nothing))
+    for (i, dim) in enumerate(order.parameters)
+        dimindex = findfirst(d -> basetype(d) <: basetype(dim), tosort.parameters)
+        if dimindex == nothing
+            # The grid may allow dimensions not in dims
+            # that will be transformed to the actual dimensions (ie for rotations).
+            gridindex = findfirst(d -> basetype(d) <: basetype(griddims[i]), tosort.parameters)
+            if gridindex == nothing
+                push!(indexexps, :(nothing))
+            else
+                push!(indexexps, :(tosort[$gridindex]))
+            end
         else
-            push!(indexexps, :(tosort[$index]))
+            push!(indexexps, :(tosort[$dimindex]))
         end
     end
     Expr(:tuple, indexexps...)
@@ -46,24 +55,28 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
-    grid2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
-
-@inline dims2indices(dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
-@inline dims2indices(dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
-@inline dims2indices(dim::AbDim, lookup::Nothing, emptyval) = emptyval
+    dimsindices(map(grid, dims), dims, lookup, emptyval)
 
 # Deal with irregular grid types that need multiple dimensions indexed together
-@inline grid2indices(grids::Tuple{IrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
-    (_, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
-    (dims2indices(grid[1], irreglookup)..., grid2indices(map(grid, regdims), regdims, reglookup)...)
+@inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
+    (irregdims2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)..., 
+     dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
 end
-@inline grid2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
+
+@inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
     (dims2indices(grid[1], dims[1], lookup[1], emptyval),
-     grid2indices(tail(dims), tail(lookup), emptyval)...)
-@inline grid2indices(dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+     dims2indices(tail(dims), tail(lookup), emptyval)...)
+@inline dims2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+
+@inline dims2indices(grid, dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
+@inline dims2indices(grid, dim::AbDim, lookup::Nothing, emptyval) = emptyval
+@inline dims2indices(grid, dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
+@inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) = 
+    sel2indices(dim, val(lookup))
 
 
-@inline splitgridtypes(grids::Tuple{Irregular,Vararg}, dims, lookup) = begin
+@inline splitgridtypes(grids::Tuple{AbstractIrregularGrid,Vararg}, dims, lookup) = begin
     (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup)) 
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...) 
     irreg, reg

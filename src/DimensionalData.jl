@@ -45,6 +45,7 @@ export dims, refdims, metadata, name, shortname,
 
 include("interface.jl")
 include("order.jl")
+include("grid.jl")
 include("dimension.jl")
 include("selector.jl")
 include("array.jl")

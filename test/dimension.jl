@@ -4,7 +4,7 @@
     @test name(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
-    @test metadata(TestDim(1, "metadata", Order())) == "metadata"
+    @test metadata(TestDim(1, RegularGrid(), Order(), "metadata")) == "metadata"
     @test units(TestDim) == ""
     @test label(TestDim) == "Test dimension" 
     @test eltype(TestDim(1)) == Int
