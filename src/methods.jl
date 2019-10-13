@@ -84,7 +84,7 @@ end
     newdims = revdims(DimensionalData.dims(A), dnum)
     # Reverse the data
     newdata = reverse(parent(A); dims=dnum)
-    rebuild(A, newdatA, newdims, refdims(A))
+    rebuild(A, newdata, newdims, refdims(A))
 end
 
 # TODO change order after reverse

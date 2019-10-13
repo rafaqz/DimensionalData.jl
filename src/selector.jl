@@ -83,10 +83,8 @@ rangeorder(::Reverse, dim::AbDim, lower, upper) = length(val(dim)) - upper + 1:l
 
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) = 
     getindex(a, sel2indices(a, I)...) 
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) = begin
-    println(sel2indices(a, I))
+Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) = 
     setindex!(a, x, sel2indices(a, I)...)
-end
 Base.view(a::AbstractArray, I::Vararg{Selector}) = 
     view(a, sel2indices(a, I)...)
 
