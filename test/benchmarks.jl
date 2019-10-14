@@ -85,8 +85,7 @@ println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($da; dims=1) 
 @btime reverse($da; dims=Y()) 
 
-# Sparse
-using SparseArrays, Statistics
+# Sparse (and similar specialised arrays)
 
 @dim Var "Variable"
 @dim Obs "Observation"
@@ -101,10 +100,15 @@ mean(sparse_d, dims=Var())
 mean(sparse_d, dims=Obs())
 
 # Benchmarks
-println("mean: regular sparse")
+println("mean with dims arge: regular sparse")
 @btime mean($sparse_a, dims=$1)
-println("mean: dims sparse")
+println("mean with dims arge: dims sparse")
 @btime mean($sparse_d, dims=$(Var()))
+
+println("mean: regular sparse")
+@btime mean($sparse_a)
+println("mean: dims sparse")
+@btime mean($sparse_d)
 
 println("copy: regular sparse")
 @btime copy($sparse_a)

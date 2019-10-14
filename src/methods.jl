@@ -2,6 +2,7 @@
 for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
     _fname = Symbol('_', fname)
     @eval begin
+        @inline ($mod.$fname)(A::AbDimArray) = ($mod.$fname)(parent(A))
         @inline ($mod.$_fname)(A::AbstractArray, dims::AllDimensions) =
             rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDimensions) =
@@ -16,6 +17,7 @@ end
 for fname in (:std, :var)
     _fname = Symbol('_', fname)
     @eval begin
+        @inline (Statistics.$fname)(A::AbDimArray) = (Statistics.$fname)(parent(A))
         @inline (Statistics.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDimensions) =
             rebuild(A, (Statistics.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
         @inline (Statistics.$_fname)(A::AbDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =
@@ -23,6 +25,7 @@ for fname in (:std, :var)
     end
 end
 
+Statistics.median(A::AbDimArray) = Statistics.median(parent(A))
 Statistics._median(A::AbstractArray, dims::AllDimensions) =
     rebuild(A, Statistics._median(parent(A), dimnum(A, dims)), reducedims(A, dims))
 Statistics._median(A::AbDimArray, dims::Union{Int,Base.Dims}) =
