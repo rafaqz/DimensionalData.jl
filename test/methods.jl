@@ -1,4 +1,4 @@
-
+using LinearAlgebra: Transpose
 
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
@@ -67,25 +67,43 @@ if VERSION > v"1.1-"
 end
 
 
-@testset "dimension reordering methods" begin
+@testset "simple dimension reordering methods" begin
     da = DimensionalArray(zeros(5, 4), (Y(10:20), X(1:4)))
     tda = transpose(da)
+    @test tda == transpose(parent(da))
     @test dims(tda) == (X(LinRange(1.0, 4.0, 4)), Y(LinRange(10.0, 20.0, 5)))
     @test size(tda) == (4, 5)
+
+    tda = Transpose(da)
+    @test tda == Transpose(parent(da))
+    @test dims(tda) == (X(LinRange(1.0, 4.0, 4)), Y(LinRange(10.0, 20.0, 5)))
+    @test size(tda) == (4, 5)
+    @test typeof(tda) <: DimensionalArray
+
     ada = adjoint(da)
+    @test ada == adjoint(parent(da))
     @test dims(ada) == (X(LinRange(1.0, 4.0, 4)), Y(LinRange(10.0, 20.0, 5)))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
-    @test parent(dsp) == permutedims(parent(da))
+    @test permutedims(parent(da)) == parent(dsp)
     @test dims(dsp) == reverse(dims(da))
+end
+
+
+@testset "dimension reordering methods with specified permutation" begin
     da = DimensionalArray(ones(5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
     dsp = permutedims(da, [3, 1, 2])
 
     @test permutedims(da, [X, Y, Time]) == permutedims(da, (X, Y, Time))
     @test permutedims(da, [X(), Y(), Time()]) == permutedims(da, (X(), Y(), Time()))
     dsp = permutedims(da, (X(), Y(), Time()))
+    @test dsp == permutedims(parent(da), (3, 1, 2)) 
     @test dims(dsp) == (X(LinRange(1.0, 4.0, 4)), Y(LinRange(10.0, 20.0, 5)), Time(LinRange(10.0, 11.0, 2)))
+
+    dsp = PermutedDimsArray(da, (3, 1, 2))
+    @test dsp == PermutedDimsArray(parent(da), (3, 1, 2)) 
+    @test typeof(dsp) <: DimensionalArray
 end
 
 @testset "dimension mirroring methods" begin

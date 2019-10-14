@@ -70,6 +70,8 @@ if VERSION > v"1.1-"
         idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
         return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
     end
+
+
 end
 
 for fname in (:cor, :cov)
@@ -100,12 +102,17 @@ end
 end
 @inline revdims(dims::Tuple{}, i) = ()
 
-for fname in [:permutedims, :transpose, :adjoint]
+for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint), 
+                     (:Base, :transpose), (:LinearAlgebra, :Transpose)]
     @eval begin
-        @inline Base.$fname(A::AbDimArray{T,2}) where T =
+        @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
             rebuild(A, $fname(parent(A)), reverse(dims(A)), refdims(A))
     end
 end
 
-Base.permutedims(A::AbDimArray{T,N}, perm) where {T,N} = 
-    rebuild(A, permutedims(parent(A), dimnum(A, perm)), permutedims(dims(A), perm))
+for fname in [:permutedims, :PermutedDimsArray]
+    @eval begin
+        @inline Base.$fname(A::AbDimArray{T,N}, perm) where {T,N} = 
+            rebuild(A, $fname(parent(A), dimnum(A, perm)), permutedims(dims(A), perm))
+    end
+end

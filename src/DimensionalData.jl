@@ -28,7 +28,7 @@ mean(a; dims=X)
 """
 module DimensionalData
 
-using RecipesBase, Statistics
+using RecipesBase, Statistics, LinearAlgebra
 
 using Base: tail, OneTo
 
