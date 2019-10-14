@@ -31,6 +31,7 @@ Base.@propagate_inbounds Base.view(A::AbDimArray, I::Vararg{<:StandardIndices}) 
 Base.convert(::Type{Array{T,N}}, A::AbDimArray{T,N}) where {T,N} = 
     convert(Array{T,N}, parent(A))
 
+Base.copy(A::AbDimArray) = rebuild(A, copy(parent(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(src), parent(dst))
 
 # Similar. TODO this need a rethink. How do we know what the new dims are?
