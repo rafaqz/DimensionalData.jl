@@ -4,10 +4,14 @@ const AbDimArray = AbstractDimensionalArray
 
 const StandardIndices = Union{AbstractArray,Colon,Integer}
 
+# Interface methods ############################################################
+
 dims(A::AbDimArray) = A.dims
 label(A::AbDimArray) = ""
 
-# Array interface
+
+# Array interface methods ######################################################
+
 Base.size(A::AbDimArray) = size(parent(A))
 Base.iterate(A::AbDimArray, args...) = iterate(parent(A), args...)
 Base.show(io::IO, A::AbDimArray) = begin
@@ -33,8 +37,8 @@ Base.convert(::Type{Array{T,N}}, A::AbDimArray{T,N}) where {T,N} =
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(parent(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(src), parent(dst))
+Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(parent(src), dst)
 
-# Similar. TODO this need a rethink. How do we know what the new dims are?
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
@@ -42,12 +46,13 @@ Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
 
 Base.similar(A::AbDimArray) = rebuild(A, similar(parent(A)))
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(parent(A), T))
-Base.similar(A::AbDimArray, ::Type{T}, ::Tuple{Int64,Vararg{Int64}}) where T = 
-    rebuild(A, similar(parent(A), T))
+# Base.similar(A::AbDimArray, ::Type{T}, ::Tuple{Int64,Vararg{Int64}}) where T = 
+    # rebuild(A, similar(parent(A), T))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
     rebuildsliced(A, similar(parent(A), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
+    # TODO How do we know what the new dims are?
     rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc))
 end
 
@@ -59,6 +64,8 @@ end
 @inline find_dimensional(A::AbDimArray, rest) = A
 @inline find_dimensional(::Any, rest) = find_dimensional(rest)
 
+
+# Concrete implementation ######################################################
 
 """
 A basic DimensionalArray type
