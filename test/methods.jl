@@ -22,6 +22,7 @@ using LinearAlgebra: Transpose
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=Y()) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
     @test dims(reduce(+, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
@@ -56,6 +57,7 @@ if VERSION > v"1.1-"
         da = DimensionalArray(a, (Y(10:30), Time(1:4)))
         @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
         slices = [s .* 2 for s in eachslice(da; dims=Y)] 
+        @test map(sin, da) == map(sin, a)
         @test slices[1] == [2, 4, 6, 8]
         @test slices[2] == [6, 8, 10, 12]
         @test slices[3] == [10, 12, 14, 16]

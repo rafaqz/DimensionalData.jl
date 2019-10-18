@@ -35,6 +35,8 @@ Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::A
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Union{Int,Base.Dims}) =
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Colon) =
+    Base._mapreduce_dim(f, op, nt, parent(A), dims)
 # Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
 Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
@@ -46,6 +48,8 @@ Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
     rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)), 
                   dims2indices(A, Tuple((basetype(d)(1) for d in dims))))
 
+
+@inline Base.map(f, A::AbDimArray) = rebuild(A, map(f, parent(A)), dims(A))
 
 # TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
 # we can dispatch on dims. Instead we dispatch on array type for now, which means

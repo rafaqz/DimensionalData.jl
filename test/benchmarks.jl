@@ -114,3 +114,13 @@ println("copy: regular sparse")
 @btime copy($sparse_a)
 println("copy: dims sparse")
 @btime copy($sparse_d)
+
+println("reduce: regular sparse")
+@btime reduce(+, $sparse_a)
+println("reduce: dims sparse")
+@btime reduce(+, $sparse_a)
+
+println("map: regular sparse")
+@btime map(sin, $sparse_a)
+println("map: dims sparse")
+@btime map(sin, $sparse_a)
