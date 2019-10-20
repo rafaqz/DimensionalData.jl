@@ -43,7 +43,7 @@ Between(x::Tuple) = Between{typeof(x)}(x)
 dims2indices(grid::TransformedGrid, dims::Tuple, lookups::Tuple, emptyval) = 
     sel2indices(grid, dims, map(val, permutedims(dimz, dims(grid))))
 
-sel2indices(a, lookup) = sel2indices(dims(a), lookup)
+sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 sel2indices(dims::Tuple, lookup::Tuple) = sel2indices(map(grid, dims), dims, lookup)
 sel2indices(grids, dims::Tuple, lookup::Tuple) =
@@ -61,24 +61,26 @@ sel2indices(grid, dim::AbDim, sel::Between{<:Tuple}) = between(dim, val(sel))
 # This is an example, I don't really know how it will work but this would be 
 # something like the syntax using something from CoordinateTransforms.jl in 
 # the transform field
-sel2indices(grid::TransformedGrid, sel::Vararg{At}) = 
-    transform(grid)(SVector(map(val, sel)))
-sel2indices(grid::TransformedGrid, sel::Vararg{Near}) = 
-    round.(transform(grid)(SVector(map(val, sel))))
+sel2indices(grid::TransformedGrid, sel::Tuple{Vararg{Selector}}) = 
+    map(to_int, sel, transform(grid)(SVector(map(val, sel))))
+
+to_int(::At, x) = convert(Int, x) 
+to_int(::Near, x) = round(Int, x) 
 
 # Another example!
 # Do the input values need some kind of scalar conversion? 
 # what is the scale of these lookup matrices?
-sel2indices(grid::TransformedGrid, sel::Vararg{At}) = 
+sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) = 
     lookup(grid)[map(val, sel)...]
 # Say there is a scalar conversion, we round to the nearest existing 
 # index when using Near?
-sel2indices(grid::TransformedGrid, sel::Vararg{Near}) = 
-    lookup(grid)[round.(map(val, sel))...]
 
 
 at(dim::AbDim, selval) = at(val(dim), selval) 
 at(dim, selval) = begin
+    # This is not particularly efficient.
+    # It should be separated out for unordered categorical 
+    # dims and otherwise treated as an ordered list.
     ind = findfirst(x -> x == selval, val(dim))
     ind == nothing ? throw(ArgumentError("$selval not found in $dim")) : ind
 end
@@ -106,6 +108,7 @@ rangeorder(dim::AbDim, lower, upper) = rangeorder(arrayorder(dim), dim, lower, u
 rangeorder(::Forward, dim::AbDim, lower, upper) = lower:upper
 rangeorder(::Reverse, dim::AbDim, lower, upper) = length(val(dim)) - upper + 1:length(val(dim)) - lower + 1
 
+# Ordered selector indexing without dim wrappers
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) = 
     getindex(a, sel2indices(a, I)...) 
 Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) = 

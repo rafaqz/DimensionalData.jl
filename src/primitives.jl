@@ -36,7 +36,7 @@ permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
             if griddims <: Nothing
                 push!(indexexps, :(nothing))
             else
-                gridindex = findfirst(d -> basetype(d) <: basetype(griddims), tosort.parameters)
+                gridindex = findfirst(d -> basetype(d) <: basetype(griddims.parameters[i]), tosort.parameters)
                 if gridindex == nothing
                     push!(indexexps, :(nothing))
                 else
@@ -64,9 +64,12 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 # Deal with irregular grid types that need multiple dimensions indexed together
 @inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
     (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
-    (irregdims2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)..., 
+    (dims2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
      dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
 end
+@inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg{AbstractIrregularGrid}},
+                     dims::Tuple, lookup::Tuple, emptyval) =
+    sel2indices(grid(dims[1]), map(val, lookup))
 
 @inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
     (dims2indices(grids[1], dims[1], lookup[1], emptyval),
@@ -77,13 +80,13 @@ end
 @inline dims2indices(grid, dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
 @inline dims2indices(grid, dim::AbDim, lookup::Nothing, emptyval) = emptyval
 @inline dims2indices(grid, dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
-@inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) = 
+@inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) =
     sel2indices(grid, dim, val(lookup))
 
 
 @inline splitgridtypes(grids::Tuple{AbstractIrregularGrid,Vararg}, dims, lookup) = begin
-    (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup)) 
-    irreg = (dims[1], irregdims...), (lookup[1], irreglookup...) 
+    (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
+    irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
 end
 @inline splitgridtypes(grids::Tuple, dims, lookup) = ((), ()), (dims, lookup)
@@ -185,11 +188,11 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 """
-@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,)) 
-@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce) 
-@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) = 
+@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
+@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) =
     map(reducedims, dims, permutedims(dimstoreduce, dims))
-@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) = 
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
 @inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))

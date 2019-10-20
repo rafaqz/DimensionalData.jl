@@ -28,7 +28,7 @@ mean(a; dims=X)
 """
 module DimensionalData
 
-using RecipesBase, Statistics
+using RecipesBase, StaticArrays, Statistics
 
 using Base: tail, OneTo
 
@@ -37,6 +37,8 @@ export AbstractDimension, Dim
 export Selector, Near, Between, At
 
 export Order
+
+export AbstractGrid, AbstractRegularGrid, RegularGrid, CategoricalGrid, AbstractIrregularGrid, TransformedGrid
 
 export AbstractDimensionalArray, DimensionalArray
 

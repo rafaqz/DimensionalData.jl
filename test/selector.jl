@@ -47,3 +47,22 @@ end
     @test da[Time<|At(:one, :two), Y<|At(:b)] == [2, 6]
     @test da[At([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
 end
+
+using CoordinateTransformations, StaticArrays
+
+m = LinearMap([0.5 0.0; 0.0 0.5])
+
+dimz = Dim{:rot1}(1:3; grid=TransformedGrid(m, X())),  
+       Dim{:rot2}(1:4, grid=TransformedGrid(m, Y()))
+
+@testset "permutedims works on grid dimensions" begin
+    @test permutedims((Y(), X()), dimz) == (X(), Y())
+end
+
+a = [1 2  3  4
+     5 6  7  8
+     9 10 11 12]
+
+da = DimensionalArray(a, dimz) 
+da[X(At(6.1)), Y(At(8))]
+da[X(Near(6.1)), Y(At(9))]
