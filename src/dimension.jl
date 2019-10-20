@@ -123,8 +123,8 @@ struct Dim{X,T,G,O,M} <: AbstractParametricDimension{X,T,G,O,M}
         new{X,typeof(val),typeof(grid),typeof(order),typeof(metadata)}(val, grid, order, metadata)
 end
 
-@inline Dim{X}(val=:; metadata=nothing, order=Order()) where X = 
-    Dim{X}(val, metadata, order)
+@inline Dim{X}(val=:;grid=nothing, order=Order(), metadata=nothing) where X = 
+    Dim{X}(val, grid, order, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
@@ -148,7 +148,7 @@ macro dim(typ, name=string(typ), shortname=string(typ))
             order::O
             metadata::M
         end
-        $typ(val=:; grid=nothing, order=nothing, metadata=nothing) = 
+        $typ(val=:; grid=nothing, order=Order(), metadata=nothing) = 
             $typ(val, grid, order, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname

@@ -45,12 +45,11 @@ dims2indices(grid::TransformedGrid, dims::Tuple, lookups::Tuple, emptyval) =
 
 sel2indices(a, lookup) = sel2indices(dims(a), lookup)
 sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
-sel2indices(dims::Tuple, lookup::Tuple) = 
-    sel2indices(map(grid, dims(a)), dims::Tuple, lookup::Tuple)
+sel2indices(dims::Tuple, lookup::Tuple) = sel2indices(map(grid, dims), dims, lookup)
 sel2indices(grids, dims::Tuple, lookup::Tuple) =
     (sel2indices(grids[1], dims[1], lookup[1]), 
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
-sel2indices(grids, dims::Tuple{}, lookup::Tuple{}) = ()
+    sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 sel2indices(grid, dim::AbDim, sel::At) = at(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))

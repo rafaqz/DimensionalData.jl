@@ -33,11 +33,15 @@ permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
         if dimindex == nothing
             # The grid may allow dimensions not in dims
             # that will be transformed to the actual dimensions (ie for rotations).
-            gridindex = findfirst(d -> basetype(d) <: basetype(griddims[i]), tosort.parameters)
-            if gridindex == nothing
+            if griddims <: Nothing
                 push!(indexexps, :(nothing))
             else
-                push!(indexexps, :(tosort[$gridindex]))
+                gridindex = findfirst(d -> basetype(d) <: basetype(griddims), tosort.parameters)
+                if gridindex == nothing
+                    push!(indexexps, :(nothing))
+                else
+                    push!(indexexps, :(tosort[$gridindex]))
+                end
             end
         else
             push!(indexexps, :(tosort[$dimindex]))
@@ -55,7 +59,7 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
-    dimsindices(map(grid, dims), dims, lookup, emptyval)
+    dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
 # Deal with irregular grid types that need multiple dimensions indexed together
 @inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
@@ -64,16 +68,17 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
      dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
 end
 
-@inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
-    (dims2indices(grid[1], dims[1], lookup[1], emptyval),
-     dims2indices(tail(dims), tail(lookup), emptyval)...)
+@inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+end
 @inline dims2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
 
 @inline dims2indices(grid, dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
 @inline dims2indices(grid, dim::AbDim, lookup::Nothing, emptyval) = emptyval
 @inline dims2indices(grid, dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
 @inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) = 
-    sel2indices(dim, val(lookup))
+    sel2indices(grid, dim, val(lookup))
 
 
 @inline splitgridtypes(grids::Tuple{AbstractIrregularGrid,Vararg}, dims, lookup) = begin
