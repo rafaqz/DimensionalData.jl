@@ -41,11 +41,16 @@ a = [1 2  3  4
     @test da[Y<|Between(2u"km", 3.9u"km"), Time<|At<|3.0u"s"] == [10, 11]
 end
 
-@testset "ad-hoc categorical indices" begin
-    dimz = Time<|[:one, :two, :three], Y<|[:a, :b, :c, :d]
+
+@testset "CategoricalGrid" begin
+    dimz = Time([:one, :two, :three]; grid=CategoricalGrid()), 
+           Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
     @test da[Time<|At(:one, :two), Y<|At(:b)] == [2, 6]
     @test da[At([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
+    @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
+    # Near doesn't make sense for categories
+    @test_throws ArgumentError da[Near(:two), At([:b, :c, :d])] 
 end
 
 @testset "TranformedGrid " begin
