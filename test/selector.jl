@@ -79,6 +79,6 @@ end
         @test da[X(At(4.0)), Y(At(2.0))] == 5
         @test_throws InexactError da[X(At(6.1)), Y(At(8))]
         # Indexing directly with grid dims also just works, but maybe shouldn't?
-        @test da[X(2), Y(2)]
+        @test da[X(2), Y(2)] == 6
     end
 end
