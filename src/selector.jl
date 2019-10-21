@@ -58,22 +58,16 @@ sel2indices(grid, dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))..
 sel2indices(grid, dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
 sel2indices(grid, dim::AbDim, sel::Between{<:Tuple}) = between(dim, val(sel))
 
-# This is an example, I don't really know how it will work but this would be 
-# something like the syntax using something from CoordinateTransforms.jl in 
-# the transform field
 sel2indices(grid::TransformedGrid, sel::Tuple{Vararg{Selector}}) = 
     map(to_int, sel, transform(grid)(SVector(map(val, sel))))
 
 to_int(::At, x) = convert(Int, x) 
 to_int(::Near, x) = round(Int, x) 
 
-# Another example!
 # Do the input values need some kind of scalar conversion? 
 # what is the scale of these lookup matrices?
 sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) = 
     lookup(grid)[map(val, sel)...]
-# Say there is a scalar conversion, we round to the nearest existing 
-# index when using Near?
 
 
 at(dim::AbDim, selval) = at(val(dim), selval) 
