@@ -53,10 +53,11 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
 sel2indices(grid, dim::AbDim, sel::At) = at(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))
+sel2indices(grid, dim::AbDim{<:Any,<:AbstractCategoricalGrid}, sel::Near) = 
+    throw(ArgumentError("`Near` has no clear meaning in a CategoricalGrid. Use `At`"))
 sel2indices(grid, dim::AbDim, sel::Near) = near(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
-sel2indices(grid, dim::AbDim, sel::Between{<:Tuple}) = between(dim, val(sel))
 
 sel2indices(grid::TransformedGrid, sel::Tuple{Vararg{Selector}}) = 
     map(to_int, sel, transform(grid)(SVector(map(val, sel))))

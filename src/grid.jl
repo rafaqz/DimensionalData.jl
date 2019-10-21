@@ -25,6 +25,8 @@ Traits describing the grid type of a dimension
 """
 abstract type AbstractGrid end
 
+dims(grid::AbstractGrid) = nothing
+
 """
 Traits describing regular grids
 """
@@ -52,6 +54,11 @@ Traits describing a dimension where the dimension values are categories.
 """
 abstract type AbstractCategoricalGrid <: AbstractGrid end
 
+"""
+Traits describing a dimension where the values are categories.
+
+Categories are assumed to be ordered, so `Between` is a valid selector.
+"""
 struct CategoricalGrid <: AbstractCategoricalGrid end
 
 
