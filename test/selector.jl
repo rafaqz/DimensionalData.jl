@@ -48,21 +48,37 @@ end
     @test da[At([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
 end
 
-using CoordinateTransformations, StaticArrays
+@testset "TranformedGrid " begin
+    using CoordinateTransformations, StaticArrays
 
-m = LinearMap([0.5 0.0; 0.0 0.5])
+    m = LinearMap([0.5 0.0; 0.0 0.5])
 
-dimz = Dim{:rot1}(1:3; grid=TransformedGrid(m, X())),  
-       Dim{:rot2}(1:4, grid=TransformedGrid(m, Y()))
+    dimz = Dim{:trans1}(1:3; grid=TransformedGrid(m, X())),  
+           Dim{:trans2}(1:4, grid=TransformedGrid(m, Y()))
 
-@testset "permutedims works on grid dimensions" begin
-    @test permutedims((Y(), X()), dimz) == (X(), Y())
+    @testset "permutedims works on grid dimensions" begin
+        @test permutedims((Y(), X()), dimz) == (X(), Y())
+    end
+
+    a = [1 2  3  4
+         5 6  7  8
+         9 10 11 12]
+    da = DimensionalArray(a, dimz) 
+
+    @testset "Indexing with array dims indexes the array as usual" begin
+        @test da[Dim{:trans1}(3), Dim{:trans2}(1)] == 9
+        # Using selectors works the same as indexing with grid
+        # dims - it applies the transform function. 
+        # It's not clear this should be allowed or makes sense, 
+        # but it works anyway because the permutatoin is correct either way.
+        @test da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2))] == 9
+    end
+
+    @testset "Indexing with grid dims uses the transformation" begin
+        @test da[X(Near(6.1)), Y(Near(8.5))] == 12
+        @test da[X(At(4.0)), Y(At(2.0))] == 5
+        @test_throws InexactError da[X(At(6.1)), Y(At(8))]
+        # Indexing directly with grid dims also just works, but maybe shouldn't?
+        @test da[X(2), Y(2)]
+    end
 end
-
-a = [1 2  3  4
-     5 6  7  8
-     9 10 11 12]
-
-da = DimensionalArray(a, dimz) 
-da[X(At(6.1)), Y(At(8))]
-da[X(Near(6.1)), Y(At(9))]
