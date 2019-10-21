@@ -64,12 +64,9 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 # Deal with irregular grid types that need multiple dimensions indexed together
 @inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
     (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
-    (dims2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
+    (irreg2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
      dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
 end
-@inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg{AbstractIrregularGrid}},
-                     dims::Tuple, lookup::Tuple, emptyval) =
-    sel2indices(grid(dims[1]), map(val, lookup))
 
 @inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
     (dims2indices(grids[1], dims[1], lookup[1], emptyval),
@@ -82,6 +79,15 @@ end
 @inline dims2indices(grid, dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
 @inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) =
     sel2indices(grid, dim, val(lookup))
+
+# Selectors select on grid dimensions
+@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple{AbDim{<:Selector},Vararg}, emptyval) =
+    sel2indices(grid(dims[1]), map(val, lookup))
+# Other dims select on regular dimensions
+@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+end
 
 
 @inline splitgridtypes(grids::Tuple{AbstractIrregularGrid,Vararg}, dims, lookup) = begin
