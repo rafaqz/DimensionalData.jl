@@ -70,7 +70,9 @@ Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Unio
 # Concrete implementation ######################################################
 
 """
-A basic DimensionalArray type
+    DimensionalArray(A::AbstractArray, dims::Tuple, refdims::Tuple) 
+
+A basic DimensionalArray type.
 
 Maintains and updates its dimensions through transformations
 """
@@ -79,6 +81,21 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
     dims::D
     refdims::R
 end
+"""
+    DimensionalArray(A::AbstractArray, dims::Tuple; refdims=()) 
+Constructor with optional `refdims` keyword.
+
+Example:
+
+```
+using Dates, DimensionalData
+using DimensionalData: Time, X
+timespan = DateTime(2001):Month(1):DateTime(2001,12)
+A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100))) 
+A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
+A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+```
+"""
 DimensionalArray(A::AbstractArray, dims; refdims=()) = 
     DimensionalArray(A, formatdims(A, dims), refdims)
 
