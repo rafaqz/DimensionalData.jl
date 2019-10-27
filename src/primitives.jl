@@ -62,7 +62,7 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
     dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
 # Deal with irregular grid types that need multiple dimensions indexed together
-@inline dims2indices(grids::Tuple{AbstractIrregularGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+@inline dims2indices(grids::Tuple{DependentGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
     (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
     (irreg2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
      dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
@@ -82,7 +82,7 @@ end
 
 # Selectors select on grid dimensions
 @inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple{AbDim{<:Selector},Vararg}, emptyval) =
-    sel2indices(grid(dims[1]), map(val, lookup))
+    sel2indices(grids, dims, map(val, lookup))
 # Other dims select on regular dimensions
 @inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
     (dims2indices(grids[1], dims[1], lookup[1], emptyval),
@@ -90,7 +90,7 @@ end
 end
 
 
-@inline splitgridtypes(grids::Tuple{AbstractIrregularGrid,Vararg}, dims, lookup) = begin
+@inline splitgridtypes(grids::Tuple{DependentGrid,Vararg}, dims, lookup) = begin
     (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
@@ -159,18 +159,14 @@ end
 Format the dimension to match internal standards.
 
 Mostily this means converting tuples and UnitRanges to LinRange,
-which is easier to handle.
-
-Errors are thrown if dims don't match the array dims or size.
+which is easier to handle. Errors are thrown if dims don't match the array dims or size.
 """
 @inline formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(size(A), dims)
 end
-@inline formatdims(size::Tuple, dims::Tuple) =
-    (formatdims(size[1], dims[1]), formatdims(tail(size), tail(dims))...,)
-@inline formatdims(size::Tuple{}, dims::Tuple{}) = ()
+@inline formatdims(size::Tuple, dims::Tuple) = map(formatdims, size, dims)
 @inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) =
     if length(val(dim)) == len
         dim
@@ -179,6 +175,7 @@ end
                              size of array dimension $len"))
     end
 @inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
+@inline formatdims(len::Integer, dim::AbDim) = dim 
 
 linrange(dim, len) = begin
     range = val(dim)

@@ -4,7 +4,7 @@ An AbstractDimension tags the dimensions in an AbstractArray.
 It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
-abstract type AbstractDimension{T,G,O,M} end
+abstract type AbstractDimension{T,G,M} end
 
 """
 AbstractCombined holds mapping that require multiple dimension
@@ -30,14 +30,14 @@ const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
 # Getters
 val(dim::AbDim) = dim.val
 grid(dim::AbDim) = dim.grid
-order(dim::AbDim) = dim.order
 metadata(dim::AbDim) = dim.metadata
 
-dimorder(dim::AbDim) = dimorder(order(dim))
+order(dim::AbDim) = order(grid(dim))
+indexorder(dim::AbDim) = indexorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
-rebuild(dim::AbDim, val) = basetype(dim)(val, grid(dim), order(dim), metadata(dim))
+rebuild(dim::AbDim, val) = basetype(dim)(val, grid(dim), metadata(dim))
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
@@ -51,9 +51,11 @@ bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdi
 bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
-bounds(dim::AbDim) = bounds(dimorder(dim), dim)
-bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim))
-bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim))
+bounds(dim::AbDim) = bounds(indexorder(dim), dim)
+# TODO bounds should include the span of the last cell
+bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim)) # + val(span(dim)) 
+bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim)) # + val(span(dim))
+# TODO bounds for irregular grids
 
 # Base methods
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
@@ -106,7 +108,7 @@ SplitApplyCombine.splitdimsview(A::AbstractArray, dims::AllDimensions) =
 """
 Dimensions with user-set type paremeters
 """
-abstract type AbstractParametricDimension{X,T,G,O,M} <: AbstractDimension{T,G,O,M} end
+abstract type AbstractParametricDimension{X,T,G,M} <: AbstractDimension{T,G,M} end
 
 """
 A generic dimension. For use when custom dims are required when loading
@@ -114,17 +116,15 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason 
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,G,O,M} <: AbstractParametricDimension{X,T,G,O,M} 
+struct Dim{X,T,G,M} <: AbstractParametricDimension{X,T,G,M} 
     val::T
     grid::G
-    order::O
     metadata::M
-    Dim{X}(val, grid, order, metadata) where X = 
-        new{X,typeof(val),typeof(grid),typeof(order),typeof(metadata)}(val, grid, order, metadata)
+    Dim{X}(val, grid, metadata) where X = 
+        new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
 end
 
-@inline Dim{X}(val=:;grid=nothing, order=Order(), metadata=nothing) where X = 
-    Dim{X}(val, grid, order, metadata)
+Dim{X}(val=:; grid=AllignedGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
@@ -142,14 +142,12 @@ Example:
 """
 macro dim(typ, name=string(typ), shortname=string(typ))
     esc(quote
-        struct $typ{T,G,O,M} <: AbstractDimension{T,G,O,M}
+        struct $typ{T,G,M} <: AbstractDimension{T,G,M}
             val::T
             grid::G
-            order::O
             metadata::M
         end
-        $typ(val=:; grid=nothing, order=Order(), metadata=nothing) = 
-            $typ(val, grid, order, metadata)
+        $typ(val=:; grid=AllignedGrid(), metadata=nothing) = $typ(val, grid, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)

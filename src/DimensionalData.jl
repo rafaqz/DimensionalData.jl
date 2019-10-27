@@ -36,9 +36,17 @@ export AbstractDimension, Dim
 
 export Selector, Near, Between, At
 
-export Order
+export Locus, Center, Start, End 
 
-export AbstractGrid, AbstractRegularGrid, RegularGrid, CategoricalGrid, AbstractIrregularGrid, TransformedGrid
+export Sampling, Single, Mean
+
+export Order, Ordered, Unordered
+
+export Grid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
+
+export AbstractCategoricalGrid, CategoricalGrid 
+
+export DependentGrid, TransformedGrid, LookupGrid
 
 export AbstractDimensionalArray, DimensionalArray
 

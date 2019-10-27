@@ -54,13 +54,19 @@ sel2indices(grid, dim::AbDim, sel::At) = at(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))
 sel2indices(grid, dim::AbDim{<:Any,<:AbstractCategoricalGrid}, sel::Near) = 
-    throw(ArgumentError("`Near` has no clear meaning in a CategoricalGrid. Use `At`"))
+    throw(ArgumentError("`Near` has no meaning in a `CategoricalGrid`. Use `At`"))
 sel2indices(grid, dim::AbDim, sel::Near) = near(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
+sel2indices(grid::IndependentGrid{<:Ordered}, dim::AbDim, sel::Between{<:Tuple}) = 
+    between(dim, val(sel))
+sel2indices(grid::IndependentGrid{Unordered}, dim::AbDim, sel::Between{<:Tuple}) = 
+    throw(ArgumentError("`Between` has no meaning with an `Unordered` grid"))
 
-sel2indices(grid::TransformedGrid, sel::Tuple{Vararg{Selector}}) = 
-    map(to_int, sel, transform(grid)(SVector(map(val, sel))))
+# We use the transformation from the first TransformedGrid dim. 
+# In practice the others could be empty.
+sel2indices(grids::TransformedGrid, dims::AbDimTuple, sel::Tuple{Vararg{Selector}}) = 
+    map(to_int, sel, val(dims[1])(SVector(map(val, sel))))
 
 to_int(::At, x) = convert(Int, x) 
 to_int(::Near, x) = round(Int, x) 
@@ -92,7 +98,7 @@ near(list, selval) = begin
     end
 end
 
-between(dim::AbDim, sel) = between(dimorder(dim), dim, sel)
+between(dim::AbDim, sel) = between(indexorder(dim), dim, sel)
 between(::Forward, dim::AbDim, sel) = 
     rangeorder(dim, searchsortedfirst(val(dim), first(sel)), searchsortedlast(val(dim), last(sel)))
 between(::Reverse, dim::AbDim, sel) = 
@@ -103,7 +109,8 @@ rangeorder(dim::AbDim, lower, upper) = rangeorder(arrayorder(dim), dim, lower, u
 rangeorder(::Forward, dim::AbDim, lower, upper) = lower:upper
 rangeorder(::Reverse, dim::AbDim, lower, upper) = length(val(dim)) - upper + 1:length(val(dim)) - lower + 1
 
-# Ordered selector indexing without dim wrappers
+
+# Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) = 
     getindex(a, sel2indices(a, I)...) 
 Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) = 

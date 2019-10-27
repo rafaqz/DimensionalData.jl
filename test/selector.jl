@@ -58,8 +58,8 @@ end
 
     m = LinearMap([0.5 0.0; 0.0 0.5])
 
-    dimz = Dim{:trans1}(1:3; grid=TransformedGrid(m, X())),  
-           Dim{:trans2}(1:4, grid=TransformedGrid(m, Y()))
+    dimz = Dim{:trans1}(m; grid=TransformedGrid(X())),  
+           Dim{:trans2}(m, grid=TransformedGrid(Y()))
 
     @testset "permutedims works on grid dimensions" begin
         @test permutedims((Y(), X()), dimz) == (X(), Y())

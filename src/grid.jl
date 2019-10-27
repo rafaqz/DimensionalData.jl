@@ -1,93 +1,209 @@
-"""
-Indicate the position of coordinates on the grid. 
-"""
-abstract type CoordLocation end
+abstract type Order end
 
 """
-Indicates dimensions that are defined by their center coordinates/time/position.  
+Trait container for dimension and array ordering in AllignedGrid.
+
+The default is `Ordered(Forward()`, `Forward())`
+
+All combinations of forward and reverse order for data and indices seem to occurr
+in real datasets, as strange as that seems. We cover these possibilities by specifying
+the order of both explicitly.
+
+Knowing the order of indices is important for using methods like `searchsortedfirst()`
+to find indices in sorted lists of values. Knowing the order of the data is then
+required to map to the actual indices. It's also used to plot the data later - which
+always happens in smallest to largest order.
+
+Base also defines Forward and Reverse, but they seem overly complicated for our purposes.
 """
-struct Center <: CoordLocation end
+struct Ordered{D,A} <: Order
+    index::D
+    array::A
+end
+Ordered() = Ordered(Forward(), Forward())
+
+"""
+Trait indicating that the array or dimension has no order.
+"""
+struct Unordered <: Order end
+
+indexorder(order::Ordered) = order.index
+indexorder(order::Unordered) = Unordered()
+arrayorder(order::Ordered) = order.array
+arrayorder(order::Unordered) = Unordered()
+
+"""
+Trait indicating that the array or dimension is in the normal forward order.
+"""
+struct Forward <: Order end
+
+"""
+Trait indicating that the array or dimension is in the reverse order.
+Selector lookup or plotting will be reversed.
+"""
+struct Reverse <: Order end
+
+Base.reverse(::Reverse) = Forward()
+Base.reverse(::Forward) = Reverse()
+Base.reverse(o::Ordered) = Ordered(revese(indexorder(o)), revese(arrayorder(o)))
+Base.reverse(o::Unordered) = Unordered()
+
+
+"""
+Indicates wether the cell value is specific to the locus point
+or is related to the whole the span.
+
+The span may contain a value if the distance between locii if known.
+This will often be identical to the distance between any two sequential
+cell values, but may be distinct due to rounding errors in a vector index,
+or context-dependent spans such as `Month`.
+"""
+abstract type Sampling end
+
+struct Mean <: Sampling end
+
+struct Single <: Sampling end
+
+"""
+Indicate the position of index values in grid cells.
+
+This is frequently `Start` for time series, but may be `Center`
+for spatial data.
+"""
+abstract type Locus end
+
+"""
+Indicates dimensions that are defined by their center coordinates/time/position.
+"""
+struct Center <: Locus end
 
 """
 Indicates dimensions that are defined by their start coordinates/time/position.
 """
-struct Start <: CoordLocation  end
+struct Start <: Locus end
 
 """
-Indicates dimensions that are defined by their end coordinates/time/position
+Indicates dimensions that are defined by their end coordinates/time/position.
 """
-struct End <: CoordLocation  end
+struct End <: Locus end
 
 
 
 """
-Traits describing the grid type of a dimension
+Traits describing the grid type of a dimension.
 """
-abstract type AbstractGrid end
+abstract type Grid end
 
-dims(grid::AbstractGrid) = nothing
-
-"""
-Traits describing regular grids
-"""
-abstract type AbstractRegularGrid <: AbstractGrid end
+dims(g::Grid) = nothing
 
 """
-Trait describing a regular grid along a dimension. 
-
-The span field indicates the size of a grid step like, such as `Month(1)`.
+Fallback grid type
 """
-struct RegularGrid{T,S} <: AbstractRegularGrid 
-    span::S
+struct UnknownGrid <: Grid end
+
+
+"""
+Traits describing a grid dimension that is independent of other grid dimensions.
+"""
+abstract type IndependentGrid{O} <: Grid end
+
+abstract type AbstractAllignedGrid{O} <: IndependentGrid{O} end
+
+"""
+Trait describing a grid aligned with a dimension, independent of
+other dimensions.
+
+## Fields
+- `order`: `Order` trait indicating array and index order
+- `locus`: `Locus` trait indicating the position of the indexed point within the cell span
+- `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
+- `span`: the size of a grid step, such as 1u"km" or `Month(1)`
+"""
+struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAllignedGrid{O}
+    order::O
+    locus::L
+    sampling::Sa
+    span::Sp
 end
-RegularGrid(span=nothing) = RegularGrid{Center, typeof(span)}(span) 
+AllignedGrid(; order=Ordered(), locus=Center(), sampling=Mean(), span=nothing) =
+    AllignedGrid(order, locus, sampling, span)
 
-"""
-Fallback grid type for regular arrays
-"""
-struct UnknownGrid <: AbstractRegularGrid end
+order(g::AllignedGrid) = g.order
+span(g::AllignedGrid) = g.span
+locus(g::AllignedGrid) = g.locus
+sampling(g::AllignedGrid) = g.sampling
+
+rebuild(g::AllignedGrid; 
+        order=order(g), locus=locus(g), sampling=sampling(g), span=span(g)) =
+    AllignedGrid(order, locus, sampling, span)
+
+Base.reverse(g::AllignedGrid) = rebuild(g; order=reverse(order(g)))
 
 
-
-"""
-Traits describing a dimension where the dimension values are categories.
-"""
-abstract type AbstractCategoricalGrid <: AbstractGrid end
+abstract type AbstractCategoricalGrid{O} <: IndependentGrid{O} end
 
 """
 Traits describing a dimension where the values are categories.
 
-Categories are assumed to be ordered, so `Between` is a valid selector.
+## Fields
+- `order`: `Order` trait indicating array and index order
 """
-struct CategoricalGrid <: AbstractCategoricalGrid end
-
-
-
-"""
-Traits describing a dimension whos coordinates change along another dimension. 
-"""
-abstract type AbstractIrregularGrid end
-
-dims(grid::AbstractIrregularGrid) = grid.dims
-
-"""
-Grid type using an affine transformation to convert dimension from 
-`dim(grid)` to `dims(array)`.
-"""
-struct TransformedGrid{T,D} <: AbstractIrregularGrid 
-    transform::T
-    dims::D
+struct CategoricalGrid{O<:Order} <: AbstractCategoricalGrid{O}
+    order::O
 end
+CategoricalGrid(;order=Ordered()) = CategoricalGrid(order)
 
-transform(grid::TransformedGrid) = grid.transform
+order(g::CategoricalGrid) = g.order
+
+rebuild(g::CategoricalGrid; order=order(g)) = CategoricalGrid(order)
+
+
 
 """
-Grid type using an array lookup to convert dimension from 
+Traits describing a grid dimension that is dependent on other grid dimensions.
+
+Indexing into a dependent dimension must provide all other dependent dimensions.
+"""
+abstract type DependentGrid <: Grid end
+
+"""
+Grid type using an affine transformation to convert dimension from
 `dim(grid)` to `dims(array)`.
-"""
-struct LookupGrid{L,D} <: AbstractIrregularGrid 
-    lookup::L
-    dims::D
-end
 
-lookup(grid::LookupGrid) = grid.lookup
+## Fields
+- `dims`: a tuple containing dimenension types or symbols matching the order
+          needed by the transform function.
+- `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
+"""
+struct TransformedGrid{D,Sa<:Sampling} <: DependentGrid
+    dims::D
+    sampling::Sa
+end
+TransformedGrid(dims=(), sampling=Mean()) = TransformedGrid(dims, sampling)
+
+dims(g::TransformedGrid) = g.dims
+sampling(g::TransformedGrid) = g.sampling
+
+rebuild(g::TransformedGrid; dims=dims(g), sampling=sampling(g)) = 
+    CategoricalGrid(dims, sampling)
+
+"""
+Grid type that uses an array lookup to convert dimension from
+`dim(grid)` to `dims(array)`.
+
+## Fields
+- `dims`: a tuple containing dimenension types or symbols matching the order
+          needed to index the lookup matrix.
+- `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
+"""
+struct LookupGrid{D,Sa<:Sampling} <: DependentGrid
+    dims::D
+    sampling::Sa
+end
+LookupGrid(dims=(), sampling=Mean()) = LookupGrid(dims, sampling)
+
+dims(g::LookupGrid) = g.dims
+sampling(g::LookupGrid) = g.sampling
+
+rebuild(g::LookupGrid; dims=dims(g), sampling=sampling(g)) = 
+    CategoricalGrid(dims, sampling)

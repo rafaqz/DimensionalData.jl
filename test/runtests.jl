@@ -1,7 +1,7 @@
 using DimensionalData, Statistics, Test, BenchmarkTools, Unitful
 
 using DimensionalData: val, basetype, slicedims, dims2indices, formatdims, 
-      @dim, reducedims, dimnum, basetype, X, Y, Z, Time, Forward, RegularGrid
+      @dim, reducedims, dimnum, basetype, X, Y, Z, Time, Forward
 
 include("dimension.jl")
 include("primitives.jl")
