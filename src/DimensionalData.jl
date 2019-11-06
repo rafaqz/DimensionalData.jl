@@ -36,13 +36,13 @@ export AbstractDimension, Dim
 
 export Selector, Near, Between, At
 
-export Locus, Center, Start, End 
+export Locus, Center, Start, End, UnknownLocus
 
-export Sampling, Single, Mean
+export Sampling, SingleSample, MultiSample, UnknownSampling
 
 export Order, Ordered, Unordered
 
-export Grid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
+export Grid, UnknownGrid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
 
 export AbstractCategoricalGrid, CategoricalGrid 
 

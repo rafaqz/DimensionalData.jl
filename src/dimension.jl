@@ -65,8 +65,8 @@ Base.show(io::IO, dim::AbDim) = begin
     show(io, typeof(dim))
     printstyled(io, "\nval: "; color=:green)
     show(io, val(dim))
-
-    # printstyled(io, indent, name(v), color=:green)
+    printstyled(io, "\ngrid: "; color=:yellow)
+    show(io, grid(dim))
     printstyled(io, "\nmetadata: "; color=:blue)
     show(io, metadata(dim))
     print(io, "\n")

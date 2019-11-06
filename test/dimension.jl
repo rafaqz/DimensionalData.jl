@@ -31,17 +31,17 @@ dimz = dims(da)
 a = [1 2 3 4 
      2 3 4 5
      3 4 5 6]
-da = DimensionalArray(a, (X((143, 145)), Y((-38, -35))))
-dimz = dims(da)
+dimz = (X((143, 145), AllignedGrid(), nothing), 
+        Y((-38, -35), AllignedGrid(), nothing))
+da = DimensionalArray(a, dimz)
 
 @testset "dims" begin
     @test dims(dimz) === dimz
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Time)
-    @test dimz == (X(LinRange(143, 145, 3)), Y(LinRange(-38, -35, 4)))
-    @test typeof(dimz) == Tuple{X{LinRange{Float64},AllignedGrid{Ordered{Forward,Forward},Center,Mean,Nothing},Nothing},
-                                Y{LinRange{Float64},AllignedGrid{Ordered{Forward,Forward},Center,Mean,Nothing},Nothing}}
+    @test typeof(dims(da)) == Tuple{X{LinRange{Float64},AllignedGrid{Ordered{Forward,Forward},Center,UnknownSampling,Nothing},Nothing},
+                                Y{LinRange{Float64},AllignedGrid{Ordered{Forward,Forward},Center,UnknownSampling,Nothing},Nothing}}
 end
 
 @testset "arbitrary dim names" begin

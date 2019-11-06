@@ -60,9 +60,21 @@ or context-dependent spans such as `Month`.
 """
 abstract type Sampling end
 
-struct Mean <: Sampling end
+"""
+Each cell value represents a single discrete sample taken at the index location.
+"""
+struct SingleSample <: Sampling end
 
-struct Single <: Sampling end
+"""
+Multiple samples from the span combined using method `M`, 
+where `M` is `typeof(mean)`, `typeof(sum)` etc.
+"""
+struct MultiSample{M} <: Sampling end
+
+"""
+The sampling method is unknown.
+"""
+struct UnknownSampling <: Sampling end
 
 """
 Indicate the position of index values in grid cells.
@@ -87,6 +99,8 @@ Indicates dimensions that are defined by their end coordinates/time/position.
 """
 struct End <: Locus end
 
+struct UnknownLocus <: Locus end
+
 
 
 """
@@ -101,6 +115,7 @@ Fallback grid type
 """
 struct UnknownGrid <: Grid end
 
+order(::UnknownGrid) = Unordered()
 
 """
 Traits describing a grid dimension that is independent of other grid dimensions.
@@ -125,7 +140,7 @@ struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAllignedGrid{O
     sampling::Sa
     span::Sp
 end
-AllignedGrid(; order=Ordered(), locus=Center(), sampling=Mean(), span=nothing) =
+AllignedGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), span=nothing) =
     AllignedGrid(order, locus, sampling, span)
 
 order(g::AllignedGrid) = g.order
@@ -179,7 +194,7 @@ struct TransformedGrid{D,Sa<:Sampling} <: DependentGrid
     dims::D
     sampling::Sa
 end
-TransformedGrid(dims=(), sampling=Mean()) = TransformedGrid(dims, sampling)
+TransformedGrid(dims=(), sampling=UnknownSampling()) = TransformedGrid(dims, sampling)
 
 dims(g::TransformedGrid) = g.dims
 sampling(g::TransformedGrid) = g.sampling
@@ -200,7 +215,7 @@ struct LookupGrid{D,Sa<:Sampling} <: DependentGrid
     dims::D
     sampling::Sa
 end
-LookupGrid(dims=(), sampling=Mean()) = LookupGrid(dims, sampling)
+LookupGrid(dims=(), sampling=UnknownSampling()) = LookupGrid(dims, sampling)
 
 dims(g::LookupGrid) = g.dims
 sampling(g::LookupGrid) = g.sampling
