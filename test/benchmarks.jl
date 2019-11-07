@@ -85,26 +85,42 @@ println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($da; dims=1) 
 @btime reverse($da; dims=Y()) 
 
-# Sparse
-using SparseArrays, Statistics
+# Sparse (and similar specialised arrays)
 
 @dim Var "Variable"
 @dim Obs "Observation"
 
-sparsear = sprand(10000, 10000, 0.1)
-sparsed = DimensionalArray(
-    sparsear,
-    (Var <| ["var$i" for i in 1:10000], Obs <| ["obs$i" for i in 1:10000])
-)
+sparse_a = sprand(1000, 1000, 0.1)
+sparse_d = DimensionalArray(sparse_a, (Var <| 1:1000, Obs <| 1:1000))
 
 # Jit warmups
-mean(sparsear, dims=1)
-mean(sparsear, dims=2)
-mean(sparsed, dims=Var())
-mean(sparsed, dims=Obs())
+mean(sparse_a, dims=1)
+mean(sparse_a, dims=2)
+mean(sparse_d, dims=Var())
+mean(sparse_d, dims=Obs())
 
 # Benchmarks
-println("Regular sparse")
-@btime mean($sparsear, dims=$1)
-println("Dims sparse")
-@btime mean($sparsed, dims=$Var)
+println("mean with dims arge: regular sparse")
+@btime mean($sparse_a, dims=$1)
+println("mean with dims arge: dims sparse")
+@btime mean($sparse_d, dims=$(Var()))
+
+println("mean: regular sparse")
+@btime mean($sparse_a)
+println("mean: dims sparse")
+@btime mean($sparse_d)
+
+println("copy: regular sparse")
+@btime copy($sparse_a)
+println("copy: dims sparse")
+@btime copy($sparse_d)
+
+println("reduce: regular sparse")
+@btime reduce(+, $sparse_a)
+println("reduce: dims sparse")
+@btime reduce(+, $sparse_a)
+
+println("map: regular sparse")
+@btime map(sin, $sparse_a)
+println("map: dims sparse")
+@btime map(sin, $sparse_a)

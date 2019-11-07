@@ -43,8 +43,12 @@ It's easy to add your own custom `Selector` if your need a different behaviour.
 _Example usage:_
 
 ```julia
-a[Between(a, b), At(2)]
-a[Time<|Between(a, b)]
+using Dates, DimensionalData
+using DimensionalData: Time, X
+timespan = DateTime(2001):Month(1):DateTime(2001,12)
+A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100))) 
+A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
+A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 
 
