@@ -28,7 +28,7 @@ mean(a; dims=X)
 """
 module DimensionalData
 
-using RecipesBase, Statistics, LinearAlgebra
+using RecipesBase, StaticArrays, Statistics, LinearAlgebra
 
 using Base: tail, OneTo
 
@@ -36,7 +36,17 @@ export AbstractDimension, Dim
 
 export Selector, Near, Between, At
 
-export Order
+export Locus, Center, Start, End, UnknownLocus
+
+export Sampling, SingleSample, MultiSample, UnknownSampling
+
+export Order, Ordered, Unordered
+
+export Grid, UnknownGrid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
+
+export AbstractCategoricalGrid, CategoricalGrid 
+
+export DependentGrid, TransformedGrid, LookupGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
@@ -45,6 +55,7 @@ export dims, refdims, metadata, name, shortname,
 
 include("interface.jl")
 include("order.jl")
+include("grid.jl")
 include("dimension.jl")
 include("selector.jl")
 include("array.jl")

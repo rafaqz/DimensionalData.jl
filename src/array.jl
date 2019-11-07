@@ -43,6 +43,10 @@ Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
 Base.similar(A::AbDimArray) = rebuild(A, similar(parent(A)))
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(parent(A), T))
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = 
+    rebuild(A, similar(parent(A), T, I))
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
+    rebuildsliced(A, similar(parent(A), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?

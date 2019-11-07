@@ -15,6 +15,7 @@ requires defining a dims field on your object to store dims in.
 """
 function dims end
 dims(x::T) where T = error("`dims` not defined for type $T")
+dims(x::Nothing) = nothing
 
 """
     refdims(x)

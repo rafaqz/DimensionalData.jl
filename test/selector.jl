@@ -41,9 +41,49 @@ a = [1 2  3  4
     @test da[Y<|Between(2u"km", 3.9u"km"), Time<|At<|3.0u"s"] == [10, 11]
 end
 
-@testset "ad-hoc categorical indices" begin
-    dimz = Time<|[:one, :two, :three], Y<|[:a, :b, :c, :d]
+
+@testset "CategoricalGrid" begin
+    dimz = Time([:one, :two, :three]; grid=CategoricalGrid()), 
+           Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
     @test da[Time<|At(:one, :two), Y<|At(:b)] == [2, 6]
     @test da[At([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
+    @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
+    # Near doesn't make sense for categories
+    @test_throws ArgumentError da[Near(:two), At([:b, :c, :d])] 
+end
+
+@testset "TranformedGrid " begin
+    using CoordinateTransformations, StaticArrays
+
+    m = LinearMap([0.5 0.0; 0.0 0.5])
+
+    dimz = Dim{:trans1}(m; grid=TransformedGrid(X())),  
+           Dim{:trans2}(m, grid=TransformedGrid(Y()))
+
+    @testset "permutedims works on grid dimensions" begin
+        @test permutedims((Y(), X()), dimz) == (X(), Y())
+    end
+
+    a = [1 2  3  4
+         5 6  7  8
+         9 10 11 12]
+    da = DimensionalArray(a, dimz) 
+
+    @testset "Indexing with array dims indexes the array as usual" begin
+        @test da[Dim{:trans1}(3), Dim{:trans2}(1)] == 9
+        # Using selectors works the same as indexing with grid
+        # dims - it applies the transform function. 
+        # It's not clear this should be allowed or makes sense, 
+        # but it works anyway because the permutatoin is correct either way.
+        @test da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2))] == 9
+    end
+
+    @testset "Indexing with grid dims uses the transformation" begin
+        @test da[X(Near(6.1)), Y(Near(8.5))] == 12
+        @test da[X(At(4.0)), Y(At(2.0))] == 5
+        @test_throws InexactError da[X(At(6.1)), Y(At(8))]
+        # Indexing directly with grid dims also just works, but maybe shouldn't?
+        @test da[X(2), Y(2)] == 6
+    end
 end

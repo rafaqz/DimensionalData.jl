@@ -21,17 +21,30 @@ Missing dimensions are replaced with `nothing`
     permutedims(tosort, Tuple(order))
 @inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
     permutedims(Tuple(tosort), order)
+@inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
+    Base.permutedims(tosort, order, map(d -> dims(grid(d)), order))
 
-@generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    permutedims_inner(tosort, order)
-permutedims_inner(tosort::Type, order::Type) = begin
+@generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple, griddims) =
+    permutedims_inner(tosort, order, griddims)
+permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
     indexexps = []
-    for dim in order.parameters
-        index = findfirst(d -> basetype(d) <: basetype(dim), tosort.parameters)
-        if index == nothing
-            push!(indexexps, :(nothing))
+    for (i, dim) in enumerate(order.parameters)
+        dimindex = findfirst(d -> basetype(d) <: basetype(dim), tosort.parameters)
+        if dimindex == nothing
+            # The grid may allow dimensions not in dims
+            # that will be transformed to the actual dimensions (ie for rotations).
+            if griddims <: Nothing
+                push!(indexexps, :(nothing))
+            else
+                gridindex = findfirst(d -> basetype(d) <: basetype(griddims.parameters[i]), tosort.parameters)
+                if gridindex == nothing
+                    push!(indexexps, :(nothing))
+                else
+                    push!(indexexps, :(tosort[$gridindex]))
+                end
+            end
         else
-            push!(indexexps, :(tosort[$index]))
+            push!(indexexps, :(tosort[$dimindex]))
         end
     end
     Expr(:tuple, indexexps...)
@@ -46,18 +59,44 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 @inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 @inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
-    _dims2indices(dims, permutedims(lookup, dims), emptyval)
+    dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
-@inline _dims2indices(dims::Tuple, lookup::Tuple, emptyval) =
-    (dims2indices(dims[1], lookup[1], emptyval),
-     _dims2indices(tail(dims), tail(lookup), emptyval)...)
-@inline _dims2indices(dims::Tuple, lookup::Tuple{}, emptyval) =
-    (emptyval, _dims2indices(tail(dims), (), emptyval)...)
-@inline _dims2indices(dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+# Deal with irregular grid types that need multiple dimensions indexed together
+@inline dims2indices(grids::Tuple{DependentGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
+    (irreg2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
+     dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
+end
 
-@inline dims2indices(dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
-@inline dims2indices(dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
-@inline dims2indices(dim::AbDim, lookup::Nothing, emptyval) = emptyval
+@inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+end
+@inline dims2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+
+@inline dims2indices(grid, dim::AbDim, lookup::Type{<:AbDim}, emptyval) = Colon()
+@inline dims2indices(grid, dim::AbDim, lookup::Nothing, emptyval) = emptyval
+@inline dims2indices(grid, dim::AbDim, lookup::AbDim, emptyval) = val(lookup)
+@inline dims2indices(grid, dim::AbDim, lookup::AbDim{<:Selector}, emptyval) =
+    sel2indices(grid, dim, val(lookup))
+
+# Selectors select on grid dimensions
+@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple{AbDim{<:Selector},Vararg}, emptyval) =
+    sel2indices(grids, dims, map(val, lookup))
+# Other dims select on regular dimensions
+@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+end
+
+
+@inline splitgridtypes(grids::Tuple{DependentGrid,Vararg}, dims, lookup) = begin
+    (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
+    irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
+    irreg, reg
+end
+@inline splitgridtypes(grids::Tuple, dims, lookup) = ((), ()), (dims, lookup)
+@inline splitgridtypes(grids::Tuple{}, dims, lookup) = ((), ()), ((), ())
 
 
 """
@@ -120,18 +159,14 @@ end
 Format the dimension to match internal standards.
 
 Mostily this means converting tuples and UnitRanges to LinRange,
-which is easier to handle.
-
-Errors are thrown if dims don't match the array dims or size.
+which is easier to handle. Errors are thrown if dims don't match the array dims or size.
 """
 @inline formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(size(A), dims)
 end
-@inline formatdims(size::Tuple, dims::Tuple) =
-    (formatdims(size[1], dims[1]), formatdims(tail(size), tail(dims))...,)
-@inline formatdims(size::Tuple{}, dims::Tuple{}) = ()
+@inline formatdims(size::Tuple, dims::Tuple) = map(formatdims, size, dims)
 @inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) =
     if length(val(dim)) == len
         dim
@@ -140,6 +175,7 @@ end
                              size of array dimension $len"))
     end
 @inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
+@inline formatdims(len::Integer, dim::AbDim) = dim 
 
 linrange(dim, len) = begin
     range = val(dim)
@@ -155,11 +191,11 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 """
-@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,)) 
-@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce) 
-@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) = 
+@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
+@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) =
     map(reducedims, dims, permutedims(dimstoreduce, dims))
-@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) = 
+@inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
 @inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))
