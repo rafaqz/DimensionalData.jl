@@ -5,7 +5,7 @@
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
     @test metadata(TestDim(1, AllignedGrid(), "metadata")) == "metadata"
-    @test units(TestDim) == ""
+    @test units(TestDim) == nothing
     @test label(TestDim) == "Test dimension" 
     @test eltype(TestDim(1)) == Int
     @test eltype(TestDim([1,2,3])) == Vector{Int}
@@ -25,7 +25,7 @@ dimz = dims(da)
 @test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3)),), (Y(8.0),))
 @test name(dimz) == ("X", "Y") 
 @test shortname(dimz) == ("X", "Y") 
-@test units(dimz) == ("", "") 
+@test units(dimz) == (nothing, nothing) 
 @test label(dimz) == ("X, Y") 
 
 a = [1 2 3 4 

@@ -25,21 +25,18 @@ array with more dimensions.
 
 `slicedims(a, dims)` returns a tuple containing the current new dimensions
 and the new reference dimensions. Refdims can be stored in a field or disgarded, 
-as it is mostly to give context to plots. Ignoring refdims will simply leave some 
-captions empty.
-"""
+as it is mostly to give context to plots. Ignoring refdims will simply leave some captions empty.  """
 function refdims end
 refdims(x) = ()
-
 """
-    rebuild(x, data, [dims], [refdims])
+    rebuild(x::AbstractDimensionalArray, data, [dims], [refdims])
+    rebuild(x::AbstractDimension, val, [grid], [metadata])
+    rebuild(x; kwargs...)
 
-Rebuild an object struct with an updated value 
+Rebuild an object struct with updated values.
 """
 function rebuild end
-@inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
-@inline rebuild(x; data=data(x), dims=dims(x), refdims=refdims(x)) = 
-    rebuild(x, data, dims, refdims)
+rebuild(x; kwargs...) = ConstructionBase.setproperties(x, (;kwargs...))
 
 """
     val(x)
@@ -62,7 +59,7 @@ function metadata end
 Return the units of a dimension. This could be a string, a unitful unit, or nothing. 
 """
 function units end
-units(x) = ""
+units(x) = nothing
 units(xs::Tuple) = map(units, xs)
 
 """
@@ -92,8 +89,5 @@ Get a plot label for data or a dimension. This will include the name and units
 if they exist, and anything else that should be shown on a plot.
 """
 function label end
-label(x) = begin
-    u = getstring(units(x))
-    string(name(x), (u == "" ? "" : string(" ", u)))
-end
+label(x) = string(name(x), (units(x) === nothing ? "" : string(" ", units(x))))
 label(xs::Tuple) = join(map(label, xs), ", ")
