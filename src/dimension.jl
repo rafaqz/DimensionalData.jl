@@ -6,6 +6,8 @@ the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
 
+ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
+
 """
 AbstractCombined holds mapping that require multiple dimension
 when `select()` is used, shuch as for situations where they share an
@@ -37,14 +39,17 @@ indexorder(dim::AbDim) = indexorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
-rebuild(dim::AbDim, val) = basetype(dim)(val, grid(dim), metadata(dim))
+rebuild(dim::D, val, grid=grid(dim)) where D <: AbDim = 
+    rebuild(dim, val, grid, metadata(dim))
+rebuild(dim::D, val, grid, metadata) where D <: AbDim = 
+    constructorof(D)(val, grid, metadata)
 
 dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
 name(dim::AbDim) = name(typeof(dim))
 shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d)
-units(dim::AbDim) = metadata(dim) == nothing ? "" : get(metadata(dim), :units, "")
+units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
 bounds(A, args...) = bounds(dims(A), args...)
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
@@ -127,7 +132,7 @@ end
 Dim{X}(val=:; grid=AllignedGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
-basetype(::Type{<:Dim{X,T,N}}) where {X,T,N} = Dim{X}
+basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 
 """

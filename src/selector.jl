@@ -67,7 +67,7 @@ sel2indices(grid::IndependentGrid{Unordered}, dim::AbDim, sel::Between{<:Tuple})
 # In practice the others could be empty.
 sel2indices(grids::Tuple{Vararg{<:TransformedGrid}}, dims::AbDimTuple, 
             sel::Tuple{Vararg{<:Selector}}) = 
-    map(to_int, sel, val(dims[1])(SVector(map(val, sel))))
+    map(to_int, sel, val(dims[1])([map(val, sel)...]))
 
 to_int(::At, x) = convert(Int, x) 
 to_int(::Near, x) = round(Int, x) 

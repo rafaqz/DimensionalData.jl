@@ -23,20 +23,20 @@ Missing dimensions are replaced with `nothing`
     permutedims(Tuple(tosort), order)
 @inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
     Base.permutedims(tosort, order, map(d -> dims(grid(d)), order))
-
 @generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple, griddims) =
     permutedims_inner(tosort, order, griddims)
+
 permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
     indexexps = []
     for (i, dim) in enumerate(order.parameters)
-        dimindex = findfirst(d -> basetype(d) <: basetype(dim), tosort.parameters)
+        dimindex = findfirst(d -> basetypeof(d) <: basetypeof(dim), tosort.parameters)
         if dimindex == nothing
             # The grid may allow dimensions not in dims
             # that will be transformed to the actual dimensions (ie for rotations).
             if griddims <: Nothing
                 push!(indexexps, :(nothing))
             else
-                gridindex = findfirst(d -> basetype(d) <: basetype(griddims.parameters[i]), tosort.parameters)
+                gridindex = findfirst(d -> basetypeof(d) <: basetypeof(griddims.parameters[i]), tosort.parameters)
                 if gridindex == nothing
                     push!(indexexps, :(nothing))
                 else
@@ -89,13 +89,16 @@ end
      dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
 end
 
-
 @inline splitgridtypes(grids::Tuple{DependentGrid,Vararg}, dims, lookup) = begin
     (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
 end
-@inline splitgridtypes(grids::Tuple, dims, lookup) = ((), ()), (dims, lookup)
+@inline splitgridtypes(grids::Tuple{IndependentGrid,Vararg}, dims, lookup) = begin
+    irreg, (regdims, reglookup) = splitgridtypes(tail(grids), tail(dims), tail(lookup))
+    reg = (dims[1], regdims...), (lookup[1], reglookup...)
+    irreg, reg
+end
 @inline splitgridtypes(grids::Tuple{}, dims, lookup) = ((), ()), ((), ())
 
 
@@ -146,7 +149,7 @@ Get the number of an AbstractDimension as ordered in the array
 @inline dimnum(dimtypes::Type, lookup::Tuple{}) = ()
 @inline dimnum(dimtypes::Type, lookup::AbDim) = dimnum(dimtypes, typeof(lookup))
 @generated dimnum(dimtypes::Type{DTS}, lookup::Type{D}) where {DTS,D} = begin
-    index = findfirst(dt -> D <: basetype(dt), DTS.parameters)
+    index = findfirst(dt -> D <: basetypeof(dt), DTS.parameters)
     if index == nothing
         :(throw(ArgumentError("No $lookup in $dimtypes")))
     else
@@ -198,7 +201,7 @@ Used in mean, reduce, etc.
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
-@inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetype(dim)(first(val(dim)))
+@inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetypeof(dim)(first(val(dim)))
 @inline reducedims(dim::AbDim, dimtoreduce::Nothing) = dim
 
 
@@ -210,7 +213,7 @@ Get the dimension(s) matching the type(s) of the lookup dimension.
 @inline dims(ds::AbDimTuple, lookup::Tuple) =
     (dims(ds, lookup[1]), dims(ds, tail(lookup))...)
 @inline dims(ds::AbDimTuple, lookup::Tuple{}) = ()
-@inline dims(ds::AbDimTuple, lookup) = dims(ds, basetype(lookup))
+@inline dims(ds::AbDimTuple, lookup) = dims(ds, basetypeof(lookup))
 @generated dims(ds::DT, lookup::Type{L}) where {DT<:AbDimTuple,L} = begin
     index = findfirst(dt -> dt <: L, DT.parameters)
     if index == nothing

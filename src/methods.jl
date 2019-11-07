@@ -43,10 +43,10 @@ Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
     Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
 Base._dropdims(A::AbstractArray, dim::Union{AbDim,Type{<:AbDim}}) = 
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetype(dim)(1)))
+    rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
 Base._dropdims(A::AbstractArray, dims::AbDimTuple) = 
     rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)), 
-                  dims2indices(A, Tuple((basetype(d)(1) for d in dims))))
+                  dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
 
 @inline Base.map(f, A::AbDimArray) = rebuild(A, map(f, parent(A)), dims(A))

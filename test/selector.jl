@@ -54,7 +54,7 @@ end
 end
 
 @testset "TranformedGrid " begin
-    using CoordinateTransformations, StaticArrays
+    using CoordinateTransformations
 
     m = LinearMap([0.5 0.0; 0.0 0.5])
 
