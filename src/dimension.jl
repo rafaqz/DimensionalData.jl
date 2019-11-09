@@ -8,18 +8,6 @@ abstract type AbstractDimension{T,G,M} end
 
 ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 
-"""
-AbstractCombined holds mapping that require multiple dimension
-when `select()` is used, shuch as for situations where they share an
-affine map or similar transformation instead of linear maps. Each dim
-that shares the mapping must contain the same (identical) object.
-
-Dimensions holding a DimCombination will work as usual for direct indexing.
-
-All AbstractDimension are assumed to `val` and `metadata` fields.
-"""
-abstract type AbstractDimCombination end
-
 const AbDim = AbstractDimension
 const AbDimType = Type{<:AbDim}
 const AbDimTuple = Tuple{Vararg{<:AbDim,N}} where N
