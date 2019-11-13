@@ -3,28 +3,51 @@ DimensionalData.jl provides types and methods for indexing with named dimensions
 using named dimensions in Base and Statistics methods instead of Integer dims,
 and selecting data from dimension values instead of using indices directly.
 
+## Dimensions
+
 Dimensions are simply types that wrap values. They both store dimension values
 and are used for dimension lookup or indices, ranges or dimension number.
-`X`, Y`, `Z` and `Time` are the unexported defaults, add this line to use them:  
+`X`, `Y`, `Z` and `Time` are the unexported defaults, add this line to use them:  
 ```julia
 using DimensionalData: X, Y, Z, Time
 ```
 
-Selectors find indices in the dimension based on values `At`, `Near`, or `Between`
-the passed in value(s).
+A generalised [`Dim`](@ref) type is available to use arbitrary symbols to name dimensions. 
+Custom dimensions can be defined using the [`@dim`](@ref) macro.
 
-These are some examples of valid syntax:
+We can use dim wrappers for indexing, so that the dimension order in the underlying array 
+does not need to be known:
+
+```
+a[X(1:10), Y(1:4)]
+```
+
+## Selectors
+
+Selectors find indices in the dimension based on values `At`, `Near`, or `Between`
+the index value(s).
+
+We can use selectors in conjuction with dim wrappers:
 
 ```julia
-# Indexing with dim wrappers
-a[X(1:10), Y(1:4)]
-# Dim wrappers and a selector
 a[X(1:10), Y<|At(25.7)]
-# Unitful.jl selectors. Without dim wrappers selectors must be in the right order
-a[Near(23"s"), Between(10.5u"m", 50.5u"m")]
-# Dim type used instead of a dimension number
-mean(a; dims=X)
 ```
+
+Without dim wrappers selectors must be in the right order:
+
+```julia
+usin Unitful
+a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
+```
+
+Dim types or objects can be used instead of a dimension number in many 
+Base and Statistics methods:
+
+```julia
+mean(a; dims=X)
+std(a; dims=Y())
+```
+
 """
 module DimensionalData
 
