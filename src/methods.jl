@@ -90,21 +90,20 @@ end
 @inline Base.reverse(A::AbDimArray{T,N}; dims=1) where {T,N} = begin
     dnum = dimnum(A, dims)
     # Reverse the dimension. TODO: make this type stable
-    newdims = revdims(DimensionalData.dims(A), dnum)
+    newdims = reversearray(DimensionalData.dims(A), dnum)
     # Reverse the data
     newdata = reverse(parent(A); dims=dnum)
     rebuild(A, newdata, newdims, refdims(A))
 end
 
-# TODO change order after reverse
-@inline revdims(dimstorev::Tuple, dnum) = begin
+@inline reversearray(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
     if length(dimstorev) == dnum 
-        dim = rebuild(dim, reverse(val(dim)))
+        dim = rebuild(dim, val(dim), reversearray(grid(dim)))
     end
-    (revdims(Base.front(dimstorev), dnum)..., dim) 
+    (reversearray(Base.front(dimstorev), dnum)..., dim) 
 end
-@inline revdims(dims::Tuple{}, i) = ()
+@inline reversearray(dims::Tuple{}, i) = ()
 
 for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint), 
                      (:Base, :transpose), (:LinearAlgebra, :Transpose)]
