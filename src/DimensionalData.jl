@@ -74,7 +74,7 @@ export DependentGrid, TransformedGrid, LookupGrid
 export AbstractDimensionalArray, DimensionalArray
 
 export dims, refdims, metadata, name, shortname, 
-       val, label, units, order, bounds, <|
+       val, label, units, order, bounds, grid, <|
 
 include("interface.jl")
 include("order.jl")

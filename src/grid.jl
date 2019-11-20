@@ -45,8 +45,11 @@ struct Reverse <: Order end
 
 Base.reverse(::Reverse) = Forward()
 Base.reverse(::Forward) = Reverse()
-Base.reverse(o::Ordered) = Ordered(revese(indexorder(o)), revese(arrayorder(o)))
+Base.reverse(o::Ordered) = Ordered(reverse(indexorder(o)), reverse(arrayorder(o)))
 Base.reverse(o::Unordered) = Unordered()
+
+reverseindex(o::Ordered) = Ordered(reverse(indexorder(o)), arrayorder(o))
+reversearray(o::Ordered) = Ordered(indexorder(o), reverse(arrayorder(o)))
 
 
 """
@@ -153,6 +156,8 @@ rebuild(g::AllignedGrid;
     AllignedGrid(order, locus, sampling, span)
 
 Base.reverse(g::AllignedGrid) = rebuild(g; order=reverse(order(g)))
+reversearray(g::AllignedGrid) = rebuild(g; order=reversearray(order(g)))
+reverseindex(g::AllignedGrid) = rebuild(g; order=reverseindex(order(g)))
 
 
 abstract type AbstractCategoricalGrid{O} <: IndependentGrid{O} end
