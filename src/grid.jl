@@ -46,9 +46,12 @@ struct Reverse <: Order end
 Base.reverse(::Reverse) = Forward()
 Base.reverse(::Forward) = Reverse()
 Base.reverse(o::Ordered) = Ordered(reverse(indexorder(o)), reverse(arrayorder(o)))
-Base.reverse(o::Unordered) = Unordered()
+Base.reverse(::Unordered) = Unordered()
 
+reverseindex(o::Unordered) = Unordered()
 reverseindex(o::Ordered) = Ordered(reverse(indexorder(o)), arrayorder(o))
+
+reversearray(o::Unordered) = Unordered()
 reversearray(o::Ordered) = Ordered(indexorder(o), reverse(arrayorder(o)))
 
 
@@ -112,6 +115,9 @@ Traits describing the grid type of a dimension.
 abstract type Grid end
 
 dims(g::Grid) = nothing
+locus(g::Grid) = g.locus
+arrayorder(grid::Grid) = arrayorder(order(grid))
+indexorder(grid::Grid) = indexorder(order(grid))
 
 """
 Fallback grid type
@@ -121,15 +127,51 @@ struct UnknownGrid <: Grid end
 order(::UnknownGrid) = Unordered()
 
 """
-Traits describing a grid dimension that is independent of other grid dimensions.
+A grid dimension that is independent of other grid dimensions.
 """
 abstract type IndependentGrid{O} <: Grid end
 
+"""
+A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
+"""
 abstract type AbstractAllignedGrid{O} <: IndependentGrid{O} end
 
+Base.reverse(g::AbstractAllignedGrid) = rebuild(g; order=reverse(order(g)))
+reversearray(g::AbstractAllignedGrid) = rebuild(g; order=reversearray(order(g)))
+reverseindex(g::AbstractAllignedGrid) = rebuild(g; order=reverseindex(order(g)))
+
+order(g::AbstractAllignedGrid) = g.order
+sampling(g::AbstractAllignedGrid) = g.sampling
+
 """
-Trait describing a grid aligned with a dimension, independent of
-other dimensions.
+An alligned grid without known regular spacing. These grids will generally be paired
+with a vector of coordinates along the dimension, instead of a range.
+
+As the size of the cells is not known, the bounds must be actively tracked.
+
+## Fields
+- `order`: `Order` trait indicating array and index order
+- `locus`: `Locus` trait indicating the position of the indexed point within the cell span
+- `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
+- `bounds`: the outer edges of the grid (different to the first and last coordinate).
+"""
+struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAllignedGrid{O}
+    order::O
+    locus::L
+    sampling::Sa
+    bounds::B
+end
+AllignedGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), bounds=error("must supply bounds") =
+    AllignedGrid(order, locus, sampling, bounds)
+
+bounds(g::AllignedGrid) = g.bounds
+
+rebuild(g::AllignedGrid; 
+        order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
+    AllignedGrid(order, locus, sampling, bounds)
+
+"""
+An alligned grid known to have equal spacing between all cells.
 
 ## Fields
 - `order`: `Order` trait indicating array and index order
@@ -137,33 +179,26 @@ other dimensions.
 - `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `span`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAllignedGrid{O}
+struct RegularGrid{O<:Order,L<:Locus,Sp,Sa<:Sampling} <: AbstractAllignedGrid{O}
     order::O
     locus::L
     sampling::Sa
     span::Sp
 end
-AllignedGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), span=nothing) =
-    AllignedGrid(order, locus, sampling, span)
+RegularGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), span=nothing) =
+    RegularGrid(order, locus, sampling, span)
 
-order(g::AllignedGrid) = g.order
-span(g::AllignedGrid) = g.span
-locus(g::AllignedGrid) = g.locus
-sampling(g::AllignedGrid) = g.sampling
+span(g::RegularGrid) = g.span
 
-rebuild(g::AllignedGrid; 
+rebuild(g::RegularGrid; 
         order=order(g), locus=locus(g), sampling=sampling(g), span=span(g)) =
-    AllignedGrid(order, locus, sampling, span)
-
-Base.reverse(g::AllignedGrid) = rebuild(g; order=reverse(order(g)))
-reversearray(g::AllignedGrid) = rebuild(g; order=reversearray(order(g)))
-reverseindex(g::AllignedGrid) = rebuild(g; order=reverseindex(order(g)))
+    RegularGrid(order, locus, sampling, span)
 
 
 abstract type AbstractCategoricalGrid{O} <: IndependentGrid{O} end
 
 """
-Traits describing a dimension where the values are categories.
+A grid dimension where the values are categories.
 
 ## Fields
 - `order`: `Order` trait indicating array and index order
@@ -171,7 +206,7 @@ Traits describing a dimension where the values are categories.
 struct CategoricalGrid{O<:Order} <: AbstractCategoricalGrid{O}
     order::O
 end
-CategoricalGrid(;order=Ordered()) = CategoricalGrid(order)
+CategoricalGrid(; order=Ordered()) = CategoricalGrid(order)
 
 order(g::CategoricalGrid) = g.order
 
@@ -197,18 +232,19 @@ Grid type using an affine transformation to convert dimension from
 """
 struct TransformedGrid{D,Sa<:Sampling} <: DependentGrid
     dims::D
+    locus::L
     sampling::Sa
 end
-TransformedGrid(dims=(), sampling=UnknownSampling()) = TransformedGrid(dims, sampling)
+TransformedGrid(dims=(), locus=Center(), sampling=UnknownSampling()) = TransformedGrid(dims, sampling)
 
 dims(g::TransformedGrid) = g.dims
 sampling(g::TransformedGrid) = g.sampling
 
-rebuild(g::TransformedGrid; dims=dims(g), sampling=sampling(g)) = 
-    CategoricalGrid(dims, sampling)
+rebuild(g::TransformedGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) = 
+    CategoricalGrid(dims, locus, sampling)
 
 """
-Grid type that uses an array lookup to convert dimension from
+A grid dimension that uses an array lookup to convert dimension from
 `dim(grid)` to `dims(array)`.
 
 ## Fields
@@ -218,6 +254,7 @@ Grid type that uses an array lookup to convert dimension from
 """
 struct LookupGrid{D,Sa<:Sampling} <: DependentGrid
     dims::D
+    locus::L
     sampling::Sa
 end
 LookupGrid(dims=(), sampling=UnknownSampling()) = LookupGrid(dims, sampling)
@@ -225,5 +262,5 @@ LookupGrid(dims=(), sampling=UnknownSampling()) = LookupGrid(dims, sampling)
 dims(g::LookupGrid) = g.dims
 sampling(g::LookupGrid) = g.sampling
 
-rebuild(g::LookupGrid; dims=dims(g), sampling=sampling(g)) = 
-    CategoricalGrid(dims, sampling)
+rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) = 
+    CategoricalGrid(dims, locus, sampling)
