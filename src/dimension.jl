@@ -39,15 +39,26 @@ shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d)
 units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
-bounds(A, args...) = bounds(dims(A), args...)
+bounds(A::AbstractArray, args...) = bounds(dims(A), args...)
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
-bounds(dim::AbDim) = bounds(indexorder(dim), dim)
-# TODO bounds should include the span of the last cell
-bounds(::Forward, dim::AbDim) = first(val(dim)), last(val(dim)) # + val(span(dim)) 
-bounds(::Reverse, dim::AbDim) = last(val(dim)), first(val(dim)) # + val(span(dim))
+bounds(dim::AbDim) = bounds(grid(dim), dim)
+bounds(grid::AllignedGrid, dim::AbDim) = 
+    bounds(indexorder(grid), locus(grid), grid, dim)
+bounds(grid::CategoricalGrid, dim::AbDim) = 
+    bounds(indexorder(grid), grid, dim)
+bounds(::Forward, grid, dim::AbDim) = first(val(dim)), last(val(dim))
+bounds(::Reverse, grid, dim::AbDim) = last(val(dim)), first(val(dim))
+
+bounds(::Forward, ::Start, grid, dim::AbDim) = first(val(dim)), last(val(dim)) + span(grid)
+bounds(::Reverse, ::Start, grid, dim::AbDim) = last(val(dim)), first(val(dim)) + span(grid)
+bounds(::Forward, ::Center, grid, dim::AbDim) = first(val(dim)) - span(dim) / 2, last(val(dim)) + span(grid) / 2
+bounds(::Reverse, ::Center, grid, dim::AbDim) = last(val(dim)) - span(dim) / 2, first(val(dim)) + span(grid) / 2
+bounds(::Forward, ::End, grid, dim::AbDim) = first(val(dim)) - span(dim), last(val(dim))
+bounds(::Reverse, ::End, grid, dim::AbDim) = last(val(dim)) - span(dim), first(val(dim))
+
 # TODO bounds for irregular grids
 
 # Base methods
