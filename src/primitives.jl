@@ -189,21 +189,31 @@ end
                              size of array dimension $len"))
     end
 @inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
-@inline formatdims(len::Integer, dim::AbDim) = dim 
+@inline formatdims(len::Integer, dim::AbDim) = dim
 
 linrange(dim, len) = begin
     range = val(dim)
     start, stop = first(range), last(range)
-    rebuild(dim, LinRange(start, stop, len))
+    rebuild(dim, LinRange(start, stop, len), regularise(grid(dim), start, stop, len))
 end
+
+regularise(::UnknownGrid, start, stop, len) = 
+    RegularGrid(order=orderof(start, stop), span=spanof(start, stop, len))
+regularise(grid::Grid, start, stop, len) = grid
+
+spanof(a, b, len) = (b - a)/(len - 1)
+orderof(a, b) = Ordered(a <= b ? Forward() : Reverse(), Forward())
 
 
 """
-Replace the specified dimensions with an index of 1 to match
+Replace the specified dimensions with an index of length 1 to match
 a new array size where the dimension has been reduced to a length
 of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
+
+Grid traits are also updated to correspond to the change in cell span, sampling
+type and order.
 """
 @inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
 @inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
@@ -212,8 +222,38 @@ Used in mean, reduce, etc.
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
-@inline reducedims(dim::AbDim, dimtoreduce::AbDim) = basetypeof(dim)(first(val(dim)))
-@inline reducedims(dim::AbDim, dimtoreduce::Nothing) = dim
+# Reduce matching dims, ignore nothing vals - they are the dims not being reduced
+@inline reducedims(dim::AbDim, ::Nothing) = dim
+@inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
+# Reduce specialising on grid type
+@inline reducedims(grid::UnknownGrid, dim) = 
+    rebuild(dim, first(val(dim)), UnknownGrid())
+@inline reducedims(grid::CategoricalGrid, dim) = 
+    rebuild(dim, :combined, CategoricalGrid(Unordered()))
+@inline reducedims(grid::AllignedGrid, dim) = begin 
+    grid = AllignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
+    rebuild(dim, reducedims(locus(grid), dim), grid)
+end
+@inline reducedims(grid::RegularGrid, dim) = begin
+    grid = RegularGrid(Unordered(), locus(grid), MultiSample(), span(grid) * length(val(dim)))
+    rebuild(dim, reducedims(locus(grid), dim), grid)
+end
+@inline reducedims(grid::DependentGrid, dim) = 
+    rebuild(dim, nothing, UnknownGrid)
+
+# Get the index value at the reduced locus.
+# This is the start, center or end point of the whole index.
+reduceddims(locus::Start, dim) = first(val(dim))
+reduceddims(locus::End, dim) = last(val(dim))
+reduceddims(locus::Center, dim) = begin
+    index = val(dim)
+    len = length(index)
+    if iseven(len)
+        (index[len ÷ 2] + index[len ÷ 2 + 1]) / 2
+    else
+        index[len ÷ 2 + 1]
+    end
+end
 
 
 """

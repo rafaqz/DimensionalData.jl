@@ -8,7 +8,7 @@ da = DimensionalArray(a, (Y(10:30), Time((1:4)u"s")))
     @test_throws ArgumentError da[Y<|At([9, 30]), Time<|At([1u"s", 4u"s"])]
     @test view(da, Y<|At(20), Time<|At((3:4)u"s")) == [7, 8]
     @test view(da, Y<|Near(17), Time<|Near([1.3u"s", 3.3u"s"])) == [5, 7]
-    @test view(da, Y<|Between(9, 31), Time<|At((3:4)u"s")) == [3 4; 7 8; 11 12]
+    @test_throws view(da, Y<|Between(9, 31), Time<|At((3:4)u"s")) == [3 4; 7 8; 11 12]
 end
 
 @testset "selectors without dim wrappers" begin

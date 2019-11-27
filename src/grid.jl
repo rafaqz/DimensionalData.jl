@@ -76,6 +76,7 @@ Multiple samples from the span combined using method `M`,
 where `M` is `typeof(mean)`, `typeof(sum)` etc.
 """
 struct MultiSample{M} <: Sampling end
+MultiSample() = MultiSample{Nothing}()
 
 """
 The sampling method is unknown.
@@ -115,7 +116,6 @@ Traits describing the grid type of a dimension.
 abstract type Grid end
 
 dims(g::Grid) = nothing
-locus(g::Grid) = g.locus
 arrayorder(grid::Grid) = arrayorder(order(grid))
 indexorder(grid::Grid) = indexorder(order(grid))
 
@@ -141,6 +141,7 @@ reversearray(g::AbstractAllignedGrid) = rebuild(g; order=reversearray(order(g)))
 reverseindex(g::AbstractAllignedGrid) = rebuild(g; order=reverseindex(order(g)))
 
 order(g::AbstractAllignedGrid) = g.order
+locus(g::AbstractAllignedGrid) = g.locus
 sampling(g::AbstractAllignedGrid) = g.sampling
 
 """
@@ -161,7 +162,7 @@ struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAllignedGrid{O}
     sampling::Sa
     bounds::B
 end
-AllignedGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), bounds=error("must supply bounds") =
+AllignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=error("must supply bounds")) =
     AllignedGrid(order, locus, sampling, bounds)
 
 bounds(g::AllignedGrid) = g.bounds
@@ -179,13 +180,13 @@ An alligned grid known to have equal spacing between all cells.
 - `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `span`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct RegularGrid{O<:Order,L<:Locus,Sp,Sa<:Sampling} <: AbstractAllignedGrid{O}
+struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAllignedGrid{O}
     order::O
     locus::L
     sampling::Sa
     span::Sp
 end
-RegularGrid(; order=Ordered(), locus=Center(), sampling=UnknownSampling(), span=nothing) =
+RegularGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), span=nothing) =
     RegularGrid(order, locus, sampling, span)
 
 span(g::RegularGrid) = g.span
@@ -221,6 +222,10 @@ Indexing into a dependent dimension must provide all other dependent dimensions.
 """
 abstract type DependentGrid <: Grid end
 
+locus(g::DependentGrid) = g.locus
+dims(g::DependentGrid) = g.dims
+sampling(g::DependentGrid) = g.sampling
+
 """
 Grid type using an affine transformation to convert dimension from
 `dim(grid)` to `dims(array)`.
@@ -230,18 +235,16 @@ Grid type using an affine transformation to convert dimension from
           needed by the transform function.
 - `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
 """
-struct TransformedGrid{D,Sa<:Sampling} <: DependentGrid
+struct TransformedGrid{D,L,Sa<:Sampling} <: DependentGrid
     dims::D
     locus::L
     sampling::Sa
 end
-TransformedGrid(dims=(), locus=Center(), sampling=UnknownSampling()) = TransformedGrid(dims, sampling)
-
-dims(g::TransformedGrid) = g.dims
-sampling(g::TransformedGrid) = g.sampling
+TransformedGrid(dims=(), locus=Start(), sampling=UnknownSampling()) = 
+    TransformedGrid(dims, locus, sampling)
 
 rebuild(g::TransformedGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) = 
-    CategoricalGrid(dims, locus, sampling)
+    TransformedGrid(dims, locus, sampling)
 
 """
 A grid dimension that uses an array lookup to convert dimension from
@@ -252,15 +255,13 @@ A grid dimension that uses an array lookup to convert dimension from
           needed to index the lookup matrix.
 - `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
 """
-struct LookupGrid{D,Sa<:Sampling} <: DependentGrid
+struct LookupGrid{D,L,Sa<:Sampling} <: DependentGrid
     dims::D
     locus::L
     sampling::Sa
 end
-LookupGrid(dims=(), sampling=UnknownSampling()) = LookupGrid(dims, sampling)
-
-dims(g::LookupGrid) = g.dims
-sampling(g::LookupGrid) = g.sampling
+LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) = 
+    LookupGrid(dims, locus, sampling)
 
 rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) = 
-    CategoricalGrid(dims, locus, sampling)
+    LookupGrid(dims, locus, sampling)

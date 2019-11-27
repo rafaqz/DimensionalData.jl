@@ -65,9 +65,11 @@ export Sampling, SingleSample, MultiSample, UnknownSampling
 
 export Order, Ordered, Unordered
 
-export Grid, UnknownGrid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
+export Grid, UnknownGrid 
 
 export AbstractCategoricalGrid, CategoricalGrid 
+
+export IndependentGrid, AbstractAllignedGrid, AllignedGrid, RegularGrid
 
 export DependentGrid, TransformedGrid, LookupGrid
 

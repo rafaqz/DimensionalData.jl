@@ -40,30 +40,37 @@ shortname(d::Type{<:AbDim}) = name(d)
 units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
 bounds(A::AbstractArray, args...) = bounds(dims(A), args...)
+
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
-bounds(dims::AbDimTuple, dim::DimOrDimType) = bounds(dims[dimnum(dims, dim)])
+bounds(dims::AbDimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
+
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
 bounds(dim::AbDim) = bounds(grid(dim), dim)
-bounds(grid::AllignedGrid, dim::AbDim) = 
-    bounds(indexorder(grid), locus(grid), grid, dim)
-bounds(grid::CategoricalGrid, dim::AbDim) = 
-    bounds(indexorder(grid), grid, dim)
-bounds(::Forward, grid, dim::AbDim) = first(val(dim)), last(val(dim))
-bounds(::Reverse, grid, dim::AbDim) = last(val(dim)), first(val(dim))
 
-bounds(::Forward, ::Start, grid, dim::AbDim) = first(val(dim)), last(val(dim)) + span(grid)
-bounds(::Reverse, ::Start, grid, dim::AbDim) = last(val(dim)), first(val(dim)) + span(grid)
-bounds(::Forward, ::Center, grid, dim::AbDim) = first(val(dim)) - span(dim) / 2, last(val(dim)) + span(grid) / 2
-bounds(::Reverse, ::Center, grid, dim::AbDim) = last(val(dim)) - span(dim) / 2, first(val(dim)) + span(grid) / 2
-bounds(::Forward, ::End, grid, dim::AbDim) = first(val(dim)) - span(dim), last(val(dim))
-bounds(::Reverse, ::End, grid, dim::AbDim) = last(val(dim)) - span(dim), first(val(dim))
+bounds(grid::AllignedGrid, dim) = bounds(grid)
+bounds(grid::UnknownGrid, dim) = first(val(dim)), last(val(dim))
+
+bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)
+bounds(::Forward, grid, dim) = first(val(dim)), last(val(dim))
+bounds(::Reverse, grid, dim) = last(val(dim)), first(val(dim))
+bounds(::Unordered, grid, dim) = throw(MethodError("Cannot call `bounds` on an unordered grid"))
+
+bounds(grid::RegularGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
+bounds(::Forward, ::Start, grid, dim) = first(val(dim)), last(val(dim)) + span(grid)
+bounds(::Reverse, ::Start, grid, dim) = last(val(dim)), first(val(dim)) + span(grid)
+bounds(::Forward, ::Center, grid, dim) = first(val(dim)) - span(grid) / 2, last(val(dim)) + span(grid) / 2
+bounds(::Reverse, ::Center, grid, dim) = last(val(dim)) - span(grid) / 2, first(val(dim)) + span(grid) / 2
+bounds(::Forward, ::End, grid, dim) = first(val(dim)) - span(grid), last(val(dim))
+bounds(::Reverse, ::End, grid, dim) = last(val(dim)) - span(grid), first(val(dim))
 
 # TODO bounds for irregular grids
+
 
 # Base methods
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
 Base.length(dim::AbDim) = length(val(dim))
+
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", name(dim), ": "; color=:red)
     show(io, typeof(dim))
@@ -95,20 +102,6 @@ Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbstractDime
 @inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 
 
-#= SplitApplyCombine methods?
-Should allow groupby using dims lookup to make this worth the dependency
-Like group by time/lattitude/height band etc.
-
-SplitApplyCombine.splitdims(A::AbstractArray, dims::AllDimensions) =
-    SplitApplyCombine.splitdims(A, dimnum(A, dims))
-
-SplitApplyCombine.splitdimsview(A::AbstractArray, dims::AllDimensions) =
-    SplitApplyCombine.splitdimsview(A, dimnum(A, dims))
-=#
-
-
-
-
 """
 Dimensions with user-set type paremeters
 """
@@ -128,7 +121,7 @@ struct Dim{X,T,G,M} <: AbstractParametricDimension{X,T,G,M}
         new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
 end
 
-Dim{X}(val=:; grid=AllignedGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
+Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -151,7 +144,7 @@ macro dim(typ, name=string(typ), shortname=string(typ))
             grid::G
             metadata::M
         end
-        $typ(val=:; grid=AllignedGrid(), metadata=nothing) = $typ(val, grid, metadata)
+        $typ(val=:; grid=UnknownGrid(), metadata=nothing) = $typ(val, grid, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
