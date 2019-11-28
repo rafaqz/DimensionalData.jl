@@ -189,7 +189,8 @@ end
         throw(ArgumentError("length of $dim $(length(index)) does not match
                              size of array dimension $len"))
     end
-@inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
+@inline formatdims(len::Integer, dim::AbDim{<:Union{AbstractRange,NTuple{2}}}) = 
+    linrange(dim, len)
 @inline formatdims(len::Integer, dim::AbDim) = dim
 
 linrange(dim, len) = begin
@@ -199,7 +200,7 @@ end
 
 identify(::UnknownGrid, index::AbstractVector) = begin
     order = orderof(first(index), last(index))
-    sorted = order == Foward() ? isorted(index) : isorted(index; rev=true)
+    sorted = order == Forward() ? issorted(index) : issorted(index; rev=true)
 
     if sorted
         AllignedGrid(; order=order)

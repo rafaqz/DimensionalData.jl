@@ -50,20 +50,27 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
     (sel2indices(grids[1], dims[1], lookup[1]), 
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
     sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
+
+# At selector
 sel2indices(grid, dim::AbDim, sel::At) = at(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) = [at.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) = at.(Ref(dim), val(sel))
-sel2indices(grid, dim::AbDim{<:Any,<:AbstractCategoricalGrid}, sel::Near) = 
-    throw(ArgumentError("`Near` has no meaning in a `CategoricalGrid`. Use `At`"))
-sel2indices(grid, dim::AbDim, sel::Near) = near(dim, val(sel))
-sel2indices(grid, dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
-sel2indices(grid, dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
-sel2indices(grid::UnknownGrid, dim::AbDim, sel::Between{<:Tuple}) = 
-    between(dim, val(sel))
-sel2indices(grid::IndependentGrid{<:Ordered}, dim::AbDim, sel::Between{<:Tuple}) = 
-    between(dim, val(sel))
-sel2indices(grid::IndependentGrid{Unordered}, dim::AbDim, sel::Between{<:Tuple}) = 
-    throw(ArgumentError("`Between` has no meaning with an `Unordered` grid"))
+
+# Near selector
+sel2indices(grid::T, dim::AbDim, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid} = 
+    throw(ArgumentError("`Near` has no meaning in a `$T`. Use `At`"))
+sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near) = 
+    near(dim, val(sel))
+sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near{<:Tuple}) = 
+    [near.(Ref(dim), val(sel))...]
+sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near{<:AbstractVector}) = 
+    near.(Ref(dim), val(sel))
+
+# Between selector
+sel2indices(grid, dim::AbDim, sel::Between{<:Tuple}) = between(dim, val(sel))
+
+
+# Transformed grid
 
 # We use the transformation from the first TransformedGrid dim. 
 # In practice the others could be empty.

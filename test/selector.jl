@@ -2,6 +2,7 @@ a = [1 2  3  4
      5 6  7  8
      9 10 11 12]
 da = DimensionalArray(a, (Y(10:30), Time((1:4)u"s")))
+dims(da)
 
 @testset "selectors with dim wrappers" begin
     @test da[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [1 4; 9 12]
@@ -21,7 +22,7 @@ end
     @test view(da, Near<|(13,), Near<|(1.3u"s", 3.3u"s")) == [1 3]
     @test view(da, Between(11, 20), At((2:3)u"s")) == [6 7]
     # Between also accepts a tuple input
-    @test_broken view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
+    @test view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
 end
 
 @testset "setindex! with selectors" begin
