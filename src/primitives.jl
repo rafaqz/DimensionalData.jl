@@ -183,19 +183,31 @@ end
 @inline formatdims(size::Tuple, dims::Tuple) = map(formatdims, size, dims)
 @inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) =
     if length(val(dim)) == len
-        dim
+        index = val(dim)
+        rebuild(dim; grid=identify(grid(dim), index)) 
     else
-        throw(ArgumentError("length of $dim $(length(val(dim))) does not match
+        throw(ArgumentError("length of $dim $(length(index)) does not match
                              size of array dimension $len"))
     end
 @inline formatdims(len::Integer, dim::AbDim{<:Union{UnitRange,NTuple{2}}}) = linrange(dim, len)
 @inline formatdims(len::Integer, dim::AbDim) = dim
 
 linrange(dim, len) = begin
-    range = val(dim)
-    start, stop = first(range), last(range)
+    start, stop = first(val(dim)), last(val(dim))
     rebuild(dim, LinRange(start, stop, len), regularise(grid(dim), start, stop, len))
 end
+
+identify(::UnknownGrid, index::AbstractVector) = begin
+    order = orderof(first(index), last(index))
+    sorted = order == Foward() ? isorted(index) : isorted(index; rev=true)
+
+    if sorted
+        AllignedGrid(; order=order)
+    else
+        CategoricalGrid(; order=Unordered())
+    end
+end
+identify(grid::Grid, index) = grid
 
 regularise(::UnknownGrid, start, stop, len) = 
     RegularGrid(order=orderof(start, stop), span=spanof(start, stop, len))
