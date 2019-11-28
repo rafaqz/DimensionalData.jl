@@ -65,18 +65,23 @@ export Sampling, SingleSample, MultiSample, UnknownSampling
 
 export Order, Ordered, Unordered
 
-export Grid, UnknownGrid, IndependentGrid, AbstractAllignedGrid, AllignedGrid
+export Grid, UnknownGrid 
 
 export AbstractCategoricalGrid, CategoricalGrid 
+
+export IndependentGrid, AbstractAllignedGrid, AllignedGrid, RegularGrid
 
 export DependentGrid, TransformedGrid, LookupGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
+export Metadata, AbstractArrayMetadata, ArrayMetadata, AbstractDimMetadata, DimMetadata
+
 export dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, grid, <|
 
 include("interface.jl")
+include("metadata.jl")
 include("order.jl")
 include("grid.jl")
 include("dimension.jl")

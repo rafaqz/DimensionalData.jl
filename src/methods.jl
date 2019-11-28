@@ -2,7 +2,9 @@
 for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
     _fname = Symbol('_', fname)
     @eval begin
+        # Returns a scalar
         @inline ($mod.$fname)(A::AbDimArray) = ($mod.$fname)(parent(A))
+        # Returns a reduced array
         @inline ($mod.$_fname)(A::AbstractArray, dims::AllDimensions) =
             rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDimensions) =
@@ -17,7 +19,9 @@ end
 for fname in (:std, :var)
     _fname = Symbol('_', fname)
     @eval begin
+        # Returns a scalar
         @inline (Statistics.$fname)(A::AbDimArray) = (Statistics.$fname)(parent(A))
+        # Returns a reduced array
         @inline (Statistics.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDimensions) =
             rebuild(A, (Statistics.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
         @inline (Statistics.$_fname)(A::AbDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =

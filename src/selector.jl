@@ -58,6 +58,8 @@ sel2indices(grid, dim::AbDim{<:Any,<:AbstractCategoricalGrid}, sel::Near) =
 sel2indices(grid, dim::AbDim, sel::Near) = near(dim, val(sel))
 sel2indices(grid, dim::AbDim, sel::Near{<:Tuple}) = [near.(Ref(dim), val(sel))...]
 sel2indices(grid, dim::AbDim, sel::Near{<:AbstractVector}) = near.(Ref(dim), val(sel))
+sel2indices(grid::UnknownGrid, dim::AbDim, sel::Between{<:Tuple}) = 
+    between(dim, val(sel))
 sel2indices(grid::IndependentGrid{<:Ordered}, dim::AbDim, sel::Between{<:Tuple}) = 
     between(dim, val(sel))
 sel2indices(grid::IndependentGrid{Unordered}, dim::AbDim, sel::Between{<:Tuple}) = 
@@ -100,6 +102,8 @@ near(list, selval) = begin
 end
 
 between(dim::AbDim, sel) = between(indexorder(dim), dim, sel)
+between(::Unordered, dim::AbDim, sel) = 
+    throw(ArgumentError("Cannot use `Between` on an unordered dimension"))
 between(::Forward, dim::AbDim, sel) = 
     rangeorder(dim, searchsortedfirst(val(dim), first(sel)), searchsortedlast(val(dim), last(sel)))
 between(::Reverse, dim::AbDim, sel) = 

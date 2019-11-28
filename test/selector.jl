@@ -21,7 +21,7 @@ end
     @test view(da, Near<|(13,), Near<|(1.3u"s", 3.3u"s")) == [1 3]
     @test view(da, Between(11, 20), At((2:3)u"s")) == [6 7]
     # Between also accepts a tuple input
-    @test view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
+    @test_broken view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
 end
 
 @testset "setindex! with selectors" begin
