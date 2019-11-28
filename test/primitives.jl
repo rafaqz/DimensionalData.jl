@@ -18,8 +18,9 @@ da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
 dimz = dims(da) 
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2)),), (Y(-36.0),))
-    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1)), Y(LinRange(-38.0,-36.0,3))), ())
+    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(span=2.0)),), (Y(-36.0; grid=RegularGrid(span=1.0)),))
+    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(span=2.0)), 
+                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(span=1.0))), ())
 end
 
 @testset "dims2indices" begin

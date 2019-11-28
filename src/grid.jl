@@ -162,7 +162,7 @@ struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAllignedGrid{O}
     sampling::Sa
     bounds::B
 end
-AllignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=error("must supply bounds")) =
+AllignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=nothing) =
     AllignedGrid(order, locus, sampling, bounds)
 
 bounds(g::AllignedGrid) = g.bounds

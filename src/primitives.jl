@@ -229,7 +229,7 @@ type and order.
 @inline reducedims(grid::UnknownGrid, dim) = 
     rebuild(dim, first(val(dim)), UnknownGrid())
 @inline reducedims(grid::CategoricalGrid, dim) = 
-    rebuild(dim, :combined, CategoricalGrid(Unordered()))
+    rebuild(dim, [:combined], CategoricalGrid(Unordered()))
 @inline reducedims(grid::AllignedGrid, dim) = begin 
     grid = AllignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
     rebuild(dim, reducedims(locus(grid), dim), grid)
@@ -239,19 +239,19 @@ end
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) = 
-    rebuild(dim, nothing, UnknownGrid)
+    rebuild(dim, [nothing], UnknownGrid)
 
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
-reduceddims(locus::Start, dim) = first(val(dim))
-reduceddims(locus::End, dim) = last(val(dim))
-reduceddims(locus::Center, dim) = begin
+reducedims(locus::Start, dim) = [first(val(dim))]
+reducedims(locus::End, dim) = [last(val(dim))]
+reducedims(locus::Center, dim) = begin
     index = val(dim)
     len = length(index)
     if iseven(len)
-        (index[len ÷ 2] + index[len ÷ 2 + 1]) / 2
+        [(index[len ÷ 2] + index[len ÷ 2 + 1]) / 2]
     else
-        index[len ÷ 2 + 1]
+        [index[len ÷ 2 + 1]]
     end
 end
 
