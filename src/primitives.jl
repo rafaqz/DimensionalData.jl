@@ -200,8 +200,7 @@ end
 
 identify(::UnknownGrid, index::AbstractVector) = begin
     order = orderof(first(index), last(index))
-    sorted = order == Forward() ? issorted(index) : issorted(index; rev=true)
-
+    sorted = indexorder(order) == Forward() ? issorted(index) : issorted(index; rev=true)
     if sorted
         AllignedGrid(; order=order)
     else
