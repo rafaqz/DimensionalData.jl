@@ -27,9 +27,9 @@ indexorder(dim::AbDim) = indexorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
-rebuild(dim::D, val, grid=grid(dim)) where D <: AbDim = 
+rebuild(dim::D, val, grid=grid(dim)) where D <: AbDim =
     rebuild(dim, val, grid, metadata(dim))
-rebuild(dim::D, val, grid, metadata) where D <: AbDim = 
+rebuild(dim::D, val, grid, metadata) where D <: AbDim =
     constructorof(D)(val, grid, metadata)
 
 dims(x::AbDim) = x
@@ -37,7 +37,7 @@ dims(x::AbDimTuple) = x
 name(dim::AbDim) = name(typeof(dim))
 shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d)
-units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
+units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 bounds(A::AbstractArray, args...) = bounds(dims(A), args...)
 
@@ -89,13 +89,13 @@ end
 
 Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim{<:Number}}) =
     getindex(A, dims2indices(A, dims)...)
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbstractDimension}) = 
+Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbstractDimension}) =
     getindex(A, dims2indices(A, dims)...)
 
 Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dims::Vararg{<:AbstractDimension}) =
     setindex!(A, x, dims2indices(A, dims)...)
 
-Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbstractDimension}) = 
+Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbstractDimension}) =
     view(A, dims2indices(A, dims)...)
 
 @inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
@@ -109,15 +109,15 @@ abstract type AbstractParametricDimension{X,T,G,M} <: AbstractDimension{T,G,M} e
 
 """
 A generic dimension. For use when custom dims are required when loading
-data from a file. The sintax is ugly and verbose to use for indexing, 
-ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason 
+data from a file. The sintax is ugly and verbose to use for indexing,
+ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,G,M} <: AbstractParametricDimension{X,T,G,M} 
+struct Dim{X,T,G,M} <: AbstractParametricDimension{X,T,G,M}
     val::T
     grid::G
     metadata::M
-    Dim{X}(val, grid, metadata) where X = 
+    Dim{X}(val, grid, metadata) where X =
         new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
 end
 
@@ -152,6 +152,6 @@ end
 
 # Define some common dimensions
 @dim Time
-@dim X 
-@dim Y 
-@dim Z 
+@dim X
+@dim Y
+@dim Z
