@@ -80,7 +80,6 @@ Base.show(io::IO, dim::AbDim) = begin
     show(io, grid(dim))
     printstyled(io, "\nmetadata: "; color=:blue)
     show(io, metadata(dim))
-    print(io, "\n")
 end
 
 # AbstractArray methods where dims are the dispatch argument

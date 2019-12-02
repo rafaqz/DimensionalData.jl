@@ -17,13 +17,13 @@ bounds(A::AbDimArray) = bounds(dims(A))
 Base.size(A::AbDimArray) = size(parent(A))
 Base.iterate(A::AbDimArray, args...) = iterate(parent(A), args...)
 Base.show(io::IO, A::AbDimArray) = begin
-    printstyled(io, "\n", label(A), ": "; color=:red)
+    printstyled(io, label(A), ": "; color=:red)
     show(io, typeof(A))
     show(io, parent(A))
-    printstyled(io, "\n\ndims:\n"; color=:magenta)
+    printstyled(io, "\ndims: "; color=:magenta)
     show(io, dims(A))
     show(io, refdims(A))
-    printstyled(io, "\n\nmetadata:\n"; color=:cyan)
+    printstyled(io, "\nmetadata: "; color=:cyan)
 end
 
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:Integer}) =
@@ -38,8 +38,9 @@ Base.convert(::Type{Array{T,N}}, A::AbDimArray{T,N}) where {T,N} =
     convert(Array{T,N}, parent(A))
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(parent(A)))
-Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(src), parent(dst))
-Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(parent(src), dst)
+Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(dst), parent(src))
+Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(parent(dst), src)
+Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, parent(src))
 
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 

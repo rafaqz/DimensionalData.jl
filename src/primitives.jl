@@ -181,14 +181,15 @@ which is easier to handle. Errors are thrown if dims don't match the array dims 
     formatdims(size(A), dims)
 end
 @inline formatdims(size::Tuple, dims::Tuple) = map(formatdims, size, dims)
-@inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) =
-    if length(val(dim)) == len
-        index = val(dim)
+@inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) = begin
+    index = val(dim)
+    if length(index) == len
         rebuild(dim; grid=identify(grid(dim), index)) 
     else
         throw(ArgumentError("length of $dim $(length(index)) does not match
                              size of array dimension $len"))
     end
+end
 @inline formatdims(len::Integer, dim::AbDim{<:Union{AbstractRange,NTuple{2}}}) = 
     linrange(dim, len)
 @inline formatdims(len::Integer, dim::AbDim) = dim
