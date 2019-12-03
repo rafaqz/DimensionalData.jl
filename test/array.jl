@@ -78,6 +78,9 @@ end
 a = [1 2 3 4 
      3 4 5 6 
      4 5 6 7]
+b = [4 4 4 4 
+     4 4 4 4 
+     4 4 4 4]
 dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 da = DimensionalArray(a, dimz)
 
@@ -97,16 +100,19 @@ end
 @testset "copy" begin
     da2 = copy(da)
     @test da2 == da
-    b = [4 4 4 4 
-         4 4 4 4 
-         4 4 4 4]
-    db = DimensionalArray(deepcopy(b), dimz)
-    @test db != da
-    copy!(b, da)
-    @test b == da
-    copy!(db, da)
-    @test db == da
 end
+
+if VERSION > v"1.1-"
+    @testset "copy!" begin
+        db = DimensionalArray(deepcopy(b), dimz)
+        @test db != da
+        copy!(b, da)
+        @test b == da
+        copy!(db, da)
+        @test db == da
+    end
+end
+
 
 @testset "broadcast" begin
     da = DimensionalArray(ones(Int, 5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
