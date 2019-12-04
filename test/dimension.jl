@@ -1,11 +1,11 @@
 using DimensionalData, Test, Unitful
-
 using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims
 
 @dim TestDim "Test dimension" 
 
 @testset "dims creation macro" begin
     @test name(TestDim) == "Test dimension"
+    @test label(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
     @test metadata(TestDim(1, UnknownGrid(), "metadata")) == "metadata"

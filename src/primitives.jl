@@ -157,6 +157,7 @@ Get the number of an AbstractDimension as ordered in the array
     end
 end
 
+hasdim(A, lookup::Tuple) = map(l -> hasdim(A, l), lookup)
 hasdim(A, lookup) = hasdim(typeof(dims(A)), typeof(lookup))
 hasdim(A, lookup::Type) = hasdim(typeof(dims(A)), lookup)
 @generated hasdim(dimtypes::Type{DTS}, lookup::Type{D}) where {DTS,D} = begin

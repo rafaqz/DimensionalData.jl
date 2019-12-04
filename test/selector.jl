@@ -123,7 +123,7 @@ end
         # Using selectors works the same as indexing with grid
         # dims - it applies the transform function. 
         # It's not clear this should be allowed or makes sense, 
-        # but it works anyway because the permutatoin is correct either way.
+        # but it works anyway because the permutation is correct either way.
         @test da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2))] == 9
     end
 

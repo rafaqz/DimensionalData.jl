@@ -1,6 +1,7 @@
 include("dimension.jl")
 include("primitives.jl")
 include("array.jl")
+include("grid.jl")
 include("selector.jl")
 include("methods.jl")
 include("benchmarks.jl")
