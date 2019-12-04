@@ -1,3 +1,8 @@
+using DimensionalData, Test
+
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim,
+      @dim, reducedims, dimnum, X, Y, Z, Time, Forward
+
 dimz = (X(), Y())
 
 @testset "permutedims" begin
@@ -18,13 +23,16 @@ da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
 dimz = dims(da) 
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(span=2.0)),), (Y(-36.0; grid=RegularGrid(span=1.0)),))
+    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(span=2.0)),), 
+                                        (Y(-36.0; grid=RegularGrid(span=1.0)),))
     @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(span=2.0)), 
                                          Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(span=1.0))), ())
+    @test slicedims((), (1:2, 3)) == ((), ())
 end
 
 @testset "dims2indices" begin
     emptyval = Colon()
+    @test dims2indices(grid(dimz[1]), dimz[1], Y, Nothing) == Colon()
     @test dims2indices(dimz, (Y(),), emptyval) == (Colon(), Colon())
     @test dims2indices(dimz, (Y(1),), emptyval) == (Colon(), 1)
     # Time is just ignored if it's not in dims. Should this be an error?
@@ -42,8 +50,26 @@ end
     @test dimnum(da, X) == 1
     @test dimnum(da, Y()) == 2
     @test dimnum(da, (Y, X())) == (2, 1)
+    @test_throws ArgumentError dimnum(da, Time) == (2, 1)
 end
 
 @testset "reducedims" begin
     @test reducedims((X(3:4), Y(1:5)), (X, Y)) == (X(3), Y(1))
+end
+
+@testset "dims" begin
+    @test typeof(dims(da, X)) <: X 
+    @test typeof(dims(dims(da), Y)) <: Y 
+    @test dims(da, ()) == ()
+    @test_throws ArgumentError dims(da, Time)
+    x = dims(da, X)
+    @test dims(x) == x
+end
+
+@testset "hasdims" begin
+    @test hasdim(da, X) == true
+    @test hasdim(da, Time) == false
+    @test hasdim(dims(da), Y) == true
+    @test hasdim(dims(da), (X, Y)) == (true, true)
+    @test hasdim(dims(da), (X, Time)) == (true, false)
 end

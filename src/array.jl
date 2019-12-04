@@ -7,7 +7,6 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 # Interface methods ############################################################
 
 dims(A::AbDimArray) = A.dims
-label(A::AbDimArray) = ""
 bounds(A::AbDimArray) = bounds(dims(A))
 @inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
 
@@ -48,7 +47,9 @@ Base.similar(A::AbDimArray) = rebuild(A, similar(parent(A)))
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(parent(A), T))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = 
     rebuild(A, similar(parent(A), T, I))
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
+    rebuildsliced(A, similar(parent(A), T, I...), I)
+Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
     rebuildsliced(A, similar(parent(A), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
@@ -58,12 +59,6 @@ end
 
 # Need to cover a few type signatures to avoid ambiguity with base
 # Don't remove these even though they look redundant
-Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(parent(A), T, I...), I)
-Base.similar(A::AbDimArray, ::Type{T}, ::Tuple{Int,Vararg{Int}}) where T = 
-    rebuild(A, similar(parent(A), T))
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,OneTo},Vararg{Union{Integer,OneTo},N}}) where {T,N} =
-    rebuildsliced(A, similar(parent(A), T, I...), I)
 
 @inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
 @inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)

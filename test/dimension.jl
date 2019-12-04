@@ -1,7 +1,11 @@
+using DimensionalData, Test, Unitful
+using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims
+
 @dim TestDim "Test dimension" 
 
 @testset "dims creation macro" begin
     @test name(TestDim) == "Test dimension"
+    @test label(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
     @test metadata(TestDim(1, UnknownGrid(), "metadata")) == "metadata"
@@ -41,8 +45,8 @@ da = DimensionalArray(a, dimz)
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Time)
-    @test typeof(dims(da)) == Tuple{X{LinRange{Float64},RegularGrid{Ordered{Forward,Forward},Start,UnknownSampling,Float64},Nothing},
-                                Y{LinRange{Float64},RegularGrid{Ordered{Forward,Forward},Start,UnknownSampling,Float64},Nothing}}
+    @test typeof(dims(da)) == Tuple{X{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing},
+                                Y{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing}}
 end
 
 @testset "arbitrary dim names" begin

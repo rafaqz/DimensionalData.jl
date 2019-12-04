@@ -51,7 +51,7 @@ std(a; dims=Y())
 """
 module DimensionalData
 
-using ConstructionBase, LinearAlgebra, RecipesBase, Statistics
+using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
@@ -78,7 +78,7 @@ export AbstractDimensionalArray, DimensionalArray
 export Metadata, AbstractArrayMetadata, ArrayMetadata, AbstractDimMetadata, DimMetadata
 
 export dims, refdims, metadata, name, shortname, 
-       val, label, units, order, bounds, grid, <|
+       val, label, units, order, bounds, locus, grid, <|
 
 include("interface.jl")
 include("metadata.jl")

@@ -1,3 +1,6 @@
+using DimensionalData, Test, Unitful
+using DimensionalData: X, Y, Z, Time, Start
+
 a = [1 2; 3 4]
 dimz = (X((143, 145)), Y((-38, -36)))
 da = DimensionalArray(a, dimz)
@@ -15,6 +18,7 @@ end
     @test refdims(a) == (Y(-38.0; grid=RegularGrid(;span=2.0)),)
     @test bounds(a) == ((143.0, 147.0),)
     @test bounds(a, X) == (143.0, 147.0)
+    @test locus(grid(dims(da, X))) == Start()
 
     a = da[X(1), Y(1:2)]
     @test a == [1, 2]
@@ -97,6 +101,43 @@ end
     @test axes(da, Dim{:column}) == 1:4  
 end
 
+
+@testset "similar" begin
+    da_sim = similar(da)
+    @test eltype(da_sim) == eltype(da)
+    @test size(da_sim) == size(da)
+    @test dims(da_sim) == dims(da)
+    @test refdims(da_sim) == refdims(da)
+
+    da_float = similar(da, Float64)
+    @test eltype(da_float) == Float64
+    @test size(da_float) == size(da)
+    @test dims(da_float) == dims(da)
+    @test refdims(da_float) == refdims(da)
+
+    da_size_float = similar(da, Float64, (10, 10))
+    @test eltype(da_size_float) == Float64
+    @test size(da_size_float) == (10, 10)
+    # TODO what should this actually be?
+    # @test dims(da_float) == dims(da)
+    @test refdims(da_float) == refdims(da)
+end
+
+@testset "broadcast" begin
+    da = DimensionalArray(ones(Int, 5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
+    da2 = da .* 2.0
+    @test da2 == fill(2.0, 5, 2, 4)
+    @test eltype(da2) <: Float64
+    @test dims(da2) == (Y(LinRange(10, 20, 5); grid=RegularGrid(;span=2.5)), 
+                        Time(LinRange(10.0, 11.0, 2); grid=RegularGrid(;span=1.0)), 
+                        X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)))
+    da2 = da .+ fill(10, 5, 2, 4)
+    @test da2 == fill(11, 5, 2, 4)
+    @test eltype(da2) <: Int
+
+    # TODO permute dims to match in broadcast
+end
+
 @testset "copy" begin
     da2 = copy(da)
     @test da2 == da
@@ -110,19 +151,7 @@ if VERSION > v"1.1-"
         @test b == da
         copy!(db, da)
         @test db == da
+        copy!(db, da)
+        @test db == da
     end
-end
-
-
-@testset "broadcast" begin
-    da = DimensionalArray(ones(Int, 5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
-    da2 = da .* 2.0
-    @test da2 == fill(2.0, 5, 2, 4)
-    @test eltype(da2) <: Float64
-    @test dims(da2) == (Y(LinRange(10, 20, 5); grid=RegularGrid(;span=2.5)), 
-                        Time(LinRange(10.0, 11.0, 2); grid=RegularGrid(;span=1.0)), 
-                        X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)))
-    da2 = da .+ fill(10, 5, 2, 4)
-    @test da2 == fill(11, 5, 2, 4)
-    @test eltype(da2) <: Int
 end

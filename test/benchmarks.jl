@@ -1,3 +1,5 @@
+using DimensionalData, BenchmarkTools
+
 #= Benchmarks
 
 Test how much the recalculation of coordinates and dim types

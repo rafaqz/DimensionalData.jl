@@ -16,21 +16,28 @@ always happens in smallest to largest order.
 
 Base also defines Forward and Reverse, but they seem overly complicated for our purposes.
 """
-struct Ordered{D,A} <: Order
+struct Ordered{D,A,R} <: Order
     index::D
     array::A
+    relation::R
 end
-Ordered() = Ordered(Forward(), Forward())
+Ordered() = Ordered(Forward(), Forward(), Forward())
+
+indexorder(order::Ordered) = order.index
+arrayorder(order::Ordered) = order.array
+relationorder(order::Ordered) = order.relation
 
 """
 Trait indicating that the array or dimension has no order.
 """
-struct Unordered <: Order end
+struct Unordered{R} <: Order 
+    relation::R
+end
+Unordered() = Unordered(Forward())
 
-indexorder(order::Ordered) = order.index
-indexorder(order::Unordered) = Unordered()
-arrayorder(order::Ordered) = order.array
-arrayorder(order::Unordered) = Unordered()
+indexorder(order::Unordered) = order
+arrayorder(order::Unordered) = order
+relationorder(order::Unordered) = order.relation
 
 """
 Trait indicating that the array or dimension is in the normal forward order.
@@ -45,14 +52,23 @@ struct Reverse <: Order end
 
 Base.reverse(::Reverse) = Forward()
 Base.reverse(::Forward) = Reverse()
-Base.reverse(o::Ordered) = Ordered(reverse(indexorder(o)), reverse(arrayorder(o)))
-Base.reverse(::Unordered) = Unordered()
+# Base.reverse(o::Ordered) = 
+    # Ordered(indexorder(o), reverse(relationorder(o)), reverse(arrayorder(o)))
+# Base.reverse(o::Unordered) = 
+    # Unordered(reverse(relationorder(o)))
 
-reverseindex(o::Unordered) = Unordered()
-reverseindex(o::Ordered) = Ordered(reverse(indexorder(o)), arrayorder(o))
+reverseindex(o::Unordered) = 
+    Unordered(reverse(relationorder(o)))
+reverseindex(o::Ordered) = 
+    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relationorder(o)))
 
-reversearray(o::Unordered) = Unordered()
-reversearray(o::Ordered) = Ordered(indexorder(o), reverse(arrayorder(o)))
+reversearray(o::Unordered) = 
+    Unordered(reverse(relationorder(o)))
+reversearray(o::Ordered) = 
+    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relationorder(o)))
+
+isrev(::Forward) = false
+isrev(::Reverse) = true
 
 
 """
@@ -118,6 +134,11 @@ abstract type Grid end
 dims(g::Grid) = nothing
 arrayorder(grid::Grid) = arrayorder(order(grid))
 indexorder(grid::Grid) = indexorder(order(grid))
+relationorder(grid::Grid) = relationorder(order(grid))
+
+Base.reverse(g::Grid) = rebuild(g; order=reverse(order(g)))
+reversearray(g::Grid) = rebuild(g; order=reversearray(order(g)))
+reverseindex(g::Grid) = rebuild(g; order=reverseindex(order(g)))
 
 """
 Fallback grid type
@@ -135,10 +156,6 @@ abstract type IndependentGrid{O} <: Grid end
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
 """
 abstract type AbstractAllignedGrid{O} <: IndependentGrid{O} end
-
-Base.reverse(g::AbstractAllignedGrid) = rebuild(g; order=reverse(order(g)))
-reversearray(g::AbstractAllignedGrid) = rebuild(g; order=reversearray(order(g)))
-reverseindex(g::AbstractAllignedGrid) = rebuild(g; order=reverseindex(order(g)))
 
 order(g::AbstractAllignedGrid) = g.order
 locus(g::AbstractAllignedGrid) = g.locus
