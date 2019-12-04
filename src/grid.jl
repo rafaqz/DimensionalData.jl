@@ -21,7 +21,7 @@ struct Ordered{D,A,R} <: Order
     array::A
     relation::R
 end
-Ordered() = Ordered(Forward(), Forward())
+Ordered() = Ordered(Forward(), Forward(), Forward())
 
 indexorder(order::Ordered) = order.index
 arrayorder(order::Ordered) = order.array
@@ -33,6 +33,7 @@ Trait indicating that the array or dimension has no order.
 struct Unordered{R} <: Order 
     relation::R
 end
+Unordered() = Unordered(Forward())
 
 indexorder(order::Unordered) = order
 arrayorder(order::Unordered) = order
@@ -135,6 +136,10 @@ arrayorder(grid::Grid) = arrayorder(order(grid))
 indexorder(grid::Grid) = indexorder(order(grid))
 relationorder(grid::Grid) = relationorder(order(grid))
 
+Base.reverse(g::Grid) = rebuild(g; order=reverse(order(g)))
+reversearray(g::Grid) = rebuild(g; order=reversearray(order(g)))
+reverseindex(g::Grid) = rebuild(g; order=reverseindex(order(g)))
+
 """
 Fallback grid type
 """
@@ -151,10 +156,6 @@ abstract type IndependentGrid{O} <: Grid end
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
 """
 abstract type AbstractAllignedGrid{O} <: IndependentGrid{O} end
-
-Base.reverse(g::AbstractAllignedGrid) = rebuild(g; order=reverse(order(g)))
-reversearray(g::AbstractAllignedGrid) = rebuild(g; order=reversearray(order(g)))
-reverseindex(g::AbstractAllignedGrid) = rebuild(g; order=reverseindex(order(g)))
 
 order(g::AbstractAllignedGrid) = g.order
 locus(g::AbstractAllignedGrid) = g.locus

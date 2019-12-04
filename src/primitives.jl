@@ -216,7 +216,12 @@ regularise(::UnknownGrid, start, stop, len) =
 regularise(grid::Grid, start, stop, len) = grid
 
 spanof(a, b, len) = (b - a)/(len - 1)
-orderof(a, b) = Ordered(a <= b ? Forward() : Reverse(), Forward())
+orderof(a, b) = 
+    if a <= b
+        Ordered(Forward(), Forward(), Forward())
+    else
+        Ordered(Reverse(), Forward(), Forward())
+    end
 
 
 """

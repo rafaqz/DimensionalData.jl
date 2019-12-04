@@ -62,8 +62,8 @@ end
     @test typeof(dims(dims(da), Y)) <: Y 
     @test dims(da, ()) == ()
     @test_throws ArgumentError dims(da, Time)
-    d = dims(da[1])
-    @test dims(d) == d
+    x = dims(da, X)
+    @test dims(x) == x
 end
 
 @testset "hasdims" begin

@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, Reverse
+using DimensionalData: X, Y, Z, Time, Forward, Reverse, reversearray, reverseindex
 
 @testset "sampling" begin
 
@@ -8,9 +8,23 @@ end
 @testset "reverse" begin
     @test reverse(Reverse()) == Forward()
     @test reverse(Forward()) == Reverse()
-    @test reverse(Unordered()) == Unordered()
-    @test reverse(Ordered(Forward(), Reverse())) == Ordered(Forward(), Forward()) 
-    @test grid(reverse(AllignedGrid(grid=Ordered(Forward(), Reverse())))) == Ordered(Reverse(), Reverse()) 
-    @test grid(reverse(RegularGrid(grid=Ordered(Forward(), Reverse())))) == Ordered(Reverse(), Forward()) 
-    @test grid(reverse(CategoricalGrid(grid=Ordered(Forward(), Reverse())))) == Ordered(Reverse(), Forward()) 
+
+    @test reversearray(Unordered(Forward())) == 
+        Unordered(Reverse())
+    @test reversearray(Ordered(Forward(), Reverse(), Forward())) == 
+        Ordered(Forward(), Forward(), Reverse()) 
+
+    @test reverseindex(Unordered(Forward())) == 
+        Unordered(Reverse())
+    @test reverseindex(Ordered(Forward(), Reverse(), Forward())) == 
+        Ordered(Reverse(), Reverse(), Reverse()) 
+
+    @test order(reverseindex(AllignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
+        Ordered(Reverse(), Reverse(), Reverse()) 
+    @test order(reversearray(AllignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
+        Ordered(Forward(), Forward(), Reverse()) 
+    @test order(reverseindex(RegularGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
+        Ordered(Reverse(), Reverse(), Forward()) 
+    @test order(reverseindex(CategoricalGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
+        Ordered(Reverse(), Reverse(), Forward())
 end
