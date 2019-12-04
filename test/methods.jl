@@ -1,3 +1,7 @@
+using DimensionalData, Statistics, Test, Unitful, SparseArrays
+
+using DimensionalData: X, Y, Z, Time
+
 using LinearAlgebra: Transpose
 
 @testset "dimension reducing methods" begin

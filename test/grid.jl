@@ -1,3 +1,7 @@
+using DimensionalData, Test, Unitful
+
+using DimensionalData: X, Y, Z, Time, Forward
+
 @testset "bounds" begin
 
 end

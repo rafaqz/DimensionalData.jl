@@ -1,3 +1,8 @@
+using DimensionalData, Test
+
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, 
+      @dim, reducedims, dimnum, X, Y, Z, Time, Forward
+
 dimz = (X(), Y())
 
 @testset "permutedims" begin

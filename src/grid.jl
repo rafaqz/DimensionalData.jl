@@ -22,14 +22,15 @@ struct Ordered{D,A} <: Order
 end
 Ordered() = Ordered(Forward(), Forward())
 
+indexorder(order::Ordered) = order.index
+arrayorder(order::Ordered) = order.array
+
 """
 Trait indicating that the array or dimension has no order.
 """
 struct Unordered <: Order end
 
-indexorder(order::Ordered) = order.index
 indexorder(order::Unordered) = Unordered()
-arrayorder(order::Ordered) = order.array
 arrayorder(order::Unordered) = Unordered()
 
 """
@@ -53,6 +54,9 @@ reverseindex(o::Ordered) = Ordered(reverse(indexorder(o)), arrayorder(o))
 
 reversearray(o::Unordered) = Unordered()
 reversearray(o::Ordered) = Ordered(indexorder(o), reverse(arrayorder(o)))
+
+isrev(::Forward) = false
+isrev(::Reverse) = true
 
 
 """

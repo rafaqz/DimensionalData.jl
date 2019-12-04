@@ -51,7 +51,7 @@ std(a; dims=Y())
 """
 module DimensionalData
 
-using ConstructionBase, LinearAlgebra, RecipesBase, Statistics
+using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
