@@ -46,7 +46,7 @@ bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
 bounds(dim::AbDim) = bounds(grid(dim), dim)
 
-bounds(grid::AllignedGrid, dim) = bounds(grid)
+bounds(grid::AlignedGrid, dim) = bounds(grid)
 bounds(grid::UnknownGrid, dim) = first(val(dim)), last(val(dim))
 
 bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)

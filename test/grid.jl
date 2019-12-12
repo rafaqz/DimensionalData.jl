@@ -19,9 +19,9 @@ end
     @test reverseindex(Ordered(Forward(), Reverse(), Forward())) == 
         Ordered(Reverse(), Reverse(), Reverse()) 
 
-    @test order(reverseindex(AllignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
+    @test order(reverseindex(AlignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
         Ordered(Reverse(), Reverse(), Reverse()) 
-    @test order(reversearray(AllignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
+    @test order(reversearray(AlignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
         Ordered(Forward(), Forward(), Reverse()) 
     @test order(reverseindex(RegularGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
         Ordered(Reverse(), Reverse(), Forward()) 

@@ -69,7 +69,7 @@ export Grid, UnknownGrid
 
 export AbstractCategoricalGrid, CategoricalGrid 
 
-export IndependentGrid, AbstractAllignedGrid, AllignedGrid, RegularGrid
+export IndependentGrid, AbstractAlignedGrid, AlignedGrid, RegularGrid
 
 export DependentGrid, TransformedGrid, LookupGrid
 

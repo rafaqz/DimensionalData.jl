@@ -71,11 +71,11 @@ sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) =
 # Near selector
 sel2indices(grid::T, dim::AbDim, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid} =
     throw(ArgumentError("`Near` has no meaning in a `$T`. Use `At`"))
-sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near) =
+sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near) =
     near(dim, val(sel))
-sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near{<:Tuple}) =
+sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near{<:Tuple}) =
     [near.(Ref(dim), val(sel))...]
-sel2indices(grid::AbstractAllignedGrid, dim::AbDim, sel::Near{<:AbstractVector}) =
+sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near{<:AbstractVector}) =
     near.(Ref(dim), val(sel))
 
 # Between selector

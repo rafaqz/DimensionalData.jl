@@ -1,7 +1,7 @@
 abstract type Order end
 
 """
-Trait container for dimension and array ordering in AllignedGrid.
+Trait container for dimension and array ordering in AlignedGrid.
 
 The default is `Ordered(Forward()`, `Forward())`
 
@@ -155,11 +155,11 @@ abstract type IndependentGrid{O} <: Grid end
 """
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
 """
-abstract type AbstractAllignedGrid{O} <: IndependentGrid{O} end
+abstract type AbstractAlignedGrid{O} <: IndependentGrid{O} end
 
-order(g::AbstractAllignedGrid) = g.order
-locus(g::AbstractAllignedGrid) = g.locus
-sampling(g::AbstractAllignedGrid) = g.sampling
+order(g::AbstractAlignedGrid) = g.order
+locus(g::AbstractAlignedGrid) = g.locus
+sampling(g::AbstractAlignedGrid) = g.sampling
 
 """
 An alligned grid without known regular spacing. These grids will generally be paired
@@ -173,20 +173,20 @@ As the size of the cells is not known, the bounds must be actively tracked.
 - `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `bounds`: the outer edges of the grid (different to the first and last coordinate).
 """
-struct AllignedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAllignedGrid{O}
+struct AlignedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAlignedGrid{O}
     order::O
     locus::L
     sampling::Sa
     bounds::B
 end
-AllignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=nothing) =
-    AllignedGrid(order, locus, sampling, bounds)
+AlignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=nothing) =
+    AlignedGrid(order, locus, sampling, bounds)
 
-bounds(g::AllignedGrid) = g.bounds
+bounds(g::AlignedGrid) = g.bounds
 
-rebuild(g::AllignedGrid; 
+rebuild(g::AlignedGrid; 
         order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
-    AllignedGrid(order, locus, sampling, bounds)
+    AlignedGrid(order, locus, sampling, bounds)
 
 """
 An alligned grid known to have equal spacing between all cells.
@@ -197,7 +197,7 @@ An alligned grid known to have equal spacing between all cells.
 - `sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `span`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAllignedGrid{O}
+struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractAlignedGrid{O}
     order::O
     locus::L
     sampling::Sa

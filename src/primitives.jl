@@ -209,7 +209,7 @@ identify(::UnknownGrid, index::AbstractVector) = begin
     order = orderof(first(index), last(index))
     sorted = indexorder(order) == Forward() ? issorted(index) : issorted(index; rev=true)
     if sorted
-        AllignedGrid(; order=order)
+        AlignedGrid(; order=order)
     else
         CategoricalGrid(; order=Unordered())
     end
@@ -254,8 +254,8 @@ type and order.
     rebuild(dim, first(val(dim)), UnknownGrid())
 @inline reducedims(grid::CategoricalGrid, dim) =
     rebuild(dim, [:combined], CategoricalGrid(Unordered()))
-@inline reducedims(grid::AllignedGrid, dim) = begin
-    grid = AllignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
+@inline reducedims(grid::AlignedGrid, dim) = begin
+    grid = AlignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
