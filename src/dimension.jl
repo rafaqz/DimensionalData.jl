@@ -27,9 +27,7 @@ indexorder(dim::AbDim) = indexorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 
 # DimensionalData interface methods
-rebuild(dim::D, val, grid=grid(dim)) where D <: AbDim =
-    rebuild(dim, val, grid, metadata(dim))
-rebuild(dim::D, val, grid, metadata) where D <: AbDim =
+rebuild(dim::D, val, grid=grid(dim), metadata=metadata(dim)) where D <: AbDim =
     constructorof(D)(val, grid, metadata)
 
 dims(x::AbDim) = x
@@ -69,7 +67,12 @@ bounds(::Reverse, ::End, grid, dim) = last(val(dim)) - span(grid), first(val(dim
 
 # Base methods
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
+Base.ndims(dim::AbDim) = ndims(val(dim))
+Base.size(dim::AbDim) = size(val(dim))
 Base.length(dim::AbDim) = length(val(dim))
+Base.getindex(dim::AbDim, I...) = getindex(val(dim), I...)
+Base.firstindex(dim::AbDim) = firstindex(val(dim))
+Base.lastindex(dim::AbDim) = lastindex(val(dim))
 
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", name(dim), ": "; color=:red)
@@ -88,13 +91,13 @@ end
 
 Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim{<:Number}}) =
     getindex(A, dims2indices(A, dims)...)
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbstractDimension}) =
+Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim}) =
     getindex(A, dims2indices(A, dims)...)
 
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dims::Vararg{<:AbstractDimension}) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dims::Vararg{<:AbDim}) =
     setindex!(A, x, dims2indices(A, dims)...)
 
-Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbstractDimension}) =
+Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbDim}) =
     view(A, dims2indices(A, dims)...)
 
 @inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
