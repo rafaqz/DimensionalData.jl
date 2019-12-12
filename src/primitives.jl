@@ -14,9 +14,9 @@ Missing dimensions are replaced with `nothing`
     tosort
 
 @inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
-    permutedims(tosort, Tuple(map(u -> u(), order)))
+    permutedims(tosort, Tuple(map(d -> constructorof(d)(), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
-    permutedims(Tuple(map(u -> u(), tosort)), order)
+    permutedims(Tuple(map(d -> constructorof(d)(), tosort)), order)
 @inline Base.permutedims(tosort::AbDimTuple, order::AbDimVector) =
     permutedims(tosort, Tuple(order))
 @inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
@@ -56,9 +56,11 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
 """
 @inline dims2indices(A, lookup, emptyval=Colon()) =
     dims2indices(dims(A), lookup, emptyval)
-@inline dims2indices(dims::Tuple, lookup, emptyval=Colon()) =
+@inline dims2indices(dims::AbDimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
-@inline dims2indices(dims::Tuple, lookup::Tuple, emptyval=Colon()) =
+@inline dims2indices(dims::AbDimTuple, lookup::Tuple{Vararg{Union{Colon,Integer,AbstractArray}}},
+                     emptyval=Colon()) = lookup
+@inline dims2indices(dims::AbDimTuple, lookup::Tuple, emptyval=Colon()) =
     dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
 # Deal with irregular grid types that need multiple dimensions indexed together
@@ -115,7 +117,9 @@ previous reference dims attached to the array.
 @inline slicedims(A, dims::AbDimTuple) = slicedims(A, dims2indices(A, dims))
 @inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
     slicedims(dims2slice, dims2indices(dims2slice, dims))
+@inline slicedims(dims2slice::AbDimTuple, dims::Tuple{}) = ()
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
+@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
@@ -127,6 +131,7 @@ end
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
+
 @inline slicedims(d::AbDim, i::Colon) = ((rebuild(d, val(d)),), ())
 @inline slicedims(d::AbDim, i::Number) = ((), (rebuild(d, val(d)[i]),))
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
@@ -185,13 +190,13 @@ end
 @inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) = begin
     index = val(dim)
     if length(index) == len
-        rebuild(dim; grid=identify(grid(dim), index)) 
+        rebuild(dim; grid=identify(grid(dim), index))
     else
         throw(ArgumentError("length of $dim $(length(index)) does not match
                              size of array dimension $len"))
     end
 end
-@inline formatdims(len::Integer, dim::AbDim{<:Union{AbstractRange,NTuple{2}}}) = 
+@inline formatdims(len::Integer, dim::AbDim{<:Union{AbstractRange,NTuple{2}}}) =
     linrange(dim, len)
 @inline formatdims(len::Integer, dim::AbDim) = dim
 
@@ -211,12 +216,12 @@ identify(::UnknownGrid, index::AbstractVector) = begin
 end
 identify(grid::Grid, index) = grid
 
-regularise(::UnknownGrid, start, stop, len) = 
+regularise(::UnknownGrid, start, stop, len) =
     RegularGrid(order=orderof(start, stop), span=spanof(start, stop, len))
 regularise(grid::Grid, start, stop, len) = grid
 
 spanof(a, b, len) = (b - a)/(len - 1)
-orderof(a, b) = 
+orderof(a, b) =
     if a <= b
         Ordered(Forward(), Forward(), Forward())
     else
@@ -245,11 +250,11 @@ type and order.
 @inline reducedims(dim::AbDim, ::Nothing) = dim
 @inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
 # Reduce specialising on grid type
-@inline reducedims(grid::UnknownGrid, dim) = 
+@inline reducedims(grid::UnknownGrid, dim) =
     rebuild(dim, first(val(dim)), UnknownGrid())
-@inline reducedims(grid::CategoricalGrid, dim) = 
+@inline reducedims(grid::CategoricalGrid, dim) =
     rebuild(dim, [:combined], CategoricalGrid(Unordered()))
-@inline reducedims(grid::AllignedGrid, dim) = begin 
+@inline reducedims(grid::AllignedGrid, dim) = begin
     grid = AllignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
@@ -257,7 +262,7 @@ end
     grid = RegularGrid(Unordered(), locus(grid), MultiSample(), span(grid) * length(val(dim)))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
-@inline reducedims(grid::DependentGrid, dim) = 
+@inline reducedims(grid::DependentGrid, dim) =
     rebuild(dim, [nothing], UnknownGrid)
 
 # Get the index value at the reduced locus.
