@@ -118,6 +118,7 @@ previous reference dims attached to the array.
 @inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
     slicedims(dims2slice, dims2indices(dims2slice, dims))
 @inline slicedims(dims2slice::AbDimTuple, dims::Tuple{}) = ()
+# Results are split as (dims, refdims)
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
@@ -131,15 +132,15 @@ end
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
-
-@inline slicedims(d::AbDim, i::Colon) = ((rebuild(d, val(d)),), ())
-@inline slicedims(d::AbDim, i::Number) = ((), (rebuild(d, val(d)[i]),))
-@inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
-    ((rebuild(d, val(d)[i]),), ())
+@inline slicedims(d::AbDim, i::Colon) = ((d,), ())
+@inline slicedims(d::AbDim, i::Number) = 
+    ((), (rebuild(d, val(d)[i], slicegrid(grid(d), val(d), i))))
+@inline slicedims(d::AbDim{<:AbstractRange}, i::AbstractArray) =
+    ((rebuild(d, val(d)[i], slicegrid(grid(d), val(d), i)),), ())
 @inline slicedims(d::AbDim{<:LinRange}, i::UnitRange) = begin
     range = val(d)
     start, stop, len = range[first(i)], range[last(i)], length(i) ÷ step(i)
-    ((rebuild(d, LinRange(start, stop, len)),), ())
+    ((rebuild(d, LinRange(start, stop, len), slicegrid(grid(d), val(d), i)),), ())
 end
 
 

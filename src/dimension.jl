@@ -46,15 +46,16 @@ bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
 bounds(dim::AbDim) = bounds(grid(dim), dim)
 
-bounds(grid::AlignedGrid, dim) = bounds(grid)
+bounds(grid::BoundedGrid, dim) = bounds(grid)
 bounds(grid::UnknownGrid, dim) = first(val(dim)), last(val(dim))
 
 bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)
-bounds(::Forward, grid, dim) = first(val(dim)), last(val(dim))
-bounds(::Reverse, grid, dim) = last(val(dim)), first(val(dim))
-bounds(::Unordered, grid, dim) = throw(MethodError("Cannot call `bounds` on an unordered grid"))
+bounds(::Forward, grid::CategoricalGrid, dim) = first(val(dim)), last(val(dim))
+bounds(::Reverse, grid::CategoricalGrid, dim) = last(val(dim)), first(val(dim))
+bounds(::Unordered, grid::CategoricalGrid, dim) = 
+    error("Cannot call `bounds` on an unordered categorical grid")
 
-bounds(grid::RegularGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
+bounds(grid::AbstractEqualSizedGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
 bounds(::Forward, ::Start, grid, dim) = first(val(dim)), last(val(dim)) + span(grid)
 bounds(::Reverse, ::Start, grid, dim) = last(val(dim)), first(val(dim)) + span(grid)
 bounds(::Forward, ::Center, grid, dim) = first(val(dim)) - span(grid) / 2, last(val(dim)) + span(grid) / 2
