@@ -24,7 +24,6 @@ a = ones(5, 4)
 @test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1)) 
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
-
 dimz = dims(da)
 @test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3); grid=RegularGrid(span=2.0)),), 
                                     (Y(8.0, grid=RegularGrid(span=3.0)),))

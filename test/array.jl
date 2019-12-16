@@ -124,7 +124,7 @@ end
 end
 
 @testset "broadcast" begin
-    da = DimensionalArray(ones(Int, 5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
+    da = DimensionalArray(ones(Int, 5, 2, 4), (Y((10, 20)), Time(10:11), X(1:4)))
     da2 = da .* 2.0
     @test da2 == fill(2.0, 5, 2, 4)
     @test eltype(da2) <: Float64
@@ -135,7 +135,7 @@ end
     @test da2 == fill(11, 5, 2, 4)
     @test eltype(da2) <: Int
 
-    # TODO permute dims to match in broadcast
+    # TODO permute dims to match in broadcast?
 end
 
 @testset "copy" begin

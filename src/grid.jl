@@ -84,7 +84,7 @@ or context-dependent spans such as `Month`.
 abstract type Sampling end
 
 """
-Each cell value represents a single discrete sample taken at the index location.
+Each cell value represents a siegle discrete sample taken at the index location.
 """
 struct SingleSample <: Sampling end
 
@@ -168,7 +168,9 @@ sampling(g::AbstractAlignedGrid) = g.sampling
 An [`AlignedGrid`](@ref) grid without known regular spacing. These grids will generally be paired
 with a vector of coordinates along the dimension, instead of a range.
 
-As the size of the cells is not known, the bounds must be actively tracked.
+Bounds are given as the first and last points, which omits the span of one cell, 
+as it is not known. To fix this use either a [`BoundedGrid`](@ref) with specified 
+starting bounds or a [`RegularGrid`](@ref) with a known constand cell span.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
@@ -209,6 +211,8 @@ BoundedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds
     BoundedGrid(order, locus, sampling, bounds)
 
 bounds(g::BoundedGrid) = g.bounds
+bounds(grid::AlignedGrid, dim) = bounds(grid)
+bounds(grid::UnknownGrid, dim) = first(dim), last(dim)
 
 rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
     BoundedGrid(order, locus, sampling, bounds)
@@ -228,21 +232,7 @@ slicebounds(loci::Center, bounds, index, I) =
     last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1] + index[last(I)]) / 2
 
 
-abstract type AbstractEqualSizedGrid{O,L,Sa,Sp} <: AbstractAlignedGrid{O,L,Sa} end
-
-span(g::AbstractEqualSizedGrid) = g.span
-
-struct EqualSizedGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractEqualSizedGrid{O,L,Sa,Sp}
-    order::O
-    locus::L
-    sampling::Sa
-    span::Sp
-end
-EqualSizedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), span=nothing) =
-    EqualSizedGrid(order, locus, sampling, span)
-
-rebuild(g::EqualSizedGrid, order=order(g), locus=locus(g), sampling=sampling(g), span=span(g)) =
-    EqualSizedGrid(order, locus, sampling, span)
+abstract type AbstractRegularGrid{O,L,Sa,Sp} <: AbstractAlignedGrid{O,L,Sa} end
 
 """
 An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
@@ -253,7 +243,7 @@ An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `span::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractEqualSizedGrid{O,L,Sa,Sp}
+struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractRegularGrid{O,L,Sa,Sp}
     order::O
     locus::L
     sampling::Sa
@@ -262,9 +252,18 @@ end
 RegularGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), span=nothing) =
     RegularGrid(order, locus, sampling, span)
 
+span(grid::RegularGrid) = grid.span
+
 rebuild(g::RegularGrid, order=order(g), locus=locus(g), sampling=sampling(g), span=span(g)) =
     RegularGrid(order, locus, sampling, span)
 
+bounds(grid::RegularGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
+bounds(::Forward, ::Start, grid, dim) = first(dim), last(dim) + span(grid)
+bounds(::Reverse, ::Start, grid, dim) = last(dim), first(dim) + span(grid)
+bounds(::Forward, ::Center, grid, dim) = first(dim) - span(grid) / 2, last(dim) + span(grid) / 2
+bounds(::Reverse, ::Center, grid, dim) = last(dim) - span(grid) / 2, first(dim) + span(grid) / 2
+bounds(::Forward, ::End, grid, dim) = first(dim) - span(grid), last(dim)
+bounds(::Reverse, ::End, grid, dim) = last(dim) - span(grid), first(dim)
 
 
 abstract type AbstractCategoricalGrid{O} <: IndependentGrid{O} end
@@ -283,6 +282,11 @@ CategoricalGrid(; order=Ordered()) = CategoricalGrid(order)
 order(g::CategoricalGrid) = g.order
 
 rebuild(g::CategoricalGrid, order=order(g)) = CategoricalGrid(order)
+
+bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)
+bounds(::Forward, grid, dim) = first(dim), last(dim)
+bounds(::Reverse, grid, dim) = last(dim), first(dim)
+bounds(::Unordered, grid, dim) = error("Cannot call `bounds` on an unordered grid")
 
 
 

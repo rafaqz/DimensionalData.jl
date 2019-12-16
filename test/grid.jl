@@ -41,11 +41,11 @@ end
     grid = BoundedGrid(; locus=Start(), bounds=(10.0, 60.0))
     @test bounds(slicegrid(grid, index, 3)) == (30.0, 40.0)
 
-    dim = X(index; grid=EqualSizedGrid(; locus=Start(), span=10.0))
+    dim = X(index; grid=RegularGrid(; locus=Start(), span=10.0))
     @test bounds(dim) == (10.0, 60.0)
-    dim = X(index; grid=EqualSizedGrid(; locus=End(), span=10.0))
+    dim = X(index; grid=RegularGrid(; locus=End(), span=10.0))
     @test bounds(dim) == (0.0, 50.0)
-    dim = X(index; grid=EqualSizedGrid(; locus=Center(), span=10.0))
+    dim = X(index; grid=RegularGrid(; locus=Center(), span=10.0))
     @test bounds(dim) == (5.0, 55.0)
 
     index = [:a, :b, :c, :d]

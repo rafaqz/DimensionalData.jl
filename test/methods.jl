@@ -38,11 +38,14 @@ using LinearAlgebra: Transpose
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
     @test var(da; dims=X()) == [2.0 2.0]
     @test var(da; dims=Y()) == [0.5 0.5]'
+    @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
+    @test extrema(da; dims=X) == [(1, 3) (2, 4)]
     @test_broken dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da; dims=Y()) == [2.0 5.0]'
     @test median(da; dims=X()) == [2.5 3.5 4.5]
+
 end
 
 @testset "dimension dropping methods" begin
@@ -62,7 +65,7 @@ if VERSION > v"1.1-"
              3 4 5 6
              5 6 7 8]
         # eachslice
-        da = DimensionalArray(a, (Y(10:30), Time(1:4)))
+        da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
         @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
         slices = [s .* 2 for s in eachslice(da; dims=Y)] 
         @test map(sin, da) == map(sin, a)
@@ -78,7 +81,7 @@ end
 
 
 @testset "simple dimension reordering methods" begin
-    da = DimensionalArray(zeros(5, 4), (Y(10:20), X(1:4)))
+    da = DimensionalArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
     tda = transpose(da)
     @test tda == transpose(parent(da))
     @test dims(tda) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
@@ -105,7 +108,7 @@ end
 
 
 @testset "dimension reordering methods with specified permutation" begin
-    da = DimensionalArray(ones(5, 2, 4), (Y(10:20), Time(10:11), X(1:4)))
+    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20)), Time(10:11), X(1:4)))
     dsp = permutedims(da, [3, 1, 2])
 
     @test permutedims(da, [X, Y, Time]) == permutedims(da, (X, Y, Time))
@@ -125,7 +128,7 @@ end
     # But you can't index (Y, Y) with dims as you get the
     # first Y both times. It will plot correctly at least.
     a = rand(5, 4)
-    da = DimensionalArray(a, (Y(10:20), X(1:4)))
+    da = DimensionalArray(a, (Y((10, 20)), X(1:4)))
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
@@ -141,7 +144,7 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    da = DimensionalArray(a, (Y(10:30), Time(1:4)))
+    da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
     @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(;span=30.0, order=Unordered(), sampling=MultiSample())),
@@ -149,6 +152,35 @@ end
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Time)
     @test parent(ms) == [10 18 26]'
+end
+
+@testset "indexes" begin
+    da = DimensionalArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
+    @test firstindex(da, Y) == 1 
+    @test firstindex(da, X()) == 1
+    @test lastindex(da, Y()) == 5
+    @test lastindex(da, X) == 4
+end
+
+@testset "cat" begin
+    a = [1 2 3; 4 5 6]
+    da = DimensionalArray(a, (X(1:2), Y(1:3)))
+    b = [7 8 9; 10 11 12]
+    db = DimensionalArray(b, (X(3:4), Y(1:3)))
+    @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
+    @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
+    @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
+    @test cat(da, db; dims=(Z(1:1), Time(1:2))) == cat(a, b; dims=4)
+    @test cat(da, db; dims=(X(), Time(1:2))) == cat(a, b; dims=3)
+    dx = cat(da, db; dims=(X(), Time(1:2)))
+    @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Time(1:2)))
+end
+
+@testset "unique" begin
+    a = [1 1 6; 1 1 6]
+    da = DimensionalArray(a, (X(1:2), Y(1:3)))
+    @test unique(da; dims=X()) == [1 1 6]
+    @test unique(da; dims=Y) == [1 6; 1 6]
 end
 
 # These need fixes in base. kwargs are ::Integer so we can't add methods
