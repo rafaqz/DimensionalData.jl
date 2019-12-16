@@ -188,6 +188,8 @@ AlignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling()) =
 rebuild(g::AlignedGrid, order=order(g), locus=locus(g), sampling=sampling(g)) =
     AlignedGrid(order, locus, sampling)
 
+bounds(grid::AlignedGrid, dim) = first(dim), last(dim)
+
 """
 An alligned grid without known regular spacing and tracked bounds.
 These grids will generally be paired with a vector of coordinates along the
