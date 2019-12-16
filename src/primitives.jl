@@ -118,28 +118,31 @@ previous reference dims attached to the array.
 @inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
     slicedims(dims2slice, dims2indices(dims2slice, dims))
 @inline slicedims(dims2slice::AbDimTuple, dims::Tuple{}) = ()
+# Results are split as (dims, refdims)
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
 end
-@inline slicedims(dims::Tuple{}, I::Tuple) = ((), ())
+@inline slicedims(dims::Tuple{}, I::Tuple) = (), ()
 @inline slicedims(dims::AbDimTuple, I::Tuple) = begin
     d = slicedims(dims[1], I[1])
     ds = slicedims(tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
-@inline slicedims(dims::Tuple{}, I::Tuple{}) = ((), ())
+@inline slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
 
-@inline slicedims(d::AbDim, i::Colon) = ((rebuild(d, val(d)),), ())
-@inline slicedims(d::AbDim, i::Number) = ((), (rebuild(d, val(d)[i]),))
+@inline slicedims(d::AbDim, i::Colon) = (d,), ()
+@inline slicedims(d::AbDim, i::Number) =
+    (), (rebuild(d, val(d)[i], slicegrid(grid(d), val(d), i)),)
+# TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
-    ((rebuild(d, val(d)[i]),), ())
+    (rebuild(d, val(d)[i]),), ()
 @inline slicedims(d::AbDim{<:LinRange}, i::UnitRange) = begin
     range = val(d)
     start, stop, len = range[first(i)], range[last(i)], length(i) ÷ step(i)
-    ((rebuild(d, LinRange(start, stop, len)),), ())
+    (rebuild(d, LinRange(start, stop, len), slicegrid(grid(d), val(d), i)),), ()
 end
 
 
@@ -176,57 +179,60 @@ end
 
 
 """
-Format the dimension to match internal standards.
+    formatdims(A, dims)
 
-Mostily this means converting tuples and UnitRanges to LinRange,
-which is easier to handle. Errors are thrown if dims don't match the array dims or size.
+Format the passed-in dimension(s).
+
+Mostily this means converting indexes of tuples and UnitRanges to 
+`LinRange`, which is easier to handle internally. Errors are also thrown if 
+dims don't match the array dims or size.
+
+If a [`Grid`](@ref) hasn't been specified, a grid type is chosen
+based on the type and element type of the index:
+- `AbstractRange` become `RegularGrid`
+- `AbstractArray` become `AlignedGrid`
+- `AbstractArray` of `Symbol` or `String` become `CategoricalGrid`
 """
-@inline formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
+formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(size(A), dims)
 end
-@inline formatdims(size::Tuple, dims::Tuple) = map(formatdims, size, dims)
-@inline formatdims(len::Integer, dim::AbDim{<:AbstractArray}) = begin
-    index = val(dim)
-    if length(index) == len
-        rebuild(dim; grid=identify(grid(dim), index))
-    else
-        throw(ArgumentError("length of $dim $(length(index)) does not match
-                             size of array dimension $len"))
-    end
+formatdims(size::NTuple{N,Integer}, dims::AbDimTuple) where N = map(formatdims, size, dims)
+formatdims(len::Integer, dim::AbDim{<:AbstractArray}) = begin
+    checklen(dim, len)
+    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
 end
-@inline formatdims(len::Integer, dim::AbDim{<:Union{AbstractRange,NTuple{2}}}) =
-    linrange(dim, len)
-@inline formatdims(len::Integer, dim::AbDim) = dim
+formatdims(len::Integer, dim::AbDim{<:AbstractRange}) = begin
+    checklen(dim, len)
+    range = LinRange(first(dim), last(dim), len)
+    rebuild(dim, range, identify(grid(dim), range))
+end
+formatdims(len::Integer, dim::AbDim{<:NTuple{2}}) = begin
+    range = LinRange(first(dim), last(dim), len)
+    rebuild(dim, range, identify(grid(dim), range))
+end
+formatdims(len::Integer, dim::AbDim) = dim
 
-linrange(dim, len) = begin
-    start, stop = first(val(dim)), last(val(dim))
-    rebuild(dim, LinRange(start, stop, len), regularise(grid(dim), start, stop, len))
-end
+checklen(dim, len) =
+    length(dim) == len ||
+        throw(ArgumentError("length of $(basetypeof(dim)) ($(length(dim))) does not match size of array dimension ($len)"))
 
-identify(::UnknownGrid, index::AbstractVector) = begin
-    order = orderof(first(index), last(index))
-    sorted = indexorder(order) == Forward() ? issorted(index) : issorted(index; rev=true)
-    if sorted
-        AlignedGrid(; order=order)
-    else
-        CategoricalGrid(; order=Unordered())
-    end
-end
+identify(::UnknownGrid, index::AbstractArray) = 
+    AlignedGrid(; order=order=orderof(index))
+identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
+    CategoricalGrid(; order=orderof(index))
+identify(::UnknownGrid, index::AbstractRange) =
+    RegularGrid(order=orderof(index), span=step(index))
 identify(grid::Grid, index) = grid
 
-regularise(::UnknownGrid, start, stop, len) =
-    RegularGrid(order=orderof(start, stop), span=spanof(start, stop, len))
-regularise(grid::Grid, start, stop, len) = grid
+orderof(index::AbstractArray) = begin
+    sorted = issorted(index; rev=isrev(indexorder(index)))
+    order = sorted ? Ordered(; index=indexorder(index)) : Unordered()
+end
 
-spanof(a, b, len) = (b - a)/(len - 1)
-orderof(a, b) =
-    if a <= b
-        Ordered(Forward(), Forward(), Forward())
-    else
-        Ordered(Reverse(), Forward(), Forward())
-    end
+indexorder(index::AbstractArray) =
+    first(index) <= last(index) ? Forward() : Reverse()
 
 
 """
@@ -250,12 +256,11 @@ type and order.
 @inline reducedims(dim::AbDim, ::Nothing) = dim
 @inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
 # Reduce specialising on grid type
-@inline reducedims(grid::UnknownGrid, dim) =
-    rebuild(dim, first(val(dim)), UnknownGrid())
+@inline reducedims(grid::UnknownGrid, dim) = rebuild(dim, first(val(dim)), UnknownGrid())
 @inline reducedims(grid::CategoricalGrid, dim) =
     rebuild(dim, [:combined], CategoricalGrid(Unordered()))
 @inline reducedims(grid::AlignedGrid, dim) = begin
-    grid = AlignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid))
+    grid = AlignedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid, dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
@@ -279,11 +284,20 @@ reducedims(locus::Center, dim) = begin
     end
 end
 
+swapdim(A, dim::AbDim) = rebuild(A; dims=swapdim(dims(A), dim))
+swapdim(dims::Tuple, dim::AbDim) =
+    if basetypeof(dim) <: basetypeof(dims[1])
+        (dim, swapdim(tail(dims), dim)...)
+    else
+        (dims[1], swapdim(tail(dims), dim)...)
+    end
+swapdim(dims::Tuple{}, dim::AbDim) = ()
+
 
 """
 Get the dimension(s) matching the type(s) of the lookup dimension.
 """
-@inline dims(A, lookup) = dims(dims(A), lookup)
+@inline dims(A::AbstractArray, lookup) = dims(dims(A), lookup)
 @inline dims(ds::AbDimTuple, lookup::Integer) = ds[lookup]
 @inline dims(ds::AbDimTuple, lookup::Tuple) =
     (dims(ds, lookup[1]), dims(ds, tail(lookup))...)

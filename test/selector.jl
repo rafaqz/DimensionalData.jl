@@ -1,12 +1,12 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, Reverse, Ordered, arrayorder, indexorder
+using DimensionalData: X, Y, Z, Time, Forward, Reverse, Ordered, arrayorder, indexorder, relationorder
 
 a = [1 2  3  4
      5 6  7  8
      9 10 11 12]
 
 @testset "Selectors on IndependentGrid" begin
-    da = DimensionalArray(a, (Y(10:30), Time((1:4)u"s")))
+    da = DimensionalArray(a, (Y((10, 30)), Time((1:4)u"s")))
     dims(da)
 
     @test At(10.0) == At(10.0, 0.0, Base.rtoldefault(eltype(10.0)))
@@ -46,44 +46,33 @@ a = [1 2  3  4
     end
 
     @testset "selectors work in reverse orders" begin
-        # @testset "all reverse is the same as all forward" begin
-        #     da_rr = DimensionalArray(a, (Y(30:-10:10; grid=RegularGrid(order=Ordered(Reverse(), Forward()))), 
-        #                                  Time((4:-1:1)u"s"; grid=RegularGrid(order=Ordered(Reverse(), Forward())))))
-        #     slice = da_rr[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])]
-        #     @test slice == [12 9; 4 1]
-        #     @test arrayorder(dims(slice, Time)) == Forward()
-        #     @test_throws ArgumentError da[Y<|At([9, 30]), Time<|At([1.0u"s", 4.0u"s"])]
-        #     @test da_rr[Y<|At(20), Time<|At((3.0:4.0)u"s")] == [6, 5]
-        #     @test da_rr[Y<|Near(7), Time<|Near([1.3u"s", 3.3u"s"])] == [8, 6]
-        #     @test da_rr[Y<|Between(9, 21), Time<|At((3.0:4.0)u"s")] == [3 4; 7 8]
-        # end
+        @testset "forward index with reverse relation" begin
+            da_ffr = DimensionalArray(a, (Y(10:10:30; grid=RegularGrid(order=Ordered(Forward(), Forward(), Reverse()))), 
+                                         Time((1:1:4)u"s"; grid=RegularGrid(order=Ordered(Forward(), Forward(), Reverse())))))
+            @test indexorder(dims(da_ffr, Time)) == Forward()
+            @test arrayorder(dims(da_ffr, Time)) == Forward()
+            @test relationorder(dims(da_ffr, Time)) == Reverse()
+            @test da_ffr[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [12 9; 4 1]
+            @test da_ffr[Y<|At(20), Time<|At((3.0:4.0)u"s")] == [6, 5]
+            @test da_ffr[Y<|Near(7), Time<|Near([1.3u"s", 3.3u"s"])] == [12, 10]
+            @test da_ffr[Y<|Between(9, 21), Time<|At((3.0:4.0)u"s")] == [10 9; 6 5]
+        end
 
-        # @testset "all reverse is the same as all forward" begin
-        #     da_rr = DimensionalArray(a, (Y(30:-10:10; grid=RegularGrid(order=Ordered(Reverse(), Reverse()))), 
-        #                                  Time((4:-1:1)u"s"; grid=RegularGrid(order=Ordered(Reverse(), Reverse())))))
-        #     @test da_rr[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [1 4; 9 12]
-        #     @test_throws ArgumentError da[Y<|At([9, 30]), Time<|At([1u"s", 4u"s"])]
-        #     @test da_rr[Y<|At(20), Time<|At((3.0:4.0)u"s")] == [7, 8]
-        #     @test da_rr[Y<|Near(17), Time<|Near([1.3u"s", 3.3u"s"])] == [5, 7]
-        #     @test da_rr[Y<|Between(9, 21), Time<|At((3:4)u"s")] == [3 4; 7 8]
-        # end
-
-        # @testset "all reverse is the same as all forward" begin
-        #     da_rr = DimensionalArray(a, (Y(10:30; grid=RegularGrid(order=Ordered(Forward(), Reverse()))), 
-        #                                  Time((1:4)u"s"; grid=RegularGrid(order=Ordered(Forward(), Reverse())))))
-        #     @test da_rr[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [1 4; 9 12]
-        #     @test_throws ArgumentError da[Y<|At([9, 30]), Time<|At([1u"s", 4u"s"])]
-        #     @test da_rr[Y<|At(20), Time<|At((3:4)u"s")] == [7, 8]
-        #     @test da_rr[Y<|Near(17), Time<|Near([1.3u"s", 3.3u"s"])] == [5, 7]
-        #     @test da_rr[Y<|Between(9, 21), Time<|At((3:4)u"s")] == [3 4; 7 8]
-        # end
+        @testset "is the same as reverse index with forward realation" begin
+            da_rff = DimensionalArray(a, (Y(30:-10:10; grid=RegularGrid(order=Ordered(Reverse(), Forward(), Forward()))), 
+                                         Time((4:-1:1)u"s"; grid=RegularGrid(order=Ordered(Reverse(), Forward(), Forward())))))
+            @test da_rff[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [12 9; 4 1]
+            @test da_rff[Y<|At(20), Time<|At((3.0:4.0)u"s")] == [6, 5]
+            @test da_rff[Y<|Near(7), Time<|Near([1.3u"s", 3.3u"s"])] == [12, 10]
+            @test da_rff[Y<|Between(9, 21), Time<|At((3.0:4.0)u"s")] == [10 9; 6 5]
+        end
 
     end
 
 
     @testset "setindex! with selectors" begin
         c = deepcopy(a)
-        dc = DimensionalArray(c, (Y(10:30), Time((1:4)u"s")))
+        dc = DimensionalArray(c, (Y((10, 30)), Time((1:4)u"s")))
         dc[Near(11), At(3u"s")] = 100
         @test c[1, 3] == 100
         dc[Time<|Near(2.2u"s"), Y<|Between(10, 30)] = [200, 201, 202]

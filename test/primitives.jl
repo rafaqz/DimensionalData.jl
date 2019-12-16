@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, swapdim,
       @dim, reducedims, dimnum, X, Y, Z, Time, Forward
 
 dimz = (X(), Y())
@@ -72,4 +72,9 @@ end
     @test hasdim(dims(da), Y) == true
     @test hasdim(dims(da), (X, Y)) == (true, true)
     @test hasdim(dims(da), (X, Time)) == (true, false)
+end
+
+@testset "swapdim" begin
+    A = swapdim(da, X(LinRange(150,152,2)))
+    @test val(dims(dims(A), X())) == LinRange(150,152,2) 
 end
