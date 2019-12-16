@@ -150,6 +150,9 @@ struct UnknownGrid <: Grid end
 
 order(::UnknownGrid) = Unordered()
 
+# TODO handle unordered in all grids
+bounds(grid::UnknownGrid, dim) = first(dim), last(dim)
+
 """
 A grid dimension that is independent of other grid dimensions.
 """
@@ -213,8 +216,6 @@ BoundedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds
     BoundedGrid(order, locus, sampling, bounds)
 
 bounds(g::BoundedGrid) = g.bounds
-bounds(grid::AlignedGrid, dim) = bounds(grid)
-bounds(grid::UnknownGrid, dim) = first(dim), last(dim)
 
 rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
     BoundedGrid(order, locus, sampling, bounds)

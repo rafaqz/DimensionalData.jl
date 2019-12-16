@@ -38,8 +38,10 @@ using LinearAlgebra: Transpose
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
     @test var(da; dims=X()) == [2.0 2.0]
     @test var(da; dims=Y()) == [0.5 0.5]'
-    @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
-    @test extrema(da; dims=X) == [(1, 3) (2, 4)]
+    if VERSION > v"1.1-"
+        @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
+        @test extrema(da; dims=X) == [(1, 3) (2, 4)]
+    end
     @test_broken dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
