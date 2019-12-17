@@ -183,8 +183,8 @@ end
 
 Format the passed-in dimension(s).
 
-Mostily this means converting indexes of tuples and UnitRanges to 
-`LinRange`, which is easier to handle internally. Errors are also thrown if 
+Mostily this means converting indexes of tuples and UnitRanges to
+`LinRange`, which is easier to handle internally. Errors are also thrown if
 dims don't match the array dims or size.
 
 If a [`Grid`](@ref) hasn't been specified, a grid type is chosen
@@ -196,29 +196,30 @@ based on the type and element type of the index:
 formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    formatdims(size(A), dims)
+    formatdims(axes(A), dims)
 end
-formatdims(size::NTuple{N,Integer}, dims::AbDimTuple) where N = map(formatdims, size, dims)
-formatdims(len::Integer, dim::AbDim{<:AbstractArray}) = begin
-    checklen(dim, len)
+formatdims(axes::Tuple, dims::AbDimTuple) where N = map(formatdims, axes, dims)
+formatdims(axis::AbstractRange, dim::AbDim{<:AbstractArray}) = begin
+    checklen(dim, axis)
     rebuild(dim, val(dim), identify(grid(dim), val(dim)))
 end
-formatdims(len::Integer, dim::AbDim{<:AbstractRange}) = begin
-    checklen(dim, len)
-    range = LinRange(first(dim), last(dim), len)
+formatdims(axis::AbstractRange, dim::AbDim{<:AbstractRange}) = begin
+    checklen(dim, axis)
+    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
+end
+formatdims(axis::AbstractRange, dim::AbDim{<:NTuple{2}}) = begin
+    range = LinRange(first(dim), last(dim), length(axis))
     rebuild(dim, range, identify(grid(dim), range))
 end
-formatdims(len::Integer, dim::AbDim{<:NTuple{2}}) = begin
-    range = LinRange(first(dim), last(dim), len)
-    rebuild(dim, range, identify(grid(dim), range))
-end
-formatdims(len::Integer, dim::AbDim) = dim
+formatdims(axis::AbstractRange, dim::AbDim{Nothing}) =
+    rebuild(dim, nothing, NoGrid())
+formatdims(axis::Tuple, dim::AbDim) = dim
 
-checklen(dim, len) =
-    length(dim) == len ||
-        throw(ArgumentError("length of $(basetypeof(dim)) ($(length(dim))) does not match size of array dimension ($len)"))
+checklen(dim, axis) =
+    length(dim) == length(axis) ||
+        throw(ArgumentError("length of $(basetypeof(dim)) ($(length(dim))) does not match size of array dimension ($axis)"))
 
-identify(::UnknownGrid, index::AbstractArray) = 
+identify(::UnknownGrid, index::AbstractArray) =
     AlignedGrid(; order=order=orderof(index))
 identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=orderof(index))
