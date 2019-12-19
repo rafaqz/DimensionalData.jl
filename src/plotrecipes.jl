@@ -17,3 +17,25 @@ end
     title --> label(refdims(ga))
     val(dims(ga)[1]), parent(ga)
 end
+
+struct HeatMapLike end
+@recipe function f(ga::AbstractDimensionalArray{<:Any,2})
+    sertyp = get(plotattributes, :seriestype, nothing)
+    if sertyp in [:heatmap, :contour, :surface, :wireframe]
+        ga, HeatMapLike()
+    else
+        parent(ga)
+    end
+end
+
+@recipe function f(ga::AbstractDimensionalArray, ::HeatMapLike)
+    @assert ndims(ga) == 2
+    dim1, dim2 = dims(ga)
+    # Notice that dim1 corresponds to Y
+    # and dim2 corresponds to X
+    # This is because in Plots.jl
+    # The first axis of a matrix is the Y axis
+    :ylabel --> label(dim1)
+    :xlabel --> label(dim2)
+    val(dim2), val(dim1), parent(ga)
+end
