@@ -132,7 +132,6 @@ Traits describing the grid type of a dimension.
 """
 abstract type Grid end
 
-bounds(::Grid, dim) = first(dim), last(dim)
 bounds(grid::Grid, dim) = bounds(indexorder(grid), grid, dim)
 bounds(::Forward, grid, dim) = first(dim), last(dim)
 bounds(::Reverse, grid, dim) = last(dim), first(dim)
@@ -293,9 +292,6 @@ order(g::CategoricalGrid) = g.order
 rebuild(g::CategoricalGrid, order=order(g)) = CategoricalGrid(order)
 
 bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)
-bounds(::Forward, grid, dim) = first(dim), last(dim)
-bounds(::Reverse, grid, dim) = last(dim), first(dim)
-bounds(::Unordered, grid, dim) = error("Cannot call `bounds` on an unordered grid")
 
 
 
