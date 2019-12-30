@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, swapdim,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, setdim,
       @dim, reducedims, dimnum, X, Y, Z, Time, Forward
 
 dimz = (X(), Y())
@@ -20,13 +20,13 @@ end
 
 a = [1 2 3; 4 5 6]
 da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
-dimz = dims(da) 
+dimz = dims(da)
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(span=2.0)),), 
-                                        (Y(-36.0; grid=RegularGrid(span=1.0)),))
-    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(span=2.0)), 
-                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(span=1.0))), ())
+    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(step=2.0)),),
+                                        (Y(-36.0; grid=RegularGrid(step=1.0)),))
+    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(step=2.0)),
+                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(step=1.0))), ())
     @test slicedims((), (1:2, 3)) == ((), ())
 end
 
@@ -58,8 +58,8 @@ end
 end
 
 @testset "dims" begin
-    @test typeof(dims(da, X)) <: X 
-    @test typeof(dims(dims(da), Y)) <: Y 
+    @test typeof(dims(da, X)) <: X
+    @test typeof(dims(dims(da), Y)) <: Y
     @test dims(da, ()) == ()
     @test_throws ArgumentError dims(da, Time)
     x = dims(da, X)
@@ -74,7 +74,7 @@ end
     @test hasdim(dims(da), (X, Time)) == (true, false)
 end
 
-@testset "swapdim" begin
-    A = swapdim(da, X(LinRange(150,152,2)))
-    @test val(dims(dims(A), X())) == LinRange(150,152,2) 
+@testset "setdim" begin
+    A = setdim(da, X(LinRange(150,152,2)))
+    @test val(dims(dims(A), X())) == LinRange(150,152,2)
 end

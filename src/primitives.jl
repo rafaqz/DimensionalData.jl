@@ -177,6 +177,11 @@ hasdim(A, lookup::Type) = hasdim(typeof(dims(A)), lookup)
     end
 end
 
+setdim(A, newdim::AbDim) = rebuild(A; dims=setdim(dims(A), newdim)) 
+setdim(dims::AbDimTuple, newdim::AbDim) = map(d -> setdim(d, newdim), dims)
+setdim(dim::AbDim, newdim::AbDim) =
+    basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
+
 
 """
     formatdims(A, dims)
@@ -213,7 +218,8 @@ formatdims(axis::AbstractRange, dim::AbDim{<:NTuple{2}}) = begin
 end
 formatdims(axis::AbstractRange, dim::AbDim{Nothing}) =
     rebuild(dim, nothing, NoGrid())
-formatdims(axis::Tuple, dim::AbDim) = dim
+# Fallback: dim remains unchanged
+formatdims(axis::AbstractRange, dim::AbDim) = dim
 
 checklen(dim, axis) =
     length(dim) == length(axis) ||
@@ -224,7 +230,7 @@ identify(::UnknownGrid, index::AbstractArray) =
 identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=orderof(index))
 identify(::UnknownGrid, index::AbstractRange) =
-    RegularGrid(order=orderof(index), span=step(index))
+    RegularGrid(order=orderof(index), step=step(index))
 identify(grid::Grid, index) = grid
 
 orderof(index::AbstractArray) = begin
@@ -235,7 +241,6 @@ end
 indexorder(index::AbstractArray) =
     first(index) <= last(index) ? Forward() : Reverse()
 
-
 """
 Replace the specified dimensions with an index of length 1 to match
 a new array size where the dimension has been reduced to a length
@@ -243,7 +248,7 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 
-Grid traits are also updated to correspond to the change in cell span, sampling
+Grid traits are also updated to correspond to the change in cell step, sampling
 type and order.
 """
 @inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
@@ -269,7 +274,7 @@ end
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Unordered(), locus(grid), MultiSample(), span(grid) * length(val(dim)))
+    grid = RegularGrid(Unordered(), locus(grid), MultiSample(), step(grid) * length(val(dim)))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) =
@@ -289,14 +294,6 @@ reducedims(locus::Center, dim) = begin
     end
 end
 
-swapdim(A, dim::AbDim) = rebuild(A; dims=swapdim(dims(A), dim))
-swapdim(dims::Tuple, dim::AbDim) =
-    if basetypeof(dim) <: basetypeof(dims[1])
-        (dim, swapdim(tail(dims), dim)...)
-    else
-        (dims[1], swapdim(tail(dims), dim)...)
-    end
-swapdim(dims::Tuple{}, dim::AbDim) = ()
 
 
 """

@@ -7,7 +7,6 @@ a = [1 2  3  4
 
 @testset "Selectors on IndependentGrid" begin
     da = DimensionalArray(a, (Y((10, 30)), Time((1:4)u"s")))
-    dims(da)
 
     @test At(10.0) == At(10.0, 0.0, Base.rtoldefault(eltype(10.0)))
     x = [10.0, 20.0]

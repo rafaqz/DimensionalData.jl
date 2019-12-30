@@ -54,6 +54,13 @@ Return the metadata of a dimension or data object.
 function metadata end
 
 """
+    bounds(x, [dims])
+
+Return the bounds of all dimensions or of a specific dimension or tuple of dimensions.
+"""
+bounds(x, args...) = bounds(dims(x), args...)
+
+"""
     units(x)
 
 Return the units of a dimension. This could be a string, a unitful unit, or nothing. 

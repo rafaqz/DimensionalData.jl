@@ -147,36 +147,46 @@ Base.lastindex(A::AbstractArray, d::DimOrDimType) = lastindex(A, dimnum(A, d))
 
 # Concatenation
 
-Base._cat(catdims::Union{AbDim,AbDimTuple}, A::DimensionalArray...) = begin
-    A1 = first(A)
-    checkdims(A...)
+Base._cat(catdims::Union{Int,Base.Dims}, As::AbDimArray...) =
+    Base._cat(dims(first(As), catdims), As...)
+Base._cat(catdims::AllDimensions, As::AbstractArray...) = begin
+    A1 = first(As)
+    checkdims(As...)
     if all(hasdim(A1, catdims))
+        # Concatenate an existing dim
         dnum = dimnum(A1, catdims)
-        newdims = map(zip(map(dims, A)...)) do ds
-            basetypeof(catdims) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
-        end
-        rebuild(A1, Base._cat(dnum, map(parent, A)...), ) 
+        # cat the catdim, ignore others
+        newdims = Tuple(_catifcatdim(catdims, ds) for ds in zip(map(dims, As)...))
+        println(newdims)
     else
+        # Concatenate a new dim
         add_dims = if (catdims isa Tuple) 
             Tuple(d for d in catdims if !hasdim(A1, d)) 
         else
             (catdims,)
         end
         dnum = ndims(A1) + length(add_dims)
-        newA = Base._cat(dnum, map(parent, A)...)
         newdims = (dims(A1)..., add_dims...)
-        rebuild(A1, newA, formatdims(size(newA), newdims)) 
     end
+    newA = Base._cat(dnum, map(parent, As)...)
+    rebuild(A1, newA, formatdims(newA, newdims)) 
 end
 
-Base.vcat(A::AbDimArray...) = begin
-    checkdims(A...)
-    rebuild(A, vcat(map(val, A)), vcat(map(A, dims)))
-end
+_catifcatdim(catdims::Tuple, ds) = 
+    any(map(cd -> basetypeof(cd) <: basetypeof(ds[1]), catdims)) ? vcat(ds...) : ds[1]
+_catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
+
 Base.vcat(dims::AbDim...) =
-    rebuild(dims[1], vcat(map(val, dims)), vcat(map(grid, dims)))
+    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(grid, dims)...))
 
 Base.vcat(grids::Grid...) = first(grids)
+Base.vcat(grids::RegularGrid...) = begin
+    _step = step(grids[1])
+    map(grids) do grid
+        step(grid) == _step || error("Step sizes $(step(grid)) and $_step do not match ")
+    end
+    first(grids)
+end
 Base.vcat(grids::BoundedGrid...) = 
     rebuild(grids[1]; bounds=(bounds(grids[1])[1], bounds(grids[end])[end]))
 

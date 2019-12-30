@@ -11,12 +11,12 @@ using LinearAlgebra: Transpose
 
     @test sum(da; dims=X()) == sum(da; dims=1)
     @test sum(da; dims=Y()) == sum(da; dims=2) 
-    @test typeof(dims(sum(da; dims=Y()))) == typeof((X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;span=2.0)), 
-                                                     Y([-38.0]; grid=RegularGrid(;order=Unordered(), span=4.0, sampling=MultiSample()))))
+    @test typeof(dims(sum(da; dims=Y()))) == typeof((X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+                                                     Y([-38.0]; grid=RegularGrid(;order=Unordered(), step=4.0, sampling=MultiSample()))))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=Y()) == [2 12]'
-    resultdimz = (X([143.0]; grid=RegularGrid(;order=Unordered(), span=4.0, sampling=MultiSample())), 
-            Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;span=2.0)))
+    resultdimz = (X([143.0]; grid=RegularGrid(;order=Unordered(), step=4.0, sampling=MultiSample())), 
+            Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test_broken bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
     @test maximum(da; dims=X) == [3 4]
@@ -58,7 +58,7 @@ end
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
-    @test refdims(dropdims(da[X(1:1)]; dims=X)) == (X(143.0; grid=RegularGrid(;span=2.0)),)
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) == (X(143.0; grid=RegularGrid(;step=2.0)),)
 end
 
 if VERSION > v"1.1-"
@@ -86,21 +86,21 @@ end
     da = DimensionalArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
     tda = transpose(da)
     @test tda == transpose(parent(da))
-    @test dims(tda) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
-                  Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)))
+    @test dims(tda) == (X(1:4; grid=RegularGrid(;step=1)), 
+                  Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(tda) == (4, 5)
 
     tda = Transpose(da)
     @test tda == Transpose(parent(da))
-    @test dims(tda) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)))
+    @test dims(tda) == (X(1:4; grid=RegularGrid(;step=1)), 
+                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimensionalArray
 
     ada = adjoint(da)
     @test ada == adjoint(parent(da))
-    @test dims(ada) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)))
+    @test dims(ada) == (X(1:4; grid=RegularGrid(;step=1)), 
+                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
@@ -117,9 +117,9 @@ end
     @test permutedims(da, [X(), Y(), Time()]) == permutedims(da, (X(), Y(), Time()))
     dsp = permutedims(da, (X(), Y(), Time()))
     @test dsp == permutedims(parent(da), (3, 1, 2)) 
-    @test dims(dsp) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)), 
-                        Time(LinRange(10.0, 11.0, 2); grid=RegularGrid(;span=1.0)))
+    @test dims(dsp) == (X(1:4; grid=RegularGrid(;step=1)), 
+                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)), 
+                        Time(10:11; grid=RegularGrid(;step=1)))
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(parent(da), (3, 1, 2)) 
     @test typeof(dsp) <: DimensionalArray
@@ -134,12 +134,12 @@ end
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
-    @test dims(cvda) == (X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)), 
-                         X(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0)))
+    @test dims(cvda) == (X(1:4; grid=RegularGrid(;step=1)), 
+                         X(1:4; grid=RegularGrid(;step=1)))
     crda = cor(da; dims=Y)
     @test crda == cor(a; dims=1)
-    @test dims(crda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)), 
-                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;span=2.5)))
+    @test dims(crda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)), 
+                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
 end
 
 @testset "mapslices" begin
@@ -149,8 +149,8 @@ end
     da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(;span=30.0, order=Unordered(), sampling=MultiSample())),
-                                      Time(LinRange(1.0, 4.0, 4); grid=RegularGrid(;span=1.0))))
+    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, order=Unordered(), sampling=MultiSample())),
+                                      Time(1:4; grid=RegularGrid(; step=1))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Time)
     @test parent(ms) == [10 18 26]'
@@ -170,6 +170,13 @@ end
     b = [7 8 9; 10 11 12]
     db = DimensionalArray(b, (X(3:4), Y(1:3)))
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
+    testdims = (X([1, 2, 3, 4]; grid=RegularGrid(; step=1)), 
+                Y(1:3; grid=RegularGrid(; step=1)))
+    @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
+          cat(da, db; dims=1) == cat(da, db; dims=(1,)) 
+    @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
+    @test val.(dims(cat(da, db; dims=X()))) == val.(testdims)
+    @test grid.(dims(cat(da, db; dims=X()))) == grid.(testdims)
     @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
     @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
     @test cat(da, db; dims=(Z(1:1), Time(1:2))) == cat(a, b; dims=4)

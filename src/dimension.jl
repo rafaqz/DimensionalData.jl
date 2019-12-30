@@ -27,6 +27,9 @@ indexorder(dim::AbDim) = indexorder(order(dim))
 arrayorder(dim::AbDim) = arrayorder(order(dim))
 relationorder(dim::AbDim) = relationorder(order(dim))
 
+locus(dim::AbDim) = locus(grid(dim))
+sampling(dim::AbDim) = sampling(grid(dim))
+
 # DimensionalData interface methods
 rebuild(dim::D, val, grid=grid(dim), metadata=metadata(dim)) where D <: AbDim =
     constructorof(D)(val, grid, metadata)
@@ -35,17 +38,15 @@ dims(x::AbDim) = x
 dims(x::AbDimTuple) = x
 name(dim::AbDim) = name(typeof(dim))
 shortname(d::AbDim) = shortname(typeof(d))
-shortname(d::Type{<:AbDim}) = name(d)
+shortname(d::Type{<:AbDim}) = name(d) # Use `name` as fallback
 units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
-
-bounds(A::AbstractArray, args...) = bounds(dims(A), args...)
 
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::AbDimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
-
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
 bounds(dim::AbDim) = bounds(grid(dim), dim)
+
 
 # TODO bounds for irregular grids
 
@@ -59,6 +60,8 @@ Base.getindex(dim::AbDim, I...) = getindex(val(dim), I...)
 Base.iterate(dim::AbDim, args...) = iterate(val(dim), args...)
 Base.firstindex(dim::AbDim) = firstindex(val(dim))
 Base.lastindex(dim::AbDim) = lastindex(val(dim))
+Base.step(dim::AbDim) = step(grid(dim))
+Base.step(dim::AbDim{AbstractRange}) = step(val(dim))
 
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", name(dim), ": "; color=:red)

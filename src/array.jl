@@ -7,7 +7,6 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 # Interface methods ############################################################
 
 dims(A::AbDimArray) = A.dims
-bounds(A::AbDimArray) = bounds(dims(A))
 @inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
 
 
