@@ -12,12 +12,12 @@ dims(A::AbDimArray) = A.dims
 
 # Array interface methods ######################################################
 
-Base.size(A::AbDimArray) = size(parent(A))
-Base.iterate(A::AbDimArray, args...) = iterate(parent(A), args...)
+Base.size(A::AbDimArray) = size(data(A))
+Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 Base.show(io::IO, A::AbDimArray) = begin
     printstyled(io, label(A), ": "; color=:red)
     show(io, typeof(A))
-    show(io, parent(A))
+    show(io, data(A))
     printstyled(io, "\ndims: "; color=:magenta)
     show(io, dims(A))
     show(io, refdims(A))
@@ -25,31 +25,31 @@ Base.show(io::IO, A::AbDimArray) = begin
 end
 
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:Integer}) =
-    getindex(parent(A), I...)
+    getindex(data(A), I...)
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:StandardIndices}) =
-    rebuildsliced(A, getindex(parent(A), I...), I)
+    rebuildsliced(A, getindex(data(A), I...), I)
 
 Base.@propagate_inbounds Base.view(A::AbDimArray, I::Vararg{<:StandardIndices}) =
-    rebuildsliced(A, view(parent(A), I...), I)
+    rebuildsliced(A, view(data(A), I...), I)
             
 Base.convert(::Type{Array{T,N}}, A::AbDimArray{T,N}) where {T,N} = 
-    convert(Array{T,N}, parent(A))
+    convert(Array{T,N}, data(A))
 
-Base.copy(A::AbDimArray) = rebuild(A, copy(parent(A)))
-Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(parent(dst), parent(src))
-Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(parent(dst), src)
-Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, parent(src))
+Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
+Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
+Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
+Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
-Base.similar(A::AbDimArray) = rebuild(A, similar(parent(A)))
-Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(parent(A), T))
+Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)))
+Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = 
-    rebuild(A, similar(parent(A), T, I))
+    rebuild(A, similar(data(A), T, I))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
-    rebuildsliced(A, similar(parent(A), T, I...), I)
+    rebuildsliced(A, similar(data(A), T, I...), I)
 Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(parent(A), T, I...), I)
+    rebuildsliced(A, similar(data(A), T, I...), I)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?
@@ -102,13 +102,15 @@ DimensionalArray(A::AbstractArray, dims; refdims=()) =
 
 # Getters
 refdims(A::DimensionalArray) = A.refdims
+data(A::DimensionalArray) = A.data
 
 # DimensionalArray interface
 @inline rebuild(A::DimensionalArray, data, dims, refdims) = 
     DimensionalArray(data, dims, refdims)
 
+
 # Array interface (AbstractDimensionalArray takes care of everything else)
-Base.parent(A::DimensionalArray) = A.data
+Base.parent(A::DimensionalArray) = data(A)
 
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
-    setindex!(parent(A), x, I...)
+    setindex!(data(A), x, I...)

@@ -67,11 +67,6 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
     val(dim1) == val(dim2) &&
     grid(dim1) == grid(dim2) &&
     metadata(dim1) == metadata(dim2)
-Base.:(===)(dim1::AbDim, dim2::AbDim) =
-    typeof(dim1) === typeof(dim2) &&
-    val(dim1) === val(dim2) &&
-    grid(dim1) === grid(dim2) &&
-    metadata(dim1) === metadata(dim2)
 
 Base.show(io::IO, dim::AbDim) = begin
     printstyled(io, "\n", name(dim), ": "; color=:red)

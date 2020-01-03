@@ -12,11 +12,11 @@ have an overhead for slicing the dimensions.
 g = DimensionalArray(rand(100, 50), (X(51:150), Y(-40:9)))
 
 println("\n\nPerformance of view()\n")
-vi1(g) = view(parent(g), 1, 2)
+vi1(g) = view(data(g), 1, 2)
 vd1(g) = view(g, X(1), Y(2))
-vi2(g) = view(parent(g), :, :)
+vi2(g) = view(data(g), :, :)
 vd2(g) = view(g, X(:), Y(:))
-vi3(g) = view(parent(g), 10:40, 1:20)
+vi3(g) = view(data(g), 10:40, 1:20)
 vd3(g) = view(g, X(10:40), Y(1:20))
 
 println("Parent indices with Number")
@@ -35,11 +35,11 @@ println("Dims with UnitRange")
 @btime vd3($g);
 
 println("\n\nPerformance of getindex()\n")
-i1(g) = parent(g)[10, 20]
+i1(g) = data(g)[10, 20]
 d1(g) = g[Y(10), X(20)]
-i2(g) = parent(g)[:, :]
+i2(g) = data(g)[:, :]
 d2(g) = g[Y(:), X(:)]
-i3(g) = parent(g)[1:20, 10:40]
+i3(g) = data(g)[1:20, 10:40]
 d3(g) = g[Y(1:20), X(10:40)]
 
 println("Parent indices with Number")

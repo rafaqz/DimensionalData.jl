@@ -77,7 +77,7 @@ export AbstractDimensionalArray, DimensionalArray
 
 export Metadata, AbstractArrayMetadata, ArrayMetadata, AbstractDimMetadata, DimMetadata
 
-export dims, refdims, metadata, name, shortname, 
+export data, dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, locus, grid, <|
 
 include("interface.jl")

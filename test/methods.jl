@@ -11,29 +11,38 @@ using LinearAlgebra: Transpose
 
     @test sum(da; dims=X()) == sum(da; dims=1)
     @test sum(da; dims=Y()) == sum(da; dims=2) 
-    @test typeof(dims(sum(da; dims=Y()))) == typeof((X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
-                                                     Y([-38.0]; grid=RegularGrid(;order=Unordered(), step=4.0, sampling=MultiSample()))))
+    @test dims(sum(da; dims=Y())) == 
+        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=Y()) == [2 12]'
-    resultdimz = (X([143.0]; grid=RegularGrid(;order=Unordered(), step=4.0, sampling=MultiSample())), 
+    resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())), 
             Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
-    @test_broken bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
+    @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
     @test maximum(da; dims=X) == [3 4]
     @test maximum(da; dims=Y()) == [2 4]'
     @test minimum(da; dims=X) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
-    @test_broken dims(minimum(da; dims=X())) == (X(143.0), Y(LinRange(-38.0, -36.0, 2)))
+    @test dims(minimum(da; dims=X())) == 
+        (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())), 
+         Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test mean(da; dims=X) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
-    @test_broken  dims(mean(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test dims(mean(da; dims=Y())) == 
+        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=Y()) == [0 1]'
-    @test_broken dims(mapreduce(x-> x > 3, +, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == 
+        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
-    @test_broken dims(reduce(+, da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test dims(reduce(+, da; dims=Y())) == 
+        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test std(da; dims=X()) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
     @test var(da; dims=X()) == [2.0 2.0]
@@ -42,7 +51,9 @@ using LinearAlgebra: Transpose
         @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
         @test extrema(da; dims=X) == [(1, 3) (2, 4)]
     end
-    @test_broken dims(var(da; dims=Y())) == (X(LinRange(143.0, 145.0, 2)), Y(-38.0))
+    @test dims(var(da; dims=Y())) == 
+        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
+         Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da; dims=Y()) == [2.0 5.0]'
@@ -85,26 +96,26 @@ end
 @testset "simple dimension reordering methods" begin
     da = DimensionalArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
     tda = transpose(da)
-    @test tda == transpose(parent(da))
+    @test tda == transpose(data(da))
     @test dims(tda) == (X(1:4; grid=RegularGrid(;step=1)), 
                   Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(tda) == (4, 5)
 
     tda = Transpose(da)
-    @test tda == Transpose(parent(da))
+    @test tda == Transpose(data(da))
     @test dims(tda) == (X(1:4; grid=RegularGrid(;step=1)), 
                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimensionalArray
 
     ada = adjoint(da)
-    @test ada == adjoint(parent(da))
+    @test ada == adjoint(data(da))
     @test dims(ada) == (X(1:4; grid=RegularGrid(;step=1)), 
                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
-    @test permutedims(parent(da)) == parent(dsp)
+    @test permutedims(data(da)) == data(dsp)
     @test dims(dsp) == reverse(dims(da))
 end
 
@@ -116,12 +127,12 @@ end
     @test permutedims(da, [X, Y, Time]) == permutedims(da, (X, Y, Time))
     @test permutedims(da, [X(), Y(), Time()]) == permutedims(da, (X(), Y(), Time()))
     dsp = permutedims(da, (X(), Y(), Time()))
-    @test dsp == permutedims(parent(da), (3, 1, 2)) 
+    @test dsp == permutedims(data(da), (3, 1, 2)) 
     @test dims(dsp) == (X(1:4; grid=RegularGrid(;step=1)), 
                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)), 
                         Time(10:11; grid=RegularGrid(;step=1)))
     dsp = PermutedDimsArray(da, (3, 1, 2))
-    @test dsp == PermutedDimsArray(parent(da), (3, 1, 2)) 
+    @test dsp == PermutedDimsArray(data(da), (3, 1, 2)) 
     @test typeof(dsp) <: DimensionalArray
 end
 
@@ -149,11 +160,11 @@ end
     da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, order=Unordered(), sampling=MultiSample())),
+    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, sampling=MultiSample())),
                                       Time(1:4; grid=RegularGrid(; step=1))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Time)
-    @test parent(ms) == [10 18 26]'
+    @test data(ms) == [10 18 26]'
 end
 
 @testset "indexes" begin
