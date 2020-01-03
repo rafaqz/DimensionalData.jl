@@ -154,16 +154,17 @@ slicegrid(grid::Grid, index, I) = grid
 
 struct NoGrid <: Grid end
 
-
-"""
-Fallback grid type
-"""
-struct UnknownGrid <: Grid end
-
 """
 A grid dimension that is independent of other grid dimensions.
 """
 abstract type IndependentGrid{O} <: Grid end
+
+"""
+Fallback grid type
+"""
+struct UnknownGrid <: IndependentGrid{Ordered{Forward,Forward,Forward}} end
+
+order(::UnknownGrid) = Ordered()
 
 """
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
@@ -221,6 +222,7 @@ BoundedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds
     BoundedGrid(order, locus, sampling, bounds)
 
 bounds(g::BoundedGrid) = g.bounds
+bounds(g::BoundedGrid, dims) = bounds(g)
 
 rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
     BoundedGrid(order, locus, sampling, bounds)
@@ -345,3 +347,17 @@ LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
 
 rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) =
     LookupGrid(dims, locus, sampling)
+
+
+"""
+    identify(::Grid, index)
+
+Identify grid type from index content.
+"""
+identify(grid::Grid, index) = grid
+identify(::UnknownGrid, index::AbstractArray) =
+    AlignedGrid(; order=orderof(index))
+identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
+    CategoricalGrid(; order=orderof(index))
+identify(::UnknownGrid, index::AbstractRange) =
+    RegularGrid(order=orderof(index), step=step(index))

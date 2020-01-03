@@ -14,8 +14,7 @@ This is the only method required for this package to work. It probably
 requires defining a dims field on your object to store dims in.
 """
 function dims end
-dims(x::T) where T = error("`dims` not defined for type $T")
-dims(x::Nothing) = nothing
+dims(x::T) where T = throw(MethodError("`dims` not defined for type $T"))
 
 """
     refdims(x)
@@ -44,7 +43,6 @@ rebuild(x; kwargs...) = ConstructionBase.setproperties(x, (;kwargs...))
 Return the contained value of a wrapper object, otherwise just returns the object.
 """
 function val end
-val(x) = x
 
 """
     metadata(x)
@@ -58,6 +56,7 @@ function metadata end
 
 Return the bounds of all dimensions or of a specific dimension or tuple of dimensions.
 """
+function bounds end
 bounds(x, args...) = bounds(dims(x), args...)
 
 """

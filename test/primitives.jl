@@ -44,6 +44,11 @@ end
     @test dims2indices(dimz, (Y,), emptyval) == ((), Colon())
     @test dims2indices(dimz, (Y, X), emptyval) == (Colon(), Colon())
     @test dims2indices(da, X, emptyval) == (Colon(), ())
+    @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
+    @test dims2indices(da, 1, emptyval) == (1, )
+    dimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Time(1:1)
+    dims2indices(dimz, (X(), Y(), Time()))
+
 end
 
 @testset "dimnum" begin
@@ -54,12 +59,33 @@ end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(3:4), Y(1:5)), (X, Y)) == (X(3), Y(1))
+    @test reducedims((X(3:4; grid=UnknownGrid()), Y(1:5; grid=UnknownGrid())), (X, Y)) ==
+            (X(3; grid=UnknownGrid()), Y(1; grid=UnknownGrid()))
+    @test reducedims((X(3:4; grid=RegularGrid(;step=1)), 
+                      Y(1:5; grid=RegularGrid(;step=1))), (X, Y)) ==
+                     (X([3]; grid=RegularGrid(;step=2, sampling=MultiSample())), 
+                      Y([1]; grid=RegularGrid(;step=5, sampling=MultiSample())))
+    @test reducedims((X(3:4; grid=BoundedGrid(;locus=Start(), bounds=(3, 5))),
+                      Y(1:5; grid=BoundedGrid(;locus=End(), bounds=(0, 5)))), (X, Y))[1] ==
+                     (X([3]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(3, 5), locus=Start())),
+                      Y([5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0, 5), locus=End())))[1]
+    @test reducedims((X(3:4; grid=BoundedGrid(;locus=Center(), bounds=(2.5, 4.5))),
+                      Y(1:5; grid=BoundedGrid(;locus=Center(), bounds=(0.5, 5.5)))), (X, Y))[1] ==
+                     (X([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(2.5, 4.5), locus=Center())),
+                      Y([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0.5, 5.5), locus=Center())))[1]
+    @test reducedims((X(3:4; grid=AlignedGrid()), Y(1:5; grid=AlignedGrid())), (X, Y)) ==
+                     (X([3]; grid=AlignedGrid(;sampling=MultiSample())), 
+                      Y([1]; grid=AlignedGrid(;sampling=MultiSample())))
+    @test reducedims((X([:a,:b]; grid=CategoricalGrid()), 
+                      Y(["1","2","3","4","5"]; grid=CategoricalGrid())), (X, Y)) ==
+                     (X([:combined]; grid=CategoricalGrid()), 
+                      Y(["combined"]; grid=CategoricalGrid()))
 end
 
 @testset "dims" begin
-    @test typeof(dims(da, X)) <: X
-    @test typeof(dims(dims(da), Y)) <: Y
+    @test dims(da, X) isa X
+    @test dims(da, (X, Y)) isa Tuple{<:X,<:Y}
+    @test dims(dims(da), Y) isa Y
     @test dims(da, ()) == ()
     @test_throws ArgumentError dims(da, Time)
     x = dims(da, X)

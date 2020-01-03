@@ -225,14 +225,6 @@ checklen(dim, axis) =
     length(dim) == length(axis) ||
         throw(ArgumentError("length of $(basetypeof(dim)) ($(length(dim))) does not match size of array dimension ($axis)"))
 
-identify(::UnknownGrid, index::AbstractArray) =
-    AlignedGrid(; order=order=orderof(index))
-identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
-    CategoricalGrid(; order=orderof(index))
-identify(::UnknownGrid, index::AbstractRange) =
-    RegularGrid(order=orderof(index), step=step(index))
-identify(grid::Grid, index) = grid
-
 orderof(index::AbstractArray) = begin
     sorted = issorted(index; rev=isrev(indexorder(index)))
     order = sorted ? Ordered(; index=indexorder(index)) : Unordered()
@@ -263,18 +255,20 @@ type and order.
 @inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
 # Reduce specialising on grid type
 @inline reducedims(grid::UnknownGrid, dim) = rebuild(dim, first(val(dim)), UnknownGrid())
+@inline reducedims(grid::CategoricalGrid, dim::AbDim{Vector{String}}) =
+    rebuild(dim, ["combined"], CategoricalGrid(Ordered()))
 @inline reducedims(grid::CategoricalGrid, dim) =
-    rebuild(dim, [:combined], CategoricalGrid(Unordered()))
+    rebuild(dim, [:combined], CategoricalGrid(Ordered()))
 @inline reducedims(grid::AlignedGrid, dim) = begin
-    grid = AlignedGrid(Unordered(), locus(grid), MultiSample())
+    grid = AlignedGrid(Ordered(), locus(grid), MultiSample())
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::BoundedGrid, dim) = begin
-    grid = BoundedGrid(Unordered(), locus(grid), MultiSample(), bounds(grid, dim))
+    grid = BoundedGrid(Ordered(), locus(grid), MultiSample(), bounds(grid, dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Unordered(), locus(grid), MultiSample(), step(grid) * length(val(dim)))
+    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(val(dim)))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) =
