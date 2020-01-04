@@ -4,6 +4,12 @@ using DimensionalData: X, Y, Z, Time
 
 using LinearAlgebra: Transpose
 
+
+@testset "map" begin
+    @test map(x -> 2x, da) == [2 4; 6 8]
+    @test map(x -> 2x, da) isa DimensionalArray{Int64,2}
+end
+
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
     dimz = (X((143, 145)), Y((-38, -36)))
@@ -20,6 +26,8 @@ using LinearAlgebra: Transpose
             Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
+    @test maximum(x -> 2x, da; dims=X) == [6 8]
+    @test maximum(x -> 2x, da; dims=2) == [4 8]'
     @test maximum(da; dims=X) == [3 4]
     @test maximum(da; dims=2) == [2 4]'
     @test minimum(da; dims=1) == [1 2]
@@ -43,6 +51,7 @@ using LinearAlgebra: Transpose
     @test dims(reduce(+, da; dims=Y())) == 
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
          Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+    @test std(da) === std(a)
     @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
     @test var(da; dims=1) == [2.0 2.0]
