@@ -146,7 +146,7 @@ relationorder(grid::Grid) = relationorder(order(grid))
 reversearray(g::Grid) = rebuild(g, reversearray(order(g)))
 reverseindex(g::Grid) = rebuild(g, reverseindex(order(g)))
 
-Base.step(grid::T) where T <: Grid = 
+Base.step(grid::T) where T <: Grid =
     error("No step provided by $T. Use a `RegularGrid` for $(basetypeof(grid))")
 
 slicegrid(grid::Grid, index, I) = grid
@@ -176,8 +176,8 @@ sampling(g::AbstractAlignedGrid) = g.sampling
 An [`AlignedGrid`](@ref) grid without known regular spacing. These grids will generally be paired
 with a vector of coordinates along the dimension, instead of a range.
 
-Bounds are given as the first and last points, which omits the step of one cell, 
-as it is not known. To fix this use either a [`BoundedGrid`](@ref) with specified 
+Bounds are given as the first and last points, which omits the step of one cell,
+as it is not known. To fix this use either a [`BoundedGrid`](@ref) with specified
 starting bounds or a [`RegularGrid`](@ref) with a known constand cell step.
 
 ## Fields
@@ -218,7 +218,8 @@ end
 BoundedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=nothing) =
     BoundedGrid(order, locus, sampling, bounds)
 
-bounds(g::BoundedGrid) = g.bounds
+bounds(g::BoundedGrid) = sortbounds(g, g.bounds)
+# bounds(g::BoundedGrid) = g.bounds
 bounds(g::BoundedGrid, dims) = bounds(g)
 
 rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
@@ -226,17 +227,23 @@ rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bo
 
 # TODO: deal with unordered AbstractArray
 slicegrid(g::BoundedGrid, index, I) =
-    rebuild(g, order(g), locus(g), sampling(g), slicebounds(locus(g), bounds(g), index, I))
+    rebuild(g, order(g), locus(g), sampling(g), slicebounds(g, index, I))
 
+slicebounds(grid::BoundedGrid, index, I) =
+    slicebounds(locus(grid), bounds(grid), index, reorderindices(grid, index, I))
 slicebounds(loci::Start, bounds, index, I) =
-    index[first(I)], 
+    index[first(I)],
     last(I) >= lastindex(index)  ? bounds[2] : index[last(I) + 1]
 slicebounds(loci::End, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : index[first(I) - 1],  
+    first(I) <= firstindex(index) ? bounds[1] : index[first(I) - 1],
     index[last(I)]
 slicebounds(loci::Center, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : (index[first(I) - 1]   + index[first(I)]) / 2,
-    last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1] + index[last(I)]) / 2
+    first(I) <= firstindex(index) ? bounds[1] : (index[first(I) - 1] + index[first(I)]) / 2,
+    last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1]  + index[last(I)]) / 2
+
+reorderindices(grid::Grid, index, I) = reorderindices(relationorder(grid), index, I)
+reorderindices(::Order, index, I) = I
+reorderindices(::Reverse, index, I::AbstractArray) = length(index) .- (last(I), first(I)) .+ 1
 
 
 abstract type AbstractRegularGrid{O,L,Sa,St} <: AbstractAlignedGrid{O,L,Sa} end
@@ -262,13 +269,16 @@ RegularGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), step=n
 rebuild(g::RegularGrid, order=order(g), locus=locus(g), sampling=sampling(g), step=step(g)) =
     RegularGrid(order, locus, sampling, step)
 
-bounds(grid::RegularGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
+bounds(grid::RegularGrid, dim) = sortbounds(grid, bounds(relationorder(grid), locus(grid), grid, dim))
 bounds(::Forward, ::Start, grid, dim) = first(dim), last(dim) + step(grid)
-bounds(::Reverse, ::Start, grid, dim) = last(dim), first(dim) + step(grid)
-bounds(::Forward, ::Center, grid, dim) = first(dim) - step(grid) / 2, last(dim) + step(grid) / 2
-bounds(::Reverse, ::Center, grid, dim) = last(dim) - step(grid) / 2, first(dim) + step(grid) / 2
+bounds(::Reverse, ::Start, grid, dim) = first(dim) - step(grid), last(dim)
+bounds(::Any, ::Center, grid, dim) = first(dim) - step(grid) / 2, last(dim) + step(grid) / 2
 bounds(::Forward, ::End, grid, dim) = first(dim) - step(grid), last(dim)
-bounds(::Reverse, ::End, grid, dim) = last(dim) - step(grid), first(dim)
+bounds(::Reverse, ::End, grid, dim) = first(dim), last(dim) + step(grid)
+
+sortbounds(grid::Grid, bounds) = sortbounds(indexorder(grid), bounds)
+sortbounds(grid::Forward, bounds) = bounds
+sortbounds(grid::Reverse, bounds) = bounds[2], bounds[1]
 
 Base.step(grid::RegularGrid) = grid.step
 

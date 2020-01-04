@@ -7,7 +7,7 @@ Return the data wrapped by the dimentional array. This may not be
 the same as `Base.parent`, as it should never include data outside the
 bounds of the dimensions.
 
-In a disk based [`AbstractDimensionalArray`](@ref), `data` may need to 
+In a disk based [`AbstractDimensionalArray`](@ref), `data` may need to
 load data from disk.
 """
 function data end
@@ -15,14 +15,14 @@ function data end
 """
     dims(x)
 
-Return a tuple of the dimensions for a dataset. These can 
-contain the coordinate ranges if `bounds()` and `select()` are to be used, 
+Return a tuple of the dimensions for a dataset. These can
+contain the coordinate ranges if `bounds()` and `select()` are to be used,
 or you want them to be shown on plots in place of the array indices.
 
-They can also contain a units string or unitful unit to use and plot 
+They can also contain a units string or unitful unit to use and plot
 dimension units.
 
-This is the only method required for this package to work. It probably 
+This is the only method required for this package to work. It probably
 requires defining a dims field on your object to store dims in.
 """
 function dims end
@@ -31,11 +31,11 @@ dims(x::T) where T = throw(MethodError("`dims` not defined for type $T"))
 """
     refdims(x)
 
-Reference dimensions for an array that is a slice or view of another 
-array with more dimensions. 
+Reference dimensions for an array that is a slice or view of another
+array with more dimensions.
 
 `slicedims(a, dims)` returns a tuple containing the current new dimensions
-and the new reference dimensions. Refdims can be stored in a field or disgarded, 
+and the new reference dimensions. Refdims can be stored in a field or disgarded,
 as it is mostly to give context to plots. Ignoring refdims will simply leave some captions empty.  """
 function refdims end
 refdims(x) = ()
@@ -66,7 +66,10 @@ function metadata end
 """
     bounds(x, [dims])
 
-Return the bounds of all dimensions or of a specific dimension or tuple of dimensions.
+Return the bounds of all dimensions of an object, of a specific dimension,
+or of a tuple of dimensions.
+
+Bounds are allways return in ascending order.
 """
 function bounds end
 bounds(x, args...) = bounds(dims(x), args...)
@@ -74,7 +77,7 @@ bounds(x, args...) = bounds(dims(x), args...)
 """
     units(x)
 
-Return the units of a dimension. This could be a string, a unitful unit, or nothing. 
+Return the units of a dimension. This could be a string, a unitful unit, or nothing.
 """
 function units end
 units(x) = nothing
@@ -103,7 +106,7 @@ shortname(x::Type) = ""
 """
     label(x)
 
-Get a plot label for data or a dimension. This will include the name and units 
+Get a plot label for data or a dimension. This will include the name and units
 if they exist, and anything else that should be shown on a plot.
 """
 function label end
