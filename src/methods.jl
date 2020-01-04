@@ -46,8 +46,8 @@ Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Colo
 
 # TODO: Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
-Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
-    Base._accumulate!(op, B, A, dimnum(A, dims), init)
+# Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
+    # Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
 Base._extrema_dims(f, A::AbstractArray, dims::AllDimensions) = begin
     dnums = dimnum(A, dims)
@@ -79,7 +79,7 @@ end
 # wierdly makes it faster toeuse a dim than an integer.
 if VERSION > v"1.1-"
     Base.eachslice(A::AbDimArray; dims=1, kwargs...) = begin
-        if dims isa Tuple && length(dims) == 1 
+        if dims isa Tuple && length(dims) != 1 
             throw(ArgumentError("only single dimensions are supported"))
         end
         dim = first(dimnum(A, dims))

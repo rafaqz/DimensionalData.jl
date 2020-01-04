@@ -9,31 +9,31 @@ using LinearAlgebra: Transpose
     dimz = (X((143, 145)), Y((-38, -36)))
     da = DimensionalArray(a, dimz)
 
-    @test sum(da; dims=X()) == sum(da; dims=1)
-    @test sum(da; dims=Y()) == sum(da; dims=2) 
+    @test sum(da; dims=X()) == sum(a; dims=1)
+    @test sum(da; dims=Y()) == sum(a; dims=2) 
     @test dims(sum(da; dims=Y())) == 
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
          Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test prod(da; dims=X) == [3 8]
-    @test prod(da; dims=Y()) == [2 12]'
+    @test prod(da; dims=2) == [2 12]'
     resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())), 
             Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
     @test maximum(da; dims=X) == [3 4]
-    @test maximum(da; dims=Y()) == [2 4]'
-    @test minimum(da; dims=X) == [1 2]
+    @test maximum(da; dims=2) == [2 4]'
+    @test minimum(da; dims=1) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) == 
         (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())), 
          Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
-    @test mean(da; dims=X) == [2.0 3.0]
+    @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
     @test dims(mean(da; dims=Y())) == 
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
          Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
-    @test mapreduce(x -> x > 3, +, da; dims=Y()) == [0 1]'
+    @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) == 
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
          Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
@@ -43,9 +43,9 @@ using LinearAlgebra: Transpose
     @test dims(reduce(+, da; dims=Y())) == 
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)), 
          Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
-    @test std(da; dims=X()) == [1.4142135623730951 1.4142135623730951]
+    @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
-    @test var(da; dims=X()) == [2.0 2.0]
+    @test var(da; dims=1) == [2.0 2.0]
     @test var(da; dims=Y()) == [0.5 0.5]'
     if VERSION > v"1.1-"
         @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
@@ -56,9 +56,9 @@ using LinearAlgebra: Transpose
          Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
-    @test median(da; dims=Y()) == [2.0 5.0]'
+    @test median(da) == 3.5
     @test median(da; dims=X()) == [2.5 3.5 4.5]
-
+    @test median(da; dims=2) == [2.0 5.0]'
 end
 
 @testset "dimension dropping methods" begin
@@ -80,6 +80,7 @@ if VERSION > v"1.1-"
         # eachslice
         da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
         @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
+        @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
         slices = [s .* 2 for s in eachslice(da; dims=Y)] 
         @test map(sin, da) == map(sin, a)
         @test slices[1] == [2, 4, 6, 8]
@@ -89,6 +90,7 @@ if VERSION > v"1.1-"
         slices = [s .* 2 for s in eachslice(da; dims=Time)] 
         @test slices[1] == [2, 6, 10]
         dims(slices[1]) == (Y(10.0:10.0:30.0),)
+        @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Time))] 
     end
 end
 
@@ -205,6 +207,6 @@ end
 
 # These need fixes in base. kwargs are ::Integer so we can't add methods
 # or dispatch on AbstractDimension in underscore _methods
-accumulate
-cumsum
-cumprod
+# accumulate
+# cumsum
+# cumprod

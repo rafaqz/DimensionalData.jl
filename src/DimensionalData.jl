@@ -75,13 +75,10 @@ export DependentGrid, TransformedGrid, LookupGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
-export Metadata, AbstractArrayMetadata, ArrayMetadata, AbstractDimMetadata, DimMetadata
-
 export data, dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, locus, grid, <|
 
 include("interface.jl")
-include("metadata.jl")
 include("grid.jl")
 include("dimension.jl")
 include("selector.jl")

@@ -108,9 +108,6 @@ data(A::DimensionalArray) = A.data
 @inline rebuild(A::DimensionalArray, data, dims, refdims) = 
     DimensionalArray(data, dims, refdims)
 
-
 # Array interface (AbstractDimensionalArray takes care of everything else)
-Base.parent(A::DimensionalArray) = data(A)
-
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
