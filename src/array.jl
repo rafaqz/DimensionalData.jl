@@ -31,9 +31,6 @@ Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:StandardIndice
 
 Base.@propagate_inbounds Base.view(A::AbDimArray, I::Vararg{<:StandardIndices}) =
     rebuildsliced(A, view(data(A), I...), I)
-            
-Base.convert(::Type{Array{T,N}}, A::AbDimArray{T,N}) where {T,N} = 
-    convert(Array{T,N}, data(A))
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))

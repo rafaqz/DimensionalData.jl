@@ -71,7 +71,7 @@ export AbstractCategoricalGrid, CategoricalGrid
 
 export IndependentGrid, AbstractAlignedGrid, AlignedGrid, BoundedGrid, RegularGrid
 
-export DependentGrid, TransformedGrid, LookupGrid
+export DependentGrid, TransformedGrid
 
 export AbstractDimensionalArray, DimensionalArray
 

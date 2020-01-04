@@ -61,7 +61,6 @@ Base.iterate(dim::AbDim, args...) = iterate(val(dim), args...)
 Base.firstindex(dim::AbDim) = firstindex(val(dim))
 Base.lastindex(dim::AbDim) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
-Base.step(dim::AbDim{AbstractRange}) = step(val(dim))
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&

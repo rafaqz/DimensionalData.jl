@@ -36,8 +36,8 @@ struct Unordered{R} <: Order
 end
 Unordered() = Unordered(Forward())
 
-indexorder(order::Unordered) = order
-arrayorder(order::Unordered) = order
+indexorder(order::Unordered) = Unordered()
+arrayorder(order::Unordered) = Unordered()
 relationorder(order::Unordered) = order.relation
 
 """
@@ -138,17 +138,16 @@ bounds(::Reverse, grid, dim) = last(dim), first(dim)
 bounds(::Unordered, grid, dim) = error("Cannot call `bounds` on an unordered grid")
 
 dims(g::Grid) = nothing
-order(g::Grid) = Unordered()
+order(g::Grid) = Ordered()
 arrayorder(grid::Grid) = arrayorder(order(grid))
 indexorder(grid::Grid) = indexorder(order(grid))
 relationorder(grid::Grid) = relationorder(order(grid))
 
-Base.reverse(g::Grid) = rebuild(g, reverse(order(g)))
 reversearray(g::Grid) = rebuild(g, reversearray(order(g)))
 reverseindex(g::Grid) = rebuild(g, reverseindex(order(g)))
 
 Base.step(grid::T) where T <: Grid = 
-    error("No step provided by $T. Use a `RegularGrid` for $(basetypeof(dim))")
+    error("No step provided by $T. Use a `RegularGrid` for $(basetypeof(grid))")
 
 slicegrid(grid::Grid, index, I) = grid
 
@@ -163,8 +162,6 @@ abstract type IndependentGrid{O} <: Grid end
 Fallback grid type
 """
 struct UnknownGrid <: IndependentGrid{Ordered{Forward,Forward,Forward}} end
-
-order(::UnknownGrid) = Ordered()
 
 """
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
@@ -328,25 +325,25 @@ TransformedGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
 rebuild(g::TransformedGrid, dims=dims(g), locus=locus(g), sampling=sampling(g)) =
     TransformedGrid(dims, locus, sampling)
 
-"""
-A grid dimension that uses an array lookup to convert dimension from
-`dim(grid)` to `dims(array)`.
+# """
+# A grid dimension that uses an array lookup to convert dimension from
+# `dim(grid)` to `dims(array)`.
 
-## Fields
-- `dims`: a tuple containing dimenension types or symbols matching the order
-          needed to index the lookup matrix.
-- `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
-"""
-struct LookupGrid{D,L,Sa<:Sampling} <: DependentGrid
-    dims::D
-    locus::L
-    sampling::Sa
-end
-LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
-    LookupGrid(dims, locus, sampling)
+# ## Fields
+# - `dims`: a tuple containing dimenension types or symbols matching the order
+          # needed to index the lookup matrix.
+# - `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
+# """
+# struct LookupGrid{D,L,Sa<:Sampling} <: DependentGrid
+    # dims::D
+    # locus::L
+    # sampling::Sa
+# end
+# LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
+    # LookupGrid(dims, locus, sampling)
 
-rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) =
-    LookupGrid(dims, locus, sampling)
+# rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) =
+    # LookupGrid(dims, locus, sampling)
 
 
 """

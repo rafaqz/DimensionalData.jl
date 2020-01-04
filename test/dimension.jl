@@ -15,6 +15,12 @@ using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims
     @test eltype(TestDim([1,2,3])) == Vector{Int}
     @test length(TestDim(1)) == 1
     @test length(TestDim([1,2,3])) == 3
+    @test_throws ErrorException step(TestDim(1:2:3)) == 2
+    @test step(TestDim(1:2:3; grid=RegularGrid(; step=2))) == 2
+    @test firstindex(TestDim(10:20)) == 1
+    @test lastindex(TestDim(10:20)) == 11
+    @test size(TestDim(10:20)) == (11,)
+    @test ndims(TestDim(10:20)) == 1 
 end
 
 # Basic dim and array initialisation

@@ -95,8 +95,8 @@ to_int(::Near, x) = round(Int, x)
 
 # Do the input values need some kind of scalar conversion?
 # what is the scale of these lookup matrices?
-sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
-    lookup(grid)[map(val, sel)...]
+# sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
+    # lookup(grid)[map(val, sel)...]
 
 
 at(dim::AbDim, sel::At, val) =
