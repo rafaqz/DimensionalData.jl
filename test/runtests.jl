@@ -1,4 +1,5 @@
 include("dimension.jl")
+include("interface.jl")
 include("primitives.jl")
 include("array.jl")
 include("grid.jl")

@@ -71,18 +71,14 @@ export AbstractCategoricalGrid, CategoricalGrid
 
 export IndependentGrid, AbstractAlignedGrid, AlignedGrid, BoundedGrid, RegularGrid
 
-export DependentGrid, TransformedGrid, LookupGrid
+export DependentGrid, TransformedGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
-export Metadata, AbstractArrayMetadata, ArrayMetadata, AbstractDimMetadata, DimMetadata
-
-export dims, refdims, metadata, name, shortname, 
+export data, dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, locus, grid, <|
 
 include("interface.jl")
-include("metadata.jl")
-include("order.jl")
 include("grid.jl")
 include("dimension.jl")
 include("selector.jl")

@@ -69,8 +69,8 @@ sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) =
     at.(Ref(dim), Ref(sel), val(sel))
 
 # Near selector
-sel2indices(grid::T, dim::AbDim, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid} =
-    throw(ArgumentError("`Near` has no meaning in a `$T`. Use `At`"))
+sel2indices(grid::T, dim::AbDim, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid,NoGrid} =
+    throw(ArgumentError("`Near` has no meaning with `$T`. Use `At`"))
 sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near) =
     near(dim, val(sel))
 sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near{<:Tuple}) =
@@ -95,8 +95,8 @@ to_int(::Near, x) = round(Int, x)
 
 # Do the input values need some kind of scalar conversion?
 # what is the scale of these lookup matrices?
-sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
-    lookup(grid)[map(val, sel)...]
+# sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
+    # lookup(grid)[map(val, sel)...]
 
 
 at(dim::AbDim, sel::At, val) =
@@ -135,7 +135,7 @@ end
 between(dim::AbDim, sel) = 
     relate(relationorder(dim), dim, between(indexorder(dim), dim, sel))
 between(::Unordered, dim::AbDim, sel) =
-    throw(ArgumentError("Cannot use `Between` on an unordered dimension"))
+    throw(ArgumentError("Cannot use `Between` on an unordered grid"))
 between(indexorder::Forward, dim::AbDim, sel) =
     rangeorder(indexorder, searchsortedfirst(val(dim), first(sel)), searchsortedlast(val(dim), last(sel)))
 between(indexorder::Reverse, dim::AbDim, sel) =

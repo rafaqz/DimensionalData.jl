@@ -36,8 +36,8 @@ struct Unordered{R} <: Order
 end
 Unordered() = Unordered(Forward())
 
-indexorder(order::Unordered) = order
-arrayorder(order::Unordered) = order
+indexorder(order::Unordered) = Unordered()
+arrayorder(order::Unordered) = Unordered()
 relationorder(order::Unordered) = order.relation
 
 """
@@ -74,12 +74,12 @@ isrev(::Reverse) = true
 
 """
 Indicates wether the cell value is specific to the locus point
-or is related to the whole the span.
+or is related to the whole of the step.
 
-The span may contain a value if the distance between locii if known.
+The step may contain a value if the distance between locii if known.
 This will often be identical to the distance between any two sequential
 cell values, but may be distinct due to rounding errors in a vector index,
-or context-dependent spans such as `Month`.
+or context-dependent step such as `Month`.
 """
 abstract type Sampling end
 
@@ -89,7 +89,7 @@ Each cell value represents a siegle discrete sample taken at the index location.
 struct SingleSample <: Sampling end
 
 """
-Multiple samples from the span combined using method `M`,
+Multiple samples from the step combined using method `M`,
 where `M` is `typeof(mean)`, `typeof(sum)` etc.
 """
 struct MultiSample{M} <: Sampling end
@@ -132,31 +132,36 @@ Traits describing the grid type of a dimension.
 """
 abstract type Grid end
 
+bounds(grid::Grid, dim) = bounds(indexorder(grid), grid, dim)
+bounds(::Forward, grid, dim) = first(dim), last(dim)
+bounds(::Reverse, grid, dim) = last(dim), first(dim)
+bounds(::Unordered, grid, dim) = error("Cannot call `bounds` on an unordered grid")
+
 dims(g::Grid) = nothing
+order(g::Grid) = Ordered()
 arrayorder(grid::Grid) = arrayorder(order(grid))
 indexorder(grid::Grid) = indexorder(order(grid))
 relationorder(grid::Grid) = relationorder(order(grid))
 
-Base.reverse(g::Grid) = rebuild(g, reverse(order(g)))
 reversearray(g::Grid) = rebuild(g, reversearray(order(g)))
 reverseindex(g::Grid) = rebuild(g, reverseindex(order(g)))
 
+Base.step(grid::T) where T <: Grid =
+    error("No step provided by $T. Use a `RegularGrid` for $(basetypeof(grid))")
+
 slicegrid(grid::Grid, index, I) = grid
 
-"""
-Fallback grid type
-"""
-struct UnknownGrid <: Grid end
-
-order(::UnknownGrid) = Unordered()
-
-# TODO handle unordered in all grids
-bounds(grid::UnknownGrid, dim) = first(dim), last(dim)
+struct NoGrid <: Grid end
 
 """
 A grid dimension that is independent of other grid dimensions.
 """
 abstract type IndependentGrid{O} <: Grid end
+
+"""
+Fallback grid type
+"""
+struct UnknownGrid <: IndependentGrid{Ordered{Forward,Forward,Forward}} end
 
 """
 A grid dimension aligned exactly with a standard dimension, such as lattitude or longitude.
@@ -171,13 +176,13 @@ sampling(g::AbstractAlignedGrid) = g.sampling
 An [`AlignedGrid`](@ref) grid without known regular spacing. These grids will generally be paired
 with a vector of coordinates along the dimension, instead of a range.
 
-Bounds are given as the first and last points, which omits the span of one cell, 
-as it is not known. To fix this use either a [`BoundedGrid`](@ref) with specified 
-starting bounds or a [`RegularGrid`](@ref) with a known constand cell span.
+Bounds are given as the first and last points, which omits the step of one cell,
+as it is not known. To fix this use either a [`BoundedGrid`](@ref) with specified
+starting bounds or a [`RegularGrid`](@ref) with a known constand cell step.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
-- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell span
+- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell step
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 """
 struct AlignedGrid{O<:Order,L<:Locus,Sa<:Sampling} <: AbstractAlignedGrid{O,L,Sa}
@@ -191,8 +196,6 @@ AlignedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling()) =
 rebuild(g::AlignedGrid, order=order(g), locus=locus(g), sampling=sampling(g)) =
     AlignedGrid(order, locus, sampling)
 
-bounds(grid::AlignedGrid, dim) = first(dim), last(dim)
-
 """
 An alligned grid without known regular spacing and tracked bounds.
 These grids will generally be paired with a vector of coordinates along the
@@ -202,7 +205,7 @@ As the size of the cells is not known, the bounds must be actively tracked.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
-- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell span
+- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell step
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `bounds`: the outer edges of the grid (different to the first and last coordinate).
 """
@@ -215,58 +218,69 @@ end
 BoundedGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), bounds=nothing) =
     BoundedGrid(order, locus, sampling, bounds)
 
-bounds(g::BoundedGrid) = g.bounds
+bounds(g::BoundedGrid) = sortbounds(g, g.bounds)
+# bounds(g::BoundedGrid) = g.bounds
+bounds(g::BoundedGrid, dims) = bounds(g)
 
 rebuild(g::BoundedGrid, order=order(g), locus=locus(g), sampling=sampling(g), bounds=bounds(g)) =
     BoundedGrid(order, locus, sampling, bounds)
 
 # TODO: deal with unordered AbstractArray
 slicegrid(g::BoundedGrid, index, I) =
-    rebuild(g, order(g), locus(g), sampling(g), slicebounds(locus(g), bounds(g), index, I))
+    rebuild(g, order(g), locus(g), sampling(g), slicebounds(g, index, I))
 
+slicebounds(grid::BoundedGrid, index, I) =
+    slicebounds(locus(grid), bounds(grid), index, reorderindices(grid, index, I))
 slicebounds(loci::Start, bounds, index, I) =
-    index[first(I)], 
+    index[first(I)],
     last(I) >= lastindex(index)  ? bounds[2] : index[last(I) + 1]
 slicebounds(loci::End, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : index[first(I) - 1],  
+    first(I) <= firstindex(index) ? bounds[1] : index[first(I) - 1],
     index[last(I)]
 slicebounds(loci::Center, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : (index[first(I) - 1]   + index[first(I)]) / 2,
-    last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1] + index[last(I)]) / 2
+    first(I) <= firstindex(index) ? bounds[1] : (index[first(I) - 1] + index[first(I)]) / 2,
+    last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1]  + index[last(I)]) / 2
+
+reorderindices(grid::Grid, index, I) = reorderindices(relationorder(grid), index, I)
+reorderindices(::Order, index, I) = I
+reorderindices(::Reverse, index, I::AbstractArray) = length(index) .- (last(I), first(I)) .+ 1
 
 
-abstract type AbstractRegularGrid{O,L,Sa,Sp} <: AbstractAlignedGrid{O,L,Sa} end
+abstract type AbstractRegularGrid{O,L,Sa,St} <: AbstractAlignedGrid{O,L,Sa} end
 
 """
 An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
-- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell span
+- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell step
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
-- `span::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
+- `step::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,Sp} <: AbstractRegularGrid{O,L,Sa,Sp}
+struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,St} <: AbstractRegularGrid{O,L,Sa,St}
     order::O
     locus::L
     sampling::Sa
-    span::Sp
+    step::St
 end
-RegularGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), span=nothing) =
-    RegularGrid(order, locus, sampling, span)
+RegularGrid(; order=Ordered(), locus=Start(), sampling=UnknownSampling(), step=nothing) =
+    RegularGrid(order, locus, sampling, step)
 
-span(grid::RegularGrid) = grid.span
+rebuild(g::RegularGrid, order=order(g), locus=locus(g), sampling=sampling(g), step=step(g)) =
+    RegularGrid(order, locus, sampling, step)
 
-rebuild(g::RegularGrid, order=order(g), locus=locus(g), sampling=sampling(g), span=span(g)) =
-    RegularGrid(order, locus, sampling, span)
+bounds(grid::RegularGrid, dim) = sortbounds(grid, bounds(relationorder(grid), locus(grid), grid, dim))
+bounds(::Forward, ::Start, grid, dim) = first(dim), last(dim) + step(grid)
+bounds(::Reverse, ::Start, grid, dim) = first(dim) - step(grid), last(dim)
+bounds(::Any, ::Center, grid, dim) = first(dim) - step(grid) / 2, last(dim) + step(grid) / 2
+bounds(::Forward, ::End, grid, dim) = first(dim) - step(grid), last(dim)
+bounds(::Reverse, ::End, grid, dim) = first(dim), last(dim) + step(grid)
 
-bounds(grid::RegularGrid, dim) = bounds(indexorder(grid), locus(grid), grid, dim)
-bounds(::Forward, ::Start, grid, dim) = first(dim), last(dim) + span(grid)
-bounds(::Reverse, ::Start, grid, dim) = last(dim), first(dim) + span(grid)
-bounds(::Forward, ::Center, grid, dim) = first(dim) - span(grid) / 2, last(dim) + span(grid) / 2
-bounds(::Reverse, ::Center, grid, dim) = last(dim) - span(grid) / 2, first(dim) + span(grid) / 2
-bounds(::Forward, ::End, grid, dim) = first(dim) - span(grid), last(dim)
-bounds(::Reverse, ::End, grid, dim) = last(dim) - span(grid), first(dim)
+sortbounds(grid::Grid, bounds) = sortbounds(indexorder(grid), bounds)
+sortbounds(grid::Forward, bounds) = bounds
+sortbounds(grid::Reverse, bounds) = bounds[2], bounds[1]
+
+Base.step(grid::RegularGrid) = grid.step
 
 
 abstract type AbstractCategoricalGrid{O} <: IndependentGrid{O} end
@@ -287,9 +301,6 @@ order(g::CategoricalGrid) = g.order
 rebuild(g::CategoricalGrid, order=order(g)) = CategoricalGrid(order)
 
 bounds(grid::CategoricalGrid, dim) = bounds(indexorder(grid), grid, dim)
-bounds(::Forward, grid, dim) = first(dim), last(dim)
-bounds(::Reverse, grid, dim) = last(dim), first(dim)
-bounds(::Unordered, grid, dim) = error("Cannot call `bounds` on an unordered grid")
 
 
 
@@ -324,22 +335,36 @@ TransformedGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
 rebuild(g::TransformedGrid, dims=dims(g), locus=locus(g), sampling=sampling(g)) =
     TransformedGrid(dims, locus, sampling)
 
-"""
-A grid dimension that uses an array lookup to convert dimension from
-`dim(grid)` to `dims(array)`.
+# """
+# A grid dimension that uses an array lookup to convert dimension from
+# `dim(grid)` to `dims(array)`.
 
-## Fields
-- `dims`: a tuple containing dimenension types or symbols matching the order
-          needed to index the lookup matrix.
-- `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
-"""
-struct LookupGrid{D,L,Sa<:Sampling} <: DependentGrid
-    dims::D
-    locus::L
-    sampling::Sa
-end
-LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
-    LookupGrid(dims, locus, sampling)
+# ## Fields
+# - `dims`: a tuple containing dimenension types or symbols matching the order
+          # needed to index the lookup matrix.
+# - `sampling`: a `Sampling` trait indicating wether the grid cells are sampled points or means
+# """
+# struct LookupGrid{D,L,Sa<:Sampling} <: DependentGrid
+    # dims::D
+    # locus::L
+    # sampling::Sa
+# end
+# LookupGrid(dims=(), locus=Start(), sampling=UnknownSampling()) =
+    # LookupGrid(dims, locus, sampling)
 
-rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) =
-    LookupGrid(dims, locus, sampling)
+# rebuild(g::LookupGrid; dims=dims(g), locus=locus(g), sampling=sampling(g)) =
+    # LookupGrid(dims, locus, sampling)
+
+
+"""
+    identify(::Grid, index)
+
+Identify grid type from index content.
+"""
+identify(grid::Grid, index) = grid
+identify(::UnknownGrid, index::AbstractArray) =
+    AlignedGrid(; order=orderof(index))
+identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
+    CategoricalGrid(; order=orderof(index))
+identify(::UnknownGrid, index::AbstractRange) =
+    RegularGrid(order=orderof(index), step=step(index))

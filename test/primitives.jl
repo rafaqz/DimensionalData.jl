@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, swapdim,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, setdim,
       @dim, reducedims, dimnum, X, Y, Z, Time, Forward
 
 dimz = (X(), Y())
@@ -20,13 +20,13 @@ end
 
 a = [1 2 3; 4 5 6]
 da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
-dimz = dims(da) 
+dimz = dims(da)
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(span=2.0)),), 
-                                        (Y(-36.0; grid=RegularGrid(span=1.0)),))
-    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(span=2.0)), 
-                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(span=1.0))), ())
+    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(step=2.0)),),
+                                        (Y(-36.0; grid=RegularGrid(step=1.0)),))
+    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(step=2.0)),
+                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(step=1.0))), ())
     @test slicedims((), (1:2, 3)) == ((), ())
 end
 
@@ -44,6 +44,11 @@ end
     @test dims2indices(dimz, (Y,), emptyval) == ((), Colon())
     @test dims2indices(dimz, (Y, X), emptyval) == (Colon(), Colon())
     @test dims2indices(da, X, emptyval) == (Colon(), ())
+    @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
+    @test dims2indices(da, 1, emptyval) == (1, )
+    tdimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Time(1:1)
+    @test dims2indices(tdimz, (X(1), Y(2), Time())) == (1, 2, Colon())
+    @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Time())) == (1, 2, Colon())
 end
 
 @testset "dimnum" begin
@@ -54,12 +59,33 @@ end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(3:4), Y(1:5)), (X, Y)) == (X(3), Y(1))
+    @test reducedims((X(3:4; grid=UnknownGrid()), Y(1:5; grid=UnknownGrid())), (X, Y)) ==
+            (X(3; grid=UnknownGrid()), Y(1; grid=UnknownGrid()))
+    @test reducedims((X(3:4; grid=RegularGrid(;step=1)), 
+                      Y(1:5; grid=RegularGrid(;step=1))), (X, Y)) ==
+                     (X([3]; grid=RegularGrid(;step=2, sampling=MultiSample())), 
+                      Y([1]; grid=RegularGrid(;step=5, sampling=MultiSample())))
+    @test reducedims((X(3:4; grid=BoundedGrid(;locus=Start(), bounds=(3, 5))),
+                      Y(1:5; grid=BoundedGrid(;locus=End(), bounds=(0, 5)))), (X, Y))[1] ==
+                     (X([3]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(3, 5), locus=Start())),
+                      Y([5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0, 5), locus=End())))[1]
+    @test reducedims((X(3:4; grid=BoundedGrid(;locus=Center(), bounds=(2.5, 4.5))),
+                      Y(1:5; grid=BoundedGrid(;locus=Center(), bounds=(0.5, 5.5)))), (X, Y))[1] ==
+                     (X([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(2.5, 4.5), locus=Center())),
+                      Y([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0.5, 5.5), locus=Center())))[1]
+    @test reducedims((X(3:4; grid=AlignedGrid()), Y(1:5; grid=AlignedGrid())), (X, Y)) ==
+                     (X([3]; grid=AlignedGrid(;sampling=MultiSample())), 
+                      Y([1]; grid=AlignedGrid(;sampling=MultiSample())))
+    @test reducedims((X([:a,:b]; grid=CategoricalGrid()), 
+                      Y(["1","2","3","4","5"]; grid=CategoricalGrid())), (X, Y)) ==
+                     (X([:combined]; grid=CategoricalGrid()), 
+                      Y(["combined"]; grid=CategoricalGrid()))
 end
 
 @testset "dims" begin
-    @test typeof(dims(da, X)) <: X 
-    @test typeof(dims(dims(da), Y)) <: Y 
+    @test dims(da, X) isa X
+    @test dims(da, (X, Y)) isa Tuple{<:X,<:Y}
+    @test dims(dims(da), Y) isa Y
     @test dims(da, ()) == ()
     @test_throws ArgumentError dims(da, Time)
     x = dims(da, X)
@@ -74,7 +100,7 @@ end
     @test hasdim(dims(da), (X, Time)) == (true, false)
 end
 
-@testset "swapdim" begin
-    A = swapdim(da, X(LinRange(150,152,2)))
-    @test val(dims(dims(A), X())) == LinRange(150,152,2) 
+@testset "setdim" begin
+    A = setdim(da, X(LinRange(150,152,2)))
+    @test val(dims(dims(A), X())) == LinRange(150,152,2)
 end
