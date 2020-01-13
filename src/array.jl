@@ -14,15 +14,6 @@ dims(A::AbDimArray) = A.dims
 
 Base.size(A::AbDimArray) = size(data(A))
 Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
-Base.show(io::IO, A::AbDimArray) = begin
-    printstyled(io, label(A), ": "; color=:red)
-    show(io, typeof(A))
-    show(io, data(A))
-    printstyled(io, "\ndims: "; color=:magenta)
-    show(io, dims(A))
-    show(io, refdims(A))
-    printstyled(io, "\nmetadata: "; color=:cyan)
-end
 
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:Integer}) =
     getindex(data(A), I...)
@@ -41,7 +32,7 @@ Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)))
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T))
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = 
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
     rebuild(A, similar(data(A), T, I))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
     rebuildsliced(A, similar(data(A), T, I...), I)
@@ -68,7 +59,7 @@ end
 # Concrete implementation ######################################################
 
 """
-    DimensionalArray(A::AbstractArray, dims::Tuple, refdims::Tuple) 
+    DimensionalArray(A::AbstractArray, dims::Tuple, refdims::Tuple)
 
 A basic DimensionalArray type.
 
@@ -80,7 +71,7 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
     refdims::R
 end
 """
-    DimensionalArray(A::AbstractArray, dims::Tuple; refdims=()) 
+    DimensionalArray(A::AbstractArray, dims::Tuple; refdims=())
 Constructor with optional `refdims` keyword.
 
 Example:
@@ -89,12 +80,12 @@ Example:
 using Dates, DimensionalData
 using DimensionalData: Time, X
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100))) 
+A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100)))
 A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """
-DimensionalArray(A::AbstractArray, dims; refdims=()) = 
+DimensionalArray(A::AbstractArray, dims; refdims=()) =
     DimensionalArray(A, formatdims(A, dims), refdims)
 
 # Getters
@@ -102,7 +93,7 @@ refdims(A::DimensionalArray) = A.refdims
 data(A::DimensionalArray) = A.data
 
 # DimensionalArray interface
-@inline rebuild(A::DimensionalArray, data, dims, refdims) = 
+@inline rebuild(A::DimensionalArray, data, dims, refdims) =
     DimensionalArray(data, dims, refdims)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
