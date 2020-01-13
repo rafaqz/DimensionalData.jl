@@ -78,6 +78,8 @@ export AbstractDimensionalArray, DimensionalArray
 export data, dims, refdims, metadata, name, shortname, 
        val, label, units, order, bounds, locus, grid, <|
 
+export @dim
+
 include("interface.jl")
 include("grid.jl")
 include("dimension.jl")
