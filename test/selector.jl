@@ -60,7 +60,7 @@ a = [1 2  3  4
         @testset "is the same as reverse index with forward realation" begin
             da_rff = DimensionalArray(a, (Y(30:-10:10; grid=RegularGrid(order=Ordered(Reverse(), Forward(), Forward()))), 
                                          Time((4:-1:1)u"s"; grid=RegularGrid(order=Ordered(Reverse(), Forward(), Forward())))))
-            @test da_rff[Y<|At([10, 30]), Time<|At([1u"s", 4u"s"])] == [12 9; 4 1]
+            @test da_rff[Y<|At((10, 30)), Time<|At([1u"s", 4u"s"])] == [12 9; 4 1]
             @test da_rff[Y<|At(20), Time<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_rff[Y<|Near(7), Time<|Near([1.3u"s", 3.3u"s"])] == [12, 10]
             @test da_rff[Y<|Between(9, 21), Time<|At((3.0:4.0)u"s")] == [10 9; 6 5]

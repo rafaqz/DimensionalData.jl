@@ -26,7 +26,6 @@ This is the only method required for this package to work. It probably
 requires defining a dims field on your object to store dims in.
 """
 function dims end
-dims(x::T) where T = throw(MethodError("`dims` not defined for type $T"))
 
 """
     refdims(x)
