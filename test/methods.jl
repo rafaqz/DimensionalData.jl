@@ -6,6 +6,10 @@ using LinearAlgebra: Transpose
 
 
 @testset "map" begin
+    a = [1 2; 3 4]
+    dimz = (X((143, 145)), Y((-38, -36)))
+    da = DimensionalArray(a, dimz)
+
     @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimensionalArray{Int64,2}
 end
