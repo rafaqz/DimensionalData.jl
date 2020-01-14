@@ -1,5 +1,5 @@
 # Credit to Sebastian Pfitzner for `printlimited`
-function printlimited(io, x; Δx = 0, Δy = 0)
+function printlimited(io, x; Δx = 0)
     sz = displaysize(io)
     ctx = IOContext(io, :limit => true, :compact => true,
     :displaysize => (1, sz[2]-Δx))
