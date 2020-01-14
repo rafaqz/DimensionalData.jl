@@ -2,7 +2,7 @@
 function printlimited(io, x; Δx = 0, Δy = 0)
     sz = displaysize(io)
     ctx = IOContext(io, :limit => true, :compact => true,
-    :displaysize => (sz[1]-Δy, sz[2]-Δx))
+    :displaysize => (1, sz[2]-Δx))
     Base.print(ctx, x)
 end
 
