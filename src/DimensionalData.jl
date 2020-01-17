@@ -7,15 +7,15 @@ and selecting data from dimension values instead of using indices directly.
 
 Dimensions are simply types that wrap values. They both store dimension values
 and are used for dimension lookup or indices, ranges or dimension number.
-`X`, `Y`, `Z` and `Time` are the unexported defaults, add this line to use them:  
+`X`, `Y`, `Z` and `Time` are the unexported defaults, add this line to use them:
 ```julia
 using DimensionalData: X, Y, Z, Time
 ```
 
-A generalised [`Dim`](@ref) type is available to use arbitrary symbols to name dimensions. 
+A generalised [`Dim`](@ref) type is available to use arbitrary symbols to name dimensions.
 Custom dimensions can be defined using the [`@dim`](@ref) macro.
 
-We can use dim wrappers for indexing, so that the dimension order in the underlying array 
+We can use dim wrappers for indexing, so that the dimension order in the underlying array
 does not need to be known:
 
 ```
@@ -40,7 +40,7 @@ usin Unitful
 a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
 ```
 
-Dim types or objects can be used instead of a dimension number in many 
+Dim types or objects can be used instead of a dimension number in many
 Base and Statistics methods:
 
 ```julia
@@ -65,9 +65,9 @@ export Sampling, SingleSample, MultiSample, UnknownSampling
 
 export Order, Ordered, Unordered
 
-export Grid, UnknownGrid 
+export Grid, UnknownGrid
 
-export AbstractCategoricalGrid, CategoricalGrid 
+export AbstractCategoricalGrid, CategoricalGrid
 
 export IndependentGrid, AbstractAlignedGrid, AlignedGrid, BoundedGrid, RegularGrid
 
@@ -75,7 +75,7 @@ export DependentGrid, TransformedGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
-export data, dims, refdims, metadata, name, shortname, 
+export data, dims, refdims, metadata, name, shortname,
        val, label, units, order, bounds, locus, grid, <|
 
 include("interface.jl")
@@ -87,5 +87,6 @@ include("methods.jl")
 include("primitives.jl")
 include("utils.jl")
 include("plotrecipes.jl")
+include("prettyprint.jl")
 
 end
