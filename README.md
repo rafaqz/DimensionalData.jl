@@ -28,6 +28,7 @@ Dims can be used for indexing and views without knowing dimension order:
 `mean(a, dims=Time)`, or permute `permutedims(a, [X, Y, Z, Time])` in julia
 `Base` and `Statistics` functions that have dims arguments.
 
+Notice that you can obtain the dimensions of an `A::AbstractDimensionalArray` by simply calling `dims(A)`, which returns them as a tuple. `haskey` and `getkey` are also implemented for `A`, where one specifies the dimension either by name (string) or by type.
 
 ## Selectors
 
@@ -46,7 +47,7 @@ _Example usage:_
 using Dates, DimensionalData
 using DimensionalData: Time, X
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100))) 
+A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100)))
 A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
@@ -95,7 +96,7 @@ mean(a, dims=X)
 ## Goals:
 
 - Maximum extensibility: always use method dispatch. Regular types over special
-  syntax. Recursion over @generated.
+  syntax. Recursion over `@generated`.
 - Flexibility: dims and selectors are parametric types with multiple uses
 - Abstraction: never dispatch on concrete types, maximum re-usability of methods
 - Clean, readable syntax. Minimise required parentheses, minimise of exported
@@ -118,12 +119,12 @@ mean(a, dims=X)
 ## Why this package
 
 Why not [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) or
-[NamedDims.jl](https://github.com/invenia/NamedDims.jl/)? 
+[NamedDims.jl](https://github.com/invenia/NamedDims.jl/)?
 
 ### Structure
 
 Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and for
-dimension type `Axis` in AxisArrays. This makes them hard to extend. 
+dimension type `Axis` in AxisArrays. This makes them hard to extend.
 
 Its a little easier with DimensionalData.jl. You can inherit from
 `AbstractDimensionalArray`, or just implement `dims` and `rebuild` methods. Dims
@@ -157,7 +158,7 @@ returns the lost dimensions of a previous transformation, passed in to the
 Inheriting from `AbstractDimensionalArray` will give a few benefits, such as
 methods currently blocked by problems with `dims` dispatch in Julia Base, and
 indexing using regular integer dimensions but updating your wrapper type with
-new dims. 
+new dims.
 
 
 New dimensions can be generated with the `@dim` macro  at top level scope:
@@ -170,7 +171,7 @@ Dimensions use the same types that are used for indexing. The `dims(a)`
 method should return a tuple something like this:
 
 ```julia
-(Y(-40.5:40.5, (units="degrees_north",), X(1.0:40.0, (units="degrees_east",))`) 
+(Y(-40.5:40.5, (units="degrees_north",), X(1.0:40.0, (units="degrees_east",))`)
 ```
 
 either stored or generated from other data. The metadata can be anything,

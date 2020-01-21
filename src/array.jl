@@ -56,6 +56,33 @@ end
 @inline find_dimensional(::Any, rest) = find_dimensional(rest)
 
 
+"""
+    haskey(A::AbstractDimensionalArray, dim)
+Check if `A` has the given `dim` in its dimensions. `dim` can be either
+a String, signifying to check for the _name_ of the dimension (e.g. `"Longitude"`),
+or it can be the dimension _type_ (e.g. `Lon`).
+"""
+Base.haskey(A::AbDimArray, dim::String) = any(x -> name(x) == dim, dims(A))
+Base.haskey(A::AbDimArray, dim::Type{<:AbDim}) = any(x -> typeof(x) <: dim, dims(A))
+
+"""
+    getkey(A::AbstractDimensionalArray, dim)
+Get the given dimension of `A` by the specified name `dim`. `dim` can be either
+a String, signifying to check for the _name_ of the dimension (e.g. `"Longitude"`),
+or it can be the dimension _type_ (e.g. `Lon`).
+"""
+function Base.getkey(A::AbDimArray, dim::String)
+    i = findfirst(x -> name(x) == dim, dims(A))
+    isnothing(i) && error("Couldn't find dimension with name $(dim)")
+    return dims(A)[i]
+end
+function Base.getkey(A::AbDimArray, dim::Type{<:AbDim})
+    i = findfirst(x -> typeof(x) <: dim, dims(A))
+    isnothing(i) && error("Couldn't find dimension with name $(dim)")
+    return dims(A)[i]
+end
+
+
 # Concrete implementation ######################################################
 
 """
