@@ -10,7 +10,7 @@ ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 
 const AbDim = AbstractDimension
 const AbDimType = Type{<:AbDim}
-const AbDimTuple = Tuple{Vararg{<:AbDim,N}} where N
+const AbDimTuple = Tuple{<:AbDim,Vararg{<:AbDim,N}} where N
 const AbDimVector = Vector{<:AbDim}
 const DimOrDimType = Union{AbDim,AbDimType}
 const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
