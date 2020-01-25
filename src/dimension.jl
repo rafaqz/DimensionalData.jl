@@ -67,17 +67,6 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
     grid(dim1) == grid(dim2) &&
     metadata(dim1) == metadata(dim2)
 
-Base.show(io::IO, dim::AbDim) = begin
-    printstyled(io, "\n", name(dim), ": "; color=:red)
-    show(io, typeof(dim))
-    printstyled(io, "\nval: "; color=:green)
-    show(io, val(dim))
-    printstyled(io, "\ngrid: "; color=:yellow)
-    show(io, grid(dim))
-    printstyled(io, "\nmetadata: "; color=:blue)
-    show(io, metadata(dim))
-end
-
 # AbstractArray methods where dims are the dispatch argument
 
 @inline rebuildsliced(A, data, I) = rebuild(A, data, slicedims(A, I)...)
