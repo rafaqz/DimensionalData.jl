@@ -57,10 +57,10 @@ end
 
 # Dimension dropping
 
-Base._dropdims(A::AbstractArray, dim::DimOrDimType) = 
+Base._dropdims(A::AbstractArray, dim::DimOrDimType) =
     rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
-Base._dropdims(A::AbstractArray, dims::AbDimTuple) = 
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)), 
+Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
+    rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)),
                   dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
 
@@ -75,11 +75,11 @@ Base.mapslices(f, A::AbDimArray; dims=1, kwargs...) = begin
 end
 
 # This is copied from base as we can't efficiently wrap this function
-# through the kwarg with a rebuild in the generator. Doing it this way 
+# through the kwarg with a rebuild in the generator. Doing it this way
 # wierdly makes it faster toeuse a dim than an integer.
 if VERSION > v"1.1-"
     Base.eachslice(A::AbDimArray; dims=1, kwargs...) = begin
-        if dims isa Tuple && length(dims) != 1 
+        if dims isa Tuple && length(dims) != 1
             throw(ArgumentError("only single dimensions are supported"))
         end
         dim = first(dimnum(A, dims))
@@ -113,17 +113,17 @@ end
 
 @inline reversearray(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
-    if length(dimstorev) == dnum 
+    if length(dimstorev) == dnum
         dim = rebuild(dim, val(dim), reversearray(grid(dim)))
     end
-    (reversearray(Base.front(dimstorev), dnum)..., dim) 
+    (reversearray(Base.front(dimstorev), dnum)..., dim)
 end
 @inline reversearray(dims::Tuple{}, i) = ()
 
 
 # Dimension reordering
 
-for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint), 
+for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
                      (:Base, :transpose), (:LinearAlgebra, :Transpose)]
     @eval begin
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
@@ -133,7 +133,7 @@ end
 
 for fname in [:permutedims, :PermutedDimsArray]
     @eval begin
-        @inline Base.$fname(A::AbDimArray{T,N}, perm) where {T,N} = 
+        @inline Base.$fname(A::AbDimArray{T,N}, perm) where {T,N} =
             rebuild(A, $fname(data(A), dimnum(A, perm)), permutedims(dims(A), perm))
     end
 end
@@ -159,8 +159,8 @@ Base._cat(catdims::AllDimensions, As::AbstractArray...) = begin
         newdims = Tuple(_catifcatdim(catdims, ds) for ds in zip(map(dims, As)...))
     else
         # Concatenate a new dim
-        add_dims = if (catdims isa Tuple) 
-            Tuple(d for d in catdims if !hasdim(A1, d)) 
+        add_dims = if (catdims isa Tuple)
+            Tuple(d for d in catdims if !hasdim(A1, d))
         else
             (catdims,)
         end
@@ -168,10 +168,10 @@ Base._cat(catdims::AllDimensions, As::AbstractArray...) = begin
         newdims = (dims(A1)..., add_dims...)
     end
     newA = Base._cat(dnum, map(data, As)...)
-    rebuild(A1, newA, formatdims(newA, newdims)) 
+    rebuild(A1; data=newA, dims=formatdims(newA, newdims))
 end
 
-_catifcatdim(catdims::Tuple, ds) = 
+_catifcatdim(catdims::Tuple, ds) =
     any(map(cd -> basetypeof(cd) <: basetypeof(ds[1]), catdims)) ? vcat(ds...) : ds[1]
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
@@ -186,13 +186,13 @@ Base.vcat(grids::RegularGrid...) = begin
     end
     first(grids)
 end
-Base.vcat(grids::BoundedGrid...) = 
+Base.vcat(grids::BoundedGrid...) =
     rebuild(grids[1]; bounds=(bounds(grids[1])[1], bounds(grids[end])[end]))
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)
 checkdims(dims::AbDimTuple...) = map(d -> checkdims(dims[1], d), dims)
-checkdims(d1::AbDimTuple, d2::AbDimTuple) = map(checkdims, d1, d2) 
-checkdims(d1::AbDim, d2::AbDim) = 
+checkdims(d1::AbDimTuple, d2::AbDimTuple) = map(checkdims, d1, d2)
+checkdims(d1::AbDim, d2::AbDim) =
     basetypeof(d2) <: basetypeof(d1) || error("Dims differ: $(bastypeof(d1)), $(basetypeof(d2))")
 
 
@@ -200,12 +200,11 @@ checkdims(d1::AbDim, d2::AbDim) =
 
 # TODO: change the index and traits of the reduced dimension
 # and return a DimensionalArray.
-Base.unique(A::AbDimArray{<:Any,1}) = unique(data(A)) 
-Base.unique(A::AbDimArray; dims::DimOrDimType) = 
+Base.unique(A::AbDimArray{<:Any,1}) = unique(data(A))
+Base.unique(A::AbDimArray; dims::DimOrDimType) =
     unique(data(A); dims=dimnum(A, dims))
 
 
 # TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
 # we can dispatch on dims. Instead we dispatch on array type for now, which means
 # these aren't usefull unless you inherit from AbDimArray.
-
