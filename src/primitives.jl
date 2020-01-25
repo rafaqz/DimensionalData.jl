@@ -177,7 +177,7 @@ hasdim(A, lookup::Type) = hasdim(typeof(dims(A)), lookup)
     end
 end
 
-setdim(A, newdim::AbDim) = rebuild(A; dims=setdim(dims(A), newdim)) 
+setdim(A, newdim::AbDim) = rebuild(A; dims=setdim(dims(A), newdim))
 setdim(dims::AbDimTuple, newdim::AbDim) = map(d -> setdim(d, newdim), dims)
 setdim(dim::AbDim, newdim::AbDim) =
     basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
@@ -203,7 +203,7 @@ formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(axes(A), dims)
 end
-formatdims(axes::Tuple, dims::AbDimTuple) where N = map(formatdims, axes, dims)
+formatdims(axes::Tuple, dims::Tuple) where N = map(formatdims, axes, dims)
 formatdims(axis::AbstractRange, dim::AbDim{<:AbstractArray}) = begin
     checklen(dim, axis)
     rebuild(dim, val(dim), identify(grid(dim), val(dim)))
