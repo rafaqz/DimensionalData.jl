@@ -1,3 +1,10 @@
+# Array info
+for (mod, fname) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
+    @eval begin
+        @inline ($mod.$fname)(A::AbstractArray, dims::AllDimensions) =
+            ($mod.$fname)(A, dimnum(A, dims))
+    end
+end
 
 # Reducing methods
 
@@ -137,12 +144,6 @@ for fname in [:permutedims, :PermutedDimsArray]
             rebuild(A, $fname(data(A), dimnum(A, perm)), permutedims(dims(A), perm))
     end
 end
-
-
-# Indices
-
-Base.firstindex(A::AbstractArray, d::DimOrDimType) = firstindex(A, dimnum(A, d))
-Base.lastindex(A::AbstractArray, d::DimOrDimType) = lastindex(A, dimnum(A, d))
 
 
 # Concatenation
