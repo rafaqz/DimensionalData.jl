@@ -61,6 +61,9 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
     sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 
+# Handling base cases:
+sel2indices(grid, dim::AbDim, lookup::StandardIndices) = lookup
+
 # At selector
 sel2indices(grid, dim::AbDim, sel::At) = at(dim, sel, val(sel))
 sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) =
@@ -173,7 +176,7 @@ _mayberev(::Reverse, (a, b)) = (b, a)
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 
 # Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) =
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
     getindex(a, sel2indices(a, I)...)
 Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
     setindex!(a, x, sel2indices(a, I)...)

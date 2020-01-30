@@ -1,6 +1,6 @@
-using DimensionalData, Test, Unitful
+using DimensionalData, Test, Unitful, Combinatorics
 using DimensionalData: X, Y, Z, Time, Forward, Reverse, Ordered,
-      arrayorder, indexorder, relationorder, between, at, near
+      arrayorder, indexorder, relationorder, between, at, near, sel2indices
 
 @testset "selector primitives" begin
     timeforfor = Time((5:30)u"s"; grid=RegularGrid(order=Ordered(Forward(),Forward(),Forward())))
@@ -72,6 +72,24 @@ a = [1 2  3  4
         @test view(da, Between(11, 20), At((2:3)u"s")) == [6 7]
         # Between also accepts a tuple input
         @test view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
+    end
+
+    @testset "mixed selectors and standard" begin
+        indices = [
+            (Between(9, 31), Near((3:4)u"s")),
+            (Near(22), At([3.0u"s", 4.0u"s"])),
+            (At(20), At((2:3)u"s")),
+            (Near<|13, Near<|[1.3u"s", 3.3u"s"]),
+            (Near<|(13,), Near<|[1.3u"s", 3.3u"s"]),
+            (Between(11, 20), At((2:3)u"s"))
+        ]
+        for sel_pair in indices
+            pairs = collect(zip(sel_pair, sel2indices(da, sel_pair)))
+            cases = [(pairs[1][i], pairs[2][j]) for i in 1:2, in ∈ 1:2]
+            for (case1, case2) in combinations(cases, 2)
+                @test da[case1...] == da[case2...]
+            end
+        end
     end
 
     @testset "more Unitful dims" begin
