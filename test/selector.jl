@@ -85,7 +85,7 @@ a = [1 2  3  4
         ]
         for sel_pair in indices
             pairs = collect(zip(sel_pair, sel2indices(da, sel_pair)))
-            cases = [(pairs[1][i], pairs[2][j]) for i in 1:2, in ∈ 1:2]
+            cases = [(i, j) for i in pairs[1], j in pairs[2]]
             for (case1, case2) in combinations(cases, 2)
                 @test da[case1...] == da[case2...]
             end
