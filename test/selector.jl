@@ -88,6 +88,7 @@ a = [1 2  3  4
             cases = [(i, j) for i in pairs[1], j in pairs[2]]
             for (case1, case2) in combinations(cases, 2)
                 @test da[case1...] == da[case2...]
+                @test view(da, case1...) == view(da, case2...)
             end
         end
     end

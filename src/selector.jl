@@ -180,5 +180,5 @@ Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{Union{Selector, 
     getindex(a, sel2indices(a, I)...)
 Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
     setindex!(a, x, sel2indices(a, I)...)
-Base.view(a::AbstractArray, I::Vararg{Selector}) =
+Base.view(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
     view(a, sel2indices(a, I)...)
