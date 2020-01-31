@@ -4,6 +4,8 @@ be selected from the dimension values, such as DateTime objects on a Time dimens
 """
 abstract type Selector{T} end
 
+const SelectorOrStandard = Union{Selector, StandardIndices}
+
 val(m::Selector) = m.val
 
 """
@@ -176,9 +178,9 @@ _mayberev(::Reverse, (a, b)) = (b, a)
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 
 # Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     getindex(a, sel2indices(a, I)...)
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{Union{Selector, StandardIndices}}) =
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{SelectorOrStandard}) =
     setindex!(a, x, sel2indices(a, I)...)
-Base.view(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
+Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     view(a, sel2indices(a, I)...)
