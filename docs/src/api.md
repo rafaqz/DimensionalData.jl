@@ -11,7 +11,7 @@ In addition, DimensionalData.jl exports the pre-defined dimensions `X, Y, Z, Tim
 ## Getting basic info
 Here are some very useful functions for obtaining basic information from your dimensional data:
 ```@docs
-dim
+dims
 hasdim
 dimnum
 dims2indices
@@ -34,7 +34,6 @@ data
 At
 Near
 Between
-Locus
 ```
 
 ## Methods with dim keyword
@@ -62,12 +61,10 @@ The following functions support specifying the dimension by name instead of by i
 
 ## Low level API
 ```@docs
-AbstractDimensionalArray
-AbstractDimension
-rebuild
-formatdims
-reducedims
-slicedims
+DimensionalData.rebuild
+DimensionalData.formatdims
+DimensionalData.reducedims
+DimensionalData.slicedims
 ```
 
 ## Grids
@@ -83,5 +80,5 @@ RegularGrid
 SingleSample
 TransformedGrid
 UnknownGrid
-identify
+DimensionalData.identify
 ```
