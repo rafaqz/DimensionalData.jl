@@ -14,7 +14,6 @@ Here are some very useful functions for obtaining basic information from your di
 dims
 hasdim
 dimnum
-dims2indices
 name
 val
 ```

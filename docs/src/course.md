@@ -39,7 +39,7 @@ A[X <| Between(12, 35), Time <| Between(Date(2001,5), Date(2001, 7))]
 Notice that the selectors have to be applied to a dimension (here we use the notation `x <| f`, which literally translates to `f(x)`).
 
 ## Selecting by position
-Selection, including all selector function, also works by position (when the target dimension is not specified).
+Selection, including all selector functions, also works by position (when the target dimension is not specified).
 I.e. if `X, Y` are the two dimensions of `A` (in order), then `A[At([1, 2]), At([4, 5])]` , `A[X <| At([1, 2]), Y <| At([4, 5])]` and `A[Y <| At([4, 5]), X <| At([1, 2])]` are all equivalent.
 When selecting by position applying the selector to a target dimension is not necessary, as is evident by the expression `A[At([1, 2]), At([4, 5])]`.
 
