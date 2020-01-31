@@ -178,7 +178,7 @@ _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
     getindex(a, sel2indices(a, I)...)
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{Union{Selector, StandardIndices}}) =
     setindex!(a, x, sel2indices(a, I)...)
 Base.view(a::AbDimArray, I::Vararg{Union{Selector, StandardIndices}}) =
     view(a, sel2indices(a, I)...)

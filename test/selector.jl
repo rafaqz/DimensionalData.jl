@@ -89,6 +89,13 @@ a = [1 2  3  4
             for (case1, case2) in combinations(cases, 2)
                 @test da[case1...] == da[case2...]
                 @test view(da, case1...) == view(da, case2...)
+                dac1, dac2 = copy(da), copy(da)
+                sample = da[case1...]
+                replacement  = sample isa Integer ? 100 : rand(Int, size(sample))
+                # Test return value
+                @test setindex!(dac1, replacement, case1...) == setindex!(dac2, replacement, case2...)
+                # Test mutation
+                @test dac1 == dac2
             end
         end
     end
