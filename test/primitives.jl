@@ -86,6 +86,9 @@ end
     @test dims(da, X) isa X
     @test dims(da, (X, Y)) isa Tuple{<:X,<:Y}
     @test dims(dims(da), Y) isa Y
+    @test dims(dims(da), 1) isa X
+    @test dims(dims(da), (2, 1)) isa Tuple{<:Y,<:X}
+    @test dims(dims(da), (2, Y)) isa Tuple{<:Y,<:Y}
     @test dims(da, ()) == ()
     @test_throws ArgumentError dims(da, Time)
     x = dims(da, X)
