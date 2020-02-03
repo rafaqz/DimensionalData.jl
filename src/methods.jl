@@ -83,7 +83,7 @@ end
 
 # This is copied from base as we can't efficiently wrap this function
 # through the kwarg with a rebuild in the generator. Doing it this way
-# wierdly makes it faster toeuse a dim than an integer.
+# also makes it faster to use a dim than an integer.
 if VERSION > v"1.1-"
     Base.eachslice(A::AbDimArray; dims=1, kwargs...) = begin
         if dims isa Tuple && length(dims) != 1
@@ -96,6 +96,7 @@ if VERSION > v"1.1-"
     end
 end
 
+# Duplicated dims
 
 for fname in (:cor, :cov)
     @eval Statistics.$fname(A::AbDimArray{T,2}; dims=1, kwargs...) where T = begin
@@ -159,7 +160,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
                      (:Base, :transpose), (:LinearAlgebra, :Transpose)]
     @eval begin
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
-            rebuild(A, $fname(data(A)), reverse(dims(A)), refdims(A))
+            rebuild(A, $pkg.$fname(data(A)), reverse(dims(A)), refdims(A))
         @inline $pkg.$fname(A::AbDimArray{T,1}) where T =
             rebuild(A, $pkg.$fname(data(A)), (EmptyDim(), dims(A)...))
     end

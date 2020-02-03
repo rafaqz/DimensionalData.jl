@@ -21,7 +21,7 @@ At(val::Union{Number,AbstractArray{<:Number},Tuple{<:Number,Vararg}};
    atol=zero(eltype(val)),
    rtol=(atol > zero(eltype(val)) ? zero(rtol) : Base.rtoldefault(eltype(val)))
   ) = At{typeof.((val, atol, rtol))...}(val, atol, rtol)
-At(val; atol=nothing, rtol=nothing) = 
+At(val; atol=nothing, rtol=nothing) =
     At{typeof.((val, atol, rtol))...}(val, atol, rtol)
 
 atol(sel::At) = sel.atol
@@ -100,7 +100,7 @@ to_int(::Near, x) = round(Int, x)
 
 
 at(dim::AbDim, sel::At, val) =
-    relate(relationorder(dim), dim, at(dim, val, atol(sel), rtol(sel)))
+    _relate(dim, at(dim, val, atol(sel), rtol(sel)))
 at(dim::AbDim, selval, atol::Nothing, rtol::Nothing) = begin
     ind = findfirst(x -> x == selval, val(dim))
     ind == nothing ? throw(ArgumentError("$selval not found in $dim")) : ind
@@ -114,8 +114,8 @@ at(dim::AbDim, selval, atol, rtol) = begin
 end
 
 
-near(dim::AbDim, selval) = 
-    relate(relationorder(dim), dim, near(indexorder(dim), dim::AbDim, selval))
+near(dim::AbDim, selval) =
+    _relate(dim, near(indexorder(dim), dim::AbDim, selval))
 near(indexorder::Unordered, dim, selval) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` grid"))
 near(indexorder, dim, selval) = begin
@@ -132,21 +132,12 @@ near(indexorder, dim, selval) = begin
     end
 end
 
-between(dim::AbDim, sel) = 
-    relate(relationorder(dim), dim, between(indexorder(dim), dim, sel))
+between(dim::AbDim, sel) =
+    _relate(dim, between(indexorder(dim), dim, sel))
 between(::Unordered, dim::AbDim, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered grid"))
-between(indexorder::Forward, dim::AbDim, sel) =
-    rangeorder(indexorder, searchsortedfirst(val(dim), first(sel)), searchsortedlast(val(dim), last(sel)))
-between(indexorder::Reverse, dim::AbDim, sel) =
-    rangeorder(indexorder, searchsortedfirst(val(dim), last(sel); rev=true),
-                    searchsortedlast(val(dim), first(sel); rev=true))
-
-rangeorder(::Forward, lower, upper) = lower:upper
-rangeorder(::Reverse, lower, upper) = upper:-1:lower
-
-relate(::Forward, dim, val) = val 
-relate(::Reverse, dim, val) = lastindex(dim) .- val .+ 1
+between(indexorder, dim::AbDim, sel) =
+    searchsortedfirst(val(dim), first(sel); rev=isrev(indexorder)):searchsortedlast(val(dim), last(sel); rev=isrev(indexorder))
 
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) =
@@ -155,4 +146,3 @@ Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}
     setindex!(a, x, sel2indices(a, I)...)
 Base.view(a::AbstractArray, I::Vararg{Selector}) =
     view(a, sel2indices(a, I)...)
-
