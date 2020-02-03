@@ -17,13 +17,14 @@ A = DimensionalArray(rand(length.(d)...), d)
 B = DimensionalArray(rand(length(x), length(y)), (x,y))
 C = DimensionalArray(rand(length(x)), (x,))
 
-# s1 = sprint(show, A)
-# s2 = sprint(show, x)
-# s3 = sprint(show, MIME("text/plain"), x)
+s1 = sprint(show, A)
+s2 = sprint(show, x)
+s3 = sprint(show, MIME("text/plain"), x)
 
-# @test occursin("DimensionalArray with dimensions:", s1)
-# @test occursin("X", s1)
-# @test occursin("X:", s2)
-# @test occursin("dimension X", s3)
+@test occursin("DimensionalArray", s1)
+for s in (s1, s2, s3)
+    @test occursin("Lon", s)
+    @test occursin("Longitude", s)
+end
 
 # Test again but now with labelled array A
