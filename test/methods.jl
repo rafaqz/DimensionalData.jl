@@ -1,8 +1,43 @@
-using DimensionalData, Statistics, Test, Unitful, SparseArrays
+using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 
-using DimensionalData: X, Y, Z, Time
+using DimensionalData: X, Y, Z, Time, EmptyDim
 
 using LinearAlgebra: Transpose
+
+@testset "*" begin
+    timespan = DateTime(2001):Month(1):DateTime(2001,12)
+    A1 = DimensionalArray(rand(12), (Time(timespan),)) 
+    A2 = DimensionalArray(rand(12, 1), (Time(timespan), X(10:10:10))) 
+
+    @test length.(dims(A1)) == size(A1)
+    @test dims(data(A1) * permutedims(A1)) isa Tuple{<:Time,<:Time}
+    @test data(A1) * permutedims(A1) == data(A1) * permutedims(data(A1))
+    @test dims(permutedims(A1) * data(A1)) isa Tuple{<:EmptyDim}
+    @test permutedims(A1) * data(A1) == permutedims(data(A1)) * data(A1)
+
+    @test length.(dims(permutedims(A1) * data(A1))) == size(permutedims(data(A1)) * data(A1))
+    @test length.(dims(permutedims(A1) * A1)) == size(permutedims(data(A1)) * data(A1))
+    @test length.(dims(permutedims(data(A1)) * A1)) == size(permutedims(data(A1)) * data(A1))
+
+    @test length.(dims(data(A1) * permutedims(A1))) == size(data(A1) * permutedims(data(A1)))
+    @test length.(dims(A1 * permutedims(A1))) == size(data(A1) * permutedims(data(A1)))
+    @test length.(dims(A1 * permutedims(data(A1)))) == size(data(A1) * permutedims(data(A1)))
+
+    @test length.(dims(A2)) == size(A2)
+    @test length.(dims(A2')) == size(A2')
+
+    sze1 = (12, 12)
+    @test size(data(A2) * data(A2)') == sze1
+    @test length.(dims(A2 * A2')) == sze1
+    @test length.(dims(data(A2) * A2')) == sze1
+    @test length.(dims(A2 * data(A2'))) == sze1
+    sze2 = (1, 1)
+    @test size(data(A2') * data(A2)) == sze2
+    @test length.(dims(A2' * A2)) == sze2
+    @test length.(dims(data(A2') * A2)) == sze2
+    @test length.(dims(A2' * data(A2))) == sze2
+
+end
 
 
 @testset "map" begin
