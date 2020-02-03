@@ -61,10 +61,10 @@ end
 # printing for DimensionalArray
 function Base.show(io::IO, A::AbDimArray)
     l = nameof(typeof(A))
-    printstyled(io, nameof(typeof(A)); color=:magenta)
+    printstyled(io, nameof(typeof(A)); color=:blue)
     if label(A) != ""
         print(io, " (labelled ")
-        printstyled(io, label(A); color=:magenta)
+        printstyled(io, label(A); color=:blue)
         print(io, ")")
     end
 

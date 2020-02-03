@@ -14,8 +14,8 @@ z = Z('a':'z')
 d = (x, y, z, t)
 
 A = DimensionalArray(rand(length.(d)...), d)
-B = DimensionalArray(rand(length(x), length(y)), (x,y))
-C = DimensionalArray(rand(length(x)), (x,))
+a = DimensionalArray(rand(length(x), length(y)), (x,y))
+B = DimensionalArray(rand(length(x)), (x,))
 
 s1 = sprint(show, A)
 s2 = sprint(show, x)
