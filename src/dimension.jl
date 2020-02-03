@@ -111,6 +111,13 @@ shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 
+struct EmptyDim <: AbstractDimension{Int,NoGrid,Nothing} end
+
+val(::EmptyDim) = 1:1
+grid(::EmptyDim) = NoGrid()
+metadata(::EmptyDim) = nothing
+name(::EmptyDim) = "Empty"
+
 """
     @dim typ [name=string(typ)] [shortname=string(typ)]
 

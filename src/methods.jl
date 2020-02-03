@@ -106,6 +106,31 @@ for fname in (:cor, :cov)
     end
 end
 
+const AA = AbstractArray
+const ADA = AbstractDimensionalArray
+
+Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,1}) = rebuild(A, data(A) * B, dims(A, (1,)))
+Base.:*(A::ADA{<:Any,1}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
+Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
+Base.:*(A::AA{<:Any,1}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
+Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (EmptyDim(),))
+Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
+
+Base.:*(A::ADA{<:Any,1}, B::ADA{<:Any,2}) = begin
+    _checkmatch(dims(A, 1), dims(B, 2))
+    rebuild(A, data(A) * data(B), dims(A, (1, 1)))
+end
+Base.:*(A::AbDimArray{<:Any,2}, B::AbDimArray{<:Any,1}) = begin
+    _checkmatch(dims(A, 2), dims(B, 1))
+    rebuild(A, data(A) * data(B), dims(A, (1,)))
+end
+Base.:*(A::ADA{<:Any,2}, B::ADA{<:Any,2}) = begin
+    _checkmatch(dims(A), reverse(dims(B)))
+    rebuild(A, data(A) * data(B), dims(A, (1, 1)))
+end
+
+_checkmatch(a, b) =
+    a == b || throw(ArgumentError("Array dims $a and $b do not match"))
 
 # Reverse
 
@@ -135,6 +160,8 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
     @eval begin
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
             rebuild(A, $fname(data(A)), reverse(dims(A)), refdims(A))
+        @inline $pkg.$fname(A::AbDimArray{T,1}) where T =
+            rebuild(A, $pkg.$fname(data(A)), (EmptyDim(), dims(A)...))
     end
 end
 
