@@ -129,10 +129,11 @@ end
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
     (rebuild(d, d[_relate(d, i)]),), ()
 
-_relate(d::AbDim, i) = _relate(relationorder(d), d, i)
-_relate(::Forward, d::AbDim, i) = i
-_relate(::Reverse, d::AbDim, i::Integer) = lastindex(d) - i + 1
-_relate(::Reverse, d::AbDim, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
+_relate(d::AbDim, i) = _maybeflip(relationorder(d), d, i)
+
+_maybeflip(::Forward, d::AbDim, i) = i
+_maybeflip(::Reverse, d::AbDim, i::Integer) = lastindex(d) - i + 1
+_maybeflip(::Reverse, d::AbDim, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(A, lookup)
