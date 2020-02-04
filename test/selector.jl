@@ -117,6 +117,23 @@ a = [1 2  3  4
         end
     end
 
+    @testset "single-arity views" begin
+        indices = [
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            from2d = view(da, idx)
+            @test from2d == view(data(da), idx)
+            @test !(parent(from2d) isa AbstractDimensionalArray)
+
+            from1d = view(da[Y <| At(10)], idx)
+            @test from1d == data(da)[1, :][idx]
+            @test parent(from1d) isa AbstractDimensionalArray
+        end
+    end
+
     @testset "more Unitful dims" begin
         dimz = Time<|1.0u"s":1.0u"s":3.0u"s", Y<|(1u"km", 4u"km")
         db = DimensionalArray(a, dimz)

@@ -29,6 +29,10 @@ Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, 1}, I::Union{Colon, 
 
 Base.@propagate_inbounds Base.view(A::AbDimArray, I::Vararg{<:StandardIndices}) =
     rebuildsliced(A, view(data(A), I...), I)
+Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, I::StandardIndices) =
+    rebuildsliced(A, view(data(A), I), (I,))
+Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, N} where N, I::StandardIndices) =
+    view(data(A), I)
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
