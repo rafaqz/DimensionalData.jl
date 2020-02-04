@@ -34,6 +34,9 @@ Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, I::StandardIndices) 
 Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, N} where N, I::StandardIndices) =
     view(data(A), I)
 
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::Vararg{StandardIndices}) =
+    setindex!(data(A), x, I...)
+
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
 Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
@@ -106,7 +109,3 @@ data(A::DimensionalArray) = A.data
 # DimensionalArray interface
 @inline rebuild(A::DimensionalArray, data, dims, refdims) =
     DimensionalArray(data, dims, refdims)
-
-# Array interface (AbstractDimensionalArray takes care of everything else)
-Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
-    setindex!(data(A), x, I...)

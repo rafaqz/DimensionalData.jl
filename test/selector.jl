@@ -119,6 +119,7 @@ a = [1 2  3  4
 
     @testset "single-arity views" begin
         indices = [
+            3,
             1:3,
             [1, 2, 4],
             4:-2:1,
@@ -129,8 +130,30 @@ a = [1 2  3  4
             @test !(parent(from2d) isa AbstractDimensionalArray)
 
             from1d = view(da[Y <| At(10)], idx)
-            @test from1d == data(da)[1, :][idx]
+            @test from1d == view(data(da)[1, :], idx)
             @test parent(from1d) isa AbstractDimensionalArray
+        end
+    end
+
+    @testset "single-arity setindex!" begin
+        indices = [
+            3,
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            # 2D case
+            da2d = copy(da)
+            a2d = copy(data(da2d))
+            replacement = zero(a2d[idx])
+            @test setindex!(da2d, replacement, idx) == setindex!(a2d, replacement, idx)
+            @test da2d == a2d
+            # 1D array
+            da1d = da[Y <| At(10)]
+            a1d = copy(data(da1d))
+            @test setindex!(da1d, replacement, idx) == setindex!(a1d, replacement, idx)
+            @test da1d == a1d
         end
     end
 
