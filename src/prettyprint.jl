@@ -36,7 +36,7 @@ function Base.show(io::IO, ::MIME"text/plain", dim::AbDim)
     print(io, ": ")
 
     printstyled(io, "\nval: "; color=:green)
-    printlimited(io, val(dim))
+    _printdimval(io, val(dim))
     printstyled(io, "\ngrid: "; color=:yellow)
     show(io, grid(dim))
     printstyled(io, "\nmetadata: "; color=:blue)
@@ -55,8 +55,11 @@ function Base.show(io::IO, dim::AbDim)
     end
     print(io, ": ")
 
-    printlimited(io, val(dim))
+    _printdimval(io, val(dim))
 end
+
+_printdimval(io, A::AbstractArray) = printlimited(io, A)
+_printdimval(io, x) = print(io, x)
 
 # printing for DimensionalArray
 function Base.show(io::IO, A::AbDimArray)
