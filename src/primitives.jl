@@ -1,9 +1,9 @@
-# These do most of the work in the package.
-# They are all @generated or recusive functions for performance.
+# These functions do most of the work in the package.
+# They are all type-stable recusive methods for performance and extensibility.
 
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
-_dimsmatch(a::DimOrDimType, b::DimOrDimType) = 
+_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
     basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
 
 """
@@ -124,16 +124,16 @@ end
 
 @inline slicedims(d::AbDim, i::Colon) = (d,), ()
 @inline slicedims(d::AbDim, i::Number) =
-    (), (rebuild(d, val(d)[i], slicegrid(grid(d), val(d), i)),)
+    (), (rebuild(d, d[_relate(d, i)], slicegrid(grid(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, val(d)[i]),), ()
-@inline slicedims(d::AbDim{<:LinRange}, i::UnitRange) = begin
-    range = val(d)
-    start, stop, len = range[first(i)], range[last(i)], length(i) ÷ step(i)
-    (rebuild(d, LinRange(start, stop, len), slicegrid(grid(d), val(d), i)),), ()
-end
+    (rebuild(d, d[_relate(d, i)]),), ()
 
+_relate(d::AbDim, i) = _maybeflip(relationorder(d), d, i)
+
+_maybeflip(::Forward, d::AbDim, i) = i
+_maybeflip(::Reverse, d::AbDim, i::Integer) = lastindex(d) - i + 1
+_maybeflip(::Reverse, d::AbDim, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(A, lookup)
@@ -275,7 +275,7 @@ end
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(val(dim)))
+    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) =
