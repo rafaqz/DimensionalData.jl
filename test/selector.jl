@@ -100,6 +100,23 @@ a = [1 2  3  4
         end
     end
 
+    @testset "single-arity standard index" begin
+        indices = [
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            from2d = da[idx]
+            @test from2d == data(da)[idx]
+            @test !(from2d isa AbstractDimensionalArray)
+
+            from1d = da[Y <| At(10)][idx]
+            @test from1d == data(da)[1, :][idx]
+            @test from1d isa AbstractDimensionalArray
+        end
+    end
+
     @testset "more Unitful dims" begin
         dimz = Time<|1.0u"s":1.0u"s":3.0u"s", Y<|(1u"km", 4u"km")
         db = DimensionalArray(a, dimz)

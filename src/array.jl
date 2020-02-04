@@ -15,10 +15,17 @@ dims(A::AbDimArray) = A.dims
 Base.size(A::AbDimArray) = size(data(A))
 Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:Integer}) =
+Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N}, I::Vararg{<:Integer, N}) where N =
     getindex(data(A), I...)
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Vararg{<:StandardIndices}) =
     rebuildsliced(A, getindex(data(A), I...), I)
+
+# Linear indexing
+Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N} where N, I::StandardIndices) =
+    getindex(data(A), I)
+# Exempt 1D DimArrays
+Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, 1}, I::Union{Colon, AbstractArray}) =
+    rebuildsliced(A, getindex(data(A), I), (I,))
 
 Base.@propagate_inbounds Base.view(A::AbDimArray, I::Vararg{<:StandardIndices}) =
     rebuildsliced(A, view(data(A), I...), I)
