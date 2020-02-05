@@ -58,10 +58,10 @@ end
     @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=2) == [2 12]'
-    resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())),
+    resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())),
             Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
@@ -72,24 +72,24 @@ end
     @test minimum(da; dims=1) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
-        (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())),
+        (X([143.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())),
          Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
     @test dims(reduce(+, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test std(da) === std(a)
     @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
@@ -101,7 +101,7 @@ end
     end
     @test dims(var(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da) == 3.5
@@ -210,7 +210,7 @@ end
     da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, sampling=MultiSample())),
+    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, sampling=IntervalSampling())),
                                       Time(1:4; grid=RegularGrid(; step=1))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Time)

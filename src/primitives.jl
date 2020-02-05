@@ -210,23 +210,23 @@ formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(axes(A), dims)
 end
-formatdims(axes::Tuple, dims::Tuple) where N = map(formatdims, axes, dims)
-formatdims(axis::AbstractRange, dim::AbDim{<:AbstractArray}) = begin
+formatdims(axes::Tuple, dims::Tuple) where N = map(formatdims, map(val, dims), axes, dims)
+formatdims(index::AbstractArray, axis::AbstractRange, dim) = begin
     checklen(dim, axis)
-    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
+    rebuild(dim, index, identify(grid(dim), index))
 end
-formatdims(axis::AbstractRange, dim::AbDim{<:AbstractRange}) = begin
+formatdims(index::AbstractRange, axis::AbstractRange, dim) = begin
     checklen(dim, axis)
-    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
+    rebuild(dim, index, identify(grid(dim), index))
 end
-formatdims(axis::AbstractRange, dim::AbDim{<:NTuple{2}}) = begin
+formatdims(index::NTuple{2}, axis::AbstractRange, dim) = begin
     range = LinRange(first(dim), last(dim), length(axis))
     rebuild(dim, range, identify(grid(dim), range))
 end
-formatdims(axis::AbstractRange, dim::AbDim{Nothing}) =
+formatdims(index::Nothing, axis::AbstractRange, dim) =
     rebuild(dim, nothing, NoGrid())
 # Fallback: dim remains unchanged
-formatdims(axis::AbstractRange, dim::AbDim) = dim
+formatdims(index, axis::AbstractRange, dim) = dim
 
 checklen(dim, axis) =
     length(dim) == length(axis) ||
@@ -257,25 +257,35 @@ type and order.
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
-# Reduce matching dims, ignore nothing vals - they are the dims not being reduced
+# Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline reducedims(dim::AbDim, ::Nothing) = dim
 @inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
-# Reduce specialising on grid type
+
+# Now reduce specialising on grid type
+
+# UnknownGrid remains Unknown. Defaults to Start locus.
 @inline reducedims(grid::UnknownGrid, dim) = rebuild(dim, first(val(dim)), UnknownGrid())
+# Categories are combined. 
 @inline reducedims(grid::CategoricalGrid, dim::AbDim{Vector{String}}) =
     rebuild(dim, ["combined"], CategoricalGrid(Ordered()))
 @inline reducedims(grid::CategoricalGrid, dim) =
     rebuild(dim, [:combined], CategoricalGrid(Ordered()))
+
+# For Regular/Aligned/Bounded Grid
+# The reduced grid now has IntervalSampling, not a Point or Unknown
+# order is Ordered{Forward,Forward,Forward}, as it has length 1.
+# Bounds remain the same. Locus determines dimension index sampled,
+# and remains the same after reduce
 @inline reducedims(grid::AlignedGrid, dim) = begin
-    grid = AlignedGrid(Ordered(), locus(grid), MultiSample())
+    grid = AlignedGrid(Ordered(), locus(grid), IntervalSampling())
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::BoundedGrid, dim) = begin
-    grid = BoundedGrid(Ordered(), locus(grid), MultiSample(), bounds(grid, dim))
+    grid = BoundedGrid(Ordered(), locus(grid), IntervalSampling(), bounds(grid, dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(dim))
+    grid = RegularGrid(Ordered(), locus(grid), IntervalSampling(), step(grid) * length(dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) =

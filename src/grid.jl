@@ -86,14 +86,14 @@ abstract type Sampling end
 """
 Each cell value represents a siegle discrete sample taken at the index location.
 """
-struct SingleSample <: Sampling end
+struct PointSampling <: Sampling end
 
 """
 Multiple samples from the step combined using method `M`,
 where `M` is `typeof(mean)`, `typeof(sum)` etc.
 """
-struct MultiSample{M} <: Sampling end
-MultiSample() = MultiSample{Nothing}()
+struct IntervalSampling{M} <: Sampling end
+IntervalSampling() = IntervalSampling{Nothing}()
 
 """
 The sampling method is unknown.

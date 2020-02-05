@@ -6,6 +6,11 @@ the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
 
+abstract type XDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type YDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type ZDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
+
 ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 
 const AbDim = AbstractDimension
@@ -119,16 +124,25 @@ metadata(::EmptyDim) = nothing
 name(::EmptyDim) = "Empty"
 
 """
-    @dim typ [name=string(typ)] [shortname=string(typ)]
+    @dim typ [supertype=AbstractDimension] [name=string(typ)] [shortname=string(typ)]
 
 Macro to easily define specific dimensions.
 
 Example:
 ```julia
-@dim Lat "Lattitude"
+@dim Lat "Lattitude" "lat"
+@dim Lon AbstraxtX "Longitude"
 ```
 """
-macro dim(typ, name=string(typ), shortname=string(typ))
+macro dim(typ::Symbol, args...)
+    dimmacro(typ::Symbol, :AbstractDimension, args...)
+end
+
+macro dim(typ::Symbol, supertyp::Symbol, args...)
+    dimmacro(typ, supertyp, args...)
+end
+
+dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
         struct $typ{T,G,M} <: AbstractDimension{T,G,M}
             val::T
@@ -139,10 +153,11 @@ macro dim(typ, name=string(typ), shortname=string(typ))
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
-end
 
-# Define some common dimensions
-@dim Time
-@dim X
-@dim Y
-@dim Z
+# Define some common dimensions. Time is taken by Dates, so we use Ti
+@dim X XDim
+@dim Y YDim
+@dim Z ZDim
+@dim Ti XDim "Time"
+
+const Time = Ti # For some backwards compat
