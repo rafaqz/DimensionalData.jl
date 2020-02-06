@@ -59,24 +59,25 @@ end
 # Concrete implementation ######################################################
 
 """
-    DimensionalArray(A::AbstractArray, dims::Tuple, refdims::Tuple)
+    DimensionalArray(data, dims, refdims, name)
 
-A basic DimensionalArray type.
-
-Maintains and updates its dimensions through transformations
+The main subtype of `AbstractDimensionalArray`.
+Maintains and updates its dimensions through transformations and moves dimensions to
+`refdims` after reducing operations (like e.g. `mean`).
 """
 struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D}
     data::A
     dims::D
     refdims::R
+    name::String
 end
 """
-    DimensionalArray(A::AbstractArray, dims::Tuple; refdims=())
-Constructor with optional `refdims` keyword.
+    DimensionalArray(data, dims::Tuple; refdims=(), name = "")
+Constructor with optional `refdims` and `name` keyword.
+The `name` is propagated across most sensible operations, even reducing ones.
 
 Example:
-
-```
+```julia
 using Dates, DimensionalData
 using DimensionalData: Time, X
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
@@ -85,8 +86,8 @@ A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """
-DimensionalArray(A::AbstractArray, dims; refdims=()) =
-    DimensionalArray(A, formatdims(A, dims), refdims)
+DimensionalArray(A::AbstractArray, dims; refdims=(), name = "") =
+    DimensionalArray(A, formatdims(A, dims), refdims, name)
 
 # Getters
 refdims(A::DimensionalArray) = A.refdims
@@ -94,7 +95,9 @@ data(A::DimensionalArray) = A.data
 
 # DimensionalArray interface
 @inline rebuild(A::DimensionalArray, data, dims, refdims) =
-    DimensionalArray(data, dims, refdims)
+    DimensionalArray(data, dims; refdims = refdims)
+@inline rebuild(A::DimensionalArray, data, dims; refdims = refdims(A), name = A.name) =
+    DimensionalArray(data, dims, refdims, name)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =

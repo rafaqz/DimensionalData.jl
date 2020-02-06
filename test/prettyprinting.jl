@@ -28,3 +28,4 @@ for s in (s1, s2, s3)
 end
 
 # Test again but now with labelled array A
+A = DimensionalArray(rand(length.(d)...), d; name = "test")
