@@ -92,6 +92,7 @@ DimensionalArray(A::AbstractArray, dims; refdims=(), name = "") =
 # Getters
 refdims(A::DimensionalArray) = A.refdims
 data(A::DimensionalArray) = A.data
+label(A::DimensionalArray) = A.name
 
 # DimensionalArray interface
 @inline rebuild(A::DimensionalArray, data, dims, refdims) =

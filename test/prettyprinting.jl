@@ -29,3 +29,10 @@ end
 
 # Test again but now with labelled array A
 A = DimensionalArray(rand(length.(d)...), d; name = "test")
+s1 = sprint(show, A)
+@test occursin("test", s1)
+
+# Does it propagate after indexing?
+F = A[Time(1:4)]
+s2 = sprint(show, F)
+@test occursin("test", s2)
