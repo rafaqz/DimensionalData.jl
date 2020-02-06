@@ -36,3 +36,8 @@ s1 = sprint(show, A)
 F = A[Time(1:4)]
 s2 = sprint(show, F)
 @test occursin("test", s2)
+
+# Does it propagate after e.g. reducing operations?
+G = sum(A; dims = Time)
+s3 = sprint(show, G)
+@test occursin("test", s3)
