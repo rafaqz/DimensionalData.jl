@@ -51,7 +51,7 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
     dims2indices(dims(A), lookup, emptyval)
 @inline dims2indices(dims::AbDimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
-@inline dims2indices(dims::AbDimTuple, lookup::Tuple{Vararg{Union{Colon,Integer,AbstractArray}}},
+@inline dims2indices(dims::AbDimTuple, lookup::Tuple{Vararg{StandardIndices}},
                      emptyval=Colon()) = lookup
 @inline dims2indices(dims::AbDimTuple, lookup::Tuple, emptyval=Colon()) =
     dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)

@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful
+using DimensionalData, Test, Unitful, Combinatorics
 using DimensionalData: X, Y, Z, Time, Forward, Reverse, Ordered,
       arrayorder, indexorder, relationorder, between, at, near
 
@@ -72,6 +72,97 @@ a = [1 2  3  4
         @test view(da, Between(11, 20), At((2:3)u"s")) == [6 7]
         # Between also accepts a tuple input
         @test view(da, Between((11, 20)), Between((2u"s", 3u"s"))) == [6 7]
+    end
+
+    @testset "mixed selectors and standard" begin
+        selectors = [
+            (Between(9, 31), Near((3:4)u"s")),
+            (Near(22), At([3.0u"s", 4.0u"s"])),
+            (At(20), At((2:3)u"s")),
+            (Near<|13, Near<|[1.3u"s", 3.3u"s"]),
+            (Near<|(13,), Near<|[1.3u"s", 3.3u"s"]),
+            (Between(11, 20), At((2:3)u"s"))
+        ]
+        positions =  [
+            (1:3, [3, 4]),
+            (2, [3, 4]),
+            (2, [2, 3]),
+            (1, [1, 3]),
+            ([1], [1, 3]),
+            (2:2, [2, 3])
+        ]
+        for (selector, pos) in zip(selectors, positions)
+            pairs = collect(zip(selector, pos))
+            cases = [(i, j) for i in pairs[1], j in pairs[2]]
+            for (case1, case2) in combinations(cases, 2)
+                @test da[case1...] == da[case2...]
+                @test view(da, case1...) == view(da, case2...)
+                dac1, dac2 = copy(da), copy(da)
+                sample = da[case1...]
+                replacement  = sample isa Integer ? 100 : rand(Int, size(sample))
+                # Test return value
+                @test setindex!(dac1, replacement, case1...) == setindex!(dac2, replacement, case2...)
+                # Test mutation
+                @test dac1 == dac2
+            end
+        end
+    end
+
+    @testset "single-arity standard index" begin
+        indices = [
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            from2d = da[idx]
+            @test from2d == data(da)[idx]
+            @test !(from2d isa AbstractDimensionalArray)
+
+            from1d = da[Y <| At(10)][idx]
+            @test from1d == data(da)[1, :][idx]
+            @test from1d isa AbstractDimensionalArray
+        end
+    end
+
+    @testset "single-arity views" begin
+        indices = [
+            3,
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            from2d = view(da, idx)
+            @test from2d == view(data(da), idx)
+            @test !(parent(from2d) isa AbstractDimensionalArray)
+
+            from1d = view(da[Y <| At(10)], idx)
+            @test from1d == view(data(da)[1, :], idx)
+            @test parent(from1d) isa AbstractDimensionalArray
+        end
+    end
+
+    @testset "single-arity setindex!" begin
+        indices = [
+            3,
+            1:3,
+            [1, 2, 4],
+            4:-2:1,
+        ]
+        for idx in indices
+            # 2D case
+            da2d = copy(da)
+            a2d = copy(data(da2d))
+            replacement = zero(a2d[idx])
+            @test setindex!(da2d, replacement, idx) == setindex!(a2d, replacement, idx)
+            @test da2d == a2d
+            # 1D array
+            da1d = da[Y <| At(10)]
+            a1d = copy(data(da1d))
+            @test setindex!(da1d, replacement, idx) == setindex!(a1d, replacement, idx)
+            @test da1d == a1d
+        end
     end
 
     @testset "more Unitful dims" begin

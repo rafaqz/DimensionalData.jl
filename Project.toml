@@ -11,9 +11,9 @@ RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
-julia = "1"
 ConstructionBase = "1"
-RecipesBase = "0.7"
+RecipesBase = "0.7, 0.8"
+julia = "1"
 
 [extras]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
@@ -21,6 +21,7 @@ CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 
 [targets]
-test = ["BenchmarkTools", "CoordinateTransformations", "Test", "SparseArrays", "Unitful"]
+test = ["BenchmarkTools", "CoordinateTransformations", "Test", "SparseArrays", "Unitful", "Combinatorics"]

@@ -4,6 +4,8 @@ be selected from the dimension values, such as DateTime objects on a Time dimens
 """
 abstract type Selector{T} end
 
+const SelectorOrStandard = Union{Selector, StandardIndices}
+
 val(m::Selector) = m.val
 
 """
@@ -60,6 +62,9 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
     (sel2indices(grids[1], dims[1], lookup[1]),
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
     sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
+
+# Handling base cases:
+sel2indices(grid, dim::AbDim, lookup::StandardIndices) = lookup
 
 # At selector
 sel2indices(grid, dim::AbDim, sel::At) = at(dim, sel, val(sel))
@@ -173,9 +178,9 @@ _mayberev(::Reverse, (a, b)) = (b, a)
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 
 # Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbstractArray, I::Vararg{Selector}) =
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     getindex(a, sel2indices(a, I)...)
-Base.@propagate_inbounds Base.setindex!(a::AbstractArray, x, I::Vararg{Selector}) =
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{SelectorOrStandard}) =
     setindex!(a, x, sel2indices(a, I)...)
-Base.view(a::AbstractArray, I::Vararg{Selector}) =
+Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     view(a, sel2indices(a, I)...)
