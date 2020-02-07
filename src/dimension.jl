@@ -122,6 +122,7 @@ name(::EmptyDim) = "Empty"
     @dim typ [name=string(typ)] [shortname=string(typ)]
 
 Macro to easily define specific dimensions.
+At the moment it is not exported, because we are not settled on its interface yet.
 
 Example:
 ```julia

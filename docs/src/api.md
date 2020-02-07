@@ -3,10 +3,7 @@ To use the functionality of DimensionalData in your module, please dispatch on `
 ## Core types
 ```@docs
 DimensionalArray
-Dim
-@dim
 ```
-In addition, DimensionalData.jl exports the pre-defined dimensions `X, Y, Z, Time`.
 
 ## Getting basic info
 Here are some very useful functions for obtaining basic information from your dimensional data:
@@ -60,6 +57,8 @@ The following functions support specifying the dimension by name instead of by i
 
 ## Low level API
 ```@docs
+DimensionalData.Dim
+DimensionalData.@dim
 DimensionalData.rebuild
 DimensionalData.formatdims
 DimensionalData.reducedims
