@@ -95,8 +95,8 @@ data(A::DimensionalArray) = A.data
 label(A::DimensionalArray) = A.name
 
 # DimensionalArray interface
-@inline rebuild(A::DimensionalArray, data, dims, refdims) =
-    DimensionalArray(data, dims; refdims = refdims)
+@inline rebuild(A::DimensionalArray, data, dims, refdims; name = A.name) =
+    DimensionalArray(data, dims; refdims = refdims, name = name)
 @inline rebuild(A::DimensionalArray, data, dims; refdims = refdims(A), name = A.name) =
     DimensionalArray(data, dims, refdims, name)
 

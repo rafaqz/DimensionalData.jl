@@ -69,7 +69,7 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
 
 # AbstractArray methods where dims are the dispatch argument
 
-@inline rebuildsliced(A, data, I) = rebuild(A, data, slicedims(A, I)...)
+@inline rebuildsliced(A, data, I) = rebuild(A, data, slicedims(A, I)...; name = A.name)
 
 Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim{<:Number}}) =
     getindex(A, dims2indices(A, dims)...)
