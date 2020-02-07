@@ -43,7 +43,7 @@ s3 = sprint(show, G)
 @test occursin("test", s3)
 
 # It should NOT propagate after binary operations
-B = DimensionalArray(rand(length.(d)...), d; name = "test")
-C = A + B
+B = DimensionalArray(rand(length.(d)...), d; name = "test2")
+C = A .+ B
 s4 = sprint(show, C)
 @test !occursin("test", s4)

@@ -30,18 +30,18 @@ Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
-Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)))
-Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T))
+Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)); name = "")
+Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T); name = "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
-    rebuild(A, similar(data(A), T, I))
+    rebuild(A, similar(data(A), T, I); name = "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
-    rebuildsliced(A, similar(data(A), T, I...), I)
+    rebuildsliced(A, similar(data(A), T, I...), I; name = "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(data(A), T, I...), I)
+    rebuildsliced(A, similar(data(A), T, I...), I; name = "")
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?
-    rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc))
+    rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc); name = "")
 end
 
 # Need to cover a few type signatures to avoid ambiguity with base
