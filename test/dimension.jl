@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims
+using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims, dimnum, hasdim
 
 @dim TestDim "Test dimension" 
 
@@ -41,8 +41,7 @@ dimz = dims(da)
 a = [1 2 3 4 
      2 3 4 5
      3 4 5 6]
-dimz = (X((143, 145), UnknownGrid(), nothing), 
-        Y((-38, -35), UnknownGrid(), nothing))
+dimz = X((143, 145)), Y((-38, -35))
 da = DimensionalArray(a, dimz)
 
 @testset "dims" begin
@@ -59,4 +58,13 @@ end
     @test name(dimz) == ("Dim row", "Dim column")
     @test shortname(dimz) == ("row", "column")
     @test label(dimz) == ("Dim row, Dim column")
+end
+
+@testset "repeating dims of the same type is allowed" begin
+    dimz = X((143, 145)), X((-38, -35))
+    @test dims(dimz, X) === dimz[1]
+    @test dims(dimz, (X, X)) === dimz
+    @test dimnum(dimz, (X, X)) === (1, 2)
+    @test hasdim(dimz, (X, X)) === (true, true)
+    @test permutedims(dimz, (X, X)) === dimz
 end

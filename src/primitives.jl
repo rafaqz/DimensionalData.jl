@@ -1,7 +1,10 @@
-# These do most of the work in the package.
-# They are all @generated or recusive functions for performance.
+# These functions do most of the work in the package.
+# They are all type-stable recusive methods for performance and extensibility.
 
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
+
+_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
+    basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
 
 """
 Sort dimensions into the order they take in the array.
@@ -10,8 +13,6 @@ Missing dimensions are replaced with `nothing`
 """
 @inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
     map(p -> tosort[p], Tuple(perm))
-@inline Base.permutedims(tosort::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}, perm::AbDimTuple) =
-    tosort
 
 @inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
     permutedims(tosort, Tuple(map(d -> constructorof(d)(), order)))
@@ -22,33 +23,25 @@ Missing dimensions are replaced with `nothing`
 @inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
     permutedims(Tuple(tosort), order)
 @inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    Base.permutedims(tosort, order, map(d -> dims(grid(d)), order))
-@generated Base.permutedims(tosort::AbDimTuple, order::AbDimTuple, griddims) =
-    permutedims_inner(tosort, order, griddims)
+    Base.permutedims(tosort, order)
 
-permutedims_inner(tosort::Type, order::Type, griddims::Type) = begin
-    indexexps = []
-    for (i, dim) in enumerate(order.parameters)
-        dimindex = findfirst(d -> basetypeof(d) <: basetypeof(dim), tosort.parameters)
-        if dimindex == nothing
-            # The grid may allow dimensions not in dims
-            # that will be transformed to the actual dimensions (ie for rotations).
-            if griddims <: Nothing
-                push!(indexexps, :(nothing))
-            else
-                gridindex = findfirst(d -> basetypeof(d) <: basetypeof(griddims.parameters[i]), tosort.parameters)
-                if gridindex == nothing
-                    push!(indexexps, :(nothing))
-                else
-                    push!(indexexps, :(tosort[$gridindex]))
-                end
-            end
-        else
-            push!(indexexps, :(tosort[$dimindex]))
-        end
+Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
+    _sortdims(tosort, order, ())
+
+_sortdims(tosort::Tuple, order::Tuple, rejected) =
+    # Match dims to the order, and also check if the grid has a
+    # transformed dimension that matches
+    if _dimsmatch(order[1], tosort[1])
+        (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), ())...)
+    else
+        _sortdims(tail(tosort), order, (rejected..., tosort[1]))
     end
-    Expr(:tuple, indexexps...)
-end
+# Return nothing and start on a new dim
+_sortdims(tosort::Tuple{}, order::Tuple, rejected) =
+    (nothing, _sortdims(rejected, tail(order), ())...)
+# Return an empty tuple if we run out of dims to sort
+_sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
+_sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
 
 """
@@ -58,7 +51,7 @@ Convert a tuple of AbstractDimension to indices, ranges or Colon.
     dims2indices(dims(A), lookup, emptyval)
 @inline dims2indices(dims::AbDimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
-@inline dims2indices(dims::AbDimTuple, lookup::Tuple{Vararg{Union{Colon,Integer,AbstractArray}}},
+@inline dims2indices(dims::AbDimTuple, lookup::Tuple{Vararg{StandardIndices}},
                      emptyval=Colon()) = lookup
 @inline dims2indices(dims::AbDimTuple, lookup::Tuple, emptyval=Colon()) =
     dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
@@ -114,10 +107,6 @@ the new struct but are useful to give context to plots.
 Called at the array level the returned tuple will also include the
 previous reference dims attached to the array.
 """
-@inline slicedims(A, dims::AbDimTuple) = slicedims(A, dims2indices(A, dims))
-@inline slicedims(dims2slice::AbDimTuple, dims::AbDimTuple) =
-    slicedims(dims2slice, dims2indices(dims2slice, dims))
-@inline slicedims(dims2slice::AbDimTuple, dims::Tuple{}) = ()
 # Results are split as (dims, refdims)
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
@@ -135,35 +124,43 @@ end
 
 @inline slicedims(d::AbDim, i::Colon) = (d,), ()
 @inline slicedims(d::AbDim, i::Number) =
-    (), (rebuild(d, val(d)[i], slicegrid(grid(d), val(d), i)),)
+    (), (rebuild(d, d[_relate(d, i)], slicegrid(grid(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, val(d)[i]),), ()
-@inline slicedims(d::AbDim{<:LinRange}, i::UnitRange) = begin
-    range = val(d)
-    start, stop, len = range[first(i)], range[last(i)], length(i) ÷ step(i)
-    (rebuild(d, LinRange(start, stop, len), slicegrid(grid(d), val(d), i)),), ()
-end
+    (rebuild(d, d[_relate(d, i)]),), ()
 
+_relate(d::AbDim, i) = _maybeflip(relationorder(d), d, i)
+
+_maybeflip(::Forward, d::AbDim, i) = i
+_maybeflip(::Reverse, d::AbDim, i::Integer) = lastindex(d) - i + 1
+_maybeflip(::Reverse, d::AbDim, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
-Get the number of an AbstractDimension as ordered in the array
+    dimnum(A, lookup)
+
+Get the number(s) of `AbstractDimension`(s) as ordered in the
+dimensions of an object.
 """
-@inline dimnum(A, lookup) = dimnum(typeof(dims(A)), lookup)
-@inline dimnum(dimtypes::Type, lookup::AbstractArray) = dimnum(dimtypes, (lookup...,))
-@inline dimnum(dimtypes::Type, lookup::Number) = lookup
-@inline dimnum(dimtypes::Type, lookup::Tuple) =
-    (dimnum(dimtypes, lookup[1]), dimnum(dimtypes, tail(lookup))...,)
-@inline dimnum(dimtypes::Type, lookup::Tuple{}) = ()
-@inline dimnum(dimtypes::Type, lookup::AbDim) = dimnum(dimtypes, typeof(lookup))
-@generated dimnum(dimtypes::Type{DTS}, lookup::Type{D}) where {DTS,D} = begin
-    index = findfirst(dt -> D <: basetypeof(dt), DTS.parameters)
-    if index == nothing
-        :(throw(ArgumentError("No $lookup in $dimtypes")))
+@inline dimnum(A, lookup) = dimnum(A, (lookup,))[1]
+@inline dimnum(A, lookup::AbstractArray) = dimnum(A, (lookup...,))
+@inline dimnum(A, lookup::Tuple) = dimnum(dims(A), lookup, (), 1)
+# Match dim and lookup, also check if the grid has a transformed dimension that matches
+@inline dimnum(d::Tuple, lookup::Tuple, rejected, n) =
+    if !(d[1] isa Nothing) && _dimsmatch(d[1], lookup[1])
+        # Replace found dim with nothing so it isn't found again but n is still correct
+        (n, dimnum((rejected..., nothing, tail(d)...), tail(lookup), (), 1)...)
     else
-        :($index)
+        dimnum(tail(d), lookup, (rejected..., d[1]), n + 1)
     end
-end
+# Numbers are returned as-is
+@inline dimnum(d::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+@inline dimnum(d::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+# Throw an error if the lookup is not found
+@inline dimnum(d::Tuple{}, lookup::Tuple, rejected, n) =
+    throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
+# Return an empty tuple when we run out of lookups
+@inline dimnum(d::Tuple, lookup::Tuple{}, rejected, n) = ()
+@inline dimnum(d::Tuple{}, lookup::Tuple{}, rejected, n) = ()
 
 """
     hasdim(A, dim)
@@ -177,10 +174,16 @@ hasdim(A, lookup::Type) = hasdim(typeof(dims(A)), lookup)
     if index == nothing
         :(false)
     else
-        :(true)
+        hasdim(tail(d), lookup)
     end
-end
+@inline hasdim(::Tuple{}, ::DimOrDimType) = false
 
+"""
+    setdim(x, newdim)
+
+Replaces the first dim matching newdim, with newdim, and returns
+a new object or tuple with the dimension updated.
+"""
 setdim(A, newdim::AbDim) = rebuild(A; dims=setdim(dims(A), newdim))
 setdim(dims::AbDimTuple, newdim::AbDim) = map(d -> setdim(d, newdim), dims)
 setdim(dim::AbDim, newdim::AbDim) =
@@ -272,7 +275,7 @@ end
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(val(dim)))
+    grid = RegularGrid(Ordered(), locus(grid), MultiSample(), step(grid) * length(dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::DependentGrid, dim) =
@@ -293,21 +296,31 @@ reducedims(locus::Center, dim) = begin
 end
 
 
-
 """
+    dims(A, lookup)
+
 Get the dimension(s) matching the type(s) of the lookup dimension.
+
+Lookup can be an Int or an AbstractDimension, or a tuple containing
+any combination of either.
 """
 @inline dims(A::AbstractArray, lookup) = dims(dims(A), lookup)
-@inline dims(ds::AbDimTuple, lookup::Integer) = ds[lookup]
-@inline dims(ds::AbDimTuple, lookup::Tuple) =
-    (dims(ds, lookup[1]), dims(ds, tail(lookup))...)
-@inline dims(ds::AbDimTuple, lookup::Tuple{}) = ()
-@inline dims(ds::AbDimTuple, lookup) = dims(ds, basetypeof(lookup))
-@generated dims(ds::DT, lookup::Type{L}) where {DT<:AbDimTuple,L} = begin
-    index = findfirst(dt -> dt <: L, DT.parameters)
-    if index == nothing
-        :(throw(ArgumentError("No $lookup in $dims")))
+@inline dims(d::AbDimTuple, lookup) = dims(d, (lookup,))[1]
+@inline dims(d::AbDimTuple, lookup::Tuple) = _dims(d, lookup, (), d)
+
+@inline _dims(d, lookup::Tuple, rejected, remaining) =
+    if !(remaining[1] isa Nothing) && _dimsmatch(remaining[1], lookup[1])
+        # Remove found dim so it isn't found again
+        (remaining[1], _dims(d, tail(lookup), (), (rejected..., tail(remaining)...))...)
     else
-        :(ds[$index])
+        _dims(d, lookup, (rejected..., remaining[1]), tail(remaining))
     end
-end
+# Numbers are returned as-is
+@inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining::Tuple{AbDim,Vararg}) =
+    (d[lookup[1]], _dims(d, tail(lookup), (), (rejected..., remaining...))...)
+# Throw an error if the lookup is not found
+@inline _dims(d, lookup::Tuple, rejected, remaining::Tuple{}) =
+    throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
+# Return an empty tuple when we run out of lookups
+@inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple) = ()
+@inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple{}) = ()
