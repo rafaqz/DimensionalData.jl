@@ -344,9 +344,15 @@ any combination of either.
 Check that dimensions or tuples of dimensions are the same.
 Empty tuples are allowed
 """
-@inline comparedims(a::Tuple, b::Tuple) = map(comparedims, a, b)
-@inline comparedims(a::Tuple, b::Tuple{}) = a
-@inline comparedims(a::Tuple{}, b::Tuple) = b
+@inline comparedims(a::AbDimTuple, ::Nothing) = a
+@inline comparedims(::Nothing, b::AbDimTuple) = b
+@inline comparedims(::Nothing, ::Nothing) = nothing
+
+@inline comparedims(a::AbDimTuple, b::AbDimTuple) = 
+    (comparedims(a[1], b[1]), comparedims(tail(a), tail(b))...)
+@inline comparedims(a::AbDimTuple, b::Tuple{}) = a
+@inline comparedims(a::Tuple{}, b::AbDimTuple) = b
+@inline comparedims(a::Tuple{}, b::Tuple{}) = ()
 @inline comparedims(a::AbDim, b::AbDim) = begin
     basetypeof(a) == basetypeof(b) || 
         throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))

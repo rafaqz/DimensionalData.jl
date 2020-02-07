@@ -51,6 +51,9 @@ std(a; dims=Y())
 """
 module DimensionalData
 
+using Base.Broadcast:
+    Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, Unknown
+
 using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
@@ -85,6 +88,7 @@ include("grid.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")
+include("broadcast.jl")
 include("methods.jl")
 include("primitives.jl")
 include("utils.jl")
