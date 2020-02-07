@@ -9,53 +9,76 @@ A `DimensionalArray` is constructed by passing the data and the dimensions like 
 ```@example main
 using Dates: DateTime, Month, Date
 using DimensionalData
-timespan = Time(DateTime(2001):Month(1):DateTime(2001,12))
+timespan = Ti(DateTime(2001):Month(1):DateTime(2001,12))
 xspan = X(10:10:100)
-
 ```
-Here both `X` and `Time` are already created (and exported) dimensions from within the `DimensionalData` module. We use them now to make a `DimensionalArray`:
+Here both `X` and `Time` are already created dimensions from within the `DimensionalData` module. The currently exported predefined dimensions are `X, Y, Z, Ti`, with `Ti` an alias of `DimensionalData.Time` (to avoid the conflict with `Dates.Time`).
+
+We pass a `Tuple` of the dimensions to make a `DimensionalArray`:
 ```@example main
 A = DimensionalArray(rand(12,10), (timespan, xspan))
 ```
 
-These dimensions (here `X, Time`) can then be used to index the array by name, without having to worry about the order of the dimensions.
-For example, simple index-based access of `A` at let's say every 2 points of the `Time` dimension and every 3rd point of the `X` dimension happens like so:
+## Selecting by name and index
+These dimensions (here `X, Ti`) can then be used to index the array by name, without having to worry about the order of the dimensions.
+
+The simplest case is probably to select a dimension by index, e.g. at let's say every 2nd point of the `Ti` dimension and every 3rd point of the `X` dimension. This is done with the simple `Ti(range)` syntax like so:
 ```@example main
-A[Time(1:2:end), X(1:3:end)]
+A[Ti(1:2:end), X(1:3:end)]
+```
+
+Of course, when specifying only one dimension, all other elements of the other dimensions are assumed to be included:
+```@example main
+A[X(1:3:end)]
 ```
 
 !!! info "Indexing"
     All indexing on `DimensionalArray`s works with `getindex` (the above example), `setindex!` as well as `view`. In addition, indexing like this always preserves the nature of the data, i.e. the result is still a `DimensionalArray`.
 
-## Selecting by value
+## Selecting by name and value
 The above example is useful because one does not have to care about the ordering of the dimensions.
-But much more useful is to be able to select a dimension by value.
+But arguably more useful is to be able to select a dimension by its values.
 For example, we would like to get all values of `A` where the `X` dimension is between two values.
-This is done with the so-called selectors, all of which are listed in the [Selectors](@ref) page.
-For simplicity, here we showcase the [`Between`](@ref) selector but many others exist, like [`At`](@ref) or [`Near`](@ref).
+
+Selecting by value in `DimensionalData` is **always** done with the **selectors**, all of which are listed in the [Selectors](@ref) page.
+This avoids the ambiguity of what happens when the actual values of the dimension are also integers (like the case here for the dimension `X`).
+
+For simplicity, here we showcase the [`Between`](@ref) selector but  others also exist, like [`At`](@ref) or [`Near`](@ref).
 ```@example main
-A[X <| Between(12, 35), Time <| Between(Date(2001,5), Date(2001, 7))]
+A[X(Between(12, 35)), Ti(Between(Date(2001,5), Date(2001, 7)))]
 ```
-Notice that the selectors have to be applied to a dimension (here we use the notation `x <| f`, which literally translates to `f(x)`).
+Notice that the selectors have to be applied to a dimension (alternative syntax is `selector <| Dim`, which literally translates to `Dim(selector)`).
 
 ## Selecting by position
-Selection, including all selector functions, also works by position (when the target dimension is not specified).
-I.e. if `X, Y` are the two dimensions of `A` (in order), then `A[At([1, 2]), At([4, 5])]` , `A[X <| At([1, 2]), Y <| At([4, 5])]` and `A[Y <| At([4, 5]), X <| At([1, 2])]` are all equivalent.
-When selecting by position applying the selector to a target dimension is not necessary, as is evident by the expression `A[At([1, 2]), At([4, 5])]`.
+So far, the selection protocols we have mentioned work by specifying the _name_ of the dimension, without much care of what is the ordering.
 
-When PR#48 is done, this section will be updated.
+However "normal" selection, as in standard Julia functions, also works by specifying dimensions by position. This functionality also covers the selector functions!
 
-## Specifying `dim` by dimension name
+Continuing from the above realization of `A`, we showcase this by comparing the statements without and with names:
+```@example main
+A[Between(12, 35), :] == A[X(Between(12, 35))]
+A[1:5, :] == A[X(1:5)]
+A[:, 1:5] == A[Ti(1:5)]
+```
+etc. Of course in this approach it is necessary to specify _all_ dimensions by position, one cannot leave some unspecified.
+
+In addition, to attempt supporting as much as base Julia functionality as possible, single index access like in standard `Array`. For example
+```@example main
+A[1:5]
+```
+selects the first 5 entries of the underlying numerical data. In the case that `A` has only one dimension, this kind of indexing retains the dimension.
+
+## Specifying `dims` by dimension name
 In many Julia functions, like e.g. `size, sum` etc., one can specify the dimension (as an integer) along which to perform the operation.
 It is possible to do this for `DimensionalArray` by specifying the dimension by its name (its Type actually), for example
 ```@example main
 sum(A, dims = X)
 ```
-(both dimensions of `A` need to be kept, as the standard Julia functions also keep the extra dimensions, but make them singular). All methods that have been extended to support this are listed in the [Methods with dim keyword](@ref) section.
+(both dimensions of `A` need to be kept, as the standard Julia functions also keep the extra dimensions, but make them singular). All methods that have been extended to support this are listed in the [Methods with dims keyword](@ref) section.
 
 
 ## Referenced dimensions
-Here @rafaqz needs to write, because I really don't know refdims... :)
+Coming soon.
 
 ## Grid functionality
-Here @rafaqz needs to write, because I really don't know grids... :)
+Coming soon.

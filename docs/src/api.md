@@ -35,7 +35,7 @@ Near
 Between
 ```
 
-## Methods with dim keyword
+## Methods with dims keyword
 The following functions support specifying the dimension by name instead of by integer for a `DimensionalArray`:
 
 - `size`
