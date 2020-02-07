@@ -8,6 +8,8 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 
 dims(A::AbDimArray) = A.dims
 @inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
+@inline rebuild(x::AbDimArray, data, dims=dims(x); name = x.name) =
+    rebuild(x, data, dims, refdims(x); name = name)
 
 
 # Array interface methods ######################################################
