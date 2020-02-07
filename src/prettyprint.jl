@@ -59,6 +59,7 @@ function Base.show(io::IO, dim::AbDim)
 end
 
 _printdimval(io, A::AbstractArray) = printlimited(io, A)
+_printdimval(io, A::AbstractRange) = print(io, A)
 _printdimval(io, x) = print(io, x)
 
 # printing for DimensionalArray
