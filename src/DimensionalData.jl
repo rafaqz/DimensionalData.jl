@@ -55,8 +55,9 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export AbstractDimension, AbstractXDim, AbstractYDim, AbstractZDim, 
-       AbstractCategoricalDim, Dim
+export AbstractDimension, XDim, YDim, ZDim, CategoricalDim
+
+export Dim, X, Y, Z, Ti
 
 export Selector, Near, Between, At
 
