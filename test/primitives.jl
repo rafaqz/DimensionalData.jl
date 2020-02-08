@@ -63,19 +63,19 @@ end
             (X(3; grid=UnknownGrid()), Y(1; grid=UnknownGrid()))
     @test reducedims((X(3:4; grid=RegularGrid(;step=1)), 
                       Y(1:5; grid=RegularGrid(;step=1))), (X, Y)) ==
-                     (X([3]; grid=RegularGrid(;step=2, sampling=MultiSample())), 
-                      Y([1]; grid=RegularGrid(;step=5, sampling=MultiSample())))
+                     (X([3]; grid=RegularGrid(;step=2, sampling=IntervalSampling())), 
+                      Y([1]; grid=RegularGrid(;step=5, sampling=IntervalSampling())))
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Start(), bounds=(3, 5))),
                       Y(1:5; grid=BoundedGrid(;locus=End(), bounds=(0, 5)))), (X, Y))[1] ==
-                     (X([3]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(3, 5), locus=Start())),
-                      Y([5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0, 5), locus=End())))[1]
+                     (X([3]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(3, 5), locus=Start())),
+                      Y([5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(0, 5), locus=End())))[1]
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Center(), bounds=(2.5, 4.5))),
                       Y(1:5; grid=BoundedGrid(;locus=Center(), bounds=(0.5, 5.5)))), (X, Y))[1] ==
-                     (X([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(2.5, 4.5), locus=Center())),
-                      Y([3.5]; grid=BoundedGrid(;sampling=MultiSample(), bounds=(0.5, 5.5), locus=Center())))[1]
+                     (X([3.5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(2.5, 4.5), locus=Center())),
+                      Y([3.5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(0.5, 5.5), locus=Center())))[1]
     @test reducedims((X(3:4; grid=AlignedGrid()), Y(1:5; grid=AlignedGrid())), (X, Y)) ==
-                     (X([3]; grid=AlignedGrid(;sampling=MultiSample())), 
-                      Y([1]; grid=AlignedGrid(;sampling=MultiSample())))
+                     (X([3]; grid=AlignedGrid(;sampling=IntervalSampling())), 
+                      Y([1]; grid=AlignedGrid(;sampling=IntervalSampling())))
     @test reducedims((X([:a,:b]; grid=CategoricalGrid()), 
                       Y(["1","2","3","4","5"]; grid=CategoricalGrid())), (X, Y)) ==
                      (X([:combined]; grid=CategoricalGrid()), 

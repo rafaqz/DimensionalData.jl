@@ -55,13 +55,15 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export AbstractDimension, Dim
+export AbstractDimension, XDim, YDim, ZDim, CategoricalDim
+
+export Dim, X, Y, Z, Ti
 
 export Selector, Near, Between, At
 
 export Locus, Center, Start, End, UnknownLocus
 
-export Sampling, SingleSample, MultiSample, UnknownSampling
+export Sampling, PointSampling, IntervalSampling, UnknownSampling
 
 export Order, Ordered, Unordered
 
