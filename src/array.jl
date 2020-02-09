@@ -1,8 +1,4 @@
-"""
-Probably backed by an array, but might not be. Not good for broadcasting.
 
-These arrays should be fixed with a dependency on DiskArrays.jl
-"""
 abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray

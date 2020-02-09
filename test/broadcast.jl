@@ -4,6 +4,7 @@ using DimensionalData, Test
 
 @testset "Binary broadcasting operations (.+)" begin
     da = DimensionalArray(ones(3), X)
+    @test Base.BroadcastStyle(typeof(da)) isa DimensionalData.DimensionalStyle
 
     @testset "standard case" begin
         @test da .+ da == 2ones(3)

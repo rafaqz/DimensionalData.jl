@@ -128,6 +128,9 @@ end
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::AbDim{<:AbstractArray}, i::AbstractArray) =
     (rebuild(d, d[_relate(d, i)]),), ()
+@inline slicedims(d::AbDim{<:Colon}, i::Colon) = (d,), ()
+@inline slicedims(d::AbDim{<:Colon}, i::AbstractArray) = (d,), ()
+@inline slicedims(d::AbDim{<:Colon}, i::Number) = (), (d,)
 
 _relate(d::AbDim, i) = _maybeflip(relationorder(d), d, i)
 

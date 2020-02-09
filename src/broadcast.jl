@@ -28,11 +28,10 @@ end
 
 
 Base.BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
-Base.BroadcastStyle(::DimensionalStyle{A}, b::BroadcastStyle) where {A, B} = DimensionalStyle(A(), b)
+Base.BroadcastStyle(::DimensionalStyle{A}, b::B) where {A, B} = DimensionalStyle(A(), b)
 Base.BroadcastStyle(a::A, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(a, B())
 Base.BroadcastStyle(::DimensionalStyle{A}, b::DefaultArrayStyle) where {A} = DimensionalStyle(A(), b)
 Base.BroadcastStyle(a::AbstractArrayStyle{M}, ::DimensionalStyle{B}) where {B,M} = DimensionalStyle(a, B())
-
 
 # We need to implement copy because if the wrapper array type does not support setindex
 # then the `similar` based default method will not work
@@ -57,8 +56,6 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
         rebuild(A, data(dest), _dims)
     end
 end
-
-Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
 # Recursively unwraps `AbstractDimensionalArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimensionalArray`s with the wrapped array,
