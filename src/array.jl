@@ -1,12 +1,9 @@
 """
 Probably backed by an array, but might not be. Not good for broadcasting.
-"""
-abstract type AbstractDimensionalPseudoArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
 
+These arrays should be fixed with a dependency on DiskArrays.jl
 """
-Definately backed by an array.
-"""
-abstract type AbstractDimensionalArray{T,N,D,A} <: AbstractDimensionalPseudoArray{T,N,D} end
+abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray
 
