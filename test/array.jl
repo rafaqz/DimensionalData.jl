@@ -87,7 +87,7 @@ b = [4 4 4 4
      4 4 4 4]
 
 @testset "indexing into empty dims is just regular indexing" begin
-    ida = DimensionalArray(a, (X(), Y()))
+    ida = DimensionalArray(a, (X, Y))
     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
 end
 
