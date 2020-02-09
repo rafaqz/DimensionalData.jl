@@ -26,7 +26,7 @@ end
 # Basic dim and array initialisation
 a = ones(5, 4)
 # Must construct with a tuple for dims/refdims
-@test_throws MethodError DimensionalArray(a, X((140, 148)))
+@test_throws ArgumentError DimensionalArray(a, X((140, 148)))
 @test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1)) 
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
