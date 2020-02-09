@@ -91,10 +91,9 @@ Example:
 
 ```
 using Dates, DimensionalData
-using DimensionalData: Time, X
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100)))
-A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
+A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+A[X<|Near([12, 35]), Ti<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """

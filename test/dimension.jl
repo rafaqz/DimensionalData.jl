@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims, dimnum, hasdim
+using DimensionalData: Forward, slicedims
 
 @dim TestDim "Test dimension" 
 
@@ -38,7 +38,7 @@ dimz = dims(da)
 @test units(dimz) == (nothing, nothing) 
 @test label(dimz) == ("X, Y") 
 
-a = [1 2 3 4 
+a = [1 2 3 4
      2 3 4 5
      3 4 5 6]
 dimz = X((143, 145)), Y((-38, -35))
@@ -48,7 +48,7 @@ da = DimensionalArray(a, dimz)
     @test dims(dimz) === dimz
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
-    @test_throws ArgumentError dims(dimz, Time)
+    @test_throws ArgumentError dims(dimz, Ti)
     @test typeof(dims(da)) == Tuple{X{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing},
                                 Y{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing}}
 end

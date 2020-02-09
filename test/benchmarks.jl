@@ -58,7 +58,7 @@ println("Dims with UnitRange")
 @btime d3($g);
 
 a = rand(5, 4, 3);
-da = DimensionalArray(a, (Y((1u"m", 5u"m")), X(1:4), Time(1:3)))
+da = DimensionalArray(a, (Y((1u"m", 5u"m")), X(1:4), Ti(1:3)))
 dimz = dims(da)
 
 if VERSION > v"1.1-"
@@ -81,7 +81,7 @@ println("\n\nmean: normal, numbers + rebuild, dims + rebuild")
 println("permutedims: normal, numbers + rebuild, dims + rebuild")
 @btime permutedims($a, (2, 1, 3))
 @btime permutedims($da, (2, 1, 3))
-@btime permutedims($da, (Y(), X(), Time()))
+@btime permutedims($da, (Y(), X(), Ti()))
 println("reverse: normal, numbers + rebuild, dims + rebuild")
 @btime reverse($a; dims=1) 
 @btime reverse($da; dims=1) 
