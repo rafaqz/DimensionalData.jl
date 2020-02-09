@@ -11,6 +11,7 @@ In a disk based [`AbstractDimensionalArray`](@ref), `data` may need to
 load data from disk.
 """
 function data end
+data(x) = x
 
 """
     dims(x)
@@ -26,6 +27,7 @@ This is the only method required for this package to work. It probably
 requires defining a dims field on your object to store dims in.
 """
 function dims end
+dims(x) = nothing
 
 """
     refdims(x)

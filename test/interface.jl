@@ -5,5 +5,5 @@ using DimensionalData: val
 @test name(Nothing) == ""
 @test shortname(nothing) == ""
 @test shortname(Nothing) == ""
-@test_throws MethodError dims(1) == ()
+@test dims(1) == nothing
 @test refdims(1) == ()

@@ -1,4 +1,12 @@
-abstract type AbstractDimensionalArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+"""
+Probably backed by an array, but might not be. Not good for broadcasting.
+"""
+abstract type AbstractDimensionalPseudoArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+
+"""
+Definately backed by an array.
+"""
+abstract type AbstractDimensionalArray{T,N,D,A} <: AbstractDimensionalPseudoArray{T,N,D} end
 
 const AbDimArray = AbstractDimensionalArray
 
@@ -42,8 +50,8 @@ Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
 Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
 Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 
-Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
-
+# Need to cover a few type signatures to avoid ambiguity with base
+# Don't remove these even though they look redundant
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)))
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T))
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
@@ -58,8 +66,6 @@ Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type
     rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc))
 end
 
-# Need to cover a few type signatures to avoid ambiguity with base
-# Don't remove these even though they look redundant
 
 @inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
 @inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)
@@ -79,7 +85,7 @@ A basic DimensionalArray type.
 
 Maintains and updates its dimensions through transformations
 """
-struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D}
+struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
