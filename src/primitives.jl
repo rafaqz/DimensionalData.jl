@@ -205,12 +205,15 @@ based on the type and element type of the index:
 - `AbstractArray` become `AlignedGrid`
 - `AbstractArray` of `Symbol` or `String` become `CategoricalGrid`
 """
-formatdims(A::AbstractArray{T,N}, dims::Tuple) where {T,N} = begin
+formatdims(A::AbstractArray, dim::DimOrDimType) = formatdims(A, (dim,))
+formatdims(A::AbstractArray, dims::Tuple{Vararg{Type}}) = 
+    formatdims(A, map(d -> d(), dims))
+formatdims(A::AbstractArray{T,N}, dims::AbDimTuple) where {T,N} = begin
     dimlen = length(dims)
     dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
     formatdims(axes(A), dims)
 end
-formatdims(axes::Tuple, dims::Tuple) where N = map(formatdims, map(val, dims), axes, dims)
+formatdims(axes::Tuple, dims::AbDimTuple) where N = map(formatdims, map(val, dims), axes, dims)
 formatdims(index::AbstractArray, axis::AbstractRange, dim) = begin
     checklen(dim, axis)
     rebuild(dim, index, identify(grid(dim), index))
@@ -334,3 +337,19 @@ any combination of either.
 # Return an empty tuple when we run out of lookups
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple) = ()
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple{}) = ()
+
+"""
+    comparedims(a, b)
+
+Check that dimensions or tuples of dimensions are the same.
+Empty tuples are allowed
+"""
+@inline comparedims(a::Tuple, b::Tuple) = map(comparedims, a, b)
+@inline comparedims(a::Tuple, b::Tuple{}) = a
+@inline comparedims(a::Tuple{}, b::Tuple) = b
+@inline comparedims(a::AbDim, b::AbDim) = begin
+    basetypeof(a) == basetypeof(b) || 
+        throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
+    # TODO compare the grid, and maybe the index.
+    return a
+end
