@@ -144,7 +144,7 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        struct $typ{T,G,M} <: AbstractDimension{T,G,M}
+        struct $typ{T,G,M} <: $supertype{T,G,M}
             val::T
             grid::G
             metadata::M

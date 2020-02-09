@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, Reverse, 
+using DimensionalData: Forward, Reverse, 
       reversearray, reverseindex, slicebounds, slicegrid, identify, orderof,
       indexorder, arrayorder, relationorder
 
