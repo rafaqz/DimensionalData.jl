@@ -8,8 +8,8 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 
 dims(A::AbDimArray) = A.dims
 @inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
-@inline rebuild(x::AbDimArray, data, dims=dims(x); name = x.name) =
-    rebuild(x, data, dims, refdims(x); name = name)
+@inline rebuild(x::AbDimArray, data, dims=dims(x)) =
+    rebuild(x, data, dims, refdims(x))
 
 
 # Array interface methods ######################################################
@@ -46,18 +46,18 @@ Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 
 Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
 
-Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)); name = "")
-Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T); name = "")
+Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
+Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
-    rebuild(A, similar(data(A), T, I); name = "")
+    rebuild(A, similar(data(A), T, I), "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
-    rebuildsliced(A, similar(data(A), T, I...), I; name = "")
+    rebuildsliced(A, similar(data(A), T, I...), I, "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(data(A), T, I...), I; name = "")
+    rebuildsliced(A, similar(data(A), T, I...), I, "")
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?
-    rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc); name = "")
+    rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc), "")
 end
 
 # Need to cover a few type signatures to avoid ambiguity with base
@@ -88,8 +88,8 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
     name::String
 end
 """
-    DimensionalArray(data, dims::Tuple; refdims=(), name = "")
-Constructor with optional `refdims` and `name` keyword.
+    DimensionalArray(data, dims::Tuple [, name::String]; refdims=())
+Constructor with optional `name` and `refdims`.
 The `name` is propagated across most sensible operations, even reducing ones.
 
 Example:
@@ -102,7 +102,7 @@ A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """
-DimensionalArray(A::AbstractArray, dims; refdims=(), name = "") =
+DimensionalArray(A::AbstractArray, dims, name::String = ""; refdims=()) =
     DimensionalArray(A, formatdims(A, dims), refdims, name)
 
 # Getters
@@ -111,11 +111,12 @@ data(A::DimensionalArray) = A.data
 label(A::DimensionalArray) = A.name
 
 # DimensionalArray interface
-@inline rebuild(A::DimensionalArray, data, dims, refdims; name = A.name) =
-    DimensionalArray(data, dims; refdims = refdims, name = name)
-@inline rebuild(A::DimensionalArray, data, dims; refdims = refdims(A), name = A.name) =
+@inline rebuild(A::DimensionalArray, data, dims::Tuple, refdims::Tuple, name::String = A.name) =
     DimensionalArray(data, dims, refdims, name)
-
+@inline rebuild(A::DimensionalArray, data, dims::Tuple, name::String = A.name; refdims = refdims(A)) =
+    DimensionalArray(data, dims, refdims, name)
+@inline rebuild(A::DimensionalArray, data::AbstractArray, name::String) =
+    DimensionalArray(data, dims(A), refdims(A), name)
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
