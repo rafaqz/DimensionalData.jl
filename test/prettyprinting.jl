@@ -28,7 +28,7 @@ for s in (s1, s2, s3)
 end
 
 # Test again but now with labelled array A
-A = DimensionalArray(rand(length.(d)...), d; name = "test")
+A = DimensionalArray(rand(length.(d)...), d, "test")
 s1 = sprint(show, A)
 @test occursin("test", s1)
 
@@ -43,7 +43,7 @@ s3 = sprint(show, G)
 @test occursin("test", s3)
 
 # It should NOT propagate after binary operations
-B = DimensionalArray(rand(length.(d)...), d; name = "test2")
+B = DimensionalArray(rand(length.(d)...), d, "test2")
 C = A .+ B
 s4 = sprint(show, C)
 @test !occursin("test", s4)
