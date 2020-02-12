@@ -1,7 +1,7 @@
 using DimensionalData, Test, Unitful
 using DimensionalData: Forward, slicedims
 
-@dim TestDim "Test dimension" 
+@dim TestDim "Test dimension"
 
 @testset "dims creation macro" begin
     @test name(TestDim) == "Test dimension"
@@ -10,7 +10,7 @@ using DimensionalData: Forward, slicedims
     @test val(TestDim(:test)) == :test
     @test metadata(TestDim(1, UnknownGrid(), "metadata")) == "metadata"
     @test units(TestDim) == nothing
-    @test label(TestDim) == "Test dimension" 
+    @test label(TestDim) == "Test dimension"
     @test eltype(TestDim(1)) == Int
     @test eltype(TestDim([1,2,3])) == Vector{Int}
     @test length(TestDim(1)) == 1
@@ -20,23 +20,24 @@ using DimensionalData: Forward, slicedims
     @test firstindex(TestDim(10:20)) == 1
     @test lastindex(TestDim(10:20)) == 11
     @test size(TestDim(10:20)) == (11,)
-    @test ndims(TestDim(10:20)) == 1 
+    @test ndims(TestDim(10:20)) == 1
 end
 
 # Basic dim and array initialisation
 a = ones(5, 4)
 # Must construct with a tuple for dims/refdims
+
 @test_throws ArgumentError DimensionalArray(a, X((140, 148)))
-@test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1)) 
+@test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1))
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
 dimz = dims(da)
-@test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3); grid=RegularGrid(step=2.0)),), 
+@test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3); grid=RegularGrid(step=2.0)),),
                                     (Y(8.0, grid=RegularGrid(step=3.0)),))
-@test name(dimz) == ("X", "Y") 
-@test shortname(dimz) == ("X", "Y") 
-@test units(dimz) == (nothing, nothing) 
-@test label(dimz) == ("X, Y") 
+@test name(dimz) == ("X", "Y")
+@test shortname(dimz) == ("X", "Y")
+@test units(dimz) == (nothing, nothing)
+@test label(dimz) == ("X, Y")
 
 a = [1 2 3 4
      2 3 4 5

@@ -67,7 +67,7 @@ function Base.show(io::IO, A::AbDimArray)
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
     if label(A) != ""
-        print(io, " (labelled ")
+        print(io, " (named ")
         printstyled(io, label(A); color=:blue)
         print(io, ")")
     end
