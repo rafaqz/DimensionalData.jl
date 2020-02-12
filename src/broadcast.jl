@@ -39,10 +39,10 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     _dims = _broadcasted_dims(bc)
     A = _firstdimarray(bc)
     data = copy(_unwrap_broadcasted(bc))
-    return if A isa Nothing || _dims isa Nothing 
-        data 
+    return if A isa Nothing || _dims isa Nothing
+        data
     else
-        rebuild(A, data, _dims)
+        rebuild(A, data, _dims, "")
     end
 end
 
@@ -50,10 +50,10 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(dest, _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
-    return if A isa Nothing || _dims isa Nothing 
-        dest 
+    return if A isa Nothing || _dims isa Nothing
+        dest
     else
-        rebuild(A, data(dest), _dims)
+        rebuild(A, data(dest), _dims, "")
     end
 end
 
@@ -69,7 +69,7 @@ _unwrap_broadcasted(nda::AbstractDimensionalArray) = data(nda)
 
 # Get the first dimensional array inthe broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
-_firstdimarray(x::Tuple{<:AbDimArray,Vararg}) = x[1] 
+_firstdimarray(x::Tuple{<:AbDimArray,Vararg}) = x[1]
 _firstdimarray(x::Tuple) = _firstdimarray(tail(x))
 _firstdimarray(x::Tuple{}) = nothing
 

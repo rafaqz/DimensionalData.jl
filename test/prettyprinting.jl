@@ -1,5 +1,6 @@
 using DimensionalData, Test
 using Dates: DateTime, Month
+using DimensionalData: @dim
 
 # define dims with both long name and Type name
 @dim Lon "Longitude" "lon"
