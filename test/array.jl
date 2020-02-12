@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Start
+using DimensionalData: Start
 
 a = [1 2; 3 4]
 dimz = (X((143, 145)), Y((-38, -36)))
@@ -85,6 +85,13 @@ a = [1 2 3 4
 b = [4 4 4 4 
      4 4 4 4 
      4 4 4 4]
+
+@testset "indexing into empty dims is just regular indexing" begin
+    ida = DimensionalArray(a, (X, Y))
+    ida[Y(3:4), X(2:3)] = [5 6; 6 7]
+end
+
+
 dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 da = DimensionalArray(a, dimz)
 
@@ -124,12 +131,12 @@ end
 end
 
 @testset "broadcast" begin
-    da = DimensionalArray(ones(Int, 5, 2, 4), (Y((10, 20)), Time(10:11), X(1:4)))
+    da = DimensionalArray(ones(Int, 5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
     da2 = da .* 2.0
     @test da2 == fill(2.0, 5, 2, 4)
     @test eltype(da2) <: Float64
     @test dims(da2) == (Y(LinRange(10, 20, 5); grid=RegularGrid(;step=2.5)), 
-                        Time(10:11; grid=RegularGrid(;step=1)), 
+                        Ti(10:11; grid=RegularGrid(;step=1)), 
                         X(1:4; grid=RegularGrid(;step=1)))
     da2 = da .+ fill(10, 5, 2, 4)
     @test da2 == fill(11, 5, 2, 4)

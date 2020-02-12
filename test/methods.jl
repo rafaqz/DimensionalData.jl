@@ -1,16 +1,16 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 
-using DimensionalData: X, Y, Z, Time, EmptyDim
+using DimensionalData: EmptyDim
 
 using LinearAlgebra: Transpose
 
 @testset "*" begin
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
-    A1 = DimensionalArray(rand(12), (Time(timespan),)) 
-    A2 = DimensionalArray(rand(12, 1), (Time(timespan), X(10:10:10))) 
+    A1 = DimensionalArray(rand(12), (Ti(timespan),)) 
+    A2 = DimensionalArray(rand(12, 1), (Ti(timespan), X(10:10:10))) 
 
     @test length.(dims(A1)) == size(A1)
-    @test dims(data(A1) * permutedims(A1)) isa Tuple{<:Time,<:Time}
+    @test dims(data(A1) * permutedims(A1)) isa Tuple{<:Ti,<:Ti}
     @test data(A1) * permutedims(A1) == data(A1) * permutedims(data(A1))
     @test dims(permutedims(A1) * data(A1)) isa Tuple{<:EmptyDim}
     @test permutedims(A1) * data(A1) == permutedims(data(A1)) * data(A1)
@@ -58,10 +58,10 @@ end
     @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=2) == [2 12]'
-    resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())),
+    resultdimz = (X([143.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())),
             Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
@@ -72,24 +72,24 @@ end
     @test minimum(da; dims=1) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
-        (X([143.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())),
+        (X([143.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())),
          Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0)))
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
     @test dims(reduce(+, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(; step=4.0, sampling=IntervalSampling())))
     @test std(da) === std(a)
     @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
@@ -101,7 +101,7 @@ end
     end
     @test dims(var(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0)),
-         Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=MultiSample())))
+         Y([-38.0]; grid=RegularGrid(;step=4.0, sampling=IntervalSampling())))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da) == 3.5
@@ -126,19 +126,19 @@ if VERSION > v"1.1-"
              3 4 5 6
              5 6 7 8]
         # eachslice
-        da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
-        @test [mean(s) for s in eachslice(da; dims=Time)] == [3.0, 4.0, 5.0, 6.0]
+        da = DimensionalArray(a, (Y((10, 30)), Ti(1:4)))
+        @test [mean(s) for s in eachslice(da; dims=Ti)] == [3.0, 4.0, 5.0, 6.0]
         @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
         slices = [s .* 2 for s in eachslice(da; dims=Y)]
         @test map(sin, da) == map(sin, a)
         @test slices[1] == [2, 4, 6, 8]
         @test slices[2] == [6, 8, 10, 12]
         @test slices[3] == [10, 12, 14, 16]
-        dims(slices[1]) == (Time(1.0:1.0:4.0),)
-        slices = [s .* 2 for s in eachslice(da; dims=Time)]
+        dims(slices[1]) == (Ti(1.0:1.0:4.0),)
+        slices = [s .* 2 for s in eachslice(da; dims=Ti)]
         @test slices[1] == [2, 6, 10]
         dims(slices[1]) == (Y(10.0:10.0:30.0),)
-        @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Time))]
+        @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
     end
 end
 
@@ -171,16 +171,16 @@ end
 
 
 @testset "dimension reordering methods with specified permutation" begin
-    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20)), Time(10:11), X(1:4)))
+    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
     dsp = permutedims(da, [3, 1, 2])
 
-    @test permutedims(da, [X, Y, Time]) == permutedims(da, (X, Y, Time))
-    @test permutedims(da, [X(), Y(), Time()]) == permutedims(da, (X(), Y(), Time()))
-    dsp = permutedims(da, (X(), Y(), Time()))
+    @test permutedims(da, [X, Y, Ti]) == permutedims(da, (X, Y, Ti))
+    @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
+    dsp = permutedims(da, (X(), Y(), Ti()))
     @test dsp == permutedims(data(da), (3, 1, 2))
     @test dims(dsp) == (X(1:4; grid=RegularGrid(;step=1)),
                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
-                        Time(10:11; grid=RegularGrid(;step=1)))
+                        Ti(10:11; grid=RegularGrid(;step=1)))
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
     @test typeof(dsp) <: DimensionalArray
@@ -207,13 +207,13 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    da = DimensionalArray(a, (Y((10, 30)), Time(1:4)))
+    da = DimensionalArray(a, (Y((10, 30)), Ti(1:4)))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, sampling=MultiSample())),
-                                      Time(1:4; grid=RegularGrid(; step=1))))
+    @test typeof(dims(ms)) == typeof((Y([10.0]; grid=RegularGrid(; step=30.0, sampling=IntervalSampling())),
+                                      Ti(1:4; grid=RegularGrid(; step=1))))
     @test refdims(ms) == ()
-    ms = mapslices(sum, da; dims=Time)
+    ms = mapslices(sum, da; dims=Ti)
     @test data(ms) == [10 18 26]'
 end
 
@@ -244,10 +244,10 @@ end
     @test grid.(dims(cat(da, db; dims=X()))) == grid.(testdims)
     @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
     @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
-    @test cat(da, db; dims=(Z(1:1), Time(1:2))) == cat(a, b; dims=4)
-    @test cat(da, db; dims=(X(), Time(1:2))) == cat(a, b; dims=3)
-    dx = cat(da, db; dims=(X(), Time(1:2)))
-    @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Time(1:2)))
+    @test cat(da, db; dims=(Z(1:1), Ti(1:2))) == cat(a, b; dims=4)
+    @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=3)
+    dx = cat(da, db; dims=(X(), Ti(1:2)))
+    @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Ti(1:2)))
 end
 
 @testset "unique" begin

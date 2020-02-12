@@ -1,4 +1,5 @@
-abstract type AbstractDimensionalArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+
+abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray
 
@@ -44,8 +45,8 @@ Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
 Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
 Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 
-Base.BroadcastStyle(::Type{<:AbDimArray}) = Broadcast.ArrayStyle{AbDimArray}()
-
+# Need to cover a few type signatures to avoid ambiguity with base
+# Don't remove these even though they look redundant
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
@@ -59,9 +60,6 @@ Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type
     # TODO How do we know what the new dims are?
     rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc), "")
 end
-
-# Need to cover a few type signatures to avoid ambiguity with base
-# Don't remove these even though they look redundant
 
 @inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
 @inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)
@@ -81,7 +79,7 @@ The main subtype of `AbstractDimensionalArray`.
 Maintains and updates its dimensions through transformations and moves dimensions to
 `refdims` after reducing operations (like e.g. `mean`).
 """
-struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D}
+struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
@@ -95,10 +93,9 @@ The `name` is propagated across most sensible operations, even reducing ones.
 Example:
 ```julia
 using Dates, DimensionalData
-using DimensionalData: Time, X
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100)))
-A[X<|Near([12, 35]), Time<|At(DateTime(2001,5))]
+A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+A[X<|Near([12, 35]), Ti<|At(DateTime(2001,5))]
 A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """

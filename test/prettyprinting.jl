@@ -1,5 +1,4 @@
 using DimensionalData, Test
-using DimensionalData: Time, Z, @dim
 using Dates: DateTime, Month
 
 # define dims with both long name and Type name
@@ -7,7 +6,7 @@ using Dates: DateTime, Month
 @dim Lat "Latitude" "lat"
 
 timespan = DateTime(2001):Month(1):DateTime(2001,12)
-t = Time(timespan)
+t = Ti(timespan)
 x = Lon(Vector(0.5:1.0:359.5))
 y = Lat(Vector{Union{Float32, Missing}}(-89.5:1.0:89.5))
 z = Z('a':'z')

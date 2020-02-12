@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: X, Y, Z, Time, Forward, @dim, slicedims, dimnum, hasdim
+using DimensionalData: Forward, slicedims
 
 @dim TestDim "Test dimension"
 
@@ -26,7 +26,8 @@ end
 # Basic dim and array initialisation
 a = ones(5, 4)
 # Must construct with a tuple for dims/refdims
-@test_throws MethodError DimensionalArray(a, X((140, 148)))
+
+@test_throws ArgumentError DimensionalArray(a, X((140, 148)))
 @test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1))
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
@@ -48,7 +49,7 @@ da = DimensionalArray(a, dimz)
     @test dims(dimz) === dimz
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
-    @test_throws ArgumentError dims(dimz, Time)
+    @test_throws ArgumentError dims(dimz, Ti)
     @test typeof(dims(da)) == Tuple{X{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing},
                                 Y{LinRange{Float64},RegularGrid{Ordered{Forward,Forward,Forward},Start,UnknownSampling,Float64},Nothing}}
 end

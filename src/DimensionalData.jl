@@ -5,12 +5,9 @@ and selecting data from dimension values instead of using indices directly.
 
 ## Dimensions
 
-Dimensions are simply types that wrap values. They both store dimension values
-and are used for dimension lookup or indices, ranges or dimension number.
-`X`, `Y`, `Z` and `Time` are the unexported defaults, add this line to use them:
-```julia
-using DimensionalData: X, Y, Z, Time
-```
+Dimensions are simply types that wrap values. They store the dimension index 
+and define details about the grid and other metadata, and are also used
+to index into the array. `X`, `Y`, `Z` and `Ti` are the exported defaults.
 
 A generalised [`Dim`](@ref) type is available to use arbitrary symbols to name dimensions.
 Custom dimensions can be defined using the [`@dim`](@ref) macro.
@@ -51,17 +48,22 @@ std(a; dims=Y())
 """
 module DimensionalData
 
+using Base.Broadcast:
+    Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, Unknown
+
 using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export AbstractDimension, Dim
+export AbstractDimension, XDim, YDim, ZDim, CategoricalDim
+
+export Dim, X, Y, Z, Ti
 
 export Selector, Near, Between, At
 
 export Locus, Center, Start, End, UnknownLocus
 
-export Sampling, SingleSample, MultiSample, UnknownSampling
+export Sampling, PointSampling, IntervalSampling, UnknownSampling
 
 export Order, Ordered, Unordered
 
@@ -78,11 +80,16 @@ export AbstractDimensionalArray, DimensionalArray
 export data, dims, refdims, metadata, name, shortname,
        val, label, units, order, bounds, locus, grid, <|
 
+export dimnum, hasdim, setdim
+
+export @dim
+
 include("interface.jl")
 include("grid.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")
+include("broadcast.jl")
 include("methods.jl")
 include("primitives.jl")
 include("utils.jl")
