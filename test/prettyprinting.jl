@@ -48,4 +48,10 @@ using DimensionalData: @dim
     C = A .+ B
     s4 = sprint(show, C)
     @test !occursin("test", s4)
+
+    # Test that broadcasted setindex! retains name
+    D = DimensionalArray(ones(length.(d)...), d, "olo")
+    @. D = A + B
+    s5 = sprint(show, D)
+    @test occursin("olo", s5)
 end
