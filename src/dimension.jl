@@ -77,16 +77,14 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
 @inline rebuildsliced(A, data, I, name::String = A.name) =
     rebuild(A, data, slicedims(A, I)...,name)
 
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim{<:Number}}) =
-    getindex(A, dims2indices(A, dims)...)
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dims::Vararg{<:AbDim}) =
-    getindex(A, dims2indices(A, dims)...)
+Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::AbDim, dims::Vararg{<:AbDim}) =
+    getindex(A, dims2indices(A, (dim, dims...))...)
 
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dims::Vararg{<:AbDim}) =
-    setindex!(A, x, dims2indices(A, dims)...)
+Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::AbDim, dims::Vararg{<:AbDim}) =
+    setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
-Base.@propagate_inbounds Base.view(A::AbstractArray, dims::Vararg{<:AbDim}) =
-    view(A, dims2indices(A, dims)...)
+Base.@propagate_inbounds Base.view(A::AbstractArray, dim::AbDim, dims::Vararg{<:AbDim}) =
+    view(A, dims2indices(A, (dim, dims...))...)
 
 @inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
 @inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
