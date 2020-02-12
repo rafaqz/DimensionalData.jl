@@ -2,10 +2,10 @@ using DimensionalData, Test
 using Dates: DateTime, Month
 using DimensionalData: @dim
 
+# define dims with both long name and Type name
+@dim Lon "Longitude" "lon"
+@dim Lat "Latitude" "lat"
 @testset "prettyprinting" begin
-    # define dims with both long name and Type name
-    @dim Lon "Longitude" "lon"
-    @dim Lat "Latitude" "lat"
 
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
     t = Ti(timespan)
