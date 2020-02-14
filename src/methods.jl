@@ -73,7 +73,7 @@ Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
 
 # Function application
 
-@inline Base.map(f, A::AbDimArray) = rebuild(A, map(f, data(A)), dims(A))
+@inline Base.map(f, A::AbDimArray) = rebuild(A, map(f, data(A)))
 
 Base.mapslices(f, A::AbDimArray; dims=1, kwargs...) = begin
     dimnums = dimnum(A, dims)
@@ -141,7 +141,7 @@ _checkmatch(a, b) =
     newdims = reversearray(DimensionalData.dims(A), dnum)
     # Reverse the data
     newdata = reverse(data(A); dims=dnum)
-    rebuild(A, newdata, newdims, refdims(A))
+    rebuild(A, newdata, newdims)
 end
 
 @inline reversearray(dimstorev::Tuple, dnum) = begin
@@ -160,7 +160,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
                      (:Base, :transpose), (:LinearAlgebra, :Transpose)]
     @eval begin
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
-            rebuild(A, $pkg.$fname(data(A)), reverse(dims(A)), refdims(A))
+            rebuild(A, $pkg.$fname(data(A)), reverse(dims(A)))
         @inline $pkg.$fname(A::AbDimArray{T,1}) where T =
             rebuild(A, $pkg.$fname(data(A)), (EmptyDim(), dims(A)...))
     end
@@ -197,7 +197,7 @@ Base._cat(catdims::AllDimensions, As::AbstractArray...) = begin
         newdims = (dims(A1)..., add_dims...)
     end
     newA = Base._cat(dnum, map(data, As)...)
-    rebuild(A1; data=newA, dims=formatdims(newA, newdims))
+    rebuild(A1, newA, formatdims(newA, newdims))
 end
 
 _catifcatdim(catdims::Tuple, ds) =

@@ -187,7 +187,7 @@ or a tuple of dimensions.
 Replaces the first dim matching newdim, with newdim, and returns
 a new object or tuple with the dimension updated.
 """
-setdim(A, newdim::AbDim) = rebuild(A; dims=setdim(dims(A), newdim))
+setdim(A, newdim::AbDim) = rebuild(A, data(A), setdim(dims(A), newdim))
 setdim(dims::AbDimTuple, newdim::AbDim) = map(d -> setdim(d, newdim), dims)
 setdim(dim::AbDim, newdim::AbDim) =
     basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
