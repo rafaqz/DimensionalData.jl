@@ -1,32 +1,19 @@
 # These functions do most of the work in the package.
 # They are all type-stable recusive methods for performance and extensibility.
 
-const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
-
-_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
-    basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
-
 """
+    sortdims(tosort, order)
+
 Sort dimensions into the order they take in the array.
-
 Missing dimensions are replaced with `nothing`
+
+Both `tosort and `order` may be tuple or vector of dims or dim types.
 """
-@inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
-    map(p -> tosort[p], Tuple(perm))
-
-@inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
-    permutedims(tosort, Tuple(map(d -> constructorof(d)(), order)))
-@inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
-    permutedims(Tuple(map(d -> constructorof(d)(), tosort)), order)
-@inline Base.permutedims(tosort::AbDimTuple, order::AbDimVector) =
-    permutedims(tosort, Tuple(order))
-@inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
-    permutedims(Tuple(tosort), order)
-@inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    Base.permutedims(tosort, order)
-
-Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    _sortdims(tosort, order, ())
+sortdims(tosort::Vector, order) = sortdims(Tuple(tosort), order)
+sortdims(tosort, order::Vector) = sortdims(tosort, Tuple(order))
+sortdims(tosort::Vector, order::Vector) = 
+    sortdims(Tuple(tosort), Tuple(order))
+sortdims(tosort, order) = sortdims(tosort, order, ())
 
 _sortdims(tosort::Tuple, order::Tuple, rejected) =
     # Match dims to the order, and also check if the grid has a
@@ -43,6 +30,8 @@ _sortdims(tosort::Tuple{}, order::Tuple, rejected) =
 _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
+_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
+    basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
 
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.

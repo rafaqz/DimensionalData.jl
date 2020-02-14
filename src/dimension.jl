@@ -5,6 +5,9 @@ It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
+abstract type IndependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type DependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
 """
 Abstract parent type for all X dimensions.
@@ -25,6 +28,11 @@ abstract type ZDim{T,G,M} <: AbstractDimension{T,G,M} end
 Abstract parent type for all categorical dimensions.
 """
 abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
+
+"""
+Abstract parent type for all time dimensions.
+"""
+abstract type TimeDim{T,G,M} <: IndependentDim{T,G,M} end
 
 ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 
@@ -61,6 +69,7 @@ shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d) # Use `name` as fallback
 units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
+
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::AbDimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
@@ -72,7 +81,8 @@ bounds(dim::AbDim) = bounds(grid(dim), dim)
 
 
 # Base methods
-Base.eltype(dim::Type{<:AbDim{T}}) where T = T
+Base.eltype(dim::Type{<:AbDim{I}}) where T = T
+Base.eltype(dim::Type{<:AbDim{I}}) where T<:AbstractArray{E} = E
 Base.ndims(dim::AbDim) = ndims(val(dim))
 Base.size(dim::AbDim) = size(val(dim))
 Base.length(dim::AbDim) = length(val(dim))
@@ -86,6 +96,7 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
     val(dim1) == val(dim2) &&
     grid(dim1) == grid(dim2) &&
     metadata(dim1) == metadata(dim2)
+Base.permutedims(tosort::AbDimTuple, order) = sortdims(tosort, order)
 
 # AbstractArray methods where dims are the dispatch argument
 
@@ -176,6 +187,6 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 @dim X XDim
 @dim Y YDim
 @dim Z ZDim
-@dim Ti XDim "Time"
+@dim Ti TimeDim "Time"
 
 const Time = Ti # For some backwards compat
