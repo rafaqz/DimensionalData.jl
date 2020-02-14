@@ -42,7 +42,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     return if A isa Nothing || _dims isa Nothing
         data
     else
-        rebuild(A, data, _dims, "")
+        rebuild(A, data, _dims, refdims(A), "")
     end
 end
 
@@ -53,7 +53,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     return if A isa Nothing || _dims isa Nothing
         dest
     else
-        rebuild(A, data(dest), _dims, "")
+        rebuild(A, data(dest), _dims, refdims(A), "")
     end
 end
 

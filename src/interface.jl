@@ -41,7 +41,8 @@ as it is mostly to give context to plots. Ignoring refdims will simply leave som
 function refdims end
 refdims(x) = ()
 """
-    rebuild(x::AbstractDimensionalArray, data, [dims], [refdims])
+    rebuild(x::AbstractDimensionalArray, data, [dims], [refdims], [name])
+    rebuild(x::AbstractDimensionalArray, data, [name])
     rebuild(x::AbstractDimension, val, [grid], [metadata])
     rebuild(x; kwargs...)
 

@@ -8,9 +8,11 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 # Interface methods ############################################################
 
 dims(A::AbDimArray) = A.dims
-@inline rebuild(x, data, dims=dims(x)) = rebuild(x, data, dims, refdims(x))
-@inline rebuild(x::AbDimArray, data, dims=dims(x)) =
-    rebuild(x, data, dims, refdims(x))
+@inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A)) = 
+    rebuild(A, data, dims, refdims, name(A))
+# Rebuild for name-updating methods, to avoid having to add dims and refdims
+@inline rebuild(A::AbstractArray, data, name::String) =
+    rebuild(A, data, dims(A), refdims(A), name)
 
 
 # Array interface methods ######################################################
@@ -105,15 +107,14 @@ DimensionalArray(A::AbstractArray, dims, name::String = ""; refdims=()) =
 # Getters
 refdims(A::DimensionalArray) = A.refdims
 data(A::DimensionalArray) = A.data
-label(A::DimensionalArray) = A.name
+name(A::DimensionalArray) = A.name
+label(A::DimensionalArray) = name(A)
 
 # DimensionalArray interface
-@inline rebuild(A::DimensionalArray, data, dims::Tuple, refdims::Tuple, name::String = A.name) =
+@inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple, 
+                refdims::Tuple, name::String) =
     DimensionalArray(data, dims, refdims, name)
-@inline rebuild(A::DimensionalArray, data, dims::Tuple, name::String = A.name; refdims = refdims(A)) =
-    DimensionalArray(data, dims, refdims, name)
-@inline rebuild(A::DimensionalArray, data::AbstractArray, name::String) =
-    DimensionalArray(data, dims(A), refdims(A), name)
+
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
