@@ -4,6 +4,8 @@ using DimensionalData: EmptyDim
 
 using LinearAlgebra: Transpose
 
+using Combinatorics: combinations
+
 @testset "*" begin
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
     A1 = DimensionalArray(rand(12), (Ti(timespan),)) 
@@ -37,6 +39,31 @@ using LinearAlgebra: Transpose
     @test length.(dims(data(A2') * A2)) == sze2
     @test length.(dims(A2' * data(A2))) == sze2
 
+    B1 = DimensionalArray(rand(12, 6), (Ti(timespan), X(1:6)))
+    B2 = DimensionalArray(rand(8, 12), (Y(1:8), Ti(timespan)))
+    b1 = DimensionalArray(rand(12), Ti(timespan))
+
+    # Test dimension propagation
+    @test (B2 * B1) == (data(B2) * data(B1))
+    @test dims(B2 * B1) isa Tuple{<:Y, <:X}
+    @test length.(dims(B2 * B1)) == (8, 6)
+
+    # Test where results have an empty dim
+    true_result = (data(b1)' * data(B1))
+    for flip in (adjoint, transpose, permutedims)
+        result = flip(b1) * B1
+        @test result ≈ true_result  # Permute dims is not exactly transpose
+        @test dims(result) isa Tuple{<:EmptyDim, <:X}
+        @test length.(dims(result)) == (1, 6)
+    end
+
+    # Test flipped * flipped
+    for (flip1, flip2) in combinations((adjoint, transpose, permutedims), 2)
+        result = flip1(B1) * flip2(B2)
+        @test result == flip1(data(B1)) * flip2(data(B2))
+        @test dims(result) isa Tuple{<:X, <:Y}
+        @test size(result) == (6, 8)
+    end
 end
 
 

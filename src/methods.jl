@@ -118,20 +118,17 @@ Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (EmptyDim(),)
 Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
 
 Base.:*(A::ADA{<:Any,1}, B::ADA{<:Any,2}) = begin
-    _checkmatch(dims(A, 1), dims(B, 2))
+    comparedims(dims(A, 1), dims(B, 2))
     rebuild(A, data(A) * data(B), dims(A, (1, 1)))
 end
 Base.:*(A::AbDimArray{<:Any,2}, B::AbDimArray{<:Any,1}) = begin
-    _checkmatch(dims(A, 2), dims(B, 1))
+    comparedims(dims(A, 2), dims(B, 1))
     rebuild(A, data(A) * data(B), dims(A, (1,)))
 end
 Base.:*(A::ADA{<:Any,2}, B::ADA{<:Any,2}) = begin
-    _checkmatch(dims(A), reverse(dims(B)))
-    rebuild(A, data(A) * data(B), dims(A, (1, 1)))
+    comparedims(dims(A, 2), dims(B, 1))
+    rebuild(A, data(A) * data(B), (dims(A, 1), dims(B, 2)))
 end
-
-_checkmatch(a, b) =
-    a == b || throw(ArgumentError("Array dims $a and $b do not match"))
 
 # Reverse
 

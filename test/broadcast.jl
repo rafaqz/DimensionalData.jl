@@ -49,6 +49,15 @@ using DimensionalData, Test
         @test dims(s .+ v .+ m) == (X(), Y()) == dims(m .+ s .+ v)
     end
 
+    @testset "adjoint broadcasting" begin
+        a = DimensionalArray(reshape(1:12, (4, 3)), (X, Y))
+        b = DimensionalArray(1:3, Y)
+        @test_throws DimensionMismatch a .* b
+        @test_throws DimensionMismatch data(a) .* data(b)
+        @test data(a) .* data(b)' == data(a .* b')
+        @test dims(a .* b') == dims(a)
+    end
+
     @testset "Mixed array types" begin
         casts = (
             A->DimensionalArray(A, (X, Y)),  # Named Matrix
