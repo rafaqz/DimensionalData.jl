@@ -55,6 +55,7 @@ using DimensionalData, Test
         @test_throws DimensionMismatch a .* b
         @test_throws DimensionMismatch data(a) .* data(b)
         @test data(a) .* data(b)' == data(a .* b')
+        @test dims(a .* b') == dims(a)
     end
 
     @testset "Mixed array types" begin
