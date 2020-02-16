@@ -126,8 +126,8 @@ Base.:*(A::AbDimArray{<:Any,2}, B::AbDimArray{<:Any,1}) = begin
     rebuild(A, data(A) * data(B), dims(A, (1,)))
 end
 Base.:*(A::ADA{<:Any,2}, B::ADA{<:Any,2}) = begin
-    comparedims(dims(A), reverse(dims(B)))
-    rebuild(A, data(A) * data(B), dims(A, (1, 1)))
+    comparedims(dims(A, 2), dims(B, 1))
+    rebuild(A, data(A) * data(B), (dims(A, 1), dims(B, 2)))
 end
 
 # Reverse
