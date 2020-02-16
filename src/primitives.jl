@@ -1,5 +1,6 @@
 # These functions do most of the work in the package.
 # They are all type-stable recusive methods for performance and extensibility.
+const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
 """
     sortdims(tosort, order)
@@ -9,16 +10,25 @@ Missing dimensions are replaced with `nothing`
 
 Both `tosort and `order` may be tuple or vector of dims or dim types.
 """
-sortdims(tosort::Vector, order) = sortdims(Tuple(tosort), order)
-sortdims(tosort, order::Vector) = sortdims(tosort, Tuple(order))
-sortdims(tosort::Vector, order::Vector) = 
-    sortdims(Tuple(tosort), Tuple(order))
-sortdims(tosort, order) = sortdims(tosort, order, ())
+@inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
+    map(p -> tosort[p], Tuple(perm))
 
+@inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
+    _sortdims(tosort, Tuple(map(d -> basetypeof(d), order)))
+@inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
+    _sortdims(Tuple(map(d -> basetypeof(d), tosort)), order)
+@inline Base.permutedims(tosort::AbDimTuple, order::AbDimVector) =
+    _sortdims(tosort, Tuple(order))
+@inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
+    _sortdims(Tuple(tosort), order)
+@inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
+    _sortdims(tosort, order)
+
+_sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ()) 
 _sortdims(tosort::Tuple, order::Tuple, rejected) =
     # Match dims to the order, and also check if the grid has a
     # transformed dimension that matches
-    if _dimsmatch(order[1], tosort[1])
+    if _dimsmatch(tosort[1], order[1])
         (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), ())...)
     else
         _sortdims(tail(tosort), order, (rejected..., tosort[1]))

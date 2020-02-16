@@ -11,8 +11,8 @@ using DimensionalData: Forward, slicedims
     @test metadata(TestDim(1, UnknownGrid(), "metadata")) == "metadata"
     @test units(TestDim) == nothing
     @test label(TestDim) == "Test dimension"
-    @test eltype(TestDim(1)) == Int
-    @test eltype(TestDim([1,2,3])) == Vector{Int}
+    @test eltype(TestDim(1)) <: Int
+    @test eltype(TestDim([1,2,3])) <: Int
     @test length(TestDim(1)) == 1
     @test length(TestDim([1,2,3])) == 3
     @test_throws ErrorException step(TestDim(1:2:3)) == 2

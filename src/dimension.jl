@@ -39,15 +39,16 @@ ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 const AbDim = AbstractDimension
 const AbDimType = Type{<:AbDim}
 const AbDimTuple = Tuple{<:AbDim,Vararg{<:AbDim,N}} where N
+const AbDimTypeTuple = Tuple{Vararg{AbDimType}}
 const AbDimVector = Vector{<:AbDim}
 const DimOrDimType = Union{AbDim,AbDimType}
-const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
-                            Tuple{Vararg{AbDimType}},
-                            Vector{<:AbDim}}
+const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,AbDimTypeTuple,AbDimVector}
+
 
 # Getters
 val(dim::AbDim) = dim.val
 grid(dim::AbDim) = dim.grid
+grid(dim::Type{<:AbDim}) = nothing
 metadata(dim::AbDim) = dim.metadata
 
 order(dim::AbDim) = order(grid(dim))
@@ -81,8 +82,8 @@ bounds(dim::AbDim) = bounds(grid(dim), dim)
 
 
 # Base methods
-Base.eltype(dim::Type{<:AbDim{I}}) where T = T
-Base.eltype(dim::Type{<:AbDim{I}}) where T<:AbstractArray{E} = E
+Base.eltype(dim::Type{<:AbDim{T}}) where T = T
+Base.eltype(dim::Type{<:AbDim{A}}) where A<:AbstractArray{T} where T = T
 Base.ndims(dim::AbDim) = ndims(val(dim))
 Base.size(dim::AbDim) = size(val(dim))
 Base.length(dim::AbDim) = length(val(dim))

@@ -1,41 +1,82 @@
-@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:AbstractDimension,<:Ti}}) where T
-    ylabel --> label(ga)
-    xlabel --> label(dims(ga)[1])
-    legendtitle --> label(dims(ga)[1])
-    title --> label(refdims(ga))
-    parent(ga)
-end
-
-@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:Ti,<:AbstractDimension}}) where T
-    permutedims(ga)
-end
-
-@recipe function f(ga::AbstractDimensionalArray{T,1,<:Tuple{<:AbstractDimension}}) where T
-    ylabel --> label(ga)
-    xlabel --> label(dims(ga)[1])
-    # legend --> false
-    title --> label(refdims(ga))
-    val(dims(ga)[1]), parent(ga)
-end
 
 struct HeatMapLike end
-@recipe function f(ga::AbstractDimensionalArray{<:Any,2})
-    sertyp = get(plotattributes, :seriestype, nothing)
-    if sertyp in [:heatmap, :contour, :surface, :wireframe]
-        ga, HeatMapLike()
+struct WireframeLike end
+struct SeriesLike end
+struct HistogramLike end
+
+@recipe function f(A::AbstractDimensionalArray)
+    # Reverse any axes marked as reverse
+    Af = forwardorder(A)
+    :title --> refdims_title(A)
+    sertype = get(plotattributes, :seriestype, :noseriestype)
+    if sertype in [:heatmap, :contour, :path3d, :volume, :hexbin, 
+                   :histogram2d, :histogram3d, :image, :density, 
+                   :surface, :contour3d, :wireframe, :scatter3d]
+        Af, HeatMapLike()
+    elseif sertype in [:histogram, :stephist, :barhist, :scatterhist]
+        Af, HistogramLike()
+    elseif sertype == :vline
+        :xlabel --> label(A)
+        data(Af)
+    elseif sertype == :hline
+        :ylabel --> label(A)
+        data(Af)
     else
-        parent(ga)
+        Af, SeriesLike() 
     end
 end
 
-@recipe function f(ga::AbstractDimensionalArray, ::HeatMapLike)
-    @assert ndims(ga) == 2
-    dim1, dim2 = dims(ga)
-    # Notice that dim1 corresponds to Y
-    # and dim2 corresponds to X
-    # This is because in Plots.jl
-    # The first axis of a matrix is the Y axis
-    :ylabel --> label(dim1)
-    :xlabel --> label(dim2)
-    val(dim2), val(dim1), parent(ga)
+@recipe function f(A::AbstractDimensionalArray{T,1}, ::SeriesLike) where T
+    dim = dims(A, 1)
+    :ylabel --> label(A)
+    :xlabel --> label(dim)
+    val(dim), parent(A)
 end
+
+@recipe function f(A::AbstractArray{T,2}, ::SeriesLike) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    println(A)
+    ind, dep = dims(A)
+    println(typeof(ind), typeof(dep))
+    :xlabel --> label(ind)
+    :ylabel --> label(A)
+    :legendtitle --> label(dep)
+    val(ind), data(A)
+end
+
+@recipe function f(A::AbstractArray{T,1}, ::HistogramLike) where T
+    dim = dims(A, 1)
+    :xlabel --> label(A)
+    val(dim), data(A)
+end
+
+@recipe function f(A::AbstractArray{T,1}, ::HeatMapLike) where T
+    dim = dims(A, 1)
+    :xlabel --> label(dim)
+    :ylabel --> label(A)
+    val(dim), data(A)
+end
+
+@recipe function f(A::AbstractArray{T,2}, ::HeatMapLike) where T
+    A = maybe_permute(A, (YDim, XDim))
+    y, x = dims(A)
+    :xlabel --> label(x)
+    :ylabel --> label(y)
+    :zlabel --> label(A)
+    :colorbar_title --> label(A)
+    val(x), val(y), data(A)
+end
+
+maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
+
+forwardorder(A) = begin
+    for (i, dim) in enumerate(dims(A))
+        if arrayorder(dim) == Reverse()
+            A = reverse(A; dims=dim)
+        end
+    end
+    A
+end
+
+refdims_title(A) = join(map(d -> string(name(d), " ", val(d)), refdims(A)), ", ")
+

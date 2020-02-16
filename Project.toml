@@ -22,6 +22,8 @@ SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 
 [targets]
-test = ["BenchmarkTools", "CoordinateTransformations", "Test", "SparseArrays", "Unitful", "Combinatorics"]
+test = ["BenchmarkTools", "CoordinateTransformations", "Test", "SparseArrays", "Unitful", "Plots", "Distributions", "Combinatorics"]
