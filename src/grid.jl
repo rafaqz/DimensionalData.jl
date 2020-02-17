@@ -178,6 +178,9 @@ order(g::AbstractAlignedGrid) = g.order
 locus(g::AbstractAlignedGrid) = g.locus
 sampling(g::AbstractAlignedGrid) = g.sampling
 
+abstract type PointGrid{O,L,Sa} <: AbstractAlignedGrid{O,L,Sa} end
+abstract type IntervalGrid{O,L,Sa} <: AbstractAlignedGrid{O,L,Sa} end
+
 """
 An [`AlignedGrid`](@ref) grid without known regular spacing. These grids will generally be paired
 with a vector of coordinates along the dimension, instead of a range.
@@ -215,7 +218,7 @@ As the size of the cells is not known, the bounds must be actively tracked.
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `bounds`: the outer edges of the grid (different to the first and last coordinate).
 """
-struct BoundedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: AbstractAlignedGrid{O,L,Sa}
+struct BoundedGrid{O<:Order,L<:Locus,Sa<:Sampling,B} <: IntervalGrid{O,L,Sa}
     order::O
     locus::L
     sampling::Sa
@@ -252,8 +255,6 @@ reorderindices(::Order, index, I) = I
 reorderindices(::Reverse, index, I::AbstractArray) = length(index) .- (last(I), first(I)) .+ 1
 
 
-abstract type AbstractRegularGrid{O,L,Sa,St} <: AbstractAlignedGrid{O,L,Sa} end
-
 """
 An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
 
@@ -263,7 +264,7 @@ An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
 - `sampling::Sampling`: `Sampling` trait indicating wether the grid cells are single samples or means
 - `step::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
 """
-struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,St} <: AbstractRegularGrid{O,L,Sa,St}
+struct RegularGrid{O<:Order,L<:Locus,Sa<:Sampling,St} <: IntervalGrid{O,L,Sa}
     order::O
     locus::L
     sampling::Sa
