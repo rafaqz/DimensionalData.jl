@@ -108,5 +108,8 @@ forwardorder(A) = begin
     A
 end
 
-refdims_title(A) = join(map(d -> string(name(d), " ", val(d)), refdims(A)), ", ")
-
+refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
+refdims_title(dim::AbDim) = string(name(dim), ": ", refdims_title(grid(dim), dim))
+refdims_title(grid::Union{BoundedGrid,RegularGrid}, dim::AbDim) =
+    ((start, stop) = bounds(dim); "$start to $stop")
+refdims_title(grid, dim::AbDim) = val(dim)
