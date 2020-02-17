@@ -84,13 +84,19 @@ bounds(dim::AbDim) = bounds(grid(dim), dim)
 # Base methods
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
 Base.eltype(dim::Type{<:AbDim{A}}) where A<:AbstractArray{T} where T = T
-Base.ndims(dim::AbDim) = ndims(val(dim))
 Base.size(dim::AbDim) = size(val(dim))
 Base.length(dim::AbDim) = length(val(dim))
-Base.getindex(dim::AbDim, I...) = getindex(val(dim), I...)
-Base.iterate(dim::AbDim, args...) = iterate(val(dim), args...)
-Base.firstindex(dim::AbDim) = firstindex(val(dim))
-Base.lastindex(dim::AbDim) = lastindex(val(dim))
+Base.ndims(dim::AbDim) = 0
+Base.ndims(dim::AbDim{<:AbstractArray}) = ndims(val(dim))
+Base.getindex(dim::AbDim) = val(dim)
+Base.getindex(dim::AbDim{<:AbstractArray}, I...) = getindex(val(dim), I...)
+Base.iterate(dim::AbDim{<:AbstractArray}, args...) = iterate(val(dim), args...)
+Base.first(dim::AbDim) = val(dim)
+Base.last(dim::AbDim) = val(dim)
+Base.first(dim::AbDim{<:AbstractArray}) = first(val(dim))
+Base.last(dim::AbDim{<:AbstractArray}) = last(val(dim))
+Base.firstindex(dim::AbDim{<:AbstractArray}) = firstindex(val(dim))
+Base.lastindex(dim::AbDim{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
