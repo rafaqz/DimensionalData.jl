@@ -3,26 +3,34 @@ struct HeatMapLike end
 struct WireframeLike end
 struct SeriesLike end
 struct HistogramLike end
+struct ViolinLike end
 
 @recipe function f(A::AbstractDimensionalArray)
     # Reverse any axes marked as reverse
     Af = forwardorder(A)
-    :title --> refdims_title(A)
-    sertype = get(plotattributes, :seriestype, :noseriestype)
-    if sertype in [:heatmap, :contour, :path3d, :volume, :hexbin, 
-                   :histogram2d, :histogram3d, :image, :density, 
+    sertype = get(plotattributes, :seriestype, :none)
+    println(sertype)
+    if !(sertype in [:marginalhist])
+        :title --> refdims_title(A)
+    end
+    if sertype in [:heatmap, :contour, :volume, :marginalhist, :image, 
                    :surface, :contour3d, :wireframe, :scatter3d]
         Af, HeatMapLike()
-    elseif sertype in [:histogram, :stephist, :barhist, :scatterhist]
+    elseif sertype in [:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram]
         Af, HistogramLike()
-    elseif sertype == :vline
-        :xlabel --> label(A)
-        data(Af)
-    elseif sertype == :hline
+    elseif sertype in [:hline]
         :ylabel --> label(A)
         data(Af)
-    else
+    elseif sertype in [:vline, :andrews]
+        :xlabel --> label(A)
+        data(Af)
+    elseif sertype in [:violin, :dotplot, :boxplot]
+        Af, ViolinLike()
+    elseif sertype in [:plot, :histogram2d, :none, :line, :path, :steppre, :steppost, :sticks, :scatter, 
+                       :hexbin, :barbins, :scatterbins, :stepbins, :bins2d, :bar]
         Af, SeriesLike() 
+    else
+        data(Af)
     end
 end
 
@@ -32,15 +40,13 @@ end
     :xlabel --> label(dim)
     val(dim), parent(A)
 end
-
 @recipe function f(A::AbstractArray{T,2}, ::SeriesLike) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
-    println(A)
     ind, dep = dims(A)
-    println(typeof(ind), typeof(dep))
     :xlabel --> label(ind)
     :ylabel --> label(A)
     :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
     val(ind), data(A)
 end
 
@@ -48,6 +54,30 @@ end
     dim = dims(A, 1)
     :xlabel --> label(A)
     val(dim), data(A)
+end
+@recipe function f(A::AbstractArray{T,2}, ::HistogramLike) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    ind, dep = dims(A)
+    :xlabel --> label(A)
+    :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
+    val(ind), data(A)
+end
+
+@recipe function f(A::AbstractArray{T,1}, ::ViolinLike) where T
+    dim = dims(A, 1)
+    :ylabel --> label(A)
+    data(A)
+end
+@recipe function f(A::AbstractArray{T,2}, ::ViolinLike) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    ind, dep = dims(A)
+    println(ind, dep)
+    :xlabel --> label(dep)
+    :ylabel --> label(A)
+    :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
+    data(A)
 end
 
 @recipe function f(A::AbstractArray{T,1}, ::HeatMapLike) where T

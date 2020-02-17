@@ -2,17 +2,8 @@
 # They are all type-stable recusive methods for performance and extensibility.
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
-"""
-    sortdims(tosort, order)
-
-Sort dimensions into the order they take in the array.
-Missing dimensions are replaced with `nothing`
-
-Both `tosort and `order` may be tuple or vector of dims or dim types.
-"""
 @inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
     map(p -> tosort[p], Tuple(perm))
-
 @inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
     _sortdims(tosort, Tuple(map(d -> basetypeof(d), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
@@ -40,8 +31,8 @@ _sortdims(tosort::Tuple{}, order::Tuple, rejected) =
 _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
-_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
-    basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
+_dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
+    basetypeof(dim) <: basetypeof(match) || basetypeof(dim) <: basetypeof(dims(grid(match))) 
 
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.
@@ -260,12 +251,13 @@ type and order.
 @inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) =
     map(reducedims, dims, permutedims(dimstoreduce, dims))
+# Map numbers to corresponding dims. Not always type-stable
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline reducedims(dim::AbDim, ::Nothing) = dim
-@inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
+@inline reducedims(dim::AbDim, ::DimOrDimType) = reducedims(grid(dim), dim)
 
 # Now reduce specialising on grid type
 

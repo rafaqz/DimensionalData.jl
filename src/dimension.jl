@@ -97,7 +97,6 @@ Base.:(==)(dim1::AbDim, dim2::AbDim) =
     val(dim1) == val(dim2) &&
     grid(dim1) == grid(dim2) &&
     metadata(dim1) == metadata(dim2)
-Base.permutedims(tosort::AbDimTuple, order) = sortdims(tosort, order)
 
 # AbstractArray methods where dims are the dispatch argument
 
