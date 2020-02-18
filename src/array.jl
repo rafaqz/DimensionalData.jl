@@ -19,6 +19,7 @@ dims(A::AbDimArray) = A.dims
 
 Base.size(A::AbDimArray) = size(data(A))
 Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
+Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
 
 Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N}, I::Vararg{<:Integer, N}) where N =
     getindex(data(A), I...)

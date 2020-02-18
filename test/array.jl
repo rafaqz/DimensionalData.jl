@@ -1,5 +1,6 @@
 using DimensionalData, Test, Unitful
 using DimensionalData: Start
+using SparseArrays
 
 a = [1 2; 3 4]
 dimz = (X((143, 145)), Y((-38, -36)))
@@ -143,6 +144,15 @@ end
     @test eltype(da2) <: Int
 
     # TODO permute dims to match in broadcast?
+end
+
+@testset "eachindex" begin
+    # Should have linear index
+    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
+    @test eachindex(da) == eachindex(data(da))
+    # Should have cartesian index
+    sda = DimensionalArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
+    @test eachindex(sda) == eachindex(data(sda))
 end
 
 @testset "convert" begin
