@@ -227,7 +227,7 @@ formatdims(index, axis::AbstractRange, dim) = dim
 
 checklen(dim, axis) =
     length(dim) == length(axis) ||
-        throw(ArgumentError("length of $(basetypeof(dim)) ($(length(dim))) does not match size of array dimension ($axis)"))
+        throw(ArgumentError("length of {$(basetypeof(dim))} ($(length(dim))) does not match size of array dimension ($axis)"))
 
 orderof(index::AbstractArray) = begin
     sorted = issorted(index; rev=isrev(indexorder(index)))
