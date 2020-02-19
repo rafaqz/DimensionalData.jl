@@ -199,32 +199,21 @@ based on the type and element type of the index:
 - `AbstractArray` become `AlignedGrid`
 - `AbstractArray` of `Symbol` or `String` become `CategoricalGrid`
 """
-formatdims(A::AbstractArray, dim::DimOrDimType) = formatdims(A, (dim,))
-formatdims(A::AbstractArray, dims::Tuple{Vararg{Type}}) = 
-    formatdims(A, map(d -> d(), dims))
-formatdims(A::AbstractArray{T,N}, dims::AbDimTuple) where {T,N} = begin
-    dimlen = length(dims)
-    dimlen == N || throw(ArgumentError("dims ($dimlen) don't match array dimensions $(N)"))
-    formatdims(axes(A), dims)
-end
-formatdims(axes::Tuple, dims::AbDimTuple) where N = map(formatdims, map(val, dims), axes, dims)
-formatdims(index::AbstractArray, axis::AbstractRange, dim) = begin
+formatdims(A::AbstractArray{T, N} where T, dims::NTuple{N, Any}) where N = formatdims(axes(A), dims)
+formatdims(axes::Tuple, dims::Tuple) = map(formatdims, axes, dims)
+formatdims(axis::AbstractRange, dim::AbstractDimension{<:AbstractArray}) = begin
     checklen(dim, axis)
-    rebuild(dim, index, identify(grid(dim), index))
+    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
 end
-formatdims(index::AbstractRange, axis::AbstractRange, dim) = begin
-    checklen(dim, axis)
-    rebuild(dim, index, identify(grid(dim), index))
-end
-formatdims(index::NTuple{2}, axis::AbstractRange, dim) = begin
-    range = LinRange(first(index), last(index), length(axis))
+formatdims(axis::AbstractRange, dim::AbstractDimension{<: NTuple{2}}) = begin
+    start, stop = val(dim)
+    range = LinRange(start, stop, length(axis))
     rebuild(dim, range, identify(grid(dim), range))
 end
-formatdims(index::Nothing, axis::AbstractRange, dim) =
-    rebuild(dim, nothing, NoGrid())
-formatdims(index::Colon, axis::AbstractRange, dim) = rebuild(dim, axis, identify(grid(dim), axis))
+formatdims(axis::AbstractRange, dim::AbstractDimension{Colon}) = rebuild(dim, axis, identify(grid(dim), axis))
+formatdims(axis::AbstractRange, dim::Type{<:AbstractDimension}) = rebuild(dim(), axis, identify(grid(dim()), axis))
 # Fallback: dim remains unchanged
-formatdims(index, axis::AbstractRange, dim) = dim
+formatdims(axis::AbstractRange, dim::AbstractDimension) = dim
 
 checklen(dim, axis) =
     length(dim) == length(axis) ||

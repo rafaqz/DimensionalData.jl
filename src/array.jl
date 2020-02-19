@@ -117,7 +117,9 @@ A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """
 DimensionalArray(A::AbstractArray, dims, name::String = ""; refdims=()) =
-    DimensionalArray(A, formatdims(A, dims), refdims, name)
+    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name)
+_to_tuple(t::T where T <: Tuple) = t
+_to_tuple(t) = tuple(t)
 
 # Getters
 refdims(A::DimensionalArray) = A.refdims
