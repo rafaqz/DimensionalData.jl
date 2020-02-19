@@ -144,7 +144,7 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T<:AbstractArray,G,M} <: AbstractParametricDimension{X,T,G,M}
+struct Dim{X,T,G,M} <: AbstractParametricDimension{X,T,G,M}
     val::T
     grid::G
     metadata::M
@@ -152,8 +152,7 @@ struct Dim{X,T<:AbstractArray,G,M} <: AbstractParametricDimension{X,T,G,M}
         new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
 end
 
-Dim{X}(val::T; grid=UnknownGrid(), metadata=nothing) where X where T<:AbstractArray = Dim{X}(val, grid, metadata)
-Dim{X}(val; grid=UnknownGrid(), metadata=nothing) where X = Dim{X}(collect(val), grid=grid, metadata=metadata)
+Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
