@@ -222,6 +222,7 @@ formatdims(index::NTuple{2}, axis::AbstractRange, dim) = begin
 end
 formatdims(index::Nothing, axis::AbstractRange, dim) =
     rebuild(dim, nothing, NoGrid())
+formatdims(index::Colon, axis::AbstractRange, dim) = rebuild(dim, axis, identify(grid(dim), axis))
 # Fallback: dim remains unchanged
 formatdims(index, axis::AbstractRange, dim) = dim
 
