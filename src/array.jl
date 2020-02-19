@@ -91,6 +91,16 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
     dims::D
     refdims::R
     name::String
+    function DimensionalArray(data::A, dims::D, refdims::R, name::String) where A <:AbstractArray{T,N} where D where R where T where N
+        if length.(dims) != size(data)
+            error(
+                DimensionMismatch(
+                    "dims must have same size as data. This was not true for $dims and $data."
+                )
+            )
+        end
+        new{T, N, D, R, A}(data, dims, refdims, name)
+    end
 end
 """
     DimensionalArray(data, dims::Tuple [, name::String]; refdims=())
