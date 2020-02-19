@@ -87,14 +87,13 @@ b = [4 4 4 4
      4 4 4 4 
      4 4 4 4]
 
-# TODO: There should be a concept of anonymous dims.
-# @testset "indexing into empty dims is just regular indexing" begin
-#     ida = DimensionalArray(a, (X, Y))
-#     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
-# end
+@testset "indexing into empty dims is just regular indexing" begin
+    ida = DimensionalArray(a, (X, Y))
+    ida[Y(3:4), X(2:3)] = [5 6; 6 7]
+end
 
 
-dimz = (Dim{:row}(LinRange(10, 30, 3)), Dim{:column}(LinRange(-20, 10, 4)))
+dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 da = DimensionalArray(a, dimz)
 
 @testset "arbitrary dimension names also work for indexing" begin
