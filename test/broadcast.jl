@@ -15,7 +15,7 @@ using DimensionalData, Test
 
     @testset "in place" begin
         @test data(da .= 1 .* da .+ 7) == 8 * ones(3)
-        @test dims(da .= 1 .* da .+ 7) == (X(),)
+        @test dims(da .= 1 .* da .+ 7) == dims(da)
     end
 
     @testset "Dimension disagreement" begin
@@ -44,9 +44,9 @@ using DimensionalData, Test
         @test s .+ m == ones(3, 3) == m .+ s
         @test s .+ v .+ m == ones(3, 3) == m .+ s .+ v
 
-        @test dims(v .+ m) == (X(), Y()) == dims(m .+ v)
-        @test dims(s .+ m) == (X(), Y()) == dims(m .+ s)
-        @test dims(s .+ v .+ m) == (X(), Y()) == dims(m .+ s .+ v)
+        @test dims(v .+ m) == dims(m .+ v)
+        @test dims(s .+ m) == dims(m .+ s)
+        @test dims(s .+ v .+ m) == dims(m .+ s .+ v)
     end
 
     @testset "adjoint broadcasting" begin
@@ -93,7 +93,7 @@ using DimensionalData, Test
         @test_throws DimensionMismatch ac .= ab .+ ba
 
         # check that dest is written into:
-        @test dims(z .= ab .+ ba') == (X(), Y())
+        @test dims(z .= ab .+ ba') == dims(ab .+ ba')
         @test z == (ab.data .+ ba.data')
         @test z isa Array  # has not itself magically gained names
 

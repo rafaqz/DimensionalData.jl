@@ -222,12 +222,12 @@ end
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
-    @test dims(cvda) == (X(1:4; grid=RegularGrid(;step=1)),
-                         X(1:4; grid=RegularGrid(;step=1)))
+    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
+                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     crda = cor(da; dims=Y)
     @test crda == cor(a; dims=1)
-    @test dims(crda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
-                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
+    @test dims(crda) == (X(1:4; grid=RegularGrid(;step=1)),
+                         X(1:4; grid=RegularGrid(;step=1)))
 end
 
 @testset "mapslices" begin

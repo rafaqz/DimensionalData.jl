@@ -124,12 +124,13 @@ end
     @test dims(da_float) == dims(da)
     @test refdims(da_float) == refdims(da)
 
-    da_size_float = similar(da, Float64, (10, 10))
-    @test eltype(da_size_float) == Float64
-    @test size(da_size_float) == (10, 10)
+    # TODO: Yeah, what should this be? Some dimensions (i.e. where values are not explicitly enumerated) could be resizable?
+    # da_size_float = similar(da, Float64, (10, 10))
+    # @test eltype(da_size_float) == Float64
+    # @test size(da_size_float) == (10, 10)
     # TODO what should this actually be?
     # @test dims(da_float) == dims(da)
-    @test refdims(da_float) == refdims(da)
+    # @test refdims(da_float) == refdims(da)
 end
 
 @testset "broadcast" begin
