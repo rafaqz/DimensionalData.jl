@@ -46,9 +46,9 @@ end
     @test dims2indices(da, X, emptyval) == (Colon(), ())
     @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
     @test dims2indices(da, 1, emptyval) == (1, )
-    tdimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Ti(1:1)
-    @test dims2indices(tdimz, (X(1), Y(2), Ti())) == (1, 2, Colon())
-    @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Ti())) == (1, 2, Colon())
+    # tdimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Ti(1:1)
+    # @test dims2indices(tdimz, (X(1), Y(2), Ti())) == (1, 2, Colon())
+    # @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Ti())) == (1, 2, Colon())
 end
 
 @testset "dimnum" begin
