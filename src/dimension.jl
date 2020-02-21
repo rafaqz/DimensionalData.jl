@@ -98,6 +98,7 @@ Base.last(dim::AbDim{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::AbDim{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::AbDim{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
+Base.Array(dim::AbDim) = val(dim)
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
@@ -164,7 +165,7 @@ Macro to easily define specific dimensions.
 Example:
 ```julia
 @dim Lat "Lattitude" "lat"
-@dim Lon AbstraxtX "Longitude"
+@dim Lon XDim "Longitude"
 ```
 """
 macro dim end

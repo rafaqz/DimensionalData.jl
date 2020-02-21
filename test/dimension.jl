@@ -69,3 +69,11 @@ end
     @test hasdim(dimz, (X, X)) === (true, true)
     @test permutedims(dimz, (X, X)) === dimz
 end
+
+@testset "applying function on a dimension" begin
+    d = X(0:0.01:2π)
+    a = DimensionalArray(cos, d)
+    @test length(dims(a)) == 1
+    @test typeof(dims(a)[1]) <: X
+    @test a.data == cos.(d.val)
+end

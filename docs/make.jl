@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(@__DIR__)
 using Documenter, DimensionalData
-CI = get(ENV, "CI", nothing) == "true"
+CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
 makedocs(
     modules = [DimensionalData],
@@ -20,5 +20,7 @@ makedocs(
 if CI
     deploydocs(
         repo = "github.com/rafaqz/DimensionalData.jl.git",
+        target = "build",
+        push_preview = true
     )
 end
