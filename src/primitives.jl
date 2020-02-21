@@ -166,16 +166,16 @@ dimensions of an object.
 @inline dimnum(d::Tuple{}, lookup::Tuple{}, rejected, n) = ()
 
 """
-    hasdim(A, dim)
-Return `true` if `A` has the given dimension (or dimensions, if `dim` is a tuple).
+    hasdim(A, lookup)
+
+Check if an object or tuple contains an `AbstractDimension`,
+or a tuple of dimensions.
 """
-hasdim(A, lookup::Tuple) = map(l -> hasdim(A, l), lookup)
-hasdim(A, lookup) = hasdim(typeof(dims(A)), typeof(lookup))
-hasdim(A, lookup::Type) = hasdim(typeof(dims(A)), lookup)
-@generated hasdim(dimtypes::Type{DTS}, lookup::Type{D}) where {DTS,D} = begin
-    index = findfirst(dt -> D <: basetypeof(dt), DTS.parameters)
-    if index == nothing
-        :(false)
+@inline hasdim(A, lookup::Tuple) = map(l -> hasdim(dims(A), l), lookup)
+@inline hasdim(A, lookup::DimOrDimType) = hasdim(dims(A), lookup)
+@inline hasdim(d::Tuple, lookup::DimOrDimType) =
+    if _dimsmatch(d[1], lookup)
+        true
     else
         hasdim(tail(d), lookup)
     end
