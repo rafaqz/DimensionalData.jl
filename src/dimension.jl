@@ -5,6 +5,9 @@ It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
+abstract type IndependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type DependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
 """
 Abstract parent type for all X dimensions.
@@ -26,20 +29,26 @@ Abstract parent type for all categorical dimensions.
 """
 abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
+"""
+Abstract parent type for all time dimensions.
+"""
+abstract type TimeDim{T,G,M} <: IndependentDim{T,G,M} end
+
 ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
 
 const AbDim = AbstractDimension
 const AbDimType = Type{<:AbDim}
 const AbDimTuple = Tuple{<:AbDim,Vararg{<:AbDim,N}} where N
+const AbDimTypeTuple = Tuple{Vararg{AbDimType}}
 const AbDimVector = Vector{<:AbDim}
 const DimOrDimType = Union{AbDim,AbDimType}
-const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,
-                            Tuple{Vararg{AbDimType}},
-                            Vector{<:AbDim}}
+const AllDimensions = Union{AbDim,AbDimTuple,AbDimType,AbDimTypeTuple,AbDimVector}
+
 
 # Getters
 val(dim::AbDim) = dim.val
 grid(dim::AbDim) = dim.grid
+grid(dim::Type{<:AbDim}) = nothing
 metadata(dim::AbDim) = dim.metadata
 
 order(dim::AbDim) = order(grid(dim))
@@ -61,6 +70,7 @@ shortname(d::AbDim) = shortname(typeof(d))
 shortname(d::Type{<:AbDim}) = name(d) # Use `name` as fallback
 units(dim::AbDim) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
+
 bounds(dims::AbDimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::AbDimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
 bounds(dims::AbDimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
@@ -73,13 +83,20 @@ bounds(dim::AbDim) = bounds(grid(dim), dim)
 
 # Base methods
 Base.eltype(dim::Type{<:AbDim{T}}) where T = T
-Base.ndims(dim::AbDim) = ndims(val(dim))
+Base.eltype(dim::Type{<:AbDim{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::AbDim) = size(val(dim))
 Base.length(dim::AbDim) = length(val(dim))
-Base.getindex(dim::AbDim, I...) = getindex(val(dim), I...)
-Base.iterate(dim::AbDim, args...) = iterate(val(dim), args...)
-Base.firstindex(dim::AbDim) = firstindex(val(dim))
-Base.lastindex(dim::AbDim) = lastindex(val(dim))
+Base.ndims(dim::AbDim) = 0
+Base.ndims(dim::AbDim{<:AbstractArray}) = ndims(val(dim))
+Base.getindex(dim::AbDim) = val(dim)
+Base.getindex(dim::AbDim{<:AbstractArray}, I...) = getindex(val(dim), I...)
+Base.iterate(dim::AbDim{<:AbstractArray}, args...) = iterate(val(dim), args...)
+Base.first(dim::AbDim) = val(dim)
+Base.last(dim::AbDim) = val(dim)
+Base.first(dim::AbDim{<:AbstractArray}) = first(val(dim))
+Base.last(dim::AbDim{<:AbstractArray}) = last(val(dim))
+Base.firstindex(dim::AbDim{<:AbstractArray}) = firstindex(val(dim))
+Base.lastindex(dim::AbDim{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
@@ -176,6 +193,6 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 @dim X XDim
 @dim Y YDim
 @dim Z ZDim
-@dim Ti XDim "Time"
+@dim Ti TimeDim "Time"
 
 const Time = Ti # For some backwards compat

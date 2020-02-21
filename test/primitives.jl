@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, hasdim, setdim,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, setdim, grid,
       @dim, reducedims, dimnum, XDim, YDim, ZDim, Forward
 
 dimz = (X(), Y())
@@ -10,8 +10,8 @@ dimz = (X(), Y())
     @test permutedims((X(1),), dimz) == (X(1), nothing)
     @test permutedims((Y(), X()), dimz) == (X(:), Y(:))
     @test permutedims([Y(), X()], dimz) == (X(:), Y(:))
-    @test permutedims((Y, X),     dimz) == (X(:), Y(:))
-    @test permutedims([Y, X],     dimz) == (X(:), Y(:))
+    @test permutedims((Y, X),     dimz) == (X, Y)
+    @test permutedims([Y, X],     dimz) == (X, Y)
     @test permutedims(dimz, (Y(), X())) == (Y(:), X(:))
     @test permutedims(dimz, [Y(), X()]) == (Y(:), X(:))
     @test permutedims(dimz, (Y, X)    ) == (Y(:), X(:))

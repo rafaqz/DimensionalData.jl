@@ -1,41 +1,111 @@
-@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:AbstractDimension,<:Ti}}) where T
-    ylabel --> label(ga)
-    xlabel --> label(dims(ga)[1])
-    legendtitle --> label(dims(ga)[1])
-    title --> label(refdims(ga))
-    parent(ga)
-end
-
-@recipe function f(ga::AbstractDimensionalArray{T,2,<:Tuple{<:Ti,<:AbstractDimension}}) where T
-    permutedims(ga)
-end
-
-@recipe function f(ga::AbstractDimensionalArray{T,1,<:Tuple{<:AbstractDimension}}) where T
-    ylabel --> label(ga)
-    xlabel --> label(dims(ga)[1])
-    # legend --> false
-    title --> label(refdims(ga))
-    val(dims(ga)[1]), parent(ga)
-end
-
 struct HeatMapLike end
-@recipe function f(ga::AbstractDimensionalArray{<:Any,2})
-    sertyp = get(plotattributes, :seriestype, nothing)
-    if sertyp in [:heatmap, :contour, :surface, :wireframe]
-        ga, HeatMapLike()
+struct WireframeLike end
+struct SeriesLike end
+struct HistogramLike end
+struct ViolinLike end
+
+@recipe function f(A::AbstractDimensionalArray)
+    Af = forwardorder(A)
+    sertype = get(plotattributes, :seriestype, :none)
+    if !(sertype in [:marginalhist])
+        :title --> refdims_title(A)
+    end
+    if sertype in [:heatmap, :contour, :volume, :marginalhist, :image, 
+                   :surface, :contour3d, :wireframe, :scatter3d]
+        HeatMapLike(), Af
+    elseif sertype in [:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram]
+        HistogramLike(), Af
+    elseif sertype in [:hline]
+        :ylabel --> label(A)
+        data(Af)
+    elseif sertype in [:vline, :andrews]
+        :xlabel --> label(A)
+        data(Af)
+    elseif sertype in [:violin, :dotplot, :boxplot]
+        ViolinLike(), Af
+    elseif sertype in [:plot, :histogram2d, :none, :line, :path, :steppre, :steppost, :sticks, :scatter, 
+                       :hexbin, :barbins, :scatterbins, :stepbins, :bins2d, :bar]
+        SeriesLike(), Af
     else
-        parent(ga)
+        data(Af)
     end
 end
 
-@recipe function f(ga::AbstractDimensionalArray, ::HeatMapLike)
-    @assert ndims(ga) == 2
-    dim1, dim2 = dims(ga)
-    # Notice that dim1 corresponds to Y
-    # and dim2 corresponds to X
-    # This is because in Plots.jl
-    # The first axis of a matrix is the Y axis
-    :ylabel --> label(dim1)
-    :xlabel --> label(dim2)
-    val(dim2), val(dim1), parent(ga)
+@recipe function f(::SeriesLike, A::AbstractDimensionalArray{T,1}) where T
+    dim = dims(A, 1)
+    :ylabel --> label(A)
+    :xlabel --> label(dim)
+    val(dim), parent(A)
 end
+@recipe function f(::SeriesLike, A::AbstractArray{T,2}) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    ind, dep = dims(A)
+    :xlabel --> label(ind)
+    :ylabel --> label(A)
+    :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
+    val(ind), data(A)
+end
+
+@recipe function f(::HistogramLike, A::AbstractArray{T,1}) where T
+    dim = dims(A, 1)
+    :xlabel --> label(A)
+    val(dim), data(A)
+end
+@recipe function f(::HistogramLike, A::AbstractArray{T,2}) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    ind, dep = dims(A)
+    :xlabel --> label(A)
+    :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
+    val(ind), data(A)
+end
+
+@recipe function f(::ViolinLike, A::AbstractArray{T,1}) where T
+    dim = dims(A, 1)
+    :ylabel --> label(A)
+    data(A)
+end
+@recipe function f(::ViolinLike, A::AbstractArray{T,2}) where T
+    A = maybe_permute(A, (IndependentDim, DependentDim))
+    ind, dep = dims(A)
+    :xlabel --> label(dep)
+    :ylabel --> label(A)
+    :legendtitle --> label(dep)
+    :labels --> permutedims(val(dep))
+    data(A)
+end
+
+@recipe function f(::HeatMapLike, A::AbstractArray{T,1}) where T
+    dim = dims(A, 1)
+    :xlabel --> label(dim)
+    :ylabel --> label(A)
+    val(dim), data(A)
+end
+
+@recipe function f(::HeatMapLike, A::AbstractArray{T,2}) where T
+    A = maybe_permute(A, (YDim, XDim))
+    y, x = dims(A)
+    :xlabel --> label(x)
+    :ylabel --> label(y)
+    :zlabel --> label(A)
+    :colorbar_title --> label(A)
+    val(x), val(y), data(A)
+end
+
+maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
+
+forwardorder(A) = begin
+    for (i, dim) in enumerate(dims(A))
+        if arrayorder(dim) == Reverse()
+            A = reverse(A; dims=dim)
+        end
+    end
+    A
+end
+
+refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
+refdims_title(dim::AbDim) = string(name(dim), ": ", refdims_title(grid(dim), dim))
+refdims_title(grid::Union{BoundedGrid,RegularGrid}, dim::AbDim) =
+    ((start, stop) = bounds(dim); "$start to $stop")
+refdims_title(grid, dim::AbDim) = val(dim)

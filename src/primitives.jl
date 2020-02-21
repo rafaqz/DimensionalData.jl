@@ -1,37 +1,25 @@
 # These functions do most of the work in the package.
 # They are all type-stable recusive methods for performance and extensibility.
-
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
-_dimsmatch(a::DimOrDimType, b::DimOrDimType) =
-    basetypeof(a) <: basetypeof(b) || basetypeof(dims(grid(a))) <: basetypeof(b)
-
-"""
-Sort dimensions into the order they take in the array.
-
-Missing dimensions are replaced with `nothing`
-"""
 @inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
     map(p -> tosort[p], Tuple(perm))
-
 @inline Base.permutedims(tosort::AbDimTuple, order::UnionAllTupleOrVector) =
-    permutedims(tosort, Tuple(map(d -> constructorof(d)(), order)))
+    _sortdims(tosort, Tuple(map(d -> basetypeof(d), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::AbDimTuple) =
-    permutedims(Tuple(map(d -> constructorof(d)(), tosort)), order)
+    _sortdims(Tuple(map(d -> basetypeof(d), tosort)), order)
 @inline Base.permutedims(tosort::AbDimTuple, order::AbDimVector) =
-    permutedims(tosort, Tuple(order))
+    _sortdims(tosort, Tuple(order))
 @inline Base.permutedims(tosort::AbDimVector, order::AbDimTuple) =
-    permutedims(Tuple(tosort), order)
+    _sortdims(Tuple(tosort), order)
 @inline Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    Base.permutedims(tosort, order)
+    _sortdims(tosort, order)
 
-Base.permutedims(tosort::AbDimTuple, order::AbDimTuple) =
-    _sortdims(tosort, order, ())
-
+_sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ()) 
 _sortdims(tosort::Tuple, order::Tuple, rejected) =
     # Match dims to the order, and also check if the grid has a
     # transformed dimension that matches
-    if _dimsmatch(order[1], tosort[1])
+    if _dimsmatch(tosort[1], order[1])
         (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), ())...)
     else
         _sortdims(tail(tosort), order, (rejected..., tosort[1]))
@@ -43,6 +31,8 @@ _sortdims(tosort::Tuple{}, order::Tuple, rejected) =
 _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
+_dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
+    basetypeof(dim) <: basetypeof(match) || basetypeof(dim) <: basetypeof(dims(grid(match))) 
 
 """
 Convert a tuple of AbstractDimension to indices, ranges or Colon.
@@ -227,7 +217,7 @@ formatdims(index::AbstractRange, axis::AbstractRange, dim) = begin
     rebuild(dim, index, identify(grid(dim), index))
 end
 formatdims(index::NTuple{2}, axis::AbstractRange, dim) = begin
-    range = LinRange(first(dim), last(dim), length(axis))
+    range = LinRange(first(index), last(index), length(axis))
     rebuild(dim, range, identify(grid(dim), range))
 end
 formatdims(index::Nothing, axis::AbstractRange, dim) =
@@ -261,12 +251,13 @@ type and order.
 @inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple) =
     map(reducedims, dims, permutedims(dimstoreduce, dims))
+# Map numbers to corresponding dims. Not always type-stable
 @inline reducedims(dims::AbDimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
     map(reducedims, dims, permutedims(map(i -> dims[i], dimstoreduce), dims))
 
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline reducedims(dim::AbDim, ::Nothing) = dim
-@inline reducedims(dim::AbDim, ::AbDim) = reducedims(grid(dim), dim)
+@inline reducedims(dim::AbDim, ::DimOrDimType) = reducedims(grid(dim), dim)
 
 # Now reduce specialising on grid type
 
