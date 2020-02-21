@@ -11,7 +11,7 @@ The core type of DimensionalData.jl is [`DimensionalArray`](@ref), which bundles
 a standard array with named and indexed dimensions. The dimensions are any
 `AbstractDimension`, and types that inherit from it, such as `Ti`, `X`, `Y`,
 `Z`, the generic `Dim{:x}` or others that you define manually using the
-[`@dim`](@ref) macro. 
+[`@dim`](@ref) macro.
 
 A `DimensionalArray` dimensions are constructed by:
 
@@ -119,7 +119,22 @@ Dim types with `AbstractDimensionalArray` by specifying the dimension by its
 type, for example:
 
 ```@example main
-sum(A, dims = X)
+sum(A; dims = X)
+```
+
+## Numeric operations on dimension arrays and dimensions
+
+We have tried to make all numeric operations on a `AbstractDimensionalArray` match 
+base Julia as much as possible. Standard broadcasting and other type of operations 
+across dimensional arrays typically perform as expected while still 
+returning an `AbstractDimensionalArray` type with correct dimensions.
+
+In cases where you would like to do some operation on the dimension index, e.g. 
+take the cosines of the values of the dimension `X` while still keeping the dimensional 
+information of `X`, you can use the syntax:
+
+```@example main
+DimensionalArray(cos, x)
 ```
 
 ## Referenced dimensions
