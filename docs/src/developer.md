@@ -1,5 +1,3 @@
-
-
 # For package developers
 
 ## Goals:

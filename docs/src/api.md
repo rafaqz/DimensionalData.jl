@@ -1,12 +1,18 @@
 # API
-To use the functionality of DimensionalData in your module, please dispatch on `AbstractDimensionalArray` and `AbstractDimension`.
+
+To use the functionality of DimensionalData in your module, dispatch on `AbstractDimensionalArray` and `AbstractDimension`.
+
 ## Core types
+
 ```@docs
-DimensionalArray
+AbstractDimensionalArray
+AbstractDimension
 ```
 
 ## Getting basic info
-Here are some very useful functions for obtaining basic information from your dimensional data:
+
+These useful functions for obtaining information from your dimensional data:
+
 ```@docs
 dims
 hasdim
@@ -14,7 +20,9 @@ dimnum
 name
 val
 ```
-as well as others that are more related with obtained metadata:
+
+As well as others related to obtained metadata:
+
 ```@docs
 bounds
 label
@@ -33,6 +41,7 @@ Between
 ```
 
 ## Methods with dims keyword
+
 The following functions support specifying the dimension by name instead of by integer for a `DimensionalArray`:
 
 - `size`
@@ -55,7 +64,8 @@ The following functions support specifying the dimension by name instead of by i
 - `cov`
 - `median`
 
-## Low level API
+## Low-level API
+
 ```@docs
 DimensionalData.Dim
 DimensionalData.@dim
@@ -66,17 +76,17 @@ DimensionalData.slicedims
 ```
 
 ## Grids
-Here @rafaqz needs to write, because I really don't know grids... :)
+
 ```@docs
+IndependentGrid
 AlignedGrid
 BoundedGrid
 CategoricalGrid
-DependentGrid
-IndependentGrid
-Ordered
-RegularGrid
-SingleSample
-TransformedGrid
 UnknownGrid
-DimensionalData.identify
+RegularGrid
+DependentGrid
+TransformedGrid
 ```
+
+Ordered
+SingleSample
