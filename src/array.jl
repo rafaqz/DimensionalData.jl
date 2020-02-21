@@ -127,9 +127,11 @@ Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{Standa
 # Applying function across dimension should give an Array
 """
     DimensionalArray(f::Function, dim::AbDim [, name])
+
 Apply function `f` across the values of the dimension `dim`
 (using broadcasting), and return the result as a dimensional array with
 the given dimension. Optionally provide a name for the result.
 """
-DimensionalArray(f::Function, dim::AbDim, n = string(nameof(f))*"("*name(dim)*")") =
-DimensionalArray(f.(val(dim)), (dim,), n)
+DimensionalArray(f::Function, dim::AbDim, name=string(nameof(f))*"("*name(dim)*")") =
+DimensionalArray(f.(val(dim)), (dim,), name)
+
