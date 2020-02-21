@@ -1,6 +1,6 @@
 
 """
-Parent type for all dimensional arrays. 
+Parent type for all dimensional arrays.
 """
 abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
@@ -11,7 +11,7 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 # Interface methods ############################################################
 
 dims(A::AbDimArray) = A.dims
-@inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A)) = 
+@inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A)) =
     rebuild(A, data, dims, refdims, name(A))
 # Rebuild for name-updating methods, to avoid having to add dims and refdims
 @inline rebuild(A::AbstractArray, data, name::String) =
@@ -115,10 +115,20 @@ name(A::DimensionalArray) = A.name
 label(A::DimensionalArray) = name(A)
 
 # DimensionalArray interface
-@inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple, 
+@inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple,
                 refdims::Tuple, name::String) =
     DimensionalArray(data, dims, refdims, name)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
+
+# Applying function across dimension should give an Array
+"""
+    DimensionalArray(f::Function, dim::AbDim [, name])
+Apply function `f` across the values of the dimension `dim`
+(using broadcasting), and return the result as a dimensional array with
+the given dimension. Optionally provide a name for the result.
+"""
+DimensionalArray(f::Function, dim::AbDim, n = string(nameof(f))*"("*name(dim)*")") =
+DimensionalArray(f.(val(dim)), (dim,), n)

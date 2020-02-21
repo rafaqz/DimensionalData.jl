@@ -164,7 +164,7 @@ Macro to easily define specific dimensions.
 Example:
 ```julia
 @dim Lat "Lattitude" "lat"
-@dim Lon AbstraxtX "Longitude"
+@dim Lon XDim "Longitude"
 ```
 """
 macro dim end
