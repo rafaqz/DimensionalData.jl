@@ -107,7 +107,8 @@ the new struct but are useful to give context to plots.
 Called at the array level the returned tuple will also include the
 previous reference dims attached to the array.
 """
-# Results are split as (dims, refdims)
+function slicedims(A, I) end
+
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin

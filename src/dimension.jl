@@ -6,9 +6,24 @@ the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
 
+"""
+Abstract parent type for all X dimensions.
+"""
 abstract type XDim{T,G,M} <: AbstractDimension{T,G,M} end
+
+"""
+Abstract parent type for all Y dimensions.
+"""
 abstract type YDim{T,G,M} <: AbstractDimension{T,G,M} end
+
+"""
+Abstract parent type for all Z dimensions.
+"""
 abstract type ZDim{T,G,M} <: AbstractDimension{T,G,M} end
+
+"""
+Abstract parent type for all categorical dimensions.
+"""
 abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
 ConstructionBase.constructorof(d::Type{<:AbstractDimension}) = basetypeof(d)
@@ -114,7 +129,9 @@ name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
-
+"""
+Undefined dimension.
+"""
 struct EmptyDim <: AbstractDimension{Int,NoGrid,Nothing} end
 
 val(::EmptyDim) = 1:1
@@ -133,6 +150,8 @@ Example:
 @dim Lon AbstraxtX "Longitude"
 ```
 """
+macro dim end
+
 macro dim(typ::Symbol, args...)
     dimmacro(typ::Symbol, :AbstractDimension, args...)
 end

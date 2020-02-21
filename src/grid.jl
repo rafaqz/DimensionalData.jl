@@ -1,3 +1,6 @@
+"""
+Traits for the order of the array, index and the relation between them.
+"""
 abstract type Order end
 
 """
@@ -100,31 +103,34 @@ The sampling method is unknown.
 """
 struct UnknownSampling <: Sampling end
 
-"""
-Indicate the position of index values in grid cells.
 
-This is frequently `Start` for time series, but may be `Center`
+"""
+Locii indicate the position of index values in grid cells.
+
+Locii are often `Start` for time series, but often `Center`
 for spatial data.
 """
 abstract type Locus end
 
 """
-Indicates dimensions that are defined by their center coordinates/time/position.
+Indicates dimension index that matches the center coordinates/time/position.
 """
 struct Center <: Locus end
 
 """
-Indicates dimensions that are defined by their start coordinates/time/position.
+Indicates dimension index that matches the start coordinates/time/position.
 """
 struct Start <: Locus end
 
 """
-Indicates dimensions that are defined by their end coordinates/time/position.
+Indicates dimension index that matches the end coordinates/time/position.
 """
 struct End <: Locus end
 
+"""
+Indicates dimension where the index position is not known.
+"""
 struct UnknownLocus <: Locus end
-
 
 
 """
