@@ -133,6 +133,7 @@ In cases where you would like to have e.g. the cosines of the values of the dime
 DimensionalArray(cos, x)
 ```
 
+Notice also that `Array(a)` will return the numeric value stored by `a` for both `DimensionalArray` as well as `AbstractDimension`.
 
 ## Dimension hierarchy and multiple dispatch
 The dimensions in DimensionalData.jl follow a hierarchy that makes using multiple dispatch on dimension types general and straight forward.

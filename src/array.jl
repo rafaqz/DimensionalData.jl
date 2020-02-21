@@ -50,6 +50,7 @@ Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
 Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
 Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
+Base.Array(A::AbDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
 # Don't remove these even though they look redundant
