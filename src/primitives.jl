@@ -217,7 +217,7 @@ formatdims(index::AbstractRange, axis::AbstractRange, dim) = begin
     rebuild(dim, index, identify(grid(dim), index))
 end
 formatdims(index::NTuple{2}, axis::AbstractRange, dim) = begin
-    range = LinRange(first(dim), last(dim), length(axis))
+    range = LinRange(first(index), last(index), length(axis))
     rebuild(dim, range, identify(grid(dim), range))
 end
 formatdims(index::Nothing, axis::AbstractRange, dim) =
