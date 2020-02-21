@@ -1,4 +1,7 @@
 
+"""
+Parent type for all dimensional arrays. 
+"""
 abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray

@@ -60,27 +60,7 @@ and axis values of your data. Define `rebuild`, and base methods for `similar`
 and `parent` if you want the metadata to persist through transformations (see
 the `DimensionalArray` and `AbstractDimensionalArray` types). A `refdims` method
 returns the lost dimensions of a previous transformation, passed in to the
-`rebuild` method. Refdims can be discarded, the main loss being plot labels.
+`rebuild` method. `refdims` can be discarded, the main loss being plot labels.
 
-Inheriting from `AbstractDimensionalArray` will give a few benefits, such as
-methods currently blocked by problems with `dims` dispatch in Julia Base, and
-indexing using regular integer dimensions but updating your wrapper type with
-new dims.
-
-
-New dimensions can be generated with the `@dim` macro  at top level scope:
-
-```julia
-@dim Band "Raster band"
-```
-
-Dimensions use the same types that are used for indexing. The `dims(a)`
-method should return a tuple something like this:
-
-```julia
-(Y(-40.5:40.5, (units="degrees_north",), X(1.0:40.0, (units="degrees_east",))`)
-```
-
-either stored or generated from other data. The metadata can be anything,
-preferably in a `NamedTuple`. Some standards may be introduced as they are
-worked out over time.
+Inheriting from `AbstractDimensionalArray` will give all the functionality
+of using `DimensionalArray`.

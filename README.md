@@ -5,7 +5,6 @@
 [![Build Status](https://travis-ci.org/rafaqz/DimensionalData.jl.svg?branch=master)](https://travis-ci.org/rafaqz/DimensionalData.jl)
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl)
 
-
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions. It's a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
@@ -13,8 +12,9 @@ syntax, and additional functionality found in NamedDimensions.jl. It has similar
 goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
-This is a work in progress under active development, it may be a while before
-the interface stabilises and things are fully documented.
+!!! info "Status"
+    This is a work in progress under active development, it may be a while before
+    the interface stabilises and things are fully documented.
 
 
 ## Dimensions
@@ -43,15 +43,21 @@ Dims can be used for indexing and views without knowing dimension order:
 `mean(a, dims=Time)`, or permute `permutedims(a, [X, Y, Z, Time])` in julia
 `Base` and `Statistics` functions that have dims arguments.
 
+
 ## Selectors
 
-Selectors find indices in the dimension based on values `At`, `Near`, or `Between`
-the index value(s).
+Selectors find indices in the dimension based on values `At`, `Near`, or
+`Between` the index value(s). They can be used in `getindex`, `setindex!` and
+`view` to select indices matching the passed in value(s)
+
+- `At(x)` : get indices exactly matching the passed in value(s)
+- `Near(x)` : get the closest indices to the passed in value(s)
+- `Between(a, b)` : get all indices between two values (inclusive)
 
 We can use selectors with dim wrappers:
 
 ```julia
-a[X(1:10), Y<|At(25.7)]
+a[X(Between(1, 10)), Y(At(25.7))]
 ```
 
 Without dim wrappers selectors must be in the right order:
@@ -61,25 +67,25 @@ usin Unitful
 a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
 ```
 
-Selectors can be used in `getindex`, `setindex!` and `view` to select
-indices matching the passed in value(s)
-
-- `At(x)` : get indices exactly matching the passed in value(s)
-- `Near(x)` : get the closest indices to the passed in value(s)
-- `Between(a, b)` : get all indices between two values (inclusive)
-
-It's easy to add your own custom `Selector` if your need a different behaviour.
+It's easy to write your own custom `Selector` if your need a different behaviour.
 
 _Example usage:_
 
 ```julia
 using Dates, DimensionalData
 timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Time(timespan), X(10:10:100)))
+A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
 
-A[X(Near([12, 35])), Time(At(DateTime(2001,5)))]
+julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
+0.658404535807791
 
-A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+DimensionalArray with dimensions:
+ X: 20:10:50
+and referenced dimensions:
+ Time (type Ti): 2001-05-01T00:00:00
+and data: 4-element Array{Float64,1}
+[0.456175, 0.737336, 0.658405, 0.520152]
 ```
 
 Dim types or objects can be used instead of a dimension number in many
@@ -90,7 +96,7 @@ Base and Statistics methods:
 
 `getindex`, `setindex!` `view`
 
-## Methods where dims can be used instead of integer dims, as `X()` or just the type `X`
+## Methods where dims can be used
 
 - `size`, `axes`, `firstindex`, `lastindex`
 - `cat`

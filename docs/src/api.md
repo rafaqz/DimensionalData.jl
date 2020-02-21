@@ -4,9 +4,27 @@ To use the functionality of DimensionalData in your module, dispatch on `Abstrac
 
 ## Core types
 
+Arrays:
+
 ```@docs
 AbstractDimensionalArray
+DimensionalArray
+```
+
+Dimensions:
+
+```@docs
 AbstractDimension
+XDim
+YDim
+ZDim
+TimeDim
+X
+Y
+Z
+Ti
+Dim
+@dim
 ```
 
 ## Getting basic info
@@ -34,59 +52,51 @@ data
 ```
 
 ## Selectors
+
 ```@docs
+Selector
 At
 Near
 Between
 ```
 
-## Methods with dims keyword
+## Grids
 
-The following functions support specifying the dimension by name instead of by integer for a `DimensionalArray`:
+```@docs
+Grid
+IndependentGrid
+AlignedGrid
+BoundedGrid
+RegularGrid
+CategoricalGrid
+UnknownGrid
+DependentGrid
+TransformedGrid
+```
 
-- `size`
-- `axes`
-- `permutedims`
-- `mapslices`
-- `eachslice`
-- `reverse`
-- `dropdims`
-- `reduce`
-- `mapreduce`
-- `sum`
-- `prod`
-- `maximum`
-- `minimum`
-- `mean`
-- `std `
-- `var`
-- `cor`
-- `cov`
-- `median`
+Tracking the order of arrays and indices:
+
+```@docs
+Unordered
+Ordered
+```
+
+### Loci
+
+```@docs
+Locus
+Center
+Start
+End
+UnknownLocus
+```
+
 
 ## Low-level API
 
 ```@docs
-DimensionalData.Dim
-DimensionalData.@dim
 DimensionalData.rebuild
 DimensionalData.formatdims
 DimensionalData.reducedims
 DimensionalData.slicedims
 ```
-
-## Grids
-
-```@docs
-IndependentGrid
-AlignedGrid
-BoundedGrid
-CategoricalGrid
-UnknownGrid
-RegularGrid
-DependentGrid
-TransformedGrid
-```
-
-Ordered
-SingleSample
