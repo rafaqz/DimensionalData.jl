@@ -92,9 +92,9 @@ Continuing to use `A` we defined above, you can see this by comparing the
 statements without and with names:
 
 ```@example main
-A[Between(12, 35), :] == A[X(Between(12, 35))]
-A[1:5, :] == A[X(1:5)]
-A[:, 1:5] == A[Ti(1:5)]
+A[:, Between(12, 35)] == A[X(Between(12, 35))]
+A[:, 1:5] == A[X(1:5)]
+A[1:5, :] == A[Ti(1:5)]
 ```
 
 etc. Of course, in this approach it is necessary to specify _all_ dimensions by
@@ -121,9 +121,6 @@ type, for example:
 ```@example main
 sum(A, dims = X)
 ```
-
-Methods that support this are listed in the [Methods where dims can be used](@ref) section.
-
 
 ## Referenced dimensions
 

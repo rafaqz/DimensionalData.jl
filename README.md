@@ -91,7 +91,6 @@ and data: 4-element Array{Float64,1}
 Dim types or objects can be used instead of a dimension number in many
 Base and Statistics methods:
 
-
 ## Methods where dims can be used containing indices or Selectors
 
 `getindex`, `setindex!` `view`

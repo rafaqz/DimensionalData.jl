@@ -15,6 +15,9 @@ Dimensions:
 
 ```@docs
 AbstractDimension
+DependentDim
+IndependentDim
+CategoricalDim
 XDim
 YDim
 ZDim
