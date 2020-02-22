@@ -1,6 +1,3 @@
-# Since dims is a common argument name
-dims_alias = dims 
-
 # Array info
 for (mod, fname) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
     @eval begin
@@ -105,8 +102,8 @@ for fname in (:cor, :cov)
     @eval Statistics.$fname(A::AbDimArray{T,2}; dims=1, kwargs...) where T = begin
         newdata = Statistics.$fname(data(A); dims=dimnum(A, dims), kwargs...)
         removed_idx = dimnum(A, dims)
-        newrefdims = dims_alias(A)[removed_idx]
-        newdims = dims_alias(A)[abs(3 - removed_idx)]
+        newrefdims = $dims(A)[removed_idx]
+        newdims = $dims(A)[3 - removed_idx]
         rebuild(A, newdata, (newdims, newdims), (newrefdims,))
     end
 end
