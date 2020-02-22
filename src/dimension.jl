@@ -5,8 +5,18 @@ It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
+
+"""
+Abstract supertype for independent dimensions. Will plot on the X axis.
+"""
 abstract type IndependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+"""
+Abstract supertype for Dependent dimensions. Will plot on the Y axis.
+"""
 abstract type DependentDim{T,G,M} <: AbstractDimension{T,G,M} end
+"""
+Abstract supertype for categorical dimensions. 
+"""
 abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
 """
@@ -98,7 +108,7 @@ Base.last(dim::AbDim{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::AbDim{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::AbDim{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
-Base.Array(dim::AbDim) = val(dim)
+Base.Array(dim::AbDim{<:AbstractArray}) = Array(val(dim))
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
@@ -190,10 +200,21 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
 
-# Define some common dimensions. Time is taken by Dates, so we use Ti
+# Define some common dimensions.
 @dim X XDim
+@doc "X dimension. `X <: XDim <: IndependentDim" X
+
 @dim Y YDim
+@doc "Y dimension. `Y <: YDim <: DependentDim" Y
+
 @dim Z ZDim
+@doc "Z dimension. `Z <: ZDim <: AbstractDimension" Z
+
 @dim Ti TimeDim "Time"
+@doc """
+Time dimension. `Ti <: TimeDim <: IndependentDim 
+
+`Time` is already used by Dates, so we use `Ti` to avoid clashing.
+""" Ti
 
 const Time = Ti # For some backwards compat

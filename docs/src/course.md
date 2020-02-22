@@ -92,9 +92,9 @@ Continuing to use `A` we defined above, you can see this by comparing the
 statements without and with names:
 
 ```@example main
-A[Between(12, 35), :] == A[X(Between(12, 35))]
-A[1:5, :] == A[X(1:5)]
-A[:, 1:5] == A[Ti(1:5)]
+A[:, Between(12, 35)] == A[X(Between(12, 35))]
+A[:, 1:5] == A[X(1:5)]
+A[1:5, :] == A[Ti(1:5)]
 ```
 
 etc. Of course, in this approach it is necessary to specify _all_ dimensions by
@@ -119,34 +119,23 @@ Dim types with `AbstractDimensionalArray` by specifying the dimension by its
 type, for example:
 
 ```@example main
-sum(A, dims = X)
+sum(A; dims = X)
 ```
 
-Methods that support this are listed in the [Methods where dims can be used](@ref) section.
+## Numeric operations on dimension arrays and dimensions
 
-## Numeric operations on a dimensional array
-We have tried to make all numeric operations on a `AbstractDimensionalArray` parallel that of base Julia as much as possible. Standard broadcasting and other type of operations across dimensional arrays typically perform as expected while still returning an `AbstractDimensionalArray` type with correct dimensions.
+We have tried to make all numeric operations on a `AbstractDimensionalArray` match 
+base Julia as much as possible. Standard broadcasting and other type of operations 
+across dimensional arrays typically perform as expected while still 
+returning an `AbstractDimensionalArray` type with correct dimensions.
 
-Notice that the `AbstractDimension` is not a dimensional array.
-In cases where you would like to have e.g. the cosines of the values of the dimension `X` while still keeping the dimensional information of `X` you can use the syntax:
+In cases where you would like to do some operation on the dimension index, e.g. 
+take the cosines of the values of the dimension `X` while still keeping the dimensional 
+information of `X`, you can use the syntax:
+
 ```@example main
 DimensionalArray(cos, x)
 ```
-
-Notice also that `Array(a)` will return the numeric value stored by `a` for both `DimensionalArray` as well as `AbstractDimension`.
-
-## Dimension hierarchy and multiple dispatch
-The dimensions in DimensionalData.jl follow a hierarchy that makes using multiple dispatch on dimension types general and straight forward.
-
-If you have defined some dimensions (e.g. `X, Ti`), you can use multiple dispatch on dimensional arrays that have these dimensions by using this type in your method dispatch
-```julia
-a::DimensionalArray{T, 2, Tuple{<:X, <:Ti}} where {T}
-```
-but you can also do things much more general than that.
-
-@rafaqz please write the new dimension hierarchy here.
-
-If you define your own dimensions, you can participate in this hierarchy as well (see the [`@dim`](@ref) macro).
 
 ## Referenced dimensions
 
