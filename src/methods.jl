@@ -65,9 +65,9 @@ end
 # Dimension dropping
 
 Base._dropdims(A::AbstractArray, dim::DimOrDimType) =
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
+    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
 Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)),
+    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dims)),
                   dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
 

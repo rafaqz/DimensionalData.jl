@@ -145,6 +145,9 @@ end
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
     @test refdims(dropdims(da[X(1:1)]; dims=X)) == (X(143.0; grid=RegularGrid(;step=2.0)),)
+    dropped = dropdims(da[X(1:1)]; dims=X)
+    @test dropped[1:2] == [1, 2]
+    @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
 
 if VERSION > v"1.1-"
