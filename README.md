@@ -73,6 +73,8 @@ _Example usage:_
 
 ```julia
 using Dates, DimensionalData
+using DimensionalData: Time, X
+
 timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
 A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
 
