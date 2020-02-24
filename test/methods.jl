@@ -217,9 +217,6 @@ end
 end
 
 @testset "dimension mirroring methods" begin
-    # Need to think about dims for these, currently (Y, Y) etc.
-    # But you can't index (Y, Y) with dims as you get the
-    # first Y both times. It will plot correctly at least.
     a = rand(5, 4)
     da = DimensionalArray(a, (Y((10, 20)), X(1:4)))
 
