@@ -5,6 +5,9 @@ It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
 abstract type AbstractDimension{T,G,M} end
+# T is the type of underlying values
+# G is the type of the "grid"
+# M is the type of the metadata
 
 """
 Abstract supertype for independent dimensions. Will plot on the X axis.
@@ -15,7 +18,7 @@ Abstract supertype for Dependent dimensions. Will plot on the Y axis.
 """
 abstract type DependentDim{T,G,M} <: AbstractDimension{T,G,M} end
 """
-Abstract supertype for categorical dimensions. 
+Abstract supertype for categorical dimensions.
 """
 abstract type CategoricalDim{T,G,M} <: AbstractDimension{T,G,M} end
 
@@ -108,6 +111,7 @@ Base.last(dim::AbDim{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::AbDim{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::AbDim{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::AbDim) = step(grid(dim))
+Base.eachindex(dim::AbDim{<:AbstractArray}) = eachindex(dim.val)
 Base.Array(dim::AbDim{<:AbstractArray}) = Array(val(dim))
 Base.:(==)(dim1::AbDim, dim2::AbDim) =
     typeof(dim1) == typeof(dim2) &&
@@ -212,9 +216,27 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 
 @dim Ti TimeDim "Time"
 @doc """
-Time dimension. `Ti <: TimeDim <: IndependentDim 
+Time dimension. `Ti <: TimeDim <: IndependentDim
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
 """ Ti
 
 const Time = Ti # For some backwards compat
+
+#########################################################################
+# coordinate dimensions
+#########################################################################
+struct Coord{T<:Vector{<:AbstractVector}, G, M, D} <: AbstractDimension{T,G,M}
+    val::T
+    dims::Tuple{D}
+    grid::G
+    metadata::M
+end
+
+DimensionalData.shortname(::Type{<:Coord}) = "Coord"
+DimensionalData.longname(::Type{<:Coord}) = "Coordinates"
+const Coordinates = Coord
+
+# This constructs the dimension
+Coord(val::T, dims::Tuple{D}) where {T, D} =
+Coord{T, D, UnknownGrid, Nothing}(val, dims, UnknownGrid(), nothing)
