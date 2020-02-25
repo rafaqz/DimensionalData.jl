@@ -1,4 +1,38 @@
-using DimensionalData, BenchmarkTools, Unitful, SparseArrays, Dates, Statistics
+BENCHMARK_ENV = abspath((@__DIR__) * "/..")
+BENCHMARK_RESULTS_DIR = (@__DIR__) * "/results"
+PACKAGE_DIR = BENCHMARK_ENV
+
+using Pkg
+Pkg.activate(BENCHMARK_ENV)
+
+using DimensionalData, BenchmarkTools, Unitful, SparseArrays, Dates, Statistics, LibGit2
+
+if !isdir(BENCHMARK_RESULTS_DIR)
+    mkdir(BENCHMARK_RESULTS_DIR)
+end
+
+# Utils
+
+"""Generate a path for benchmarking results using current repository status"""
+function gen_results_pth()
+    repo = LibGit2.GitRepo(PACKAGE_DIR)
+    head = LibGit2.head(repo)
+    branchname = replace(LibGit2.shortname(head), "/" => "\\/")  # Normalize paths
+    hash_str = string(LibGit2.GitHash(LibGit2.peel(LibGit2.GitCommit, head)))
+    basename = "$(BENCHMARK_RESULTS_DIR)/$(branchname)-$(hash_str)"
+    if LibGit2.isdirty(repo)
+        basename *= "-dirty"
+    end
+    if isfile(basename * ".json")
+        i = 1
+        while isfile(basename * "-$i.json")
+            i += 1
+        end
+        basename *= "-$i"
+    end
+    basename *= ".json"
+end
+
 
 #= Benchmarks
 
@@ -80,12 +114,6 @@ suite["reverse"]["dimarray_dim"] = @benchmarkable reverse($da; dims = Y())
 sparse_a = sprand(1000, 1000, 0.1)
 sparse_d = DimensionalArray(sparse_a, (Var <| 1:1000, Obs <| 1:1000))
 
-# Jit warmups
-mean(sparse_a, dims=1)
-mean(sparse_a, dims=2)
-mean(sparse_d, dims=Var())
-mean(sparse_d, dims=Obs())
-
 suite["sparse"] = BenchmarkGroup()
 # Benchmarks
 suite["sparse"]["mean with dims arge: regular sparse"] = @benchmarkable mean($sparse_a, dims = $1)
@@ -104,7 +132,7 @@ suite["sparse"]["map: regular sparse"] = @benchmarkable map(sin, $sparse_a)
 suite["sparse"]["map: dims sparse"] = @benchmarkable map(sin, $sparse_a)
 
 paramspath = joinpath(dirname(@__FILE__), "params.json")
-resultpath = joinpath(dirname(@__FILE__), "$(string(Dates.now()))_suite.json")
+resultpath = gen_results_pth()
 
 if isfile(paramspath)
     println("Found tuning info at $(paramspath)")
@@ -115,7 +143,6 @@ else
     BenchmarkTools.save(paramspath, params(suite));
     println("Tuning results cached to $(paramspath)")
 end
-
 
 results = run(suite, verbose = true)
 println("Writing results to: $(resultpath)")
