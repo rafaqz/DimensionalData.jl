@@ -56,12 +56,9 @@ Base.Array(A::AbDimArray) = data(A)
 # Don't remove these even though they look redundant
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
-    rebuild(A, similar(data(A), T, I), "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
-    rebuildsliced(A, similar(data(A), T, I...), I, "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(data(A), T, I...), I, "")
+# If the shape changes, use the wrapped array:
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = similar(data(A), T, I)
+Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T = similar(data(A), T, I...)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?
