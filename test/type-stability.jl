@@ -13,6 +13,7 @@ end
 
 integer_index(d::AbstractDimension) = rand(1:length(d))
 slice_index(d::AbstractDimension) = UnitRange(sort!(rand(1:length(d), 2))...)
+colon_index(d::AbstractDimension) = Colon()
 array_index(d::AbstractDimension) = rand(1:length(d), rand(1:length(d)))
 single_selector(d::AbstractDimension) = At(rand(val(d)))
 between_selector(d::AbstractDimension{<:Any, G} where G<:AbstractAlignedGrid{<:Ordered}) = Between(sort!(rand(val(d), 2))...)
@@ -21,6 +22,7 @@ index_methods = Function[
     integer_index,
     slice_index,
     array_index,
+    colon_index,
     single_selector,
     between_selector,
 ]
@@ -66,10 +68,13 @@ function _test_inferred(ex, mod, allow = :(Union{}))
             end)
             @assert length(inftypes) == 1
             rettype = result isa Type ? Type{result} : typeof(result)
-            # test_status = @test rettype <: allow || rettype == Test.typesubtract(inftypes[1], allow)
             result = rettype <: allow || rettype == Test.typesubtract(inftypes[1], allow)
             if !(result)
-                println("`", $str_rep, "` failed for args:\n\t", join(map(string ∘ typeof, args), ",\n\t")...)
+                # TODO: Is there a better way to report this?
+                println(
+                    "`", $str_rep, "` failed to infer correctly for args:\n\t", join(map(string ∘ typeof, args), ",\n\t")..., 
+                    "\n\n Predicted types are:\n\t", join(map(string, inftypes), "\n\t")
+                )
             end
             result
         end
@@ -85,11 +90,11 @@ dim_indexers(dim) = map(constructorof(typeof(dim)), positional_indexers(dim))
     da_char_dims = DimensionalArray(randn(5, 5, 5), (X('a':'e'), Y('f':'j'), Z('k':'o')))
     da_mixed_int_dims = DimensionalArray(randn(2, 2, 2, 2), (X([1, 2]), Y(2:-1:1), Z(100:50:150), Dim{:W}([-2, -100])))
     da_mixed_dims = DimensionalArray(randn(5, 5, 5), (X('a':'e'), Y(5:-1:1), Z(100:2:108)))
-    da_mixed_array_dims = DimensionalArray(randn(5, 5, 5), (X([1.5, 2.3, 9.5, 7.3, 8.]), Y([1,2,3,4,5]), Z(["the", "quick", "fox", "jumped", "over"])))
+    da_mixed_array_dims = DimensionalArray(randn(5, 5, 5), (X([1.5, 2.3, 9.5, 7.3, 8.]), Y(rand('a':'z', 5)), Z(["the", "quick", "brown", "fox", "jumped"])))
 
     arrays = [
-        # da_basic_dims,
-        # sda_basic_dims,
+        da_basic_dims,
+        sda_basic_dims,
         da_mixed_int_dims,
         da_char_dims,
         da_mixed_dims,
@@ -115,4 +120,3 @@ dim_indexers(dim) = map(constructorof(typeof(dim)), positional_indexers(dim))
     end
     end
 end;
-
