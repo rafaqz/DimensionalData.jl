@@ -145,6 +145,9 @@ end
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
     @test refdims(dropdims(da[X(1:1)]; dims=X)) == (X(143.0; grid=RegularGrid(;step=2.0)),)
+    dropped = dropdims(da[X(1:1)]; dims=X)
+    @test dropped[1:2] == [1, 2]
+    @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
 
 if VERSION > v"1.1-"
@@ -214,20 +217,17 @@ end
 end
 
 @testset "dimension mirroring methods" begin
-    # Need to think about dims for these, currently (Y, Y) etc.
-    # But you can't index (Y, Y) with dims as you get the
-    # first Y both times. It will plot correctly at least.
     a = rand(5, 4)
     da = DimensionalArray(a, (Y((10, 20)), X(1:4)))
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
-    @test dims(cvda) == (X(1:4; grid=RegularGrid(;step=1)),
-                         X(1:4; grid=RegularGrid(;step=1)))
+    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
+                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
     crda = cor(da; dims=Y)
     @test crda == cor(a; dims=1)
-    @test dims(crda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
-                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
+    @test dims(crda) == (X(1:4; grid=RegularGrid(;step=1)),
+                         X(1:4; grid=RegularGrid(;step=1)))
 end
 
 @testset "mapslices" begin

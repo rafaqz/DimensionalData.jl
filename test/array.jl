@@ -126,9 +126,17 @@ end
     da_size_float = similar(da, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
+
+    sda = DimensionalArray(sprand(Float64, 10, 10, .5), (X, Y))
+    sparse_size_int = similar(sda, Int64, (5, 5))
+    @test eltype(sparse_size_int) == Int64 != eltype(sda)
+    @test size(sparse_size_int) == (5, 5)
+    @test sparse_size_int isa SparseMatrixCSC
+
     # TODO what should this actually be?
+    # Some dimensions (i.e. where values are not explicitly enumerated) could be resizable?
     # @test dims(da_float) == dims(da)
-    @test refdims(da_float) == refdims(da)
+    # @test refdims(da_float) == refdims(da)
 end
 
 @testset "broadcast" begin
@@ -180,4 +188,11 @@ if VERSION > v"1.1-"
         copy!(dc, a)
         @test db == a
     end
+end
+
+@testset "constructor" begin
+    da = DimensionalArray(rand(5, 4), (X, Y))
+    @test_throws DimensionMismatch DimensionalData.rebuild(da, data(da), (X(1:5), Y(1:2)))
+    @test_throws ArgumentError DimensionalArray(1:5, X(1:6))
+    @test_throws MethodError DimensionalArray(1:5, (X(1:5), Y(1:2)))
 end

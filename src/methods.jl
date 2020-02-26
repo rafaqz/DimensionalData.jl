@@ -65,9 +65,9 @@ end
 # Dimension dropping
 
 Base._dropdims(A::AbstractArray, dim::DimOrDimType) =
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
+    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
 Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
-    rebuildsliced(A, Base._dropdims(A, dimnum(A, dims)),
+    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dims)),
                   dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
 
@@ -101,9 +101,10 @@ end
 for fname in (:cor, :cov)
     @eval Statistics.$fname(A::AbDimArray{T,2}; dims=1, kwargs...) where T = begin
         newdata = Statistics.$fname(data(A); dims=dimnum(A, dims), kwargs...)
-        I = dims2indices(A, dims, 1)
-        newdims, newrefdims = slicedims(A, I)
-        rebuild(A, newdata, (newdims[1], newdims[1]), newrefdims)
+        removed_idx = dimnum(A, dims)
+        newrefdims = $dims(A)[removed_idx]
+        newdims = $dims(A)[3 - removed_idx]
+        rebuild(A, newdata, (newdims, newdims), (newrefdims,))
     end
 end
 

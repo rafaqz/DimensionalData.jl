@@ -56,12 +56,9 @@ Base.Array(A::AbDimArray) = data(A)
 # Don't remove these even though they look redundant
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T =
-    rebuild(A, similar(data(A), T, I), "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Union{Integer,AbstractRange},Vararg{Union{Integer,AbstractRange},N}}) where {T,N} =
-    rebuildsliced(A, similar(data(A), T, I...), I, "")
-Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T =
-    rebuildsliced(A, similar(data(A), T, I...), I, "")
+# If the shape changes, use the wrapped array:
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = similar(data(A), T, I)
+Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T = similar(data(A), T, I...)
 Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
     A = find_dimensional(bc)
     # TODO How do we know what the new dims are?
@@ -91,6 +88,14 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
     dims::D
     refdims::R
     name::String
+    function DimensionalArray(data::A, dims::D, refdims::R, name::String) where A <:AbstractArray{T,N} where D where R where T where N
+        if length.(dims) != size(data)
+            throw(DimensionMismatch(
+                "dims must have same size as data. This was not true for $dims and size $(size(data)) $(A)."
+            ))
+        end
+        new{T, N, D, R, A}(data, dims, refdims, name)
+    end
 end
 """
     DimensionalArray(data, dims::Tuple [, name::String]; refdims=())
@@ -107,7 +112,9 @@ A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ```
 """
 DimensionalArray(A::AbstractArray, dims, name::String = ""; refdims=()) =
-    DimensionalArray(A, formatdims(A, dims), refdims, name)
+    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name)
+_to_tuple(t::T where T <: Tuple) = t
+_to_tuple(t) = tuple(t)
 
 # Getters
 refdims(A::DimensionalArray) = A.refdims
