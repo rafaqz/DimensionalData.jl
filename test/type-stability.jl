@@ -24,7 +24,8 @@ index_methods = Function[
     between_selector,
 ]
 
-positional_indices(dim) = map(x->x(dim), filter(x->applicable(x, dim), index_methods))
+positional_indexers(dim) = map(x->x(dim), filter(x->applicable(x, dim), index_methods))
+dim_indexers(dim) = map(constructorof(typeof(dim)), positional_indices(dim))
 
 @testset "indexing" begin
     da_basic_dims = DimensionalArray(randn(50, 50, 50), (X, Y, Z))
@@ -45,6 +46,13 @@ positional_indices(dim) = map(x->x(dim), filter(x->applicable(x, dim), index_met
         end
         for idx in product(map(positional_indices, dims(array))...)
             @inferred array[idx...]
+            @inferred view(array, idx...)
+        end
+        for c in combinations(dims(array))
+            for idx in product(map(dim_indexers, c)...)
+                @inferred array[idx...]
+                @inferred view(array, idx...)
+            end
         end
     end
 end
