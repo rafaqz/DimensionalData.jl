@@ -1,5 +1,6 @@
 using Test, DimensionalData, SparseArrays, Combinatorics
 using Base: product
+using DimensionalData: constructorof
 
 """Basic indexers which are valid for the provided axis"""
 function basic_indexers(axis::AbstractArray)
@@ -24,35 +25,94 @@ index_methods = Function[
     between_selector,
 ]
 
+"""Modified version of @inferred which doesn't crash the test run when it fails."""
+macro test_inferred(ex)
+    _test_inferred(ex, __module__)
+end
+macro test_inferred(allow, ex)
+    _test_inferred(ex, __module__, allow)
+end
+function _test_inferred(ex, mod, allow = :(Union{}))
+    if Meta.isexpr(ex, :ref)
+        ex = Expr(:call, :getindex, ex.args...)
+    end
+    str_rep = string(ex)
+    Meta.isexpr(ex, :call)|| error("@test_inferred requires a call expression")
+    farg = ex.args[1]
+    if isa(farg, Symbol) && first(string(farg)) == '.'
+        farg = Symbol(string(farg)[2:end])
+        ex = Expr(:call, GlobalRef(Test, :_materialize_broadcasted),
+            farg, ex.args[2:end]...)
+    end
+    Base.remove_linenums!(quote
+        let
+            allow = $(esc(allow))
+            allow isa Type || throw(ArgumentError("@test_inferred requires a type as second argument"))
+            $(if any(a->(Meta.isexpr(a, :kw) || Meta.isexpr(a, :parameters)), ex.args)
+                # Has keywords
+                args = gensym()
+                kwargs = gensym()
+                quote
+                    $(esc(args)), $(esc(kwargs)), result = $(esc(Expr(:call, Test._args_and_call, ex.args[2:end]..., ex.args[1])))
+                    inftypes = $(Test.gen_call_with_extracted_types(mod, Base.return_types, :($(ex.args[1])($(args)...; $(kwargs)...))))
+                end
+            else
+                # No keywords
+                quote
+                    args = ($([esc(ex.args[i]) for i = 2:length(ex.args)]...),)
+                    result = $(esc(ex.args[1]))(args...)
+                    inftypes = Base.return_types($(esc(ex.args[1])), Base.typesof(args...))
+                end
+            end)
+            @assert length(inftypes) == 1
+            rettype = result isa Type ? Type{result} : typeof(result)
+            # test_status = @test rettype <: allow || rettype == Test.typesubtract(inftypes[1], allow)
+            result = rettype <: allow || rettype == Test.typesubtract(inftypes[1], allow)
+            if !(result)
+                println("`", $str_rep, "` failed for args:\n\t", join(map(string ∘ typeof, args), ",\n\t")...)
+            end
+            result
+        end
+    end)
+end
+
 positional_indexers(dim) = map(x->x(dim), filter(x->applicable(x, dim), index_methods))
-dim_indexers(dim) = map(constructorof(typeof(dim)), positional_indices(dim))
+dim_indexers(dim) = map(constructorof(typeof(dim)), positional_indexers(dim))
 
 @testset "indexing" begin
     da_basic_dims = DimensionalArray(randn(50, 50, 50), (X, Y, Z))
     sda_basic_dims = DimensionalArray(sprand(50, 50, .1), (X, Y))
     da_char_dims = DimensionalArray(randn(5, 5, 5), (X('a':'e'), Y('f':'j'), Z('k':'o')))
+    da_mixed_int_dims = DimensionalArray(randn(2, 2, 2, 2), (X([1, 2]), Y(2:-1:1), Z(100:50:150), Dim{:W}([-2, -100])))
     da_mixed_dims = DimensionalArray(randn(5, 5, 5), (X('a':'e'), Y(5:-1:1), Z(100:2:108)))
+    da_mixed_array_dims = DimensionalArray(randn(5, 5, 5), (X([1.5, 2.3, 9.5, 7.3, 8.]), Y([1,2,3,4,5]), Z(["the", "quick", "fox", "jumped", "over"])))
 
     arrays = [
-        da_basic_dims,
-        sda_basic_dims,
+        # da_basic_dims,
+        # sda_basic_dims,
+        da_mixed_int_dims,
         da_char_dims,
-        da_mixed_dims
+        da_mixed_dims,
+        da_mixed_array_dims
     ]
 
+    @testset "positional indexing" begin
     for array in arrays
-        for idx in product(map(basic_indexers, axes(array))...)
-            @test (@inferred array[idx...]) == data(array)[idx...]
+        for pos_idx in product(map(positional_indexers, dims(array))...)
+            @test @test_inferred array[pos_idx...]
+            @test @test_inferred view(array, pos_idx...)
         end
-        for idx in product(map(positional_indices, dims(array))...)
-            @inferred array[idx...]
-            @inferred view(array, idx...)
-        end
+    end
+    end
+    @testset "dimensional indexing" begin
+    for array in arrays
         for c in combinations(dims(array))
-            for idx in product(map(dim_indexers, c)...)
-                @inferred array[idx...]
-                @inferred view(array, idx...)
+            for dim_idx in product(map(dim_indexers, c)...)
+                @test @test_inferred array[dim_idx...]
+                @test @test_inferred view(array, dim_idx...)
             end
         end
     end
-end
+    end
+end;
+
