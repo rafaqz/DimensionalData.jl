@@ -1,7 +1,7 @@
 # Array info
 for (mod, fname) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
     @eval begin
-        @inline ($mod.$fname)(A::AbstractArray, dims::AllDimensions) =
+        @inline ($mod.$fname)(A::AbstractArray, dims::AllDims) =
             ($mod.$fname)(A, dimnum(A, dims))
     end
 end
@@ -14,9 +14,9 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         # Returns a scalar
         @inline ($mod.$fname)(A::AbDimArray) = ($mod.$fname)(data(A))
         # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractArray, dims::AllDimensions) =
+        @inline ($mod.$_fname)(A::AbstractArray, dims::AllDims) =
             rebuild(A, ($mod.$_fname)(data(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDimensions) =
+        @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDims) =
             rebuild(A, ($mod.$_fname)(f, data(A), dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(A::AbDimArray, dims::Union{Int,Base.Dims}) =
             rebuild(A, ($mod.$_fname)(data(A), dims), reducedims(A, dims))
@@ -31,7 +31,7 @@ for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
         # Returns a scalar
         @inline ($mod.$fname)(A::AbDimArray) = ($mod.$fname)(data(A))
         # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDimensions) =
+        @inline ($mod.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDims) =
             rebuild(A, ($mod.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(A::AbDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =
             rebuild(A, ($mod.$_fname)(data(A), corrected, mean, dims), reducedims(A, dims))
@@ -39,12 +39,12 @@ for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
 end
 
 Statistics.median(A::AbDimArray) = Statistics.median(data(A))
-Statistics._median(A::AbstractArray, dims::AllDimensions) =
+Statistics._median(A::AbstractArray, dims::AllDims) =
     rebuild(A, Statistics._median(data(A), dimnum(A, dims)), reducedims(A, dims))
 Statistics._median(A::AbDimArray, dims::Union{Int,Base.Dims}) =
     rebuild(A, Statistics._median(data(A), dims), reducedims(A, dims))
 
-Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDimensions) =
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDims) =
     rebuild(A, Base._mapreduce_dim(f, op, nt, data(A), dimnum(A, dims)), reducedims(A, dims))
 Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Union{Int,Base.Dims}) =
     rebuild(A, Base._mapreduce_dim(f, op, nt, data(A), dimnum(A, dims)), reducedims(A, dims))
@@ -53,20 +53,20 @@ Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Colo
 
 # TODO: Unfortunately Base/accumulate.jl kwargs methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
-# Base._accumulate!(op, B, A, dims::AllDimensions, init::Union{Nothing, Some}) =
+# Base._accumulate!(op, B, A, dims::AllDims, init::Union{Nothing, Some}) =
     # Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
-Base._extrema_dims(f, A::AbstractArray, dims::AllDimensions) = begin
+Base._extrema_dims(f, A::AbstractArray, dims::AllDims) = begin
     dnums = dimnum(A, dims)
     rebuild(A, Base._extrema_dims(f, data(A), dnums), reducedims(A, dnums))
 end
 
 
 # Dimension dropping
-
 Base._dropdims(A::AbstractArray, dim::DimOrDimType) =
-    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)), dims2indices(A, basetypeof(dim)(1)))
-Base._dropdims(A::AbstractArray, dims::AbDimTuple) =
+    rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)), 
+                  dims2indices(A, basetypeof(dim)(1)))
+Base._dropdims(A::AbstractArray, dims::DimTuple) =
     rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dims)),
                   dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
@@ -176,7 +176,7 @@ end
 
 Base._cat(catdims::Union{Int,Base.Dims}, As::AbDimArray...) =
     Base._cat(dims(first(As), catdims), As...)
-Base._cat(catdims::AllDimensions, As::AbstractArray...) = begin
+Base._cat(catdims::AllDims, As::AbstractArray...) = begin
     A1 = first(As)
     checkdims(As...)
     if all(hasdim(A1, catdims))
@@ -202,7 +202,7 @@ _catifcatdim(catdims::Tuple, ds) =
     any(map(cd -> basetypeof(cd) <: basetypeof(ds[1]), catdims)) ? vcat(ds...) : ds[1]
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
-Base.vcat(dims::AbDim...) =
+Base.vcat(dims::Dimension...) =
     rebuild(dims[1], vcat(map(val, dims)...), vcat(map(grid, dims)...))
 
 Base.vcat(grids::Grid...) = first(grids)
@@ -217,9 +217,9 @@ Base.vcat(grids::BoundedGrid...) =
     rebuild(grids[1]; bounds=(bounds(grids[1])[1], bounds(grids[end])[end]))
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)
-checkdims(dims::AbDimTuple...) = map(d -> checkdims(dims[1], d), dims)
-checkdims(d1::AbDimTuple, d2::AbDimTuple) = map(checkdims, d1, d2)
-checkdims(d1::AbDim, d2::AbDim) =
+checkdims(dims::DimTuple...) = map(d -> checkdims(dims[1], d), dims)
+checkdims(d1::DimTuple, d2::DimTuple) = map(checkdims, d1, d2)
+checkdims(d1::Dimension, d2::Dimension) =
     basetypeof(d2) <: basetypeof(d1) || error("Dims differ: $(bastypeof(d1)), $(basetypeof(d2))")
 
 

@@ -25,7 +25,7 @@ custom_show_nd(io::IO, A::AbstractArray{T, 1}) where {T} =
 Base.show(IOContext(io, :compact => true, :limit=>true), A)
 
 # Full printing version for dimensions
-function Base.show(io::IO, ::MIME"text/plain", dim::AbDim)
+function Base.show(io::IO, ::MIME"text/plain", dim::Dimension)
     print(io, "dimension ")
     printstyled(io, name(dim); color=:red)
     if name(dim) ≠ string(nameof(typeof(dim)))
@@ -46,7 +46,7 @@ function Base.show(io::IO, ::MIME"text/plain", dim::AbDim)
 end
 
 # short printing version for dimensions
-function Base.show(io::IO, dim::AbDim)
+function Base.show(io::IO, dim::Dimension)
     printstyled(io, name(dim); color=:red)
     if name(dim) ≠ string(nameof(typeof(dim)))
         print(io, " (type ")
