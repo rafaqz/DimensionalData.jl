@@ -1,5 +1,6 @@
 # These functions do most of the work in the package.
-# They are all type-stable recusive methods for performance and extensibility.
+# They are all type-stable recusive methods for performance and extensibility.  
+
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
 @inline Base.permutedims(tosort::AbDimTuple, perm::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
@@ -175,13 +176,32 @@ or a tuple of dimensions.
 """
     setdim(x, newdim)
 
-Replaces the first dim matching newdim, with newdim, and returns
+Replaces the first dim matching `<: basetypeof(newdim)` with newdim, and returns
 a new object or tuple with the dimension updated.
 """
-setdim(A, newdim::AbDim) = rebuild(A, data(A), setdim(dims(A), newdim))
+setdim(A, newdim::Union{AbDim,AbDimTuple}) = rebuild(A, data(A), setdim(dims(A), newdim))
+setdim(dims::AbDimTuple, newdims::AbDimTuple) = map(nd -> setdim(dims, nd), newdims)
+# TODO handle the multiples of the same dim.
 setdim(dims::AbDimTuple, newdim::AbDim) = map(d -> setdim(d, newdim), dims)
 setdim(dim::AbDim, newdim::AbDim) =
     basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
+
+"""
+    swapdims(x, newdims)
+
+Swap the dimension for the passed in dimensions.
+Dimension wrapper types rewrap the original dimension, keeping 
+the values and metadata. Dimension instances replace the original 
+dimension, and `nothing` leaves the original dimension as-is.
+"""
+swapdims(A::AbstractArray, newdims::Tuple) = 
+    rebuild(A, data(A), formatdims(A, swapdims(dims(A), newdims)))
+swapdims(dims::AbDimTuple, newdims::Tuple) = 
+    map((d, nd) -> swapdims(d, nd), dims, newdims)
+swapdims(dim::AbDim, newdim::AbDimType) =
+    basetypeof(newdim)(val(dim), grid(dim), metadata(dim))
+swapdims(dim::AbDim, newdim::AbDim) = newdim
+swapdims(dim::AbDim, newdim::Nothing) = dim
 
 
 """
@@ -346,3 +366,4 @@ Empty tuples are allowed
     # TODO compare the grid, and maybe the index.
     return a
 end
+
