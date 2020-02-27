@@ -39,7 +39,7 @@ export AbstractDimensionalArray, DimensionalArray
 export data, dims, refdims, metadata, name, shortname,
        val, label, units, order, bounds, locus, grid, <|
 
-export dimnum, hasdim, setdim
+export dimnum, hasdim, setdim, swapdims
 
 export @dim
 

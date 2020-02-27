@@ -1,7 +1,7 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, setdim, grid,
-      @dim, reducedims, dimnum, XDim, YDim, ZDim, Forward
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, grid,
+      @dim, reducedims, XDim, YDim, ZDim, Forward
 
 dimz = (X(), Y())
 
@@ -29,7 +29,6 @@ dimz = dims(da)
                                          Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(step=1.0))), ())
     @test slicedims((), (1:2, 3)) == ((), ())
 end
-
 @testset "dims2indices" begin
     emptyval = Colon()
     @test dims2indices(grid(dimz[1]), dimz[1], Y, Nothing) == Colon()
@@ -95,7 +94,7 @@ end
     @test dims(x) == x
 end
 
-@testset "hasdims" begin
+@testset "hasdim" begin
     @test hasdim(da, X) == true
     @test hasdim(da, Ti) == false
     @test hasdim(dims(da), Y) == true
@@ -115,3 +114,29 @@ end
     A = setdim(da, X(LinRange(150,152,2)))
     @test val(dims(dims(A), X())) == LinRange(150,152,2)
 end
+
+@testset "swapdims" begin
+    @testset "swap type wrappers" begin
+        A = swapdims(da, (Z, Dim{:test1}))
+        @test dims(A) isa Tuple{<:Z,<:Dim{:test1}}
+        @test map(val, dims(A)) == map(val, dims(da))
+        @test map(grid, dims(A)) == map(grid, dims(da))
+    end
+    @testset "swap whole dim instances" begin
+        A = swapdims(da, (Z(2:2:4), Dim{:test2}(3:5)))
+        @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
+        @test map(val, dims(A)) == (2:2:4, 3:5)
+        @test map(grid, dims(A)) == (RegularGrid(step=2), RegularGrid(step=1))
+    end
+    @testset "passing `nothing` keeps the original dim" begin
+        A = swapdims(da, (Z(2:2:4), nothing))
+        dims(A) isa Tuple{<:Z,<:Y}
+        @test map(val, dims(A)) == (2:2:4, val(dims(da, 2)))
+        A = swapdims(da, (nothing, Dim{:test3}))
+        @test dims(A) isa Tuple{<:X,<:Dim{:test3}}
+    end
+    @testset "new instances are checked against the array" begin
+        @test_throws ArgumentError swapdims(da, (Z(2:2:4), Dim{:test4}(3:6)))
+    end
+end
+
