@@ -223,7 +223,7 @@ formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
     formatdims(axes(A), dims)
 formatdims(axes::Tuple, dims::Tuple) = map(formatdims, axes, dims)
 formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
-    checklen(dim, axis)
+    checkaxis(dim, axis)
     rebuild(dim, val(dim), identify(grid(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
@@ -238,10 +238,10 @@ formatdims(axis::AbstractRange, dim::Type{<:Dimension}) =
 # Fallback: dim remains unchanged
 formatdims(axis::AbstractRange, dim::Dimension) = dim
 
-checklen(dim, axis) =
-    length(dim) == length(axis) ||
-        throw(ArgumentError(
-            "length of {$(basetypeof(dim))} ($(length(dim))) does not match size of array dimension ($axis)"))
+checkaxis(dim, axis) =
+    first(axes(dim)) == axis ||
+        throw(DimensionMismatch(
+            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
 
 """
 Replace the specified dimensions with an index of length 1 to match
