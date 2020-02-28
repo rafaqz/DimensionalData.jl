@@ -136,7 +136,7 @@ end
         @test dims(A) isa Tuple{<:X,<:Dim{:test3}}
     end
     @testset "new instances are checked against the array" begin
-        @test_throws ArgumentError swapdims(da, (Z(2:2:4), Dim{:test4}(3:6)))
+        @test_throws DimensionMismatch swapdims(da, (Z(2:2:4), Dim{:test4}(3:6)))
     end
 end
 

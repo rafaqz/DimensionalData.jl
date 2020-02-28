@@ -91,6 +91,7 @@ bounds(dim::Dimension) = bounds(grid(dim), dim)
 Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
+Base.axes(dim::Dimension) = axes(val(dim))
 Base.length(dim::Dimension) = length(val(dim))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))

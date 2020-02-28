@@ -21,6 +21,7 @@ dims(A::AbDimArray) = A.dims
 # Array interface methods ######################################################
 
 Base.size(A::AbDimArray) = size(data(A))
+Base.axes(A::AbDimArray) = axes(data(A))
 Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
 
