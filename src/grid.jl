@@ -375,3 +375,12 @@ identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=orderof(index))
 identify(::UnknownGrid, index::AbstractRange) =
     RegularGrid(order=orderof(index), step=step(index))
+
+
+orderof(index::AbstractArray) = begin
+    sorted = issorted(index; rev=isrev(indexorder(index)))
+    order = sorted ? Ordered(; index=indexorder(index)) : Unordered()
+end
+
+indexorder(index::AbstractArray) =
+    first(index) <= last(index) ? Forward() : Reverse()

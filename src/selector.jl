@@ -64,34 +64,34 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
     sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 
 # Handling base cases:
-sel2indices(grid, dim::AbDim, lookup::StandardIndices) = lookup
+sel2indices(grid, dim::Dimension, lookup::StandardIndices) = lookup
 
 # At selector
-sel2indices(grid, dim::AbDim, sel::At) = at(dim, sel, val(sel))
-sel2indices(grid, dim::AbDim, sel::At{<:Tuple}) =
+sel2indices(grid, dim::Dimension, sel::At) = at(dim, sel, val(sel))
+sel2indices(grid, dim::Dimension, sel::At{<:Tuple}) =
     [at.(Ref(dim), Ref(sel), val(sel))...]
-sel2indices(grid, dim::AbDim, sel::At{<:AbstractVector}) =
+sel2indices(grid, dim::Dimension, sel::At{<:AbstractVector}) =
     at.(Ref(dim), Ref(sel), val(sel))
 
 # Near selector
-sel2indices(grid::T, dim::AbDim, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid,NoGrid} =
+sel2indices(grid::T, dim::Dimension, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid,NoGrid} =
     throw(ArgumentError("`Near` has no meaning with `$T`. Use `At`"))
-sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near) =
+sel2indices(grid::AbstractAlignedGrid, dim::Dimension, sel::Near) =
     near(dim, sel, val(sel))
-sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near{<:Tuple}) =
+sel2indices(grid::AbstractAlignedGrid, dim::Dimension, sel::Near{<:Tuple}) =
     [near.(Ref(dim), Ref(sel), val(sel))...]
-sel2indices(grid::AbstractAlignedGrid, dim::AbDim, sel::Near{<:AbstractVector}) =
+sel2indices(grid::AbstractAlignedGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
     near.(Ref(dim), Ref(sel), val(sel))
 
 # Between selector
-sel2indices(grid, dim::AbDim, sel::Between{<:Tuple}) = between(dim, sel)
+sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) = between(dim, sel)
 
 
 # Transformed grid
 
 # We use the transformation from the first TransformedGrid dim.
 # In practice the others could be empty.
-sel2indices(grids::Tuple{Vararg{<:TransformedGrid}}, dims::AbDimTuple,
+sel2indices(grids::Tuple{Vararg{<:TransformedGrid}}, dims::DimTuple,
             sel::Tuple{Vararg{<:Selector}}) =
     map(to_int, sel, val(dims[1])([map(val, sel)...]))
 
@@ -104,14 +104,14 @@ to_int(::Near, x) = round(Int, x)
     # lookup(grid)[map(val, sel)...]
 
 
-at(dim::AbDim, sel::At, val) =
+at(dim::Dimension, sel::At, val) =
     _relate(dim, at(dim, val, atol(sel), rtol(sel)))
-at(dim::AbDim, selval, atol::Nothing, rtol::Nothing) = begin
+at(dim::Dimension, selval, atol::Nothing, rtol::Nothing) = begin
     i = findfirst(x -> x == selval, val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
     return i
 end
-at(dim::AbDim, selval, atol, rtol) = begin
+at(dim::Dimension, selval, atol, rtol) = begin
     # This is not particularly efficient.
     # It should be separated out for unordered
     # dims and otherwise treated as an ordered list.
@@ -121,8 +121,8 @@ at(dim::AbDim, selval, atol, rtol) = begin
 end
 
 
-near(dim::AbDim, sel::Near, val) =
-    _relate(dim, near(indexorder(dim), dim::AbDim, val))
+near(dim::Dimension, sel::Near, val) =
+    _relate(dim, near(indexorder(dim), dim::Dimension, val))
 near(::Unordered, dim, selval) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` grid"))
 near(ord, dim, selval) = begin
@@ -144,17 +144,17 @@ end
 _isnearest(::Forward, selval, index, i) = abs(index[i] - selval) <= abs(index[i-1] - selval)
 _isnearest(::Reverse, selval, index, i) = abs(index[i] - selval) < abs(index[i-1] - selval)
 
-between(dim::AbDim, sel::Between) = between(indexorder(dim), dim, val(sel))
-between(::Unordered, dim::AbDim, sel) =
+between(dim::Dimension, sel::Between) = between(indexorder(dim), dim, val(sel))
+between(::Unordered, dim::Dimension, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered grid"))
-between(ord::Reverse, dim::AbDim, sel) = begin
+between(ord::Reverse, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
     a = searchsortedlast(val(dim), high; rev=true)
     b = searchsortedfirst(val(dim), low; rev=true)
     a, b = _bounded(a, dim), _bounded(b, dim)
     _relate(dim, a:b)
 end
-between(ord::Forward, dim::AbDim, sel) = begin
+between(ord::Forward, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
     a = searchsortedfirst(val(dim), low)
     b = searchsortedlast(val(dim), high)

@@ -14,7 +14,7 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export AbstractDimension, IndependentDim, DependentDim, CategoricalDim, XDim, YDim, ZDim, TimeDim
+export Dimension, IndependentDim, DependentDim, CategoricalDim, XDim, YDim, ZDim, TimeDim
 
 export Dim, X, Y, Z, Ti
 
