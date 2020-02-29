@@ -14,7 +14,8 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export Dimension, IndependentDim, DependentDim, CategoricalDim, XDim, YDim, ZDim, TimeDim
+
+export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim
 
 export Dim, X, Y, Z, Ti
 
@@ -22,17 +23,17 @@ export Selector, Near, Between, At
 
 export Locus, Center, Start, End, UnknownLocus
 
-export Sampling, PointSampling, IntervalSampling, UnknownSampling
-
 export Order, Ordered, Unordered
 
 export Grid, UnknownGrid
 
 export AbstractCategoricalGrid, CategoricalGrid
 
-export IndependentGrid, AbstractAlignedGrid, AlignedGrid, BoundedGrid, RegularGrid
+export AlignedGrid, IntervalGrid, BoundedGrid, RegularGrid
 
-export DependentGrid, TransformedGrid
+export PointGrid
+
+export UnalignedGrid, TransformedGrid
 
 export AbstractDimensionalArray, DimensionalArray
 
@@ -42,6 +43,7 @@ export data, dims, refdims, metadata, name, shortname,
 export dimnum, hasdim, setdim, swapdims
 
 export @dim
+
 
 include("interface.jl")
 include("grid.jl")

@@ -17,11 +17,6 @@ Abstract supertype for Dependent dimensions. Will plot on the Y axis.
 abstract type DependentDim{T,G,M} <: Dimension{T,G,M} end
 
 """
-Abstract supertype for categorical dimensions. 
-"""
-abstract type CategoricalDim{T,G,M} <: Dimension{T,G,M} end
-
-"""
 Abstract parent type for all X dimensions.
 """
 abstract type XDim{T,G,M} <: IndependentDim{T,G,M} end

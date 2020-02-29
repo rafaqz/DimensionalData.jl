@@ -45,10 +45,13 @@ end
     @test dims2indices(da, X, emptyval) == (Colon(), ())
     @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
     @test dims2indices(da, 1, emptyval) == (1, )
-    tdimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Ti(1:1)
-    @test dims2indices(tdimz, (X(1), Y(2), Ti())) == (1, 2, Colon())
-    @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Ti())) == (1, 2, Colon())
 end
+
+# @testset "dims2indices with transformed grid" begin
+    # tdimz = Dim{:trans1}(nothing; grid=TransformedGrid(X())), Dim{:trans2}(nothing, grid=TransformedGrid(Y())), Ti(1:1)
+    # @test dims2indices(tdimz, (X(1), Y(2), Ti())) == (1, 2, Colon())
+    # @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Ti())) == (1, 2, Colon())
+# end
 
 @testset "dimnum" begin
     @test dimnum(da, X) == 1
@@ -62,19 +65,18 @@ end
             (X(3; grid=UnknownGrid()), Y(1; grid=UnknownGrid()))
     @test reducedims((X(3:4; grid=RegularGrid(;step=1)), 
                       Y(1:5; grid=RegularGrid(;step=1))), (X, Y)) ==
-                     (X([3]; grid=RegularGrid(;step=2, sampling=IntervalSampling())), 
-                      Y([1]; grid=RegularGrid(;step=5, sampling=IntervalSampling())))
+                     (X([3]; grid=RegularGrid(;step=2)), 
+                      Y([1]; grid=RegularGrid(;step=5)))
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Start(), bounds=(3, 5))),
                       Y(1:5; grid=BoundedGrid(;locus=End(), bounds=(0, 5)))), (X, Y))[1] ==
-                     (X([3]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(3, 5), locus=Start())),
-                      Y([5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(0, 5), locus=End())))[1]
+                     (X([3]; grid=BoundedGrid(;bounds=(3, 5), locus=Start())),
+                      Y([5]; grid=BoundedGrid(;bounds=(0, 5), locus=End())))[1]
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Center(), bounds=(2.5, 4.5))),
                       Y(1:5; grid=BoundedGrid(;locus=Center(), bounds=(0.5, 5.5)))), (X, Y))[1] ==
-                     (X([3.5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(2.5, 4.5), locus=Center())),
-                      Y([3.5]; grid=BoundedGrid(;sampling=IntervalSampling(), bounds=(0.5, 5.5), locus=Center())))[1]
-    @test reducedims((X(3:4; grid=AlignedGrid()), Y(1:5; grid=AlignedGrid())), (X, Y)) ==
-                     (X([3]; grid=AlignedGrid(;sampling=IntervalSampling())), 
-                      Y([1]; grid=AlignedGrid(;sampling=IntervalSampling())))
+                     (X([3.5]; grid=BoundedGrid(;bounds=(2.5, 4.5), locus=Center())),
+                      Y([3.5]; grid=BoundedGrid(;bounds=(0.5, 5.5), locus=Center())))[1]
+    @test reducedims((X(3:4; grid=PointGrid()), Y(1:5; grid=PointGrid())), (X, Y)) ==
+                     (X([3.5]; grid=PointGrid()), Y([3]; grid=PointGrid()))
     @test reducedims((X([:a,:b]; grid=CategoricalGrid()), 
                       Y(["1","2","3","4","5"]; grid=CategoricalGrid())), (X, Y)) ==
                      (X([:combined]; grid=CategoricalGrid()), 

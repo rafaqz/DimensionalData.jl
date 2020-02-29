@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful
 using DimensionalData: Forward, Reverse, 
-      reversearray, reverseindex, slicebounds, slicegrid, identify, orderof,
+      reversearray, reverseindex, slicebounds, slicegrid, identify,
       indexorder, arrayorder, relationorder
 
 @testset "identify grid type" begin
@@ -9,8 +9,8 @@ using DimensionalData: Forward, Reverse,
     @test identify(UnknownGrid(), 10:-2:1) == RegularGrid(; step=-2, order=Ordered(Reverse(), Forward(), Forward()))
     @test identify(UnknownGrid(), [:a, :b]) == CategoricalGrid()
     @test identify(UnknownGrid(), ["a", "b"]) == CategoricalGrid()
-    @test identify(UnknownGrid(), [1, 2, 3, 4]) == AlignedGrid(; order=Ordered(Forward(), Forward(), Forward()))
-    @test identify(UnknownGrid(), [4, 3, 2, 1]) == AlignedGrid(; order=Ordered(Reverse(), Forward(), Forward()))
+    @test identify(UnknownGrid(), [1, 2, 3, 4]) == PointGrid(; order=Ordered(Forward(), Forward(), Forward()))
+    @test identify(UnknownGrid(), [4, 3, 2, 1]) == PointGrid(; order=Ordered(Reverse(), Forward(), Forward()))
 end
 
 @testset "sampling" begin
@@ -40,7 +40,7 @@ end
     @test reverseindex(Ordered(Forward(), Reverse(), Forward())) == 
         Ordered(Reverse(), Reverse(), Reverse()) 
 
-    @test order(reverseindex(AlignedGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
+    @test order(reverseindex(PointGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
         Ordered(Reverse(), Reverse(), Reverse()) 
         Ordered(Forward(), Forward(), Reverse()) 
     @test order(reverseindex(RegularGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 

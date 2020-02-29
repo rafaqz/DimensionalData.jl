@@ -48,7 +48,7 @@ Convert a tuple of Dimension to indices, ranges or Colon.
     dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
 
 # Deal with irregular grid types that need multiple dimensions indexed together
-@inline dims2indices(grids::Tuple{DependentGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+@inline dims2indices(grids::Tuple{UnalignedGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
     (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
     (irreg2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
      dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
@@ -75,12 +75,12 @@ end
      dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
 end
 
-@inline splitgridtypes(grids::Tuple{DependentGrid,Vararg}, dims, lookup) = begin
+@inline splitgridtypes(grids::Tuple{UnalignedGrid,Vararg}, dims, lookup) = begin
     (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
 end
-@inline splitgridtypes(grids::Tuple{IndependentGrid,Vararg}, dims, lookup) = begin
+@inline splitgridtypes(grids::Tuple{AlignedGrid,Vararg}, dims, lookup) = begin
     irreg, (regdims, reglookup) = splitgridtypes(tail(grids), tail(dims), tail(lookup))
     reg = (dims[1], regdims...), (lookup[1], reglookup...)
     irreg, reg
@@ -275,24 +275,20 @@ type and order.
 @inline reducedims(grid::CategoricalGrid, dim) =
     rebuild(dim, [:combined], CategoricalGrid(Ordered()))
 
-# For Regular/Aligned/Bounded Grid
-# The reduced grid now has IntervalSampling, not a Point or Unknown
-# order is Ordered{Forward,Forward,Forward}, as it has length 1.
-# Bounds remain the same. Locus determines dimension index sampled,
-# and remains the same after reduce
-@inline reducedims(grid::AlignedGrid, dim) = begin
-    grid = AlignedGrid(Ordered(), locus(grid), IntervalSampling())
-    rebuild(dim, reducedims(locus(grid), dim), grid)
+@inline reducedims(grid::PointGrid, dim) = begin
+    grid = PointGrid(Ordered())
+    rebuild(dim, reducedims(Center(), dim), grid)
 end
 @inline reducedims(grid::BoundedGrid, dim) = begin
-    grid = BoundedGrid(Ordered(), locus(grid), IntervalSampling(), bounds(grid, dim))
+    grid = BoundedGrid(Ordered(), locus(grid), bounds(grid, dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Ordered(), locus(grid), IntervalSampling(), step(grid) * length(dim))
+    grid = RegularGrid(Ordered(), locus(grid), step(grid) * length(dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
-@inline reducedims(grid::DependentGrid, dim) =
+
+@inline reducedims(grid::UnalignedGrid, dim) =
     rebuild(dim, [nothing], UnknownGrid)
 
 # Get the index value at the reduced locus.
