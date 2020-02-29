@@ -176,9 +176,10 @@ abstract type IntervalGrid{O,L} <: AlignedGrid{O} end
 locus(grid::IntervalGrid) = grid.locus
 
 """
-An [`AllignedGrid`](@ref) with irregular or unknown interval size, and tracked bounds.
+An [`IntervalGrid`](@ref) with irregular or unknown interval size, and tracked bounds.
 These grids will generally be paired with a vector of coordinates along the
-dimension, instead of a range.
+dimension, instead of a range. The interval covered by each cell is determined by 
+the cell position, and the last or next cell positing, depending on the [`Locus`](@ref).
 
 As the size of the cells is not known, the bounds must be actively tracked.
 
@@ -327,10 +328,8 @@ rebuild(g::TransformedGrid, dims=dims(g), locus=locus(g) ) =
 Identify grid type from index content.
 """
 identify(grid::Grid, index) = grid
-identify(::UnknownGrid, index::AbstractArray) =
+identify(::UnknownGrid, index::AbstractArray) = 
     PointGrid(; order=_orderof(index))
-identify(::UnknownGrid, index::AbstractRange) =
-    RegularGrid(order=_orderof(index), step=step(index))
 identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=_orderof(index))
 

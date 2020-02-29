@@ -39,6 +39,15 @@ struct Near{T} <: Selector{T}
 end
 
 """
+    In(x)
+
+Selector that selects the interval the value falls in.
+"""
+struct In{T} <: Selector{T}
+    val::T
+end
+
+"""
     Between(a, b)
 
 Selector that retreive all indices located between 2 values.
@@ -67,24 +76,32 @@ sel2indices(grids, dims::Tuple, lookup::Tuple) =
 sel2indices(grid, dim::Dimension, lookup::StandardIndices) = lookup
 
 # At selector
-sel2indices(grid, dim::Dimension, sel::At) = at(dim, sel, val(sel))
-sel2indices(grid, dim::Dimension, sel::At{<:Tuple}) =
-    [at.(Ref(dim), Ref(sel), val(sel))...]
+sel2indices(grid, dim::Dimension, sel::At) = 
+    at(dim, sel, val(sel))
 sel2indices(grid, dim::Dimension, sel::At{<:AbstractVector}) =
     at.(Ref(dim), Ref(sel), val(sel))
 
 # Near selector
-sel2indices(grid::T, dim::Dimension, sel::Near) where T<:Union{CategoricalGrid,UnknownGrid,NoGrid} =
+sel2indices(grid::T, dim::Dimension, sel::Near) where T =
     throw(ArgumentError("`Near` has no meaning with `$T`. Use `At`"))
-sel2indices(grid::AlignedGrid, dim::Dimension, sel::Near) =
-    near(dim, sel, val(sel))
-sel2indices(grid::AlignedGrid, dim::Dimension, sel::Near{<:Tuple}) =
-    [near.(Ref(dim), Ref(sel), val(sel))...]
-sel2indices(grid::AlignedGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
-    near.(Ref(dim), Ref(sel), val(sel))
+sel2indices(grid::PointGrid, dim::Dimension, sel::Near) = 
+    near(dim, val(sel))
+sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
+    near.(Ref(dim), val(sel))
+
+# In selector
+sel2indices(grid::T, dim::Dimension, sel::In) where T =
+    throw(ArgumentError("`In` has no meaning with `$T`. Use `At`"))
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::In) = 
+    at(dim, sel, val(sel))
+sel2indices(grid::IntervalGrid, dim::Dimension, sel::In) = 
+    _in(dim, val(sel))
+sel2indices(grid::IntervalGrid, dim::Dimension, sel::In{<:AbstractVector}) =
+    _in.(Ref(dim), val(sel))
 
 # Between selector
-sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) = between(dim, sel)
+sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) =
+    between(dim, sel)
 
 
 # Transformed grid
@@ -102,49 +119,79 @@ to_int(::Near, x) = round(Int, x)
 # what is the scale of these lookup matrices?
 # sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
     # lookup(grid)[map(val, sel)...]
+    
 
 
-at(dim::Dimension, sel::At, val) =
-    _relate(dim, at(dim, val, atol(sel), rtol(sel)))
-at(dim::Dimension, selval, atol::Nothing, rtol::Nothing) = begin
+at(dim::Dimension, val) = 
+    _maybereorder(at(dim, val, nothing, nothing), dim)
+at(dim::Dimension, sel::Selector, val) = 
+    _maybereorder(at(dim, val, atol(sel), rtol(sel)), dim)
+at(dim, selval, atol::Nothing, rtol::Nothing) = begin
     i = findfirst(x -> x == selval, val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
     return i
 end
-at(dim::Dimension, selval, atol, rtol) = begin
-    # This is not particularly efficient.
-    # It should be separated out for unordered
+at(dim, selval, atol, rtol) = begin
+    # This is not particularly efficient.  # It should be separated out for unordered
     # dims and otherwise treated as an ordered list.
     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
     return i
 end
 
-
-near(dim::Dimension, sel::Near, val) =
-    _relate(dim, near(indexorder(dim), dim::Dimension, val))
-near(::Unordered, dim, selval) =
+near(dim::Dimension, selval) =
+    _fix(near(indexorder(dim), grid(dim), dim, selval), dim)
+near(::Unordered, grid, dim, selval) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` grid"))
-near(ord, dim, selval) = begin
-    index = val(dim)
-    i = searchsortedfirst(index, selval; rev=isrev(ord))
-    # Make sure index is withing bounds
-    if i > lastindex(index)
-        lastindex(index)
-    elseif i <= firstindex(index)
-        firstindex(index)
-    # Find nearest index
-    elseif _isnearest(ord, selval, index, i)
-        i
+near(ord::Order, grid, dim, selval) = begin
+    i = _bounded(searchsortedfirst(val(dim), selval; rev=isrev(ord)), dim)
+    if isrev(ord)
+        if i >= lastindex(dim)
+            lastindex(dim)
+        else
+            abs(dim[i] - selval) <= abs(dim[i + 1] - selval) ? i : i + 1
+        end
     else
-        i - 1
+        if i <= firstindex(dim)
+            firstindex(dim)
+        else
+            abs(dim[i] - selval) <= abs(dim[i - 1] - selval) ? i : i - 1
+        end
     end
 end
 
-_isnearest(::Forward, selval, index, i) = abs(index[i] - selval) <= abs(index[i-1] - selval)
-_isnearest(::Reverse, selval, index, i) = abs(index[i] - selval) < abs(index[i-1] - selval)
+_in(dim::Dimension, selval) =
+    _fix(_in(indexorder(dim), grid(dim), dim, selval), dim)
 
-between(dim::Dimension, sel::Between) = between(indexorder(dim), dim, val(sel))
+_in(ord::Unordered, grid, dim, selval) =
+    throw(ArgumentError("`In` has no meaning in an `Unordered` grid"))
+_in(ord::Order, grid::IntervalGrid, dim, selval) =
+    _in(locus(grid), ord, grid, dim, selval)
+
+_in(::Start, ord::Order, grid, dim, selval) =
+    searchsortedlast(val(dim), selval; rev=isrev(ord))
+_in(::End, ord::Order, grid, dim, selval) =
+    searchsortedfirst(val(dim), selval; rev=isrev(ord))
+_in(::Center, ord::Order, grid::IntervalGrid, dim, selval) = begin
+    i = _bounded(searchsortedlast(val(dim), selval; rev=isrev(ord)), dim)
+    if isrev(ord)
+        if i == firstindex(dim)
+            firstindex(dim)
+        else
+            (dim[i] + dim[i - 1]) / 2 <= selval ? i - 1 : i
+        end
+    else
+        if i == lastindex(dim) 
+            lastindex(dim)
+        else
+            (dim[i] + dim[i + 1]) / 2 <= selval ? i + 1 : i
+        end
+    end
+end
+
+
+
+between(dim::Dimension, sel) = between(indexorder(dim), dim, val(sel))
 between(::Unordered, dim::Dimension, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered grid"))
 between(ord::Reverse, dim::Dimension, sel) = begin
@@ -152,28 +199,30 @@ between(ord::Reverse, dim::Dimension, sel) = begin
     a = searchsortedlast(val(dim), high; rev=true)
     b = searchsortedfirst(val(dim), low; rev=true)
     a, b = _bounded(a, dim), _bounded(b, dim)
-    _relate(dim, a:b)
+    relate(dim, a:b)
 end
 between(ord::Forward, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
     a = searchsortedfirst(val(dim), low)
     b = searchsortedlast(val(dim), high)
     a, b = _bounded(a, dim), _bounded(b, dim)
-    _relate(dim, a:b)
+    relate(dim, a:b)
 end
 
-_bounded(x, dim) = 
-    if x > lastindex(dim)
+_fix(i::Int, dim::Dimension) = _maybereorder(_bounded(i, dim), dim)
+
+_bounded(i::Int, dim::Dimension) =
+    if i > lastindex(dim)
         lastindex(dim)
-    elseif x <= firstindex(dim)
+    elseif i <= firstindex(dim)
         firstindex(dim)
     else
-        x
+        i
     end
 
 
-_mayberev(::Forward, (a, b)) = (a, b)
-_mayberev(::Reverse, (a, b)) = (b, a)
+_maybereorder(i::Int, dim::Dimension) = 
+    maybeflip(relationorder(dim), dim, i)
 
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 

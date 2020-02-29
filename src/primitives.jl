@@ -80,7 +80,7 @@ end
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
 end
-@inline splitgridtypes(grids::Tuple{AlignedGrid,Vararg}, dims, lookup) = begin
+@inline splitgridtypes(grids::Tuple{Grid,Vararg}, dims, lookup) = begin
     irreg, (regdims, reglookup) = splitgridtypes(tail(grids), tail(dims), tail(lookup))
     reg = (dims[1], regdims...), (lookup[1], reglookup...)
     irreg, reg
@@ -116,19 +116,19 @@ end
 
 @inline slicedims(d::Dimension, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension, i::Number) =
-    (), (rebuild(d, d[_relate(d, i)], slicegrid(grid(d), val(d), i)),)
+    (), (rebuild(d, d[relate(d, i)], slicegrid(grid(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, d[_relate(d, i)]),), ()
+    (rebuild(d, d[relate(d, i)]),), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Number) = (), (d,)
 
-_relate(d::Dimension, i) = _maybeflip(relationorder(d), d, i)
+relate(d::Dimension, i) = maybeflip(relationorder(d), d, i)
 
-_maybeflip(::Forward, d::Dimension, i) = i
-_maybeflip(::Reverse, d::Dimension, i::Integer) = lastindex(d) - i + 1
-_maybeflip(::Reverse, d::Dimension, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
+maybeflip(::Forward, d::Dimension, i) = i
+maybeflip(::Reverse, d::Dimension, i::Integer) = lastindex(d) - i + 1
+maybeflip(::Reverse, d::Dimension, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(A, lookup)
