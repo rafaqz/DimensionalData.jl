@@ -4,17 +4,15 @@ using DimensionalData: Forward, Reverse,
       indexorder, arrayorder, relationorder
 
 @testset "identify grid type" begin
-    @test identify(RegularGrid(), 1) == RegularGrid()
-    @test identify(UnknownGrid(), 1:2:10) == RegularGrid(; step=2, order=Ordered(Forward(), Forward(), Forward()))
-    @test identify(UnknownGrid(), 10:-2:1) == RegularGrid(; step=-2, order=Ordered(Reverse(), Forward(), Forward()))
-    @test identify(UnknownGrid(), [:a, :b]) == CategoricalGrid()
-    @test identify(UnknownGrid(), ["a", "b"]) == CategoricalGrid()
-    @test identify(UnknownGrid(), [1, 2, 3, 4]) == PointGrid(; order=Ordered(Forward(), Forward(), Forward()))
-    @test identify(UnknownGrid(), [4, 3, 2, 1]) == PointGrid(; order=Ordered(Reverse(), Forward(), Forward()))
-end
-
-@testset "sampling" begin
-
+    @test identify(RegularGrid(), X, 1:1) == RegularGrid(;locus=Center(), step=1) 
+    @test identify(RegularGrid(), Ti, 1:1) == RegularGrid(;locus=Start(), step=1)
+    @test identify(UnknownGrid(), X, 1:2:10) == PointGrid(order=Ordered(Forward(), Forward(), Forward()))
+    @test identify(UnknownGrid(), X, 10:-2:1) == PointGrid(order=Ordered(Reverse(), Forward(), Forward()))
+    @test identify(UnknownGrid(), X, [:a, :b]) == CategoricalGrid()
+    @test identify(UnknownGrid(), X, ["a", "b"]) == CategoricalGrid()
+    @test identify(UnknownGrid(), X, [1, 2, 3, 4]) == PointGrid(; order=Ordered(Forward(), Forward(), Forward()))
+    @test identify(UnknownGrid(), X, [4, 3, 2, 1]) == PointGrid(; order=Ordered(Reverse(), Forward(), Forward()))
+    @test identify(UnknownGrid(), X, [1, 3, 2, 9]) == PointGrid(; order=Unordered(Forward()))
 end
 
 @testset "order" begin
@@ -43,7 +41,7 @@ end
     @test order(reverseindex(PointGrid(order=Ordered(Forward(), Reverse(), Forward())))) == 
         Ordered(Reverse(), Reverse(), Reverse()) 
         Ordered(Forward(), Forward(), Reverse()) 
-    @test order(reverseindex(RegularGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
+    @test order(reverseindex(PointGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
         Ordered(Reverse(), Reverse(), Forward()) 
     @test order(reverseindex(CategoricalGrid(order=Ordered(Forward(), Reverse(), Reverse())))) == 
         Ordered(Reverse(), Reverse(), Forward())
@@ -66,7 +64,7 @@ end
     @test bounds(slicegrid(grid, index, 1:3)) == (30.0, 60.0)
 end
 
-@testset "grid bounds" begin
+@testset "RegularGrid bounds" begin
     index = [10.0, 20.0, 30.0, 40.0, 50.0]
 
     @testset "forward relationship" begin

@@ -23,10 +23,10 @@ da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
 dimz = dims(da)
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=RegularGrid(step=2.0)),),
-                                        (Y(-36.0; grid=RegularGrid(step=1.0)),))
-    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=RegularGrid(step=2.0)),
-                                         Y(LinRange(-38.0,-36.0,3); grid=RegularGrid(step=1.0))), ())
+    @test slicedims(dimz, (1:2, 3)) == ((X(LinRange(143,145,2); grid=PointGrid()),),
+                                        (Y(-36.0; grid=PointGrid()),))
+    @test slicedims(dimz, (2:2, :)) == ((X(LinRange(145,145,1); grid=PointGrid()),
+                                         Y(LinRange(-38.0,-36.0,3); grid=PointGrid())), ())
     @test slicedims((), (1:2, 3)) == ((), ())
 end
 @testset "dims2indices" begin
@@ -63,22 +63,24 @@ end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(3:4; grid=UnknownGrid()), Y(1:5; grid=UnknownGrid())), (X, Y)) ==
-            (X(3; grid=UnknownGrid()), Y(1; grid=UnknownGrid()))
-    @test reducedims((X(3:4; grid=RegularGrid(;step=1)), 
-                      Y(1:5; grid=RegularGrid(;step=1))), (X, Y)) ==
-                     (X([3]; grid=RegularGrid(;step=2)), 
-                      Y([1]; grid=RegularGrid(;step=5)))
+    @test reducedims((X(3:4; grid=RegularGrid()), 
+                       Y(1:5; grid=RegularGrid())), (X, Y)) ==
+           (X([4]; grid=RegularGrid(;step=2, locus=Center())), 
+            Y([3]; grid=RegularGrid(;step=5, locus=Center())))
+    @test reducedims((X(3:4; grid=RegularGrid(locus=Start())), 
+                      Y(1:5; grid=RegularGrid(locus=End()))), (X, Y)) ==
+                     (X([3]; grid=RegularGrid(;step=2, locus=Start())), 
+                      Y([5]; grid=RegularGrid(;step=5, locus=End())))
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Start(), bounds=(3, 5))),
                       Y(1:5; grid=BoundedGrid(;locus=End(), bounds=(0, 5)))), (X, Y))[1] ==
                      (X([3]; grid=BoundedGrid(;bounds=(3, 5), locus=Start())),
                       Y([5]; grid=BoundedGrid(;bounds=(0, 5), locus=End())))[1]
     @test reducedims((X(3:4; grid=BoundedGrid(;locus=Center(), bounds=(2.5, 4.5))),
                       Y(1:5; grid=BoundedGrid(;locus=Center(), bounds=(0.5, 5.5)))), (X, Y))[1] ==
-                     (X([3.5]; grid=BoundedGrid(;bounds=(2.5, 4.5), locus=Center())),
-                      Y([3.5]; grid=BoundedGrid(;bounds=(0.5, 5.5), locus=Center())))[1]
+                     (X([4]; grid=BoundedGrid(;bounds=(2.5, 4.5), locus=Center())),
+                      Y([3]; grid=BoundedGrid(;bounds=(0.5, 5.5), locus=Center())))[1]
     @test reducedims((X(3:4; grid=PointGrid()), Y(1:5; grid=PointGrid())), (X, Y)) ==
-                     (X([3.5]; grid=PointGrid()), Y([3]; grid=PointGrid()))
+                     (X([4]; grid=PointGrid()), Y([3]; grid=PointGrid()))
     @test reducedims((X([:a,:b]; grid=CategoricalGrid()), 
                       Y(["1","2","3","4","5"]; grid=CategoricalGrid())), (X, Y)) ==
                      (X([:combined]; grid=CategoricalGrid()), 
@@ -130,7 +132,7 @@ end
         A = swapdims(da, (Z(2:2:4), Dim{:test2}(3:5)))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
         @test map(val, dims(A)) == (2:2:4, 3:5)
-        @test map(grid, dims(A)) == (RegularGrid(step=2), RegularGrid(step=1))
+        @test map(grid, dims(A)) == (PointGrid(), PointGrid())
     end
     @testset "passing `nothing` keeps the original dim" begin
         A = swapdims(da, (Z(2:2:4), nothing))

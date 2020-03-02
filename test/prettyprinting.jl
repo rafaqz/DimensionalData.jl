@@ -1,14 +1,13 @@
-using DimensionalData, Test
-using Dates: DateTime, Month
-using DimensionalData: @dim
+using DimensionalData, Test, Dates
 
 # define dims with both long name and Type name
 @dim Lon "Longitude" "lon"
 @dim Lat "Latitude" "lat"
+
 @testset "prettyprinting" begin
 
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
-    t = Ti(timespan)
+    t = Ti(timespan; grid=RegularGrid())
     x = Lon(Vector(0.5:10.0:359.5))
     y = Lat(Vector{Union{Float32, Missing}}(-89.5:10.0:89.5))
     z = Z('a':'d')

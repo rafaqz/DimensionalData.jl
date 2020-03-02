@@ -10,10 +10,10 @@ using DimensionalData: Forward, Reverse, Ordered,
         startrevfwd = Ti((30:-1:5); grid=RegularGrid(locus=Start(), order=Ordered(Reverse(),Forward(),Forward())))
         startrevrev = Ti((30:-1:5); grid=RegularGrid(locus=Start(), order=Ordered(Reverse(),Forward(),Reverse())))
         @testset "Any at" begin
-            @test at(startfwdfwd, At(30), 30) == 26
-            @test at(startrevfwd, At(30), 30) == 1
-            @test at(startfwdrev, At(30), 30) == 1
-            @test at(startrevrev, At(30), 30) == 26
+            @test at(startfwdfwd, At(30)) == 26
+            @test at(startrevfwd, At(30)) == 1
+            @test at(startfwdrev, At(30)) == 1
+            @test at(startrevrev, At(30)) == 26
         end
 
         @testset "Start between" begin
@@ -24,9 +24,9 @@ using DimensionalData: Forward, Reverse, Ordered,
             # Input order doesn't matter
             @test between(startfwdfwd, Between(15, 10)) === 6:11
         end
-        @testset "Start near" begin
-            @test _in(startfwdfwd, 50) == 26
-            @test _in(startfwdfwd, 0) == 1
+        @testset "Start _in" begin
+            # @test_throws BoundsError _in(startfwdfwd, 50)
+            @test_throws BoundsError _in(startfwdfwd, 0)
             @test _in(startfwdfwd, 5.9) == 1
             @test _in(startfwdfwd, 6.0) == 2
             @test _in(startfwdfwd, 30.0) == 26
@@ -61,8 +61,6 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test between(centerfwdfwd, Between(15, 10)) === 6:11
         end
         @testset "Center _in" begin
-            @test _in(centerfwdfwd, 50) == 26
-            @test _in(centerfwdfwd, 0) == 1
             @test _in(centerfwdfwd, 29.5) == 26
             @test _in(centerfwdfwd, 29.4) == 25
             @test _in(centerrevfwd, 29.5) == 1
@@ -86,8 +84,6 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test between(endfwdfwd, Between(15, 10)) === 6:11
         end
         @testset "End _in" begin
-            @test _in(endfwdfwd, 50) == 26
-            @test _in(endfwdfwd, 0) == 1
             @test _in(endfwdfwd, 5.0) == 1
             @test _in(endfwdfwd, 5.1) == 2
 
@@ -125,10 +121,10 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test between(timefwdfwd, Between(15, 10)) === 6:11
         end
         @testset "at" begin
-            @test at(timefwdfwd, At(30), 30) == 26
-            @test at(timerevfwd, At(30), 30) == 1
-            @test at(timefwdrev, At(30), 30) == 1
-            @test at(timerevrev, At(30), 30) == 26
+            @test at(timefwdfwd, At(30)) == 26
+            @test at(timerevfwd, At(30)) == 1
+            @test at(timefwdrev, At(30)) == 1
+            @test at(timerevrev, At(30)) == 26
         end
         @testset "near" begin
             @test near(timefwdfwd, 50) == 26
@@ -344,12 +340,12 @@ a = [1 2  3  4
 end
 
 
-@testset "CategoricalGrid" begin
+@testset "Selectors on CategoricalGrid" begin
     dimz = Ti([:one, :two, :three]; grid=CategoricalGrid()),
            Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
-    @test da[Ti<|At([:one, :two]), Y<|At(:b)] == [2, 6]
-    @test da[At([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
+    @test da[Ti<|At([:one, :two]), Y<|In(:b)] == [2, 6]
+    @test da[In([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
     # Near doesn't make sense for categories
     @test_throws ArgumentError da[Near(:two), At([:b, :c, :d])]
