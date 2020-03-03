@@ -26,26 +26,23 @@ using DimensionalData: Forward, Reverse, Ordered,
         end
         @testset "Start _in" begin
             # @test_throws BoundsError _in(startfwdfwd, 50)
-            @test_throws BoundsError _in(startfwdfwd, 0)
-            @test _in(startfwdfwd, 5.9) == 1
-            @test _in(startfwdfwd, 6.0) == 2
-            @test _in(startfwdfwd, 30.0) == 26
-            @test _in(startfwdfwd, 29.9) == 25
-
-            @test _in(startfwdrev, 5.9) == 26
-            @test _in(startfwdrev, 6.0) == 25
-            @test _in(startfwdrev, 29.9) == 2
-            @test _in(startfwdrev, 30.0) == 1
-
-            @test _in(startrevfwd, 5.9) == 26
-            @test _in(startrevfwd, 6.0) == 25
-            @test _in(startrevfwd, 29.0) == 2
-            @test _in(startrevfwd, 30.0) == 1
-
-            @test _in(startrevrev, 5.9) == 1
-            @test _in(startrevrev, 6.0) == 2
-            @test _in(startrevrev, 29.9) == 25
-            @test _in(startrevrev, 30.0) == 26
+            @test_throws BoundsError _in(startfwdfwd, In(0))
+            @test _in(startfwdfwd, In(5.9)) == 1
+            @test _in(startfwdfwd, In(6.0)) == 2
+            @test _in(startfwdfwd, In(30.0)) == 26
+            @test _in(startfwdfwd, In(29.9)) == 25
+            @test _in(startfwdrev, In(5.9)) == 26
+            @test _in(startfwdrev, In(6.0)) == 25
+            @test _in(startfwdrev, In(29.9)) == 2
+            @test _in(startfwdrev, In(30.0)) == 1
+            @test _in(startrevfwd, In(5.9)) == 26
+            @test _in(startrevfwd, In(6.0)) == 25
+            @test _in(startrevfwd, In(29.0)) == 2
+            @test _in(startrevfwd, In(30.0)) == 1
+            @test _in(startrevrev, In(5.9)) == 1
+            @test _in(startrevrev, In(6.0)) == 2
+            @test _in(startrevrev, In(29.9)) == 25
+            @test _in(startrevrev, In(30.0)) == 26
         end
 
         centerfwdfwd = Ti((5:30); grid=RegularGrid(locus=Center(), order=Ordered(Forward(),Forward(),Forward())))
@@ -61,14 +58,14 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test between(centerfwdfwd, Between(15, 10)) === 6:11
         end
         @testset "Center _in" begin
-            @test _in(centerfwdfwd, 29.5) == 26
-            @test _in(centerfwdfwd, 29.4) == 25
-            @test _in(centerrevfwd, 29.5) == 1
-            @test _in(centerrevfwd, 29.4) == 2
-            @test _in(centerfwdrev, 29.5) == 1
-            @test _in(centerfwdrev, 29.4) == 2
-            @test _in(centerrevrev, 29.5) == 26
-            @test _in(centerrevrev, 29.4) == 25
+            @test _in(centerfwdfwd, In(29.5)) == 26
+            @test _in(centerfwdfwd, In(29.4)) == 25
+            @test _in(centerrevfwd, In(29.5)) == 1
+            @test _in(centerrevfwd, In(29.4)) == 2
+            @test _in(centerfwdrev, In(29.5)) == 1
+            @test _in(centerfwdrev, In(29.4)) == 2
+            @test _in(centerrevrev, In(29.5)) == 26
+            @test _in(centerrevrev, In(29.4)) == 25
         end
 
         endfwdfwd = Ti((5:30); grid=RegularGrid(locus=End(), order=Ordered(Forward(),Forward(),Forward())))
@@ -84,27 +81,22 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test between(endfwdfwd, Between(15, 10)) === 6:11
         end
         @testset "End _in" begin
-            @test _in(endfwdfwd, 5.0) == 1
-            @test _in(endfwdfwd, 5.1) == 2
-
-            @test _in(endfwdfwd, 29.0) == 25
-            @test _in(endfwdfwd, 29.1) == 26
-            searchsortedfirst(val(endfwdfwd), 29.1; rev=false)
-
-            @test _in(endrevfwd, 5.0) == 26
-            @test _in(endrevfwd, 5.1) == 25
-            @test _in(endrevfwd, 29.0) == 2
-            @test _in(endrevfwd, 29.1) == 1
-
-            @test _in(endrevrev, 5.0) == 1
-            @test _in(endrevrev, 5.1) == 2
-            @test _in(endrevrev, 29.0) == 25
-            @test _in(endrevrev, 29.1) == 26
-
-            @test _in(endrevfwd, 5.0) == 26
-            @test _in(endrevfwd, 5.1) == 25
-            @test _in(endrevfwd, 29.0) == 2
-            @test _in(endrevfwd, 29.1) == 1
+            @test _in(endfwdfwd, In(5.0)) == 1
+            @test _in(endfwdfwd, In(5.1)) == 2
+            @test _in(endfwdfwd, In(29.0)) == 25
+            @test _in(endfwdfwd, In(29.1)) == 26
+            @test _in(endrevfwd, In(5.0)) == 26
+            @test _in(endrevfwd, In(5.1)) == 25
+            @test _in(endrevfwd, In(29.0)) == 2
+            @test _in(endrevfwd, In(29.1)) == 1
+            @test _in(endrevrev, In(5.0)) == 1
+            @test _in(endrevrev, In(5.1)) == 2
+            @test _in(endrevrev, In(29.0)) == 25
+            @test _in(endrevrev, In(29.1)) == 26
+            @test _in(endrevfwd, In(5.0)) == 26
+            @test _in(endrevfwd, In(5.1)) == 25
+            @test _in(endrevfwd, In(29.0)) == 2
+            @test _in(endrevfwd, In(29.1)) == 1
         end
     end
     @testset "Point grid" begin
@@ -127,16 +119,16 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test at(timerevrev, At(30)) == 26
         end
         @testset "near" begin
-            @test near(timefwdfwd, 50) == 26
-            @test near(timefwdfwd, 0) == 1
-            @test near(timefwdfwd, 29.4) == 25
-            @test near(timefwdfwd, 29.5) == 26
-            @test near(timerevfwd, 29.4) == 2
-            @test near(timerevfwd, 29.5) == 1
-            @test near(timefwdrev, 29.4) == 2
-            @test near(timefwdrev, 29.5) == 1
-            @test near(timerevrev, 29.4) == 25
-            @test near(timerevrev, 29.5) == 26
+            @test near(timefwdfwd, Near(50)) == 26
+            @test near(timefwdfwd, Near(0)) == 1
+            @test near(timefwdfwd, Near(29.4)) == 25
+            @test near(timefwdfwd, Near(29.5)) == 26
+            @test near(timerevfwd, Near(29.4)) == 2
+            @test near(timerevfwd, Near(29.5)) == 1
+            @test near(timefwdrev, Near(29.4)) == 2
+            @test near(timefwdrev, Near(29.5)) == 1
+            @test near(timerevrev, Near(29.4)) == 25
+            @test near(timerevrev, Near(29.5)) == 26
         end
     end
 end
