@@ -57,6 +57,12 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     end
 end
 
+Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T} = begin
+    A = _firstdimarray(bc)
+    # TODO How do we know what the new dims are?
+    rebuildsliced(A, similar(Array{T}, axes(bc)), axes(bc), "")
+end
+
 # Recursively unwraps `AbstractDimensionalArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimensionalArray`s with the wrapped array,
 # and `DimensionalStyle` with the wrapped `BroadcastStyle`.
@@ -70,6 +76,16 @@ _unwrap_broadcasted(nda::AbstractDimensionalArray) = data(nda)
 # Get the first dimensional array inthe broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbDimArray,Vararg}) = x[1]
+_fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
+_firstdimarray(x::Tuple{<:Broadcasted,Vararg}) = begin
+    found = _firstdimarray(x[1])
+    if found isa Nothing
+        _firstdimarray(tail(x))
+    else
+        found
+    end
+end
+
 _firstdimarray(x::Tuple) = _firstdimarray(tail(x))
 _firstdimarray(x::Tuple{}) = nothing
 
