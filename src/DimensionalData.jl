@@ -23,15 +23,14 @@ export Selector, Between, At, In, Near
 
 export Locus, Center, Start, End, UnknownLocus
 
-export Order, Ordered, Unordered
+export Order, Ordered, Unordered, UnknownOrder
 
 export Grid, UnknownGrid
 
 export AbstractCategoricalGrid, CategoricalGrid
 
-export AlignedGrid, IntervalGrid, BoundedGrid, RegularGrid
-
-export PointGrid
+export AlignedGrid, IntervalGrid, AbstractBoundedGrid, BoundedGrid, 
+       AbstractRegularGrid, RegularGrid, AbstractPointGrid, PointGrid
 
 export UnalignedGrid, TransformedGrid
 
