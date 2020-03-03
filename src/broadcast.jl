@@ -76,6 +76,7 @@ _unwrap_broadcasted(nda::AbstractDimensionalArray) = data(nda)
 # Get the first dimensional array inthe broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbDimArray,Vararg}) = x[1]
+_fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
 _firstdimarray(x::Tuple{<:Broadcasted,Vararg}) = begin
     found = _firstdimarray(x[1])
     if found isa Nothing
@@ -84,6 +85,7 @@ _firstdimarray(x::Tuple{<:Broadcasted,Vararg}) = begin
         found
     end
 end
+
 _firstdimarray(x::Tuple) = _firstdimarray(tail(x))
 _firstdimarray(x::Tuple{}) = nothing
 
