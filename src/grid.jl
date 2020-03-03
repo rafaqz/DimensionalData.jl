@@ -43,6 +43,8 @@ indexorder(order::Unordered) = Unordered()
 arrayorder(order::Unordered) = Unordered()
 relationorder(order::Unordered) = order.relation
 
+struct UnknownOrder <: Order end
+
 """
 Trait indicating that the array or dimension is in the normal forward order.
 """
@@ -358,9 +360,14 @@ identify(gridtype::Type{<:Grid}, dimtype, index) = gridtype()
 
 identify(locus::UnknownLocus, dimtype, index) = Center()
 identify(locus::Locus, dimtype, index) = locus
+identify(order::UnknownOrder, dimtype, index) = _orderof(index)
+identify(order::Order, dimtype, index) = order
 
 identify(grid::AbstractRegularGrid, dimtype, index::AbstractRange) = begin
-    grid = rebuild(grid; locus=identify(locus(grid), dimtype, index))
+    grid = rebuild(grid; 
+        order=identify(order(grid), dimtype, index),
+        locus=identify(locus(grid), dimtype, index),
+    )
     identify(step(grid), grid, dimtype, index)
 end
 identify(step_::Nothing, grid::AbstractRegularGrid, dimtype, index::AbstractRange) =
@@ -394,8 +401,9 @@ identify(::UnknownGrid, dimtype, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=_orderof(index))
 
 _orderof(index::AbstractArray) = begin
-    sorted = issorted(index; rev=isrev(_indexorder(index)))
-    order = sorted ? Ordered(; index=_indexorder(index)) : Unordered()
+    indord = _indexorder(index)
+    sorted = issorted(index; rev=isrev(indord))
+    order = sorted ? Ordered(; index=indord) : Unordered()
 end
 
 _indexorder(index::AbstractArray) =
