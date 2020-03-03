@@ -7,6 +7,8 @@ abstract type Selector{T} end
 const SelectorOrStandard = Union{Selector, StandardIndices}
 
 val(m::Selector) = m.val
+rebuild(sel::Selector, val) = basetypeof(sel)(val) 
+
 
 """
     At(x)
@@ -70,34 +72,33 @@ sel2indices(dims::Tuple, lookup::Tuple) = sel2indices(map(grid, dims), dims, loo
 sel2indices(grids, dims::Tuple, lookup::Tuple) =
     (sel2indices(grids[1], dims[1], lookup[1]),
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
-    sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
+sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 
 # Handling base cases:
 sel2indices(grid, dim::Dimension, lookup::StandardIndices) = lookup
 
 # At selector
-sel2indices(grid, dim::Dimension, sel::At) = 
-    at(dim, sel, val(sel))
 sel2indices(grid, dim::Dimension, sel::At{<:AbstractVector}) =
-    at.(Ref(dim), Ref(sel), val(sel))
+    map(v -> at(dim, rebuild(sel, v)), val(sel))
+sel2indices(grid, dim::Dimension, sel::At) = at(dim, sel)
 
 # Near selector
 sel2indices(grid::T, dim::Dimension, sel::Near) where T =
     throw(ArgumentError("`Near` has no meaning with `$T`. Use `At`"))
+sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
+    map(v -> sel2indices(grid, dim, Near(v)), val(sel))
 sel2indices(grid::PointGrid, dim::Dimension, sel::Near) = 
     near(dim, val(sel))
-sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
-    near.(Ref(dim), val(sel))
 
 # In selector
 sel2indices(grid::T, dim::Dimension, sel::In) where T =
     throw(ArgumentError("`In` has no meaning with `$T`. Use `At`"))
 sel2indices(grid::CategoricalGrid, dim::Dimension, sel::In) = 
-    at(dim, sel, val(sel))
+    sel2indices(grid, dim, At(val(sel))) 
+sel2indices(grid::IntervalGrid, dim::Dimension, sel::In{<:AbstractVector}) =
+    map(v -> sel2indices(grid, dim, In(v)), val(sel))
 sel2indices(grid::IntervalGrid, dim::Dimension, sel::In) = 
     _in(dim, val(sel))
-sel2indices(grid::IntervalGrid, dim::Dimension, sel::In{<:AbstractVector}) =
-    _in.(Ref(dim), val(sel))
 
 # Between selector
 sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) =
@@ -122,10 +123,8 @@ to_int(::Near, x) = round(Int, x)
     
 
 
-at(dim::Dimension, val) = 
-    _maybereorder(at(dim, val, nothing, nothing), dim)
-at(dim::Dimension, sel::Selector, val) = 
-    _maybereorder(at(dim, val, atol(sel), rtol(sel)), dim)
+at(dim::Dimension, sel::At) =
+    _maybereorder(at(dim, val(sel), atol(sel), rtol(sel)), dim)
 at(dim, selval, atol::Nothing, rtol::Nothing) = begin
     i = findfirst(x -> x == selval, val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
@@ -161,19 +160,26 @@ near(ord::Order, grid, dim, selval) = begin
 end
 
 _in(dim::Dimension, selval) =
-    _fix(_in(indexorder(dim), grid(dim), dim, selval), dim)
+    _maybereorder(_in(indexorder(dim), grid(dim), dim, selval), dim)
 
 _in(ord::Unordered, grid, dim, selval) =
     throw(ArgumentError("`In` has no meaning in an `Unordered` grid"))
 _in(ord::Order, grid::IntervalGrid, dim, selval) =
     _in(locus(grid), ord, grid, dim, selval)
 
-_in(::Start, ord::Order, grid, dim, selval) =
-    searchsortedlast(val(dim), selval; rev=isrev(ord))
-_in(::End, ord::Order, grid, dim, selval) =
-    searchsortedfirst(val(dim), selval; rev=isrev(ord))
+_in(::Start, ord::Order, grid, dim, selval) = begin
+    i = searchsortedlast(val(dim), selval; rev=isrev(ord))
+    checkbounds(val(dim), i)
+    i
+end
+_in(::End, ord::Order, grid, dim, selval) = begin
+    i = searchsortedfirst(val(dim), selval; rev=isrev(ord))
+    checkbounds(val(dim), i)
+    i
+end
 _in(::Center, ord::Order, grid::IntervalGrid, dim, selval) = begin
-    i = _bounded(searchsortedlast(val(dim), selval; rev=isrev(ord)), dim)
+    i = searchsortedlast(val(dim), selval; rev=isrev(ord))
+    checkbounds(val(dim), i)
     if isrev(ord)
         if i == firstindex(dim)
             firstindex(dim)

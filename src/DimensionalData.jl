@@ -19,7 +19,7 @@ export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim
 
 export Dim, X, Y, Z, Ti
 
-export Selector, Near, Between, At
+export Selector, Between, At, In, Near
 
 export Locus, Center, Start, End, UnknownLocus
 

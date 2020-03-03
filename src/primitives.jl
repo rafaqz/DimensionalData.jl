@@ -224,17 +224,19 @@ formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
 formatdims(axes::Tuple, dims::Tuple) = map(formatdims, axes, dims)
 formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
     checkaxis(dim, axis)
-    rebuild(dim, val(dim), identify(grid(dim), val(dim)))
+    rebuild(dim, val(dim), identify(grid(dim), basetypeof(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
     start, stop = val(dim)
     range = LinRange(start, stop, length(axis))
-    rebuild(dim, range, identify(grid(dim), range))
+    rebuild(dim, range, identify(grid(dim), basetypeof(dim), range))
 end
 formatdims(axis::AbstractRange, dim::Dimension{Colon}) = 
-    rebuild(dim, axis, identify(grid(dim), axis))
-formatdims(axis::AbstractRange, dim::Type{<:Dimension}) = 
-    rebuild(dim(), axis, identify(grid(dim()), axis))
+    rebuild(dim, axis, identify(grid(dim), basetypeof(dim), axis))
+formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) = begin
+    dim = dimtype()
+    rebuild(dim, axis, identify(grid(dim), basetypeof(dim), axis))
+end
 # Fallback: dim remains unchanged
 formatdims(axis::AbstractRange, dim::Dimension) = dim
 
@@ -280,11 +282,11 @@ type and order.
     rebuild(dim, reducedims(Center(), dim), grid)
 end
 @inline reducedims(grid::BoundedGrid, dim) = begin
-    grid = BoundedGrid(Ordered(), locus(grid), bounds(grid, dim))
+    grid = rebuild(grid, Ordered())
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 @inline reducedims(grid::RegularGrid, dim) = begin
-    grid = RegularGrid(Ordered(), locus(grid), step(grid) * length(dim))
+    grid = rebuild(grid, Ordered(), locus(grid), step(grid) * length(dim))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
 
@@ -299,11 +301,17 @@ reducedims(locus::Center, dim) = begin
     index = val(dim)
     len = length(index)
     if iseven(len)
-        [(index[len ÷ 2] + index[len ÷ 2 + 1]) / 2]
+        centerval(index, len)
     else
         [index[len ÷ 2 + 1]]
     end
 end
+
+# Need to specialise for more types
+centerval(index::AbstractArray{<:AbstractFloat}, len) = 
+    [(index[len ÷ 2] + index[len ÷ 2 + 1]) / 2]
+centerval(index::AbstractArray, len) =
+    [index[len ÷ 2 + 1]]
 
 
 """

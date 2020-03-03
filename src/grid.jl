@@ -99,15 +99,6 @@ Indicates dimension where the index position is not known.
 struct UnknownLocus <: Locus end
 
 
-abstract type Step end
-
-struct RegularStep{T} <: Step
-    val::T
-end
-
-struct IrregularStep <: Step end
-
-
 """
 Traits describing the grid type of a dimension.
 """
@@ -145,24 +136,28 @@ order(g::UnknownGrid) = Unordered()
 
 
 """
-A grid dimension whos index is aligned with the array, 
+A grid dimension whos index is aligned with the array,
 and is independent of other grid dimensions.
 """
 abstract type AlignedGrid{O} <: Grid end
 
 order(g::AlignedGrid) = g.order
 
+"""
+[`AlignedGrid`](@ref)s trait for dimensions representing point samples.
+"""
+abstract type AbstractPointGrid{O<:Order} <: AlignedGrid{O} end
 
 """
 An [`AlignedGrid`](@ref) grid for point samples.
 
-`bounds` are the first and last points, one cell smaller than 
-the same index in an IntervalGrid. 
+`bounds` are the first and last points, one cell smaller than
+the same index in an IntervalGrid.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
 """
-struct PointGrid{O<:Order} <: AlignedGrid{O}
+struct PointGrid{O<:Order} <: AbstractPointGrid{O}
     order::O
 end
 PointGrid(; order=Ordered()) = PointGrid(order)
@@ -170,30 +165,44 @@ PointGrid(; order=Ordered()) = PointGrid(order)
 rebuild(g::AlignedGrid, order=order(g)) = PointGrid(order)
 
 
+"""
+[AlignedGrid](@ref)s traits for dimensions that represent intervals,
+as opposed to single points.
 
+These grids have a [`locus`](@ref) to indicate the position of the
+in the interval relative to the index value.
+"""
 abstract type IntervalGrid{O,L} <: AlignedGrid{O} end
 
 locus(grid::IntervalGrid) = grid.locus
 
 """
+Abstract supertype for [`IntervalGrid`](@ref) traits with uneven or
+unknown interval size. Bounds are tracked through changes
+to the dimension so that the bounding box is always known.
+"""
+abstract type AbstractBoundedGrid{O<:Order,L<:Locus,B} <: IntervalGrid{O,L} end
+
+"""
 An [`IntervalGrid`](@ref) with irregular or unknown interval size, and tracked bounds.
 These grids will generally be paired with a vector of coordinates along the
-dimension, instead of a range. The interval covered by each cell is determined by 
+dimension, instead of a range. The interval covered by each cell is determined by
 the cell position, and the last or next cell positing, depending on the [`Locus`](@ref).
 
 As the size of the cells is not known, the bounds must be actively tracked.
 
 ## Fields
 - `order::Order`: `Order` trait indicating array and index order
-- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell step
+- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the
+  cell step
 - `bounds`: the outer edges of the grid (different to the first and last coordinate).
 """
-struct BoundedGrid{O<:Order,L<:Locus,B} <: IntervalGrid{O,L}
+struct BoundedGrid{O<:Order,L<:Locus,B} <: AbstractBoundedGrid{O,L,B}
     order::O
     locus::L
     bounds::B
 end
-BoundedGrid(; order=Ordered(), locus=Start(), bounds=nothing) =
+BoundedGrid(; order=Ordered(), locus=UnknownLocus(), bounds=nothing) =
     BoundedGrid(order, locus, bounds)
 
 bounds(g::BoundedGrid) = g.bounds
@@ -203,10 +212,10 @@ rebuild(g::BoundedGrid, order=order(g), locus=locus(g), bounds=bounds(g)) =
     BoundedGrid(order, locus, bounds)
 
 # TODO: deal with unordered AbstractArray indexing
-slicegrid(g::BoundedGrid, index, I) =
+slicegrid(g::AbstractBoundedGrid, index, I) =
     rebuild(g, order(g), locus(g), slicebounds(g, index, I))
 
-slicebounds(g::BoundedGrid, index, I) =
+slicebounds(g::AbstractBoundedGrid, index, I) =
     slicebounds(locus(g), bounds(g), index, reorderindices(g, index, I))
 slicebounds(loci::Start, bounds, index, I) =
     index[first(I)],
@@ -222,28 +231,19 @@ reorderindices(grid::Grid, index, I) = reorderindices(relationorder(grid), index
 reorderindices(::Order, index, I) = I
 reorderindices(::Reverse, index, I::AbstractArray) = length(index) .- (last(I), first(I)) .+ 1
 
-
 """
-An [`AlignedGrid`](@ref) where all cells are the same size and evenly spaced.
-These grids will often be paired with a range, but may also be paired with a vector.
+Abtract supertype for [IntervalGrid](@ref)s traits for dimensions
+where the values are equal-sized intervals with a known step size.
 
-## Fields
-- `order::Order`: `Order` trait indicating array and index order
-- `locus::Locus`: `Locus` trait indicating the position of the indexed point within the cell step
-- `step::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
+These grids have a `step` value, which is the same as the range step except
+for some legnth 1 ranges, and can also be used for evenly spaced vectors.
 """
-struct RegularGrid{O<:Order,L<:Locus,St} <: IntervalGrid{O,L}
-    order::O
-    locus::L
-    step::St
-end
-RegularGrid(; order=Ordered(), locus=Start(), step=nothing) =
-    RegularGrid(order, locus, step)
+abstract type AbstractRegularGrid{O<:Order,L<:Locus,S} <: IntervalGrid{O,L} end
 
-rebuild(g::RegularGrid, order=order(g), locus=locus(g), step=step(g)) =
-    RegularGrid(order, locus, step)
+Base.step(grid::AbstractRegularGrid) = grid.step
 
-bounds(grid::RegularGrid, dim) = sortbounds(grid, bounds(relationorder(grid), locus(grid), grid, dim))
+bounds(grid::AbstractRegularGrid, dim) =
+    sortbounds(grid, bounds(relationorder(grid), locus(grid), grid, dim))
 bounds(::Forward, ::Start, grid, dim) = first(dim), last(dim) + step(grid)
 bounds(::Reverse, ::Start, grid, dim) = first(dim) - step(grid), last(dim)
 bounds(::Any, ::Center, grid, dim) = first(dim) - step(grid) / 2, last(dim) + step(grid) / 2
@@ -254,9 +254,32 @@ sortbounds(grid::Grid, bounds) = sortbounds(indexorder(grid), bounds)
 sortbounds(grid::Forward, bounds) = bounds
 sortbounds(grid::Reverse, bounds) = bounds[2], bounds[1]
 
-Base.step(grid::RegularGrid) = grid.step
+"""
+A concrete implementation of [`AbstractRegularGrid`](@ref) where all cells are
+the same size and evenly spaced. These grids will often be paired with a range,
+but may also be paired with a vector.
+
+## Fields
+- `order::Order`: `Order` trait indicating array and index order
+- `locus::Locus`: `Locus` trait indicating the position of the indexed
+  point within the cell step
+- `step::Number`: the size of a grid step, such as 1u"km" or `Month(1)`
+"""
+struct RegularGrid{O<:Order,L<:Locus,S} <: AbstractRegularGrid{O,L,S}
+    order::O
+    locus::L
+    step::S
+end
+RegularGrid(; order=Ordered(), locus=UnknownLocus(), step=nothing) =
+    RegularGrid(order, locus, step)
+
+rebuild(g::RegularGrid, order=order(g), locus=locus(g), step=step(g)) =
+    RegularGrid(order, locus, step)
 
 
+"""
+[Grid](@ref)s traits for dimensions where the values are categories.
+"""
 abstract type AbstractCategoricalGrid{O} <: AlignedGrid{O} end
 
 order(g::AbstractCategoricalGrid) = g.order
@@ -277,7 +300,8 @@ CategoricalGrid(; order=Ordered()) = CategoricalGrid(order)
 
 
 """
-Traits describing a grid dimension that is dependent on other grid dimensions.
+Abtract supertype for [Grid](@ref) traits describing a grid dimension that is 
+dependent on other grid dimensions.
 
 Indexing into a dependent dimension must provide all other dependent dimensions.
 """
@@ -287,12 +311,12 @@ locus(g::UnalignedGrid) = g.locus
 dims(g::UnalignedGrid) = g.dims
 
 """
-Grid type using an affine transformation to convert dimension from
-`dim(grid)` to `dims(array)`.
+Grid trait that uses an affine transformation to convert dimensions from
+`dims(grid)` to `dims(array)`.
 
 ## Fields
-- `dims`: a tuple containing dimenension types or symbols matching the order
-          needed by the transform function.
+- `dims`: a tuple containing dimenension types or symbols matching the
+  order needed by the transform function.
 """
 struct TransformedGrid{D,L} <: UnalignedGrid
     dims::D
@@ -302,6 +326,8 @@ TransformedGrid(dims; locus=Start()) = TransformedGrid(dims, locus)
 
 rebuild(g::TransformedGrid, dims=dims(g), locus=locus(g) ) =
     TransformedGrid(dims, locus)
+
+# TODO bounds
 
 # """
 # A grid dimension that uses an array lookup to convert dimension from
@@ -327,10 +353,44 @@ rebuild(g::TransformedGrid, dims=dims(g), locus=locus(g) ) =
 
 Identify grid type from index content.
 """
-identify(grid::Grid, index) = grid
-identify(::UnknownGrid, index::AbstractArray) = 
+identify(grid::Grid, dimtype, index) = grid
+identify(gridtype::Type{<:Grid}, dimtype, index) = gridtype()
+
+identify(locus::UnknownLocus, dimtype, index) = Center()
+identify(locus::Locus, dimtype, index) = locus
+
+identify(grid::AbstractRegularGrid, dimtype, index::AbstractRange) = begin
+    grid = rebuild(grid; locus=identify(locus(grid), dimtype, index))
+    identify(step(grid), grid, dimtype, index)
+end
+identify(step_::Nothing, grid::AbstractRegularGrid, dimtype, index::AbstractRange) =
+    rebuild(grid; step=step(index))
+identify(step_::Nothing, grid::AbstractRegularGrid, dimtype, index::AbstractArray) =
+    throw(ArgumentError("Assign the step keyword for the grid with AbstractArray index"))
+identify(step_, grid::AbstractRegularGrid, dimtype, index) = begin
+    step_ == step(grid) || throw(ArgumentError("grid step $step_ does not match index step $(step(val(index)))"))
+    grid
+end
+identify(grid::BoundedGrid, dimtype, index) = begin
+    grid = rebuild(grid; locus=identify(locus(grid), dimtype, index))
+    identify(bounds(grid), grid, dimtype, index)
+end
+
+identify(bounds_::Nothing, grid::AbstractBoundedGrid, dimtype, index) = begin
+    if length(index) > 2 # Not type-stable
+        bounds_ = sortbounds(index[1] - (index[2] - index[1]) / 2,
+                             index[end] + (index[end] - index[end-1]) / 2)
+    end
+    rebuild(grid; bounds=bounds_)
+end
+identify(bounds_, grid::AbstractBoundedGrid, dimtype, index) = begin
+    bounds_ == bounds(grid) || throw(ArgumentError("grid bounds $bounds_ does not match index bounds $(bounds(grid))"))
+    grid
+end
+
+identify(::UnknownGrid, dimtype, index::AbstractArray) =
     PointGrid(; order=_orderof(index))
-identify(::UnknownGrid, index::AbstractArray{<:Union{Symbol,String}}) =
+identify(::UnknownGrid, dimtype, index::AbstractArray{<:Union{Symbol,String}}) =
     CategoricalGrid(; order=_orderof(index))
 
 _orderof(index::AbstractArray) = begin

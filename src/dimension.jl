@@ -69,7 +69,8 @@ dims(x::DimTuple) = x
 name(dim::Dimension) = name(typeof(dim))
 shortname(d::Dimension) = shortname(typeof(d))
 shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
-units(dim::Dimension) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
+units(dim::Dimension) = 
+    metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
 bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
@@ -77,9 +78,6 @@ bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, looku
 bounds(dims::DimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
 bounds(dims::Tuple{}) = ()
 bounds(dim::Dimension) = bounds(grid(dim), dim)
-
-
-# TODO bounds for irregular grids
 
 
 # Base methods
@@ -144,7 +142,8 @@ struct Dim{X,T,G,M} <: ParametricDimension{X,T,G,M}
         new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
 end
 
-Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
+Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = 
+    Dim{X}(val, identify(grid, Dim{X}, val), metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -187,7 +186,8 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             grid::G
             metadata::M
         end
-        $typ(val=:; grid=UnknownGrid(), metadata=nothing) = $typ(val, grid, metadata)
+        $typ(val=:; grid=UnknownGrid(), metadata=nothing) = 
+            $typ(val, DimensionalData.identify(grid, $typ, val), metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
@@ -208,5 +208,10 @@ Time dimension. `Ti <: TimeDim <: IndependentDim
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
 """ Ti
+
+# Time dimensions need to default to the Start() locus, as that is 
+# nearly always the format and Center intervals are difficult to 
+# calculate with DateTime step values.
+identify(locus::UnknownLocus, dimtype::Type{<:TimeDim}, index) = Start()
 
 const Time = Ti # For some backwards compat
