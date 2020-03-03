@@ -58,21 +58,8 @@ Base.Array(A::AbDimArray) = data(A)
 Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
 # If the shape changes, use the wrapped array:
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int64,Vararg{Int64}}) where T = similar(data(A), T, I)
-Base.similar(A::AbDimArray, ::Type{T}, I::Vararg{<:Integer}) where T = similar(data(A), T, I...)
-Base.similar(bc::Broadcast.Broadcasted{Broadcast.ArrayStyle{AbDimArray}}, ::Type{ElType}) where ElType = begin
-    A = find_dimensional(bc)
-    # TODO How do we know what the new dims are?
-    rebuildsliced(A, similar(Array{ElType}, axes(bc)), axes(bc), "")
-end
-
-@inline find_dimensional(bc::Base.Broadcast.Broadcasted) = find_dimensional(bc.args)
-@inline find_dimensional(ext::Base.Broadcast.Extruded) = find_dimensional(ext.x)
-@inline find_dimensional(args::Tuple{}) = error("dimensional array not found")
-@inline find_dimensional(args::Tuple) = find_dimensional(find_dimensional(args[1]), tail(args))
-@inline find_dimensional(x) = x
-@inline find_dimensional(A::AbDimArray, rest) = A
-@inline find_dimensional(::Any, rest) = find_dimensional(rest)
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = similar(data(A), T, I)
+Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = similar(data(A), T, i, I...)
 
 
 # Concrete implementation ######################################################

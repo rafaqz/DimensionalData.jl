@@ -35,6 +35,16 @@ using DimensionalData, Test
         @test dims(right_sum) == dims(da)
     end
 
+    @testset "changing type" begin
+        @test (da .> 0) isa DimensionalArray
+        @test (da .* da .> 0) isa DimensionalArray
+        @test (da  .> 0 .> rand(3)) isa DimensionalArray
+        @test (da .* rand(3) .> 0.0) isa DimensionalArray
+        @test (0 .> da .> 0 .> rand(3)) isa DimensionalArray
+        @test (rand(3) .> da  .> 0 .* rand(3)) isa DimensionalArray
+        @test (rand(3) .> 1 .> 0 .* da) isa DimensionalArray
+    end
+
     @testset "broadcasting" begin
         v = DimensionalArray(zeros(3,), X)
         m = DimensionalArray(ones(3, 3), (X, Y))
