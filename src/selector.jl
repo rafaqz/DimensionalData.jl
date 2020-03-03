@@ -88,7 +88,7 @@ sel2indices(grid::T, dim::Dimension, sel::Near) where T =
 sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, Near(v)), val(sel))
 sel2indices(grid::PointGrid, dim::Dimension, sel::Near) = 
-    near(dim, val(sel))
+    near(dim, Near(val(sel)))
 
 # In selector
 sel2indices(grid::T, dim::Dimension, sel::In) where T =
@@ -98,7 +98,7 @@ sel2indices(grid::CategoricalGrid, dim::Dimension, sel::In) =
 sel2indices(grid::IntervalGrid, dim::Dimension, sel::In{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, In(v)), val(sel))
 sel2indices(grid::IntervalGrid, dim::Dimension, sel::In) = 
-    _in(dim, val(sel))
+    _in(dim, sel)
 
 # Between selector
 sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) =
@@ -138,11 +138,12 @@ at(dim, selval, atol, rtol) = begin
     return i
 end
 
-near(dim::Dimension, selval) =
-    _fix(near(indexorder(dim), grid(dim), dim, selval), dim)
-near(::Unordered, grid, dim, selval) =
+near(dim::Dimension, sel) =
+    _fix(near(indexorder(dim), grid(dim), dim, sel), dim)
+near(::Unordered, grid, dim, sel) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` grid"))
-near(ord::Order, grid, dim, selval) = begin
+near(ord::Order, grid, dim, sel) = begin
+    selval = val(sel)
     i = _bounded(searchsortedfirst(val(dim), selval; rev=isrev(ord)), dim)
     if isrev(ord)
         if i >= lastindex(dim)
@@ -159,25 +160,26 @@ near(ord::Order, grid, dim, selval) = begin
     end
 end
 
-_in(dim::Dimension, selval) =
-    _maybereorder(_in(indexorder(dim), grid(dim), dim, selval), dim)
+_in(dim::Dimension, sel::Selector) =
+    _maybereorder(_in(indexorder(dim), grid(dim), dim, sel), dim)
 
-_in(ord::Unordered, grid, dim, selval) =
+_in(ord::Unordered, grid, dim, sel) =
     throw(ArgumentError("`In` has no meaning in an `Unordered` grid"))
-_in(ord::Order, grid::IntervalGrid, dim, selval) =
-    _in(locus(grid), ord, grid, dim, selval)
+_in(ord::Order, grid::IntervalGrid, dim, sel) =
+    _in(locus(grid), ord, grid, dim, sel)
 
-_in(::Start, ord::Order, grid, dim, selval) = begin
-    i = searchsortedlast(val(dim), selval; rev=isrev(ord))
+_in(::Start, ord::Order, grid, dim, sel) = begin
+    i = searchsortedlast(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-_in(::End, ord::Order, grid, dim, selval) = begin
-    i = searchsortedfirst(val(dim), selval; rev=isrev(ord))
+_in(::End, ord::Order, grid, dim, sel) = begin
+    i = searchsortedfirst(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-_in(::Center, ord::Order, grid::IntervalGrid, dim, selval) = begin
+_in(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
+    selval = val(sel)
     i = searchsortedlast(val(dim), selval; rev=isrev(ord))
     checkbounds(val(dim), i)
     if isrev(ord)
