@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics
 using DimensionalData: Forward, Reverse, Ordered,
-      arrayorder, indexorder, relationorder, between, at, near, _in
+      arrayorder, indexorder, relationorder, between, at, near, contains
 
 @testset "selector primitives" begin
     @testset "Interval grid" begin
@@ -24,25 +24,25 @@ using DimensionalData: Forward, Reverse, Ordered,
             # Input order doesn't matter
             @test between(startfwdfwd, Between(15, 10)) === 6:11
         end
-        @testset "Start _in" begin
-            # @test_throws BoundsError _in(startfwdfwd, 50)
-            @test_throws BoundsError _in(startfwdfwd, In(0))
-            @test _in(startfwdfwd, In(5.9)) == 1
-            @test _in(startfwdfwd, In(6.0)) == 2
-            @test _in(startfwdfwd, In(30.0)) == 26
-            @test _in(startfwdfwd, In(29.9)) == 25
-            @test _in(startfwdrev, In(5.9)) == 26
-            @test _in(startfwdrev, In(6.0)) == 25
-            @test _in(startfwdrev, In(29.9)) == 2
-            @test _in(startfwdrev, In(30.0)) == 1
-            @test _in(startrevfwd, In(5.9)) == 26
-            @test _in(startrevfwd, In(6.0)) == 25
-            @test _in(startrevfwd, In(29.0)) == 2
-            @test _in(startrevfwd, In(30.0)) == 1
-            @test _in(startrevrev, In(5.9)) == 1
-            @test _in(startrevrev, In(6.0)) == 2
-            @test _in(startrevrev, In(29.9)) == 25
-            @test _in(startrevrev, In(30.0)) == 26
+        @testset "Start contains" begin
+            # @test_throws BoundsError contains(startfwdfwd, 50)
+            @test_throws BoundsError contains(startfwdfwd, Contains(0))
+            @test contains(startfwdfwd, Contains(5.9)) == 1
+            @test contains(startfwdfwd, Contains(6.0)) == 2
+            @test contains(startfwdfwd, Contains(30.0)) == 26
+            @test contains(startfwdfwd, Contains(29.9)) == 25
+            @test contains(startfwdrev, Contains(5.9)) == 26
+            @test contains(startfwdrev, Contains(6.0)) == 25
+            @test contains(startfwdrev, Contains(29.9)) == 2
+            @test contains(startfwdrev, Contains(30.0)) == 1
+            @test contains(startrevfwd, Contains(5.9)) == 26
+            @test contains(startrevfwd, Contains(6.0)) == 25
+            @test contains(startrevfwd, Contains(29.0)) == 2
+            @test contains(startrevfwd, Contains(30.0)) == 1
+            @test contains(startrevrev, Contains(5.9)) == 1
+            @test contains(startrevrev, Contains(6.0)) == 2
+            @test contains(startrevrev, Contains(29.9)) == 25
+            @test contains(startrevrev, Contains(30.0)) == 26
         end
 
         centerfwdfwd = Ti((5:30); grid=RegularGrid(locus=Center(), order=Ordered(Forward(),Forward(),Forward())))
@@ -57,15 +57,15 @@ using DimensionalData: Forward, Reverse, Ordered,
             # Input order doesn't matter
             @test between(centerfwdfwd, Between(15, 10)) === 6:11
         end
-        @testset "Center _in" begin
-            @test _in(centerfwdfwd, In(29.5)) == 26
-            @test _in(centerfwdfwd, In(29.4)) == 25
-            @test _in(centerrevfwd, In(29.5)) == 1
-            @test _in(centerrevfwd, In(29.4)) == 2
-            @test _in(centerfwdrev, In(29.5)) == 1
-            @test _in(centerfwdrev, In(29.4)) == 2
-            @test _in(centerrevrev, In(29.5)) == 26
-            @test _in(centerrevrev, In(29.4)) == 25
+        @testset "Center contains" begin
+            @test contains(centerfwdfwd, Contains(29.5)) == 26
+            @test contains(centerfwdfwd, Contains(29.4)) == 25
+            @test contains(centerrevfwd, Contains(29.5)) == 1
+            @test contains(centerrevfwd, Contains(29.4)) == 2
+            @test contains(centerfwdrev, Contains(29.5)) == 1
+            @test contains(centerfwdrev, Contains(29.4)) == 2
+            @test contains(centerrevrev, Contains(29.5)) == 26
+            @test contains(centerrevrev, Contains(29.4)) == 25
         end
 
         endfwdfwd = Ti((5:30); grid=RegularGrid(locus=End(), order=Ordered(Forward(),Forward(),Forward())))
@@ -80,55 +80,55 @@ using DimensionalData: Forward, Reverse, Ordered,
             # Input order doesn't matter
             @test between(endfwdfwd, Between(15, 10)) === 6:11
         end
-        @testset "End _in" begin
-            @test _in(endfwdfwd, In(5.0)) == 1
-            @test _in(endfwdfwd, In(5.1)) == 2
-            @test _in(endfwdfwd, In(29.0)) == 25
-            @test _in(endfwdfwd, In(29.1)) == 26
-            @test _in(endrevfwd, In(5.0)) == 26
-            @test _in(endrevfwd, In(5.1)) == 25
-            @test _in(endrevfwd, In(29.0)) == 2
-            @test _in(endrevfwd, In(29.1)) == 1
-            @test _in(endrevrev, In(5.0)) == 1
-            @test _in(endrevrev, In(5.1)) == 2
-            @test _in(endrevrev, In(29.0)) == 25
-            @test _in(endrevrev, In(29.1)) == 26
-            @test _in(endrevfwd, In(5.0)) == 26
-            @test _in(endrevfwd, In(5.1)) == 25
-            @test _in(endrevfwd, In(29.0)) == 2
-            @test _in(endrevfwd, In(29.1)) == 1
+        @testset "End contains" begin
+            @test contains(endfwdfwd, Contains(5.0)) == 1
+            @test contains(endfwdfwd, Contains(5.1)) == 2
+            @test contains(endfwdfwd, Contains(29.0)) == 25
+            @test contains(endfwdfwd, Contains(29.1)) == 26
+            @test contains(endrevfwd, Contains(5.0)) == 26
+            @test contains(endrevfwd, Contains(5.1)) == 25
+            @test contains(endrevfwd, Contains(29.0)) == 2
+            @test contains(endrevfwd, Contains(29.1)) == 1
+            @test contains(endrevrev, Contains(5.0)) == 1
+            @test contains(endrevrev, Contains(5.1)) == 2
+            @test contains(endrevrev, Contains(29.0)) == 25
+            @test contains(endrevrev, Contains(29.1)) == 26
+            @test contains(endrevfwd, Contains(5.0)) == 26
+            @test contains(endrevfwd, Contains(5.1)) == 25
+            @test contains(endrevfwd, Contains(29.0)) == 2
+            @test contains(endrevfwd, Contains(29.1)) == 1
         end
     end
     @testset "Point grid" begin
-        timefwdfwd = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Forward())))
-        timefwdrev = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Reverse())))
-        timerevfwd = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Forward())))
-        timerevrev = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Reverse())))
+        fwdfwd = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Forward())))
+        fwdrev = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Reverse())))
+        revfwd = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Forward())))
+        revrev = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Reverse())))
         @testset "between" begin
-            @test between(timefwdfwd, Between(10, 15)) === 6:11
-            @test between(timefwdrev, Between(10, 15)) === 16:1:21
-            @test between(timerevfwd, Between(10, 15)) === 16:21
-            @test between(timerevrev, Between(10, 15)) === 6:1:11
+            @test between(fwdfwd, Between(10, 15)) === 6:11
+            @test between(fwdrev, Between(10, 15)) === 16:1:21
+            @test between(revfwd, Between(10, 15)) === 16:21
+            @test between(revrev, Between(10, 15)) === 6:1:11
             # Input order doesn't matter
-            @test between(timefwdfwd, Between(15, 10)) === 6:11
+            @test between(fwdfwd, Between(15, 10)) === 6:11
         end
         @testset "at" begin
-            @test at(timefwdfwd, At(30)) == 26
-            @test at(timerevfwd, At(30)) == 1
-            @test at(timefwdrev, At(30)) == 1
-            @test at(timerevrev, At(30)) == 26
+            @test at(fwdfwd, At(30)) == 26
+            @test at(revfwd, At(30)) == 1
+            @test at(fwdrev, At(30)) == 1
+            @test at(revrev, At(30)) == 26
         end
         @testset "near" begin
-            @test near(timefwdfwd, Near(50)) == 26
-            @test near(timefwdfwd, Near(0)) == 1
-            @test near(timefwdfwd, Near(29.4)) == 25
-            @test near(timefwdfwd, Near(29.5)) == 26
-            @test near(timerevfwd, Near(29.4)) == 2
-            @test near(timerevfwd, Near(29.5)) == 1
-            @test near(timefwdrev, Near(29.4)) == 2
-            @test near(timefwdrev, Near(29.5)) == 1
-            @test near(timerevrev, Near(29.4)) == 25
-            @test near(timerevrev, Near(29.5)) == 26
+            @test near(fwdfwd, Near(50)) == 26
+            @test near(fwdfwd, Near(0)) == 1
+            @test near(fwdfwd, Near(29.4)) == 25
+            @test near(fwdfwd, Near(29.5)) == 26
+            @test near(revfwd, Near(29.4)) == 2
+            @test near(revfwd, Near(29.5)) == 1
+            @test near(fwdrev, Near(29.4)) == 2
+            @test near(fwdrev, Near(29.5)) == 1
+            @test near(revrev, Near(29.4)) == 25
+            @test near(revrev, Near(29.5)) == 26
         end
     end
 end
@@ -336,8 +336,8 @@ end
     dimz = Ti([:one, :two, :three]; grid=CategoricalGrid()),
            Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
-    @test da[Ti<|At([:one, :two]), Y<|In(:b)] == [2, 6]
-    @test da[In([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
+    @test da[Ti<|At([:one, :two]), Y<|Contains(:b)] == [2, 6]
+    @test da[Contains([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
     # Near doesn't make sense for categories
     @test_throws ArgumentError da[Near(:two), At([:b, :c, :d])]

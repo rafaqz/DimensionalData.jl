@@ -41,11 +41,11 @@ struct Near{T} <: Selector{T}
 end
 
 """
-    In(x)
+    Contains(x)
 
 Selector that selects the interval the value falls in.
 """
-struct In{T} <: Selector{T}
+struct Contains{T} <: Selector{T}
     val::T
 end
 
@@ -90,15 +90,15 @@ sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
 sel2indices(grid::PointGrid, dim::Dimension, sel::Near) = 
     near(dim, Near(val(sel)))
 
-# In selector
-sel2indices(grid::T, dim::Dimension, sel::In) where T =
-    throw(ArgumentError("`In` has no meaning with `$T`. Use `At`"))
-sel2indices(grid::CategoricalGrid, dim::Dimension, sel::In) = 
+# Contains selector
+sel2indices(grid::T, dim::Dimension, sel::Contains) where T =
+    throw(ArgumentError("`Contains` has no meaning with `$T`. Use `At`"))
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Contains) = 
     sel2indices(grid, dim, At(val(sel))) 
-sel2indices(grid::IntervalGrid, dim::Dimension, sel::In{<:AbstractVector}) =
-    map(v -> sel2indices(grid, dim, In(v)), val(sel))
-sel2indices(grid::IntervalGrid, dim::Dimension, sel::In) = 
-    _in(dim, sel)
+sel2indices(grid::IntervalGrid, dim::Dimension, sel::Contains{<:AbstractVector}) =
+    map(v -> sel2indices(grid, dim, Contains(v)), val(sel))
+sel2indices(grid::Contains, dim::Dimension, sel::Contains) = 
+    contains(dim, sel)
 
 # Between selector
 sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) =
@@ -131,8 +131,8 @@ at(dim, selval, atol::Nothing, rtol::Nothing) = begin
     return i
 end
 at(dim, selval, atol, rtol) = begin
-    # This is not particularly efficient.  # It should be separated out for unordered
-    # dims and otherwise treated as an ordered list.
+    # This is not particularly efficient. It should be separated 
+    # out for unordered dims and otherwise treated as an ordered list.
     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
     return i
@@ -160,25 +160,25 @@ near(ord::Order, grid, dim, sel) = begin
     end
 end
 
-_in(dim::Dimension, sel::Selector) =
-    _maybereorder(_in(indexorder(dim), grid(dim), dim, sel), dim)
+contains(dim::Dimension, sel::Selector) =
+    _maybereorder(contains(indexorder(dim), grid(dim), dim, sel), dim)
 
-_in(ord::Unordered, grid, dim, sel) =
+contains(ord::Unordered, grid, dim, sel) =
     throw(ArgumentError("`In` has no meaning in an `Unordered` grid"))
-_in(ord::Order, grid::IntervalGrid, dim, sel) =
-    _in(locus(grid), ord, grid, dim, sel)
+contains(ord::Order, grid::IntervalGrid, dim, sel) =
+    contains(locus(grid), ord, grid, dim, sel)
 
-_in(::Start, ord::Order, grid, dim, sel) = begin
+contains(::Start, ord::Order, grid, dim, sel) = begin
     i = searchsortedlast(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-_in(::End, ord::Order, grid, dim, sel) = begin
+contains(::End, ord::Order, grid, dim, sel) = begin
     i = searchsortedfirst(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-_in(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
+contains(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
     selval = val(sel)
     i = searchsortedlast(val(dim), selval; rev=isrev(ord))
     checkbounds(val(dim), i)
