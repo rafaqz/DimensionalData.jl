@@ -9,6 +9,13 @@ const SelectorOrStandard = Union{Selector, StandardIndices}
 val(m::Selector) = m.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val) 
 
+# Selector indexing without dim wrappers. Must be in the right order!
+Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
+    getindex(a, sel2indices(a, I)...)
+Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{SelectorOrStandard}) =
+    setindex!(a, x, sel2indices(a, I)...)
+Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
+    view(a, sel2indices(a, I)...)
 
 """
     At(x)
@@ -34,7 +41,8 @@ rtol(sel::At) = sel.rtol
 """
     Near(x)
 
-Selector that selects the nearest index to its contained value(s)
+Selector that selects the nearest index to its contained value(s).
+Can only be used for [`PointGrid`](@ref)
 """
 struct Near{T} <: Selector{T}
     val::T
@@ -43,7 +51,8 @@ end
 """
     Contains(x)
 
-Selector that selects the interval the value falls in.
+Selector that selects the interval the value is contained by.
+Can only be used for [`IntervalGrid`](@ref) or [`CategoricalGrid`](@ref).
 """
 struct Contains{T} <: Selector{T}
     val::T
@@ -77,9 +86,17 @@ sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 # Handling base cases:
 sel2indices(grid, dim::Dimension, lookup::StandardIndices) = lookup
 
+#= Specific selectors
+We always run sel2indices again until the last possible call
+This means vectors are unwrapped and passed to sel2indices,
+so that grid based dispatch in external packages can operate 
+on single values only. `near`, `at` `contains` etc should only be 
+from one method.
+=#
+
 # At selector
 sel2indices(grid, dim::Dimension, sel::At{<:AbstractVector}) =
-    map(v -> at(dim, rebuild(sel, v)), val(sel))
+    map(v -> sel2indices(grid, dim, rebuild(sel, v)), val(sel))
 sel2indices(grid, dim::Dimension, sel::At) = at(dim, sel)
 
 # Near selector
@@ -97,7 +114,7 @@ sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Contains) =
     sel2indices(grid, dim, At(val(sel))) 
 sel2indices(grid::IntervalGrid, dim::Dimension, sel::Contains{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, Contains(v)), val(sel))
-sel2indices(grid::Contains, dim::Dimension, sel::Contains) = 
+sel2indices(grid::IntervalGrid, dim::Dimension, sel::Contains) = 
     contains(dim, sel)
 
 # Between selector
@@ -138,6 +155,7 @@ at(dim, selval, atol, rtol) = begin
     return i
 end
 
+
 near(dim::Dimension, sel) =
     _fix(near(indexorder(dim), grid(dim), dim, sel), dim)
 near(::Unordered, grid, dim, sel) =
@@ -159,6 +177,7 @@ near(ord::Order, grid, dim, sel) = begin
         end
     end
 end
+
 
 contains(dim::Dimension, sel::Selector) =
     _maybereorder(contains(indexorder(dim), grid(dim), dim, sel), dim)
@@ -198,7 +217,6 @@ contains(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
 end
 
 
-
 between(dim::Dimension, sel) = between(indexorder(dim), dim, val(sel))
 between(::Unordered, dim::Dimension, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered grid"))
@@ -217,6 +235,7 @@ between(ord::Forward, dim::Dimension, sel) = begin
     relate(dim, a:b)
 end
 
+
 _fix(i::Int, dim::Dimension) = _maybereorder(_bounded(i, dim), dim)
 
 _bounded(i::Int, dim::Dimension) =
@@ -228,16 +247,7 @@ _bounded(i::Int, dim::Dimension) =
         i
     end
 
-
 _maybereorder(i::Int, dim::Dimension) = 
     maybeflip(relationorder(dim), dim, i)
 
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
-
-# Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
-    getindex(a, sel2indices(a, I)...)
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{SelectorOrStandard}) =
-    setindex!(a, x, sel2indices(a, I)...)
-Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
-    view(a, sel2indices(a, I)...)
