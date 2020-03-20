@@ -74,7 +74,6 @@ or of a tuple of dimensions.
 Bounds are allways return in ascending order.
 """
 function bounds end
-bounds(x, args...) = bounds(dims(x), args...)
 
 """
     units(x)

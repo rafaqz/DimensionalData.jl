@@ -2,13 +2,19 @@ using DimensionalData, Test, Unitful, Combinatorics
 using DimensionalData: Forward, Reverse, Ordered,
       arrayorder, indexorder, relationorder, between, at, near, contains
 
+a = [1 2  3  4
+     5 6  7  8
+     9 10 11 12]
+
 @testset "selector primitives" begin
+
     @testset "Interval grid" begin
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
-        startfwdfwd = Ti((5:30); grid=RegularGrid(locus=Start(), order=Ordered(Forward(),Forward(),Forward())))
-        startfwdrev = Ti((5:30); grid=RegularGrid(locus=Start(), order=Ordered(Forward(),Forward(),Reverse())))
-        startrevfwd = Ti((30:-1:5); grid=RegularGrid(locus=Start(), order=Ordered(Reverse(),Forward(),Forward())))
-        startrevrev = Ti((30:-1:5); grid=RegularGrid(locus=Start(), order=Ordered(Reverse(),Forward(),Reverse())))
+        startfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
+        startfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
+        startrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
+        startrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
+
         @testset "Any at" begin
             @test at(startfwdfwd, At(30)) == 26
             @test at(startrevfwd, At(30)) == 1
@@ -17,13 +23,18 @@ using DimensionalData: Forward, Reverse, Ordered,
         end
 
         @testset "Start between" begin
-            @test between(startfwdfwd, Between(10, 15)) === 6:11
-            @test between(startfwdrev, Between(10, 15)) === 16:1:21
-            @test between(startrevfwd, Between(10, 15)) === 16:21
-            @test between(startrevrev, Between(10, 15)) === 6:1:11
+            @test between(startfwdfwd, Between(9.9, 15.1)) === 6:10
+            @test between(startfwdrev, Between(9.9, 15.1)) === 17:1:21
+            @test between(startrevfwd, Between(9.9, 15.1)) === 17:21
+            @test between(startrevrev, Between(9.9, 15.1)) === 6:1:10
+            @test between(startfwdfwd, Between(10, 15)) === 6:10
+            @test between(startfwdrev, Between(10, 15)) === 17:1:21
+            @test between(startrevfwd, Between(10, 15)) === 17:21
+            @test between(startrevrev, Between(10, 15)) === 6:1:10
             # Input order doesn't matter
-            @test between(startfwdfwd, Between(15, 10)) === 6:11
+            @test between(startfwdfwd, Between(15, 10)) === 6:10
         end
+
         @testset "Start contains" begin
             # @test_throws BoundsError contains(startfwdfwd, 50)
             @test_throws BoundsError contains(startfwdfwd, Contains(0))
@@ -45,18 +56,24 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test contains(startrevrev, Contains(30.0)) == 26
         end
 
-        centerfwdfwd = Ti((5:30); grid=RegularGrid(locus=Center(), order=Ordered(Forward(),Forward(),Forward())))
-        centerfwdrev = Ti((5:30); grid=RegularGrid(locus=Center(), order=Ordered(Forward(),Forward(),Reverse())))
-        centerrevfwd = Ti((30:-1:5); grid=RegularGrid(locus=Center(), order=Ordered(Reverse(),Forward(),Forward())))
-        centerrevrev = Ti((30:-1:5); grid=RegularGrid(locus=Center(), order=Ordered(Reverse(),Forward(),Reverse())))
+        centerfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
+        centerfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
+        centerrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
+        centerrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
+
         @testset "Center between" begin
-            @test between(centerfwdfwd, Between(10, 15)) === 6:11
-            @test between(centerfwdrev, Between(10, 15)) === 16:1:21
-            @test between(centerrevfwd, Between(10, 15)) === 16:21
-            @test between(centerrevrev, Between(10, 15)) === 6:1:11
+            @test between(centerfwdfwd, Between(9.9, 15.1)) === 7:10
+            @test between(centerfwdrev, Between(9.9, 15.1)) === 17:1:20
+            @test between(centerrevfwd, Between(9.9, 15.1)) === 17:20
+            @test between(centerrevrev, Between(9.9, 15.1)) === 7:1:10
+            @test between(centerfwdfwd, Between(10, 15)) === 7:10
+            @test between(centerfwdrev, Between(10, 15)) === 17:1:20
+            @test between(centerrevfwd, Between(10, 15)) === 17:20
+            @test between(centerrevrev, Between(10, 15)) === 7:1:10
             # Input order doesn't matter
-            @test between(centerfwdfwd, Between(15, 10)) === 6:11
+            @test between(centerfwdfwd, Between(15, 10)) === 7:10
         end
+
         @testset "Center contains" begin
             @test contains(centerfwdfwd, Contains(29.5)) == 26
             @test contains(centerfwdfwd, Contains(29.4)) == 25
@@ -68,18 +85,24 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test contains(centerrevrev, Contains(29.4)) == 25
         end
 
-        endfwdfwd = Ti((5:30); grid=RegularGrid(locus=End(), order=Ordered(Forward(),Forward(),Forward())))
-        endfwdrev = Ti((5:30); grid=RegularGrid(locus=End(), order=Ordered(Forward(),Forward(),Reverse())))
-        endrevfwd = Ti((30:-1:5); grid=RegularGrid(locus=End(), order=Ordered(Reverse(),Forward(),Forward())))
-        endrevrev = Ti((30:-1:5); grid=RegularGrid(locus=End(), order=Ordered(Reverse(),Forward(),Reverse())))
+        endfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
+        endfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
+        endrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
+        endrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
+
         @testset "End between" begin
-            @test between(endfwdfwd, Between(10, 15)) === 6:11
-            @test between(endfwdrev, Between(10, 15)) === 16:1:21
-            @test between(endrevfwd, Between(10, 15)) === 16:21
-            @test between(endrevrev, Between(10, 15)) === 6:1:11
+            @test between(endfwdfwd, Between(9.9, 15.1)) === 7:11
+            @test between(endfwdrev, Between(9.9, 15.1)) === 16:1:20
+            @test between(endrevfwd, Between(9.9, 15.1)) === 16:20
+            @test between(endrevrev, Between(9.9, 15.1)) === 7:1:11
+            @test between(endfwdfwd, Between(10, 15)) === 7:11
+            @test between(endfwdrev, Between(10, 15)) === 16:1:20
+            @test between(endrevfwd, Between(10, 15)) === 16:20
+            @test between(endrevrev, Between(10, 15)) === 7:1:11
             # Input order doesn't matter
-            @test between(endfwdfwd, Between(15, 10)) === 6:11
+            @test between(endfwdfwd, Between(15, 10)) === 7:11
         end
+
         @testset "End contains" begin
             @test contains(endfwdfwd, Contains(5.0)) == 1
             @test contains(endfwdfwd, Contains(5.1)) == 2
@@ -98,12 +121,16 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test contains(endrevfwd, Contains(29.0)) == 2
             @test contains(endrevfwd, Contains(29.1)) == 1
         end
+
     end
+
     @testset "Point grid" begin
-        fwdfwd = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Forward())))
-        fwdrev = Ti((5:30); grid=PointGrid(order=Ordered(Forward(),Forward(),Reverse())))
-        revfwd = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Forward())))
-        revrev = Ti((30:-1:5); grid=PointGrid(order=Ordered(Reverse(),Forward(),Reverse())))
+
+        fwdfwd = Ti((5:30);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Forward())))
+        fwdrev = Ti((5:30);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Reverse())))
+        revfwd = Ti((30:-1:5); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Forward())))
+        revrev = Ti((30:-1:5); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Reverse())))
+
         @testset "between" begin
             @test between(fwdfwd, Between(10, 15)) === 6:11
             @test between(fwdrev, Between(10, 15)) === 16:1:21
@@ -112,12 +139,14 @@ using DimensionalData: Forward, Reverse, Ordered,
             # Input order doesn't matter
             @test between(fwdfwd, Between(15, 10)) === 6:11
         end
+
         @testset "at" begin
             @test at(fwdfwd, At(30)) == 26
             @test at(revfwd, At(30)) == 1
             @test at(fwdrev, At(30)) == 1
             @test at(revrev, At(30)) == 26
         end
+
         @testset "near" begin
             @test near(fwdfwd, Near(50)) == 26
             @test near(fwdfwd, Near(0)) == 1
@@ -130,16 +159,14 @@ using DimensionalData: Forward, Reverse, Ordered,
             @test near(revrev, Near(29.4)) == 25
             @test near(revrev, Near(29.5)) == 26
         end
+
     end
+
 end
 
-a = [1 2  3  4
-     5 6  7  8
-     9 10 11 12]
-
-@testset "Selectors on PointGrid" begin
-    da = DimensionalArray(a, (Y((10, 30); grid=PointGrid()), 
-                              Ti((1:4)u"s"; grid=PointGrid())))
+@testset "Selectors on SampledGrid" begin
+    da = DimensionalArray(a, (Y((10, 30); grid=SampledGrid()), 
+                              Ti((1:4)u"s"; grid=SampledGrid())))
 
     @test At(10.0) == At(10.0, 0.0, Base.rtoldefault(eltype(10.0)))
     x = [10.0, 20.0]
@@ -215,7 +242,6 @@ a = [1 2  3  4
             from2d = da[idx]
             @test from2d == data(da)[idx]
             @test !(from2d isa AbstractDimensionalArray)
-
             from1d = da[Y <| At(10)][idx]
             @test from1d == data(da)[1, :][idx]
             @test from1d isa AbstractDimensionalArray
@@ -233,7 +259,6 @@ a = [1 2  3  4
             from2d = view(da, idx)
             @test from2d == view(data(da), idx)
             @test !(parent(from2d) isa AbstractDimensionalArray)
-
             from1d = view(da[Y <| At(10)], idx)
             @test from1d == view(data(da)[1, :], idx)
             @test parent(from1d) isa AbstractDimensionalArray
@@ -263,8 +288,8 @@ a = [1 2  3  4
     end
 
     @testset "more Unitful dims" begin
-        dimz = Ti(1.0u"s":1.0u"s":3.0u"s"; grid=PointGrid()), 
-               Y((1u"km", 4u"km"); grid=PointGrid())
+        dimz = Ti(1.0u"s":1.0u"s":3.0u"s"; grid=SampledGrid()), 
+               Y((1u"km", 4u"km"); grid=SampledGrid())
         db = DimensionalArray(a, dimz)
         @test db[Y<|Between(2u"km", 3.9u"km"), Ti<|At<|3.0u"s"] == [10, 11]
     end
@@ -275,8 +300,8 @@ a = [1 2  3  4
              9 10 11 12]
 
         @testset "forward index with reverse relation" begin
-            da_ffr = DimensionalArray(a, (Y(10:10:30; grid=PointGrid(order=Ordered(Forward(), Forward(), Reverse()))),
-                                         Ti((1:1:4)u"s"; grid=PointGrid(order=Ordered(Forward(), Forward(), Reverse())))))
+            da_ffr = DimensionalArray(a, (Y(10:10:30; grid=SampledGrid(order=Ordered(Forward(), Forward(), Reverse()))),
+                                         Ti((1:1:4)u"s"; grid=SampledGrid(order=Ordered(Forward(), Forward(), Reverse())))))
             @test indexorder(dims(da_ffr, Ti)) == Forward()
             @test arrayorder(dims(da_ffr, Ti)) == Forward()
             @test relationorder(dims(da_ffr, Ti)) == Reverse()
@@ -287,9 +312,10 @@ a = [1 2  3  4
             # Between hasn't reverse the index order
             @test da_ffr[Y<|Between(19, 35), Ti<|Between(3.0u"s", 4.0u"s")] == [1 2; 5 6] 
         end
+
         @testset "reverse index with forward relation" begin
-            da_rff = DimensionalArray(a, (Y(30:-10:10; grid=PointGrid(order=Ordered(Reverse(), Forward(), Forward()))),
-                                         Ti((4:-1:1)u"s"; grid=PointGrid(order=Ordered(Reverse(), Forward(), Forward())))))
+            da_rff = DimensionalArray(a, (Y(30:-10:10; grid=SampledGrid(order=Ordered(Reverse(), Forward(), Forward()))),
+                                         Ti((4:-1:1)u"s"; grid=SampledGrid(order=Ordered(Reverse(), Forward(), Forward())))))
             @test da_rff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_rff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [6 5; 2 1]
             @test da_rff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [6, 5]
@@ -299,17 +325,18 @@ a = [1 2  3  4
         end
 
         @testset "forward index with forward relation" begin
-            da_fff = DimensionalArray(a, (Y(10:10:30; grid=PointGrid(order=Ordered(Forward(), Forward(), Forward()))),
-                                         Ti((1:4)u"s"; grid=PointGrid(order=Ordered(Forward(), Forward(), Forward())))))
+            da_fff = DimensionalArray(a, (Y(10:10:30; grid=SampledGrid(order=Ordered(Forward(), Forward(), Forward()))),
+                                         Ti((1:4)u"s"; grid=SampledGrid(order=Ordered(Forward(), Forward(), Forward())))))
             @test da_fff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_fff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_fff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
             @test da_fff[Y<|Near([22, 42]), Ti<|Near([3.3u"s", 4.3u"s"])] == [7 8; 11 12]
             @test da_fff[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [7 8; 11 12] 
         end
+
         @testset "reverse index with reverse relation" begin
-            da_rfr = DimensionalArray(a, (Y(30:-10:10; grid=PointGrid(order=Ordered(Reverse(), Forward(), Reverse()))),
-                                         Ti((4:-1:1)u"s"; grid=PointGrid(order=Ordered(Reverse(), Forward(), Reverse())))))
+            da_rfr = DimensionalArray(a, (Y(30:-10:10; grid=SampledGrid(order=Ordered(Reverse(), Forward(), Reverse()))),
+                                         Ti((4:-1:1)u"s"; grid=SampledGrid(order=Ordered(Reverse(), Forward(), Reverse())))))
             @test da_rfr[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_rfr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_rfr[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
@@ -331,12 +358,11 @@ a = [1 2  3  4
 
 end
 
-
 @testset "Selectors on CategoricalGrid" begin
     dimz = Ti([:one, :two, :three]; grid=CategoricalGrid()),
            Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
-    @test da[Ti<|At([:one, :two]), Y<|Contains(:b)] == [2, 6]
+    @test da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
     @test da[Contains([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
     # Near doesn't make sense for categories

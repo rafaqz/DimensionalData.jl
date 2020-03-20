@@ -64,6 +64,7 @@ using Combinatorics: combinations
         @test dims(result) isa Tuple{<:X, <:Y}
         @test size(result) == (6, 8)
     end
+
 end
 
 
@@ -71,25 +72,24 @@ end
     a = [1 2; 3 4]
     dimz = (X((143, 145)), Y((-38, -36)))
     da = DimensionalArray(a, dimz)
-
     @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimensionalArray{Int64,2}
 end
 
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
-    dimz = X((143, 145); grid=RegularGrid()), Y((-38, -36); grid=RegularGrid())
+    dimz = X((143, 145); grid=SampledGrid()), Y((-38, -36); grid=SampledGrid())
     da = DimensionalArray(a, dimz)
-
     @test sum(da; dims=X()) == sum(a; dims=1)
     @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(step=2.0, locus=Center())),
-         Y([-37.0]; grid=RegularGrid(step=4.0, locus=Center())))
+        (X(LinRange(143.0, 145.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing),
+         Y([-37.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing))
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=2) == [2 12]'
-    resultdimz = (X([144.0]; grid=RegularGrid(;step=4.0, locus=Center())),
-                  Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0, locus=Center())))
+    resultdimz =
+        (X([144.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing),
+         Y(LinRange(-38.0, -36.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
     @test maximum(x -> 2x, da; dims=X) == [6 8]
@@ -99,24 +99,24 @@ end
     @test minimum(da; dims=1) == [1 2]
     @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
-        (X([144.0]; grid=RegularGrid(;step=4.0, locus=Center())),
-         Y(LinRange(-38.0, -36.0, 2); grid=RegularGrid(;step=2.0, locus=Center())))
+        (X([144.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing),
+         Y(LinRange(-38.0, -36.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing))
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
     @test dims(mean(da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0, locus=Center())),
-         Y([-37.0]; grid=RegularGrid(; step=4.0, locus=Center())))
+        (X(LinRange(143.0, 145.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing),
+         Y([-37.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing))
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0, locus=Center())),
-         Y([-37.0]; grid=RegularGrid(; step=4.0, locus=Center())))
+        (X(LinRange(143.0, 145.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing),
+         Y([-37.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing))
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
     @test dims(reduce(+, da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0, locus=Center())),
-         Y([-37.0]; grid=RegularGrid(; step=4.0, locus=Center())))
+        (X(LinRange(143.0, 145.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing),
+         Y([-37.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing))
     @test std(da) === std(a)
     @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
@@ -127,8 +127,8 @@ end
         @test extrema(da; dims=X) == [(1, 3) (2, 4)]
     end
     @test dims(var(da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2); grid=RegularGrid(;step=2.0, locus=Center())),
-         Y([-37.0]; grid=RegularGrid(;step=4.0, locus=Center())))
+        (X(LinRange(143.0, 145.0, 2), SampledGrid(Ordered(), RegularSpan(2.0), PointSampling()), nothing),
+         Y([-37.0], SampledGrid(Ordered(), RegularSpan(4.0), PointSampling()), nothing))
     a = [1 2 3; 4 5 6]
     da = DimensionalArray(a, dimz)
     @test median(da) == 3.5
@@ -138,14 +138,14 @@ end
 
 @testset "dimension dropping methods" begin
     a = [1 2 3; 4 5 6]
-    dimz = X((143, 145); grid=RegularGrid()), Y((-38, -36); grid=RegularGrid())
+    dimz = X((143, 145); grid=SampledGrid()), Y((-38, -36); grid=SampledGrid())
     da = DimensionalArray(a, dimz)
     # Dimensions must have length 1 to be dropped
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
     @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
-        (X(143.0; grid=RegularGrid(;step=2.0, locus=Center())),)
+        (X(143.0; grid=SampledGrid(;span=RegularSpan(2.0))),)
     dropped = dropdims(da[X(1:1)]; dims=X)
     @test dropped[1:2] == [1, 2]
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
@@ -175,27 +175,27 @@ end
 
 
 @testset "simple dimension reordering methods" begin
-    da = DimensionalArray(zeros(5, 4), (Y((10, 20); grid=RegularGrid()), 
-                                        X(1:4; grid=RegularGrid())))
+    da = DimensionalArray(zeros(5, 4), (Y((10, 20); grid=SampledGrid()), 
+                                        X(1:4; grid=SampledGrid())))
     tda = transpose(da)
     @test tda == transpose(data(da))
-    @test typeof(dims(tda)) == typeof((X(1:4; grid=RegularGrid(step=1)),
-                Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(step=2.5))))
-    @test dims(tda) == (X(1:4; grid=RegularGrid(step=1)),
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(step=2.5)))
+    resultdims = (X(1:4; grid=SampledGrid(span=RegularSpan(1))),
+                  Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))))
+    @test typeof(dims(tda)) == typeof(resultdims) 
+    @test dims(tda) == resultdims
     @test size(tda) == (4, 5)
 
     tda = Transpose(da)
     @test tda == Transpose(data(da))
-    @test dims(tda) == (X(1:4; grid=RegularGrid(;step=1)),
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
+    @test dims(tda) == (X(1:4; grid=SampledGrid(span=RegularSpan(1))),
+                        Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimensionalArray
 
     ada = adjoint(da)
     @test ada == adjoint(data(da))
-    @test dims(ada) == (X(1:4; grid=RegularGrid(;step=1)),
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
+    @test dims(ada) == (X(1:4; grid=SampledGrid(span=RegularSpan(1))),
+                        Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
@@ -205,18 +205,18 @@ end
 
 
 @testset "dimension reordering methods with specified permutation" begin
-    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20); grid=RegularGrid()), 
-                                          Ti(10:11; grid=RegularGrid()), 
-                                          X(1:4; grid=RegularGrid())))
+    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20); grid=SampledGrid()), 
+                                          Ti(10:11; grid=SampledGrid()), 
+                                          X(1:4; grid=SampledGrid())))
     dsp = permutedims(da, [3, 1, 2])
 
     @test permutedims(da, [X, Y, Ti]) == permutedims(da, (X, Y, Ti))
     @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
     dsp = permutedims(da, (X(), Y(), Ti()))
     @test dsp == permutedims(data(da), (3, 1, 2))
-    @test dims(dsp) == (X(1:4; grid=RegularGrid(;step=1)),
-                        Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
-                        Ti(10:11; grid=RegularGrid(;step=1)))
+    @test dims(dsp) == (X(1:4; grid=SampledGrid(span=RegularSpan(1))),
+                        Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))),
+                        Ti(10:11; grid=SampledGrid(span=RegularSpan(1))))
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
     @test typeof(dsp) <: DimensionalArray
@@ -224,30 +224,30 @@ end
 
 @testset "dimension mirroring methods" begin
     a = rand(5, 4)
-    da = DimensionalArray(a, (Y((10, 20); grid=RegularGrid()), 
-                              X(1:4; grid=RegularGrid())))
+    da = DimensionalArray(a, (Y((10, 20); grid=SampledGrid()), 
+                              X(1:4; grid=SampledGrid())))
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
-    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)),
-                         Y(LinRange(10.0, 20.0, 5); grid=RegularGrid(;step=2.5)))
+    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))),
+                         Y(LinRange(10.0, 20.0, 5); grid=SampledGrid(span=RegularSpan(2.5))))
     crda = cor(da; dims=Y)
     @test crda == cor(a; dims=1)
-    @test dims(crda) == (X(1:4; grid=RegularGrid(;step=1)),
-                         X(1:4; grid=RegularGrid(;step=1)))
+    @test dims(crda) == (X(1:4; grid=SampledGrid(span=RegularSpan(1))),
+                         X(1:4; grid=SampledGrid(span=RegularSpan(1))))
 end
 
 @testset "mapslices" begin
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    da = DimensionalArray(a, (Y((10, 30); grid=RegularGrid()), 
-                              Ti(1:4; grid=RegularGrid())))
+    da = DimensionalArray(a, (Y((10, 30); grid=SampledGrid(sampling=IntervalSampling())), 
+                              Ti(1:4; grid=SampledGrid(sampling=IntervalSampling()))))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
     @test typeof(dims(ms)) == 
-        typeof((Y([10.0]; grid=RegularGrid(; step=30.0, locus=Center())),
-                Ti(1:4; grid=RegularGrid(; step=1, locus=Start()))))
+    typeof((Y([10.0]; grid=SampledGrid(Ordered(), RegularSpan(30.0), IntervalSampling(Center()))),
+            Ti(1:4; grid=SampledGrid(Ordered(), RegularSpan(1), IntervalSampling(Start())))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Ti)
     @test data(ms) == [10 18 26]'
@@ -271,8 +271,8 @@ end
     b = [7 8 9; 10 11 12]
     db = DimensionalArray(b, (X(3:4), Y(1:3)))
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
-    testdims = (X([1, 2, 3, 4]; grid=PointGrid()),
-                Y(1:3; grid=PointGrid()))
+    testdims = (X([1, 2, 3, 4]; grid=SampledGrid(span=RegularSpan(1))),
+                Y(1:3; grid=SampledGrid(span=RegularSpan(1))))
     @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
           cat(da, db; dims=1) == cat(da, db; dims=(1,))
     @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)

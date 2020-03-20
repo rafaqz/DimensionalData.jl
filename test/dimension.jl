@@ -16,7 +16,7 @@ using DimensionalData: Forward, slicedims
     @test length(TestDim(1)) == 1
     @test length(TestDim([1, 2, 3])) == 3
     @test_throws ErrorException step(TestDim(1:2:3)) == 2
-    @test step(TestDim(1:2:3; grid=RegularGrid(step=2))) == 2
+    @test step(TestDim(1:2:3; grid=SampledGrid(span=RegularSpan(2)))) == 2
     @test firstindex(TestDim(10:20)) == 1
     @test lastindex(TestDim(10:20)) == 11
     @test size(TestDim(10:20)) == (11,)
@@ -32,8 +32,9 @@ a = ones(5, 4)
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
 dimz = dims(da)
-@test slicedims(dimz, (2:4, 3)) == ((X(LinRange(142,146,3); grid=PointGrid()),),
-                                    (Y(8.0, grid=PointGrid()),))
+@test d = slicedims(dimz, (2:4, 3)) == 
+    ((X(LinRange(142,146,3); grid=SampledGrid(span=RegularSpan(2.0))),),
+     (Y(8.0, grid=SampledGrid(span=RegularSpan(3.0))),))
 @test name(dimz) == ("X", "Y")
 @test shortname(dimz) == ("X", "Y")
 @test units(dimz) == (nothing, nothing)
@@ -42,16 +43,17 @@ dimz = dims(da)
 a = [1 2 3 4
      2 3 4 5
      3 4 5 6]
-dimz = X((143, 145)), Y((-38, -35))
-da = DimensionalArray(a, dimz)
+da = DimensionalArray(a, (X((143, 145)), Y((-38, -35))))
+dimz = dims(da) 
 
 @testset "dims" begin
     @test dims(dimz) === dimz
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Ti)
-    @test typeof(dims(da)) == Tuple{X{LinRange{Float64},PointGrid{Ordered{Forward,Forward,Forward}},Nothing},
-          Y{LinRange{Float64},PointGrid{Ordered{Forward,Forward,Forward}},Nothing}}
+    @test typeof(dims(da)) == 
+        Tuple{X{LinRange{Float64},SampledGrid{Ordered{Forward,Forward,Forward},RegularSpan{Float64},PointSampling},Nothing},
+              Y{LinRange{Float64},SampledGrid{Ordered{Forward,Forward,Forward},RegularSpan{Float64},PointSampling},Nothing}}
 end
 
 @testset "arbitrary dim names" begin

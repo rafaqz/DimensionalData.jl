@@ -49,7 +49,7 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,DimVector}
 # Getters
 val(dim::Dimension) = dim.val
 grid(dim::Dimension) = dim.grid
-grid(dim::Type{<:Dimension}) = nothing
+grid(dim::Type{<:Dimension}) = NoGrid()
 metadata(dim::Dimension) = dim.metadata
 
 order(dim::Dimension) = order(grid(dim))
@@ -73,11 +73,11 @@ units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
+bounds(dim::Dimension) = bounds(grid(dim), dim)
+bounds(dims::DimTuple) = map(bounds, dims)
+bounds(dims::Tuple{}) = ()
 bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
-bounds(dims::DimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
-bounds(dims::Tuple{}) = ()
-bounds(dim::Dimension) = bounds(grid(dim), dim)
 
 
 # Base methods
@@ -134,7 +134,7 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,G,M} <: ParametricDimension{X,T,G,M}
+struct Dim{X,T,G<:Grid,M} <: ParametricDimension{X,T,G,M}
     val::T
     grid::G
     metadata::M
@@ -143,7 +143,7 @@ struct Dim{X,T,G,M} <: ParametricDimension{X,T,G,M}
 end
 
 Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = 
-    Dim{X}(val, identify(grid, Dim{X}, val), metadata)
+    Dim{X}(val, grid, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -181,13 +181,13 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        struct $typ{T,G,M} <: $supertype{T,G,M}
+        struct $typ{T,G<:Grid,M} <: $supertype{T,G,M}
             val::T
             grid::G
             metadata::M
         end
         $typ(val=:; grid=UnknownGrid(), metadata=nothing) = 
-            $typ(val, DimensionalData.identify(grid, $typ, val), metadata)
+            $typ(val, grid, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)

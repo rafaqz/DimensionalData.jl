@@ -206,15 +206,22 @@ Base.vcat(dims::Dimension...) =
     rebuild(dims[1], vcat(map(val, dims)...), vcat(map(grid, dims)...))
 
 Base.vcat(grids::Grid...) = first(grids)
-Base.vcat(grids::RegularGrid...) = begin
-    _step = step(grids[1])
+Base.vcat(grids::AbstractSampledGrid...) =
+    _vcatgrids(sampling(first(grids)), span(first(grids)), grids...)
+
+_vcatgrids(::Any, ::RegularSpan, grids...) = begin
+    _step = step(first(grids))
     map(grids) do grid
-        step(grid) == _step || error("Step sizes $(step(grid)) and $_step do not match ")
+        step(span(grid)) == _step || error("Step sizes $(step(span(grid))) and $_step do not match ")
     end
     first(grids)
 end
-Base.vcat(grids::BoundedGrid...) =
-    rebuild(grids[1]; bounds=(bounds(grids[1])[1], bounds(grids[end])[end]))
+_vcatgrids(::IntervalSampling, ::IrregularSpan, grids...) = begin
+    bounds = bounds(grids[1])[1], bounds(grids[end])[end]
+    rebuild(grids[1]; span=IrregularSpan(sortbounds(indexorder(grids[1]), bounds)))
+end
+_vcatgrids(::PointSampling, ::IrregularSpan, grids...) = first(grids)
+
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)
 checkdims(dims::DimTuple...) = map(d -> checkdims(dims[1], d), dims)

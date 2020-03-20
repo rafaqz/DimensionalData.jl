@@ -215,13 +215,12 @@ dims don't match the array dims or size.
 
 If a [`Grid`](@ref) hasn't been specified, a grid type is chosen
 based on the type and element type of the index:
-- `AbstractRange` become `RegularGrid`
-- `AbstractArray` become `AlignedGrid`
-- `AbstractArray` of `Symbol` or `String` become `CategoricalGrid`
 """
 formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N = 
     formatdims(axes(A), dims)
-formatdims(axes::Tuple, dims::Tuple) = map(formatdims, axes, dims)
+formatdims(axes::Tuple{Vararg{<:AbstractRange}}, 
+           dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) = 
+    map(formatdims, axes, dims)
 formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
     checkaxis(dim, axis)
     rebuild(dim, val(dim), identify(grid(dim), basetypeof(dim), val(dim)))
@@ -270,34 +269,34 @@ type and order.
 # Now reduce specialising on grid type
 
 # UnknownGrid remains Unknown. Defaults to Start locus.
-@inline reducedims(grid::UnknownGrid, dim) = rebuild(dim, first(val(dim)), UnknownGrid())
+@inline reducedims(grid::UnknownGrid, dim::Dimension) = 
+    rebuild(dim, first(val(dim)), UnknownGrid())
 # Categories are combined. 
+@inline reducedims(grid::UnalignedGrid, dim::Dimension) = 
+    rebuild(dim, [nothing], UnknownGrid)
 @inline reducedims(grid::CategoricalGrid, dim::Dimension{Vector{String}}) =
     rebuild(dim, ["combined"], CategoricalGrid(Ordered()))
-@inline reducedims(grid::CategoricalGrid, dim) =
+@inline reducedims(grid::CategoricalGrid, dim::Dimension) =
     rebuild(dim, [:combined], CategoricalGrid(Ordered()))
 
-@inline reducedims(grid::PointGrid, dim) = begin
-    grid = PointGrid(Ordered())
-    rebuild(dim, reducedims(Center(), dim), grid)
-end
-@inline reducedims(grid::BoundedGrid, dim) = begin
-    grid = rebuild(grid, Ordered())
+@inline reducedims(grid::AbstractSampledGrid, dim::Dimension) =
+    reducedims(span(grid), sampling(grid), grid, dim)
+@inline reducedims(::IrregularSpan, ::PointSampling, grid::AbstractSampledGrid, dim::Dimension) =
+    rebuild(dim, reducedims(Center(), dim::Dimension), grid)
+@inline reducedims(::IrregularSpan, ::IntervalSampling, grid::AbstractSampledGrid, dim::Dimension) = begin
+    grid = rebuild(grid, Ordered(), span(grid))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
-@inline reducedims(grid::RegularGrid, dim) = begin
-    grid = rebuild(grid, Ordered(), locus(grid), step(grid) * length(dim))
+@inline reducedims(::RegularSpan, ::Any, grid::AbstractSampledGrid, dim::Dimension) = begin
+    grid = rebuild(grid, Ordered(), RegularSpan(step(grid) * length(dim)))
     rebuild(dim, reducedims(locus(grid), dim), grid)
 end
-
-@inline reducedims(grid::UnalignedGrid, dim) =
-    rebuild(dim, [nothing], UnknownGrid)
 
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
-reducedims(locus::Start, dim) = [first(val(dim))]
-reducedims(locus::End, dim) = [last(val(dim))]
-reducedims(locus::Center, dim) = begin
+@inline reducedims(locus::Start, dim::Dimension) = [first(val(dim))]
+@inline reducedims(locus::End, dim::Dimension) = [last(val(dim))]
+@inline reducedims(locus::Center, dim::Dimension) = begin
     index = val(dim)
     len = length(index)
     if iseven(len)
@@ -306,6 +305,7 @@ reducedims(locus::Center, dim) = begin
         [index[len ÷ 2 + 1]]
     end
 end
+@inline reducedims(locus::Locus, dim::Dimension) = reducedims(Center(), dim)
 
 # Need to specialise for more types
 centerval(index::AbstractArray{<:AbstractFloat}, len) = 

@@ -7,7 +7,7 @@ abstract type Selector{T} end
 const SelectorOrStandard = Union{Selector, StandardIndices}
 
 val(m::Selector) = m.val
-rebuild(sel::Selector, val) = basetypeof(sel)(val) 
+rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
@@ -42,7 +42,7 @@ rtol(sel::At) = sel.rtol
     Near(x)
 
 Selector that selects the nearest index to its contained value(s).
-Can only be used for [`PointGrid`](@ref)
+Can only be used for [`PointSampling`](@ref)
 """
 struct Near{T} <: Selector{T}
     val::T
@@ -52,7 +52,7 @@ end
     Contains(x)
 
 Selector that selects the interval the value is contained by.
-Can only be used for [`IntervalGrid`](@ref) or [`CategoricalGrid`](@ref).
+Can only be used for [`IntervalSampling`](@ref) or [`CategoricalGrid`](@ref).
 """
 struct Contains{T} <: Selector{T}
     val::T
@@ -78,48 +78,57 @@ dims2indices(grid::TransformedGrid, dims::Tuple, lookups::Tuple, emptyval) =
 sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 sel2indices(dims::Tuple, lookup::Tuple) = sel2indices(map(grid, dims), dims, lookup)
-sel2indices(grids, dims::Tuple, lookup::Tuple) =
+sel2indices(grids::Tuple, dims::Tuple, lookup::Tuple) =
     (sel2indices(grids[1], dims[1], lookup[1]),
      sel2indices(tail(grids), tail(dims), tail(lookup))...)
 sel2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
 
-# Handling base cases:
-sel2indices(grid, dim::Dimension, lookup::StandardIndices) = lookup
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Contains) =
+    sel2indices(grid, dim, At(val(sel)))
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::At) =
+    sel2indices(PointSampling(), grid, dim, At(val(sel)))
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Between) =
+    sel2indices(PointSampling(), grid, dim, sel)
+sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Near) =
+    throw(ArgumentError("`Near` has no meaning with `CategoricalGrid`. Use `At`"))
+
+sel2indices(grid::AbstractSampledGrid, dim::Dimension, sel) =
+    sel2indices(sampling(grid), grid, dim, sel)
 
 #= Specific selectors
 We always run sel2indices again until the last possible call
 This means vectors are unwrapped and passed to sel2indices,
-so that grid based dispatch in external packages can operate 
-on single values only. `near`, `at` `contains` etc should only be 
+so that grid based dispatch in external packages can operate
+on single values only. `near`, `at` `contains` etc should only be
 from one method.
 =#
 
 # At selector
-sel2indices(grid, dim::Dimension, sel::At{<:AbstractVector}) =
+sel2indices(sampling::Sampling, grid::Grid, dim::Dimension, sel::At{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, rebuild(sel, v)), val(sel))
-sel2indices(grid, dim::Dimension, sel::At) = at(dim, sel)
+sel2indices(gmpling::Sampling, rid::Grid, dim::Dimension, sel::At) = at(dim, sel)
 
+# Handling base cases:
+sel2indices(::Sampling, ::Grid, ::Dimension, sel::StandardIndices) = sel
 # Near selector
-sel2indices(grid::T, dim::Dimension, sel::Near) where T =
-    throw(ArgumentError("`Near` has no meaning with `$T`. Use `At`"))
-sel2indices(grid::PointGrid, dim::Dimension, sel::Near{<:AbstractVector}) =
+sel2indices(::IntervalSampling, grid, dim::Dimension, sel::Near) =
+    throw(ArgumentError("`Near` has no meaning with `IntervalSampling`. Use `Contains`"))
+sel2indices(::PointSampling, grid, dim::Dimension, sel::Near{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, Near(v)), val(sel))
-sel2indices(grid::PointGrid, dim::Dimension, sel::Near) = 
+sel2indices(::PointSampling, grid, dim::Dimension, sel::Near) =
     near(dim, Near(val(sel)))
 
 # Contains selector
-sel2indices(grid::T, dim::Dimension, sel::Contains) where T =
-    throw(ArgumentError("`Contains` has no meaning with `$T`. Use `At`"))
-sel2indices(grid::CategoricalGrid, dim::Dimension, sel::Contains) = 
-    sel2indices(grid, dim, At(val(sel))) 
-sel2indices(grid::IntervalGrid, dim::Dimension, sel::Contains{<:AbstractVector}) =
+sel2indices(sampling::PointSampling, grid::T, dim::Dimension, sel::Contains) where T =
+    throw(ArgumentError("`Contains` has no meaning with `PointSampling`. Use `Near`"))
+sel2indices(::IntervalSampling, grid, dim::Dimension, sel::Contains{<:AbstractVector}) =
     map(v -> sel2indices(grid, dim, Contains(v)), val(sel))
-sel2indices(grid::IntervalGrid, dim::Dimension, sel::Contains) = 
+sel2indices(::IntervalSampling, grid, dim::Dimension, sel::Contains) =
     contains(dim, sel)
 
 # Between selector
-sel2indices(grid, dim::Dimension, sel::Between{<:Tuple}) =
-    between(dim, sel)
+sel2indices(sampling::Sampling, grid::Grid, dim::Dimension, sel::Between{<:Tuple}) =
+    between(sampling, dim, sel)
 
 
 # Transformed grid
@@ -137,18 +146,17 @@ to_int(::Near, x) = round(Int, x)
 # what is the scale of these lookup matrices?
 # sel2indices(grid::LookupGrid, sel::Tuple{Vararg{At}}) =
     # lookup(grid)[map(val, sel)...]
-    
 
 
 at(dim::Dimension, sel::At) =
-    _maybereorder(at(dim, val(sel), atol(sel), rtol(sel)), dim)
+    relate(dim, at(dim, val(sel), atol(sel), rtol(sel)))
 at(dim, selval, atol::Nothing, rtol::Nothing) = begin
     i = findfirst(x -> x == selval, val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
     return i
 end
 at(dim, selval, atol, rtol) = begin
-    # This is not particularly efficient. It should be separated 
+    # This is not particularly efficient. It should be separated
     # out for unordered dims and otherwise treated as an ordered list.
     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
     i == nothing && throw(ArgumentError("$selval not found in $dim"))
@@ -180,24 +188,24 @@ end
 
 
 contains(dim::Dimension, sel::Selector) =
-    _maybereorder(contains(indexorder(dim), grid(dim), dim, sel), dim)
+    relate(dim, contains(grid(dim), dim, sel))
 
-contains(ord::Unordered, grid, dim, sel) =
-    throw(ArgumentError("`In` has no meaning in an `Unordered` grid"))
-contains(ord::Order, grid::IntervalGrid, dim, sel) =
-    contains(locus(grid), ord, grid, dim, sel)
+contains(grid::AbstractSampledGrid, dim, sel) =
+    contains(locus(grid), sampling(grid), indexorder(grid), grid, dim, sel)
 
-contains(::Start, ord::Order, grid, dim, sel) = begin
+contains(::Any, ::PointSampling, ord, grid, dim, sel) =
+    throw(ArgumentError("Point sampled grids cannot 'Contains', us 'Near' instead."))
+contains(::Start, ::IntervalSampling, ord::Order, grid, dim, sel) = begin
     i = searchsortedlast(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-contains(::End, ord::Order, grid, dim, sel) = begin
+contains(::End, ::IntervalSampling, ord::Order, grid, dim, sel) = begin
     i = searchsortedfirst(val(dim), val(sel); rev=isrev(ord))
     checkbounds(val(dim), i)
     i
 end
-contains(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
+contains(::Center, ::IntervalSampling, ord::Order, grid, dim, sel) = begin
     selval = val(sel)
     i = searchsortedlast(val(dim), selval; rev=isrev(ord))
     checkbounds(val(dim), i)
@@ -208,7 +216,7 @@ contains(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
             (dim[i] + dim[i - 1]) / 2 <= selval ? i - 1 : i
         end
     else
-        if i == lastindex(dim) 
+        if i == lastindex(dim)
             lastindex(dim)
         else
             (dim[i] + dim[i + 1]) / 2 <= selval ? i + 1 : i
@@ -217,27 +225,51 @@ contains(::Center, ord::Order, grid::IntervalGrid, dim, sel) = begin
 end
 
 
-between(dim::Dimension, sel) = between(indexorder(dim), dim, val(sel))
-between(::Unordered, dim::Dimension, sel) =
+between(dim::Dimension, sel) =
+    between(sampling(dim), dim::Dimension, sel)
+between(sampling::Sampling, dim::Dimension, sel) =
+    between(indexorder(dim), sampling, dim, val(sel))
+between(::Unordered, sampling::Sampling, dim::Dimension, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered grid"))
-between(ord::Reverse, dim::Dimension, sel) = begin
+
+between(indexord::Forward, ::PointSampling, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
-    a = searchsortedlast(val(dim), high; rev=true)
-    b = searchsortedfirst(val(dim), low; rev=true)
-    a, b = _bounded(a, dim), _bounded(b, dim)
+    a = _bounded(searchsortedfirst(val(dim), low), dim)
+    b = _bounded(searchsortedlast(val(dim), high), dim)
     relate(dim, a:b)
 end
-between(ord::Forward, dim::Dimension, sel) = begin
+between(indexord::Reverse, ::PointSampling, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
-    a = searchsortedfirst(val(dim), low)
-    b = searchsortedlast(val(dim), high)
-    a, b = _bounded(a, dim), _bounded(b, dim)
+    a = _bounded(searchsortedlast(val(dim), high; rev=true), dim)
+    b = _bounded(searchsortedfirst(val(dim), low; rev=true), dim)
     relate(dim, a:b)
 end
 
+between(indexord, s::IntervalSampling, dim::Dimension, sel) =
+    between(span(grid(dim)), indexord, s, dim, sel)
+between(span::RegularSpan, indexord::Forward, ::IntervalSampling, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel) .+ _locus_adjustment(grid(dim), span)
+    a = _bounded(searchsortedfirst(val(dim), low), dim)
+    b = _bounded(searchsortedlast(val(dim), high), dim)
+    relate(dim, a:b)
+end
+between(span::RegularSpan, indexord::Reverse, ::IntervalSampling, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel) .+ _locus_adjustment(grid(dim), span)
+    a = _bounded(searchsortedlast(val(dim), high; rev=true), dim)
+    b = _bounded(searchsortedfirst(val(dim), low; rev=true), dim)
+    relate(dim, a:b)
+end
 
-_fix(i::Int, dim::Dimension) = _maybereorder(_bounded(i, dim), dim)
+_locus_adjustment(grid::AbstractSampledGrid, span::RegularSpan) =
+    _locus_adjustment(locus(grid), abs(step(span)))
+_locus_adjustment(locus::Start, step) = zero(step), -step
+_locus_adjustment(locus::Center, step) = step * 0.5, step * -0.5
+_locus_adjustment(locus::End, step) = step, zero(step)
 
+
+_fix(i::Int, dim::Dimension) = relate(dim, _bounded(i, dim))
+
+# Return an inbounds index
 _bounded(i::Int, dim::Dimension) =
     if i > lastindex(dim)
         lastindex(dim)
@@ -246,8 +278,5 @@ _bounded(i::Int, dim::Dimension) =
     else
         i
     end
-
-_maybereorder(i::Int, dim::Dimension) = 
-    maybeflip(relationorder(dim), dim, i)
 
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)

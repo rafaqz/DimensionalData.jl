@@ -21,16 +21,19 @@ export Dim, X, Y, Z, Ti
 
 export Selector, Between, At, Contains, Near
 
-export Locus, Center, Start, End, UnknownLocus
+export Locus, Center, Start, End, UnknownLocus, NoLocus
 
-export Order, Ordered, Unordered, UnknownOrder
+export Order, Ordered, Unordered, UnknownOrder, AutoOrder
+
+export Sampling, PointSampling, IntervalSampling
+
+export Span, RegularSpan, IrregularSpan, UnknownSpan
 
 export Grid, UnknownGrid
 
 export AbstractCategoricalGrid, CategoricalGrid
 
-export AlignedGrid, IntervalGrid, AbstractBoundedGrid, BoundedGrid, 
-       AbstractRegularGrid, RegularGrid, AbstractPointGrid, PointGrid
+export AlignedGrid, AbstractSampledGrid, SampledGrid
 
 export UnalignedGrid, TransformedGrid
 
