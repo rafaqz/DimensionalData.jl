@@ -126,9 +126,9 @@ end
 
 relate(d::Dimension, i) = maybeflip(relationorder(d), d, i)
 
-maybeflip(::Forward, d::Dimension, i) = i
-maybeflip(::Reverse, d::Dimension, i::Integer) = lastindex(d) - i + 1
-maybeflip(::Reverse, d::Dimension, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
+maybeflip(::Forward, d, i) = i
+maybeflip(::Reverse, d, i::Integer) = lastindex(d) - i + 1
+maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(A, lookup)

@@ -223,19 +223,20 @@ bounds(grid::AbstractSampledGrid, dim) =
     bounds(sampling(grid), span(grid), grid, dim)
 
 bounds(::PointSampling, span, grid::AbstractSampledGrid, dim) =
-    sortbounds(grid, bounds(relationorder(grid), grid, dim))
+    bounds(indexorder(grid), grid, dim)
 
 bounds(::IntervalSampling, span::IrregularSpan, grid::AbstractSampledGrid, dim) =
     bounds(span)
 
 bounds(s::IntervalSampling, span::RegularSpan, g::AbstractSampledGrid, dim) =
-    sortbounds(g, bounds(locus(s), relationorder(g), span, g, dim))
+    bounds(locus(s), indexorder(g), span, g, dim)
 
-bounds(::Start,::Forward, span, grid, dim) = first(dim), last(dim) + step(span)
-bounds(::Start,::Reverse, span, grid, dim) = first(dim) - step(span), last(dim)
-bounds(::Center, ::Any, span, grid, dim) = first(dim) - step(span) / 2, last(dim) + step(span) / 2
+bounds(::Start, ::Forward, span, grid, dim) = first(dim), last(dim) + step(span)
+bounds(::Start, ::Reverse, span, grid, dim) = last(dim), first(dim) - step(span)
+bounds(::Center, ::Forward, span, grid, dim) = first(dim) - step(span) / 2, last(dim) + step(span) / 2
+bounds(::Center, ::Reverse, span, grid, dim) = last(dim) + step(span) / 2, first(dim) - step(span) / 2
 bounds(::End, ::Forward, span, grid, dim) = first(dim) - step(span), last(dim)
-bounds(::End, ::Reverse, span, grid, dim) = first(dim), last(dim) + step(span)
+bounds(::End, ::Reverse, span, grid, dim) = last(dim) + step(span), first(dim)
 
 
 sortbounds(grid::Grid, bounds) = sortbounds(indexorder(grid), bounds)
@@ -253,7 +254,7 @@ slicegrid(::IntervalSampling, ::IrregularSpan, g::AbstractSampledGrid, index, I)
 end
 
 slicebounds(g, index, I) =
-    slicebounds(locus(g), bounds(span(g)),  index, _reorderindices(g, index, I))
+    slicebounds(locus(g), bounds(span(g)),  index, maybeflip(indexorder(g), index, I))
 slicebounds(locus::Start, bounds, index, I) =
     index[first(I)], last(I) >= lastindex(index) ? bounds[2] : index[last(I) + 1]
 slicebounds(locus::End, bounds, index, I) =
@@ -284,11 +285,6 @@ SampledGrid(; order=Ordered(), span=UnknownSpan(), sampling=PointSampling()) =
 
 rebuild(g::SampledGrid, order=order(g), span=span(g), sampling=sampling(g)) =
     SampledGrid(order, span, sampling)
-
-
-_reorderindices(grid::Grid, index, I) = _reorderindices(relationorder(grid), index, I)
-_reorderindices(::Order, index, I) = I
-_reorderindices(::Reverse, index, I::AbstractArray) = length(index) .- (last(I), first(I)) .+ 1
 
 
 """

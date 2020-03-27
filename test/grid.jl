@@ -36,6 +36,7 @@ using DimensionalData: Forward, Reverse,
         SampledGrid(Ordered(Reverse(), Forward(), Forward()), NoLocus())
     @test_broken identify(UnknownGrid(AutoOrder()), X, [1, 3, 2, 9]) ==
         SampledGrid(Unordered(Forward(), NoLocus()))
+
 end
 
 @testset "order" begin
@@ -78,66 +79,83 @@ end
     @test slicebounds(End(), bounds, index, 2:3) == (10.0, 30.0)
     bound = (0.5, 55.0)
     @test slicebounds(Center(), bounds, index, 2:3) == (15.0, 35.0)
-    grid = SampledGrid(span=IrregularSpan((10.0, 60.0)), sampling=IntervalSampling(Start()))
-    @test bounds(slicegrid(grid, index, 3), X()) == (30.0, 40.0)
-    @test bounds(slicegrid(grid, index, 1:5), X()) == (10.0, 60.0)
-    @test bounds(slicegrid(grid, index, 2:3), X()) == (20.0, 40.0)
-    grid = SampledGrid(; order=Ordered(;relation=Reverse()), span=IrregularSpan(10.0, 60.0),
-                       sampling=IntervalSampling(Start()))
-    @test bounds(slicegrid(grid, index, 1:5), X()) == (10.0, 60.0)
-    @test bounds(slicegrid(grid, index, 1:3), X()) == (30.0, 60.0)
+
+    @testset "forwards" begin
+        grid = SampledGrid(span=IrregularSpan((10.0, 60.0)), sampling=IntervalSampling(Start()))
+        @test bounds(slicegrid(grid, index, 3), X()) == (30.0, 40.0)
+        @test bounds(slicegrid(grid, index, 1:5), X()) == (10.0, 60.0)
+        @test bounds(slicegrid(grid, index, 2:3), X()) == (20.0, 40.0)
+    end
+    @testset "reverse" begin
+        grid = SampledGrid(order=Ordered(index=Reverse()), span=IrregularSpan(10.0, 60.0),
+                           sampling=IntervalSampling(Start()))
+        @test bounds(slicegrid(grid, index, 1:5), X()) == (10.0, 60.0)
+        @test bounds(slicegrid(grid, index, 1:3), X()) == (30.0, 60.0)
+    end
 end
 
 @testset "IntervalSampling bounds" begin
-    index = [10.0, 20.0, 30.0, 40.0, 50.0]
-
-    @testset "forward relationship" begin
-        dim = X(index; grid=SampledGrid(; sampling=IntervalSampling(Start()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (10.0, 60.0)
-        dim = X(index; grid=SampledGrid(sampling=IntervalSampling(End()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (0.0, 50.0)
-        dim = X(index; grid=SampledGrid(sampling=IntervalSampling(Center()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (5.0, 55.0)
+    @testset "RegularSpan" begin
+        @testset "forward index" begin
+            index = 10.0:10.0:50.0
+            dim = X(index; grid=SampledGrid(; sampling=IntervalSampling(Start()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (10.0, 60.0)
+            dim = X(index; grid=SampledGrid(sampling=IntervalSampling(End()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (0.0, 50.0)
+            dim = X(index; grid=SampledGrid(sampling=IntervalSampling(Center()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (5.0, 55.0)
+        end
+        @testset "reverse index" begin
+            revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(Start()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (6.0, 11.0)
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(End()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (5.0, 10.0)
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(Center()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (5.5, 10.5)
+        end
     end
-
-    @testset "reverse relationship" begin
-        dim = X(index; grid=SampledGrid(; order=Ordered(Forward(),Forward(),Reverse()),
-                                        sampling=IntervalSampling(Start()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (0.0, 50.0)
-        dim = X(index; grid=SampledGrid(; order=Ordered(Forward(),Forward(),Reverse()),
-                                        sampling=IntervalSampling(End()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (10.0, 60.0)
-        dim = X(index; grid=SampledGrid(; order=Ordered(Forward(),Forward(),Reverse()),
-                                        sampling=IntervalSampling(Center()), span=RegularSpan(10.0)))
-        @test bounds(dim) == (5.0, 55.0)
+    @testset "RegularSpan" begin
+        @testset "forward index" begin
+            index = 10.0:10.0:50.0
+            dim = X(index; grid=SampledGrid(; sampling=IntervalSampling(Start()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (10.0, 60.0)
+            dim = X(index; grid=SampledGrid(sampling=IntervalSampling(End()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (0.0, 50.0)
+            dim = X(index; grid=SampledGrid(sampling=IntervalSampling(Center()), span=RegularSpan(10.0)))
+            @test bounds(dim) == (5.0, 55.0)
+        end
+        @testset "reverse index" begin
+            revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(Start()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (6.0, 11.0)
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(End()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (5.0, 10.0)
+            dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
+                                               sampling=IntervalSampling(Center()), span=RegularSpan(-1.0)))
+            @test bounds(dim) == (5.5, 10.5)
+        end
     end
+end
 
-    revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
-    @testset "reverse index forward relationship" begin
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
-                                           sampling=IntervalSampling(Start()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (5.0, 10.0)
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
-                                           sampling=IntervalSampling(End()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (6.0, 11.0)
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Forward()),
-                                           sampling=IntervalSampling(Center()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (5.5, 10.5)
-    end
+@testset "PointSampling bounds" begin
+    index = 10:15
+    dim = X(index; grid=SampledGrid(order=Ordered(), sampling=PointSampling()))
+    @test bounds(dim) == (10, 15)
+    index = 15:-1:10
+    dim = X(index; grid=SampledGrid(order=Ordered(index=Reverse()), sampling=PointSampling()))
+    last(dim), first(dim)
+    @test bounds(dim) == (10, 15)
+    dim = X(index; grid=SampledGrid(order=Unordered(), sampling=PointSampling()))
+    @test_throws ErrorException bounds(dim)
+end
 
-    @testset "reverse index reverse relationship" begin
-        revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Reverse()),
-                                           sampling=IntervalSampling(Start()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (6.0, 11.0)
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Reverse()),
-                                           sampling=IntervalSampling(End()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (5.0, 10.0)
-        dim = X(revindex; grid=SampledGrid(; order=Ordered(Reverse(),Forward(),Reverse()),
-                                           sampling=IntervalSampling(Center()), span=RegularSpan(-1.0)))
-        @test bounds(dim) == (5.5, 10.5)
-    end
-
+@testset "CategoricalGrid bounds" begin
     index = [:a, :b, :c, :d]
     dim = X(index; grid=CategoricalGrid(; order=Ordered()))
     @test bounds(dim) == (:a, :d)
@@ -145,6 +163,5 @@ end
     @test bounds(dim) == (:d, :a)
     dim = X(index; grid=CategoricalGrid(; order=Unordered()))
     @test_throws ErrorException bounds(dim)
-
 end
 

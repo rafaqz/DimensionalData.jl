@@ -8,12 +8,12 @@ a = [1 2  3  4
 
 @testset "selector primitives" begin
 
-    @testset "Interval grid" begin
+    @testset "RegularSpan Interval grid with range" begin
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
-        startfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
-        startfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
-        startrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
-        startrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
+        startfwdfwd = Ti(5.0:30.0;    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
+        startfwdrev = Ti(5.0:30.0;    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
+        startrevfwd = Ti(30.0:-1.0:5.0; grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(Start())))
+        startrevrev = Ti(30.0:-1.0:5.0; grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(Start())))
 
         @testset "Any at" begin
             @test at(startfwdfwd, At(30)) == 26
@@ -36,30 +36,56 @@ a = [1 2  3  4
         end
 
         @testset "Start contains" begin
-            # @test_throws BoundsError contains(startfwdfwd, 50)
-            @test_throws BoundsError contains(startfwdfwd, Contains(0))
+            @test_throws BoundsError contains(startfwdfwd, Contains(4.9))
+            @test_throws BoundsError contains(startfwdfwd, Contains(31))
+            @test_throws BoundsError contains(startrevfwd, Contains(4.9))
+            @test_throws BoundsError contains(startrevfwd, Contains(31))
+            @test contains(startfwdfwd, Contains(5)) == 1
             @test contains(startfwdfwd, Contains(5.9)) == 1
             @test contains(startfwdfwd, Contains(6.0)) == 2
             @test contains(startfwdfwd, Contains(30.0)) == 26
             @test contains(startfwdfwd, Contains(29.9)) == 25
-            @test contains(startfwdrev, Contains(5.9)) == 26
-            @test contains(startfwdrev, Contains(6.0)) == 25
-            @test contains(startfwdrev, Contains(29.9)) == 2
-            @test contains(startfwdrev, Contains(30.0)) == 1
             @test contains(startrevfwd, Contains(5.9)) == 26
             @test contains(startrevfwd, Contains(6.0)) == 25
-            @test contains(startrevfwd, Contains(29.0)) == 2
+            @test contains(startrevfwd, Contains(30.9)) == 1
             @test contains(startrevfwd, Contains(30.0)) == 1
+            @test contains(startrevfwd, Contains(29.0)) == 2
+            @test contains(startfwdrev, Contains(5.9)) == 26
+            @test contains(startfwdrev, Contains(6.0)) == 25
+            @test contains(startfwdrev, Contains(30.0)) == 1
+            @test contains(startfwdrev, Contains(29.9)) == 2
             @test contains(startrevrev, Contains(5.9)) == 1
             @test contains(startrevrev, Contains(6.0)) == 2
             @test contains(startrevrev, Contains(29.9)) == 25
             @test contains(startrevrev, Contains(30.0)) == 26
         end
 
-        centerfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
-        centerfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
-        centerrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
-        centerrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
+        @testset "Start near" begin
+            @test bounds(startfwdfwd) == bounds(startfwdrev) == bounds(startrevrev) == bounds(startrevfwd)
+            @test near(startfwdfwd, Near(50)) == 26
+            @test near(startfwdfwd, Near(0)) == 1
+            @test near(startfwdfwd, Near(5.9)) == 1
+            @test near(startfwdfwd, Near(6.0)) == 2
+            @test near(startfwdfwd, Near(30.0)) == 26
+            @test near(startfwdfwd, Near(29.9)) == 25
+            @test near(startfwdrev, Near(5.9)) == 26
+            @test near(startfwdrev, Near(6.0)) == 25
+            @test near(startfwdrev, Near(29.9)) == 2
+            @test near(startfwdrev, Near(30.0)) == 1
+            @test near(startrevfwd, Near(5.9)) == 26
+            @test near(startrevfwd, Near(6.0)) == 25
+            @test near(startrevfwd, Near(29.0)) == 2
+            @test near(startrevfwd, Near(30.0)) == 1
+            @test near(startrevrev, Near(5.9)) == 1
+            @test near(startrevrev, Near(6.0)) == 2
+            @test near(startrevrev, Near(29.9)) == 25
+            @test near(startrevrev, Near(30.0)) == 26
+        end
+
+        centerfwdfwd = Ti((5.0:30.0);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
+        centerfwdrev = Ti((5.0:30.0);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
+        centerrevfwd = Ti((30.0:-1.0:5.0); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(Center())))
+        centerrevrev = Ti((30.0:-1.0:5.0); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(Center())))
 
         @testset "Center between" begin
             @test between(centerfwdfwd, Between(9.9, 15.1)) === 7:10
@@ -75,8 +101,16 @@ a = [1 2  3  4
         end
 
         @testset "Center contains" begin
+            @test_throws BoundsError contains(centerfwdfwd, Contains(4.4))
+            @test_throws BoundsError contains(centerfwdfwd, Contains(30.5))
+            @test_throws BoundsError contains(centerrevfwd, Contains(4.4))
+            @test_throws BoundsError contains(centerrevfwd, Contains(30.5))
+            @test contains(centerfwdfwd, Contains(4.5)) == 1
+            @test contains(centerfwdfwd, Contains(30.4)) == 26
             @test contains(centerfwdfwd, Contains(29.5)) == 26
             @test contains(centerfwdfwd, Contains(29.4)) == 25
+            @test contains(centerrevfwd, Contains(4.5)) == 26
+            @test contains(centerrevfwd, Contains(30.4)) == 1
             @test contains(centerrevfwd, Contains(29.5)) == 1
             @test contains(centerrevfwd, Contains(29.4)) == 2
             @test contains(centerfwdrev, Contains(29.5)) == 1
@@ -85,10 +119,29 @@ a = [1 2  3  4
             @test contains(centerrevrev, Contains(29.4)) == 25
         end
 
-        endfwdfwd = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
-        endfwdrev = Ti((5:30);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
-        endrevfwd = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
-        endrevrev = Ti((30:-1:5); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
+        @testset "Center near" begin
+            @test near(centerfwdfwd, Near(4.4)) == 1
+            @test near(centerfwdfwd, Near(30.5)) == 26
+            @test near(centerrevfwd, Near(4.4)) == 26
+            @test near(centerrevfwd, Near(30.5)) == 1
+            @test near(centerfwdfwd, Near(4.5)) == 1
+            @test near(centerfwdfwd, Near(30.4)) == 26
+            @test near(centerfwdfwd, Near(29.5)) == 26
+            @test near(centerfwdfwd, Near(29.4)) == 25
+            @test near(centerrevfwd, Near(4.5)) == 26
+            @test near(centerrevfwd, Near(30.4)) == 1
+            @test near(centerrevfwd, Near(29.5)) == 1
+            @test near(centerrevfwd, Near(29.4)) == 2
+            @test near(centerfwdrev, Near(29.5)) == 1
+            @test near(centerfwdrev, Near(29.4)) == 2
+            @test near(centerrevrev, Near(29.5)) == 26
+            @test near(centerrevrev, Near(29.4)) == 25
+        end
+
+        endfwdfwd = Ti((5.0:30.0);    grid=SampledGrid(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
+        endfwdrev = Ti((5.0:30.0);    grid=SampledGrid(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
+        endrevfwd = Ti((30.0:-1.0:5.0); grid=SampledGrid(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(End())))
+        endrevrev = Ti((30.0:-1.0:5.0); grid=SampledGrid(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(End())))
 
         @testset "End between" begin
             @test between(endfwdfwd, Between(9.9, 15.1)) === 7:11
@@ -104,14 +157,22 @@ a = [1 2  3  4
         end
 
         @testset "End contains" begin
+            @test_throws BoundsError contains(endfwdfwd, Contains(4))
+            @test_throws BoundsError contains(endfwdfwd, Contains(30.1))
+            @test_throws BoundsError contains(endrevfwd, Contains(4))
+            @test_throws BoundsError contains(endrevfwd, Contains(30.1))
+            @test contains(endfwdfwd, Contains(4.1)) == 1
             @test contains(endfwdfwd, Contains(5.0)) == 1
             @test contains(endfwdfwd, Contains(5.1)) == 2
             @test contains(endfwdfwd, Contains(29.0)) == 25
             @test contains(endfwdfwd, Contains(29.1)) == 26
+            @test contains(endfwdfwd, Contains(30.0)) == 26
+            @test contains(endrevfwd, Contains(4.1)) == 26
             @test contains(endrevfwd, Contains(5.0)) == 26
             @test contains(endrevfwd, Contains(5.1)) == 25
             @test contains(endrevfwd, Contains(29.0)) == 2
             @test contains(endrevfwd, Contains(29.1)) == 1
+            @test contains(endrevfwd, Contains(30.0)) == 1
             @test contains(endrevrev, Contains(5.0)) == 1
             @test contains(endrevrev, Contains(5.1)) == 2
             @test contains(endrevrev, Contains(29.0)) == 25
@@ -122,14 +183,64 @@ a = [1 2  3  4
             @test contains(endrevfwd, Contains(29.1)) == 1
         end
 
+        @testset "End near" begin
+            @test near(endfwdfwd, Near(4)) == 1
+            @test near(endfwdfwd, Near(5.0)) == 1
+            @test near(endfwdfwd, Near(5.1)) == 2
+            @test near(endfwdfwd, Near(29.0)) == 25
+            @test near(endfwdfwd, Near(29.1)) == 26
+            @test near(endfwdfwd, Near(30.0)) == 26
+            @test near(endfwdfwd, Near(31.1)) == 26
+            @test near(endrevfwd, Near(4)) == 26
+            @test near(endrevfwd, Near(5.0)) == 26
+            @test near(endrevfwd, Near(5.1)) == 25
+            @test near(endrevfwd, Near(29.0)) == 2
+            @test near(endrevfwd, Near(29.1)) == 1
+            @test near(endrevfwd, Near(30.0)) == 1
+            @test near(endrevfwd, Near(31.1)) == 1
+            @test near(endrevrev, Near(5.0)) == 1
+            @test near(endrevrev, Near(5.1)) == 2
+            @test near(endrevrev, Near(29.0)) == 25
+            @test near(endrevrev, Near(29.1)) == 26
+            @test near(endrevfwd, Near(5.0)) == 26
+            @test near(endrevfwd, Near(5.1)) == 25
+            @test near(endrevfwd, Near(29.0)) == 2
+            @test near(endrevfwd, Near(29.1)) == 1
+        end
+
     end
+    @testset "RegulaSpan Interval grid with array" begin
+        # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
+        startfwd = Ti([1, 3, 4, 5]; grid=SampledGrid(Ordered(index=Forward()), RegularSpan(1), IntervalSampling(Start())))
+        startrev = Ti([5, 4, 3, 1]; grid=SampledGrid(Ordered(index=Reverse()), RegularSpan(-1), IntervalSampling(Start())))
+
+        @test_throws BoundsError contains(startfwd, Contains(0.9))
+        @test contains(startfwd, Contains(1.0)) == 1
+        @test contains(startfwd, Contains(1.9)) == 1
+        @test_throws ErrorException contains(startfwd, Contains(2))
+        @test_throws ErrorException contains(startfwd, Contains(2.9))
+        @test contains(startfwd, Contains(3)) == 2
+        @test contains(startfwd, Contains(5.9)) == 4
+        @test_throws BoundsError contains(startfwd, Contains(6))
+
+        @test_throws BoundsError contains(startrev, Contains(0.9))
+        @test contains(DimensionalData.grid(startrev), startrev, Contains(1.0)) == 4
+        @test contains(DimensionalData.grid(startrev), startrev, Contains(1.9)) == 4
+        @test_throws ErrorException contains(startrev, Contains(2))
+        @test_throws ErrorException contains(startrev, Contains(2.9))
+        @test contains(startrev, Contains(3)) == 3
+        @test contains(startrev, Contains(5.9)) == 1
+        @test_throws BoundsError contains(startrev, Contains(6))
+
+    end
+
 
     @testset "Point grid" begin
 
-        fwdfwd = Ti((5:30);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Forward())))
-        fwdrev = Ti((5:30);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Reverse())))
-        revfwd = Ti((30:-1:5); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Forward())))
-        revrev = Ti((30:-1:5); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Reverse())))
+        fwdfwd = Ti((5.0:30.0);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Forward())))
+        fwdrev = Ti((5.0:30.0);    grid=SampledGrid(order=Ordered(Forward(),Forward(),Reverse())))
+        revfwd = Ti((30.0:-1.0:5.0); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Forward())))
+        revrev = Ti((30.0:-1.0:5.0); grid=SampledGrid(order=Ordered(Reverse(),Forward(),Reverse())))
 
         @testset "between" begin
             @test between(fwdfwd, Between(10, 15)) === 6:11
@@ -148,21 +259,22 @@ a = [1 2  3  4
         end
 
         @testset "near" begin
-            @test near(fwdfwd, Near(50)) == 26
-            @test near(fwdfwd, Near(0)) == 1
+            @test near(fwdfwd, Near(50))   == 26
+            @test near(fwdfwd, Near(0))    == 1
             @test near(fwdfwd, Near(29.4)) == 25
             @test near(fwdfwd, Near(29.5)) == 26
             @test near(revfwd, Near(29.4)) == 2
-            @test near(revfwd, Near(29.5)) == 1
+            @test near(revfwd, Near(30.1)) == 1
             @test near(fwdrev, Near(29.4)) == 2
             @test near(fwdrev, Near(29.5)) == 1
             @test near(revrev, Near(29.4)) == 25
-            @test near(revrev, Near(29.5)) == 26
+            @test near(revrev, Near(30.1)) == 26
         end
 
     end
 
 end
+
 
 @testset "Selectors on SampledGrid" begin
     da = DimensionalArray(a, (Y((10, 30); grid=SampledGrid()), 
@@ -363,10 +475,9 @@ end
            Y([:a, :b, :c, :d]; grid=CategoricalGrid())
     da = DimensionalArray(a, dimz)
     @test da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
-    @test da[Contains([:one, :three]), At([:b, :c, :d])] == [2 3 4; 10 11 12]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
-    # Near doesn't make sense for categories
-    @test_throws ArgumentError da[Near(:two), At([:b, :c, :d])]
+    # Near and contains are just At
+    @test da[Contains([:one, :three]), Near([:b, :c, :d])] == [2 3 4; 10 11 12]
 end
 
 # @testset "TranformedGrid" begin
