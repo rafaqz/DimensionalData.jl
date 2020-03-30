@@ -18,7 +18,7 @@ const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
 _sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ()) 
 _sortdims(tosort::Tuple, order::Tuple, rejected) =
-    # Match dims to the order, and also check if the grid has a
+    # Match dims to the order, and also check if the indexmode has a
     # transformed dimension that matches
     if _dimsmatch(tosort[1], order[1])
         (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), ())...)
@@ -33,7 +33,7 @@ _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
 _dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
-    basetypeof(dim) <: basetypeof(match) || basetypeof(dim) <: basetypeof(dims(grid(match))) 
+    basetypeof(dim) <: basetypeof(match) || basetypeof(dim) <: basetypeof(dims(indexmode(match))) 
 
 """
 Convert a tuple of Dimension to indices, ranges or Colon.
@@ -45,47 +45,47 @@ Convert a tuple of Dimension to indices, ranges or Colon.
 @inline dims2indices(dims::DimTuple, lookup::Tuple{Vararg{StandardIndices}},
                      emptyval=Colon()) = lookup
 @inline dims2indices(dims::DimTuple, lookup::Tuple, emptyval=Colon()) =
-    dims2indices(map(grid, dims), dims, permutedims(lookup, dims), emptyval)
+    dims2indices(map(indexmode, dims), dims, permutedims(lookup, dims), emptyval)
 
-# Deal with irregular grid types that need multiple dimensions indexed together
-@inline dims2indices(grids::Tuple{UnalignedGrid,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
-    (irregdims, irreglookup), (regdims, reglookup) = splitgridtypes(grids, dims, lookup)
-    (irreg2indices(map(grid, irregdims), irregdims, irreglookup, emptyval)...,
-     dims2indices(map(grid, regdims), regdims, reglookup, emptyval)...)
+# Deal with irregular indexmode that need multiple dimensions indexed together
+@inline dims2indices(modes::Tuple{UnalignedIndex,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (irregdims, irreglookup), (regdims, reglookup) = splitindexmodes(modes, dims, lookup)
+    (irreg2indices(map(indexmode, irregdims), irregdims, irreglookup, emptyval)...,
+     dims2indices(map(indexmode, regdims), regdims, reglookup, emptyval)...)
 end
 
-@inline dims2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
-    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
-     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+@inline dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(modes[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
 end
-@inline dims2indices(grids::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+@inline dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
 
-@inline dims2indices(grid, dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
-@inline dims2indices(grid, dim::Dimension, lookup::Nothing, emptyval) = emptyval
-@inline dims2indices(grid, dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
-@inline dims2indices(grid, dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
-    sel2indices(grid, dim, val(lookup))
+@inline dims2indices(mode, dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
+@inline dims2indices(mode, dim::Dimension, lookup::Nothing, emptyval) = emptyval
+@inline dims2indices(mode, dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
+@inline dims2indices(mode, dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
+    sel2indices(mode, dim, val(lookup))
 
-# Selectors select on grid dimensions
-@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
-    sel2indices(grids, dims, map(val, lookup))
+# Selectors select on indexmode dimensions
+@inline irreg2indices(modes::Tuple, dims::Tuple, lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
+    sel2indices(modes, dims, map(val, lookup))
 # Other dims select on regular dimensions
-@inline irreg2indices(grids::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
-    (dims2indices(grids[1], dims[1], lookup[1], emptyval),
-     dims2indices(tail(grids), tail(dims), tail(lookup), emptyval)...)
+@inline irreg2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+    (dims2indices(modes[1], dims[1], lookup[1], emptyval),
+     dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
 end
 
-@inline splitgridtypes(grids::Tuple{UnalignedGrid,Vararg}, dims, lookup) = begin
-    (irregdims, irreglookup), reg = splitgridtypes(tail(grids), tail(dims), tail(lookup))
+@inline splitindexmodes(modes::Tuple{UnalignedIndex,Vararg}, dims, lookup) = begin
+    (irregdims, irreglookup), reg = splitindexmodes(tail(modes), tail(dims), tail(lookup))
     irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
     irreg, reg
 end
-@inline splitgridtypes(grids::Tuple{Grid,Vararg}, dims, lookup) = begin
-    irreg, (regdims, reglookup) = splitgridtypes(tail(grids), tail(dims), tail(lookup))
+@inline splitindexmodes(modes::Tuple{IndexMode,Vararg}, dims, lookup) = begin
+    irreg, (regdims, reglookup) = splitindexmodes(tail(modes), tail(dims), tail(lookup))
     reg = (dims[1], regdims...), (lookup[1], reglookup...)
     irreg, reg
 end
-@inline splitgridtypes(grids::Tuple{}, dims, lookup) = ((), ()), ((), ())
+@inline splitindexmodes(modes::Tuple{}, dims, lookup) = ((), ()), ((), ())
 
 
 """
@@ -116,7 +116,7 @@ end
 
 @inline slicedims(d::Dimension, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension, i::Number) =
-    (), (rebuild(d, d[relate(d, i)], slicegrid(grid(d), val(d), i)),)
+    (), (rebuild(d, d[relate(d, i)], sliceindexmode(indexmode(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::Dimension{<:AbstractArray}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)]),), ()
@@ -139,7 +139,7 @@ dimensions of an object.
 @inline dimnum(A, lookup) = dimnum(A, (lookup,))[1]
 @inline dimnum(A, lookup::AbstractArray) = dimnum(A, (lookup...,))
 @inline dimnum(A, lookup::Tuple) = dimnum(dims(A), lookup, (), 1)
-# Match dim and lookup, also check if the grid has a transformed dimension that matches
+# Match dim and lookup, also check if the indexmode has a transformed dimension that matches
 @inline dimnum(d::Tuple, lookup::Tuple, rejected, n) =
     if !(d[1] isa Nothing) && _dimsmatch(d[1], lookup[1])
         # Replace found dim with nothing so it isn't found again but n is still correct
@@ -199,7 +199,7 @@ swapdims(A::AbstractArray, newdims::Tuple) =
 swapdims(dims::DimTuple, newdims::Tuple) = 
     map((d, nd) -> swapdims(d, nd), dims, newdims)
 swapdims(dim::Dimension, newdim::DimType) =
-    basetypeof(newdim)(val(dim), grid(dim), metadata(dim))
+    basetypeof(newdim)(val(dim), indexmode(dim), metadata(dim))
 swapdims(dim::Dimension, newdim::Dimension) = newdim
 swapdims(dim::Dimension, newdim::Nothing) = dim
 
@@ -213,7 +213,7 @@ Mostily this means converting indexes of tuples and UnitRanges to
 `LinRange`, which is easier to handle internally. Errors are also thrown if
 dims don't match the array dims or size.
 
-If a [`Grid`](@ref) hasn't been specified, a grid type is chosen
+If a [`IndexMode`](@ref) hasn't been specified, an indexmode is chosen
 based on the type and element type of the index:
 """
 formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N = 
@@ -223,18 +223,18 @@ formatdims(axes::Tuple{Vararg{<:AbstractRange}},
     map(formatdims, axes, dims)
 formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
     checkaxis(dim, axis)
-    rebuild(dim, val(dim), identify(grid(dim), basetypeof(dim), val(dim)))
+    rebuild(dim, val(dim), identify(indexmode(dim), basetypeof(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
     start, stop = val(dim)
     range = LinRange(start, stop, length(axis))
-    rebuild(dim, range, identify(grid(dim), basetypeof(dim), range))
+    rebuild(dim, range, identify(indexmode(dim), basetypeof(dim), range))
 end
 formatdims(axis::AbstractRange, dim::Dimension{Colon}) = 
-    rebuild(dim, axis, identify(grid(dim), basetypeof(dim), axis))
+    rebuild(dim, axis, identify(indexmode(dim), basetypeof(dim), axis))
 formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) = begin
     dim = dimtype()
-    rebuild(dim, axis, identify(grid(dim), basetypeof(dim), axis))
+    rebuild(dim, axis, identify(indexmode(dim), basetypeof(dim), axis))
 end
 # Fallback: dim remains unchanged
 formatdims(axis::AbstractRange, dim::Dimension) = dim
@@ -251,7 +251,7 @@ of 1, but the number of dimensions has not changed.
 
 Used in mean, reduce, etc.
 
-Grid traits are also updated to correspond to the change in cell step, sampling
+IndexMode traits are also updated to correspond to the change in cell step, sampling
 type and order.
 """
 @inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
@@ -264,32 +264,32 @@ type and order.
 
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline reducedims(dim::Dimension, ::Nothing) = dim
-@inline reducedims(dim::Dimension, ::DimOrDimType) = reducedims(grid(dim), dim)
+@inline reducedims(dim::Dimension, ::DimOrDimType) = reducedims(indexmode(dim), dim)
 
-# Now reduce specialising on grid type
+# Now reduce specialising on indexmode type
 
-# UnknownGrid remains Unknown. Defaults to Start locus.
-@inline reducedims(grid::UnknownGrid, dim::Dimension) = 
-    rebuild(dim, first(val(dim)), UnknownGrid())
+# UnknownIndex remains Unknown. Defaults to Start locus.
+@inline reducedims(indexmode::UnknownIndex, dim::Dimension) = 
+    rebuild(dim, first(val(dim)), UnknownIndex())
 # Categories are combined. 
-@inline reducedims(grid::UnalignedGrid, dim::Dimension) = 
-    rebuild(dim, [nothing], UnknownGrid)
-@inline reducedims(grid::CategoricalGrid, dim::Dimension{Vector{String}}) =
-    rebuild(dim, ["combined"], CategoricalGrid(Ordered()))
-@inline reducedims(grid::CategoricalGrid, dim::Dimension) =
-    rebuild(dim, [:combined], CategoricalGrid(Ordered()))
+@inline reducedims(indexmode::UnalignedIndex, dim::Dimension) = 
+    rebuild(dim, [nothing], UnknownIndex)
+@inline reducedims(indexmode::CategoricalIndex, dim::Dimension{Vector{String}}) =
+    rebuild(dim, ["combined"], CategoricalIndex(Ordered()))
+@inline reducedims(indexmode::CategoricalIndex, dim::Dimension) =
+    rebuild(dim, [:combined], CategoricalIndex(Ordered()))
 
-@inline reducedims(grid::AbstractSampledGrid, dim::Dimension) =
-    reducedims(span(grid), sampling(grid), grid, dim)
-@inline reducedims(::IrregularSpan, ::PointSampling, grid::AbstractSampledGrid, dim::Dimension) =
-    rebuild(dim, reducedims(Center(), dim::Dimension), grid)
-@inline reducedims(::IrregularSpan, ::IntervalSampling, grid::AbstractSampledGrid, dim::Dimension) = begin
-    grid = rebuild(grid, Ordered(), span(grid))
-    rebuild(dim, reducedims(locus(grid), dim), grid)
+@inline reducedims(indexmode::AbstractSampledIndex, dim::Dimension) =
+    reducedims(span(indexmode), sampling(indexmode), indexmode, dim)
+@inline reducedims(::IrregularSpan, ::PointSampling, indexmode::AbstractSampledIndex, dim::Dimension) =
+    rebuild(dim, reducedims(Center(), dim::Dimension), indexmode)
+@inline reducedims(::IrregularSpan, ::IntervalSampling, indexmode::AbstractSampledIndex, dim::Dimension) = begin
+    indexmode = rebuild(indexmode, Ordered(), span(indexmode))
+    rebuild(dim, reducedims(locus(indexmode), dim), indexmode)
 end
-@inline reducedims(::RegularSpan, ::Any, grid::AbstractSampledGrid, dim::Dimension) = begin
-    grid = rebuild(grid, Ordered(), RegularSpan(step(grid) * length(dim)))
-    rebuild(dim, reducedims(locus(grid), dim), grid)
+@inline reducedims(::RegularSpan, ::Any, indexmode::AbstractSampledIndex, dim::Dimension) = begin
+    indexmode = rebuild(indexmode, Ordered(), RegularSpan(step(indexmode) * length(dim)))
+    rebuild(dim, reducedims(locus(indexmode), dim), indexmode)
 end
 
 # Get the index value at the reduced locus.
@@ -363,7 +363,7 @@ Empty tuples are allowed
 @inline comparedims(a::Dimension, b::Dimension) = begin
     basetypeof(a) == basetypeof(b) || 
         throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
-    # TODO compare the grid, and maybe the index.
+    # TODO compare the indexmode, and maybe the index.
     return a
 end
 

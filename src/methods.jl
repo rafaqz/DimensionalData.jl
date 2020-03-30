@@ -145,7 +145,7 @@ end
 @inline reversearray(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
     if length(dimstorev) == dnum
-        dim = rebuild(dim, val(dim), reversearray(grid(dim)))
+        dim = rebuild(dim, val(dim), reversearray(indexmode(dim)))
     end
     (reversearray(Base.front(dimstorev), dnum)..., dim)
 end
@@ -203,24 +203,24 @@ _catifcatdim(catdims::Tuple, ds) =
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
 Base.vcat(dims::Dimension...) =
-    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(grid, dims)...))
+    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(indexmode, dims)...))
 
-Base.vcat(grids::Grid...) = first(grids)
-Base.vcat(grids::AbstractSampledGrid...) =
-    _vcatgrids(sampling(first(grids)), span(first(grids)), grids...)
+Base.vcat(indexmodes::IndexMode...) = first(indexmodes)
+Base.vcat(indexmodes::AbstractSampledIndex...) =
+    _vcat_indexmodes(sampling(first(indexmodes)), span(first(indexmodes)), indexmodes...)
 
-_vcatgrids(::Any, ::RegularSpan, grids...) = begin
-    _step = step(first(grids))
-    map(grids) do grid
-        step(span(grid)) == _step || error("Step sizes $(step(span(grid))) and $_step do not match ")
+_vcat_indexmodes(::Any, ::RegularSpan, indexmodes...) = begin
+    _step = step(first(indexmodes))
+    map(indexmodes) do indexmode
+        step(span(indexmode)) == _step || error("Step sizes $(step(span(indexmode))) and $_step do not match ")
     end
-    first(grids)
+    first(indexmodes)
 end
-_vcatgrids(::IntervalSampling, ::IrregularSpan, grids...) = begin
-    bounds = bounds(grids[1])[1], bounds(grids[end])[end]
-    rebuild(grids[1]; span=IrregularSpan(sortbounds(indexorder(grids[1]), bounds)))
+_vcat_indexmodes(::IntervalSampling, ::IrregularSpan, indexmodes...) = begin
+    bounds = bounds(indexmodes[1])[1], bounds(indexmodes[end])[end]
+    rebuild(indexmodes[1]; span=IrregularSpan(sortbounds(indexorder(indexmodes[1]), bounds)))
 end
-_vcatgrids(::PointSampling, ::IrregularSpan, grids...) = first(grids)
+_vcat_indexmodes(::PointSampling, ::IrregularSpan, indexmodes...) = first(indexmodes)
 
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)

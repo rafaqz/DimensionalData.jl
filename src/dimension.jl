@@ -4,37 +4,37 @@ Dimensions tag the dimensions of an AbstractArray, or other dimensional data.
 It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
-abstract type Dimension{T,G,M} end
+abstract type Dimension{T,IM,M} end
 
 """
 Abstract supertype for independent dimensions. Will plot on the X axis.
 """
-abstract type IndependentDim{T,G,M} <: Dimension{T,G,M} end
+abstract type IndependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract supertype for Dependent dimensions. Will plot on the Y axis.
 """
-abstract type DependentDim{T,G,M} <: Dimension{T,G,M} end
+abstract type DependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract parent type for all X dimensions.
 """
-abstract type XDim{T,G,M} <: IndependentDim{T,G,M} end
+abstract type XDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 """
 Abstract parent type for all Y dimensions.
 """
-abstract type YDim{T,G,M} <: DependentDim{T,G,M} end
+abstract type YDim{T,IM,M} <: DependentDim{T,IM,M} end
 
 """
 Abstract parent type for all Z dimensions.
 """
-abstract type ZDim{T,G,M} <: Dimension{T,G,M} end
+abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract parent type for all time dimensions.
 """
-abstract type TimeDim{T,G,M} <: IndependentDim{T,G,M} end
+abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
 
@@ -48,21 +48,21 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,DimVector}
 
 # Getters
 val(dim::Dimension) = dim.val
-grid(dim::Dimension) = dim.grid
-grid(dim::Type{<:Dimension}) = NoGrid()
+indexmode(dim::Dimension) = dim.indexmode
+indexmode(dim::Type{<:Dimension}) = NoIndex()
 metadata(dim::Dimension) = dim.metadata
 
-order(dim::Dimension) = order(grid(dim))
+order(dim::Dimension) = order(indexmode(dim))
 indexorder(dim::Dimension) = indexorder(order(dim))
 arrayorder(dim::Dimension) = arrayorder(order(dim))
 relationorder(dim::Dimension) = relationorder(order(dim))
 
-locus(dim::Dimension) = locus(grid(dim))
-sampling(dim::Dimension) = sampling(grid(dim))
+locus(dim::Dimension) = locus(indexmode(dim))
+sampling(dim::Dimension) = sampling(indexmode(dim))
 
 # DimensionalData interface methods
-rebuild(dim::D, val, grid=grid(dim), metadata=metadata(dim)) where D <: Dimension =
-    constructorof(D)(val, grid, metadata)
+rebuild(dim::D, val, indexmode=indexmode(dim), metadata=metadata(dim)) where D <: Dimension =
+    constructorof(D)(val, indexmode, metadata)
 
 dims(x::Dimension) = x
 dims(x::DimTuple) = x
@@ -73,7 +73,7 @@ units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
-bounds(dim::Dimension) = bounds(grid(dim), dim)
+bounds(dim::Dimension) = bounds(indexmode(dim), dim)
 bounds(dims::DimTuple) = map(bounds, dims)
 bounds(dims::Tuple{}) = ()
 bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
@@ -97,12 +97,12 @@ Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
 Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
-Base.step(dim::Dimension) = step(grid(dim))
+Base.step(dim::Dimension) = step(indexmode(dim))
 Base.Array(dim::Dimension{<:AbstractArray}) = Array(val(dim))
 Base.:(==)(dim1::Dimension, dim2::Dimension) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
-    grid(dim1) == grid(dim2) &&
+    indexmode(dim1) == indexmode(dim2) &&
     metadata(dim1) == metadata(dim2)
 
 # AbstractArray methods where dims are the dispatch argument
@@ -126,7 +126,7 @@ Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Varar
 """
 Dimensions with user-set type paremeters
 """
-abstract type ParametricDimension{X,T,G,M} <: Dimension{T,G,M} end
+abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
 A generic dimension. For use when custom dims are required when loading
@@ -134,16 +134,16 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,G<:Grid,M} <: ParametricDimension{X,T,G,M}
+struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
     val::T
-    grid::G
+    indexmode::IM
     metadata::M
-    Dim{X}(val, grid, metadata) where X =
-        new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
+    Dim{X}(val, indexmode, metadata) where X =
+        new{X,typeof(val),typeof(indexmode),typeof(metadata)}(val, indexmode, metadata)
 end
 
-Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = 
-    Dim{X}(val, grid, metadata)
+Dim{X}(val=:; indexmode=UnknownIndex(), metadata=nothing) where X = 
+    Dim{X}(val, indexmode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -151,10 +151,10 @@ basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 """
 Undefined dimension.
 """
-struct EmptyDim <: Dimension{Int,NoGrid,Nothing} end
+struct EmptyDim <: Dimension{Int,NoIndex,Nothing} end
 
 val(::EmptyDim) = 1:1
-grid(::EmptyDim) = NoGrid()
+mode(::EmptyDim) = NoIndex()
 metadata(::EmptyDim) = nothing
 name(::EmptyDim) = "Empty"
 
@@ -181,13 +181,13 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        struct $typ{T,G<:Grid,M} <: $supertype{T,G,M}
+        struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
             val::T
-            grid::G
+            indexmode::IM
             metadata::M
         end
-        $typ(val=:; grid=UnknownGrid(), metadata=nothing) = 
-            $typ(val, grid, metadata)
+        $typ(val=:; indexmode=UnknownIndex(), metadata=nothing) = 
+            $typ(val, indexmode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)

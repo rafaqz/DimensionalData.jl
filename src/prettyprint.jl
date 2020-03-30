@@ -39,8 +39,8 @@ Base.show(io::IO, ::MIME"text/plain", dim::Dimension) = begin
 
     printstyled(io, "\nval: "; color=:green)
     _printdimval(io, val(dim))
-    printstyled(io, "\ngrid: "; color=:yellow)
-    show(io, grid(dim))
+    printstyled(io, "\nindexmode: "; color=:yellow)
+    show(io, indexmode(dim))
     printstyled(io, "\nmetadata: "; color=:blue)
     show(io, metadata(dim))
     printstyled(io, "\ntype: "; color=:cyan)

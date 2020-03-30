@@ -105,8 +105,8 @@ forwardorder(A) = begin
 end
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
-refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(grid(dim), dim))
-refdims_title(grid::AbstractSampledGrid, dim::Dimension) =
+refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(indexmode(dim), dim))
+refdims_title(indexmode::AbstractSampledIndex, dim::Dimension) =
     ((start, stop) = bounds(dim); "$start to $stop")
-refdims_title(grid, dim::Dimension) = val(dim)
+refdims_title(indexmode, dim::Dimension) = val(dim)
 

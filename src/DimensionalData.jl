@@ -27,20 +27,20 @@ export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
 export Sampling, PointSampling, IntervalSampling
 
-export Span, RegularSpan, IrregularSpan, UnknownSpan
+export Interval, RegularSpan, IrregularSpan, UnknownInterval
 
-export Grid, UnknownGrid
+export IndexMode, UnknownIndex, NoIndex
 
-export AbstractCategoricalGrid, CategoricalGrid
+export AbstractCategoricalIndex, CategoricalIndex
 
-export AlignedGrid, AbstractSampledGrid, SampledGrid
+export AlignedIndex, AbstractSampledIndex, SampledIndex
 
-export UnalignedGrid, TransformedGrid
+export UnalignedIndex, TransformedIndex
 
 export AbstractDimensionalArray, DimensionalArray
 
 export data, dims, refdims, metadata, name, shortname,
-       val, label, units, order, bounds, locus, grid, <|
+       val, label, units, order, bounds, locus, indexmode, <|
 
 export dimnum, hasdim, setdim, swapdims
 
@@ -48,7 +48,7 @@ export @dim
 
 
 include("interface.jl")
-include("grid.jl")
+include("indexmode.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")

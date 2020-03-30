@@ -43,7 +43,7 @@ refdims(x) = ()
 """
     rebuild(x::AbstractDimensionalArray, data, [dims], [refdims], [name])
     rebuild(x::AbstractDimensionalArray, data, [name])
-    rebuild(x::AbstractDimension, val, [grid], [metadata])
+    rebuild(x::AbstractDimension, val, [indemode], [metadata])
     rebuild(x; kwargs...)
 
 Rebuild an object struct with updated values.
