@@ -43,7 +43,7 @@ rtol(sel::At) = sel.rtol
 
 Selector that selects the nearest index.
 With [`PointSampling`](@ref) this is simply the index nearest to the
-contained value, however with [`IntervalSampling](@ref) it is the interval
+contained value, however with [`IntervalSampling`](@ref) it is the interval
 _center_ nearest to the contained value. This will be offset from the
 index value for [`Start`](@ref) and [`End`](@ref) loci.
 """
@@ -87,36 +87,47 @@ dims2indices(mode::TransformedIndex, dims::Tuple, lookups::Tuple, emptyval) =
 
 sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
-sel2indices(dims::Tuple, lookup::Tuple) = sel2indices(map(indexmode, dims), dims, lookup)
-sel2indices(modes::Tuple, dims::Tuple, lookup::Tuple) =
-    (sel2indices(modes[1], dims[1], lookup[1]),
-     sel2indices(tail(modes), tail(dims), tail(lookup))...)
-sel2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
+sel2indices(dims::Tuple, lookup::Tuple) =
+    map((d, l) -> sel2indices(l, indexmode(d), d), dims, lookup)
 
-# Regular indices
-sel2indices(::IndexMode, ::Dimension, sel::StandardIndices) = sel
+# First filter based on rough selector properties -----------------
 
-# Categorical Index
+# Standard indices are just returned
+sel2indices(sel::StandardIndices, ::IndexMode, ::Dimension) = sel
+# Vectors are mapped
+sel2indices(sel::Selector{<:AbstractVector}, mode::IndexMode, dim::Dimension) =
+    map(v -> sel2indices(mode, dim, rebuild(sel, v)), val(sel))
+sel2indices(sel::Selector, mode::IndexMode, dim::Dimension) =
+    sel2indices(mode, dim, sel)
 
+# Then filter based on IndexMode -----------------
+
+# NoIndex
+# This just converts the selector to standard indices. Implemented just
+# so the Selectors actually work, not because what they do is useful or interesting.
+sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(sel)
+sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
+    val(sel)[1]:val(sel)[2]
+
+# CategoricalIndex
 sel2indices(mode::CategoricalIndex, dim::Dimension, sel::Selector) =
-    sel2indices(PointSampling(), mode, dim, sel)
-sel2indices(mode::CategoricalIndex, dim::Dimension, sel::Union{Contains,Near}) =
-    sel2indices(PointSampling(), mode, dim, At(val(sel)))
+    if sel isa Union{Contains,Near}
+        sel2indices(PointSampling(), mode, dim, At(val(sel)))
+    else
+        sel2indices(PointSampling(), mode, dim, sel)
+    end
 
-# Samples Index
-
-sel2indices(mode::AbstractSampledIndex, dim::Dimension, sel::Selector) =
+# SampledIndex
+sel2indices(mode::SampledIndex, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
+# For SampledIndex filter based on sampling type and selector -----------------
+
 # At selector
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At{<:AbstractVector}) =
-    map(v -> sel2indices(mode, dim, rebuild(sel, v)), val(sel))
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) = at(dim, sel)
+sel2indices(::Sampling, mode::IndexMode, dim::Dimension, sel::At) = at(dim, sel)
 
 # Near selector
-sel2indices(::Sampling, mode::SampledIndex, dim::Dimension, sel::Near{<:AbstractVector}) =
-    map(v -> sel2indices(mode, dim, Near(v)), val(sel))
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
+sel2indices(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     if span(mode) isa IrregularSpan && locus(mode) isa Union{Start,End}
         error("Near is not implemented for IrregularSpan with Start or End loci. Use Contains")
     end
@@ -124,10 +135,8 @@ sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = be
 end
 
 # Contains selector
-sel2indices(sampling::PointSampling, mode::T, dim::Dimension, sel::Contains) where T =
+sel2indices(::PointSampling, mode::T, dim::Dimension, sel::Contains) where T =
     throw(ArgumentError("`Contains` has no meaning with `PointSampling`. Use `Near`"))
-sel2indices(::IntervalSampling, mode::IndexMode, dim::Dimension, sel::Contains{<:AbstractVector}) =
-    map(v -> sel2indices(mode, dim, Contains(v)), val(sel))
 sel2indices(::IntervalSampling, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(dim, sel)
 
@@ -171,10 +180,8 @@ end
 
 near(dim::Dimension, sel) =
     relate(dim, near(locus(indexmode(dim)), indexorder(dim), dim, sel))
-
 near(::Locus, ::Unordered, dim, sel) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
-
 # Start is just offset Center
 near(::Start, ord::Order, dim, sel) =
     near(Center(), ord, dim, Near(val(sel) - abs(step(dim)) / 2))
@@ -219,10 +226,8 @@ end
 
 contains(dim::Dimension, sel::Selector) =
     relate(dim, contains(indexmode(dim), dim, sel))
-
 contains(mode::AbstractSampledIndex, dim, sel) =
     contains(span(mode), locus(mode), sampling(mode), indexorder(mode), mode, dim, sel)
-
 contains(::Any, ::Any, ::PointSampling, ord, mode, dim, sel) =
     throw(ArgumentError("PointSampling IndexMode cannot use 'Contains', us 'Near' instead."))
 
@@ -322,7 +327,6 @@ between(indexord::Reverse, ::PointSampling, dim::Dimension, sel) = begin
     b = _inbounds(_searchfirst(dim, low), dim)
     relate(dim, a:b)
 end
-
 between(indexord, s::IntervalSampling, dim::Dimension, sel) =
     between(span(indexmode(dim)), indexord, s, dim, sel)
 between(span::RegularSpan, indexord::Forward, ::IntervalSampling, dim::Dimension, sel) = begin

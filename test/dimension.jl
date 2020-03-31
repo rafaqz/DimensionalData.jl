@@ -8,7 +8,7 @@ using DimensionalData: Forward, slicedims
     @test label(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
     @test val(TestDim(:test)) == :test
-    @test metadata(TestDim(1, UnknownIndex(), "metadata")) == "metadata"
+    @test metadata(TestDim(1, AutoIndex(), "metadata")) == "metadata"
     @test units(TestDim) == nothing
     @test label(TestDim) == "Test dimension"
     @test eltype(TestDim(1)) <: Int

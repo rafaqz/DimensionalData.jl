@@ -9,9 +9,9 @@ using DimensionalData: Forward, Reverse,
     @test identify(SampledIndex(sampling=IntervalSampling()), Ti, 1:2:3) ==
         SampledIndex(Ordered(), RegularSpan(2), IntervalSampling(Start()))
 
-    @test identify(UnknownIndex(), X, 1:2:10) ==
+    @test identify(AutoIndex(), X, 1:2:10) ==
         SampledIndex(Ordered(), RegularSpan(2), PointSampling())
-    @test identify(UnknownIndex(), X, [1, 2, 3, 4, 5]) ==
+    @test identify(AutoIndex(), X, [1, 2, 3, 4, 5]) ==
         SampledIndex(Ordered(), IrregularSpan(), PointSampling())
 
     @test identify(SampledIndex(), X, 1:2:10) ==
@@ -27,14 +27,14 @@ using DimensionalData: Forward, Reverse,
     @test identify(SampledIndex(order=Ordered(Reverse(), Forward(), Forward())), X, 10:-2:1) ==
         SampledIndex(Ordered(Reverse(), Forward(), Forward()), RegularSpan(-2), PointSampling())
 
-    @test identify(UnknownIndex(), X, [:a, :b]) == CategoricalIndex()
-    @test identify(UnknownIndex(), X, ["a", "b"]) == CategoricalIndex()
-    @test identify(UnknownIndex(), X, ['a', 'b']) == CategoricalIndex()
-    @test identify(UnknownIndex(), X, [1, 2, 3, 4]) ==
+    @test identify(AutoIndex(), X, [:a, :b]) == CategoricalIndex()
+    @test identify(AutoIndex(), X, ["a", "b"]) == CategoricalIndex()
+    @test identify(AutoIndex(), X, ['a', 'b']) == CategoricalIndex()
+    @test identify(AutoIndex(), X, [1, 2, 3, 4]) ==
         SampledIndex(span=IrregularSpan())
-    @test_broken identify(UnknownIndex(AutoOrder()), X, [4, 3, 2, 1]) ==
+    @test_broken identify(AutoIndex(AutoOrder()), X, [4, 3, 2, 1]) ==
         SampledIndex(Ordered(Reverse(), Forward(), Forward()), NoLocus())
-    @test_broken identify(UnknownIndex(AutoOrder()), X, [1, 3, 2, 9]) ==
+    @test_broken identify(AutoIndex(AutoOrder()), X, [1, 3, 2, 9]) ==
         SampledIndex(Unordered(Forward(), NoLocus()))
 
 end

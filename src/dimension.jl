@@ -69,7 +69,7 @@ dims(x::DimTuple) = x
 name(dim::Dimension) = name(typeof(dim))
 shortname(d::Dimension) = shortname(typeof(d))
 shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
-units(dim::Dimension) = 
+units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
@@ -85,6 +85,7 @@ Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
 Base.axes(dim::Dimension) = axes(val(dim))
+Base.eachindex(dim::Dimension) = eachindex(val(dim))
 Base.length(dim::Dimension) = length(val(dim))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
@@ -142,21 +143,22 @@ struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
         new{X,typeof(val),typeof(indexmode),typeof(metadata)}(val, indexmode, metadata)
 end
 
-Dim{X}(val=:; indexmode=UnknownIndex(), metadata=nothing) where X = 
+Dim{X}(val=:; indexmode=AutoIndex(), metadata=nothing) where X =
     Dim{X}(val, indexmode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 """
-Undefined dimension.
+Undefined dimension. Used when extra dimensions are created, 
+such as during transpose of a vector.
 """
-struct EmptyDim <: Dimension{Int,NoIndex,Nothing} end
+struct PlaceholderDim <: Dimension{Int,NoIndex,Nothing} end
 
-val(::EmptyDim) = 1:1
-mode(::EmptyDim) = NoIndex()
-metadata(::EmptyDim) = nothing
-name(::EmptyDim) = "Empty"
+val(::PlaceholderDim) = 1:1
+mode(::PlaceholderDim) = NoIndex()
+metadata(::PlaceholderDim) = nothing
+name(::PlaceholderDim) = "Placeholder"
 
 """
     @dim typ [supertype=Dimension] [name=string(typ)] [shortname=string(typ)]
@@ -186,7 +188,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             indexmode::IM
             metadata::M
         end
-        $typ(val=:; indexmode=UnknownIndex(), metadata=nothing) = 
+        $typ(val=:; indexmode=AutoIndex(), metadata=nothing) =
             $typ(val, indexmode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
@@ -204,14 +206,14 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 
 @dim Ti TimeDim "Time"
 @doc """
-Time dimension. `Ti <: TimeDim <: IndependentDim 
+Time dimension. `Ti <: TimeDim <: IndependentDim
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
 """ Ti
 
-# Time dimensions need to default to the Start() locus, as that is 
-# nearly always the format and Center intervals are difficult to 
+# Time dimensions need to default to the Start() locus, as that is
+# nearly always the format and Center intervals are difficult to
 # calculate with DateTime step values.
-identify(locus::UnknownLocus, dimtype::Type{<:TimeDim}, index) = Start()
+identify(locus::AutoLocus, dimtype::Type{<:TimeDim}, index) = Start()
 
 const Time = Ti # For some backwards compat

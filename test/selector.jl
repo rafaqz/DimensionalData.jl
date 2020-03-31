@@ -10,8 +10,8 @@ a = [1 2  3  4
 
     @testset "RegularSpan Interval IndexMode with range" begin
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
-        startfwdfwd = Ti(5.0:30.0;    indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
-        startfwdrev = Ti(5.0:30.0;    indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
+        startfwdfwd = Ti(5.0:30.0;      indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Start())))
+        startfwdrev = Ti(5.0:30.0;      indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Start())))
         startrevfwd = Ti(30.0:-1.0:5.0; indexmode=SampledIndex(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(Start())))
         startrevrev = Ti(30.0:-1.0:5.0; indexmode=SampledIndex(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(Start())))
 
@@ -82,8 +82,8 @@ a = [1 2  3  4
             @test near(startrevrev, Near(30.0)) == 26
         end
 
-        centerfwdfwd = Ti((5.0:30.0);    indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
-        centerfwdrev = Ti((5.0:30.0);    indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
+        centerfwdfwd = Ti((5.0:30.0);      indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(Center())))
+        centerfwdrev = Ti((5.0:30.0);      indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(Center())))
         centerrevfwd = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(Center())))
         centerrevrev = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(Center())))
 
@@ -138,8 +138,8 @@ a = [1 2  3  4
             @test near(centerrevrev, Near(29.4)) == 25
         end
 
-        endfwdfwd = Ti((5.0:30.0);    indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
-        endfwdrev = Ti((5.0:30.0);    indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
+        endfwdfwd = Ti((5.0:30.0);      indexmode=SampledIndex(Ordered(Forward(),Forward(),Forward()), RegularSpan(1), IntervalSampling(End())))
+        endfwdrev = Ti((5.0:30.0);      indexmode=SampledIndex(Ordered(Forward(),Forward(),Reverse()), RegularSpan(1), IntervalSampling(End())))
         endrevfwd = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(Ordered(Reverse(),Forward(),Forward()), RegularSpan(-1), IntervalSampling(End())))
         endrevrev = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(Ordered(Reverse(),Forward(),Reverse()), RegularSpan(-1), IntervalSampling(End())))
 
@@ -237,8 +237,8 @@ a = [1 2  3  4
 
     @testset "Point indexmode" begin
 
-        fwdfwd = Ti((5.0:30.0);    indexmode=SampledIndex(order=Ordered(Forward(),Forward(),Forward())))
-        fwdrev = Ti((5.0:30.0);    indexmode=SampledIndex(order=Ordered(Forward(),Forward(),Reverse())))
+        fwdfwd = Ti((5.0:30.0);      indexmode=SampledIndex(order=Ordered(Forward(),Forward(),Forward())))
+        fwdrev = Ti((5.0:30.0);      indexmode=SampledIndex(order=Ordered(Forward(),Forward(),Reverse())))
         revfwd = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(order=Ordered(Reverse(),Forward(),Forward())))
         revrev = Ti((30.0:-1.0:5.0); indexmode=SampledIndex(order=Ordered(Reverse(),Forward(),Reverse())))
 
@@ -277,7 +277,7 @@ end
 
 
 @testset "Selectors on SampledIndex" begin
-    da = DimensionalArray(a, (Y((10, 30); indexmode=SampledIndex()), 
+    da = DimensionalArray(a, (Y((10, 30); indexmode=SampledIndex()),
                               Ti((1:4)u"s"; indexmode=SampledIndex())))
 
     @test At(10.0) == At(10.0, 0.0, Base.rtoldefault(eltype(10.0)))
@@ -290,11 +290,11 @@ end
     @test Between(10, 20) == Between((10, 20))
 
     @testset "selectors with dim wrappers" begin
-        @test da[Y<|At([10, 30]), Ti<|At([1u"s", 4u"s"])] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y<|At([9, 30]), Ti<|At([1u"s", 4u"s"])]
-        @test view(da, Y<|At(20), Ti<|At((3:4)u"s")) == [7, 8]
-        @test view(da, Y<|Near(17), Ti<|Near([1.5u"s", 3.1u"s"])) == [6, 7]
-        @test view(da, Y<|Between(9, 21), Ti<|At((3:4)u"s")) == [3 4; 7 8]
+        @test da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
+        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
+        @test view(da, Y(Near(17)), Ti(Near([1.5u"s", 3.1u"s"]))) == [6, 7]
+        @test view(da, Y(Between(9, 21)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
     end
 
     @testset "selectors without dim wrappers" begin
@@ -400,7 +400,7 @@ end
     end
 
     @testset "more Unitful dims" begin
-        dimz = Ti(1.0u"s":1.0u"s":3.0u"s"; indexmode=SampledIndex()), 
+        dimz = Ti(1.0u"s":1.0u"s":3.0u"s"; indexmode=SampledIndex()),
                Y((1u"km", 4u"km"); indexmode=SampledIndex())
         db = DimensionalArray(a, dimz)
         @test db[Y<|Between(2u"km", 3.9u"km"), Ti<|At<|3.0u"s"] == [10, 11]
@@ -422,7 +422,7 @@ end
             @test da_ffr[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [6, 5]
             @test da_ffr[Y<|Near([22, 42]), Ti<|Near([3.3u"s", 4.3u"s"])] == [6 5; 2 1]
             # Between hasn't reverse the index order
-            @test da_ffr[Y<|Between(19, 35), Ti<|Between(3.0u"s", 4.0u"s")] == [1 2; 5 6] 
+            @test da_ffr[Y<|Between(19, 35), Ti<|Between(3.0u"s", 4.0u"s")] == [1 2; 5 6]
         end
 
         @testset "reverse index with forward relation" begin
@@ -433,7 +433,7 @@ end
             @test da_rff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [6, 5]
             @test da_rff[Y<|Near([22, 42]), Ti<|Near([3.3u"s", 4.3u"s"])] == [6 5; 2 1]
             # Between hasn't reverse the index order
-            @test da_rff[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [1 2; 5 6] 
+            @test da_rff[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [1 2; 5 6]
         end
 
         @testset "forward index with forward relation" begin
@@ -443,7 +443,7 @@ end
             @test da_fff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_fff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
             @test da_fff[Y<|Near([22, 42]), Ti<|Near([3.3u"s", 4.3u"s"])] == [7 8; 11 12]
-            @test da_fff[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [7 8; 11 12] 
+            @test da_fff[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [7 8; 11 12]
         end
 
         @testset "reverse index with reverse relation" begin
@@ -453,11 +453,10 @@ end
             @test da_rfr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_rfr[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
             @test da_rfr[Y<|Near([22, 42]), Ti<|Near([3.3u"s", 4.3u"s"])] == [7 8; 11 12]
-            @test da_rfr[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [7 8; 11 12] 
+            @test da_rfr[Y<|Between(20, 30), Ti<|Between(3.0u"s", 4.0u"s")] == [7 8; 11 12]
         end
 
     end
-
 
     @testset "setindex! with selectors" begin
         c = deepcopy(a)
@@ -468,6 +467,44 @@ end
         @test c[1:3, 2] == [200, 201, 202]
     end
 
+end
+
+@testset "Selectors on SampledIndex and IntervalSampling" begin
+    a = [1 2  3  4
+         5 6  7  8
+         9 10 11 12]
+
+    da = DimensionalArray(a, (Y((10, 30); indexmode=SampledIndex(sampling=IntervalSampling())),
+                              Ti((1:4)u"s"; indexmode=SampledIndex(sampling=IntervalSampling()))))
+
+    @testset "selectors with dim wrappers" begin
+        @test da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
+        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
+        @test view(da, Y(Contains(17)), Ti(Contains([1.9u"s", 3.1u"s"]))) == [5, 7]
+        @test view(da, Y(Between(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
+    end
+
+    @testset "selectors without dim wrappers" begin
+        @test da[At(20:10:30), At(1u"s")] == [5, 9]
+        @test view(da, Between(4, 36), Near((3:4)u"s")) == [3 4; 7 8; 11 12]
+        @test view(da, Near(22), At([3.0u"s", 4.0u"s"])) == [7, 8]
+        @test view(da, At(20), At((2:3)u"s")) == [6, 7]
+        @test view(da, Near(13), Near([1.3u"s", 3.3u"s"])) == [1, 3]
+        @test view(da, Near([13]), Near([1.3u"s", 3.3u"s"])) == [1 3]
+        @test view(da, Between(11, 26), At((2:3)u"s")) == [6 7]
+        # Between also accepts a tuple input
+        @test view(da, Between((11, 26)), Between((2u"s", 4u"s"))) == [6 7]
+    end
+end
+
+
+@testset "Selectors on NoIndex" begin
+    dimz = Ti(), Y()
+    da = DimensionalArray(a, dimz)
+    @test da[Ti(At([1, 2])), Y(Contains(2))] == [2, 6]
+    @test da[Near(2), Between(2, 4)] == [6, 7, 8]
+    @test da[Contains([1, 3]), Near([2, 3, 4])] == [2 3 4; 10 11 12]
 end
 
 @testset "Selectors on CategoricalIndex" begin

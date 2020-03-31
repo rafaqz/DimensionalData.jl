@@ -43,9 +43,17 @@ indexorder(order::Unordered) = Unordered()
 arrayorder(order::Unordered) = Unordered()
 relationorder(order::Unordered) = order.relation
 
-struct UnknownOrder <: Order end
+"""
+Order will be found automatically where possible.
 
+This will fail for all types without `isless` methods.
+"""
 struct AutoOrder <: Order end
+
+"""
+Order is not known and can't be determined.
+"""
+struct UnknownOrder <: Order end
 
 """
 Indicates that the array or dimension is in the normal forward order.
@@ -100,7 +108,7 @@ struct End <: Locus end
 """
 Indicates dimension where the index position is not known.
 """
-struct UnknownLocus <: Locus end
+struct AutoLocus <: Locus end
 
 
 """
@@ -121,7 +129,7 @@ locus(sampling::PointSampling) = Center()
 struct IntervalSampling{L} <: Sampling
     locus::L
 end
-IntervalSampling() = IntervalSampling(UnknownLocus())
+IntervalSampling() = IntervalSampling(AutoLocus())
 rebuild(::IntervalSampling, locus) = IntervalSampling(locus)
 
 locus(sampling::IntervalSampling) = sampling.locus
@@ -130,13 +138,13 @@ locus(sampling::IntervalSampling) = sampling.locus
 """
 Mode defining the type of interval used in a InervalSampling index.
 """
-abstract type Interval end
+abstract type Span end
 
 """
 Intervals have regular size. This is passed to the constructor,
 although these are normally build automatically.
 """
-struct RegularSpan{S} <: Interval
+struct RegularSpan{S} <: Span
     step::S
 end
 RegularSpan() = RegularSpan(nothing)
@@ -150,7 +158,7 @@ IrregularSpan have irrigular size. To enable bounds tracking and accuract
 selectors, the starting bounds must be provided as a 2 tuple,
 or 2 arguments.
 """
-struct IrregularSpan{B<:Union{<:Tuple{<:Any,<:Any},Nothing}} <: Interval
+struct IrregularSpan{B<:Union{<:Tuple{<:Any,<:Any},Nothing}} <: Span
     bounds::B
 end
 IrregularSpan() = IrregularSpan(nothing)
@@ -159,9 +167,9 @@ IrregularSpan(a, b) = IrregularSpan((a, b))
 bounds(span::IrregularSpan) = span.bounds
 
 """
-Unknown span. Will be guessed and replaced by a constructor.
+Span will be guessed and replaced by a constructor.
 """
-struct UnknownInterval <: Interval end
+struct AutoSpan <: Span end
 
 
 
@@ -175,14 +183,14 @@ bounds(::Forward, indexmode, dim) = first(dim), last(dim)
 bounds(::Reverse, indexmode, dim) = last(dim), first(dim)
 bounds(::Unordered, indexmode, dim) = error("Cannot call `bounds` on an unordered indexmode")
 
-dims(g::IndexMode) = nothing
-order(g::IndexMode) = Unordered()
+dims(m::IndexMode) = nothing
+order(m::IndexMode) = Unordered()
 arrayorder(indexmode::IndexMode) = arrayorder(order(indexmode))
 indexorder(indexmode::IndexMode) = indexorder(order(indexmode))
 relationorder(indexmode::IndexMode) = relationorder(order(indexmode))
 
-reversearray(g::IndexMode) = rebuild(g, reversearray(order(g)))
-reverseindex(g::IndexMode) = rebuild(g, reverseindex(order(g)))
+reversearray(m::IndexMode) = rebuild(m, reversearray(order(m)))
+reverseindex(m::IndexMode) = rebuild(m, reverseindex(order(m)))
 
 Base.step(indexmode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `SampledIndex` with `RegularSpan`")
@@ -190,28 +198,37 @@ Base.step(indexmode::T) where T <: IndexMode =
 sliceindexmode(indexmode::IndexMode, index, I) = indexmode
 
 
+"""
+`IndexMode` that is identical to the array axis.
+"""
 struct NoIndex <: IndexMode end
 
+order(indexmode::NoIndex) = Ordered(Forward(), Forward(), Forward())
+
 """
-Unkwown [`IndexMode`](@ref). Will be converted automatically to another
-indexmode type when possible.
+Automatic [`IndexMode`](@ref). Will be converted automatically to another
+`IndexMode` when possible.
 """
-struct UnknownIndex{O<:Order} <: IndexMode
+struct AutoIndex{O<:Order} <: IndexMode
     order::O
 end
-UnknownIndex() = UnknownIndex(UnknownOrder())
+AutoIndex() = AutoIndex(AutoOrder())
 
-order(g::UnknownIndex) = g.order
+order(m::AutoIndex) = m.order
 
+"""
+Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes. 
+This is by far the most common case.
+"""
 abstract type AlignedIndex{O} <: IndexMode end
 
-order(g::AlignedIndex) = g.order
+order(m::AlignedIndex) = m.order
 
 """
 An [`IndexMode`](@ref) whos index is aligned with the array,
 and is independent of other dimensions.
 """
-abstract type AbstractSampledIndex{O,Sp,Sa} <: AlignedIndex{O} end
+abstract type AbstractSampledIndex{O<:Order,Sp<:Span,Sa<:Sampling} <: AlignedIndex{O} end
 
 span(indexmode::AbstractSampledIndex) = indexmode.span
 sampling(indexmode::AbstractSampledIndex) = indexmode.sampling
@@ -228,8 +245,8 @@ bounds(::PointSampling, span, indexmode::AbstractSampledIndex, dim) =
 bounds(::IntervalSampling, span::IrregularSpan, indexmode::AbstractSampledIndex, dim) =
     bounds(span)
 
-bounds(s::IntervalSampling, span::RegularSpan, g::AbstractSampledIndex, dim) =
-    bounds(locus(s), indexorder(g), span, g, dim)
+bounds(s::IntervalSampling, span::RegularSpan, m::AbstractSampledIndex, dim) =
+    bounds(locus(s), indexorder(m), span, m, dim)
 
 bounds(::Start, ::Forward, span, indexmode, dim) =
     first(dim), last(dim) + step(span)
@@ -251,16 +268,16 @@ sortbounds(indexmode::Reverse, bounds) = bounds[2], bounds[1]
 
 
 # TODO: deal with unordered AbstractArray indexing
-sliceindexmode(g::AbstractSampledIndex, index, I) =
-    sliceindexmode(sampling(g), span(g), g, index, I)
-sliceindexmode(::Any, ::Any, g::AbstractSampledIndex, index, I) = g
-sliceindexmode(::IntervalSampling, ::IrregularSpan, g::AbstractSampledIndex, index, I) = begin
-    span = IrregularSpan(slicebounds(g, index, I))
-    rebuild(g, order(g), span, sampling(g))
+sliceindexmode(m::AbstractSampledIndex, index, I) =
+    sliceindexmode(sampling(m), span(m), m, index, I)
+sliceindexmode(::Any, ::Any, m::AbstractSampledIndex, index, I) = m
+sliceindexmode(::IntervalSampling, ::IrregularSpan, m::AbstractSampledIndex, index, I) = begin
+    span = IrregularSpan(slicebounds(m, index, I))
+    rebuild(m, order(m), span, sampling(m))
 end
 
-slicebounds(g, index, I) =
-    slicebounds(locus(g), bounds(span(g)),  index, maybeflip(indexorder(g), index, I))
+slicebounds(m, index, I) =
+    slicebounds(locus(m), bounds(span(m)),  index, maybeflip(indexorder(m), index, I))
 slicebounds(locus::Start, bounds, index, I) =
     index[first(I)], last(I) >= lastindex(index) ? bounds[2] : index[last(I) + 1]
 slicebounds(locus::End, bounds, index, I) =
@@ -272,41 +289,41 @@ slicebounds(locus::Center, bounds, index, I) =
 
 """
 A concrete implementation of [`AbstractSampledIndex`](@ref) where all cells are
-the same size and evenly spaced. These indexmodes will often be paired with a range,
-but may also be paired with a vector.
+the same size and evenly spaced. This [`IndexMode`](@ref) will often be paired
+with a range, but may also be paired with a vector.
 
 ## Fields
-- `order::Order`: `Order` indicating array and index order
-- `locus::Locus`: `Locus` indicating the position of the indexed
+- `order`: [`Order`](@ref) indicating array and index order
+- `locus::Locus`: [`Locus`](@ref) indicating the position of the indexed
   point within the cell step
-- `span::Span`: `Span` indicating regular or irregular size of intervals or distance between
+- `span::Span`: [`Span`](@ref) indicating regular or irregular size of intervals or distance between
   points
 """
-struct SampledIndex{O<:Order,Sp<:Interval,Sa<:Sampling} <: AbstractSampledIndex{O,Sp,Sa}
+struct SampledIndex{O,Sp,Sa} <: AbstractSampledIndex{O,Sp,Sa}
     order::O
     span::Sp
     sampling::Sa
 end
-SampledIndex(; order=Ordered(), span=UnknownInterval(), sampling=PointSampling()) =
+SampledIndex(; order=Ordered(), span=AutoSpan(), sampling=PointSampling()) =
     SampledIndex(order, span, sampling)
 
-rebuild(g::SampledIndex, order=order(g), span=span(g), sampling=sampling(g)) =
+rebuild(m::SampledIndex, order=order(m), span=span(m), sampling=sampling(m)) =
     SampledIndex(order, span, sampling)
 
 
 """
-[IndexMode](@ref)s traits for dimensions where the values are categories.
+[`IndexMode`](@ref)s for dimensions where the values are categories.
 """
 abstract type AbstractCategoricalIndex{O} <: AlignedIndex{O} end
 
-order(g::AbstractCategoricalIndex) = g.order
-rebuild(g::AbstractCategoricalIndex, order=order(g)) = CategoricalIndex(order)
+order(m::AbstractCategoricalIndex) = m.order
+rebuild(m::AbstractCategoricalIndex, order=order(m)) = CategoricalIndex(order)
 
 """
 An IndexMode where the values are categories.
 
 ## Fields
-- `order`: `Order` trait indicating array and index order
+- `order`: [`Order`](@ref) indicating array and index order
 """
 struct CategoricalIndex{O<:Order} <: AbstractCategoricalIndex{O}
     order::O
@@ -316,19 +333,18 @@ CategoricalIndex(; order=Ordered()) = CategoricalIndex(order)
 
 
 """
-Abtract supertype for [IndexMode](@ref) traits describing a IndexMode that is
-dependent on other IndexMode.
+Supertype for [`IndexMode`](@ref) where the index is not aligned to the grid.
 
-Indexing into a dependent dimension must provide all other dependent dimensions.
+Indexing into a unaligned dimension must provide all other unaligned dimensions.
 """
 abstract type UnalignedIndex <: IndexMode end
 
-locus(g::UnalignedIndex) = g.locus
-dims(g::UnalignedIndex) = g.dims
+locus(m::UnalignedIndex) = m.locus
+dims(m::UnalignedIndex) = m.dims
 
 """
-[`IndexMode`](@ref) that uses an affine transformation to convert dimensions from
-`dims(indexmode)` to `dims(array)`.
+[`IndexMode`](@ref) that uses an affine transformation to convert
+dimensions from `dims(indexmode)` to `dims(array)`.
 
 ## Fields
 - `dims`: a tuple containing dimenension types or symbols matching the
@@ -340,7 +356,7 @@ struct TransformedIndex{D,L} <: UnalignedIndex
 end
 TransformedIndex(dims; locus=Start()) = TransformedIndex(dims, locus)
 
-rebuild(g::TransformedIndex, dims=dims(g), locus=locus(g) ) =
+rebuild(m::TransformedIndex, dims=dims(m), locus=locus(m) ) =
     TransformedIndex(dims, locus)
 
 # TODO bounds
@@ -360,22 +376,22 @@ rebuild(g::TransformedIndex, dims=dims(g), locus=locus(g) ) =
 # LookupIndex(dims=(), locus=Start())) =
     # LookupIndex(dims, locus)
 
-# rebuild(g::LookupIndex; dims=dims(g), locus=locus(g)) =
+# rebuild(m::LookupIndex; dims=dims(m), locus=locus(m)) =
     # LookupIndex(dims, locus)
 
 
 """
     identify(::IndexMode, index)
 
-Identify IndexMode from index content.
+Identify an `IndexMode` from index content and existing `IndexMode`.
 """
 identify(IM::Type{<:IndexMode}, dimtype::Type, index) =
     identify(IM(), dimtype, index)
 identify(indexmode::IndexMode, dimtype::Type, index) = indexmode
 
-identify(indexmode::UnknownIndex, dimtype::Type, index::AbstractArray) =
+identify(indexmode::AutoIndex, dimtype::Type, index::AbstractArray) =
     identify(SampledIndex(), dimtype, index)
-identify(indexmode::UnknownIndex, dimtype::Type, index::AbstractArray{<:Union{AbstractChar,Symbol,AbstractString}}) =
+identify(indexmode::AutoIndex, dimtype::Type, index::AbstractArray{<:Union{AbstractChar,Symbol,AbstractString}}) =
     CategoricalIndex()
 identify(indexmode::CategoricalIndex, dimtype::Type, index) = indexmode
 
@@ -387,9 +403,9 @@ identify(indexmode::AbstractSampledIndex, dimtype::Type, index::AbstractArray) =
     )
 end
 
-identify(span::UnknownInterval, dimtype::Type, index::AbstractArray) =
+identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
     IrregularSpan()
-identify(span::UnknownInterval, dimtype::Type, index::AbstractRange) =
+identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     RegularSpan(step(index))
 
 identify(span::RegularSpan, dimtype::Type, index::AbstractArray) =
@@ -414,19 +430,24 @@ identify(sampling::PointSampling, dimtype::Type, index) = sampling
 identify(sampling::IntervalSampling, dimtype::Type, index) =
     rebuild(sampling, identify(locus(sampling), dimtype, index))
 
-identify(locus::UnknownLocus, dimtype::Type, index) = Center()
+identify(locus::AutoLocus, dimtype::Type, index) = Center()
 identify(locus::Locus, dimtype::Type, index) = locus
 
-identify(order::UnknownOrder, dimtype::Type, index) = Ordered()
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
 identify(order::Order, dimtype::Type, index) = order
 
 
-_orderof(index::AbstractArray) = begin
-    indord = _indexorder(index)
-    sorted = issorted(index; rev=isrev(indord))
-    order = sorted ? Ordered(; index=indord) : Unordered()
-end
+_orderof(index::AbstractRange) =
+    Ordered(index=_indexorder(index))
+_orderof(index::AbstractArray) =
+    try
+        indord = _indexorder(index)
+        sorted = issorted(index; rev=isrev(indord))
+    catch
+        sorted = false
+    finally
+        sorted ? Ordered(index=indord) : Unordered()
+    end
 
 _indexorder(index::AbstractArray) =
     first(index) <= last(index) ? Forward() : Reverse()

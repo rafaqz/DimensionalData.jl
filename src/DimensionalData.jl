@@ -15,25 +15,23 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 using Base: tail, OneTo
 
 
-export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim
-
-export Dim, X, Y, Z, Ti
+export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
+       X, Y, Z, Ti, ParametricDimension, Dim, PlaceholderDim
 
 export Selector, Between, At, Contains, Near
 
-export Locus, Center, Start, End, UnknownLocus, NoLocus
+export Locus, Center, Start, End, AutoLocus, NoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
 export Sampling, PointSampling, IntervalSampling
 
-export Interval, RegularSpan, IrregularSpan, UnknownInterval
+export Span, RegularSpan, IrregularSpan, AutoSpan
 
-export IndexMode, UnknownIndex, NoIndex
+export IndexMode, AutoIndex, UnknownIndex, NoIndex
 
-export AbstractCategoricalIndex, CategoricalIndex
-
-export AlignedIndex, AbstractSampledIndex, SampledIndex
+export AlignedIndex, AbstractSampledIndex, SampledIndex,
+       AbstractCategoricalIndex, CategoricalIndex
 
 export UnalignedIndex, TransformedIndex
 
@@ -42,7 +40,7 @@ export AbstractDimensionalArray, DimensionalArray
 export data, dims, refdims, metadata, name, shortname,
        val, label, units, order, bounds, locus, indexmode, <|
 
-export dimnum, hasdim, setdim, swapdims
+export dimnum, hasdim, setdim, swapdims, rebuild
 
 export @dim
 
