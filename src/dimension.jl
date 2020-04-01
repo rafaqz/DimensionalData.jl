@@ -196,17 +196,17 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 
 # Define some common dimensions.
 @dim X XDim
-@doc "X dimension. `X <: XDim <: IndependentDim" X
+@doc "X dimension. `X <: XDim <: IndependentDim`" X
 
 @dim Y YDim
-@doc "Y dimension. `Y <: YDim <: DependentDim" Y
+@doc "Y dimension. `Y <: YDim <: DependentDim`" Y
 
 @dim Z ZDim
-@doc "Z dimension. `Z <: ZDim <: Dimension" Z
+@doc "Z dimension. `Z <: ZDim <: Dimension`" Z
 
 @dim Ti TimeDim "Time"
 @doc """
-Time dimension. `Ti <: TimeDim <: IndependentDim
+Time dimension. `Ti <: TimeDim <: IndependentDim`
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
 """ Ti

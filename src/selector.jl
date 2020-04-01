@@ -1,6 +1,6 @@
 """
-Selectors indicate that index values are not indices, but points to
-be selected from the dimension values, such as DateTime objects on a Time dimension.
+Selectors indicate that passed values are not the array indices, but values to
+be selected from the dimension index, such as `DateTime` objects for a `Ti` dimension.
 """
 abstract type Selector{T} end
 
@@ -18,10 +18,13 @@ Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     view(a, sel2indices(a, I)...)
 
 """
-    At(x)
+    At(x; atol=nothing, rtol=nothing)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
-For ranges and arrays, every value must match an existing value - not just the end points.
+For ranges and arrays, every intermediate value must match an existing value - 
+not just the end points.
+
+`atol` and `rtol` are passed to `isapprox`.
 """
 struct At{T,A,R} <: Selector{T}
     val::T
