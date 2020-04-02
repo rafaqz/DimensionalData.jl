@@ -12,7 +12,7 @@ using Combinatorics: combinations
     @test length.(dims(A1)) == size(A1)
     @test dims(data(A1) * permutedims(A1)) isa Tuple{<:Ti,<:Ti}
     @test data(A1) * permutedims(A1) == data(A1) * permutedims(data(A1))
-    @test dims(permutedims(A1) * data(A1)) isa Tuple{<:PlaceholderDim}
+    @test dims(permutedims(A1) * data(A1)) isa Tuple{<:AnonDim}
     @test permutedims(A1) * data(A1) == permutedims(data(A1)) * data(A1)
 
     @test length.(dims(permutedims(A1) * data(A1))) == size(permutedims(data(A1)) * data(A1))
@@ -51,7 +51,7 @@ using Combinatorics: combinations
     for flip in (adjoint, transpose, permutedims)
         result = flip(b1) * B1
         @test result ≈ true_result  # Permute dims is not exactly transpose
-        @test dims(result) isa Tuple{<:PlaceholderDim, <:X}
+        @test dims(result) isa Tuple{<:AnonDim, <:X}
         @test length.(dims(result)) == (1, 6)
     end
 

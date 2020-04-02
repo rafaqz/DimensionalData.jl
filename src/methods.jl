@@ -115,7 +115,7 @@ Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,1}) = rebuild(A, data(A) * B, dims(A, (1,))
 Base.:*(A::ADA{<:Any,1}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
 Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
 Base.:*(A::AA{<:Any,1}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
-Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (PlaceholderDim(),))
+Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (AnonDim(Base.OneTo(1)),))
 Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
 
 Base.:*(A::ADA{<:Any,1}, B::ADA{<:Any,2}) = begin
@@ -160,7 +160,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
             rebuild(A, $pkg.$fname(data(A)), reverse(dims(A)))
         @inline $pkg.$fname(A::AbDimArray{T,1}) where T =
-            rebuild(A, $pkg.$fname(data(A)), (PlaceholderDim(), dims(A)...))
+            rebuild(A, $pkg.$fname(data(A)), (AnonDim(Base.OneTo(1)), dims(A)...))
     end
 end
 

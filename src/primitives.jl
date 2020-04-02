@@ -447,8 +447,8 @@ Empty tuples are allowed
 @inline comparedims(a::DimTuple, b::Tuple{}) = a
 @inline comparedims(a::Tuple{}, b::DimTuple) = b
 @inline comparedims(a::Tuple{}, b::Tuple{}) = ()
-@inline comparedims(a::Dimension, b::PlaceholderDim) = a
-@inline comparedims(a::PlaceholderDim, b::Dimension) = b
+@inline comparedims(a::Dimension, b::AnonDim) = a
+@inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin
     basetypeof(a) == basetypeof(b) ||
         throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
