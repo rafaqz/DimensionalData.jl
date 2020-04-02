@@ -53,7 +53,7 @@ Categorical
 Unaligned
 Transformed
 NoIndex
-AutoIndex
+Auto
 ```
 
 Order of arrays and indices:

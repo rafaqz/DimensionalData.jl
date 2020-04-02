@@ -209,12 +209,12 @@ order(mode::NoIndex) = Ordered(Forward(), Forward(), Forward())
 Automatic [`IndexMode`](@ref). Will be converted automatically to another
 `IndexMode` when possible.
 """
-struct AutoIndex{O<:Order} <: IndexMode
+struct Auto{O<:Order} <: IndexMode
     order::O
 end
-AutoIndex() = AutoIndex(AutoOrder())
+Auto() = Auto(AutoOrder())
 
-order(mode::AutoIndex) = mode.order
+order(mode::Auto) = mode.order
 
 """
 Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes. 
@@ -388,9 +388,9 @@ identify(IM::Type{<:IndexMode}, dimtype::Type, index) =
     identify(IM(), dimtype, index)
 identify(mode::IndexMode, dimtype::Type, index) = mode
 
-identify(mode::AutoIndex, dimtype::Type, index::AbstractArray) =
+identify(mode::Auto, dimtype::Type, index::AbstractArray) =
     identify(Sampled(), dimtype, index)
-identify(mode::AutoIndex, dimtype::Type, 
+identify(mode::Auto, dimtype::Type, 
          index::AbstractArray{<:Union{AbstractChar,Symbol,AbstractString}}) =
     Categorical()
 identify(mode::AbstractCategorical, dimtype::Type, index) = mode
