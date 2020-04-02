@@ -150,15 +150,17 @@ shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 """
-Undefined dimension. Used when extra dimensions are created, 
+Anonymous dimension. Used when extra dimensions are created, 
 such as during transpose of a vector.
 """
-struct PlaceholderDim <: Dimension{Int,NoIndex,Nothing} end
+struct AnonDim{T} <: Dimension{T,NoIndex,Nothing} 
+    val::T
+end
 
-val(::PlaceholderDim) = 1:1
-mode(::PlaceholderDim) = NoIndex()
-metadata(::PlaceholderDim) = nothing
-name(::PlaceholderDim) = "Placeholder"
+val(dim::AnonDim) = dim.val
+mode(::AnonDim) = NoIndex()
+metadata(::AnonDim) = nothing
+name(::AnonDim) = "Anon"
 
 """
     @dim typ [supertype=Dimension] [name=string(typ)] [shortname=string(typ)]

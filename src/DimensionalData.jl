@@ -16,7 +16,7 @@ using Base: tail, OneTo
 
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
-       X, Y, Z, Ti, ParametricDimension, Dim, PlaceholderDim
+       X, Y, Z, Ti, ParametricDimension, Dim, AnonDim
 
 export Selector, Between, At, Contains, Near
 
