@@ -2,8 +2,9 @@ using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
 using DimensionalData: Start
 
 a = [1 2; 3 4]
-dimz = (X((143.0, 145.0)), Y((-38.0, -36.0)))
-da = DimensionalArray(a, dimz)
+dimz = (X((143.0, 145.0); metadata=Dict(:meta => "X")), 
+        Y((-38.0, -36.0); metadata=Dict(:meta => "Y")))
+da = DimensionalArray(a, dimz, "test"; metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -14,8 +15,12 @@ end
     a = da[X(1:2), Y(1)]
     @test a == [1, 3]
     @test typeof(a) <: DimensionalArray{Int,1}
-    @test dims(a) == (X(LinRange(143.0, 145.0, 2); mode=Sampled(span=Regular(2.0))),)
-    @test refdims(a) == (Y(-38.0; mode=Sampled(span=Regular(2.0))),)
+    @test dims(a) == (X(LinRange(143.0, 145.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")),)
+    @test refdims(a) == (Y(-38.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")),)
+    @test name(a) == "test"
+    @test metadata(a) == Dict(:meta => "da")
+    @test metadata(a, X) == Dict(:meta => "X")
     @test bounds(a) == ((143.0, 145.0),)
     @test bounds(a, X) == (143.0, 145.0)
     # @test locus(mode(dims(da, X))) == Start()
@@ -24,8 +29,11 @@ end
     @test a == [1, 2]
     @test typeof(a) <: DimensionalArray{Int,1}
     @test typeof(data(a)) <: Array{Int,1}
-    @test dims(a) == (Y(LinRange(-38.0, -36.0, 2); mode=Sampled(span=Regular(2.0))),)
-    @test refdims(a) == (X(143.0; mode=Sampled(span=Regular(2.0))),)
+    @test dims(a) == (Y(LinRange(-38.0, -36.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")),)
+    @test refdims(a) == (X(143.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")),)
+    @test name(a) == "test"
+    @test metadata(a) == Dict(:meta => "da")
     @test bounds(a) == ((-38.0, -36.0),)
     @test bounds(a, Y()) == (-38.0, -36.0)
 
@@ -34,9 +42,12 @@ end
     @test typeof(a) <: DimensionalArray{Int,2}
     @test typeof(data(a)) <: Array{Int,2}
     @test typeof(dims(a)) <: Tuple{<:X,<:Y}
-    @test dims(a) == (X(LinRange(143.0, 145.0, 2); mode=Sampled(span=Regular(2.0))), 
-                      Y(LinRange(-38.0, -36.0, 2); mode=Sampled(span=Regular(2.0))))
+    @test dims(a) == (X(LinRange(143.0, 145.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")), 
+                      Y(LinRange(-38.0, -36.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")))
     @test refdims(a) == ()
+    @test name(a) == "test"
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
     @test bounds(a, X) == (143.0, 145.0)
 end
@@ -48,8 +59,10 @@ end
     @test typeof(data(v)) <:SubArray{Int,0}
     @test typeof(dims(v)) == Tuple{}
     @test dims(v) == ()
-    @test refdims(v) == (X(143.0; mode=Sampled(span=Regular(2.0))), 
-                         Y(-38.0; mode=Sampled(span=Regular(2.0))))
+    @test refdims(v) == (X(143.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")), 
+                         Y(-38.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")))
+    @test name(v) == "test"
+    @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ()
 
     v = view(da, Y(1), X(1:2))
@@ -57,8 +70,11 @@ end
     @test typeof(v) <: DimensionalArray{Int,1}
     @test typeof(data(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:X}
-    @test dims(v) == (X(LinRange(143.0, 145.0, 2); mode=Sampled(span=Regular(2.0))),)
-    @test refdims(v) == (Y(-38.0; mode=Sampled(span=Regular(2.0))),)
+    @test dims(v) == (X(LinRange(143.0, 145.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")),)
+    @test refdims(v) == (Y(-38.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")),)
+    @test name(v) == "test"
+    @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ((143.0, 145.0),)
 
     v = view(da, Y(1:2), X(1:1))
@@ -66,16 +82,19 @@ end
     @test typeof(v) <: DimensionalArray{Int,2}
     @test typeof(data(v)) <: SubArray{Int,2}
     @test typeof(dims(v)) <: Tuple{<:X,<:Y}
-    @test dims(v) == (X(LinRange(143.0, 143.0, 1); mode=Sampled(span=Regular(2.0))), 
-                      Y(LinRange(-38, -36, 2); mode=Sampled(span=Regular(2.0))))
+    @test dims(v) == (X(LinRange(143.0, 143.0, 1); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")), 
+                      Y(LinRange(-38, -36, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")))
     @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
     v = view(da, Y(Base.OneTo(2)), X(1))
     @test v == [1, 2]
     @test typeof(data(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:Y}
-    @test dims(v) == (Y(LinRange(-38.0, -36.0, 2); mode=Sampled(span=Regular(2.0))),)
-    @test refdims(v) == (X(143.0; mode=Sampled(span=Regular(2.0))),)
+    @test dims(v) == (Y(LinRange(-38.0, -36.0, 2); 
+                        mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "Y")),)
+    @test refdims(v) == (X(143.0; mode=Sampled(span=Regular(2.0)), metadata=Dict(:meta => "X")),)
     @test bounds(v) == ((-38.0, -36.0),)
 end
 
