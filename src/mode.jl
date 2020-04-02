@@ -161,7 +161,7 @@ or 2 arguments.
 struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},Nothing}} <: Span
     bounds::B
 end
-Irregular() = Irregular(nothing)
+Irregular() = Irregular(nothing, nothing)
 Irregular(a, b) = Irregular((a, b))
 
 bounds(span::Irregular) = span.bounds
@@ -421,7 +421,7 @@ identify(span::Irregular{Nothing}, dimtype, index) =
         bound2 = index[end] + (index[end] - index[end-1]) / 2
         Irregular(sortbounds(bound1, bound2))
     else
-        Irregular(nothing)
+        Irregular(nothing, nothing)
     end
 identify(span::Irregular{<:Tuple}, dimtype, index) = span
 

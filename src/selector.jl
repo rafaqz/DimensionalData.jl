@@ -1,12 +1,13 @@
 """
-Selectors indicate that passed values are not the array indices, but values to
-be selected from the dimension index, such as `DateTime` objects for a `Ti` dimension.
+Selectors are wrappers that indicate that passed values are not the array indices,
+but values to be selected from the dimension index, such as `DateTime` objects for
+a `Ti` dimension.
 """
 abstract type Selector{T} end
 
 const SelectorOrStandard = Union{Selector, StandardIndices}
 
-val(m::Selector) = m.val
+val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
 # Selector indexing without dim wrappers. Must be in the right order!
@@ -18,13 +19,18 @@ Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
     view(a, sel2indices(a, I)...)
 
 """
+    At(x, atol, rtol)
     At(x; atol=nothing, rtol=nothing)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
-For ranges and arrays, every intermediate value must match an existing value - 
+For ranges and arrays, every intermediate value must match an existing value -
 not just the end points.
 
+`x` can be any value or `Vector` of values.
+
 `atol` and `rtol` are passed to `isapprox`.
+For `Number` `rtol` will be set to `Base.rtoldefault`, otherwise `nothing`,
+and wont be used. 
 """
 struct At{T,A,R} <: Selector{T}
     val::T
@@ -85,7 +91,7 @@ Between(x::Tuple) = Between{typeof(x)}(x)
 # Get the dims in the same order as the mode
 # This would be called after RegularIndex and/or Categorical
 # dimensions are removed
-dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
+_dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
     sel2indices(mode, dims, map(val, permutedims(dimz, dims(mode))))
 
 sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
