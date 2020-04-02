@@ -16,7 +16,7 @@ using DimensionalData: Forward, slicedims
     @test length(TestDim(1)) == 1
     @test length(TestDim([1, 2, 3])) == 3
     @test_throws ErrorException step(TestDim(1:2:3)) == 2
-    @test step(TestDim(1:2:3; indexmode=SampledIndex(span=RegularSpan(2)))) == 2
+    @test step(TestDim(1:2:3; mode=Sampled(span=Regular(2)))) == 2
     @test firstindex(TestDim(10:20)) == 1
     @test lastindex(TestDim(10:20)) == 11
     @test size(TestDim(10:20)) == (11,)
@@ -33,8 +33,8 @@ da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
 dimz = dims(da)
 @test d = slicedims(dimz, (2:4, 3)) == 
-    ((X(LinRange(142,146,3); indexmode=SampledIndex(span=RegularSpan(2.0))),),
-     (Y(8.0, indexmode=SampledIndex(span=RegularSpan(3.0))),))
+    ((X(LinRange(142,146,3); mode=Sampled(span=Regular(2.0))),),
+     (Y(8.0, mode=Sampled(span=Regular(3.0))),))
 @test name(dimz) == ("X", "Y")
 @test shortname(dimz) == ("X", "Y")
 @test units(dimz) == (nothing, nothing)
@@ -52,8 +52,8 @@ dimz = dims(da)
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Ti)
     @test typeof(dims(da)) == 
-        Tuple{X{LinRange{Float64},SampledIndex{Ordered{Forward,Forward,Forward},RegularSpan{Float64},PointSampling},Nothing},
-              Y{LinRange{Float64},SampledIndex{Ordered{Forward,Forward,Forward},RegularSpan{Float64},PointSampling},Nothing}}
+        Tuple{X{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing},
+              Y{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing}}
 end
 
 @testset "arbitrary dim names" begin

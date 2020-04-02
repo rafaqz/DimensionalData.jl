@@ -160,15 +160,15 @@ This enables optimisations with `Selector`s, and modified behaviours such as
 selection of intervals or points, which will give slightly different results for
 selectors like [`Between`](@ref).
 
-The major categories are [`CategoricalIndex`](@ref), [`SampledIndex`](@ref) and
-[`NoIndex`](@ref), which are all types of [`AlignedIndex`](@ref).
-[`UnalignedIndex`](@ref) also exists to handle dimensions with an index that is
+The major categories are [`Categorical`](@ref), [`Sampled`](@ref) and
+[`NoIndex`](@ref), which are all types of [`Aligned`](@ref).
+[`Unaligned`](@ref) also exists to handle dimensions with an index that is
 rotated or otherwise transformed in relation to the underlying array, such as
-[`TransformedIndex`](@ref). These are a work in progress.
+[`Transformed`](@ref). These are a work in progress.
 
-[`AlignedIndex`] types will be detected automatically if not specified. A
+[`Aligned`] types will be detected automatically if not specified. A
 Dimension containing and index of `String`, `Char` or `Symbol` will be labelled
-with [`CategoricalIndex`](@ref). A range will be [`SampledIndex`](@ref),
-defaulting to [`PointSampling`](@ref) and [`RegularSpan`](@ref). 
+with [`Categorical`](@ref). A range will be [`Sampled`](@ref),
+defaulting to [`Points`](@ref) and [`Regular`](@ref). 
 
 See the api docs for specifics about these [`IndexMode`](@ref)s.

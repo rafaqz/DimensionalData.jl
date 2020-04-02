@@ -45,8 +45,8 @@ rtol(sel::At) = sel.rtol
     Near(x)
 
 Selector that selects the nearest index.
-With [`PointSampling`](@ref) this is simply the index nearest to the
-contained value, however with [`IntervalSampling`](@ref) it is the interval
+With [`Points`](@ref) this is simply the index nearest to the
+contained value, however with [`Intervals`](@ref) it is the interval
 _center_ nearest to the contained value. This will be offset from the
 index value for [`Start`](@ref) and [`End`](@ref) loci.
 """
@@ -60,7 +60,7 @@ end
 Selector that selects the interval the value is contained by. If the
 interval is not present in the index, an error will be thrown.
 
-Can only be used for [`IntervalSampling`](@ref) or [`CategoricalIndex`](@ref).
+Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 """
 struct Contains{T} <: Selector{T}
     val::T
@@ -71,8 +71,8 @@ end
 
 Selector that retreive all indices located between 2 values.
 
-For [`IntervalSampling`](@ref) the whole interval must be lie between the
-values. For [`PointSampling`](@ref) the points must fall between
+For [`Intervals`](@ref) the whole interval must be lie between the
+values. For [`Points`](@ref) the points must fall between
 the 2 values. These different sampling traits will often give different
 results with the same index and values - this is the intended behaviour.
 """
@@ -82,16 +82,16 @@ end
 Between(args...) = Between{typeof(args)}(args)
 Between(x::Tuple) = Between{typeof(x)}(x)
 
-# Get the dims in the same order as the indexmode
-# This would be called after RegularIndex and/or CategoricalIndex
+# Get the dims in the same order as the mode
+# This would be called after RegularIndex and/or Categorical
 # dimensions are removed
-dims2indices(mode::TransformedIndex, dims::Tuple, lookups::Tuple, emptyval) =
+dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
     sel2indices(mode, dims, map(val, permutedims(dimz, dims(mode))))
 
 sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 sel2indices(dims::Tuple, lookup::Tuple) =
-    map((d, l) -> sel2indices(l, indexmode(d), d), dims, lookup)
+    map((d, l) -> sel2indices(l, mode(d), d), dims, lookup)
 
 # First filter based on rough selector properties -----------------
 
@@ -112,35 +112,35 @@ sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(s
 sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
-# CategoricalIndex
-sel2indices(mode::CategoricalIndex, dim::Dimension, sel::Selector) =
+# Categorical
+sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
-        sel2indices(PointSampling(), mode, dim, At(val(sel)))
+        sel2indices(Points(), mode, dim, At(val(sel)))
     else
-        sel2indices(PointSampling(), mode, dim, sel)
+        sel2indices(Points(), mode, dim, sel)
     end
 
-# SampledIndex
-sel2indices(mode::SampledIndex, dim::Dimension, sel::Selector) =
+# Sampled
+sel2indices(mode::Sampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
-# For SampledIndex filter based on sampling type and selector -----------------
+# For Sampled filter based on sampling type and selector -----------------
 
 # At selector
 sel2indices(::Sampling, mode::IndexMode, dim::Dimension, sel::At) = at(dim, sel)
 
 # Near selector
 sel2indices(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
-    if span(mode) isa IrregularSpan && locus(mode) isa Union{Start,End}
-        error("Near is not implemented for IrregularSpan with Start or End loci. Use Contains")
+    if span(mode) isa Irregular && locus(mode) isa Union{Start,End}
+        error("Near is not implemented for Irregular with Start or End loci. Use Contains")
     end
     near(dim, Near(val(sel)))
 end
 
 # Contains selector
-sel2indices(::PointSampling, mode::T, dim::Dimension, sel::Contains) where T =
-    throw(ArgumentError("`Contains` has no meaning with `PointSampling`. Use `Near`"))
-sel2indices(::IntervalSampling, mode::IndexMode, dim::Dimension, sel::Contains) =
+sel2indices(::Points, mode::T, dim::Dimension, sel::Contains) where T =
+    throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
+sel2indices(::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(dim, sel)
 
 # Between selector
@@ -150,9 +150,9 @@ sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:
 
 # Transformed IndexMode
 
-# We use the transformation from the first TransformedIndex dim.
+# We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-sel2indices(indexmodess::Tuple{Vararg{<:TransformedIndex}}, dims::DimTuple,
+sel2indices(modess::Tuple{Vararg{<:Transformed}}, dims::DimTuple,
             sel::Tuple{Vararg{<:Selector}}) =
     map(_to_int, sel, val(dims[1])([map(val, sel)...]))
 
@@ -182,7 +182,7 @@ end
 
 
 near(dim::Dimension, sel) =
-    relate(dim, near(locus(indexmode(dim)), indexorder(dim), dim, sel))
+    relate(dim, near(locus(mode(dim)), indexorder(dim), dim, sel))
 near(::Locus, ::Unordered, dim, sel) =
     throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
 # Start is just offset Center
@@ -228,13 +228,13 @@ end
 
 
 contains(dim::Dimension, sel::Selector) =
-    relate(dim, contains(indexmode(dim), dim, sel))
-contains(mode::AbstractSampledIndex, dim, sel) =
+    relate(dim, contains(mode(dim), dim, sel))
+contains(mode::AbstractSampled, dim, sel) =
     contains(span(mode), locus(mode), sampling(mode), indexorder(mode), mode, dim, sel)
-contains(::Any, ::Any, ::PointSampling, ord, mode, dim, sel) =
-    throw(ArgumentError("PointSampling IndexMode cannot use 'Contains', us 'Near' instead."))
+contains(::Any, ::Any, ::Points, ord, mode, dim, sel) =
+    throw(ArgumentError("Points IndexMode cannot use 'Contains', us 'Near' instead."))
 
-contains(span::RegularSpan, ::Start, ::IntervalSampling, ord::Forward, mode, dim, sel) = begin
+contains(span::Regular, ::Start, ::Intervals, ord::Forward, mode, dim, sel) = begin
     v = val(sel)
     s = val(span)
     (v < first(dim) || v >= last(dim) + s) && throw(BoundsError())
@@ -242,28 +242,28 @@ contains(span::RegularSpan, ::Start, ::IntervalSampling, ord::Forward, mode, dim
     (dim[i] + abs(s) > v) || error("No span for $v")
     i
 end
-contains(span::RegularSpan, ::Start, ::IntervalSampling, ord::Reverse, mode, dim, sel) = begin
+contains(span::Regular, ::Start, ::Intervals, ord::Reverse, mode, dim, sel) = begin
     v = val(sel)
     (v < last(dim) || v >= first(dim) - val(span)) && throw(BoundsError())
     i = _searchfirst(dim, v)
     (dim[i] + abs(val(span)) > v) || error("No span for $v")
     i
 end
-contains(span::RegularSpan, ::End, ::IntervalSampling, ord::Forward, mode, dim, sel) = begin
+contains(span::Regular, ::End, ::Intervals, ord::Forward, mode, dim, sel) = begin
     v = val(sel)
     (v <= first(dim) - val(span) || v > last(dim)) && throw(BoundsError())
     i = _searchfirst(dim, v)
     (dim[i] - abs(val(span)) <= v) || error("No span for $v")
     i
 end
-contains(span::RegularSpan, ::End, ::IntervalSampling, ord::Reverse, mode, dim, sel) = begin
+contains(span::Regular, ::End, ::Intervals, ord::Reverse, mode, dim, sel) = begin
     v = val(sel)
     (v <= last(dim) + val(span) || v > first(dim)) && throw(BoundsError())
     i = _searchlast(dim, v)
     (dim[i] - abs(val(span)) <= v) || error("No span for $v")
     i
 end
-contains(span::RegularSpan, locus::Center, samp::IntervalSampling, ord::Forward, mode, dim, sel) = begin
+contains(span::Regular, locus::Center, samp::Intervals, ord::Forward, mode, dim, sel) = begin
     half = abs(val(span) / 2)
     v = val(sel)
     (v < first(dim) - half || v >= last(dim) + half) && throw(BoundsError())
@@ -271,7 +271,7 @@ contains(span::RegularSpan, locus::Center, samp::IntervalSampling, ord::Forward,
     (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
     i
 end
-contains(span::RegularSpan, locus::Center, samp::IntervalSampling, ord::Reverse, mode, dim, sel) = begin
+contains(span::Regular, locus::Center, samp::Intervals, ord::Reverse, mode, dim, sel) = begin
     half = abs(val(span) / 2)
     v = val(sel)
     (v < last(dim) - half || v >= first(dim) + half) && throw(BoundsError())
@@ -281,17 +281,17 @@ contains(span::RegularSpan, locus::Center, samp::IntervalSampling, ord::Reverse,
 end
 
 
-contains(::IrregularSpan, ::Start, ::IntervalSampling, ord::Order, mode, dim, sel) = begin
+contains(::Irregular, ::Start, ::Intervals, ord::Order, mode, dim, sel) = begin
     i = _searchlast(dim, val(sel))
     checkbounds(val(dim), i)
     i
 end
-contains(::IrregularSpan, ::End, ::IntervalSampling, ord::Order, mode, dim, sel) = begin
+contains(::Irregular, ::End, ::Intervals, ord::Order, mode, dim, sel) = begin
     i = _searchfirst(dim, val(sel))
     checkbounds(val(dim), i)
     i
 end
-contains(::IrregularSpan, ::Center, ::IntervalSampling, ord::Reverse, mode, dim, sel) = begin
+contains(::Irregular, ::Center, ::Intervals, ord::Reverse, mode, dim, sel) = begin
     i = _searchlast(dim, val(sel))
     checkbounds(val(dim), i)
     if i == firstindex(dim)
@@ -300,7 +300,7 @@ contains(::IrregularSpan, ::Center, ::IntervalSampling, ord::Reverse, mode, dim,
         (dim[i] + dim[i - 1]) / 2 <= val(sel) ? i - 1 : i
     end
 end
-contains(::IrregularSpan, ::Center, ::IntervalSampling, ord::Forward, mode, dim, sel) = begin
+contains(::Irregular, ::Center, ::Intervals, ord::Forward, mode, dim, sel) = begin
     i = _searchlast(dim, val(sel))
     checkbounds(val(dim), i)
     if i == lastindex(dim)
@@ -318,28 +318,28 @@ between(sampling::Sampling, dim::Dimension, sel) =
 between(::Unordered, sampling::Sampling, dim::Dimension, sel) =
     throw(ArgumentError("Cannot use `Between` on an unordered mode"))
 
-between(indexord::Forward, ::PointSampling, dim::Dimension, sel) = begin
+between(indexord::Forward, ::Points, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
     a = _inbounds(_searchfirst(dim, low), dim)
     b = _inbounds(_searchlast(dim, high), dim)
     relate(dim, a:b)
 end
-between(indexord::Reverse, ::PointSampling, dim::Dimension, sel) = begin
+between(indexord::Reverse, ::Points, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel)
     a = _inbounds(_searchlast(dim, high), dim)
     b = _inbounds(_searchfirst(dim, low), dim)
     relate(dim, a:b)
 end
-between(indexord, s::IntervalSampling, dim::Dimension, sel) =
-    between(span(indexmode(dim)), indexord, s, dim, sel)
-between(span::RegularSpan, indexord::Forward, ::IntervalSampling, dim::Dimension, sel) = begin
-    low, high = _sorttuple(sel) .+ _locus_adjustment(indexmode(dim), span)
+between(indexord, s::Intervals, dim::Dimension, sel) =
+    between(span(mode(dim)), indexord, s, dim, sel)
+between(span::Regular, indexord::Forward, ::Intervals, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel) .+ _locus_adjustment(mode(dim), span)
     a = _inbounds(_searchfirst(dim, low), dim)
     b = _inbounds(_searchlast(dim, high), dim)
     relate(dim, a:b)
 end
-between(span::RegularSpan, indexord::Reverse, ::IntervalSampling, dim::Dimension, sel) = begin
-    low, high = _sorttuple(sel) .+ _locus_adjustment(indexmode(dim), span)
+between(span::Regular, indexord::Reverse, ::Intervals, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel) .+ _locus_adjustment(mode(dim), span)
     a = _inbounds(_searchfirst(dim, high), dim)
     b = _inbounds(_searchlast(dim, low), dim)
     relate(dim, a:b)
@@ -355,8 +355,8 @@ _searchfirst(dim::Dimension, v) = _searchfirst(indexorder(dim), val(dim), v)
 _searchfirst(::Forward, index, v) = searchsortedfirst(index, v)
 _searchfirst(::Reverse, index, v) = searchsortedfirst(index, v; rev=true)
 
-_locus_adjustment(indexmode::AbstractSampledIndex, span::RegularSpan) =
-    _locus_adjustment(locus(indexmode), abs(step(span)))
+_locus_adjustment(mode::AbstractSampled, span::Regular) =
+    _locus_adjustment(locus(mode), abs(step(span)))
 _locus_adjustment(locus::Start, step) = zero(step), -step
 _locus_adjustment(locus::Center, step) = step * 0.5, step * -0.5
 _locus_adjustment(locus::End, step) = step, zero(step)

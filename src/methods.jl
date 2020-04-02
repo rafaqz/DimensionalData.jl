@@ -145,7 +145,7 @@ end
 @inline reversearray(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
     if length(dimstorev) == dnum
-        dim = rebuild(dim, val(dim), reversearray(indexmode(dim)))
+        dim = rebuild(dim, val(dim), reversearray(mode(dim)))
     end
     (reversearray(Base.front(dimstorev), dnum)..., dim)
 end
@@ -203,24 +203,24 @@ _catifcatdim(catdims::Tuple, ds) =
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
 Base.vcat(dims::Dimension...) =
-    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(indexmode, dims)...))
+    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(mode, dims)...))
 
-Base.vcat(indexmodes::IndexMode...) = first(indexmodes)
-Base.vcat(indexmodes::AbstractSampledIndex...) =
-    _vcat_indexmodes(sampling(first(indexmodes)), span(first(indexmodes)), indexmodes...)
+Base.vcat(modes::IndexMode...) = first(modes)
+Base.vcat(modes::AbstractSampled...) =
+    _vcat_modes(sampling(first(modes)), span(first(modes)), modes...)
 
-_vcat_indexmodes(::Any, ::RegularSpan, indexmodes...) = begin
-    _step = step(first(indexmodes))
-    map(indexmodes) do indexmode
-        step(span(indexmode)) == _step || error("Step sizes $(step(span(indexmode))) and $_step do not match ")
+_vcat_modes(::Any, ::Regular, modes...) = begin
+    _step = step(first(modes))
+    map(modes) do mode
+        step(span(mode)) == _step || error("Step sizes $(step(span(mode))) and $_step do not match ")
     end
-    first(indexmodes)
+    first(modes)
 end
-_vcat_indexmodes(::IntervalSampling, ::IrregularSpan, indexmodes...) = begin
-    bounds = bounds(indexmodes[1])[1], bounds(indexmodes[end])[end]
-    rebuild(indexmodes[1]; span=IrregularSpan(sortbounds(indexorder(indexmodes[1]), bounds)))
+_vcat_modes(::Intervals, ::Irregular, modes...) = begin
+    bounds = bounds(modes[1])[1], bounds(modes[end])[end]
+    rebuild(modes[1]; span=Irregular(sortbounds(indexorder(modes[1]), bounds)))
 end
-_vcat_indexmodes(::PointSampling, ::IrregularSpan, indexmodes...) = first(indexmodes)
+_vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)

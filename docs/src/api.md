@@ -45,13 +45,13 @@ Contains
 
 ```@docs
 IndexMode
-AlignedIndex
-AbstractSampledIndex
-SampledIndex
-AbstractCategoricalIndex
-CategoricalIndex
-UnalignedIndex
-TransformedIndex
+Aligned
+AbstractSampled
+Sampled
+AbstractCategorical
+Categorical
+Unaligned
+Transformed
 NoIndex
 AutoIndex
 ```
@@ -68,7 +68,7 @@ DimensionalData.Forward
 DimensionalData.Reverse
 ```
 
-Index modes for [`SampledIndex`](@ref)
+Index modes for [`Sampled`](@ref)
 
 ### Loci
 
@@ -84,8 +84,8 @@ AutoLocus
 
 ```@docs
 Span
-RegularSpan
-IrregularSpan
+Regular
+Irregular
 AutoSpan
 ```
 
@@ -93,8 +93,8 @@ AutoSpan
 
 ```@docs
 Sampling
-PointSampling
-IntervalSampling
+Points
+Intervals
 ```
 
 ## Methods

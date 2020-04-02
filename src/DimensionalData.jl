@@ -24,29 +24,29 @@ export Locus, Center, Start, End, AutoLocus, NoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
-export Sampling, PointSampling, IntervalSampling
+export Sampling, Points, Intervals
 
-export Span, RegularSpan, IrregularSpan, AutoSpan
+export Span, Regular, Irregular, AutoSpan
 
 export IndexMode, AutoIndex, UnknownIndex, NoIndex
 
-export AlignedIndex, AbstractSampledIndex, SampledIndex,
-       AbstractCategoricalIndex, CategoricalIndex
+export Aligned, AbstractSampled, Sampled,
+       AbstractCategorical, Categorical
 
-export UnalignedIndex, TransformedIndex
+export Unaligned, Transformed
 
 export AbstractDimensionalArray, DimensionalArray
 
 export data, dims, refdims, metadata, name, shortname,
-       val, label, units, order, bounds, locus, indexmode, <|
+       val, label, units, order, bounds, locus, mode, <|
 
-export dimnum, hasdim, setdim, swapdims, rebuild
+export dimnum, hasdim, setdims, swapdims, rebuild
 
 export @dim
 
 
 include("interface.jl")
-include("indexmode.jl")
+include("mode.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")

@@ -48,21 +48,21 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,DimVector}
 
 # Getters
 val(dim::Dimension) = dim.val
-indexmode(dim::Dimension) = dim.indexmode
-indexmode(dim::Type{<:Dimension}) = NoIndex()
+mode(dim::Dimension) = dim.mode
+mode(dim::Type{<:Dimension}) = NoIndex()
 metadata(dim::Dimension) = dim.metadata
 
-order(dim::Dimension) = order(indexmode(dim))
+order(dim::Dimension) = order(mode(dim))
 indexorder(dim::Dimension) = indexorder(order(dim))
 arrayorder(dim::Dimension) = arrayorder(order(dim))
 relationorder(dim::Dimension) = relationorder(order(dim))
 
-locus(dim::Dimension) = locus(indexmode(dim))
-sampling(dim::Dimension) = sampling(indexmode(dim))
+locus(dim::Dimension) = locus(mode(dim))
+sampling(dim::Dimension) = sampling(mode(dim))
 
 # DimensionalData interface methods
-rebuild(dim::D, val, indexmode=indexmode(dim), metadata=metadata(dim)) where D <: Dimension =
-    constructorof(D)(val, indexmode, metadata)
+rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
+    constructorof(D)(val, mode, metadata)
 
 dims(x::Dimension) = x
 dims(x::DimTuple) = x
@@ -73,7 +73,7 @@ units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
-bounds(dim::Dimension) = bounds(indexmode(dim), dim)
+bounds(dim::Dimension) = bounds(mode(dim), dim)
 bounds(dims::DimTuple) = map(bounds, dims)
 bounds(dims::Tuple{}) = ()
 bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
@@ -98,12 +98,12 @@ Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
 Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
-Base.step(dim::Dimension) = step(indexmode(dim))
+Base.step(dim::Dimension) = step(mode(dim))
 Base.Array(dim::Dimension{<:AbstractArray}) = Array(val(dim))
 Base.:(==)(dim1::Dimension, dim2::Dimension) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
-    indexmode(dim1) == indexmode(dim2) &&
+    mode(dim1) == mode(dim2) &&
     metadata(dim1) == metadata(dim2)
 
 # AbstractArray methods where dims are the dispatch argument
@@ -137,14 +137,14 @@ they are not the only type of dimension availabile.
 """
 struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
     val::T
-    indexmode::IM
+    mode::IM
     metadata::M
-    Dim{X}(val, indexmode, metadata) where X =
-        new{X,typeof(val),typeof(indexmode),typeof(metadata)}(val, indexmode, metadata)
+    Dim{X}(val, mode, metadata) where X =
+        new{X,typeof(val),typeof(mode),typeof(metadata)}(val, mode, metadata)
 end
 
-Dim{X}(val=:; indexmode=AutoIndex(), metadata=nothing) where X =
-    Dim{X}(val, indexmode, metadata)
+Dim{X}(val=:; mode=AutoIndex(), metadata=nothing) where X =
+    Dim{X}(val, mode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -185,11 +185,11 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
         struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
             val::T
-            indexmode::IM
+            mode::IM
             metadata::M
         end
-        $typ(val=:; indexmode=AutoIndex(), metadata=nothing) =
-            $typ(val, indexmode, metadata)
+        $typ(val=:; mode=AutoIndex(), metadata=nothing) =
+            $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)

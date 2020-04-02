@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, indexmode,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, mode,
       @dim, reducedims, XDim, YDim, ZDim, Forward
 
 dimz = (X(), Y())
@@ -24,17 +24,17 @@ dimz = dims(da)
 
 @testset "slicedims" begin
     @test slicedims(dimz, (1:2, 3)) == 
-        ((X(LinRange(143,145,2), SampledIndex(span=RegularSpan(2.0)), nothing),),
-         (Y(-36.0, SampledIndex(span=RegularSpan(1.0)), nothing),))
+        ((X(LinRange(143,145,2), Sampled(span=Regular(2.0)), nothing),),
+         (Y(-36.0, Sampled(span=Regular(1.0)), nothing),))
     @test slicedims(dimz, (2:2, :)) == 
-        ((X(LinRange(145,145,1), SampledIndex(span=RegularSpan(2.0)), nothing), 
-          Y(LinRange(-38.0,-36.0, 3), SampledIndex(span=RegularSpan(1.0)), nothing)), ())
+        ((X(LinRange(145,145,1), Sampled(span=Regular(2.0)), nothing), 
+          Y(LinRange(-38.0,-36.0, 3), Sampled(span=Regular(1.0)), nothing)), ())
     @test slicedims((), (1:2, 3)) == ((), ())
 end
 
 @testset "dims2indices" begin
     emptyval = Colon()
-    @test dims2indices(indexmode(dimz[1]), dimz[1], Y, Nothing) == Colon()
+    @test DimensionalData._dims2indices(mode(dimz[1]), dimz[1], Y, Nothing) == Colon()
     @test dims2indices(dimz, (Y(),), emptyval) == (Colon(), Colon())
     @test dims2indices(dimz, (Y(1),), emptyval) == (Colon(), 1)
     # Time is just ignored if it's not in dims. Should this be an error?
@@ -50,9 +50,9 @@ end
     @test dims2indices(da, 1, emptyval) == (1, )
 end
 
-@testset "dims2indices with TransformedIndex" begin
-    tdimz = Dim{:trans1}(nothing; indexmode=TransformedIndex(X())), 
-            Dim{:trans2}(nothing, indexmode=TransformedIndex(Y())), 
+@testset "dims2indices with Transformed" begin
+    tdimz = Dim{:trans1}(nothing; mode=Transformed(X())), 
+            Dim{:trans2}(nothing, mode=Transformed(Y())), 
             Ti(1:1)
     @test dims2indices(tdimz, (X(1), Y(2), Ti())) == (1, 2, Colon())
     @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Ti())) == (1, 2, Colon())
@@ -66,37 +66,37 @@ end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(3:4; indexmode=SampledIndex(;span=RegularSpan(1))), 
-                      Y(1:5; indexmode=SampledIndex(;span=RegularSpan(1)))), (X, Y)) == 
-                     (X([4], SampledIndex(;span=RegularSpan(2)), nothing), 
-                      Y([3], SampledIndex(;span=RegularSpan(5)), nothing))
-    @test reducedims((X(3:4; indexmode=SampledIndex(Ordered(), RegularSpan(1), IntervalSampling(Start()))), 
-                      Y(1:5; indexmode=SampledIndex(Ordered(), RegularSpan(1), IntervalSampling(End())))), (X, Y)) ==
-        (X([3], SampledIndex(Ordered(), RegularSpan(2), IntervalSampling(Start())), nothing), 
-         Y([5], SampledIndex(Ordered(), RegularSpan(5), IntervalSampling(End())), nothing))
+    @test reducedims((X(3:4; mode=Sampled(;span=Regular(1))), 
+                      Y(1:5; mode=Sampled(;span=Regular(1)))), (X, Y)) == 
+                     (X([4], Sampled(;span=Regular(2)), nothing), 
+                      Y([3], Sampled(;span=Regular(5)), nothing))
+    @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start()))), 
+                      Y(1:5; mode=Sampled(Ordered(), Regular(1), Intervals(End())))), (X, Y)) ==
+        (X([3], Sampled(Ordered(), Regular(2), Intervals(Start())), nothing), 
+         Y([5], Sampled(Ordered(), Regular(5), Intervals(End())), nothing))
 
-    @test reducedims((X(3:4; indexmode=SampledIndex(sampling=IntervalSampling(Center()), span=IrregularSpan(2.5, 4.5), )),
-                      Y(1:5; indexmode=SampledIndex(sampling=IntervalSampling(Center()), span=IrregularSpan(0.5, 5.5), ))), (X, Y))[1] ==
-                     (X([4], SampledIndex(sampling=IntervalSampling(Center()), span=IrregularSpan(2.5, 4.5)), nothing),
-                      Y([3], SampledIndex(sampling=IntervalSampling(Center()), span=IrregularSpan(0.5, 5.5)), nothing))[1]
-    @test reducedims((X(3:4; indexmode=SampledIndex(sampling=IntervalSampling(Start()), span=IrregularSpan(3, 5))),
-                      Y(1:5; indexmode=SampledIndex(sampling=IntervalSampling(End()  ), span=IrregularSpan(0, 5)))), (X, Y))[1] ==
-                     (X([3], SampledIndex(sampling=IntervalSampling(Start()), span=IrregularSpan(3, 5)), nothing),
-                      Y([5], SampledIndex(sampling=IntervalSampling(End()  ), span=IrregularSpan(0, 5)), nothing))[1]
+    @test reducedims((X(3:4; mode=Sampled(sampling=Intervals(Center()), span=Irregular(2.5, 4.5), )),
+                      Y(1:5; mode=Sampled(sampling=Intervals(Center()), span=Irregular(0.5, 5.5), ))), (X, Y))[1] ==
+                     (X([4], Sampled(sampling=Intervals(Center()), span=Irregular(2.5, 4.5)), nothing),
+                      Y([3], Sampled(sampling=Intervals(Center()), span=Irregular(0.5, 5.5)), nothing))[1]
+    @test reducedims((X(3:4; mode=Sampled(sampling=Intervals(Start()), span=Irregular(3, 5))),
+                      Y(1:5; mode=Sampled(sampling=Intervals(End()  ), span=Irregular(0, 5)))), (X, Y))[1] ==
+                     (X([3], Sampled(sampling=Intervals(Start()), span=Irregular(3, 5)), nothing),
+                      Y([5], Sampled(sampling=Intervals(End()  ), span=Irregular(0, 5)), nothing))[1]
 
-    @test reducedims((X(3:4; indexmode=SampledIndex(sampling=PointSampling(), span=IrregularSpan())), 
-                      Y(1:5; indexmode=SampledIndex(sampling=PointSampling(), span=IrregularSpan()))), (X, Y)) ==
-        (X([4], SampledIndex(span=IrregularSpan()), nothing), 
-         Y([3], SampledIndex(span=IrregularSpan()), nothing))
-    @test reducedims((X(3:4; indexmode=SampledIndex(sampling=PointSampling(), span=RegularSpan(1))), 
-                      Y(1:5; indexmode=SampledIndex(sampling=PointSampling(), span=RegularSpan(1)))), (X, Y)) ==
-        (X([4], SampledIndex(span=RegularSpan(2)), nothing), 
-         Y([3], SampledIndex(span=RegularSpan(5)), nothing))
+    @test reducedims((X(3:4; mode=Sampled(sampling=Points(), span=Irregular())), 
+                      Y(1:5; mode=Sampled(sampling=Points(), span=Irregular()))), (X, Y)) ==
+        (X([4], Sampled(span=Irregular()), nothing), 
+         Y([3], Sampled(span=Irregular()), nothing))
+    @test reducedims((X(3:4; mode=Sampled(sampling=Points(), span=Regular(1))), 
+                      Y(1:5; mode=Sampled(sampling=Points(), span=Regular(1)))), (X, Y)) ==
+        (X([4], Sampled(span=Regular(2)), nothing), 
+         Y([3], Sampled(span=Regular(5)), nothing))
 
-    @test reducedims((X([:a,:b]; indexmode=CategoricalIndex()), 
-                      Y(["1","2","3","4","5"]; indexmode=CategoricalIndex())), (X, Y)) ==
-                     (X([:combined]; indexmode=CategoricalIndex()), 
-                      Y(["combined"]; indexmode=CategoricalIndex()))
+    @test reducedims((X([:a,:b]; mode=Categorical()), 
+                      Y(["1","2","3","4","5"]; mode=Categorical())), (X, Y)) ==
+                     (X([:combined]; mode=Categorical()), 
+                      Y(["combined"]; mode=Categorical()))
 end
 
 @testset "dims" begin
@@ -127,8 +127,8 @@ end
     @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
 end
 
-@testset "setdim" begin
-    A = setdim(da, X(LinRange(150,152,2)))
+@testset "setdims" begin
+    A = setdims(da, X(LinRange(150,152,2)))
     @test val(dims(dims(A), X())) == LinRange(150,152,2)
 end
 
@@ -137,15 +137,15 @@ end
         A = swapdims(da, (Z, Dim{:test1}))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test1}}
         @test map(val, dims(A)) == map(val, dims(da))
-        @test map(indexmode, dims(A)) == map(indexmode, dims(da))
+        @test map(mode, dims(A)) == map(mode, dims(da))
     end
     @testset "swap whole dim instances" begin
         A = swapdims(da, (Z(2:2:4), Dim{:test2}(3:5)))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
         @test map(val, dims(A)) == (2:2:4, 3:5)
-        @test map(indexmode, dims(A)) == 
-            (SampledIndex(span=RegularSpan(2)), 
-             SampledIndex(span=RegularSpan(1)))
+        @test map(mode, dims(A)) == 
+            (Sampled(span=Regular(2)), 
+             Sampled(span=Regular(1)))
     end
     @testset "passing `nothing` keeps the original dim" begin
         A = swapdims(da, (Z(2:2:4), nothing))
