@@ -14,37 +14,39 @@ using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
 
 using Base: tail, OneTo
 
-export Dimension, IndependentDim, DependentDim, CategoricalDim, XDim, YDim, ZDim, TimeDim
 
-export Dim, X, Y, Z, Ti
+export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
+       X, Y, Z, Ti, ParametricDimension, Dim, PlaceholderDim
 
-export Selector, Near, Between, At
+export Selector, Between, At, Contains, Near
 
-export Locus, Center, Start, End, UnknownLocus
+export Locus, Center, Start, End, AutoLocus, NoLocus
 
-export Sampling, PointSampling, IntervalSampling, UnknownSampling
+export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
-export Order, Ordered, Unordered
+export Sampling, Points, Intervals
 
-export Grid, UnknownGrid
+export Span, Regular, Irregular, AutoSpan
 
-export AbstractCategoricalGrid, CategoricalGrid
+export IndexMode, AutoIndex, UnknownIndex, NoIndex
 
-export IndependentGrid, AbstractAlignedGrid, AlignedGrid, BoundedGrid, RegularGrid
+export Aligned, AbstractSampled, Sampled,
+       AbstractCategorical, Categorical
 
-export DependentGrid, TransformedGrid
+export Unaligned, Transformed
 
 export AbstractDimensionalArray, DimensionalArray
 
 export data, dims, refdims, metadata, name, shortname,
-       val, label, units, order, bounds, locus, grid, <|
+       val, label, units, order, bounds, locus, mode, <|
 
-export dimnum, hasdim, setdim, swapdims
+export dimnum, hasdim, setdims, swapdims, rebuild
 
 export @dim
 
+
 include("interface.jl")
-include("grid.jl")
+include("mode.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")

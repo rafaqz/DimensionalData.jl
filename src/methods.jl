@@ -115,7 +115,7 @@ Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,1}) = rebuild(A, data(A) * B, dims(A, (1,))
 Base.:*(A::ADA{<:Any,1}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
 Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
 Base.:*(A::AA{<:Any,1}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
-Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (EmptyDim(),))
+Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (PlaceholderDim(),))
 Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
 
 Base.:*(A::ADA{<:Any,1}, B::ADA{<:Any,2}) = begin
@@ -145,7 +145,7 @@ end
 @inline reversearray(dimstorev::Tuple, dnum) = begin
     dim = dimstorev[end]
     if length(dimstorev) == dnum
-        dim = rebuild(dim, val(dim), reversearray(grid(dim)))
+        dim = rebuild(dim, val(dim), reversearray(mode(dim)))
     end
     (reversearray(Base.front(dimstorev), dnum)..., dim)
 end
@@ -160,7 +160,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
         @inline $pkg.$fname(A::AbDimArray{T,2}) where T =
             rebuild(A, $pkg.$fname(data(A)), reverse(dims(A)))
         @inline $pkg.$fname(A::AbDimArray{T,1}) where T =
-            rebuild(A, $pkg.$fname(data(A)), (EmptyDim(), dims(A)...))
+            rebuild(A, $pkg.$fname(data(A)), (PlaceholderDim(), dims(A)...))
     end
 end
 
@@ -203,18 +203,25 @@ _catifcatdim(catdims::Tuple, ds) =
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
 Base.vcat(dims::Dimension...) =
-    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(grid, dims)...))
+    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(mode, dims)...))
 
-Base.vcat(grids::Grid...) = first(grids)
-Base.vcat(grids::RegularGrid...) = begin
-    _step = step(grids[1])
-    map(grids) do grid
-        step(grid) == _step || error("Step sizes $(step(grid)) and $_step do not match ")
+Base.vcat(modes::IndexMode...) = first(modes)
+Base.vcat(modes::AbstractSampled...) =
+    _vcat_modes(sampling(first(modes)), span(first(modes)), modes...)
+
+_vcat_modes(::Any, ::Regular, modes...) = begin
+    _step = step(first(modes))
+    map(modes) do mode
+        step(span(mode)) == _step || error("Step sizes $(step(span(mode))) and $_step do not match ")
     end
-    first(grids)
+    first(modes)
 end
-Base.vcat(grids::BoundedGrid...) =
-    rebuild(grids[1]; bounds=(bounds(grids[1])[1], bounds(grids[end])[end]))
+_vcat_modes(::Intervals, ::Irregular, modes...) = begin
+    bounds = bounds(modes[1])[1], bounds(modes[end])[end]
+    rebuild(modes[1]; span=Irregular(sortbounds(indexorder(modes[1]), bounds)))
+end
+_vcat_modes(::Points, ::Irregular, modes...) = first(modes)
+
 
 checkdims(A::AbstractArray...) = checkdims(map(dims, A)...)
 checkdims(dims::DimTuple...) = map(d -> checkdims(dims[1], d), dims)

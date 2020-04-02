@@ -4,42 +4,37 @@ Dimensions tag the dimensions of an AbstractArray, or other dimensional data.
 It can also contain spatial coordinates and their metadata. For simplicity,
 the same types are used both for storing dimension information and for indexing.
 """
-abstract type Dimension{T,G,M} end
+abstract type Dimension{T,IM,M} end
 
 """
 Abstract supertype for independent dimensions. Will plot on the X axis.
 """
-abstract type IndependentDim{T,G,M} <: Dimension{T,G,M} end
+abstract type IndependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract supertype for Dependent dimensions. Will plot on the Y axis.
 """
-abstract type DependentDim{T,G,M} <: Dimension{T,G,M} end
-
-"""
-Abstract supertype for categorical dimensions. 
-"""
-abstract type CategoricalDim{T,G,M} <: Dimension{T,G,M} end
+abstract type DependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract parent type for all X dimensions.
 """
-abstract type XDim{T,G,M} <: IndependentDim{T,G,M} end
+abstract type XDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 """
 Abstract parent type for all Y dimensions.
 """
-abstract type YDim{T,G,M} <: DependentDim{T,G,M} end
+abstract type YDim{T,IM,M} <: DependentDim{T,IM,M} end
 
 """
 Abstract parent type for all Z dimensions.
 """
-abstract type ZDim{T,G,M} <: Dimension{T,G,M} end
+abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract parent type for all time dimensions.
 """
-abstract type TimeDim{T,G,M} <: IndependentDim{T,G,M} end
+abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
 
@@ -53,38 +48,36 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,DimVector}
 
 # Getters
 val(dim::Dimension) = dim.val
-grid(dim::Dimension) = dim.grid
-grid(dim::Type{<:Dimension}) = nothing
+mode(dim::Dimension) = dim.mode
+mode(dim::Type{<:Dimension}) = NoIndex()
 metadata(dim::Dimension) = dim.metadata
 
-order(dim::Dimension) = order(grid(dim))
+order(dim::Dimension) = order(mode(dim))
 indexorder(dim::Dimension) = indexorder(order(dim))
 arrayorder(dim::Dimension) = arrayorder(order(dim))
 relationorder(dim::Dimension) = relationorder(order(dim))
 
-locus(dim::Dimension) = locus(grid(dim))
-sampling(dim::Dimension) = sampling(grid(dim))
+locus(dim::Dimension) = locus(mode(dim))
+sampling(dim::Dimension) = sampling(mode(dim))
 
 # DimensionalData interface methods
-rebuild(dim::D, val, grid=grid(dim), metadata=metadata(dim)) where D <: Dimension =
-    constructorof(D)(val, grid, metadata)
+rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
+    constructorof(D)(val, mode, metadata)
 
 dims(x::Dimension) = x
 dims(x::DimTuple) = x
 name(dim::Dimension) = name(typeof(dim))
 shortname(d::Dimension) = shortname(typeof(d))
 shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
-units(dim::Dimension) = metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
+units(dim::Dimension) =
+    metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
 
 
+bounds(dim::Dimension) = bounds(mode(dim), dim)
+bounds(dims::DimTuple) = map(bounds, dims)
+bounds(dims::Tuple{}) = ()
 bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
 bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
-bounds(dims::DimTuple) = (bounds(dims[1]), bounds(tail(dims))...)
-bounds(dims::Tuple{}) = ()
-bounds(dim::Dimension) = bounds(grid(dim), dim)
-
-
-# TODO bounds for irregular grids
 
 
 # Base methods
@@ -92,6 +85,7 @@ Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
 Base.axes(dim::Dimension) = axes(val(dim))
+Base.eachindex(dim::Dimension) = eachindex(val(dim))
 Base.length(dim::Dimension) = length(val(dim))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
@@ -104,12 +98,12 @@ Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
 Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
 Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
-Base.step(dim::Dimension) = step(grid(dim))
+Base.step(dim::Dimension) = step(mode(dim))
 Base.Array(dim::Dimension{<:AbstractArray}) = Array(val(dim))
 Base.:(==)(dim1::Dimension, dim2::Dimension) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
-    grid(dim1) == grid(dim2) &&
+    mode(dim1) == mode(dim2) &&
     metadata(dim1) == metadata(dim2)
 
 # AbstractArray methods where dims are the dispatch argument
@@ -133,7 +127,7 @@ Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Varar
 """
 Dimensions with user-set type paremeters
 """
-abstract type ParametricDimension{X,T,G,M} <: Dimension{T,G,M} end
+abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
 A generic dimension. For use when custom dims are required when loading
@@ -141,28 +135,30 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 """
-struct Dim{X,T,G,M} <: ParametricDimension{X,T,G,M}
+struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
     val::T
-    grid::G
+    mode::IM
     metadata::M
-    Dim{X}(val, grid, metadata) where X =
-        new{X,typeof(val),typeof(grid),typeof(metadata)}(val, grid, metadata)
+    Dim{X}(val, mode, metadata) where X =
+        new{X,typeof(val),typeof(mode),typeof(metadata)}(val, mode, metadata)
 end
 
-Dim{X}(val=:; grid=UnknownGrid(), metadata=nothing) where X = Dim{X}(val, grid, metadata)
+Dim{X}(val=:; mode=AutoIndex(), metadata=nothing) where X =
+    Dim{X}(val, mode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 """
-Undefined dimension.
+Undefined dimension. Used when extra dimensions are created, 
+such as during transpose of a vector.
 """
-struct EmptyDim <: Dimension{Int,NoGrid,Nothing} end
+struct PlaceholderDim <: Dimension{Int,NoIndex,Nothing} end
 
-val(::EmptyDim) = 1:1
-grid(::EmptyDim) = NoGrid()
-metadata(::EmptyDim) = nothing
-name(::EmptyDim) = "Empty"
+val(::PlaceholderDim) = 1:1
+mode(::PlaceholderDim) = NoIndex()
+metadata(::PlaceholderDim) = nothing
+name(::PlaceholderDim) = "Placeholder"
 
 """
     @dim typ [supertype=Dimension] [name=string(typ)] [shortname=string(typ)]
@@ -187,31 +183,37 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        struct $typ{T,G,M} <: $supertype{T,G,M}
+        struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
             val::T
-            grid::G
+            mode::IM
             metadata::M
         end
-        $typ(val=:; grid=UnknownGrid(), metadata=nothing) = $typ(val, grid, metadata)
+        $typ(val=:; mode=AutoIndex(), metadata=nothing) =
+            $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
 
 # Define some common dimensions.
 @dim X XDim
-@doc "X dimension. `X <: XDim <: IndependentDim" X
+@doc "X dimension. `X <: XDim <: IndependentDim`" X
 
 @dim Y YDim
-@doc "Y dimension. `Y <: YDim <: DependentDim" Y
+@doc "Y dimension. `Y <: YDim <: DependentDim`" Y
 
 @dim Z ZDim
-@doc "Z dimension. `Z <: ZDim <: Dimension" Z
+@doc "Z dimension. `Z <: ZDim <: Dimension`" Z
 
 @dim Ti TimeDim "Time"
 @doc """
-Time dimension. `Ti <: TimeDim <: IndependentDim 
+Time dimension. `Ti <: TimeDim <: IndependentDim`
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
 """ Ti
+
+# Time dimensions need to default to the Start() locus, as that is
+# nearly always the format and Center intervals are difficult to
+# calculate with DateTime step values.
+identify(locus::AutoLocus, dimtype::Type{<:TimeDim}, index) = Start()
 
 const Time = Ti # For some backwards compat

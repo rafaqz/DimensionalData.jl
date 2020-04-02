@@ -17,6 +17,8 @@ dims(A::AbDimArray) = A.dims
 @inline rebuild(A::AbstractArray, data, name::String) =
     rebuild(A, data, dims(A), refdims(A), name)
 
+bounds(A::AbstractArray) = bounds(dims(A))
+bounds(A::AbstractArray, lookup::DimOrDimType) = bounds(dims(A), lookup)
 
 # Array interface methods ######################################################
 

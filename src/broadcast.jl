@@ -1,11 +1,12 @@
 
 """
     DimensionalStyle{S}
+
 This is a `BroadcastStyle` for AbstractAbstractDimensionalArray's
 It preserves the dimension names.
 `S` should be the `BroadcastStyle` of the wrapped type.
 
-Copied from NamedDims.jl. Thanks @oxinabox.
+Copied from NamedDims.jl (thanks @oxinabox).
 """
 struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
 DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
