@@ -159,3 +159,5 @@ end
     end
 end
 
+@testset "formatdims" begin
+end
