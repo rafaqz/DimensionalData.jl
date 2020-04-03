@@ -10,15 +10,38 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 
 # Interface methods ############################################################
 
-dims(A::AbDimArray) = A.dims
-@inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A)) =
-    rebuild(A, data, dims, refdims, name(A))
-# Rebuild for name-updating methods, to avoid having to add dims and refdims
-@inline rebuild(A::AbstractArray, data, name::String) =
-    rebuild(A, data, dims(A), refdims(A), name)
+"""
+    bounds(A::AbstractArray)
 
+Returns a tuple of bounds for each array axis.
+"""
 bounds(A::AbstractArray) = bounds(dims(A))
-bounds(A::AbstractArray, lookup::DimOrDimType) = bounds(dims(A), lookup)
+"""
+    bounds(A::AbstractArray, dims)
+
+Returns the bounds for the specified dimension(s).
+`dims` can be a `Dimension`, a dimension type, or a tuple of either.
+"""
+bounds(A::AbstractArray, dims::DimOrDimType) =
+    bounds(DimensionalData.dims(A), dims)
+
+"""
+    metadata(A::AbstractArray, dims)
+
+Returns the bounds for the specified dimension(s).
+`dims` can be a `Dimension`, a dimension type, or a tuple of either.
+"""
+metadata(A::AbstractDimensionalArray, dim) = metadata(dims(A, dim))
+metadata(A::AbstractDimensionalArray, dims::Tuple) =
+    map(metadata, DimensionalData.dims(A, dims))
+
+dims(A::AbDimArray) = A.dims
+@inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A),
+                name=name(A), metadata=metadata(A)) =
+    rebuild(A, data, dims, refdims, name, metadata)
+# Rebuild for name-updating methods, to avoid having to add dims and refdims
+@inline rebuild(A::AbstractArray, data, name::AbstractString) =
+    rebuild(A, data, dims(A), refdims(A), name, metadata)
 
 # Array interface methods ######################################################
 
@@ -56,8 +79,7 @@ Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 Base.Array(A::AbDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
-# Don't remove these even though they look redundant
-Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
+# Don't remove these even though they look redundant Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
 # If the shape changes, use the wrapped array:
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = similar(data(A), T, I)
@@ -73,12 +95,14 @@ The main subtype of `AbstractDimensionalArray`.
 Maintains and updates its dimensions through transformations and moves dimensions to
 `refdims` after reducing operations (like e.g. `mean`).
 """
-struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: AbstractDimensionalArray{T,N,D,A}
+struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimensionalArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
-    name::String
-    function DimensionalArray(data::A, dims::D, refdims::R, name::String) where A <:AbstractArray{T,N} where D where R where T where N
+    name::Na
+    metadata::Me
+    function DimensionalArray(data::A, dims::D, refdims::R, name::Na, metadata::Me
+                             ) where {D,R,A<:AbstractArray{T,N},Na,Me} where {T,N}
         map(dims, size(data)) do d, s
             if !(val(d) isa Colon) && length(d) != s
                 throw(DimensionMismatch(
@@ -86,25 +110,29 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N}} <: Abstract
                 ))
             end
         end
-        new{T,N,D,R,A}(data, dims, refdims, name)
+        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
     end
 end
 """
-    DimensionalArray(data, dims::Tuple [, name::String]; refdims=())
-Constructor with optional `name` and `refdims`.
-The `name` is propagated across most sensible operations, even reducing ones.
+    DimensionalArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
+
+Constructor with optional `name`, and keyword `refdims` and `metadata`.
 
 Example:
 ```julia
 using Dates, DimensionalData
-timespan = DateTime(2001):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
-A[X<|Near([12, 35]), Ti<|At(DateTime(2001,5))]
-A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+
+ti = (Ti(DateTime(2001):Month(1):DateTime(2001,12)),
+x = X(10:10:100))
+A = DimensionalArray(rand(12,10), (ti, x), "example")
+
+julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
+
+julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
-DimensionalArray(A::AbstractArray, dims, name::String = ""; refdims=()) =
-    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name)
+DimensionalArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
+    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
 _to_tuple(t::T where T <: Tuple) = t
 _to_tuple(t) = tuple(t)
 
@@ -112,25 +140,25 @@ _to_tuple(t) = tuple(t)
 refdims(A::DimensionalArray) = A.refdims
 data(A::DimensionalArray) = A.data
 name(A::DimensionalArray) = A.name
+metadata(A::DimensionalArray) = A.metadata
 label(A::DimensionalArray) = name(A)
 
-# DimensionalArray interface
+# AbstractDimensionalArray interface
 @inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple,
-                refdims::Tuple, name::String) =
-    DimensionalArray(data, dims, refdims, name)
+                refdims::Tuple, name::AbstractString, metadata) =
+    DimensionalArray(data, dims, refdims, name, metadata)
 
 # Array interface (AbstractDimensionalArray takes care of everything else)
 Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
 
-# Applying function across dimension should give an Array
 """
     DimensionalArray(f::Function, dim::Dimension [, name])
 
 Apply function `f` across the values of the dimension `dim`
-(using broadcasting), and return the result as a dimensional array with
+(using `broadcast`), and return the result as a dimensional array with
 the given dimension. Optionally provide a name for the result.
 """
-DimensionalArray(f::Function, dim::Dimension, name=string(nameof(f))*"("*name(dim)*")") =
-DimensionalArray(f.(val(dim)), (dim,), name)
+DimensionalArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")")) =
+     DimensionalArray(f.(val(dim)), (dim,), name)
 
