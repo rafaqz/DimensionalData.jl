@@ -470,10 +470,6 @@ end
 end
 
 @testset "Selectors on Sampled and Intervals" begin
-    a = [1 2  3  4
-         5 6  7  8
-         9 10 11 12]
-
     da = DimensionalArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())),
                               Ti((1:4)u"s"; mode=Sampled(sampling=Intervals()))))
 
@@ -508,13 +504,22 @@ end
 end
 
 @testset "Selectors on Categorical" begin
-    dimz = Ti([:one, :two, :three]; mode=Categorical()),
-           Y([:a, :b, :c, :d]; mode=Categorical())
+    a = [1 2  3  4
+         5 6  7  8
+         9 10 11 12]
+
+    dimz = Ti([:one, :two, :three]; mode=Categorical(Ordered())),
+        Y([:a, :b, :c, :d]; mode=Categorical(Ordered()))
     da = DimensionalArray(a, dimz)
     @test da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
     # Near and contains are just At
     @test da[Contains([:one, :three]), Near([:b, :c, :d])] == [2 3 4; 10 11 12]
+   
+    dimz = Ti([:one, :two, :three]; mode=Categorical(Unordered())),
+        Y([:a, :b, :c, :d]; mode=Categorical(Unordered()))
+    da = DimensionalArray(a, dimz)
+    @test_throws ArgumentError da[At(:two), Between(:b, :d)] == [6, 7, 8]
 end
 
 # @testset "TranformedIndex" begin

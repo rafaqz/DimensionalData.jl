@@ -143,7 +143,7 @@ end
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
     @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
-        (X(143.0; mode=Sampled(;span=Regular(2.0))),)
+        (X(143.0; mode=Sampled(Ordered(), Regular(2.0), Points())),)
     dropped = dropdims(da[X(1:1)]; dims=X)
     @test dropped[1:2] == [1, 2]
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
@@ -177,23 +177,23 @@ end
                                         X(1:4; mode=Sampled())))
     tda = transpose(da)
     @test tda == transpose(data(da))
-    resultdims = (X(1:4; mode=Sampled(span=Regular(1))),
-                  Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))))
+    resultdims = (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
+                  Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test typeof(dims(tda)) == typeof(resultdims) 
     @test dims(tda) == resultdims
     @test size(tda) == (4, 5)
 
     tda = Transpose(da)
     @test tda == Transpose(data(da))
-    @test dims(tda) == (X(1:4; mode=Sampled(span=Regular(1))),
-                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))))
+    @test dims(tda) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
+                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimensionalArray
 
     ada = adjoint(da)
     @test ada == adjoint(data(da))
-    @test dims(ada) == (X(1:4; mode=Sampled(span=Regular(1))),
-                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))))
+    @test dims(ada) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
+                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
@@ -212,9 +212,9 @@ end
     @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
     dsp = permutedims(da, (X(), Y(), Ti()))
     @test dsp == permutedims(data(da), (3, 1, 2))
-    @test dims(dsp) == (X(1:4; mode=Sampled(span=Regular(1))),
-                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))),
-                        Ti(10:11; mode=Sampled(span=Regular(1))))
+    @test dims(dsp) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
+                        Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
+                        Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())))
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
     @test typeof(dsp) <: DimensionalArray
@@ -227,12 +227,12 @@ end
 
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
-    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))),
-                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(span=Regular(2.5))))
+    @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
+                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     crda = cor(da; dims=Y)
     @test crda == cor(a; dims=1)
-    @test dims(crda) == (X(1:4; mode=Sampled(span=Regular(1))),
-                         X(1:4; mode=Sampled(span=Regular(1))))
+    @test dims(crda) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
+                         X(1:4; mode=Sampled(Ordered(), Regular(1), Points())))
 end
 
 @testset "mapslices" begin
@@ -269,8 +269,8 @@ end
     b = [7 8 9; 10 11 12]
     db = DimensionalArray(b, (X(3:4), Y(1:3)))
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
-    testdims = (X([1, 2, 3, 4]; mode=Sampled(span=Regular(1))),
-                Y(1:3; mode=Sampled(span=Regular(1))))
+    testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
+                Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
     @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
           cat(da, db; dims=1) == cat(da, db; dims=(1,))
     @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)

@@ -140,6 +140,8 @@ Mode defining the type of interval used in a InervalSampling index.
 """
 abstract type Span end
 
+struct AutoStep end
+
 """
 Intervalss have regular size. This is passed to the constructor,
 although these are normally build automatically.
@@ -147,7 +149,7 @@ although these are normally build automatically.
 struct Regular{S} <: Span
     step::S
 end
-Regular() = Regular(nothing)
+Regular() = Regular(AutoStep())
 
 Base.step(span::Regular) = span.step
 
@@ -217,7 +219,7 @@ Auto() = Auto(AutoOrder())
 order(mode::Auto) = mode.order
 
 """
-Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes. 
+Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes.
 This is by far the most common case.
 """
 abstract type Aligned{O} <: IndexMode end
@@ -288,13 +290,13 @@ slicebounds(locus::Center, bounds, index, I) =
 
 
 """
-A concrete implementation of [`AbstractSampled`](@ref). 
+A concrete implementation of [`AbstractSampled`](@ref).
 Can be used to represent points or intervals, with `sampling`
 of [`Points`](@ref) or [`Intervals`](@ref).
 
 ## Fields
 - `order`: [`Order`](@ref) indicating array and index order
-- `span::Span`: [`Span`](@ref) indicating [`Regular`](@ref) or [`Irregular`](@ref) 
+- `span::Span`: [`Span`](@ref) indicating [`Regular`](@ref) or [`Irregular`](@ref)
   size of intervals or distance between points
 - `sampling::Sampling`: [`Sampling`](@ref) of `Intervals` or `Points` (the default)
 """
@@ -303,7 +305,7 @@ struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
     span::Sp
     sampling::Sa
 end
-Sampled(; order=Ordered(), span=AutoSpan(), sampling=Points()) =
+Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=Points()) =
     Sampled(order, span, sampling)
 
 rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
@@ -321,12 +323,15 @@ order(mode::AbstractCategorical) = mode.order
 An IndexMode where the values are categories.
 
 ## Fields
-- `order`: [`Order`](@ref) indicating array and index order
+- `order`: [`Order`](@ref) indicating array and index order.
+
+`Order` will not be determined automatically for `Categorical`,
+it instead defaults to `Unordered()`
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}
     order::O
 end
-Categorical(; order=Ordered()) = Categorical(order)
+Categorical(; order=Unordered()) = Categorical(order)
 
 rebuild(mode::Categorical, order) = Categorical(order)
 
@@ -378,43 +383,75 @@ rebuild(mode::Transformed, dims=dims(m), locus=locus(m) ) =
 # rebuild(mode::LookupIndex; dims=dims(m), locus=locus(m)) =
     # LookupIndex(dims, locus)
 
+const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
 
 """
-    identify(::IndexMode, index)
+    identify(indexmode, index)
 
-Identify an `IndexMode` from index content and existing `IndexMode`.
+Identify an `IndexMode` or its fields from index content and existing `IndexMode`.
 """
+function identify end
+
 identify(IM::Type{<:IndexMode}, dimtype::Type, index) =
     identify(IM(), dimtype, index)
+
+# No more identification required for some types
 identify(mode::IndexMode, dimtype::Type, index) = mode
 
+# Auto
 identify(mode::Auto, dimtype::Type, index::AbstractArray) =
     identify(Sampled(), dimtype, index)
-identify(mode::Auto, dimtype::Type, 
-         index::AbstractArray{<:Union{AbstractChar,Symbol,AbstractString}}) =
-    Categorical()
-identify(mode::AbstractCategorical, dimtype::Type, index) = mode
+identify(mode::Auto, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
+    order(mode) isa AutoOrder ? Categorical() : Categorical(order(mode))
 
+# Sampled
 identify(mode::AbstractSampled, dimtype::Type, index::AbstractArray) = begin
     mode = rebuild(mode,
         identify(order(mode), dimtype, index),
         identify(span(mode), dimtype, index),
-        identify(sampling(mode), dimtype, index),
+        identify(sampling(mode), dimtype, index)
     )
 end
 
+# Order
+identify(order::Order, dimtype::Type, index) = order
+identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
+
+_orderof(index::AbstractRange) =
+    Ordered(index=_indexorder(index))
+_orderof(index::AbstractArray) = begin
+    local sorted
+    local indord
+    try
+        indord = _indexorder(index)
+        sorted = issorted(index; rev=isrev(indord))
+    catch
+        sorted = false
+    end
+    sorted ? Ordered(index=indord) : Unordered()
+end
+
+_indexorder(index::AbstractArray) =
+    first(index) <= last(index) ? Forward() : Reverse()
+
+# Span
 identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
     Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
+identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
+    Regular(step(index))
 
+identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractArray) =
+    throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
 identify(span::Regular, dimtype::Type, index::AbstractArray) =
     span
+identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
+    Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
-    step(span) == step(index) || throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
+    step(span) ≈ step(index) || throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
     span
 end
-
 identify(span::Irregular{Nothing}, dimtype, index) =
     if length(index) > 1
         bound1 = index[1] - (index[2] - index[1]) / 2
@@ -425,29 +462,11 @@ identify(span::Irregular{Nothing}, dimtype, index) =
     end
 identify(span::Irregular{<:Tuple}, dimtype, index) = span
 
-
+# Sampling
 identify(sampling::Points, dimtype::Type, index) = sampling
 identify(sampling::Intervals, dimtype::Type, index) =
     rebuild(sampling, identify(locus(sampling), dimtype, index))
 
+# Locus
 identify(locus::AutoLocus, dimtype::Type, index) = Center()
 identify(locus::Locus, dimtype::Type, index) = locus
-
-identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
-identify(order::Order, dimtype::Type, index) = order
-
-
-_orderof(index::AbstractRange) =
-    Ordered(index=_indexorder(index))
-_orderof(index::AbstractArray) =
-    try
-        indord = _indexorder(index)
-        sorted = issorted(index; rev=isrev(indord))
-    catch
-        sorted = false
-    finally
-        sorted ? Ordered(index=indord) : Unordered()
-    end
-
-_indexorder(index::AbstractArray) =
-    first(index) <= last(index) ? Forward() : Reverse()

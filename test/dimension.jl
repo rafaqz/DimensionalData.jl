@@ -32,9 +32,9 @@ a = ones(5, 4)
 da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
 
 dimz = dims(da)
-@test d = slicedims(dimz, (2:4, 3)) == 
-    ((X(LinRange(142,146,3); mode=Sampled(span=Regular(2.0))),),
-     (Y(8.0, mode=Sampled(span=Regular(3.0))),))
+@test d = typeof(slicedims(dimz, (2:4, 3))) == 
+    typeof(((X(LinRange(142,146,3); mode=Sampled(order=Ordered(), span=Regular(2.0))),),
+        (Y(8.0, mode=Sampled(order=Ordered(), span=Regular(3.0))),)))
 @test name(dimz) == ("X", "Y")
 @test shortname(dimz) == ("X", "Y")
 @test units(dimz) == (nothing, nothing)

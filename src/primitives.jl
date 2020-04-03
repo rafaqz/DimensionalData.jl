@@ -347,9 +347,9 @@ cell step, sampling type and order.
 @inline reducedims(mode::Unaligned, dim::Dimension) =
     rebuild(dim, [nothing], NoIndex)
 @inline reducedims(mode::Categorical, dim::Dimension{Vector{String}}) =
-    rebuild(dim, ["combined"], Categorical(Ordered()))
+    rebuild(dim, ["combined"], Categorical())
 @inline reducedims(mode::Categorical, dim::Dimension) =
-    rebuild(dim, [:combined], Categorical(Ordered()))
+    rebuild(dim, [:combined], Categorical())
 
 @inline reducedims(mode::AbstractSampled, dim::Dimension) =
     reducedims(span(mode), sampling(mode), mode, dim)
