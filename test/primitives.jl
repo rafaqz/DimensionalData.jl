@@ -48,6 +48,9 @@ end
     @test dims2indices(da, X, emptyval) == (Colon(), ())
     @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
     @test dims2indices(da, 1, emptyval) == (1, )
+
+    @test dims2indices(X(), 1) == 1
+    @test dims2indices(X(), X(2)) == 2
 end
 
 @testset "dims2indices with Transformed" begin
