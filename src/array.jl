@@ -39,9 +39,6 @@ dims(A::AbDimArray) = A.dims
 @inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A),
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
-# Rebuild for name-updating methods, to avoid having to add dims and refdims
-@inline rebuild(A::AbstractArray, data, name::AbstractString) =
-    rebuild(A, data, dims(A), refdims(A), name, metadata)
 
 # Array interface methods ######################################################
 
@@ -79,11 +76,16 @@ Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
 Base.Array(A::AbDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
-# Don't remove these even though they look redundant Base.similar(A::AbDimArray) = rebuild(A, similar(data(A)), "")
-Base.similar(A::AbDimArray, ::Type{T}) where T = rebuild(A, similar(data(A), T), "")
+# Don't remove these even though they look redundant 
+Base.similar(A::AbDimArray) = 
+    rebuild(A, similar(data(A)), dims(A), (), "")
+Base.similar(A::AbDimArray, ::Type{T}) where T = 
+    rebuild(A, similar(data(A), T), dims(A), (), "")
 # If the shape changes, use the wrapped array:
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = similar(data(A), T, I)
-Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = similar(data(A), T, i, I...)
+Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = 
+    similar(data(A), T, I)
+Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = 
+    similar(data(A), T, i, I...)
 
 
 # Concrete implementation ######################################################
