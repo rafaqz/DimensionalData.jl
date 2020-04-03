@@ -323,9 +323,9 @@ order(mode::AbstractCategorical) = mode.order
 An IndexMode where the values are categories.
 
 ## Fields
-- `order`: [`Order`](@ref) indicating array and index order. 
+- `order`: [`Order`](@ref) indicating array and index order.
 
-`Order` will not be determined automatically for `Categorical`, 
+`Order` will not be determined automatically for `Categorical`,
 it instead defaults to `Unordered()`
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}
@@ -449,7 +449,7 @@ identify(span::Regular, dimtype::Type, index::AbstractArray) =
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
-    step(span) == step(index) || throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
+    step(span) ≈ step(index) || throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
     span
 end
 identify(span::Irregular{Nothing}, dimtype, index) =
