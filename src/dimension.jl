@@ -1,23 +1,56 @@
 """
-Dimensions tag the dimensions of an AbstractArray, or other dimensional data.
+Dimension is the abstract supertype of all dimension types.
 
-It can also contain spatial coordinates and their metadata. For simplicity,
-the same types are used both for storing dimension information and for indexing.
+Example concrete implementations are `X`, `Y`, `Z`, 
+`Ti` (Time), and the arbirary `Dim{:custom}` dimension.
+
+`Dimension`s label the axes of an `AbstractDimesnionalArray`, 
+or other dimensional data. They may also provide an alternate index 
+to lookup for each array axis.
+
+
+Example:
+```julia
+using Dates
+x = X(2:2:10)
+y = Y(['a', 'b', 'c'])
+ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
+```
+
+```julia
+A = DimensionalArray(rand(3, 5, 12), (y, x, ti));
+```
+
+For simplicity, the same `Dimension` types are also used as wrappers 
+in `getindex`, like:
+
+```julia
+x = A[X(2), Y(3)]
+```
+
+Dimension can also wrap [`Selectors`](@ref).
+
+```julia
+x = A[X(Between(3, 4)), Y(At('b'))]
+```
+
+`Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields
+to track additional information about the data and the index, and their relationship.
 """
 abstract type Dimension{T,IM,M} end
 
 """
-Abstract supertype for independent dimensions. Will plot on the X axis.
+Abstract supertype for independent dimensions. Thise will plot on the X axis.
 """
 abstract type IndependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
-Abstract supertype for Dependent dimensions. Will plot on the Y axis.
+Abstract supertype for Dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
-Abstract parent type for all X dimensions.
+Abstract parent type for all X dimensions. 
 """
 abstract type XDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
@@ -33,7 +66,11 @@ abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
 Abstract parent type for all time dimensions.
-"""
+
+For an index with `Interval` sampling the locus will automatically be
+set to `Start()`, as a date/time index generally defines the start of a 
+month, second etc, not the central point as is more common with spatial data.
+`"""
 abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
@@ -130,10 +167,17 @@ Dimensions with user-set type paremeters
 abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
+    Dim{X}(val, mode, metadata)
+    Dim{X}(val=:; [mode=Auto()], [metadata=nothing])
+
 A generic dimension. For use when custom dims are required when loading
 data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
+
+```julia
+dim = Dim{:custom}(['a', 'b', 'c'])
+```
 """
 struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
     val::T
@@ -143,13 +187,15 @@ struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
         new{X,typeof(val),typeof(mode),typeof(metadata)}(val, mode, metadata)
 end
 
-Dim{X}(val=:; mode=AutoIndex(), metadata=nothing) where X =
+Dim{X}(val=:; mode=Auto(), metadata=nothing) where X =
     Dim{X}(val, mode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
 """
+    AnonDim()
+
 Anonymous dimension. Used when extra dimensions are created, 
 such as during transpose of a vector.
 """
@@ -190,7 +236,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             mode::IM
             metadata::M
         end
-        $typ(val=:; mode=AutoIndex(), metadata=nothing) =
+        $typ(val=:; mode=Auto(), metadata=nothing) =
             $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
@@ -198,19 +244,45 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 
 # Define some common dimensions.
 @dim X XDim
-@doc "X dimension. `X <: XDim <: IndependentDim`" X
+@doc """
+X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
+
+## Example:
+```julia
+x = X(2:2:10)
+```
+""" X
 
 @dim Y YDim
-@doc "Y dimension. `Y <: YDim <: DependentDim`" Y
+@doc """
+Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
+
+## Example:
+```julia
+y = Y(['a', 'b', 'c'])
+```
+""" Y
 
 @dim Z ZDim
-@doc "Z dimension. `Z <: ZDim <: Dimension`" Z
+@doc """
+Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
+
+## Example:
+```julia
+z = Z(10:10:100)
+```
+""" Z
 
 @dim Ti TimeDim "Time"
 @doc """
-Time dimension. `Ti <: TimeDim <: IndependentDim`
+Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
 
 `Time` is already used by Dates, so we use `Ti` to avoid clashing.
+
+## Example:
+```julia
+ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
+```
 """ Ti
 
 # Time dimensions need to default to the Start() locus, as that is
