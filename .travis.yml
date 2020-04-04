@@ -1,4 +1,3 @@
-# Documentation: http://docs.travis-ci.com/user/languages/julia/
 language: julia
 
 os:
@@ -11,16 +10,10 @@ julia:
   - 1.3
   - nightly
 
-matrix:
+jobs:
   allow_failures:
     - julia: nightly
   fast_finish: true
-
-notifications:
-  email: false
-
-
-jobs:
   include:
     - stage: "Documentation"
       julia: 1.3
@@ -30,5 +23,8 @@ jobs:
                                                Pkg.instantiate()'
         - julia --project=docs/ docs/make.jl
       after_success: skip
+
+notifications:
+  email: false
 
 codecov: true
