@@ -40,12 +40,14 @@ _dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
 
 Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 """
-@inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) = 
-    _dims2indices(mode(dim), lookup, emptyval)
+@inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
+    _dims2indices(mode(dim), dim, lookup, emptyval)
+@inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) =
+    lookup
 """
     dims2indices(A, lookup, [emptyval=Colon()])
 
-Convert `Dimension` or `Selector` to regular indices for any object with a `dims` method, 
+Convert `Dimension` or `Selector` to regular indices for any object with a `dims` method,
 usually an array.
 """
 @inline dims2indices(A, lookup, emptyval=Colon()) =
@@ -84,13 +86,15 @@ end
     sel2indices(val(lookup), mode, dim)
 
 # Selectors select on mode dimensions
-@inline irreg2indices(modes::Tuple, dims::Tuple, lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
+@inline irreg2indices(modes::Tuple, dims::Tuple,
+                      lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
     sel2indices(map(val, lookup), modes, dims)
 # Other dims select on regular dimensions
 @inline irreg2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
     (_dims2indices(modes[1], dims[1], lookup[1], emptyval),
      _dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
 end
+
 
 @inline splitmodes(modes::Tuple{Unaligned,Vararg}, dims, lookup) = begin
     (irregdims, irreglookup), reg = splitmodes(tail(modes), tail(dims), tail(lookup))
@@ -150,13 +154,13 @@ maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 """
     dimnum(x, lookup)
 
-Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object. 
+Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object.
 
 ## Arguments
-- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`. 
+- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `lookup`: Tuple or single `Dimension` or dimension `Type`.
 
-The return type will be a Tuple of `Int` or a single `Int`, 
+The return type will be a Tuple of `Int` or a single `Int`,
 depending on wether `lookup` is a `Tuple` or single `Dimension`.
 
 ## Example
@@ -192,7 +196,7 @@ julia> dimnum(A, Z)
     hasdim(x, lookup)
 
 ## Arguments
-- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`. 
+- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `lookup`: Tuple or single `Dimension` or dimension `Type`.
 
 Check if an object or tuple contains an `Dimension`, or a tuple of dimensions.
@@ -225,7 +229,7 @@ Replaces the first dim matching `<: basetypeof(newdim)` with newdim, and returns
 a new object or tuple with the dimension updated.
 
 ## Arguments
-- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`. 
+- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `newdim`: Tuple or single `Dimension` or dimension `Type`.
 
 # Example
@@ -254,7 +258,7 @@ the values and metadata. Dimension instances replace the original
 dimension, and `nothing` leaves the original dimension as-is.
 
 ## Arguments
-- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`. 
+- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `newdim`: Tuple or single `Dimension` or dimension `Type`.
 
 # Example
@@ -316,14 +320,14 @@ checkaxis(dim, axis) =
             "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
 
 """
-    reducedims(x, dimstoreduce) 
+    reducedims(x, dimstoreduce)
 
-Replace the specified dimensions with an index of length 1. 
-This is usually to match a new array size where an axis has been 
-reduced with a method like `mean` or `reduce` to a length of 1, 
+Replace the specified dimensions with an index of length 1.
+This is usually to match a new array size where an axis has been
+reduced with a method like `mean` or `reduce` to a length of 1,
 but the number of dimensions has not changed.
 
-`IndexMode` traits are also updated to correspond to the change in 
+`IndexMode` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
 @inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
@@ -400,11 +404,11 @@ any combination of either.
 
 ## Example
 ```jldoctest
-julia> 
+julia>
 A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
 
 julia> dims(A, Z)
-dimension Z: 
+dimension Z:
 val: Base.OneTo(10)
 mode: NoIndex()
 metadata: nothing
@@ -455,4 +459,3 @@ Empty tuples are allowed
     # TODO compare the mode, and maybe the index.
     return a
 end
-

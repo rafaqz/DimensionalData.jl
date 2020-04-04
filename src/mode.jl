@@ -190,6 +190,7 @@ order(mode::IndexMode) = Unordered()
 arrayorder(mode::IndexMode) = arrayorder(order(mode))
 indexorder(mode::IndexMode) = indexorder(order(mode))
 relationorder(mode::IndexMode) = relationorder(order(mode))
+locus(mode::IndexMode) = Center()
 
 reversearray(mode::IndexMode) = rebuild(mode, reversearray(order(mode)))
 reverseindex(mode::IndexMode) = rebuild(mode, reverseindex(order(mode)))

@@ -30,7 +30,7 @@ not just the end points.
 
 `atol` and `rtol` are passed to `isapprox`.
 For `Number` `rtol` will be set to `Base.rtoldefault`, otherwise `nothing`,
-and wont be used. 
+and wont be used.
 """
 struct At{T,A,R} <: Selector{T}
     val::T
@@ -66,7 +66,7 @@ end
 Selector that selects the interval the value is contained by. If the
 interval is not present in the index, an error will be thrown.
 
-Can only be used for [`Sampled`](@ref) [`Intervals`](@ref) or [`Categorical`](@ref).
+Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 """
 struct Contains{T} <: Selector{T}
     val::T
@@ -89,7 +89,7 @@ Between(args...) = Between{typeof(args)}(args)
 Between(x::Tuple) = Between{typeof(x)}(x)
 
 # Get the dims in the same order as the mode
-# This would be called after Regular and/or Categorical
+# This would be called after RegularIndex and/or Categorical
 # dimensions are removed
 _dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
     sel2indices(mode, dims, map(val, permutedims(dimz, dims(mode))))
@@ -119,7 +119,7 @@ sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
 # Categorical
-sel2indices(mode::AbstractCategorical, dim::Dimension, sel::Selector) =
+sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
         sel2indices(Points(), mode, dim, At(val(sel)))
     else
@@ -127,7 +127,7 @@ sel2indices(mode::AbstractCategorical, dim::Dimension, sel::Selector) =
     end
 
 # Sampled
-sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
+sel2indices(mode::Sampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
 # For Sampled filter based on sampling type and selector -----------------
@@ -245,28 +245,36 @@ contains(span::Regular, ::Start, ::Intervals, ord::Forward, mode, dim, sel) = be
     s = val(span)
     (v < first(dim) || v >= last(dim) + s) && throw(BoundsError())
     i = _searchlast(dim, v)
-    (dim[i] + abs(s) > v) || error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] + abs(s) > v) || error("No span for $v")
+    end
     i
 end
 contains(span::Regular, ::Start, ::Intervals, ord::Reverse, mode, dim, sel) = begin
     v = val(sel)
     (v < last(dim) || v >= first(dim) - val(span)) && throw(BoundsError())
     i = _searchfirst(dim, v)
-    (dim[i] + abs(val(span)) > v) || error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] + abs(val(span)) > v) || error("No span for $v")
+    end
     i
 end
 contains(span::Regular, ::End, ::Intervals, ord::Forward, mode, dim, sel) = begin
     v = val(sel)
     (v <= first(dim) - val(span) || v > last(dim)) && throw(BoundsError())
     i = _searchfirst(dim, v)
-    (dim[i] - abs(val(span)) <= v) || error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] - abs(val(span)) <= v) || error("No span for $v")
+    end
     i
 end
 contains(span::Regular, ::End, ::Intervals, ord::Reverse, mode, dim, sel) = begin
     v = val(sel)
     (v <= last(dim) + val(span) || v > first(dim)) && throw(BoundsError())
     i = _searchlast(dim, v)
-    (dim[i] - abs(val(span)) <= v) || error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] - abs(val(span)) <= v) || error("No span for $v")
+    end
     i
 end
 contains(span::Regular, locus::Center, samp::Intervals, ord::Forward, mode, dim, sel) = begin
@@ -274,7 +282,9 @@ contains(span::Regular, locus::Center, samp::Intervals, ord::Forward, mode, dim,
     v = val(sel)
     (v < first(dim) - half || v >= last(dim) + half) && throw(BoundsError())
     i = _searchlast(dim, v + half)
-    (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
+    end
     i
 end
 contains(span::Regular, locus::Center, samp::Intervals, ord::Reverse, mode, dim, sel) = begin
@@ -282,7 +292,9 @@ contains(span::Regular, locus::Center, samp::Intervals, ord::Reverse, mode, dim,
     v = val(sel)
     (v < last(dim) - half || v >= first(dim) + half) && throw(BoundsError())
     i = _searchfirst(dim, v + half)
-    (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
+    if !(val(dim) isa AbstractRange) # Check the value is in this cell
+        (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
+    end
     i
 end
 
