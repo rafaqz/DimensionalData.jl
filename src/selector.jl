@@ -349,17 +349,31 @@ between(indexord::Reverse, ::Points, dim::Dimension, sel) = begin
     relate(dim, a:b)
 end
 between(indexord, s::Intervals, dim::Dimension, sel) =
-    between(span(mode(dim)), indexord, s, dim, sel)
-between(span::Regular, indexord::Forward, ::Intervals, dim::Dimension, sel) = begin
+    between(span(mode(dim)), indexord,  dim, sel)
+between(span::Regular, indexord::Forward, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel) .+ _locus_adjustment(mode(dim), span)
     a = _inbounds(_searchfirst(dim, low), dim)
     b = _inbounds(_searchlast(dim, high), dim)
     relate(dim, a:b)
 end
-between(span::Regular, indexord::Reverse, ::Intervals, dim::Dimension, sel) = begin
+between(span::Regular, indexord::Reverse, dim::Dimension, sel) = begin
     low, high = _sorttuple(sel) .+ _locus_adjustment(mode(dim), span)
     a = _inbounds(_searchfirst(dim, high), dim)
     b = _inbounds(_searchlast(dim, low), dim)
+    relate(dim, a:b)
+end
+# TODO do this properly. 
+# The intervals need to be between the selection, not the points.
+between(span::Irregular, indexord::Forward, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel)
+    a = _inbounds(_searchfirst(dim, low), dim)
+    b = _inbounds(_searchlast(dim, high), dim)
+    relate(dim, a:b)
+end
+between(span::Irregular, indexord::Reverse, dim::Dimension, sel) = begin
+    low, high = _sorttuple(sel)
+    a = _inbounds(_searchlast(dim, high), dim)
+    b = _inbounds(_searchfirst(dim, low), dim)
     relate(dim, a:b)
 end
 

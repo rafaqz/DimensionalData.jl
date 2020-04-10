@@ -106,7 +106,14 @@ end
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
 refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(mode(dim), dim))
-refdims_title(mode::AbstractSampled, dim::Dimension) =
-    ((start, stop) = bounds(dim); "$start to $stop")
-refdims_title(mode, dim::Dimension) = val(dim)
+refdims_title(mode::AbstractSampled, dim::Dimension) = begin
+    start, stop = map(string, bounds(dim))
+    println("bounds: ", bounds(dim))
+    if start == stop
+        start
+    else
+         "$start to $stop"
+    end
+end
+refdims_title(mode::IndexMode, dim::Dimension) = string(val(dim))
 
