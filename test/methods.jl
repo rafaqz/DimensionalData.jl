@@ -4,6 +4,9 @@ using LinearAlgebra: Transpose
 
 using Combinatorics: combinations
 
+using DimensionalData: reversearray, reverseindex, reorderarray, reorderindex,
+                       Forward, Reverse
+
 @testset "*" begin
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
     A1 = DimensionalArray(rand(12), (Ti(timespan),)) 
@@ -218,6 +221,63 @@ end
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
     @test typeof(dsp) <: DimensionalArray
+end
+
+@testset "reversing methods" begin
+    revdim = reverse(X(10:10:20; mode=Sampled(order=Ordered())))
+    @test val(revdim) == 20:-10:10
+    @test order(revdim) == Ordered(Reverse(), Forward(), Reverse())
+    revdima = reversearray(X(10:10:20; mode=Sampled(order=Ordered())))
+    @test val(revdima) == 10:10:20
+    @test order(revdima) == Ordered(Forward(), Reverse(), Reverse())
+    revdimi = reverseindex(X(10:10:20; mode=Sampled(order=Ordered())))
+    @test val(revdimi) == 20:-10:10
+    @test order(revdimi) == Ordered(Reverse(), Forward(), Reverse())
+
+    A = [1 2 3; 4 5 6]
+    da = DimensionalArray(A, (X(10:10:20), Y(300:-100:100)))
+    rev = reverse(da; dims=Y);
+    @test rev == [3 2 1; 6 5 4]
+    @test val(dims(rev, X)) == 10:10:20
+    @test val(dims(rev, Y)) == 300:-100:100
+    @test order(dims(rev, X)) == Ordered(Forward(), Forward(), Forward())
+    @test order(dims(rev, Y)) == Ordered(Reverse(), Reverse(), Reverse())
+
+    reva = reversearray(da; dims=Y);
+    @test reva == [3 2 1; 6 5 4]
+    @test val(dims(reva, X)) == 10:10:20
+    @test val(dims(reva, Y)) == 300:-100:100
+    @test order(dims(reva, X)) == Ordered(Forward(), Forward(), Forward())
+    @test order(dims(reva, Y)) == Ordered(Reverse(), Reverse(), Reverse())
+
+    revi = reverseindex(da; dims=Y)
+    @test revi == A
+    @test val(dims(revi, X)) == 10:10:20
+    @test val(dims(revi, Y)) == 100:100:300
+    @test order(dims(revi, X)) == Ordered(Forward(), Forward(), Forward())
+    @test order(dims(revi, Y)) == Ordered(Forward(), Forward(), Reverse())
+
+    reversearray(da; dims=Y(300:-100:100))
+    reoa = reorderarray(da, Reverse());
+    @test reoa == [6 5 4; 3 2 1]
+    @test val(dims(reoa, X)) == 10:10:20
+    @test val(dims(reoa, Y)) == 300:-100:100
+    @test order(dims(reoa, X)) == Ordered(Forward(), Reverse(), Reverse())
+    @test order(dims(reoa, Y)) == Ordered(Reverse(), Reverse(), Reverse())
+
+    reoi = reorderindex(da, Reverse())
+    @test reoi == A 
+    @test val(dims(reoi, X)) == 20:-10:10
+    @test val(dims(reoi, Y)) == 300:-100:100
+    @test order(dims(reoi, X)) == Ordered(Reverse(), Forward(), Reverse())
+    @test order(dims(reoi, Y)) == Ordered(Reverse(), Forward(), Forward())
+
+    reoi = reorderindex(da, (Y(Forward()), X(Reverse())))
+    @test reoi == A 
+    @test val(dims(reoi, X)) == 20:-10:10
+    @test val(dims(reoi, Y)) == 100:100:300
+    @test order(dims(reoi, X)) == Ordered(Reverse(), Forward(), Reverse())
+    @test order(dims(reoi, Y)) == Ordered(Forward(), Forward(), Reverse())
 end
 
 @testset "dimension mirroring methods" begin
