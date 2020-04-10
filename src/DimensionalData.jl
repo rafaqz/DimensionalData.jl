@@ -42,7 +42,9 @@ export data, dims, refdims, metadata, name, shortname,
 
 export dimnum, hasdim, setdims, swapdims, rebuild
 
-export reverseindex, reversearray, reorderindex, reorderarray
+export order, indexorder, arrayorder, 
+       reverseindex, reversearray, reorderindex, 
+       reorderarray, reorderrelation
 
 export @dim
 

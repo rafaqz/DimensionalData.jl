@@ -40,6 +40,11 @@ dims(A::AbDimArray) = A.dims
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
+order(A::AbstractDimensionalArray, args...) = order(dims(A, args...))
+arrayorder(A::AbstractDimensionalArray, args...) = arrayorder(dims(A, args...))
+indexorder(A::AbstractDimensionalArray, args...) = indexorder(dims(A, args...))
+   
+
 # Array interface methods ######################################################
 
 Base.size(A::AbDimArray) = size(data(A))

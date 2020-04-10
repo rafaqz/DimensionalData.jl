@@ -181,15 +181,14 @@ Reorder the array axes for the given dimension(s), to the order they wrap.
 
 `order` can be a single `Dimension` or a `Tuple` of `Dimension`.
 """
-reorderarray(A::AbstractDimensionalArray, order::DimTuple) = begin
-    order = _sortdims(order, dims(A))
-    for (i, dim) in enumerated(dims(A))
-        A = reorderarray(A, dim, order[i])
+reorderarray(A::AbstractDimensionalArray, order::Tuple, args...) = begin
+    for dim in _sortdims(order, dims(A))
+        A = reorderarray(A, dim, args...)
     end
     A
 end
-reorderarray(A::AbstractDimensionalArray, order::Dimension{<:Order}) =
-    reorderarray(A, dim, val(dim))
+reorderarray(A::AbstractDimensionalArray, orderdim::Dimension{<:Order}) =
+    reorderarray(A, orderdim, val(orderdim))
 reorderarray(A::AbstractDimensionalArray, order::Nothing) = A
 """
     reorderarray(A, order::Order)
@@ -202,13 +201,49 @@ reorderarray(A::AbstractDimensionalArray, order::Order=Forward()) = begin
     end
     A
 end
-reorderarray(A::AbstractDimensionalArray, dim::Dimension, order::Order=Forward()) =
+reorderarray(A::AbstractDimensionalArray, dim::DimOrDimType, order::Order) =
     if order == arrayorder(dims(A, dim))
         A
     else
         reversearray(A; dims=dim)
     end
-reorderarray(A::AbstractDimensionalArray, dim, order::Unordered) = A
+reorderarray(A::AbstractDimensionalArray, dim::DimOrDimType, order::Unordered) = A
+
+"""
+    reorderrelation(A, order::Dimension{<:Order})
+
+Reorder the relation axes for the given dimension(s), to the order they wrap.
+
+`order` can be a single `Dimension` or a `Tuple` of `Dimension`.
+"""
+reorderrelation(A::AbstractDimensionalArray, order::Tuple, args...) = begin
+    for dim in _sortdims(order, dims(A))
+        A = reorderrelation(A, dim, args...)
+    end
+    A
+end
+reorderrelation(A::AbstractDimensionalArray, orderdim::Dimension{<:Order}) =
+    reorderrelation(A, orderdim, val(orderdim))
+reorderrelation(A::AbstractDimensionalArray, order::Nothing) = A
+"""
+    reorderrelation(A, order::Order)
+
+Reorder all relation axes to match `order`.
+"""
+reorderrelation(A::AbstractDimensionalArray, order::Order=Forward()) = begin
+    for dim in dims(A)
+        A = reorderrelation(A, dim, order)
+    end
+    A
+end
+reorderrelation(A::AbstractDimensionalArray, dim::DimOrDimType, order::Order) =
+    if order == relationorder(dims(A, dim))
+        A
+    else
+        # reverse the array, not the dim
+        reversearray(A; dims=dim)
+    end
+reorderrelation(A::AbstractDimensionalArray, dim::DimOrDimType, order::Unordered) = A
 
 """
     reorderindex(A, order::Dimension{<:Order})
@@ -217,15 +252,14 @@ Reorder the dim index for the given dimension(s) to the order they wrap.
 
 `order` can be a single `Dimension` or a `Tuple` of `Dimension`.
 """
-reorderindex(A::AbstractDimensionalArray, order::Tuple{Vararg{<:Dimension{<:Order}}}) = begin
-    order = _sortdims(order, dims(A))
-    for dim in order
-        A = reorderindex(A, dim)
+reorderindex(A::AbstractDimensionalArray, order::Tuple, args...) = begin
+    for dim in _sortdims(order, dims(A))
+        A = reorderindex(A, dim, args...)
     end
     A
 end
-reorderindex(A::AbstractDimensionalArray, order::Dimension{<:Order}) =
-    reorderindex(A, order, val(order))
+reorderindex(A::AbstractDimensionalArray, orderdim::Dimension{<:Order}) =
+    reorderindex(A, orderdim, val(orderdim))
 reorderindex(A::AbstractDimensionalArray, order::Nothing) = A
 """
     reorderindex(A, order::Order)
@@ -238,13 +272,13 @@ reorderindex(A::AbstractDimensionalArray, order::Order=Forward()) = begin
     end
     A
 end
-reorderindex(A::AbstractDimensionalArray, dim::Dimension, order::Order=Forward()) =
+reorderindex(A::AbstractDimensionalArray, dim::DimOrDimType, order::Order) =
     if order == indexorder(dims(A, dim))
         A
     else
         reverseindex(A, dims=dim)
     end
-reorderindex(A::AbstractDimensionalArray, dim::Dimension, order::Unordered) = A
+reorderindex(A::AbstractDimensionalArray, dim::DimOrDimType, order::Unordered) = A
 
 
 # Dimension reordering

@@ -257,8 +257,7 @@ end
     @test order(dims(revi, X)) == Ordered(Forward(), Forward(), Forward())
     @test order(dims(revi, Y)) == Ordered(Forward(), Forward(), Reverse())
 
-    reversearray(da; dims=Y(300:-100:100))
-    reoa = reorderarray(da, Reverse());
+    reoa = reorderarray(da, Reverse())
     @test reoa == [6 5 4; 3 2 1]
     @test val(dims(reoa, X)) == 10:10:20
     @test val(dims(reoa, Y)) == 300:-100:100
@@ -278,6 +277,15 @@ end
     @test val(dims(reoi, Y)) == 100:100:300
     @test order(dims(reoi, X)) == Ordered(Reverse(), Forward(), Reverse())
     @test order(dims(reoi, Y)) == Ordered(Forward(), Forward(), Reverse())
+
+    reor = reorderrelation(da, (Y(Forward()), X(Reverse())));
+    @test reor == [4 5 6; 1 2 3]
+    @test val(dims(reor, X)) == 10:10:20
+    @test val(dims(reor, Y)) == 300:-100:100
+    @test order(dims(reor, X)) == Ordered(Forward(), Reverse(), Reverse())
+    @test order(dims(reor, Y)) == Ordered(Reverse(), Forward(), Forward())
+
+    # TODO test this more thouroughly
 end
 
 @testset "dimension mirroring methods" begin
