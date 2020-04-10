@@ -440,8 +440,6 @@ identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
     Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
-identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
-    Regular(step(index))
 
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractArray) =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
