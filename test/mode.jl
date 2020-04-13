@@ -94,7 +94,7 @@ end
         Ordered(Reverse(), Reverse(), Forward())
 end
 
-@testset "slicebounds and slicemode" begin
+@testset "slicbounds" begin
     index = [10.0, 20.0, 30.0, 40.0, 50.0]
     bound = (10.0, 60.0)
     @test slicebounds(Start(), bounds, index, 2:3) == (20.0, 40.0)
@@ -102,8 +102,12 @@ end
     @test slicebounds(End(), bounds, index, 2:3) == (10.0, 30.0)
     bound = (0.5, 55.0)
     @test slicebounds(Center(), bounds, index, 2:3) == (15.0, 35.0)
+end
 
-    @testset "forwards" begin
+@testset "slicemode" begin
+    index = [10.0, 20.0, 30.0, 40.0, 50.0]
+
+    @testset "Irregular forwards" begin
         mode = Sampled(span=Irregular((10.0, 60.0)), sampling=Intervals(Start()))
         mode = Sampled(Ordered(), Irregular((10.0, 60.0)), Intervals(Start()))
         @test bounds(slicemode(mode, index, 3), X(index)) == (30.0, 40.0)
@@ -111,7 +115,7 @@ end
         @test bounds(slicemode(mode, index, 2:3), X(index)) == (20.0, 40.0)
     end
 
-    @testset "reverse" begin
+    @testset "Irregular reverse" begin
         mode = Sampled(order=Ordered(index=Reverse()), span=Irregular(10.0, 60.0),
                        sampling=Intervals(Start()))
         mode = Sampled(Ordered(index=Reverse()), Irregular(10.0, 60.0), Intervals(Start()))
@@ -138,70 +142,80 @@ end
         @test bounds(slicemode(mode, index, 1:5), X()) == (nothing, nothing)
     end
 
-    @testset "regular intervals are unchanged" begin
+    @testset "Regular is unchanged" begin
         mode = Sampled(span=Regular(1.0), sampling=Intervals(Start()))
         mode = Sampled(Ordered(), Regular(1.0), Intervals(Start()))
         @test slicemode(mode, index, 2:3) === mode
     end
 
-    @testset "point sampling is unchanged" begin
+    @testset "Points is unchanged" begin
         mode = Sampled(span=Regular(1.0), sampling=Points())
         mode = Sampled(Ordered(), Regular(1.0), Points())
         @test slicemode(mode, index, 2:3) === mode
     end
 
 end
-@testset "Intervals bounds" begin
-    @testset "Regular" begin
-        @testset "forward index" begin
-            index = 10.0:10.0:50.0
-            dim = X(index; mode=Sampled(order=Ordered(), sampling=Intervals(Start()), span=Regular(10.0)))
-            @test bounds(dim) == (10.0, 60.0)
-            dim = X(index; mode=Sampled(order=Ordered(), sampling=Intervals(End()), span=Regular(10.0)))
-            @test bounds(dim) == (0.0, 50.0)
-            dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(Start())))
-            @test bounds(dim) == (10.0, 60.0)                                        
-            dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(End())))
-            @test bounds(dim) == (0.0, 50.0)                                         
-            dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(Center())))
-            @test bounds(dim) == (5.0, 55.0)
+
+@testset "bounds" begin
+
+    @testset "Intervals" begin
+        @testset "Regular bounds are calculated from interval type and span value" begin
+            @testset "forward index" begin
+                index = 10.0:10.0:50.0
+                dim = X(index; mode=Sampled(order=Ordered(), sampling=Intervals(Start()), span=Regular(10.0)))
+                @test bounds(dim) == (10.0, 60.0)
+                dim = X(index; mode=Sampled(order=Ordered(), sampling=Intervals(End()), span=Regular(10.0)))
+                @test bounds(dim) == (0.0, 50.0)
+                dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(Start())))
+                @test bounds(dim) == (10.0, 60.0)                                        
+                dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(End())))
+                @test bounds(dim) == (0.0, 50.0)                                         
+                dim = X(index; mode=Sampled(Ordered(), Regular(10.0), Intervals(Center())))
+                @test bounds(dim) == (5.0, 55.0)
+            end
+            @testset "reverse index" begin
+                revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
+                dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
+                                                   sampling=Intervals(Start()), span=Regular(-1.0)))
+                dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(Start())))
+                @test bounds(dim) == (6.0, 11.0)
+                dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
+                                                   sampling=Intervals(End()), span=Regular(-1.0)))
+                dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(End())))
+                @test bounds(dim) == (5.0, 10.0)
+                dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
+                                                   sampling=Intervals(Center()), span=Regular(-1.0)))
+                dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(Center())))
+                @test bounds(dim) == (5.5, 10.5)
+            end
         end
-        @testset "reverse index" begin
-            revindex = [10.0, 9.0, 8.0, 7.0, 6.0]
-            dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
-                                               sampling=Intervals(Start()), span=Regular(-1.0)))
-            dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(Start())))
-            @test bounds(dim) == (6.0, 11.0)
-            dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
-                                               sampling=Intervals(End()), span=Regular(-1.0)))
-            dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(End())))
-            @test bounds(dim) == (5.0, 10.0)
-            dim = X(revindex; mode=Sampled(; order=Ordered(Reverse(),Forward(),Forward()),
-                                               sampling=Intervals(Center()), span=Regular(-1.0)))
-            dim = X(revindex; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1.0), Intervals(Center())))
-            @test bounds(dim) == (5.5, 10.5)
+        @testset "Irregular bounds are whatever is stored in span" begin
+            index = 10.0:10.0:50.0
+            dim = X(index; mode=Sampled(Ordered(), Irregular(0.0, 50000.0), Intervals(Start())))
+            @test bounds(dim) == (0.0, 50000.0)
         end
     end
-end
 
-@testset "Points bounds" begin
-    index = 10:15
-    dim = X(index; mode=Sampled(order=Ordered(), sampling=Points()))
-    @test bounds(dim) == (10, 15)
-    index = 15:-1:10
-    dim = X(index; mode=Sampled(order=Ordered(index=Reverse()), sampling=Points()))
-    last(dim), first(dim)
-    @test bounds(dim) == (10, 15)
-    dim = X(index; mode=Sampled(order=Unordered(), sampling=Points()))
-    @test_throws ErrorException bounds(dim)
-end
+    @testset "Points" begin
+        index = 10:15
+        dim = X(index; mode=Sampled(order=Ordered(), sampling=Points()))
+        @test bounds(dim) == (10, 15)
+        index = 15:-1:10
+        dim = X(index; mode=Sampled(order=Ordered(index=Reverse()), sampling=Points()))
+        last(dim), first(dim)
+        @test bounds(dim) == (10, 15)
+        dim = X(index; mode=Sampled(order=Unordered(), sampling=Points()))
+        @test_throws ErrorException bounds(dim)
+    end
 
-@testset "Categorical bounds" begin
-    index = [:a, :b, :c, :d]
-    dim = X(index; mode=Categorical(; order=Ordered()))
-    @test bounds(dim) == (:a, :d)
-    dim = X(index; mode=Categorical(; order=Ordered(;index=Reverse())))
-    @test bounds(dim) == (:d, :a)
-    dim = X(index; mode=Categorical(; order=Unordered()))
-    @test_throws ErrorException bounds(dim)
+    @testset "Categorical" begin
+        index = [:a, :b, :c, :d]
+        dim = X(index; mode=Categorical(; order=Ordered()))
+        @test bounds(dim) == (:a, :d)
+        dim = X(index; mode=Categorical(; order=Ordered(;index=Reverse())))
+        @test bounds(dim) == (:d, :a)
+        dim = X(index; mode=Categorical(; order=Unordered()))
+        @test_throws ErrorException bounds(dim)
+    end
+
 end
