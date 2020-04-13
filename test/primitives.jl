@@ -23,13 +23,27 @@ da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
 dimz = dims(da)
 
 @testset "slicedims" begin
-    @test slicedims(dimz, (1:2, 3)) == 
-        ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), nothing),),
-         (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), nothing),))
-    @test slicedims(dimz, (2:2, :)) == 
-        ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), nothing), 
-          Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), nothing)), ())
-    @test slicedims((), (1:2, 3)) == ((), ())
+    @testset "Regular" begin
+        @test slicedims(dimz, (1:2, 3)) == 
+            ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), nothing),),
+             (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), nothing),))
+        @test slicedims(dimz, (2:2, :)) == 
+            ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), nothing), 
+              Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), nothing)), ())
+        @test slicedims((), (1:2, 3)) == ((), ())
+    end
+    @testset "Irregular" begin
+        irreg = DimensionalArray(a, (X([140.0, 142.0]; mode=Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start()))), 
+                                     Y([10.0, 20.0, 40.0]; mode=Sampled(Ordered(), Irregular(0.0, 60.0), Intervals(Center()))), ))
+        irreg_dimz = dims(irreg)
+        @test slicedims(irreg, (1:2, 3)) == 
+            ((X([140.0, 142.0], Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start())), nothing),),
+                    (Y(40.0, Sampled(Ordered(), Irregular(30.0, 60.0), Intervals(Center())), nothing),))
+        @test slicedims(irreg, (2:2, 1:2)) == 
+            ((X([142.0], Sampled(Ordered(), Irregular(142.0, 144.0), Intervals(Start())), nothing), 
+              Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), nothing)), ())
+        @test slicedims((), (1:2, 3)) == ((), ())
+    end
 end
 
 @testset "dims2indices" begin
