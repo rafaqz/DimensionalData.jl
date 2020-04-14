@@ -107,7 +107,7 @@ name(dim::Dimension) = name(typeof(dim))
 shortname(d::Dimension) = shortname(typeof(d))
 shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
 units(dim::Dimension) =
-    metadata(dim) == nothing ? nothing : get(val(metadata(dim)), :units, nothing)
+    metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
 
 bounds(dim::Dimension) = bounds(mode(dim), dim)
