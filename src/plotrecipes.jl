@@ -5,29 +5,29 @@ struct HistogramLike end
 struct ViolinLike end
 
 @recipe function f(A::AbstractDimensionalArray)
-    Af = forwardorder(A)
+    Afwd = forwardorder(A)
     sertype = get(plotattributes, :seriestype, :none)
     if !(sertype in [:marginalhist])
-        :title --> refdims_title(A)
+        :title --> refdims_title(Afwd)
     end
     if sertype in [:heatmap, :contour, :volume, :marginalhist, :image, 
                    :surface, :contour3d, :wireframe, :scatter3d]
-        HeatMapLike(), Af
+        HeatMapLike(), Afwd
     elseif sertype in [:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram]
-        HistogramLike(), Af
+        HistogramLike(), Afwd
     elseif sertype in [:hline]
-        :ylabel --> label(A)
-        data(Af)
+        :ylabel --> label(Afwd)
+        data(Afwd)
     elseif sertype in [:vline, :andrews]
-        :xlabel --> label(A)
-        data(Af)
+        :xlabel --> label(Afwd)
+        data(Afwd)
     elseif sertype in [:violin, :dotplot, :boxplot]
-        ViolinLike(), Af
+        ViolinLike(), Afwd
     elseif sertype in [:plot, :histogram2d, :none, :line, :path, :steppre, :steppost, :sticks, :scatter, 
                        :hexbin, :barbins, :scatterbins, :stepbins, :bins2d, :bar]
-        SeriesLike(), Af
+        SeriesLike(), Afwd
     else
-        data(Af)
+        data(Afwd)
     end
 end
 
@@ -95,14 +95,8 @@ end
 
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
 
-forwardorder(A) = begin
-    for (i, dim) in enumerate(dims(A))
-        if arrayorder(dim) == Reverse()
-            A = reverse(A; dims=dim)
-        end
-    end
-    A
-end
+forwardorder(A::AbstractArray) =
+    reorderindex(A, Forward()) |> a -> reorderrelation(a, Forward())
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
 refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(mode(dim), dim))
