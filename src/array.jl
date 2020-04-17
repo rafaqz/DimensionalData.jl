@@ -35,7 +35,15 @@ metadata(A::AbstractDimensionalArray, dim) = metadata(dims(A, dim))
 metadata(A::AbstractDimensionalArray, dims::Tuple) =
     map(metadata, DimensionalData.dims(A, dims))
 
+# Standard fields
+
 dims(A::AbDimArray) = A.dims
+refdims(A::AbDimArray) = A.refdims
+data(A::AbDimArray) = A.data
+name(A::AbDimArray) = A.name
+metadata(A::AbDimArray) = A.metadata
+label(A::AbDimArray) = name(A)
+
 @inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A),
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
@@ -142,13 +150,6 @@ DimensionalArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=n
     DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
 _to_tuple(t::T where T <: Tuple) = t
 _to_tuple(t) = tuple(t)
-
-# Getters
-refdims(A::DimensionalArray) = A.refdims
-data(A::DimensionalArray) = A.data
-name(A::DimensionalArray) = A.name
-metadata(A::DimensionalArray) = A.metadata
-label(A::DimensionalArray) = name(A)
 
 # AbstractDimensionalArray interface
 @inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple,

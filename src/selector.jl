@@ -127,7 +127,7 @@ sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     end
 
 # Sampled
-sel2indices(mode::Sampled, dim::Dimension, sel::Selector) =
+sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
 # For Sampled filter based on sampling type and selector -----------------
