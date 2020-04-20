@@ -9,6 +9,13 @@ da = DimensionalArray(a, dimz, "test"; metadata=Dict(:meta => "da"))
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
     @test da[X(2), Y(2)] == 4
+    @test da[1, 2] == 2
+    @test da[2] == 3
+end
+
+@testset "LinearIndex getindex returns an Array, except Vector" begin
+    @test da[1:2] isa Array
+    @test da[1, :][1:2] isa DimensionalArray
 end
 
 @testset "getindex returns DimensionArray slices with the right dimensions" begin
