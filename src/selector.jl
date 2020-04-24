@@ -88,6 +88,18 @@ end
 Between(args...) = Between{typeof(args)}(args)
 Between(x::Tuple) = Between{typeof(x)}(x)
 
+"""
+    Where(f::Function)
+
+Selector that filters a dimension by any function that accepts
+a single value from the index and returns a `Bool`.
+"""
+struct Where{T} <: Selector{T}
+    f::T
+end
+
+val(sel::Where) = sel.f
+
 # Get the dims in the same order as the mode
 # This would be called after RegularIndex and/or Categorical
 # dimensions are removed
@@ -100,16 +112,20 @@ sel2indices(dims::Tuple, lookup::Tuple) =
     map((d, l) -> sel2indices(l, mode(d), d), dims, lookup)
 
 # First filter based on rough selector properties -----------------
+# Mode is passed in from dims2indices
 
-# Standard indices are just returned
+# Standard indices are just returned. 
 sel2indices(sel::StandardIndices, ::IndexMode, ::Dimension) = sel
 # Vectors are mapped
 sel2indices(sel::Selector{<:AbstractVector}, mode::IndexMode, dim::Dimension) =
-    map(v -> sel2indices(mode, dim, rebuild(sel, v)), val(sel))
+    [sel2indices(mode, dim, rebuild(sel, v)) for v in val(sel)]
 sel2indices(sel::Selector, mode::IndexMode, dim::Dimension) =
     sel2indices(mode, dim, sel)
 
-# Then filter based on IndexMode -----------------
+sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
+    [i for (i, v) in enumerate(val(dim)) if sel.f(v)]
+
+# Then dispatch based on IndexMode -----------------
 
 # NoIndex
 # This just converts the selector to standard indices. Implemented just
