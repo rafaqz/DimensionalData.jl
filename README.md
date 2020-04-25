@@ -50,9 +50,12 @@ Selectors find indices in the dimension based on values `At`, `Near`, or
 `Between` the index value(s). They can be used in `getindex`, `setindex!` and
 `view` to select indices matching the passed in value(s)
 
-- `At(x)` : get indices exactly matching the passed in value(s)
-- `Near(x)` : get the closest indices to the passed in value(s)
-- `Between(a, b)` : get all indices between two values (inclusive)
+- `At(x)`: get indices exactly matching the passed in value(s)
+- `Near(x)`: get the closest indices to the passed in value(s)
+- `Where(f::Function)`: filter the array axis by dimension value and a function 
+- `Between(a, b)`: get all indices between two values (inclusive)
+- `Contains(x)`: the value x falls in the interval covered by the index. Only
+  for [`Sampled`](@ref) [`Intervals`].
 
 We can use selectors with dim wrappers:
 

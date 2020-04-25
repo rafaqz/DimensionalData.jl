@@ -522,6 +522,12 @@ end
     @test_throws ArgumentError da[At(:two), Between(:b, :d)] == [6, 7, 8]
 end
 
+@testset "Where " begin
+    dimz = Ti((1:1:3)u"s"), Y(10:10:40)
+    da = DimensionalArray(a, dimz)
+    @test da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([1u"s", 3u"s"])))] == [3 4; 11 12]
+end
+
 # @testset "TranformedIndex" begin
 #     using CoordinateTransformations
 
