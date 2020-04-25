@@ -1,7 +1,7 @@
 name = "DimensionalData"
 uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
-version = "0.10.7"
+version = "0.10.8"
 
 [deps]
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -12,7 +12,7 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 ConstructionBase = "1"
-RecipesBase = "0.7, 0.8"
+RecipesBase = "0.7, 0.8, 1"
 julia = "1"
 
 [extras]
