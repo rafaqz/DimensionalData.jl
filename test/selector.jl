@@ -6,6 +6,13 @@ a = [1 2  3  4
      5 6  7  8
      9 10 11 12]
 
+using DimensionalData
+dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
+        Y(5:7; mode=Sampled(sampling=Intervals()))
+A = DimensionalArray([1 2 3; 4 5 6], dims_)
+A[X(Contains(8)), Y(Contains(6.8))]
+3
+
 @testset "selector primitives" begin
 
     @testset "Regular Intervals IndexMode with range" begin
@@ -213,7 +220,6 @@ a = [1 2  3  4
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
         startfwd = Ti([1, 3, 4, 5]; mode=Sampled(Ordered(index=Forward()), Regular(1), Intervals(Start())))
         startrev = Ti([5, 4, 3, 1]; mode=Sampled(Ordered(index=Reverse()), Regular(-1), Intervals(Start())))
-
         @test_throws BoundsError contains(startfwd, Contains(0.9))
         @test contains(startfwd, Contains(1.0)) == 1
         @test contains(startfwd, Contains(1.9)) == 1
@@ -224,8 +230,8 @@ a = [1 2  3  4
         @test_throws BoundsError contains(startfwd, Contains(6))
 
         @test_throws BoundsError contains(startrev, Contains(0.9))
-        @test contains(DimensionalData.mode(startrev), startrev, Contains(1.0)) == 4
-        @test contains(DimensionalData.mode(startrev), startrev, Contains(1.9)) == 4
+        @test contains(startrev, Contains(1.0)) == 4
+        @test contains(startrev, Contains(1.9)) == 4
         @test_throws ErrorException contains(startrev, Contains(2))
         @test_throws ErrorException contains(startrev, Contains(2.9))
         @test contains(startrev, Contains(3)) == 3

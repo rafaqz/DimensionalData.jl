@@ -176,17 +176,23 @@ struct AutoSpan <: Span end
 
 
 """
-Traits describing the mode of a dimension.
+IndexModes are types defining the behaviour of a dimension, how they are plotted and
+how [`Selector`](@ref)s like [`Between`](@ref) work.
+
+An IndexMode may be a simple type like [`NoIndex`](@ref) indicating that the index is
+just the underlying array axis. It could also be a [`Categorical`](@ref) index indicating
+the index is ordered or unordered categories, or a [`Sampled`](@ref) index indicating
+sampling along some transect.
 """
 abstract type IndexMode end
 
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
-bounds(::Forward, mode, dim) = first(dim), last(dim)
-bounds(::Reverse, mode, dim) = last(dim), first(dim)
-bounds(::Unordered, mode, dim) = error("Cannot call `bounds` on an unordered mode")
+bounds(::Forward, ::IndexMode, dim) = first(dim), last(dim)
+bounds(::Reverse, ::IndexMode, dim) = last(dim), first(dim)
+bounds(::Unordered, ::IndexMode, dim) = error("Cannot call `bounds` on an unordered mode")
 
-dims(mode::IndexMode) = nothing
-order(mode::IndexMode) = Unordered()
+dims(::IndexMode) = nothing
+order(::IndexMode) = Unordered()
 arrayorder(mode::IndexMode) = arrayorder(order(mode))
 indexorder(mode::IndexMode) = indexorder(order(mode))
 relationorder(mode::IndexMode) = relationorder(order(mode))
@@ -202,15 +208,40 @@ slicemode(mode::IndexMode, index, I) = mode
 
 
 """
-`IndexMode` that is identical to the array axis.
+An [`IndexMode`](@ref) that is identical to the array axis.
+
+## Example
+
+Defining a [`DimensionalArray`](@ref) without passing an index
+to the dimension, the IndexMode will be `NoIndex`:
+
+```jldoctest
+A = DimensionalArray(rand(3, 3), (X, Y))
+map(mode, dims(A))
+
+# output
+
+(NoIndex(), NoIndex())
+```
+
+Is identical to:
+
+```jldoctest
+DimensionalArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
+map(mode, dims(A))
+
+# output
+
+(NoIndex(), NoIndex())
+```
 """
 struct NoIndex <: IndexMode end
 
 order(mode::NoIndex) = Ordered(Forward(), Forward(), Forward())
 
 """
-Automatic [`IndexMode`](@ref). Will be converted automatically to another
-`IndexMode` when possible.
+Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically to
+another [`IndexMode`](@ref) when it is possible to detect it from the index.
 """
 struct Auto{O<:Order} <: IndexMode
     order::O
@@ -228,8 +259,9 @@ abstract type Aligned{O} <: IndexMode end
 order(mode::Aligned) = mode.order
 
 """
-An [`IndexMode`](@ref) whos index is aligned with the array,
-and is independent of other dimensions.
+An [`IndexMode`](@ref) whos index is aligned with the array, and is independent of other
+dimensions. [`Sampled`](@ref) is provided by this package, [`Projected`](@ref) in
+GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
@@ -291,15 +323,45 @@ slicebounds(locus::Center, bounds, index, I) =
 
 
 """
-A concrete implementation of [`AbstractSampled`](@ref).
-Can be used to represent points or intervals, with `sampling`
-of [`Points`](@ref) or [`Intervals`](@ref).
+A concrete implementation of [`AbstractSampled`](@ref). It can be used to represent
+points or intervals, with `sampling` of [`Points`](@ref) or [`Intervals`](@ref).
+
+It should be capable of representing gridded data from a wide range of sources, allowing 
+correct `bounds` and [`Selector`](@ref)s for points or intervals of regular, irregular, 
+forward and reverse indexes.
+
+`Sampled` will be detected for all ranges not assigned to [`Categorical`](@ref).
+[`Order`](@ref) detected. The span will be assigned to [`Regular`](@ref) for 
+`AbstractRange` and [`Irregular`](@ref) for `AbstractArray` unless assigned manually.
+
+Sampling is be assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) 
+manually. Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s 
+to take account for the full size of the interval, rather than the point alone.
 
 ## Fields
 - `order`: [`Order`](@ref) indicating array and index order
 - `span::Span`: [`Span`](@ref) indicating [`Regular`](@ref) or [`Irregular`](@ref)
   size of intervals or distance between points
-- `sampling::Sampling`: [`Sampling`](@ref) of `Intervals` or `Points` (the default)
+- `sampling::Sampling`: [`Sampling`](@ref) of [`Intervals`](@ref) or [`Points`](@ref) (the default)
+
+## Example
+
+Create an array with [`Interval`] sampling.
+
+```jldoctest
+dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())), 
+         Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals()))) 
+A = DimensionalArray(rand(10, 4), dims_)
+map(mode, dims(A))
+
+# output
+
+(Sampled{Ordered{Reverse,Forward,Forward},Regular{Int64},Intervals{Center}}(
+Ordered{Reverse,Forward,Forward}(Reverse(), Forward(), Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), 
+Sampled{Ordered{Forward,Forward,Forward},Regular{Int64},Intervals{Center}}(
+Ordered{Forward,Forward,Forward}(Forward(), Forward(), Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
+```
+
 """
 struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
     order::O
@@ -315,6 +377,8 @@ rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
 
 """
 [`IndexMode`](@ref)s for dimensions where the values are categories.
+
+[`Categorical`](@ref) is the provided concrete implementation.
 """
 abstract type AbstractCategorical{O} <: Aligned{O} end
 
@@ -323,11 +387,28 @@ order(mode::AbstractCategorical) = mode.order
 """
 An IndexMode where the values are categories.
 
+This will be automatically assigned if the index contains `AbstractString`, 
+`Symbol` or `Char`. Otherwise it can be assigned manually.
+
+[`Order`](@ref) will not be determined automatically for [`Categorical`](@ref),
+it instead defaults to [`Unordered`].
+
 ## Fields
 - `order`: [`Order`](@ref) indicating array and index order.
 
-`Order` will not be determined automatically for `Categorical`,
-it instead defaults to `Unordered()`
+## Example
+
+Create an array with [`Interval`] sampling.
+
+```jldoctest
+dims_ = X(["one", "two", "thee"]), Y([:a, :b, :c, :d])
+A = DimensionalArray(rand(3, 4), dims_)
+map(mode, dims(A))
+
+# output
+
+(Categorical{Unordered{Forward}}(Unordered{Forward}(Forward())), Categorical{Unordered{Forward}}(Unordered{Forward}(Forward())))
+```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}
     order::O
@@ -340,7 +421,8 @@ rebuild(mode::Categorical, order) = Categorical(order)
 """
 Supertype for [`IndexMode`](@ref) where the `Dimension` index is not aligned to the grid.
 
-Indexing with an `Unaligned` dimension must provide all other `Unaligned` dimensions.
+Indexing with an [`Unaligned`](@ref) dimension with [`Selector`](@ref)s must provide all
+other [`Unaligned`](@ref) dimensions.
 """
 abstract type Unaligned <: IndexMode end
 
@@ -440,7 +522,6 @@ identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
     Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
-
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractArray) =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
 identify(span::Regular, dimtype::Type, index::AbstractArray) =

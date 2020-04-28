@@ -39,6 +39,7 @@ At
 Near
 Between
 Contains
+Where
 ```
 
 ## Index Modes
@@ -68,17 +69,7 @@ DimensionalData.Forward
 DimensionalData.Reverse
 ```
 
-Index modes for [`Sampled`](@ref)
-
-### Loci
-
-```@docs
-Locus
-Center
-Start
-End
-AutoLocus
-```
+Index modes for [`Intervals`](@ref)
 
 ### Span
 
@@ -95,6 +86,18 @@ AutoSpan
 Sampling
 Points
 Intervals
+```
+
+### Loci
+
+Sampling positions for [`Intervals`](@ref)
+
+```@docs
+Locus
+Center
+Start
+End
+AutoLocus
 ```
 
 ## Methods
@@ -122,11 +125,14 @@ val
 And some utility methods:
 
 ```@docs
-setdim
+setdims
 swapdims
+reorderindex
+reorderarray
+reorderrelation
 ```
 
-## Low-level methods
+## Non-exported methods for developers
 
 ```@docs
 DimensionalData.dims2indices
@@ -135,5 +141,4 @@ DimensionalData.reducedims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.identify
-DimensionalData.DimensionalStyle
 ```

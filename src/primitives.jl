@@ -165,6 +165,7 @@ depending on wether `lookup` is a `Tuple` or single `Dimension`.
 
 ## Example
 ```jldoctest
+julia> using DimensionalData
 julia> A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
 
 julia> dimnum(A, Z)
@@ -203,6 +204,7 @@ Check if an object or tuple contains an `Dimension`, or a tuple of dimensions.
 
 ## Example
 ```jldoctest
+julia> using DimensionalData
 julia> A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
 
 julia> hasdim(A, X)
@@ -234,6 +236,7 @@ a new object or tuple with the dimension updated.
 
 # Example
 ```jldoctest
+julia> using DimensionalData
 julia> A = DimensionalArray(rand(10, 10), (X, Y(10:10:100));
 
 julia> B = setdims(A, Y('a':'j'));
@@ -263,6 +266,7 @@ dimension, and `nothing` leaves the original dimension as-is.
 
 # Example
 ```jldoctest
+julia> using DimensionalData
 julia> A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
 
 julia> B = swapdims(A, (Z, Dim{:custom}, Ti));
@@ -404,8 +408,8 @@ any combination of either.
 
 ## Example
 ```jldoctest
-julia>
-A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
+julia> using DimensionalData
+julia> A = DimensionalArray(rand(10, 10, 10), (X, Y, Z));
 
 julia> dims(A, Z)
 dimension Z:

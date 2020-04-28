@@ -10,28 +10,47 @@ to lookup for each array axis.
 
 
 Example:
-```julia
+
+```jldoctest Dimension
 using Dates
 x = X(2:2:10)
 y = Y(['a', 'b', 'c'])
 ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
-```
 
-```julia
 A = DimensionalArray(rand(3, 5, 12), (y, x, ti));
 ```
 
 For simplicity, the same `Dimension` types are also used as wrappers 
 in `getindex`, like:
 
-```julia
+```jldoctest Dimension
 x = A[X(2), Y(3)]
+
+# output
+
+DimensionalArray with dimensions:
+ Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+and referenced dimensions:
+ Y: c
+ X: 4
+and data: 12-element Array{Float64,1}
+[0.43729, 0.84196, 0.964579, 0.259714, 0.158553, 0.86288, 0.761754, 0.726972, 0.486696, 0.373273, 0.744734, 0.827804]
 ```
 
-Dimension can also wrap [`Selectors`](@ref).
+A `Dimension` can also wrap [`Selector`](@ref).
 
-```julia
+```jldoctest Dimension
 x = A[X(Between(3, 4)), Y(At('b'))]
+
+# output
+
+DimensionalArray with dimensions:
+ X: 4:2:4
+ Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+and referenced dimensions:
+ Y: b
+and data: 1×12 Array{Float64,2}
+ 0.429361  0.793907  0.71134  0.17595  …  0.614003  0.760235  0.0523471
 ```
 
 `Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields
@@ -123,7 +142,7 @@ Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
 Base.axes(dim::Dimension) = axes(val(dim))
 Base.eachindex(dim::Dimension) = eachindex(val(dim))
-Base.length(dim::Dimension) = length(val(dim))
+Base.length(dim::Dimension{<:Union{AbstractArray,Number}}) = length(val(dim))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
 Base.getindex(dim::Dimension) = val(dim)
@@ -211,7 +230,11 @@ name(::AnonDim) = "Anon"
 """
     @dim typ [supertype=Dimension] [name=string(typ)] [shortname=string(typ)]
 
-Macro to easily define specific dimensions.
+Macro to easily define new dimensions. The supertype will be inserted
+into the type of the dim. The default is simply `YourDim <: Dimension`. Making
+a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect 
+automatic plot layout and other methods that dispatch on these types. `<: YDim`
+are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
 Example:
 ```julia
