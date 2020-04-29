@@ -447,8 +447,6 @@ between(span::Regular, order::Reverse, mode::IndexMode, dim::Dimension, sel::Bet
     b = _inbounds(_searchlast(order, dim, low), dim)
     relate(dim, a:b)
 end
-# TODO do this properly.
-# The intervals need to be between the selection, not the points.
 between(span::Irregular, order::Forward, ::IndexMode, dim::Dimension, sel::Between) = begin
     low, high = _sorttuple(sel)
     a = _inbounds(_searchfirst(order, dim, low), dim)
@@ -462,8 +460,6 @@ between(span::Irregular, order::Reverse, ::IndexMode, dim::Dimension, sel::Betwe
     relate(dim, a:b)
 end
 
-# Reverse index needs to use rev=true and lt=<= for searchsorted
-# so that it is exactly the revsese of a forward index
 _searchlast(::Forward, dim::Dimension, v) = searchsortedlast(val(dim), v)
 _searchlast(::Reverse, dim::Dimension, v) = searchsortedlast(val(dim), v; rev=true)
 
