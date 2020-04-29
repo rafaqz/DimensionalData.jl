@@ -59,6 +59,13 @@ Return the metadata of a dimension or data object.
 function metadata end
 
 """
+    mode(x)
+
+Return the `IndexMode` of a dimension.
+"""
+function mode end
+
+"""
     bounds(x, [dims])
 
 Return the bounds of all dimensions of an object, of a specific dimension,

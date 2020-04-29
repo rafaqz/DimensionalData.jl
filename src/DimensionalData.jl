@@ -37,7 +37,7 @@ export Unaligned, Transformed
 
 export AbstractDimensionalArray, DimensionalArray
 
-export data, dims, refdims, metadata, name, shortname,
+export data, dims, refdims, mode, metadata, name, shortname,
        val, label, units, order, bounds, locus, mode, <|
 
 export dimnum, hasdim, setdims, swapdims, rebuild

@@ -35,7 +35,6 @@ and wont be used.
 ## Example
 
 ```jldoctest
-using DimensionalData
 A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(At(20)), Y(At(6))]
 
@@ -71,7 +70,6 @@ index value for [`Start`](@ref) and [`End`](@ref) loci.
 ## Example
 
 ```jldoctest
-using DimensionalData
 A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Near(23)), Y(Near(5.1))] 
 
@@ -95,7 +93,6 @@ Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 ## Example
 
 ```jldoctest
-using DimensionalData
 dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
 A = DimensionalArray([1 2 3; 4 5 6], dims_)
@@ -123,7 +120,6 @@ results with the same index and values - this is the intended behaviour.
 ## Example
 
 ```jldoctest
-using DimensionalData
 A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Between(15, 25)), Y(Between(4, 6.5))] 
 
@@ -151,13 +147,16 @@ a single value from the index and returns a `Bool`.
 ## Example
 
 ```jldoctest
-using DimensionalData
 A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(19:21)))
 A[X(Where(>(15))), Y(Where(in((19, 21))))]
 
 # output
 
-[4 6]
+DimensionalArray with dimensions:
+ X: Int64[20]
+ Y: Int64[19, 21]
+and data: 1×2 Array{Int64,2}
+ 4  6
 ```
 """
 struct Where{T} <: Selector{T}

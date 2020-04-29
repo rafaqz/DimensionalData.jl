@@ -227,7 +227,7 @@ map(mode, dims(A))
 Is identical to:
 
 ```jldoctest
-DimensionalArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
+A = DimensionalArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
 map(mode, dims(A))
 
 # output
@@ -260,7 +260,7 @@ order(mode::Aligned) = mode.order
 
 """
 An [`IndexMode`](@ref) whos index is aligned with the array, and is independent of other
-dimensions. [`Sampled`](@ref) is provided by this package, [`Projected`](@ref) in
+dimensions. [`Sampled`](@ref) is provided by this package, `Projected` in
 GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
@@ -356,10 +356,7 @@ map(mode, dims(A))
 
 # output
 
-(Sampled{Ordered{Reverse,Forward,Forward},Regular{Int64},Intervals{Center}}(
-Ordered{Reverse,Forward,Forward}(Reverse(), Forward(), Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), 
-Sampled{Ordered{Forward,Forward,Forward},Regular{Int64},Intervals{Center}}(
-Ordered{Forward,Forward,Forward}(Forward(), Forward(), Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
+(Sampled{Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Reverse(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), Sampled{Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Forward(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
 ```
 
 """
@@ -407,7 +404,7 @@ map(mode, dims(A))
 
 # output
 
-(Categorical{Unordered{Forward}}(Unordered{Forward}(Forward())), Categorical{Unordered{Forward}}(Unordered{Forward}(Forward())))
+(Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())), Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())))
 ```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}

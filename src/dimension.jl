@@ -17,7 +17,20 @@ x = X(2:2:10)
 y = Y(['a', 'b', 'c'])
 ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
 
-A = DimensionalArray(rand(3, 5, 12), (y, x, ti));
+A = DimensionalArray(rand(3, 5, 12), (y, x, ti))
+
+# output
+
+DimensionalArray with dimensions:
+ Y: Char[a, b, c]
+ X: 2:2:10
+ Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+and data: 3×5×12 Array{Float64,3}
+[:, :, 1]
+ 0.590845  0.460085  0.200586  0.579672   0.066423
+ 0.766797  0.794026  0.298614  0.648882   0.956753
+ 0.566237  0.854147  0.246837  0.0109059  0.646691
+[and 11 more slices...]
 ```
 
 For simplicity, the same `Dimension` types are also used as wrappers 
@@ -34,7 +47,7 @@ and referenced dimensions:
  Y: c
  X: 4
 and data: 12-element Array{Float64,1}
-[0.43729, 0.84196, 0.964579, 0.259714, 0.158553, 0.86288, 0.761754, 0.726972, 0.486696, 0.373273, 0.744734, 0.827804]
+[0.854147, 0.950498, 0.496169, 0.658815, 0.082207, 0.431188, 0.0878598, 0.468079, 0.0677996, 0.836482, 0.0813266, 0.661835]
 ```
 
 A `Dimension` can also wrap [`Selector`](@ref).
@@ -50,7 +63,7 @@ DimensionalArray with dimensions:
 and referenced dimensions:
  Y: b
 and data: 1×12 Array{Float64,2}
- 0.429361  0.793907  0.71134  0.17595  …  0.614003  0.760235  0.0523471
+ 0.794026  0.842714  0.0460428  0.499531  …  0.182757  0.140473  0.52376
 ```
 
 `Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields
@@ -194,8 +207,16 @@ data from a file. The sintax is ugly and verbose to use for indexing,
 ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 
-```julia
+```jldoctest
 dim = Dim{:custom}(['a', 'b', 'c'])
+
+# output
+
+dimension Dim custom (type Dim):
+val: Char[a, b, c]
+mode: Auto{AutoOrder}(AutoOrder())
+metadata: nothing
+type: Dim{:custom,Array{Char,1},Auto{AutoOrder},Nothing}
 ```
 """
 struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}

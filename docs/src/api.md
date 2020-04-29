@@ -1,3 +1,4 @@
+
 # API
 
 To use the functionality of DimensionalData in your module, dispatch on `AbstractDimensionalArray` and `AbstractDimension`.
@@ -113,18 +114,19 @@ dimnum
 dims
 hasdim
 label
+mode
 metadata
 name
-rebuild
 refdims
 shortname
 units
 val
 ```
 
-And some utility methods:
+And some utility methods for transforming DimensionalData objects:
 
 ```@docs
+rebuild
 setdims
 swapdims
 reorderindex
