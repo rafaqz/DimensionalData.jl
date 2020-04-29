@@ -175,6 +175,7 @@ struct AutoSpan <: Span end
 
 
 
+
 """
 IndexModes are types defining the behaviour of a dimension, how they are plotted and
 how [`Selector`](@ref)s like [`Between`](@ref) work.
@@ -206,8 +207,32 @@ Base.step(mode::T) where T <: IndexMode =
 
 slicemode(mode::IndexMode, index, I) = mode
 
+"""
+    Auto()
+
+Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically to
+another [`IndexMode`](@ref) when it is possible to detect it from the index.
+"""
+struct Auto{O<:Order} <: IndexMode
+    order::O
+end
+Auto() = Auto(AutoOrder())
+
+order(mode::Auto) = mode.order
+
+
 
 """
+Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes.
+This is by far the most common case.
+"""
+abstract type Aligned{O} <: IndexMode end
+
+order(mode::Aligned) = mode.order
+
+"""
+    NoIndex()
+
 An [`IndexMode`](@ref) that is identical to the array axis.
 
 ## Example
@@ -235,33 +260,14 @@ map(mode, dims(A))
 (NoIndex(), NoIndex())
 ```
 """
-struct NoIndex <: IndexMode end
+struct NoIndex <: Aligned{Ordered{Forward,Forward,Forward}} end
 
 order(mode::NoIndex) = Ordered(Forward(), Forward(), Forward())
 
 """
-Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically to
-another [`IndexMode`](@ref) when it is possible to detect it from the index.
-"""
-struct Auto{O<:Order} <: IndexMode
-    order::O
-end
-Auto() = Auto(AutoOrder())
-
-order(mode::Auto) = mode.order
-
-"""
-Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes.
-This is by far the most common case.
-"""
-abstract type Aligned{O} <: IndexMode end
-
-order(mode::Aligned) = mode.order
-
-"""
-An [`IndexMode`](@ref) whos index is aligned with the array, and is independent of other
-dimensions. [`Sampled`](@ref) is provided by this package, `Projected` in
-GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
+Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array, 
+and is independent of other dimensions. [`Sampled`](@ref) is provided by this package, 
+`Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
@@ -296,11 +302,9 @@ bounds(::End, ::Forward, span, mode, dim) =
 bounds(::End, ::Reverse, span, mode, dim) =
     last(dim) + step(span), first(dim)
 
-
 sortbounds(mode::IndexMode, bounds) = sortbounds(indexorder(mode), bounds)
 sortbounds(mode::Forward, bounds) = bounds
 sortbounds(mode::Reverse, bounds) = bounds[2], bounds[1]
-
 
 # TODO: deal with unordered AbstractArray indexing
 slicemode(mode::AbstractSampled, index, I) =
@@ -322,7 +326,10 @@ slicebounds(locus::Center, bounds, index, I) =
     last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1]  + index[last(I)]) / 2
 
 
-"""
+""" 
+    Sampled(order::Order, span::Span, sampling::Sampling)
+    Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=Points())
+
 A concrete implementation of [`AbstractSampled`](@ref). It can be used to represent
 points or intervals, with `sampling` of [`Points`](@ref) or [`Intervals`](@ref).
 
@@ -358,7 +365,6 @@ map(mode, dims(A))
 
 (Sampled{Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Reverse(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), Sampled{Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Forward(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
 ```
-
 """
 struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
     order::O
@@ -382,6 +388,9 @@ abstract type AbstractCategorical{O} <: Aligned{O} end
 order(mode::AbstractCategorical) = mode.order
 
 """
+    Categorical(o::Order)
+    Categorical(; order=Unordered())
+
 An IndexMode where the values are categories.
 
 This will be automatically assigned if the index contains `AbstractString`, 
@@ -415,6 +424,9 @@ Categorical(; order=Unordered()) = Categorical(order)
 rebuild(mode::Categorical, order) = Categorical(order)
 
 
+
+
+
 """
 Supertype for [`IndexMode`](@ref) where the `Dimension` index is not aligned to the grid.
 
@@ -423,45 +435,55 @@ other [`Unaligned`](@ref) dimensions.
 """
 abstract type Unaligned <: IndexMode end
 
-locus(mode::Unaligned) = mode.locus
-dims(mode::Unaligned) = mode.dims
-
 """
+    Transformed(f, dim::Dimension)
+
 [`IndexMode`](@ref) that uses an affine transformation to convert
-dimensions from `dims(mode)` to `dims(array)`.
+dimensions from `dims(mode)` to `dims(array)`. This can be useful
+when the dimensions are e.g. rotated from a more commonly used axis.
+
+Any function can be used to do the transformation, but transformations
+from CoordinateTransformations.jl may be useful.
 
 ## Fields
+- `f`: transformation function
 - `dims`: a tuple containing dimenension types or symbols matching the
   order needed by the transform function.
-"""
-struct Transformed{D,L} <: Unaligned
-    dims::D
-    locus::L
-end
-Transformed(dims; locus=Start()) = Transformed(dims, locus)
 
-rebuild(mode::Transformed, dims=dims(m), locus=locus(m) ) =
-    Transformed(dims, locus)
+## Example
+
+```jldoctest
+using CoordinateTransformations
+
+m = LinearMap([0.5 0.0; 0.0 0.5])
+A = [1 2  3  4
+     5 6  7  8
+     9 10 11 12]
+dimz = Dim{:t1}(mode=Transformed(m, X)),
+       Dim{:t2}(mode=Transformed(m, Y))
+da = DimensionalArray(A, dimz)
+
+julia> da[Dim{:t1}(3), Dim{:t2}(1)] 
+
+9
+
+julia> da[X(At(6)), Y(At(2))]
+
+9
+```
+"""
+struct Transformed{F,D} <: Unaligned
+    f::F
+    dim::D
+end
+
+transform(mode::Transformed) = mode.f
+dims(mode::Transformed) = mode.dim
+
+rebuild(mode::Transformed, f=mode.f, dim=dims(mode)) =
+    Transformed(f, dim)
 
 # TODO bounds
-
-# """
-# An IndexMode that uses an array lookup to convert dimension from
-# `dim(mode)` to `dims(array)`.
-
-# ## Fields
-# - `dims`: a tuple containing dimenension types or symbols matching the order
-          # needed to index the lookup matrix.
-# """
-# struct LookupIndex{D,L} <: Unaligned
-    # dims::D
-    # locus::L
-# end
-# LookupIndex(dims=(), locus=Start())) =
-    # LookupIndex(dims, locus)
-
-# rebuild(mode::LookupIndex; dims=dims(m), locus=locus(m)) =
-    # LookupIndex(dims, locus)
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
 
