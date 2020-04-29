@@ -60,51 +60,61 @@ Convert `Dimension` or `Selector` to regular indices for `dims` - a `Tuple` of `
 """
 @inline dims2indices(dims::DimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
+# Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, lookup::Tuple{Vararg{StandardIndices}},
                      emptyval=Colon()) = lookup
+# Otherwise attempt to convert dims to indices
 @inline dims2indices(dims::DimTuple, lookup::Tuple, emptyval=Colon()) =
     _dims2indices(map(mode, dims), dims, permutedims(lookup, dims), emptyval)
-
-# Deal with irregular mode that need multiple dimensions indexed together
-@inline _dims2indices(modes::Tuple{Unaligned,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
-    (irregdims, irreglookup), (regdims, reglookup) = splitmodes(modes, dims, lookup)
-    (irreg2indices(map(mode, irregdims), irregdims, irreglookup, emptyval)...,
-     _dims2indices(map(mode, regdims), regdims, reglookup, emptyval)...)
-end
-
-@inline _dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+# Recursively apply dims2indices over tuples of dims and lookups
+@inline _dims2indices(modes::Tuple{<:Aligned,Vararg}, dims::Tuple, lookup::Tuple, emptyval) =
     (_dims2indices(modes[1], dims[1], lookup[1], emptyval),
      _dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
-end
 @inline _dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
 
 # Single dim methods
+
+# A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(mode, dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
+# Nothing means nothing was passed for this dimension, return the emptyval
 @inline _dims2indices(mode, dim::Dimension, lookup::Nothing, emptyval) = emptyval
+# Simply unwrap dimensions
 @inline _dims2indices(mode, dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
+# Pass `Selector`s to sel2indices
 @inline _dims2indices(mode, dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
     sel2indices(val(lookup), mode, dim)
 
-# Selectors select on mode dimensions
-@inline irreg2indices(modes::Tuple, dims::Tuple,
-                      lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
+
+# Deal with unaligned mode that need multiple dimensions indexed together
+@inline _dims2indices(modes::Tuple{<:Unaligned,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
+    # Split dims and lookups into aligned and unaligned
+    (unaligneddims, unalignedlookup), (aligneddims, alignedlookup) = splitmodes(modes, dims, lookup)
+    # Convert aligned and unaligned separately. This is recursive, so there may have been
+    # other `Aligned` dims previously. There is at maximum one block of `Unaligned` dims in
+    # any set, so we don't have to worry about finding more at the end.
+    (unaligned2indices(map(mode, unaligneddims), unaligneddims, unalignedlookup, emptyval)...,
+     _dims2indices(map(mode, aligneddims), aligneddims, alignedlookup, emptyval)...)
+end
+
+# For `Unaligned` mode, `Selector`s select on mode dimensions
+@inline unaligned2indices(modes::Tuple, dims::Tuple,
+                          lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
     sel2indices(map(val, lookup), modes, dims)
-# Other dims select on regular dimensions
-@inline irreg2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) = begin
+# For non-selector dims, use regular dimension indexing
+@inline unaligned2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
     (_dims2indices(modes[1], dims[1], lookup[1], emptyval),
      _dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
-end
 
-
+# Split out dims with Aligned and Unaligned modes
 @inline splitmodes(modes::Tuple{Unaligned,Vararg}, dims, lookup) = begin
-    (irregdims, irreglookup), reg = splitmodes(tail(modes), tail(dims), tail(lookup))
-    irreg = (dims[1], irregdims...), (lookup[1], irreglookup...)
-    irreg, reg
+    (unaligneddims, unalignedlookup), aligned = splitmodes(tail(modes), tail(dims), tail(lookup))
+    unaligned = (dims[1], unaligneddims...), (lookup[1], unalignedlookup...)
+    unaligned, aligned
 end
 @inline splitmodes(modes::Tuple{IndexMode,Vararg}, dims, lookup) = begin
-    irreg, (regdims, reglookup) = splitmodes(tail(modes), tail(dims), tail(lookup))
-    reg = (dims[1], regdims...), (lookup[1], reglookup...)
-    irreg, reg
+    unaligned, (aligneddims, alignedlookup) = splitmodes(tail(modes), tail(dims), tail(lookup))
+    aligned = (dims[1], aligneddims...), (lookup[1], alignedlookup...)
+    unaligned, aligned
 end
 @inline splitmodes(modes::Tuple{}, dims, lookup) = ((), ()), ((), ())
 
@@ -311,8 +321,16 @@ formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
     range = LinRange(start, stop, length(axis))
     rebuild(dim, range, identify(mode(dim), basetypeof(dim), range))
 end
+# Dimensions holding colon dispatch on mode
 formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
-    rebuild(dim, axis, NoIndex(), nothing)
+    formatdims(mode(dim), axis, dim)
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::Auto, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, NoIndex())
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, mode)
+# Dim types become `NoIndex` with no metadata.
 formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
     dim = dimtype(axis, NoIndex(), nothing)
 # Fallback: dim remains unchanged

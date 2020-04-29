@@ -534,34 +534,35 @@ end
     @test da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([1u"s", 3u"s"])))] == [3 4; 11 12]
 end
 
-# @testset "TranformedIndex" begin
-#     using CoordinateTransformations
+@testset "TranformedIndex" begin
+    using CoordinateTransformations
 
-#     m = LinearMap([0.5 0.0; 0.0 0.5])
+    m = LinearMap([0.5 0.0; 0.0 0.5])
 
-#     dimz = Dim{:trans1}(m; mode=Transformed(X)),
-#            Dim{:trans2}(m, mode=Transformed(Y))
+    dimz = Dim{:trans1}(mode=Transformed(m, X)),
+           Dim{:trans2}(mode=Transformed(m, Y))
 
-#     @testset "permutedims works on mode dimensions" begin
-#         @test permutedims((Y(), X()), dimz) == (X(), Y())
-#     end
+    @testset "permutedims works on mode dimensions" begin
+        @test permutedims((Y(), X()), dimz) == (X(), Y())
+    end
 
-#     da = DimensionalArray(a, dimz)
 
-#     @testset "Indexing with array dims indexes the array as usual" begin
-#         @test da[Dim{:trans1}(3), Dim{:trans2}(1)] == 9
-#         # Using selectors works the same as indexing with mode
-#         # dims - it applies the transform function.
-#         # It's not clear this should be allowed or makes sense,
-#         # but it works anyway because the permutation is correct either way.
-#         @test da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2))] == 9
-#     end
+    da = DimensionalArray(a, dimz)
 
-#     @testset "Indexing with mode dims uses the transformation" begin
-#         @test da[X(Near(6.1)), Y(Near(8.5))] == 12
-#         @test da[X(At(4.0)), Y(At(2.0))] == 5
-#         @test_throws InexactError da[X(At(6.1)), Y(At(8))]
-#         # Indexing directly with mode dims also just works, but maybe shouldn't?
-#         @test da[X(2), Y(2)] == 6
-#     end
-# end
+    @testset "Indexing with array dims indexes the array as usual" begin
+        @test da[Dim{:trans1}(3), Dim{:trans2}(1)] == 9
+        # Using selectors works the same as indexing with mode
+        # dims - it applies the transform function.
+        # It's not clear this should be allowed or makes sense,
+        # but it works anyway because the permutation is correct either way.
+        @test da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2))] == 9
+    end
+
+    @testset "Indexing with mode dims uses the transformation" begin
+        @test da[X(Near(6.1)), Y(Near(8.5))] == 12
+        @test da[X(At(4.0)), Y(At(2.0))] == 5
+        @test_throws InexactError da[X(At(6.1)), Y(At(8))]
+        # Indexing directly with mode dims also just works, but maybe shouldn't?
+        @test da[X(2), Y(2)] == 6
+    end
+end

@@ -240,18 +240,15 @@ sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:
 
 # We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-sel2indices(modes::Tuple{Vararg{<:Transformed}}, dims::DimTuple,
-            sel::Tuple{Vararg{<:Selector}}) =
-    map(_to_int, sel, val(dims[1])([map(val, sel)...]))
+sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}}, 
+            dims::DimTuple) =
+    map(_to_int, sel, transform(modes[1])([map(val, sel)...]))
 
 _to_int(::At, x) = convert(Int, x)
 _to_int(::Near, x) = round(Int, x)
 
-# Do the input values need some kind of scalar conversion?
-# what is the scale of these lookup matrices?
-# sel2indices(mode::LookupIndex, sel::Tuple{Vararg{At}}) =
-    # lookup(mode)[map(val, sel)...]
 
+# Selector methods
 
 at(dim::Dimension, sel::At) =
     at(sampling(mode(dim)), mode(dim), dim, sel)
