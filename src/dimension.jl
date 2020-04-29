@@ -126,6 +126,9 @@ indexorder(dim::Dimension) = indexorder(order(dim))
 arrayorder(dim::Dimension) = arrayorder(order(dim))
 relationorder(dim::Dimension) = relationorder(order(dim))
 
+locus(dim::Dimension) = locus(mode(dim))
+sampling(dim::Dimension) = sampling(mode(dim))
+
 # DimensionalData interface methods
 rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
     constructorof(D)(val, mode, metadata)
