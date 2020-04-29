@@ -1,7 +1,15 @@
 using Pkg
 Pkg.activate(@__DIR__)
+
 using Documenter, DimensionalData
+
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
+
+docsetup = quote 
+    using DimensionalData, Random 
+    Random.seed!(1234)
+end
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
 
 makedocs(
     modules = [DimensionalData],

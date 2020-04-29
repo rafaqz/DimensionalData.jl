@@ -1,3 +1,4 @@
+
 # API
 
 To use the functionality of DimensionalData in your module, dispatch on `AbstractDimensionalArray` and `AbstractDimension`.
@@ -39,6 +40,7 @@ At
 Near
 Between
 Contains
+Where
 ```
 
 ## Index Modes
@@ -68,17 +70,7 @@ DimensionalData.Forward
 DimensionalData.Reverse
 ```
 
-Index modes for [`Sampled`](@ref)
-
-### Loci
-
-```@docs
-Locus
-Center
-Start
-End
-AutoLocus
-```
+Index modes for [`Intervals`](@ref)
 
 ### Span
 
@@ -97,6 +89,18 @@ Points
 Intervals
 ```
 
+### Loci
+
+Sampling positions for [`Intervals`](@ref)
+
+```@docs
+Locus
+Center
+Start
+End
+AutoLocus
+```
+
 ## Methods
 
 ## Getting basic info
@@ -110,23 +114,27 @@ dimnum
 dims
 hasdim
 label
+mode
 metadata
 name
-rebuild
 refdims
 shortname
 units
 val
 ```
 
-And some utility methods:
+And some utility methods for transforming DimensionalData objects:
 
 ```@docs
-setdim
+rebuild
+setdims
 swapdims
+reorderindex
+reorderarray
+reorderrelation
 ```
 
-## Low-level methods
+## Non-exported methods for developers
 
 ```@docs
 DimensionalData.dims2indices
@@ -135,5 +143,4 @@ DimensionalData.reducedims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.identify
-DimensionalData.DimensionalStyle
 ```
