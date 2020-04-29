@@ -148,7 +148,7 @@ a single value from the index and returns a `Bool`.
 
 ```jldoctest
 A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(19:21)))
-A[X(Where(>(15))), Y(Where(in((19, 21))))]
+A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 
 # output
 
