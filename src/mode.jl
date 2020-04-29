@@ -478,7 +478,7 @@ end
 transform(mode::Transformed) = mode.f
 dims(mode::Transformed) = mode.dim
 
-rebuild(mode::Transformed, f=mode.f, dim=dims(mode)) =
+rebuild(mode::Transformed, f=transform(mode), dim=dims(mode)) =
     Transformed(f, dim)
 
 # TODO bounds

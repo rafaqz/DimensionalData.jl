@@ -194,14 +194,14 @@ julia> dimnum(A, Z)
         dimnum(tail(d), lookup, (rejected..., d[1]), n + 1)
     end
 # Numbers are returned as-is
-@inline dimnum(d::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
-@inline dimnum(d::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+@inline dimnum(dims::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+@inline dimnum(dims::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
 # Throw an error if the lookup is not found
-@inline dimnum(d::Tuple{}, lookup::Tuple, rejected, n) =
+@inline dimnum(dims::Tuple{}, lookup::Tuple, rejected, n) =
     throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
 # Return an empty tuple when we run out of lookups
-@inline dimnum(d::Tuple, lookup::Tuple{}, rejected, n) = ()
-@inline dimnum(d::Tuple{}, lookup::Tuple{}, rejected, n) = ()
+@inline dimnum(dims::Tuple, lookup::Tuple{}, rejected, n) = ()
+@inline dimnum(dims::Tuple{}, lookup::Tuple{}, rejected, n) = ()
 
 """
     hasdim(x, lookup)

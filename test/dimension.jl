@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: Forward, slicedims
+using DimensionalData: Forward, slicedims, basetypeof
 
 @dim TestDim "Test dimension"
 
@@ -17,10 +17,20 @@ using DimensionalData: Forward, slicedims
     @test length(TestDim([1, 2, 3])) == 3
     @test_throws ErrorException step(TestDim(1:2:3)) == 2
     @test step(TestDim(1:2:3; mode=Sampled(span=Regular(2)))) == 2
+    @test first(TestDim(5)) == 5
+    @test last(TestDim(5)) == 5
+    @test first(TestDim(10:20)) == 10
+    @test last(TestDim(10:20)) == 20
+    @test firstindex(TestDim(5)) == 1
+    @test lastindex(TestDim(5)) == 1
     @test firstindex(TestDim(10:20)) == 1
     @test lastindex(TestDim(10:20)) == 11
+    @test eachindex(TestDim(10:20)) == Base.OneTo(11)
     @test size(TestDim(10:20)) == (11,)
     @test ndims(TestDim(10:20)) == 1
+    @test ndims(TestDim(1)) == 0
+    @test Array(TestDim(10:15)) == [10, 11, 12, 13, 14, 15]
+    @test iterate(TestDim(10:20)) == iterate(10:20)
 end
 
 # Basic dim and array initialisation
@@ -61,6 +71,7 @@ end
     @test name(dimz) == ("Dim row", "Dim column")
     @test shortname(dimz) == ("row", "column")
     @test label(dimz) == ("Dim row, Dim column")
+    @test basetypeof(dimz[1]) == Dim{:row}
 end
 
 @testset "repeating dims of the same type is allowed" begin
