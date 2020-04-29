@@ -458,16 +458,14 @@ using CoordinateTransformations
 m = LinearMap([0.5 0.0; 0.0 0.5])
 A = [1 2  3  4
      5 6  7  8
-     9 10 11 12]
+     9 10 11 12];
 dimz = Dim{:t1}(mode=Transformed(m, X)),
-       Dim{:t2}(mode=Transformed(m, Y))
+              Dim{:t2}(mode=Transformed(m, Y))
 da = DimensionalArray(A, dimz)
 
-julia> da[Dim{:t1}(3), Dim{:t2}(1)] 
+da[X(At(6)), Y(At(2))]
 
-9
-
-julia> da[X(At(6)), Y(At(2))]
+# output
 
 9
 ```
