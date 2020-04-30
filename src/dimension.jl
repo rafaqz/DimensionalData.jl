@@ -145,7 +145,7 @@ units(dim::Dimension) =
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 bounds(dims::DimTuple) = map(bounds, dims)
 bounds(dims::Tuple{}) = ()
-bounds(dims::DimTuple, lookupdims::Tuple) = bounds(dims[[dimnum(dims, lookupdims)...]]...)
+bounds(dims::DimTuple, lookupdims::Tuple) = map(l -> bounds(dims, l), lookupdims)
 bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
 
 
@@ -162,9 +162,11 @@ Base.getindex(dim::Dimension) = val(dim)
 Base.getindex(dim::Dimension{<:AbstractArray}, I...) = getindex(val(dim), I...)
 Base.iterate(dim::Dimension{<:AbstractArray}, args...) = iterate(val(dim), args...)
 Base.first(dim::Dimension) = val(dim)
-Base.last(dim::Dimension) = val(dim)
 Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
+Base.last(dim::Dimension) = val(dim)
 Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
+Base.firstindex(dim::Dimension) = 1
+Base.lastindex(dim::Dimension) = 1
 Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
 Base.step(dim::Dimension) = step(mode(dim))
@@ -242,6 +244,8 @@ such as during transpose of a vector.
 struct AnonDim{T} <: Dimension{T,NoIndex,Nothing} 
     val::T
 end
+AnonDim() = AnonDim(Colon())
+AnonDim(val, arg1, args...) = AnonDim(val)
 
 val(dim::AnonDim) = dim.val
 mode(::AnonDim) = NoIndex()

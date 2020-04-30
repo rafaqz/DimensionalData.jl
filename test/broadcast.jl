@@ -70,12 +70,12 @@ using DimensionalData, Test
 
     @testset "Mixed array types" begin
         casts = (
-            A->DimensionalArray(A, (X, Y)),  # Named Matrix
-            A->DimensionalArray(A[:, 1], X),  # Named Vector
-            A->DimensionalArray(A[:, 1:1], (X, Y)),  # Named Single Column Matrix
+            A -> DimensionalArray(A, (X, Y)),  # Named Matrix
+            A -> DimensionalArray(A[:, 1], X),  # Named Vector
+            A -> DimensionalArray(A[:, 1:1], (X, Y)),  # Named Single Column Matrix
             identity, # Matrix
-            A->A[:, 1], # Vector
-            A->A[:, 1:1], # Single Column Matrix
+            A -> A[:, 1], # Vector
+            A -> A[:, 1:1], # Single Column Matrix
             first, # Scalar
          )
 
@@ -93,13 +93,13 @@ using DimensionalData, Test
         ab = DimensionalArray(rand(2,2), (X, Y))
         ba = DimensionalArray(rand(2,2), (Y, X))
         ac = DimensionalArray(rand(2,2), (X, Z))
+        a_ = DimensionalArray(rand(2,2), (X(), AnonDim()))
         z = zeros(2,2)
 
-        # https://github.com/invenia/Dimensional.jl/issues/71
         @test_throws DimensionMismatch z .= ab .+ ba
         @test_throws DimensionMismatch z .= ab .+ ac
-        # @test_throws DimensionMismatch a_ .= ab .+ ac
-        # @test_throws DimensionMismatch ab .= a_ .+ ac
+        @test_throws DimensionMismatch a_ .= ab .+ ac
+        @test_throws DimensionMismatch ab .= a_ .+ ac
         @test_throws DimensionMismatch ac .= ab .+ ba
 
         # check that dest is written into:
@@ -107,9 +107,10 @@ using DimensionalData, Test
         @test z == (ab.data .+ ba.data')
         @test z isa Array  # has not itself magically gained names
 
-        # TODO add a non-comparing dim like NamedDims :_ ?
-        # @test dims(z .= ab .+ a_) == (X(), Y())
-        # @test dims(a_ .= ba' .+ ab) == (X(), Y())
+        @test dims(z .= ab .+ a_) == 
+            (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))
+        @test dims(a_ .= ba' .+ ab) == 
+            (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))
     end
 
 end
@@ -119,7 +120,6 @@ end
 #     da = DimensionalArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))
 #     dt = DimensionalArray(TrackedArray(5 * ones(4)), X)
-
 #     arrays = (da, ta, dt)
 #     @testset "$a .- $b" for (a, b) in Iterators.product(arrays, arrays)
 #         a === b && continue
