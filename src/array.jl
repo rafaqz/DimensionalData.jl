@@ -85,17 +85,19 @@ Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::StandardIndices...)
     setindex!(data(A), x, I...)
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
+
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
 Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
 Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
+
 Base.Array(A::AbDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
 # Don't remove these even though they look redundant 
 Base.similar(A::AbDimArray) = 
-    rebuild(A, similar(data(A)), dims(A), (), "")
+    rebuild(A, similar(data(A)), dims(A), refdims(A), "")
 Base.similar(A::AbDimArray, ::Type{T}) where T = 
-    rebuild(A, similar(data(A), T), dims(A), (), "")
+    rebuild(A, similar(data(A), T), dims(A), refdims(A), "")
 # If the shape changes, use the wrapped array:
 Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = 
     similar(data(A), T, I)

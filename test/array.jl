@@ -4,7 +4,9 @@ using DimensionalData: Start
 a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); metadata=Dict(:meta => "X")),
         Y((-38.0, -36.0); metadata=Dict(:meta => "Y")))
-da = DimensionalArray(a, dimz, "test"; metadata=Dict(:meta => "da"))
+refdimz = (Ti(1:1),)
+da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
+da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -25,7 +27,7 @@ end
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(a) == 
-        (Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test name(a) == "test"
     @test metadata(a) == Dict(:meta => "da")
     @test metadata(a, X) == Dict(:meta => "X")
@@ -40,7 +42,7 @@ end
     @test dims(a) == 
         (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test refdims(a) == 
-        (X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test name(a) == "test"
     @test metadata(a) == Dict(:meta => "da")
     @test bounds(a) == ((-38.0, -36.0),)
@@ -55,7 +57,7 @@ end
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
                       Y(LinRange(-38.0, -36.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
-    @test refdims(a) == ()
+    @test refdims(a) == (Ti(1:1),)
     @test name(a) == "test"
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
     @test bounds(a, X) == (143.0, 145.0)
@@ -69,7 +71,7 @@ end
     @test typeof(dims(v)) == Tuple{}
     @test dims(v) == ()
     @test refdims(v) == 
-        (X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
          Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
     @test name(v) == "test"
     @test metadata(v) == Dict(:meta => "da")
@@ -84,7 +86,7 @@ end
         (X(LinRange(143.0, 145.0, 2), 
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(v) == 
-        (Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test name(v) == "test"
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ((143.0, 145.0),)
@@ -109,41 +111,41 @@ end
         (Y(LinRange(-38.0, -36.0, 2),
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test refdims(v) == 
-        (X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test bounds(v) == ((-38.0, -36.0),)
 end
 
-a = [1 2 3 4
-     3 4 5 6
-     4 5 6 7]
-b = [4 4 4 4
-     4 4 4 4
-     4 4 4 4]
+a2 = [1 2 3 4
+      3 4 5 6
+      4 5 6 7]
+b2 = [4 4 4 4
+      4 4 4 4
+      4 4 4 4]
 
 @testset "indexing into empty dims is just regular indexing" begin
-    ida = DimensionalArray(a, (X, Y))
+    ida = DimensionalArray(a2, (X, Y))
     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
 end
 
 
-dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-da = DimensionalArray(a, dimz)
+dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
+da2 = DimensionalArray(a2, dimz2, "test2"; refdims=refdimz)
 
 @testset "arbitrary dimension names also work for indexing" begin
-    @test da[Dim{:row}(2)] == [3, 4, 5, 6]
-    @test da[Dim{:column}(4)] == [4, 6, 7]
-    @test da[Dim{:column}(1), Dim{:row}(3)] == 4
+    @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
+    @test da2[Dim{:column}(4)] == [4, 6, 7]
+    @test da2[Dim{:column}(1), Dim{:row}(3)] == 4
 end
 
 @testset "size and axes" begin
-    @test size(da, Dim{:row}) == 3
-    @test size(da, Dim{:column}()) == 4
-    @test axes(da, Dim{:row}()) == 1:3
-    @test axes(da, Dim{:column}) == 1:4
+    @test size(da2, Dim{:row}) == 3
+    @test size(da2, Dim{:column}()) == 4
+    @test axes(da2, Dim{:row}()) == 1:3
+    @test axes(da2, Dim{:column}) == 1:4
 end
 
 @testset "OffsetArray" begin
-    oa = OffsetArray(a, -1:1, 5:8)
+    oa = OffsetArray(a2, -1:1, 5:8)
     @testset "Regular dimensions don't work: axes must match" begin
         dimz = (X(100:100:300), Y([:a, :b, :c, :d]))
         @test_throws DimensionMismatch DimensionalArray(oa, dimz)
@@ -163,19 +165,19 @@ end
 end
 
 @testset "similar" begin
-    da_sim = similar(da)
-    @test eltype(da_sim) == eltype(da)
-    @test size(da_sim) == size(da)
-    @test dims(da_sim) == dims(da)
-    @test refdims(da_sim) == refdims(da)
+    da_sim = similar(da2)
+    @test eltype(da_sim) == eltype(da2)
+    @test size(da_sim) == size(da2)
+    @test dims(da_sim) == dims(da2)
+    @test refdims(da_sim) == refdims(da2)
 
-    da_float = similar(da, Float64)
+    da_float = similar(da2, Float64)
     @test eltype(da_float) == Float64
-    @test size(da_float) == size(da)
-    @test dims(da_float) == dims(da)
-    @test refdims(da_float) == refdims(da)
+    @test size(da_float) == size(da2)
+    @test dims(da_float) == dims(da2)
+    @test refdims(da_float) == refdims(da2)
 
-    da_size_float = similar(da, Float64, (10, 10))
+    da_size_float = similar(da2, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
 
@@ -187,22 +189,22 @@ end
 
     # TODO what should this actually be?
     # Some dimensions (i.e. where values are not explicitly enumerated) could be resizable?
-    # @test dims(da_float) == dims(da)
-    # @test refdims(da_float) == refdims(da)
+    # @test dims(da_float) == dims(da2)
+    # @test refdims(da_float) == refdims(da2)
 end
 
 @testset "broadcast" begin
     da = DimensionalArray(ones(Int, 5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
-    da2 = da .* 2.0
-    @test da2 == fill(2.0, 5, 2, 4)
-    @test eltype(da2) <: Float64
-    @test dims(da2) ==
+    dab = da .* 2.0
+    @test dab == fill(2.0, 5, 2, 4)
+    @test eltype(dab) <: Float64
+    @test dims(dab) ==
         (Y(LinRange(10, 20, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
          Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())),
          X(1:4; mode=Sampled(Ordered(), Regular(1), Points())))
-    da2 = da .+ fill(10, 5, 2, 4)
-    @test da2 == fill(11, 5, 2, 4)
-    @test eltype(da2) <: Int
+    dab = da .+ fill(10, 5, 2, 4)
+    @test dab == fill(11, 5, 2, 4)
+    @test eltype(dab) <: Int
 
     # TODO permute dims to match in broadcast?
 end
@@ -217,29 +219,41 @@ end
 end
 
 @testset "convert" begin
-    a2 = convert(Array, da)
-    @test a2 isa Array{Int,2}
-    @test a2 == a
+    ac = convert(Array, da2)
+    @test ac isa Array{Int,2}
+    @test ac == a2
 end
 
 @testset "copy" begin
-    da2 = copy(da)
-    @test da2 == da
+    rebuild(da2, copy(data(da2)))
+
+    dac = copy(da2)
+    @test dac == da2
+    @test dims(dac) == dims(da2)
+    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
+    @test name(dac) == name(da2) == "test2"
+    @test metadata(dac) == metadata(da2)
+    dadc = deepcopy(da2)
+    @test dadc == da2
+    @test dims(dadc) == dims(da2)
+    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
+    @test name(dadc) == name(da2) == "test2"
+    @test metadata(dadc) == metadata(da2)
 end
 
 if VERSION > v"1.1-"
     @testset "copy!" begin
-        db = DimensionalArray(deepcopy(b), dimz)
-        dc = DimensionalArray(deepcopy(b), dimz)
-        @test db != da
-        @test b != da
+        db = DimensionalArray(deepcopy(b2), dimz)
+        dc = DimensionalArray(deepcopy(b2), dimz)
+        @test db != da2
+        @test b2 != da2
 
-        copy!(b, da)
-        @test b == a
-        copy!(db, da)
-        @test db == da
-        copy!(dc, a)
-        @test db == a
+        copy!(b2, da2)
+        @test b2 == a2
+        copy!(db, da2)
+        @test db == da2
+        copy!(dc, a2)
+        @test db == a2
     end
 end
 
@@ -249,3 +263,4 @@ end
     @test_throws DimensionMismatch DimensionalArray(1:5, X(1:6))
     @test_throws MethodError DimensionalArray(1:5, (X(1:5), Y(1:2)))
 end
+
