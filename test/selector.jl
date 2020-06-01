@@ -6,7 +6,6 @@ a = [1 2  3  4
      5 6  7  8
      9 10 11 12]
 
-using DimensionalData
 dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
 A = DimensionalArray([1 2 3; 4 5 6], dims_)
@@ -376,10 +375,10 @@ end
         for idx in indices
             from2d = view(da, idx)
             @test from2d == view(data(da), idx)
-            @test !(parent(from2d) isa AbstractDimensionalArray)
-            from1d = view(da[Y <| At(10)], idx)
+            @test from2d isa SubArray
+            from1d = view(da[Y(At(10))], idx)
             @test from1d == view(data(da)[1, :], idx)
-            @test parent(from1d) isa AbstractDimensionalArray
+            @test from1d isa AbstractDimensionalArray
         end
     end
 

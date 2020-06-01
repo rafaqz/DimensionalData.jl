@@ -10,6 +10,7 @@ sticks(da1)
 histogram(da1)
 stephist(da1)
 barhist(da1)
+heatmap(da1)
 scatterhist(da1)
 histogram2d(da1)
 hline(da1)
@@ -35,6 +36,8 @@ da2 = DimensionalArray(A2, (X(1:10:400), Y(1:5:100)), "Normal")
 # Plots
 plot(da2)
 bar(da2)
+violin(da2)
+boxplot(da2)
 sticks(da2)
 histogram(da2)
 stephist(da2)
@@ -44,10 +47,11 @@ histogram2d(data(da2))
 histogram2d(da2)
 hline(da2)
 vline(da2)
+plot(da2; seriestype=:line)
+# Don't display dims currently
 heatmap(da2)
 contour(da2)
 wireframe(da2)
-plot(da2; seriestype=:line)
 
 # StatsPlots
 density(da2)
@@ -57,7 +61,7 @@ violin(da2)
 ea_histogram(da2)
 
 # Not sure how recipes work for this
-andrewsplot(da2)
+# andrewsplot(da2)
 
 # TODO handle everything
 
@@ -76,8 +80,8 @@ andrewsplot(da2)
 # plot(data(da2); seriestype=:barbins)
 # plot(data(da2); seriestype=:contour3d)
 # pie(da2)
-
+#
 # Crashes GR for some reason
 # im2 = RGB24.(rand(10, 10))
-# da_im2 = DimensionalArray(im2, (X(1:10), Y(1:10)), "Image")
-# plot(da_im2; seriestype=:image)
+# da_im2 = DimensionalArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
+# da_im2 |> plot

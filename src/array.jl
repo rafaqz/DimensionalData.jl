@@ -59,6 +59,7 @@ Base.size(A::AbDimArray) = size(data(A))
 Base.axes(A::AbDimArray) = axes(data(A))
 Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
+Base.parent(A::AbDimArray) = data(A)
 
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::StandardIndices...) =
     rebuildsliced(A, getindex(data(A), I...), I)
@@ -152,6 +153,11 @@ julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 """
 DimensionalArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
     DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
+DimensionalArray(A::AbstractDimensionalArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
+    DimensionalArray(A, formatdims(data(A), _to_tuple(dims)), refdims, name, metadata)
+DimensionalArray(; data, dims, refdims=(), name="", metadata=nothing) = 
+    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
+
 _to_tuple(t::T where T <: Tuple) = t
 _to_tuple(t) = tuple(t)
 

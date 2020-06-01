@@ -530,6 +530,7 @@ _orderof(index::AbstractArray) = begin
     end
     sorted ? Ordered(index=indord) : Unordered()
 end
+≈
 
 _indexorder(index::AbstractArray) =
     first(index) <= last(index) ? Forward() : Reverse()
@@ -546,7 +547,7 @@ identify(span::Regular, dimtype::Type, index::AbstractArray) =
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
-    step(span) ≈ step(index) || throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
+    step(span) isa Number && !(step(span) ≈ step(index)) && throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
     span
 end
 identify(span::Irregular{Nothing}, dimtype, index) =

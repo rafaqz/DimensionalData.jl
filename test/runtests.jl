@@ -9,6 +9,7 @@ include("mode.jl")
 include("selector.jl")
 include("methods.jl")
 include("prettyprinting.jl")
+include("plotrecipes.jl")
 if !Sys.iswindows()
     include("plotrecipes.jl")
 end
