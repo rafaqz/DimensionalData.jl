@@ -11,12 +11,12 @@ include("methods.jl")
 include("prettyprinting.jl")
 if !Sys.iswindows()
     include("plotrecipes.jl")
-end
 
-# Test documentation
-docsetup = quote
-    using DimensionalData, Random
-    Random.seed!(1234)
+    # Test documentation
+    docsetup = quote
+        using DimensionalData, Random
+        Random.seed!(1234)
+    end
+    DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
+    doctest(DimensionalData)
 end
-DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-doctest(DimensionalData)

@@ -1,16 +1,23 @@
 struct HeatMapLike end
+struct ImageLike end
 struct WireframeLike end
 struct SeriesLike end
 struct HistogramLike end
 struct ViolinLike end
 
-@recipe function f(A::AbstractDimensionalArray)
+struct DimensionalPlot end
+
+@recipe function f(A::AbstractDimensionalArray) 
+    DimensionalPlot(), A
+end
+
+@recipe function f(::DimensionalPlot, A::AbstractArray)
     Afwd = forwardorder(A)
     sertype = get(plotattributes, :seriestype, :none)
     if !(sertype in [:marginalhist])
         :title --> refdims_title(Afwd)
     end
-    if sertype in [:heatmap, :contour, :volume, :marginalhist, :image, 
+    if sertype in [:heatmap, :contour, :volume, :marginalhist, 
                    :surface, :contour3d, :wireframe, :scatter3d]
         HeatMapLike(), Afwd
     elseif sertype in [:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram]
@@ -31,7 +38,7 @@ struct ViolinLike end
     end
 end
 
-@recipe function f(::SeriesLike, A::AbstractDimensionalArray{T,1}) where T
+@recipe function f(::SeriesLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
     :ylabel --> label(A)
     :xlabel --> label(dim)
@@ -90,7 +97,11 @@ end
     :ylabel --> label(y)
     :zlabel --> label(A)
     :colorbar_title --> label(A)
-    val(x), val(y), data(A)
+    data(A)
+end
+
+@recipe function f(::ImageLike, A::AbstractArray{T,2}) where T
+    data(A)
 end
 
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
@@ -102,7 +113,6 @@ refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
 refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(mode(dim), dim))
 refdims_title(mode::AbstractSampled, dim::Dimension) = begin
     start, stop = map(string, bounds(dim))
-    println("bounds: ", bounds(dim))
     if start == stop
         start
     else
