@@ -199,23 +199,6 @@ Base.:(==)(dim1::Dimension, dim2::Dimension) =
     mode(dim1) == mode(dim2) &&
     metadata(dim1) == metadata(dim2)
 
-# AbstractArray methods where dims are the dispatch argument
-
-@inline rebuildsliced(A, data, I, name::String=name(A)) =
-    rebuild(A, data, slicedims(A, I)..., name)
-
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
-    getindex(A, dims2indices(A, (dim, dims...))...)
-
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
-    setindex!(A, x, dims2indices(A, (dim, dims...))...)
-
-Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
-    view(A, dims2indices(A, (dim, dims...))...)
-
-@inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
-
 
 """
 Dimensions with user-set type paremeters

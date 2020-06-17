@@ -10,15 +10,7 @@ const SelectorOrStandard = Union{Selector, StandardIndices}
 val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
-# Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I...) =
-    getindex(a, sel2indices(a, maybeselector(I))...)
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I...) =
-    setindex!(a, x, sel2indices(a, maybeselector(I))...)
-Base.@propagate_inbounds Base.view(a::AbDimArray, I...) =
-    view(a, sel2indices(a, maybeselector(I))...)
-
-
+@inline maybeselector(I...) = maybeselector(I)
 @inline maybeselector(I::Tuple) = map(maybeselector, I)
 # Int AbstractArray and Colon do normal indexing
 @inline maybeselector(i::StandardIndices) = i
