@@ -42,8 +42,8 @@ Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 """
 @inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
     _dims2indices(mode(dim), dim, lookup, emptyval)
-@inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) =
-    lookup
+@inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
+
 """
     dims2indices(A, lookup, [emptyval=Colon()])
 
@@ -146,10 +146,11 @@ end
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
 
 @inline slicedims(d::Dimension, i::Colon) = (d,), ()
+# TODO why is `relate` used here? we care about the index order not the relation order
 @inline slicedims(d::Dimension, i::Number) =
     (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
-@inline slicedims(d::Dimension{<:AbstractArray}, i::AbstractArray) =
+@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
@@ -223,8 +224,8 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(A, lookup::Tuple) = map(l -> hasdim(dims(A), l), lookup)
-@inline hasdim(A, lookup::DimOrDimType) = hasdim(dims(A), lookup)
+@inline hasdim(A::AbstractArray, lookup) = hasdim(dims(A), lookup)
+@inline hasdim(d::Tuple, lookup::Tuple) = map(l -> hasdim(d, l), lookup)
 @inline hasdim(d::Tuple, lookup::DimOrDimType) =
     if _dimsmatch(d[1], lookup)
         true
@@ -312,8 +313,12 @@ formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
 formatdims(axes::Tuple{Vararg{<:AbstractRange}},
            dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) =
     map(formatdims, axes, dims)
+
 formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
     checkaxis(dim, axis)
+    rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
+end
+formatdims(axis::AbstractRange, dim::Dimension{<:Val}) = begin
     rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
@@ -462,7 +467,9 @@ type: Z{Base.OneTo{Int64},NoIndex,Nothing}
     comparedims(a, b)
 
 Check that dimensions or tuples of dimensions are the same.
-Empty tuples are allowed
+
+Empty tuples are allowed. `nothing` values are ignored,
+returning the non-nothing value if it exists:
 """
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b

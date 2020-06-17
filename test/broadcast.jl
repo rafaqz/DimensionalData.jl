@@ -49,11 +49,9 @@ using DimensionalData, Test
         v = DimensionalArray(zeros(3,), X)
         m = DimensionalArray(ones(3, 3), (X, Y))
         s = 0
-
         @test v .+ m == ones(3, 3) == m .+ v
         @test s .+ m == ones(3, 3) == m .+ s
         @test s .+ v .+ m == ones(3, 3) == m .+ s .+ v
-
         @test dims(v .+ m) == dims(m .+ v)
         @test dims(s .+ m) == dims(m .+ s)
         @test dims(s .+ v .+ m) == dims(m .+ s .+ v)
@@ -78,7 +76,6 @@ using DimensionalData, Test
             A -> A[:, 1:1], # Single Column Matrix
             first, # Scalar
          )
-
         for (T1, T2, T3) in Iterators.product(casts, casts, casts)
             all(isequal(identity), (T1, T2, T3)) && continue
             !any(isequal(DimensionalArray), (T1, T2, T3)) && continue
@@ -86,7 +83,6 @@ using DimensionalData, Test
             @test total == 6ones(3, 6)
             @test dims(total) == (X(), Y())
         end
-
     end
 
     @testset "in-place assignment .=" begin

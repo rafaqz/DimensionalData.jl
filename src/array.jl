@@ -85,6 +85,15 @@ Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, i::StandardIndices) 
 Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::StandardIndices...) =
     setindex!(data(A), x, I...)
 
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    getindex(A, dims2indices(A, (dim, dims...))...)
+
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
+    setindex!(A, x, dims2indices(A, (dim, dims...))...)
+
+Base.@propagate_inbounds Base.view(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    view(A, dims2indices(A, (dim, dims...))...)
+
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 
 Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
@@ -106,6 +115,7 @@ Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T
     similar(data(A), T, i, I...)
 
 
+
 # Concrete implementation ######################################################
 
 """
@@ -123,8 +133,8 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Abstract
     metadata::Me
     function DimensionalArray(data::A, dims::D, refdims::R, name::Na, metadata::Me
                              ) where {D,R,A<:AbstractArray{T,N},Na,Me} where {T,N}
-        map(dims, size(data)) do d, s
-            if !(val(d) isa Colon) && length(d) != s
+        map(dims, size(data)) do d, len
+            if !_matchlen(val(d), len)
                 throw(DimensionMismatch(
                     "dims must have same size as data. This was not true for $dims and size $(size(data)) $(A)."
                 ))
@@ -133,6 +143,12 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Abstract
         new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
     end
 end
+
+_matchlen(::Colon, len) = true
+_matchlen(A::AbstractArray, len) = length(A) == len
+_matchlen(::Val{X}, len) where X = length(X) == len
+
+
 """
     DimensionalArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
 

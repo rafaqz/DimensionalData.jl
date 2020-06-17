@@ -502,7 +502,9 @@ identify(mode::IndexMode, dimtype::Type, index) = mode
 identify(mode::Auto, dimtype::Type, index::AbstractArray) =
     identify(Sampled(), dimtype, index)
 identify(mode::Auto, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
-    order(mode) isa AutoOrder ? Categorical() : Categorical(order(mode))
+    order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
+identify(mode::Auto, dimtype::Type, index::Val) =
+    order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
 
 # Sampled
 identify(mode::AbstractSampled, dimtype::Type, index::AbstractArray) = begin
