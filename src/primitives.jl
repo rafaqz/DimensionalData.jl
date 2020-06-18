@@ -16,8 +16,8 @@ const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 @inline Base.permutedims(tosort::DimTuple, order::DimTuple) =
     _sortdims(tosort, order)
 
-_sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ())
-_sortdims(tosort::Tuple, order::Tuple, rejected) =
+@inline _sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ())
+@inline _sortdims(tosort::Tuple, order::Tuple, rejected) =
     # Match dims to the order, and also check if the mode has a
     # transformed dimension that matches
     if _dimsmatch(tosort[1], order[1])
@@ -26,13 +26,13 @@ _sortdims(tosort::Tuple, order::Tuple, rejected) =
         _sortdims(tail(tosort), order, (rejected..., tosort[1]))
     end
 # Return nothing and start on a new dim
-_sortdims(tosort::Tuple{}, order::Tuple, rejected) =
+@inline _sortdims(tosort::Tuple{}, order::Tuple, rejected) =
     (nothing, _sortdims(rejected, tail(order), ())...)
 # Return an empty tuple if we run out of dims to sort
-_sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
-_sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
+@inline _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
+@inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
-_dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
+@inline _dimsmatch(dim::DimOrDimType, match::DimOrDimType) =
     basetypeof(dim) <: basetypeof(match) || basetypeof(dim) <: basetypeof(dims(mode(match)))
 
 """
@@ -156,11 +156,11 @@ end
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Number) = (), (d,)
 
-relate(d::Dimension, i) = maybeflip(relationorder(d), d, i)
+@inline relate(d::Dimension, i) = maybeflip(relationorder(d), d, i)
 
-maybeflip(::Forward, d, i) = i
-maybeflip(::Reverse, d, i::Integer) = lastindex(d) - i + 1
-maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
+@inline maybeflip(::Forward, d, i) = i
+@inline maybeflip(::Reverse, d, i::Integer) = lastindex(d) - i + 1
+@inline maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(x, lookup)
@@ -169,7 +169,7 @@ Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
-- `lookup`: Tuple or single `Dimension` or dimension `Type`.
+- `lookup`: Tuple, Array or single `Dimension` or dimension `Type`.
 
 The return type will be a Tuple of `Int` or a single `Int`,
 depending on wether `lookup` is a `Tuple` or single `Dimension`.
@@ -183,26 +183,28 @@ julia> dimnum(A, Z)
 3
 ```
 """
-@inline dimnum(A, lookup) = dimnum(A, (lookup,))[1]
-@inline dimnum(A, lookup::AbstractArray) = dimnum(A, (lookup...,))
-@inline dimnum(A, lookup::Tuple) = dimnum(dims(A), lookup, (), 1)
+@inline dimnum(A, lookup) = dimnum(dims(A), lookup)
+@inline dimnum(d::Tuple, lookup) = dimnum(d, (lookup,))[1]
+@inline dimnum(d::Tuple, lookup::AbstractArray) = dimnum(d, (lookup...,))
+@inline dimnum(d::Tuple, lookup::Tuple) = _dimnum(d, lookup, (), 1)
+
 # Match dim and lookup, also check if the mode has a transformed dimension that matches
-@inline dimnum(d::Tuple, lookup::Tuple, rejected, n) =
+@inline _dimnum(d::Tuple, lookup::Tuple, rejected, n) =
     if !(d[1] isa Nothing) && _dimsmatch(d[1], lookup[1])
         # Replace found dim with nothing so it isn't found again but n is still correct
-        (n, dimnum((rejected..., nothing, tail(d)...), tail(lookup), (), 1)...)
+        (n, _dimnum((rejected..., nothing, tail(d)...), tail(lookup), (), 1)...)
     else
-        dimnum(tail(d), lookup, (rejected..., d[1]), n + 1)
+        _dimnum(tail(d), lookup, (rejected..., d[1]), n + 1)
     end
 # Numbers are returned as-is
-@inline dimnum(dims::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
-@inline dimnum(dims::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+@inline _dimnum(dims::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+@inline _dimnum(dims::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
 # Throw an error if the lookup is not found
-@inline dimnum(dims::Tuple{}, lookup::Tuple, rejected, n) =
+@inline _dimnum(dims::Tuple{}, lookup::Tuple, rejected, n) =
     throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
 # Return an empty tuple when we run out of lookups
-@inline dimnum(dims::Tuple, lookup::Tuple{}, rejected, n) = ()
-@inline dimnum(dims::Tuple{}, lookup::Tuple{}, rejected, n) = ()
+@inline _dimnum(dims::Tuple, lookup::Tuple{}, rejected, n) = ()
+@inline _dimnum(dims::Tuple{}, lookup::Tuple{}, rejected, n) = ()
 
 """
     hasdim(x, lookup)
@@ -255,20 +257,23 @@ val(dims(B, Y))
 'a':1:'j'
 ```
 """
-setdims(A, newdims::Union{Dimension,DimTuple}) = rebuild(A, data(A), setdims(dims(A), newdims))
-setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
+@inline setdims(A, newdims::Union{Dimension,DimTuple}) = rebuild(A, data(A), setdims(dims(A), newdims))
+@inline setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
 # TODO handle the multiples of the same dim.
-setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
-setdims(dim::Dimension, newdim::Dimension) =
+@inline setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
+@inline setdims(dim::Dimension, newdim::Dimension) =
     basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
 
 """
     swapdims(x, newdims)
 
-Swap the dimension for the passed in dimensions.
-Dimension wrapper types rewrap the original dimension, keeping
-the values and metadata. Dimension instances replace the original
-dimension, and `nothing` leaves the original dimension as-is.
+Swap dimensions for the passed in dimensions, in the
+order passed.
+
+Passing in the `Dimension` types rewraps the dimension index, 
+keeping the index values and metadata, while constructed `Dimension` 
+objectes replace the original dimension. `nothing` leaves the original 
+dimension as-is.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
@@ -286,14 +291,15 @@ julia> dimnum(B, Ti)
 3
 ```
 """
-swapdims(A::AbstractArray, newdims::Tuple) =
+@inline swapdims(A::AbstractArray, newdims::Tuple) =
     rebuild(A, data(A), formatdims(A, swapdims(dims(A), newdims)))
-swapdims(dims::DimTuple, newdims::Tuple) =
+@inline swapdims(dims::DimTuple, newdims::Tuple) =
     map((d, nd) -> _swapdims(d, nd), dims, newdims)
-_swapdims(dim::Dimension, newdim::DimType) =
+
+@inline _swapdims(dim::Dimension, newdim::DimType) =
     basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
-_swapdims(dim::Dimension, newdim::Dimension) = newdim
-_swapdims(dim::Dimension, newdim::Nothing) = dim
+@inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
+@inline _swapdims(dim::Dimension, newdim::Nothing) = dim
 
 
 """
@@ -319,6 +325,7 @@ formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
     rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:Val}) = begin
+    checkaxis(dim, axis)
     rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
 end
 formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
@@ -411,9 +418,9 @@ end
 @inline reducedims(locus::Locus, dim::Dimension) = reducedims(Center(), dim)
 
 # Need to specialise for more types
-centerval(index::AbstractArray{<:AbstractFloat}, len) =
+@inline centerval(index::AbstractArray{<:AbstractFloat}, len) =
     [(index[len ÷ 2] + index[len ÷ 2 + 1]) / 2]
-centerval(index::AbstractArray, len) =
+@inline centerval(index::AbstractArray, len) =
     [index[len ÷ 2 + 1]]
 
 
