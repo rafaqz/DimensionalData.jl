@@ -142,6 +142,8 @@ relationorder(dim::Dimension) = relationorder(order(dim))
 locus(dim::Dimension) = locus(mode(dim))
 sampling(dim::Dimension) = sampling(mode(dim))
 
+index(dim::Dimension) = unwrap(val(dim))
+
 # DimensionalData interface methods
 rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
     constructorof(D)(val, mode, metadata)
