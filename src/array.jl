@@ -158,22 +158,9 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Abstract
     refdims::R
     name::Na
     metadata::Me
-    function DimensionalArray(data::A, dims::D, refdims::R, name::Na, metadata::Me
-                             ) where {D,R,A<:AbstractArray{T,N},Na,Me} where {T,N}
-        map(dims, size(data)) do d, len
-            if !_matchlen(val(d), len)
-                throw(DimensionMismatch(
-                    "dims must have same size as data. This was not true for $dims and size $(size(data)) $(A)."
-                ))
-            end
-        end
-        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
-    end
 end
 
-_matchlen(::Colon, len) = true
-_matchlen(A::AbstractArray, len) = length(A) == len
-_matchlen(::Val{X}, len) where X = length(X) == len
+const DimArray = DimensionalArray
 
 
 """
