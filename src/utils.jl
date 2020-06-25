@@ -8,3 +8,4 @@ f <| x = f(x)
 
 unwrap(::Val{X}) where X = X
 unwrap(::Type{Val{X}}) where X = X
+unwrap(x) = x
