@@ -259,7 +259,6 @@ end
 
 @testset "constructor" begin
     da = DimensionalArray(rand(5, 4), (X, Y))
-    @test_throws DimensionMismatch DimensionalData.rebuild(da, data(da), (X(1:5), Y(1:2)))
     @test_throws DimensionMismatch DimensionalArray(1:5, X(1:6))
     @test_throws MethodError DimensionalArray(1:5, (X(1:5), Y(1:2)))
 end

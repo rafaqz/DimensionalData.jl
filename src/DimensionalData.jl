@@ -35,7 +35,7 @@ export Aligned, AbstractSampled, Sampled,
 
 export Unaligned, Transformed
 
-export AbstractDimensionalArray, DimensionalArray
+export AbstractDimensionalArray, DimensionalArray, DimArray
 
 export data, dims, refdims, mode, metadata, name, shortname,
        val, label, units, order, bounds, locus, mode, <|

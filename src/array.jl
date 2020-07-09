@@ -61,10 +61,51 @@ Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
 Base.parent(A::AbDimArray) = data(A)
 
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::StandardIndices...) =
-    rebuildsliced(A, getindex(data(A), I...), I)
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::Integer...) =
-    getindex(data(A), I...)
+@inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
+@inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+
+@inline rebuildsliced(A, data, I, name::String=name(A)) =
+    rebuild(A, data, slicedims(A, I)..., name)
+
+# Standard indices
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, i::Integer, I::Integer...) =
+    getindex(data(A), i, I...)
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, i::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, getindex(data(A), i, I...), (i, I...))
+Base.@propagate_inbounds Base.view(A::AbDimArray, i::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, view(data(A), i, I...), (i, I...))
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, i::StandardIndices, I::StandardIndices...) =
+    setindex!(data(A), x, i, I...)
+
+# Cartesian indices
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::CartesianIndex) =
+    getindex(data(A), I)
+Base.@propagate_inbounds Base.view(A::AbDimArray, I::CartesianIndex) =
+    view(data(A), I)
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::CartesianIndex) =
+    setindex!(data(A), x, I)
+
+# Dimension indexing. Additional methods for dispatch ambiguity
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    getindex(A, dims2indices(A, (dim, dims...))...)
+Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    getindex(A, dims2indices(A, (dim, dims...))...)
+Base.@propagate_inbounds Base.view(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    view(A, dims2indices(A, (dim, dims...))...)
+Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+    view(A, dims2indices(A, (dim, dims...))...)
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
+    setindex!(A, x, dims2indices(A, (dim, dims...))...)
+Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
+    setindex!(A, x, dims2indices(A, (dim, dims...))...)
+
+# Selector indexing without dim wrappers. Must be in the right order!
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, i, I...) =
+    getindex(A, sel2indices(A, maybeselector(i, I...))...)
+Base.@propagate_inbounds Base.view(A::AbDimArray, i, I...) =
+    view(A, sel2indices(A, maybeselector(i, I...))...)
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, i, I...) =
+    setindex!(A, x, sel2indices(A, maybeselector(i, I...))...)
 
 # Linear indexing returns Array
 Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
@@ -73,17 +114,12 @@ Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N} where N, i::Union
 Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, 1}, i::Union{Colon,AbstractArray}) =
     rebuildsliced(A, getindex(data(A), i), (i,))
 
-Base.@propagate_inbounds Base.view(A::AbDimArray, I::StandardIndices...) =
-    rebuildsliced(A, view(data(A), I...), I)
 # Linear indexing returns unwrapped SubArray
 Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, N} where N, i::StandardIndices) =
     view(data(A), i)
 # Exempt 1D DimArrays
 Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, i::StandardIndices) =
     rebuildsliced(A, view(data(A), i), (i,))
-
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::StandardIndices...) =
-    setindex!(data(A), x, I...)
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 
@@ -106,6 +142,7 @@ Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T
     similar(data(A), T, i, I...)
 
 
+
 # Concrete implementation ######################################################
 
 """
@@ -121,18 +158,11 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Abstract
     refdims::R
     name::Na
     metadata::Me
-    function DimensionalArray(data::A, dims::D, refdims::R, name::Na, metadata::Me
-                             ) where {D,R,A<:AbstractArray{T,N},Na,Me} where {T,N}
-        map(dims, size(data)) do d, s
-            if !(val(d) isa Colon) && length(d) != s
-                throw(DimensionMismatch(
-                    "dims must have same size as data. This was not true for $dims and size $(size(data)) $(A)."
-                ))
-            end
-        end
-        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
-    end
 end
+
+const DimArray = DimensionalArray
+
+
 """
     DimensionalArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
 

@@ -10,13 +10,14 @@ const SelectorOrStandard = Union{Selector, StandardIndices}
 val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
-# Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
-    getindex(a, sel2indices(a, I)...)
-Base.@propagate_inbounds Base.setindex!(a::AbDimArray, x, I::Vararg{SelectorOrStandard}) =
-    setindex!(a, x, sel2indices(a, I)...)
-Base.view(a::AbDimArray, I::Vararg{SelectorOrStandard}) =
-    view(a, sel2indices(a, I)...)
+@inline maybeselector(I...) = maybeselector(I)
+@inline maybeselector(I::Tuple) = map(maybeselector, I)
+# Int AbstractArray and Colon do normal indexing
+@inline maybeselector(i::StandardIndices) = i
+# Selectors are allready selectors
+@inline maybeselector(i::Selector) = i
+# Anything else becomes `At`
+@inline maybeselector(i) = At(i)
 
 """
     At(x, atol, rtol)
@@ -168,26 +169,26 @@ val(sel::Where) = sel.f
 # Get the dims in the same order as the mode
 # This would be called after RegularIndex and/or Categorical
 # dimensions are removed
-_dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
+@inline _dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
     sel2indices(mode, dims, map(val, permutedims(dimz, dims(mode))))
 
-sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
-sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
-sel2indices(dims::Tuple, lookup::Tuple) =
+@inline sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
+@inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
+@inline sel2indices(dims::Tuple, lookup::Tuple) =
     map((d, l) -> sel2indices(l, mode(d), d), dims, lookup)
 
 # First filter based on rough selector properties -----------------
 # Mode is passed in from dims2indices
 
 # Standard indices are just returned.
-sel2indices(sel::StandardIndices, ::IndexMode, ::Dimension) = sel
+@inline sel2indices(sel::StandardIndices, ::IndexMode, ::Dimension) = sel
 # Vectors are mapped
-sel2indices(sel::Selector{<:AbstractVector}, mode::IndexMode, dim::Dimension) =
+@inline sel2indices(sel::Selector{<:AbstractVector}, mode::IndexMode, dim::Dimension) =
     [sel2indices(mode, dim, rebuild(sel, v)) for v in val(sel)]
-sel2indices(sel::Selector, mode::IndexMode, dim::Dimension) =
+@inline sel2indices(sel::Selector, mode::IndexMode, dim::Dimension) =
     sel2indices(mode, dim, sel)
 
-sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
+@inline sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
     [i for (i, v) in enumerate(val(dim)) if sel.f(v)]
 
 # Then dispatch based on IndexMode -----------------
@@ -195,12 +196,12 @@ sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
 # NoIndex
 # This just converts the selector to standard indices. Implemented just
 # so the Selectors actually work, not because what they do is useful or interesting.
-sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(sel)
-sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
+@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(sel)
+@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
 # Categorical
-sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
+@inline sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
         sel2indices(Points(), mode, dim, At(val(sel)))
     else
@@ -208,17 +209,17 @@ sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     end
 
 # Sampled
-sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
+@inline sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
 # For Sampled filter based on sampling type and selector -----------------
 
 # At selector
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
+@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     at(sampling, mode, dim, sel)
 
 # Near selector
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
+@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     if span(mode) isa Irregular && locus(mode) isa Union{Start,End}
         error("Near is not implemented for Irregular with Start or End loci. Use Contains")
     end
@@ -226,13 +227,13 @@ sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = be
 end
 
 # Contains selector
-sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
+@inline sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
     throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
-sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
+@inline sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(sampling, mode, dim, sel)
 
 # Between selector
-sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
+@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
     between(sampling, mode, dim, sel)
 
 
@@ -240,7 +241,7 @@ sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:
 
 # We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}}, 
+@inline sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}}, 
             dims::DimTuple) =
     map(_to_int, sel, transform(modes[1])([map(val, sel)...]))
 
@@ -250,23 +251,35 @@ _to_int(::Near, x) = round(Int, x)
 
 # Selector methods
 
-at(dim::Dimension, sel::At) =
+@inline at(dim::Dimension, sel::At) =
     at(sampling(mode(dim)), mode(dim), dim, sel)
-at(::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
+@inline at(::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     relate(dim, at(dim, val(sel), atol(sel), rtol(sel)))
-at(dim::Dimension, selval, atol::Nothing, rtol::Nothing) = begin
-    i = findfirst(x -> x == selval, val(dim))
-    i == nothing && throw(ArgumentError("$selval not found in $dim"))
+@inline at(dim::Dimension{<:Val{Index}}, selval, atol::Nothing, rtol::Nothing) where Index = begin
+    i = findfirst(x -> x == selval, Index)
+    i == nothing && selvalnotfound(dim, selval)
     return i
 end
-at(dim::Dimension, selval, atol, rtol) = begin
+@inline at(dim::Dimension{<:Val{Index}}, selval::Val, atol::Nothing, rtol::Nothing) where Index = begin
+    i = findfirst(x -> x == unwrap(selval), Index)
+    i == nothing && selvalnotfound(dim, selval)
+    return i
+end
+@inline at(dim::Dimension, selval, atol::Nothing, rtol::Nothing) = begin
+    i = findfirst(x -> x == selval, val(dim))
+    i == nothing && selvalnotfound(dim, selval)
+    return i
+end
+@inline at(dim::Dimension, selval, atol, rtol) = begin
     # This is not particularly efficient. It should be separated
     # out for unordered dims and otherwise treated as an ordered list.
     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
-    i == nothing && throw(ArgumentError("$selval not found in $dim"))
+    i == nothing && selvalnotfound(dim, selval)
     return i
 end
 
+@noinline selvalnotfound(dim, selval) = 
+    throw(ArgumentError("$selval not found in $dim"))
 
 near(dim::Dimension, sel::Near) =
     near(sampling(mode(dim)), mode(dim), dim, sel)
@@ -459,9 +472,17 @@ end
 
 _searchlast(::Forward, dim::Dimension, v) = searchsortedlast(val(dim), v)
 _searchlast(::Reverse, dim::Dimension, v) = searchsortedlast(val(dim), v; rev=true)
+_searchlast(::Forward, dim::Dimension{<:Val{Index}}, v) where Index = 
+    searchsortedlast(Index, v)
+_searchlast(::Reverse, dim::Dimension{<:Val{Index}}, v) where Index = 
+    searchsortedlast(Index, v; rev=true)
 
-_searchfirst(::Forward, dim::Dimension, v) = searchsortedfirst(val(dim), v)
-_searchfirst(::Reverse, dim::Dimension, v) = searchsortedfirst(val(dim), v; rev=true)
+@inline _searchfirst(::Forward, dim::Dimension, v) = searchsortedfirst(val(dim), v)
+@inline _searchfirst(::Reverse, dim::Dimension, v) = searchsortedfirst(val(dim), v; rev=true)
+@inline _searchfirst(::Forward, dim::Dimension{<:Val{Index}}, v) where Index = 
+    searchsortedfirst(Index, v)
+@inline _searchfirst(::Reverse, dim::Dimension{<:Val{Index}}, v) where Index = 
+    searchsortedfirst(Index, v; rev=true)
 
 _locus_adjustment(mode::AbstractSampled, span::Regular) =
     _locus_adjustment(locus(mode), abs(step(span)))

@@ -172,6 +172,8 @@ end
 @inline reverseindex(dimstorev::Tuple{}, i) = ()
 @inline reverseindex(dim::Dimension) =
     rebuild(dim, reverse(val(dim)), reverseindex(mode(dim)))
+@inline reverseindex(dim::Dimension{<:Val}) =
+    rebuild(dim, Val(reverse(unwrap(val(dim)))), reverseindex(mode(dim)))
 
 
 """

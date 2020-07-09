@@ -2,12 +2,25 @@
 Dimension is the abstract supertype of all dimension types.
 
 Example concrete implementations are `X`, `Y`, `Z`, 
-`Ti` (Time), and the arbirary `Dim{:custom}` dimension.
+`Ti` (Time), and the custom `Dim{:custom}` dimension.
 
 `Dimension`s label the axes of an `AbstractDimesnionalArray`, 
-or other dimensional data. They may also provide an alternate index 
-to lookup for each array axis.
+or other dimensional data. 
 
+They may also provide an alternate index to lookup for each array axis.
+This may be any `AbstractArray` matching the array axis length, or a `Val`
+holding a tuple for compile-time index lookups.
+
+`Dimension`s also have `mode` and `metadata` fields. 
+
+`mode` gives more details about the dimension, such as that it is 
+[`Categorical`](@ref) or [`Sampled`](@ref) as [`Points`](@ref) or 
+[`Intervals`](@ref) along some transect. DimensionalData will
+attempt to guess the mode from the passed-in index value.
+
+`metadata` can hold any metadata object adding more information about 
+the array axis - useful for extending DimensionalData for specific 
+contexts, like geospatial data in GeoData.jl. By default it is `nothing`.
 
 Example:
 
@@ -99,7 +112,7 @@ abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
 """
 Abstract parent type for all time dimensions.
 
-For an index with `Interval` sampling the locus will automatically be
+An index in a `TimeDime` with `Interval` sampling the locus will automatically be
 set to `Start()`, as a date/time index generally defines the start of a 
 month, second etc, not the central point as is more common with spatial data.
 `"""
@@ -129,6 +142,8 @@ relationorder(dim::Dimension) = relationorder(order(dim))
 locus(dim::Dimension) = locus(mode(dim))
 sampling(dim::Dimension) = sampling(mode(dim))
 
+index(dim::Dimension) = unwrap(val(dim))
+
 # DimensionalData interface methods
 rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
     constructorof(D)(val, mode, metadata)
@@ -153,46 +168,38 @@ bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, looku
 Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
+Base.size(dim::Dimension{<:Val}) = (length(unwrap(val(dim))),)
 Base.axes(dim::Dimension) = axes(val(dim))
+Base.axes(dim::Dimension{<:Val}) = (Base.OneTo(length(dim)),)
 Base.eachindex(dim::Dimension) = eachindex(val(dim))
 Base.length(dim::Dimension{<:Union{AbstractArray,Number}}) = length(val(dim))
+Base.length(dim::Dimension{<:Val}) = length(unwrap(val(dim)))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
+Base.ndims(dim::Dimension{<:Val}) = 1
 Base.getindex(dim::Dimension) = val(dim)
 Base.getindex(dim::Dimension{<:AbstractArray}, I...) = getindex(val(dim), I...)
+Base.getindex(dim::Dimension{<:Val}, i) = Val(getindex(unwrap(val(dim)), i))
 Base.iterate(dim::Dimension{<:AbstractArray}, args...) = iterate(val(dim), args...)
 Base.first(dim::Dimension) = val(dim)
 Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
+Base.first(dim::Dimension{<:Val}) = first(unwrap(val(dim)))
 Base.last(dim::Dimension) = val(dim)
 Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
+Base.last(dim::Dimension{<:Val}) = last(unwrap(val(dim)))
 Base.firstindex(dim::Dimension) = 1
 Base.lastindex(dim::Dimension) = 1
 Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
 Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
+Base.lastindex(dim::Dimension{<:Val}) = lastindex(unwrap(val(dim)))
 Base.step(dim::Dimension) = step(mode(dim))
 Base.Array(dim::Dimension{<:AbstractArray}) = Array(val(dim))
+Base.Array(dim::Dimension{<:Val}) = [unwrap(val(dim))...]
 Base.:(==)(dim1::Dimension, dim2::Dimension) =
     typeof(dim1) == typeof(dim2) &&
     val(dim1) == val(dim2) &&
     mode(dim1) == mode(dim2) &&
     metadata(dim1) == metadata(dim2)
-
-# AbstractArray methods where dims are the dispatch argument
-
-@inline rebuildsliced(A, data, I, name::String=name(A)) =
-    rebuild(A, data, slicedims(A, I)..., name)
-
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
-    getindex(A, dims2indices(A, (dim, dims...))...)
-
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
-    setindex!(A, x, dims2indices(A, (dim, dims...))...)
-
-Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
-    view(A, dims2indices(A, (dim, dims...))...)
-
-@inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 
 
 """

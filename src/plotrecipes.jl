@@ -42,7 +42,7 @@ end
     dim = dims(A, 1)
     :ylabel --> label(A)
     :xlabel --> label(dim)
-    val(dim), parent(A)
+    unwrap(index(dim)), parent(A)
 end
 @recipe function f(::SeriesLike, A::AbstractArray{T,2}) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
@@ -50,22 +50,22 @@ end
     :xlabel --> label(ind)
     :ylabel --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(val(dep))
-    val(ind), data(A)
+    :labels --> permutedims(index(dep))
+    index(ind), data(A)
 end
 
 @recipe function f(::HistogramLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
     :xlabel --> label(A)
-    val(dim), data(A)
+    index(dim), data(A)
 end
 @recipe function f(::HistogramLike, A::AbstractArray{T,2}) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
     ind, dep = dims(A)
     :xlabel --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(val(dep))
-    val(ind), data(A)
+    :labels --> permutedims(index(dep))
+    index(ind), data(A)
 end
 
 @recipe function f(::ViolinLike, A::AbstractArray{T,1}) where T
@@ -79,7 +79,7 @@ end
     :xlabel --> label(dep)
     :ylabel --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(val(dep))
+    :labels --> permutedims(index(dep))
     data(A)
 end
 
@@ -87,7 +87,7 @@ end
     dim = dims(A, 1)
     :xlabel --> label(dim)
     :ylabel --> label(A)
-    val(dim), data(A)
+    index(dim), data(A)
 end
 
 @recipe function f(::HeatMapLike, A::AbstractArray{T,2}) where T
@@ -119,5 +119,5 @@ refdims_title(mode::AbstractSampled, dim::Dimension) = begin
          "$start to $stop"
     end
 end
-refdims_title(mode::IndexMode, dim::Dimension) = string(val(dim))
+refdims_title(mode::IndexMode, dim::Dimension) = string(index(dim))
 

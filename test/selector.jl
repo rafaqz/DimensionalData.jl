@@ -9,8 +9,7 @@ a = [1 2  3  4
 dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
 A = DimensionalArray([1 2 3; 4 5 6], dims_)
-A[X(Contains(8)), Y(Contains(6.8))]
-3
+
 
 @testset "selector primitives" begin
 
@@ -518,6 +517,7 @@ end
     da = DimensionalArray(a, dimz)
     @test da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
+    @test da[:two, :b] == 6
     # Near and contains are just At
     @test da[Contains([:one, :three]), Near([:b, :c, :d])] == [2 3 4; 10 11 12]
    
@@ -525,6 +525,16 @@ end
         Y([:a, :b, :c, :d]; mode=Categorical(Unordered()))
     da = DimensionalArray(a, dimz)
     @test_throws ArgumentError da[At(:two), Between(:b, :d)] == [6, 7, 8]
+
+    a = [1 2  3  4
+         5 6  7  8
+         9 10 11 12]
+
+    valdimz = Ti(Val((:one, :two, :three)); mode=Categorical(Ordered())),
+        Y(Val((:a, :b, :c, :d)); mode=Categorical(Ordered()))
+    da = DimensionalArray(a, valdimz)
+    @test da[Val(:one), Val(:c)] == 3
+    @test da[:one, :a] == 1
 end
 
 @testset "Where " begin
