@@ -77,6 +77,11 @@ Base.@propagate_inbounds Base.view(A::AbDimArray, i::StandardIndices, I::Standar
 Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, i::StandardIndices, I::StandardIndices...) =
     setindex!(data(A), x, i, I...)
 
+# No indices
+Base.@propagate_inbounds Base.getindex(A::AbDimArray) = getindex(data(A))
+Base.@propagate_inbounds Base.view(A::AbDimArray) = view(data(A))
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x) = setindex!(data(A), x)
+
 # Cartesian indices
 Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::CartesianIndex) =
     getindex(data(A), I)
