@@ -115,6 +115,7 @@ _Example usage:_
 ```julia
 A = DimensionalArray(rand(20,10), (X, Y))
 size(A, Y)
+using Statistics
 mean(A, dims=X)
 std(A; dims=Y())
 ```
