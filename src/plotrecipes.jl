@@ -50,7 +50,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(index(dep))
+    :label --> permutedims(index(dep))
     index(ind), data(A)
 end
 
@@ -64,7 +64,7 @@ end
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(index(dep))
+    :label --> permutedims(index(dep))
     index(ind), data(A)
 end
 
@@ -79,7 +79,7 @@ end
     :xguide --> label(dep)
     :yguide --> label(A)
     :legendtitle --> label(dep)
-    :labels --> permutedims(index(dep))
+    :label --> permutedims(index(dep))
     data(A)
 end
 
