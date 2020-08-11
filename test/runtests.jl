@@ -13,10 +13,12 @@ if !Sys.iswindows()
     include("plotrecipes.jl")
 
     # Test documentation
-    docsetup = quote
-        using DimensionalData, Random
-        Random.seed!(1234)
+    if VERSION >= v"1.5.0"
+        docsetup = quote
+            using DimensionalData, Random
+            Random.seed!(1234)
+        end
+        DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
+        doctest(DimensionalData)
     end
-    DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-    doctest(DimensionalData)
 end
