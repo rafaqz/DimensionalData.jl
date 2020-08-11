@@ -55,7 +55,7 @@ Categorical
 Unaligned
 Transformed
 NoIndex
-Auto
+AutoMode
 ```
 
 Order of arrays and indices:

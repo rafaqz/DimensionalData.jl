@@ -1,6 +1,8 @@
-using DimensionalData, Test, Plots, Distributions, Dates, StatsPlots
+using DimensionalData, Test, Plots, Dates, StatsPlots
 
-A1 = rand(Normal(), 100)
+import Distributions
+
+A1 = rand(Distributions.Normal(), 100)
 da1 = DimensionalArray(A1, X(1:10:1000), "Normal"; refdims=(Ti(1),))
 
 # Plots
@@ -29,7 +31,7 @@ marginalhist(da1)
 ea_histogram(da1)
 density(da1)
 
-A2 = rand(Normal(), 40, 20)
+A2 = rand(Distributions.Normal(), 40, 20)
 da2 = DimensionalArray(A2, (X(1:10:400), Y(1:5:100)), "Normal")
 
 # Plots
