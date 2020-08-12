@@ -543,6 +543,7 @@ end
 # Order
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
+identify(order::AutoOrder, dimtype::Type, index::AbstractUnitRange) = Ordered()
 
 _orderof(index::AbstractRange) =
     Ordered(index=_indexorder(index))
