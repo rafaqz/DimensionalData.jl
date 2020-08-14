@@ -373,3 +373,50 @@ mean(A; dims=Ti)
 identify(locus::AutoLocus, dimtype::Type{<:TimeDim}, index) = Start()
 
 const Time = Ti # For some backwards compat
+
+
+"""
+    formatdims(A, dims)
+
+Format the passed-in dimension(s) `dims` to match the array `A`.
+
+This means converting indexes of `Tuple` to `LinRange`, and running
+`identify` on . 
+Errors are also thrown if
+dims don't match the array dims or size.
+
+If a [`IndexMode`](@ref) hasn't been specified, an mode is chosen
+based on the type and element type of the index:
+"""
+formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
+    formatdims(axes(A), dims)
+formatdims(axes::Tuple{Vararg{<:AbstractRange}},
+           dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) =
+    map(formatdims, axes, dims)
+
+formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
+    dimtype(axis, NoIndex(), nothing)
+formatdims(axis::AbstractRange, dim::Dimension) = begin
+    checkaxis(dim, axis)
+    rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
+end
+formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
+    start, stop = val(dim)
+    range = LinRange(start, stop, length(axis))
+    formatdims(axis, rebuild(dim, range))
+end
+# Dimensions holding colon dispatch on mode
+formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
+    formatdims(mode(dim), axis, dim)
+
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, NoIndex())
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, mode)
+
+checkaxis(dim, axis) =
+    first(axes(dim)) == axis ||
+        throw(DimensionMismatch(
+            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
