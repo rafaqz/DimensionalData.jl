@@ -7,10 +7,14 @@ module DimensionalData
     read(path, String)
 end DimensionalData
 
-using Base.Broadcast:
-    Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, Unknown
+using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, 
+      Unknown
 
-using ConstructionBase, LinearAlgebra, RecipesBase, Statistics, Dates
+using ConstructionBase, 
+      LinearAlgebra, 
+      RecipesBase, 
+      Statistics, 
+      Dates
 
 using Base: tail, OneTo
 
@@ -28,7 +32,7 @@ export Sampling, Points, Intervals
 
 export Span, Regular, Irregular, AutoSpan
 
-export IndexMode, Auto, UnknownIndex, NoIndex
+export IndexMode, Auto, AutoMode, NoIndex
 
 export Aligned, AbstractSampled, Sampled,
        AbstractCategorical, Categorical
@@ -47,7 +51,6 @@ export order, indexorder, arrayorder,
        reorderarray, reorderrelation
 
 export @dim
-
 
 include("interface.jl")
 include("mode.jl")

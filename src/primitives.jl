@@ -301,58 +301,6 @@ julia> dimnum(B, Ti)
 @inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
 @inline _swapdims(dim::Dimension, newdim::Nothing) = dim
 
-
-"""
-    formatdims(A, dims)
-
-Format the passed-in dimension(s).
-
-Mostily this means converting indexes of tuples and UnitRanges to
-`LinRange`, which is easier to handle internally. Errors are also thrown if
-dims don't match the array dims or size.
-
-If a [`IndexMode`](@ref) hasn't been specified, an mode is chosen
-based on the type and element type of the index:
-"""
-formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
-    formatdims(axes(A), dims)
-formatdims(axes::Tuple{Vararg{<:AbstractRange}},
-           dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) =
-    map(formatdims, axes, dims)
-
-formatdims(axis::AbstractRange, dim::Dimension{<:AbstractArray}) = begin
-    checkaxis(dim, axis)
-    rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
-end
-formatdims(axis::AbstractRange, dim::Dimension{<:Val}) = begin
-    checkaxis(dim, axis)
-    rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
-end
-formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
-    start, stop = val(dim)
-    range = LinRange(start, stop, length(axis))
-    rebuild(dim, range, identify(mode(dim), basetypeof(dim), range))
-end
-# Dimensions holding colon dispatch on mode
-formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
-    formatdims(mode(dim), axis, dim)
-# Dimensions holding colon has the array axis inserted as the index
-formatdims(mode::Auto, axis::AbstractRange, dim::Dimension{Colon}) =
-    rebuild(dim, axis, NoIndex())
-# Dimensions holding colon has the array axis inserted as the index
-formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
-    rebuild(dim, axis, mode)
-# Dim types become `NoIndex` with no metadata.
-formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
-    dim = dimtype(axis, NoIndex(), nothing)
-# Fallback: dim remains unchanged
-formatdims(axis::AbstractRange, dim::Dimension) = dim
-
-checkaxis(dim, axis) =
-    first(axes(dim)) == axis ||
-        throw(DimensionMismatch(
-            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
-
 """
     reducedims(x, dimstoreduce)
 

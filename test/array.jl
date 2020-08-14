@@ -1,11 +1,10 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
-using DimensionalData: Start
+using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
-dimz = (X((143.0, 145.0); metadata=Dict(:meta => "X")),
-        Y((-38.0, -36.0); metadata=Dict(:meta => "Y")))
+dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
+        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
 refdimz = (Ti(1:1),)
-da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
 da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
@@ -13,6 +12,7 @@ da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "
     @test da[X(2), Y(2)] == 4
     @test da[1, 2] == 2
     @test da[2] == 3
+    @inferred getindex(da, X(2), Y(2))
 end
 
 @testset "LinearIndex getindex returns an Array, except Vector" begin
@@ -33,7 +33,7 @@ end
     @test metadata(a, X) == Dict(:meta => "X")
     @test bounds(a) == ((143.0, 145.0),)
     @test bounds(a, X) == (143.0, 145.0)
-    # @test locus(mode(dims(da, X))) == Start()
+    @test locus(mode(dims(da, X))) == Center()
 
     a = da[X(1), Y(1:2)]
     @test a == [1, 2]
@@ -64,7 +64,7 @@ end
 end
 
 @testset "view returns DimensionArray containing views" begin
-    v = view(da, Y(1), X(1))
+    v = @inferred view(da, Y(1), X(1))
     @test v[] == 1
     @test typeof(v) <: DimensionalArray{Int,0}
     @test typeof(data(v)) <:SubArray{Int,0}
@@ -77,7 +77,7 @@ end
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ()
 
-    v = view(da, Y(1), X(1:2))
+    v = @inferred view(da, Y(1), X(1:2))
     @test v == [1, 3]
     @test typeof(v) <: DimensionalArray{Int,1}
     @test typeof(data(v)) <: SubArray{Int,1}
@@ -91,7 +91,7 @@ end
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ((143.0, 145.0),)
 
-    v = view(da, Y(1:2), X(1:1))
+    v = @inferred view(da, Y(1:2), X(1:1))
     @test v == [1 2]
     @test typeof(v) <: DimensionalArray{Int,2}
     @test typeof(data(v)) <: SubArray{Int,2}
@@ -103,7 +103,7 @@ end
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
     @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
-    v = view(da, Y(Base.OneTo(2)), X(1))
+    v = @inferred view(da, Y(Base.OneTo(2)), X(1))
     @test v == [1, 2]
     @test typeof(data(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:Y}
@@ -123,7 +123,7 @@ b2 = [4 4 4 4
       4 4 4 4]
 
 @testset "indexing into empty dims is just regular indexing" begin
-    ida = DimensionalArray(a2, (X, Y))
+    ida = @inferred DimensionalArray(a2, (X(), Y()))
     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
 end
 
@@ -135,6 +135,7 @@ da2 = DimensionalArray(a2, dimz2, "test2"; refdims=refdimz)
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
     @test da2[Dim{:column}(4)] == [4, 6, 7]
     @test da2[Dim{:column}(1), Dim{:row}(3)] == 4
+    @inferred getindex(da2, Dim{:column}(1), Dim{:row}(3))
 end
 
 @testset "size and axes" begin
@@ -142,6 +143,7 @@ end
     @test size(da2, Dim{:column}()) == 4
     @test axes(da2, Dim{:row}()) == 1:3
     @test axes(da2, Dim{:column}) == 1:4
+    @inferred axes(da2, Dim{:column})
 end
 
 @testset "OffsetArray" begin
@@ -211,7 +213,7 @@ end
 
 @testset "eachindex" begin
     # Should have linear index
-    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
+    da = DimensionalArray(ones(5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
     @test eachindex(da) == eachindex(data(da))
     # Should have cartesian index
     sda = DimensionalArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
@@ -242,6 +244,8 @@ end
 end
 
 if VERSION > v"1.1-"
+    dimz = (X(LinRange(143.0, 145.0, 3); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
+            Y(LinRange(-38.0, -36.0, 4); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
     @testset "copy!" begin
         db = DimensionalArray(deepcopy(b2), dimz)
         dc = DimensionalArray(deepcopy(b2), dimz)

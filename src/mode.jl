@@ -44,6 +44,8 @@ arrayorder(order::Unordered) = Unordered()
 relationorder(order::Unordered) = order.relation
 
 """
+    AutoOrder()
+
 Order will be found automatically where possible.
 
 This will fail for all types without `isless` methods.
@@ -51,16 +53,22 @@ This will fail for all types without `isless` methods.
 struct AutoOrder <: Order end
 
 """
+    UnknownOrder()
+
 Order is not known and can't be determined.
 """
 struct UnknownOrder <: Order end
 
 """
+    Forward()
+
 Indicates that the array or dimension is in the normal forward order.
 """
 struct Forward <: Order end
 
 """
+    Reverse()
+
 Indicates that the array or dimension is in the reverse order.
 Selector lookup or plotting will be reversed.
 """
@@ -91,21 +99,29 @@ for spatial data.
 abstract type Locus end
 
 """
+    Center()
+
 Indicates dimension index that matches the center coordinates/time/position.
 """
 struct Center <: Locus end
 
 """
+    Start()
+
 Indicates dimension index that matches the start coordinates/time/position.
 """
 struct Start <: Locus end
 
 """
+    End()
+
 Indicates dimension index that matches the end coordinates/time/position.
 """
 struct End <: Locus end
 
 """
+    AutoLocus()
+
 Indicates dimension where the index position is not known.
 """
 struct AutoLocus <: Locus end
@@ -117,6 +133,8 @@ Indicates the sampling method used by the index.
 abstract type Sampling end
 
 """
+    Points()
+
 [`Sampling`](@ref) mode where single samples at exact points.
 """
 struct Points <: Sampling end
@@ -124,6 +142,8 @@ struct Points <: Sampling end
 locus(sampling::Points) = Center()
 
 """
+    Intervals(locus::Locus)
+
 [`Sampling`](@ref) mode where samples are the mean (or similar) value over an interval.
 """
 struct Intervals{L} <: Sampling
@@ -143,6 +163,8 @@ abstract type Span end
 struct AutoStep end
 
 """
+    Regular(step=AutoStep())
+
 Intervalss have regular size. This is passed to the constructor,
 although these are normally build automatically.
 """
@@ -151,11 +173,14 @@ struct Regular{S} <: Span
 end
 Regular() = Regular(AutoStep())
 
-Base.step(span::Regular) = span.step
-
 val(span::Regular) = span.step
 
+Base.step(span::Regular) = span.step
+
 """
+    Irregular(bounds::Tuple)
+    Irregular(lowerbound, upperbound)
+
 Irregular have irrigular size. To enable bounds tracking and accuract
 selectors, the starting bounds must be provided as a 2 tuple,
 or 2 arguments.
@@ -164,7 +189,7 @@ struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},Nothing}} <: Span
     bounds::B
 end
 Irregular() = Irregular(nothing, nothing)
-Irregular(a, b) = Irregular((a, b))
+Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 
 bounds(span::Irregular) = span.bounds
 
@@ -208,17 +233,19 @@ Base.step(mode::T) where T <: IndexMode =
 slicemode(mode::IndexMode, index, I) = mode
 
 """
-    Auto()
+    AutoMode()
 
 Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically to
 another [`IndexMode`](@ref) when it is possible to detect it from the index.
 """
-struct Auto{O<:Order} <: IndexMode
+struct AutoMode{O<:Order} <: IndexMode
     order::O
 end
-Auto() = Auto(AutoOrder())
+AutoMode() = AutoMode(AutoOrder())
 
-order(mode::Auto) = mode.order
+order(mode::AutoMode) = mode.order
+
+const Auto = AutoMode
 
 
 
@@ -265,8 +292,8 @@ struct NoIndex <: Aligned{Ordered{Forward,Forward,Forward}} end
 order(mode::NoIndex) = Ordered(Forward(), Forward(), Forward())
 
 """
-Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array, 
-and is independent of other dimensions. [`Sampled`](@ref) is provided by this package, 
+Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array,
+and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
 `Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
@@ -326,38 +353,36 @@ slicebounds(locus::Center, bounds, index, I) =
     last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1]  + index[last(I)]) / 2
 
 
-""" 
+"""
     Sampled(order::Order, span::Span, sampling::Sampling)
     Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=Points())
 
-A concrete implementation of [`AbstractSampled`](@ref). It can be used to represent
-points or intervals, with `sampling` of [`Points`](@ref) or [`Intervals`](@ref).
+A concrete implementation of the [`IndexMode`](@ref) [`AbstractSampled`](@ref).
+It can be used to represent [`Points`](@ref) or [`Intervals`](@ref).
 
-It should be capable of representing gridded data from a wide range of sources, allowing 
-correct `bounds` and [`Selector`](@ref)s for points or intervals of regular, irregular, 
+It is capable of representing gridded data from a wide range of sources, allowing
+correct `bounds` and [`Selector`](@ref)s for points or intervals of regular, irregular,
 forward and reverse indexes.
 
-`Sampled` will be detected for all ranges not assigned to [`Categorical`](@ref).
-[`Order`](@ref) detected. The span will be assigned to [`Regular`](@ref) for 
-`AbstractRange` and [`Irregular`](@ref) for `AbstractArray` unless assigned manually.
-
-Sampling is be assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) 
-manually. Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s 
-to take account for the full size of the interval, rather than the point alone.
+The `Sampled` mode is assigned for all indexes of `AbstractRange` not assigned to [`Categorical`](@ref).
 
 ## Fields
-- `order`: [`Order`](@ref) indicating array and index order
-- `span::Span`: [`Span`](@ref) indicating [`Regular`](@ref) or [`Irregular`](@ref)
-  size of intervals or distance between points
-- `sampling::Sampling`: [`Sampling`](@ref) of [`Intervals`](@ref) or [`Points`](@ref) (the default)
+
+- `order` indicating array and index order (in [`Order`](@ref)), detected from the range order.
+- `span` indicates the size of intervals or distance between points, and will be set to 
+  [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`, 
+  unless assigned manually.
+- `sampling` is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref)
+  manually. Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
+  to take account for the full size of the interval, rather than the point alone.
 
 ## Example
 
 Create an array with [`Interval`] sampling.
 
 ```jldoctest
-dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())), 
-         Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals()))) 
+dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())),
+         Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals())))
 A = DimensionalArray(rand(10, 4), dims_)
 map(mode, dims(A))
 
@@ -393,7 +418,7 @@ order(mode::AbstractCategorical) = mode.order
 
 An IndexMode where the values are categories.
 
-This will be automatically assigned if the index contains `AbstractString`, 
+This will be automatically assigned if the index contains `AbstractString`,
 `Symbol` or `Char`. Otherwise it can be assigned manually.
 
 [`Order`](@ref) will not be determined automatically for [`Categorical`](@ref),
@@ -518,6 +543,7 @@ end
 # Order
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
+identify(order::AutoOrder, dimtype::Type, index::AbstractUnitRange) = Ordered()
 
 _orderof(index::AbstractRange) =
     Ordered(index=_indexorder(index))

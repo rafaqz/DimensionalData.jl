@@ -30,14 +30,14 @@ x = X(2:2:10)
 y = Y(['a', 'b', 'c'])
 ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
 
-A = DimensionalArray(rand(3, 5, 12), (y, x, ti))
+A = DimArray(rand(3, 5, 12), (y, x, ti))
 
 # output
 
 DimensionalArray with dimensions:
  Y: Char[a, b, c]
  X: 2:2:10
- Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
 and data: 3×5×12 Array{Float64,3}
 [:, :, 1]
  0.590845  0.460085  0.200586  0.579672   0.066423
@@ -55,7 +55,7 @@ x = A[X(2), Y(3)]
 # output
 
 DimensionalArray with dimensions:
- Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
 and referenced dimensions:
  Y: c
  X: 4
@@ -72,7 +72,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 DimensionalArray with dimensions:
  X: 4:2:4
- Time (type Ti): 2021-01-01T00:00:00:1 month:2021-12-01T00:00:00
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
 and referenced dimensions:
  Y: b
 and data: 1×12 Array{Float64,2}
@@ -208,8 +208,9 @@ Dimensions with user-set type paremeters
 abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
-    Dim{X}(val, mode, metadata)
-    Dim{X}(val=:; [mode=Auto()], [metadata=nothing])
+    Dim{:X}()
+    Dim{:X}(val, mode, metadata)
+    Dim{:X}(val=:; [mode=AutoMode()], [metadata=nothing])
 
 A generic dimension. For use when custom dims are required when loading
 data from a file. The sintax is ugly and verbose to use for indexing,
@@ -223,9 +224,9 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 dimension Dim custom (type Dim):
 val: Char[a, b, c]
-mode: Auto{AutoOrder}(AutoOrder())
+mode: AutoMode{AutoOrder}(AutoOrder())
 metadata: nothing
-type: Dim{:custom,Array{Char,1},Auto{AutoOrder},Nothing}
+type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},Nothing}
 ```
 """
 struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
@@ -236,7 +237,7 @@ struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
         new{X,typeof(val),typeof(mode),typeof(metadata)}(val, mode, metadata)
 end
 
-Dim{X}(val=:; mode=Auto(), metadata=nothing) where X =
+Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
     Dim{X}(val, mode, metadata)
 name(::Type{<:Dim{X}}) where X = "Dim $X"
 shortname(::Type{<:Dim{X}}) where X = "$X"
@@ -286,59 +287,85 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
+        Base.@__doc__ struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
             val::T
             mode::IM
             metadata::M
         end
-        $typ(val=:; mode=Auto(), metadata=nothing) =
+        $typ(val=:; mode=AutoMode(), metadata=nothing) =
             $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
     end)
 
 # Define some common dimensions.
-@dim X XDim
-@doc """
+
+"""
+    X(val=:)
+
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
 ## Example:
 ```julia
-x = X(2:2:10)
+xdim = X(2:2:10)
+# Or
+val = A[X(1)]
+# Or
+mean(A; dims=X)
 ```
-""" X
+"""
+@dim X XDim
 
-@dim Y YDim
-@doc """
+"""
+    Y(val=:)
+
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
 ## Example:
 ```julia
-y = Y(['a', 'b', 'c'])
+ydim = Y(['a', 'b', 'c'])
+# Or
+val = A[Y(1)]
+# Or
+mean(A; dims=Y)
 ```
-""" Y
+"""
+@dim Y YDim
 
-@dim Z ZDim
-@doc """
+"""
+    Z(val=:)
+
 Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 
 ## Example:
 ```julia
-z = Z(10:10:100)
+zdim = Z(10:10:100)
+# Or
+val = A[Z(1)]
+# Or
+mean(A; dims=Z)
 ```
-""" Z
+"""
+@dim Z ZDim
 
-@dim Ti TimeDim "Time"
-@doc """
+"""
+    Ti(val=:)
+
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
 
-`Time` is already used by Dates, so we use `Ti` to avoid clashing.
+`Time` is already used by Dates, and `T` is a common type parameter, 
+We use `Ti` to avoid clashes.
 
 ## Example:
 ```julia
-ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
+timedim = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
+# Or
+val = A[Ti(1)]
+# Or
+mean(A; dims=Ti)
 ```
-""" Ti
+"""
+@dim Ti TimeDim "Time"
 
 # Time dimensions need to default to the Start() locus, as that is
 # nearly always the format and Center intervals are difficult to
@@ -346,3 +373,50 @@ ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
 identify(locus::AutoLocus, dimtype::Type{<:TimeDim}, index) = Start()
 
 const Time = Ti # For some backwards compat
+
+
+"""
+    formatdims(A, dims)
+
+Format the passed-in dimension(s) `dims` to match the array `A`.
+
+This means converting indexes of `Tuple` to `LinRange`, and running
+`identify` on . 
+Errors are also thrown if
+dims don't match the array dims or size.
+
+If a [`IndexMode`](@ref) hasn't been specified, an mode is chosen
+based on the type and element type of the index:
+"""
+formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
+    formatdims(axes(A), dims)
+formatdims(axes::Tuple{Vararg{<:AbstractRange}},
+           dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) =
+    map(formatdims, axes, dims)
+
+formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
+    dimtype(axis, NoIndex(), nothing)
+formatdims(axis::AbstractRange, dim::Dimension) = begin
+    checkaxis(dim, axis)
+    rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
+end
+formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
+    start, stop = val(dim)
+    range = LinRange(start, stop, length(axis))
+    formatdims(axis, rebuild(dim, range))
+end
+# Dimensions holding colon dispatch on mode
+formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
+    formatdims(mode(dim), axis, dim)
+
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, NoIndex())
+# Dimensions holding colon has the array axis inserted as the index
+formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
+    rebuild(dim, axis, mode)
+
+checkaxis(dim, axis) =
+    first(axes(dim)) == axis ||
+        throw(DimensionMismatch(
+            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
