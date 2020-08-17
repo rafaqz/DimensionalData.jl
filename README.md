@@ -83,7 +83,24 @@ using Unitful
 a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
 ```
 
-It's easy to write your own custom `Selector` if your need a different behaviour.
+For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for regular indexing) the `At`
+selector is assumed, and can be dropped completely:
+
+```julia
+julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])))
+DimensionalArray with dimensions:
+ X: Val{(:a, :b, :c)}()
+ Y: Float64[25.6, 25.7, 25.8]
+and data: 3×3 Array{Float64,2}
+ 0.280308  0.92255    0.023938
+ 0.129487  0.0993857  0.618391
+ 0.246378  0.276186   0.0425624
+
+julia> A[:b, 25.8]
+0.61839141062599
+```
+
+It's also easy to write your own custom `Selector` if your need a different behaviour.
 
 _Example usage:_
 
