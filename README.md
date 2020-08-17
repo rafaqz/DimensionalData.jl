@@ -12,7 +12,9 @@ syntax, and additional functionality found in NamedDimensions.jl. It has similar
 goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
-!!! info "Status"
+:exclamation: | "Status"
+:-----------: | :-------
+
     This is a work in progress under active development, it may be a while before
     the interface stabilises and things are fully documented.
 
@@ -24,13 +26,13 @@ and define details about the grid and other metadata, and are also used
 to index into the array, wrapping a value or a `Selector`.
 `X`, `Y`, `Z` and `Ti` are the exported defaults.
 
-A generalised [`Dim`](@ref) type is available to use arbitrary symbols to name dimensions.
-Custom dimensions can be defined using the [`@dim`](@ref) macro.
+A generalised `Dim` type is available to use arbitrary symbols to name dimensions.
+Custom dimensions can be defined using the `@dim` macro.
 
 We can use dim wrappers for indexing, so that the dimension order in the underlying array
 does not need to be known:
 
-```
+```julia
 a[X(1:10), Y(1:4)]
 ```
 
@@ -39,9 +41,19 @@ such as `Time`, `X`, `Y`, `Z`, the generic `Dim{:x}` or others you
 define manually using the `@dim` macro.
 
 Dims can be used for indexing and views without knowing dimension order:
-`a[X(20)]`, `view(a, X(1:20), Y(30:40))` and for indicating dimesions to reduce
-`mean(a, dims=Time)`, or permute `permutedims(a, [X, Y, Z, Time])` in julia
-`Base` and `Statistics` functions that have dims arguments.
+
+```julia
+a[X(20)]
+view(a, X(1:20), Y(30:40))
+```
+
+And for indicating dimensions to reduce or permute in julia
+`Base` and `Statistics` functions that have dims arguments:
+
+```julia
+`mean(a, dims=Time)` 
+`permutedims(a, [X, Y, Z, Time])` 
+```
 
 
 ## Selectors
@@ -52,10 +64,11 @@ Selectors find indices in the dimension based on values `At`, `Near`, or
 
 - `At(x)`: get indices exactly matching the passed in value(s)
 - `Near(x)`: get the closest indices to the passed in value(s)
-- `Where(f::Function)`: filter the array axis by dimension value and a function 
+- `Where(f::Function)`: filter the array axis by a function of dimension 
+  index values.
 - `Between(a, b)`: get all indices between two values (inclusive)
-- `Contains(x)`: the value x falls in the interval covered by the index. Only
-  for [`Sampled`](@ref) [`Intervals`].
+- `Contains(x)`: get indices where the value x falls in the interval. 
+  Only used for `Sampled` `Intervals`, for `Points` us `At`.
 
 We can use selectors with dim wrappers:
 
@@ -66,7 +79,7 @@ a[X(Between(1, 10)), Y(At(25.7))]
 Without dim wrappers selectors must be in the right order:
 
 ```julia
-usin Unitful
+using Unitful
 a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
 ```
 
