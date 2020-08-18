@@ -284,11 +284,9 @@ end
     da = DimensionalArray(a, (Y((10, 30); mode=Sampled()),
                               Ti((1:4)u"s"; mode=Sampled())))
 
-    @test At(10.0) == At(10.0, 0.0, Base.rtoldefault(eltype(10.0)))
-    x = [10.0, 20.0]
-    @test At(x) === At(x, 0.0, Base.rtoldefault(eltype(10.0)))
-    @test At((10.0, 20.0)) === At((10.0, 20.0), 0.0, Base.rtoldefault(eltype(10.0)))
-
+    @test At(10.0) == At(10.0, nothing, nothing)
+    @test At(10.0; atol=0.0, rtol=Base.rtoldefault(Float64)) == 
+        At(10.0, 0.0, Base.rtoldefault(Float64))
     Near([10, 20])
 
     @test Between(10, 20) == Between((10, 20))
@@ -530,11 +528,11 @@ end
          5 6  7  8
          9 10 11 12]
 
-    valdimz = Ti(Val((:one, :two, :three)); mode=Categorical(Ordered())),
+    valdimz = Ti(Val((2.4, 2.5, 2.6)); mode=Categorical(Ordered())),
         Y(Val((:a, :b, :c, :d)); mode=Categorical(Ordered()))
     da = DimensionalArray(a, valdimz)
-    @test da[Val(:one), Val(:c)] == 3
-    @test da[:one, :a] == 1
+    @test da[Val(2.5), Val(:c)] == 7
+    @test da[2.4, :a] == 1
 end
 
 @testset "Where " begin

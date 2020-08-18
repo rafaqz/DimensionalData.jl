@@ -49,10 +49,6 @@ struct At{T,A,R} <: Selector{T}
     atol::A
     rtol::R
 end
-At(val::Union{Number,AbstractArray{<:Number},Tuple{<:Number,Vararg}};
-   atol=zero(eltype(val)),
-   rtol=(atol > zero(eltype(val)) ? zero(rtol) : Base.rtoldefault(eltype(val)))
-  ) = At{typeof.((val, atol, rtol))...}(val, atol, rtol)
 At(val; atol=nothing, rtol=nothing) =
     At{typeof.((val, atol, rtol))...}(val, atol, rtol)
 
@@ -270,13 +266,13 @@ end
     i == nothing && selvalnotfound(dim, selval)
     return i
 end
-@inline at(dim::Dimension, selval, atol, rtol) = begin
-    # This is not particularly efficient. It should be separated
-    # out for unordered dims and otherwise treated as an ordered list.
-    i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
-    i == nothing && selvalnotfound(dim, selval)
-    return i
-end
+# @inline at(dim::Dimension, selval, atol, rtol) = begin
+#     # This is not particularly efficient. It should be separated
+#     # out for unordered dims and otherwise treated as an ordered list.
+#     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
+#     i == nothing && selvalnotfound(dim, selval)
+#     return i
+# end
 
 @noinline selvalnotfound(dim, selval) = 
     throw(ArgumentError("$selval not found in $dim"))
