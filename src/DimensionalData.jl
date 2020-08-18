@@ -44,7 +44,7 @@ export AbstractDimensionalArray, DimensionalArray, DimArray
 export data, dims, refdims, mode, metadata, name, shortname,
        val, label, units, order, bounds, locus, mode, <|
 
-export dimnum, hasdim, setdims, swapdims, rebuild
+export dimnum, hasdim, setdims, swapdims, rebuild, modify
 
 export order, indexorder, arrayorder, 
        reverseindex, reversearray, reorderindex, 

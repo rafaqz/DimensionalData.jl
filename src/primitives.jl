@@ -426,12 +426,13 @@ Check that dimensions or tuples of dimensions are the same.
 Empty tuples are allowed. `nothing` values are ignored,
 returning the non-nothing value if it exists:
 """
+@inline comparedims(A::AbstractArray...) = ccompardims(map(dims, A)...)
+
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
 @inline comparedims(::Nothing, ::Nothing) = nothing
 
-@inline comparedims(a::DimTuple, b::DimTuple) =
-    (comparedims(a[1], b[1]), comparedims(tail(a), tail(b))...)
+@inline comparedims(a::DimTuple, b::DimTuple) = map(comparedims, a, b)
 @inline comparedims(a::DimTuple, b::Tuple{}) = a
 @inline comparedims(a::Tuple{}, b::DimTuple) = b
 @inline comparedims(a::Tuple{}, b::Tuple{}) = ()
