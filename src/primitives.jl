@@ -120,6 +120,8 @@ end
 
 
 """
+    slicedims(A, I)
+
 Slice the dimensions to match the axis values of the new array
 
 All methods returns a tuple conatining two tuples: the new dimensions,
@@ -419,20 +421,30 @@ type: Z{Base.OneTo{Int64},NoIndex,Nothing}
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple{}) = ()
 
 """
+    comparedims(A::AbstractDimArray...)
+    comparedims(A::Tuple...)
     comparedims(a, b)
 
-Check that dimensions or tuples of dimensions are the same.
+Check that dimensions or tuples of dimensions are the same,
+and return the first valid dimension. If `AbstractDimArray`s
+are passed as arguments their dimensions are compared.
 
-Empty tuples are allowed. `nothing` values are ignored,
-returning the non-nothing value if it exists:
+Empty tuples and `nothing` dimension values are ignored,
+returning the `Dimension` value if it exists.
 """
-@inline comparedims(A::AbstractArray...) = ccompardims(map(dims, A)...)
+function comparedims end
+
+@inline comparedims(A::AbstractArray...) = comparedims(map(dims, A)...)
+@inline comparedims(dims::DimTuple...) = map(d -> comparedims(dims[1], d), dims)
+@inline comparedims(::Tuple{}) = ()
 
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
 @inline comparedims(::Nothing, ::Nothing) = nothing
 
-@inline comparedims(a::DimTuple, b::DimTuple) = map(comparedims, a, b)
+# Cant use `map` here, tuples may not be the same length
+@inline comparedims(a::DimTuple, b::DimTuple) =
+    (comparedims(a[1], b[1]), comparedims(tail(a), tail(b))...)
 @inline comparedims(a::DimTuple, b::Tuple{}) = a
 @inline comparedims(a::Tuple{}, b::DimTuple) = b
 @inline comparedims(a::Tuple{}, b::Tuple{}) = ()
