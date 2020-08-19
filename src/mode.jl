@@ -87,6 +87,18 @@ reversearray(o::Unordered) =
 reversearray(o::Ordered) =
     Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relationorder(o)))
 
+flipindex(o::Unordered) = o
+flipindex(o::Ordered) =
+    Ordered(reverse(indexorder(o)), arrayorder(o), relationorder(o))
+
+fliparray(o::Unordered) = o
+fliparray(o::Ordered) =
+    Ordered(indexorder(o), reverse(arrayorder(o)), relationorder(o))
+
+fliprelation(o::Unordered) = o
+fliprelation(o::Ordered) =
+    Ordered(indexorder(o), arrayorder(o), reverse(relationorder(o)))
+
 isrev(::Forward) = false
 isrev(::Reverse) = true
 
@@ -223,9 +235,6 @@ arrayorder(mode::IndexMode) = arrayorder(order(mode))
 indexorder(mode::IndexMode) = indexorder(order(mode))
 relationorder(mode::IndexMode) = relationorder(order(mode))
 locus(mode::IndexMode) = Center()
-
-reversearray(mode::IndexMode) = rebuild(mode, reversearray(order(mode)))
-reverseindex(mode::IndexMode) = rebuild(mode, reverseindex(order(mode)))
 
 Base.step(mode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `Sampled` with `Regular`")

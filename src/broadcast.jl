@@ -1,4 +1,4 @@
-import Base.Broadcast: BroadcastStyle, DefaultArrayStyle
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
 """
     DimensionalStyle{S}
@@ -28,13 +28,13 @@ BroadcastStyle(::Type{<:AbstractDimensionalArray{T,N,D,A}}) where {T,N,D,A} = be
     return DimensionalStyle{inner_style}()
 end
 
+BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
+BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
 BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
-BroadcastStyle(::DimensionalStyle{A}, b::B) where {A, B} = DimensionalStyle(A(), b)
-BroadcastStyle(a::A, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(a, B())
-BroadcastStyle(::DimensionalStyle{A}, b::AbstractArrayStyle{B}) where {A,B} = DimensionalStyle(A(), b)
-BroadcastStyle(a::AbstractArrayStyle{A}, ::DimensionalStyle{B}) where {A,B} = DimensionalStyle(a, B())
-BroadcastStyle(::DimensionalStyle{A}, b::DefaultArrayStyle{B}) where {A, B} = DimensionalStyle(A(), b)
-BroadcastStyle(a::DefaultArrayStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(a, B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 
 # We need to implement copy because if the wrapper array type does not
 # support setindex then the `similar` based default method will not work

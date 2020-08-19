@@ -121,11 +121,11 @@ abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
 
 const DimType = Type{<:Dimension}
-const DimTuple = Tuple{<:Dimension,Vararg{<:Dimension}} where N
-const DimTypeTuple = Tuple{Vararg{DimType}}
-const DimVector = Vector{<:Dimension}
+const DimTuple = Tuple{<:Dimension,Vararg{<:Dimension}}
+const DimTypeTuple = Tuple{<:DimType,Vararg{<:DimType}}
+const VectorOfDim = Vector{<:Dimension}
 const DimOrDimType = Union{Dimension,DimType}
-const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,DimVector}
+const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
 
 # Getters

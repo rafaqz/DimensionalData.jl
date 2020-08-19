@@ -9,9 +9,9 @@ const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
     _sortdims(tosort, Tuple(map(d -> basetypeof(d), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::DimTuple) =
     _sortdims(Tuple(map(d -> basetypeof(d), tosort)), order)
-@inline Base.permutedims(tosort::DimTuple, order::DimVector) =
+@inline Base.permutedims(tosort::DimTuple, order::VectorOfDim) =
     _sortdims(tosort, Tuple(order))
-@inline Base.permutedims(tosort::DimVector, order::DimTuple) =
+@inline Base.permutedims(tosort::VectorOfDim, order::DimTuple) =
     _sortdims(Tuple(tosort), order)
 @inline Base.permutedims(tosort::DimTuple, order::DimTuple) =
     _sortdims(tosort, order)
@@ -413,6 +413,8 @@ type: Z{Base.OneTo{Int64},NoIndex,Nothing}
 # Numbers are returned as-is
 @inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining) =
     (d[lookup[1]], _dims(d, tail(lookup), (), (rejected..., remaining...))...)
+# For method ambiguities
+@inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining::Tuple{}) = ()
 # Throw an error if the lookup is not found
 @inline _dims(d, lookup::Tuple, rejected, remaining::Tuple{}) =
     throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
@@ -434,9 +436,11 @@ returning the `Dimension` value if it exists.
 """
 function comparedims end
 
-@inline comparedims(A::AbstractArray...) = comparedims(map(dims, A)...)
-@inline comparedims(dims::DimTuple...) = map(d -> comparedims(dims[1], d), dims)
-@inline comparedims(::Tuple{}) = ()
+@inline comparedims(A::Vararg{<:AbstractArray}) = 
+    comparedims(map(dims, A)...)
+@inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) = 
+    map(d -> comparedims(dims[1], d), dims)
+@inline comparedims() = ()
 
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
@@ -448,6 +452,7 @@ function comparedims end
 @inline comparedims(a::DimTuple, b::Tuple{}) = a
 @inline comparedims(a::Tuple{}, b::DimTuple) = b
 @inline comparedims(a::Tuple{}, b::Tuple{}) = ()
+@inline comparedims(a::AnonDim, b::AnonDim) = nothing
 @inline comparedims(a::Dimension, b::AnonDim) = a
 @inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin

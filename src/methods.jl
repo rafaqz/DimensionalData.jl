@@ -1,7 +1,7 @@
 # Array info
 for (mod, fname) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
     @eval begin
-        @inline ($mod.$fname)(A::AbstractArray, dims::AllDims) =
+        @inline ($mod.$fname)(A::AbstractDimArray, dims::AllDims) =
             ($mod.$fname)(A, dimnum(A, dims))
     end
 end
@@ -14,14 +14,14 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         # Returns a scalar
         @inline ($mod.$fname)(A::AbDimArray) = ($mod.$fname)(data(A))
         # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractArray, dims::AllDims) =
+        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(data(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(f, A::AbstractArray, dims::AllDims) =
+        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Colon) =
+            rebuild(A, ($mod.$_fname)(data(A), dimnum(A, dims(A))), reducedims(A, dims(A)))
+        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(f, data(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(A::AbDimArray, dims::Union{Int,Base.Dims}) =
-            rebuild(A, ($mod.$_fname)(data(A), dims), reducedims(A, dims))
-        @inline ($mod.$_fname)(f, A::AbDimArray, dims::Union{Int,Base.Dims}) =
-            rebuild(A, ($mod.$_fname)(f, data(A), dims), reducedims(A, dims))
+        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Colon) =
+            rebuild(A, ($mod.$_fname)(f, data(A), dimnum(A, dims(A))), reducedims(A, dims(A)))
     end
 end
 
@@ -39,14 +39,13 @@ for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
 end
 
 Statistics.median(A::AbDimArray) = Statistics.median(data(A))
-Statistics._median(A::AbstractArray, dims::AllDims) =
+Statistics._median(A::AbstractDimArray, dims::AllDims) =
     rebuild(A, Statistics._median(data(A), dimnum(A, dims)), reducedims(A, dims))
 Statistics._median(A::AbDimArray, dims::Union{Int,Base.Dims}) =
     rebuild(A, Statistics._median(data(A), dims), reducedims(A, dims))
 
-Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractArray, dims::AllDims) =
-    rebuild(A, Base._mapreduce_dim(f, op, nt, data(A), dimnum(A, dims)), reducedims(A, dims))
-Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Union{Int,Base.Dims}) =
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray,
+                    dims::Union{Int,Base.Dims,AllDims}) =
     rebuild(A, Base._mapreduce_dim(f, op, nt, data(A), dimnum(A, dims)), reducedims(A, dims))
 Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbDimArray, dims::Colon) =
     Base._mapreduce_dim(f, op, nt, data(A), dims)
@@ -63,10 +62,10 @@ end
 
 
 # Dimension dropping
-Base._dropdims(A::AbstractArray, dim::DimOrDimType) =
+Base._dropdims(A::AbstractDimArray, dim::DimOrDimType) =
     rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)),
                   dims2indices(A, basetypeof(dim)(1)))
-Base._dropdims(A::AbstractArray, dims::DimTuple) =
+Base._dropdims(A::AbstractDimArray, dims::DimTuple) =
     rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dims)),
                   dims2indices(A, Tuple((basetypeof(d)(1) for d in dims))))
 
@@ -108,28 +107,6 @@ for fname in (:cor, :cov)
     end
 end
 
-const AA = AbstractArray
-const ADA = AbstractDimensionalArray
-
-Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,1}) = rebuild(A, data(A) * B, dims(A, (1,)))
-Base.:*(A::ADA{<:Any,1}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
-Base.:*(A::ADA{<:Any,2}, B::AA{<:Any,2}) = rebuild(A, data(A) * B, dims(A, (1, 1)))
-Base.:*(A::AA{<:Any,1}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
-Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,1}) = rebuild(B, A * data(B), (AnonDim(Base.OneTo(1)),))
-Base.:*(A::AA{<:Any,2}, B::ADA{<:Any,2}) = rebuild(B, A * data(B), dims(B, (2, 2)))
-
-Base.:*(A::ADA{<:Any,1}, B::ADA{<:Any,2}) = begin
-    comparedims(dims(A, 1), dims(B, 2))
-    rebuild(A, data(A) * data(B), dims(A, (1, 1)))
-end
-Base.:*(A::AbDimArray{<:Any,2}, B::AbDimArray{<:Any,1}) = begin
-    comparedims(dims(A, 2), dims(B, 1))
-    rebuild(A, data(A) * data(B), dims(A, (1,)))
-end
-Base.:*(A::ADA{<:Any,2}, B::ADA{<:Any,2}) = begin
-    comparedims(dims(A, 2), dims(B, 1))
-    rebuild(A, data(A) * data(B), (dims(A, 1), dims(B, 2)))
-end
 
 # Reverse.
 Base.reverse(A::AbDimArray{T,N}; dims=1) where {T,N} =
@@ -158,16 +135,16 @@ end
 
 # Concatenation
 
-Base._cat(catdims::Union{Int,Base.Dims}, As::AbDimArray...) =
-    Base._cat(dims(first(As), catdims), As...)
-Base._cat(catdims::AllDims, As::AbstractArray...) = begin
-    A1 = first(As)
-    comparedims(As...)
+Base._cat(catdims::Union{Int,Base.Dims}, Xin::AbDimArray...) =
+    Base._cat(dims(first(Xin), catdims), Xin...)
+Base._cat(catdims::AllDims, Xin::AbstractDimArray...) = begin
+    A1 = first(Xin)
+    comparedims(Xin...)
     if all(hasdim(A1, catdims))
         # Concatenate an existing dim
         dnum = dimnum(A1, catdims)
         # cat the catdim, ignore others
-        newdims = Tuple(_catifcatdim(catdims, ds) for ds in zip(map(dims, As)...))
+        newdims = Tuple(_catifcatdim(catdims, ds) for ds in zip(map(dims, Xin)...))
     else
         # Concatenate a new dim
         add_dims = if (catdims isa Tuple)
@@ -178,7 +155,7 @@ Base._cat(catdims::AllDims, As::AbstractArray...) = begin
         dnum = ndims(A1) + length(add_dims)
         newdims = (dims(A1)..., add_dims...)
     end
-    newA = Base._cat(dnum, map(data, As)...)
+    newA = Base._cat(dnum, map(data, Xin)...)
     rebuild(A1, newA, formatdims(newA, newdims))
 end
 
@@ -206,6 +183,8 @@ _vcat_modes(::Intervals, ::Irregular, modes...) = begin
 end
 _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
+Base.inv(A::AbstractDimArray{T, 2}) where T =
+    rebuild(A, inv(parent(A)), reverse(map(flipindex, dims(A))))
 
 # Index breaking
 
