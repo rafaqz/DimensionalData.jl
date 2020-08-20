@@ -127,6 +127,7 @@ And some utility methods for transforming DimensionalData objects:
 
 ```@docs
 rebuild
+modify
 setdims
 swapdims
 reorderindex

@@ -5,6 +5,9 @@ Parent type for all dimensional arrays.
 abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbDimArray = AbstractDimensionalArray
+const AbstractDimArray = AbstractDimensionalArray
+const AbstractDimVector = AbstractDimArray{T,1} where T
+const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
 const StandardIndices = Union{AbstractArray,Colon,Integer}
 
@@ -61,8 +64,8 @@ Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
 Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
 Base.parent(A::AbDimArray) = data(A)
 
-@inline Base.axes(A::AbstractArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+@inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
+@inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 
 @inline rebuildsliced(A, data, I, name::String=name(A)) =
     rebuild(A, data, slicedims(A, I)..., name)
@@ -128,9 +131,15 @@ Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, i::StandardIndices) 
 
 Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
 
-Base.copy!(dst::AbDimArray, src::AbDimArray) = copy!(data(dst), data(src))
-Base.copy!(dst::AbDimArray, src::AbstractArray) = copy!(data(dst), src)
-Base.copy!(dst::AbstractArray, src::AbDimArray) = copy!(dst, data(src))
+
+Base.copy!(dst::AbDimArray{T,N}, src::AbDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
+Base.copy!(dst::AbDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
+Base.copy!(dst::AbstractArray{T,N}, src::AbDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
+# Most of these methods are for resolving ambiguity errors
+Base.copy!(dst::SparseArrays.SparseVector, src::AbDimArray{T,1}) where T = copy!(dst, parent(src))
+Base.copy!(dst::AbDimArray{T,1}, src::AbstractArray{T,1}) where T = copy!(parent(dst), src)
+Base.copy!(dst::AbstractArray{T,1}, src::AbDimArray{T,1}) where T = copy!(dst, parent(src))
+Base.copy!(dst::AbDimArray{T,1}, src::AbDimArray{T,1}) where T = copy!(parent(dst), parent(src))
 
 Base.Array(A::AbDimArray) = data(A)
 
@@ -214,4 +223,3 @@ the given dimension. Optionally provide a name for the result.
 """
 DimensionalArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")")) =
      DimensionalArray(f.(val(dim)), (dim,), name)
-

@@ -1,3 +1,4 @@
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
 """
     DimensionalStyle{S}
@@ -22,20 +23,21 @@ DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle) = begin
     end
 end
 
-Base.BroadcastStyle(::Type{<:AbstractDimensionalArray{T,N,D,A}}) where {T,N,D,A} = begin
+BroadcastStyle(::Type{<:AbstractDimensionalArray{T,N,D,A}}) where {T,N,D,A} = begin
     inner_style = typeof(BroadcastStyle(A))
     return DimensionalStyle{inner_style}()
 end
 
+BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
+BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
+BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 
-Base.BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
-Base.BroadcastStyle(::DimensionalStyle{A}, b::B) where {A, B} = DimensionalStyle(A(), b)
-Base.BroadcastStyle(a::A, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(a, B())
-Base.BroadcastStyle(::DimensionalStyle{A}, b::DefaultArrayStyle) where {A} = DimensionalStyle(A(), b)
-Base.BroadcastStyle(a::AbstractArrayStyle{M}, ::DimensionalStyle{B}) where {B,M} = DimensionalStyle(a, B())
-
-# We need to implement copy because if the wrapper array type does not support setindex
-# then the `similar` based default method will not work
+# We need to implement copy because if the wrapper array type does not
+# support setindex then the `similar` based default method will not work
 function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     _dims = _broadcasted_dims(bc)
     A = _firstdimarray(bc)
@@ -58,10 +60,20 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     end
 end
 
+function Base.copyto!(dest::AbstractDimensionalArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc))
+    copyto!(parent(dest), _unwrap_broadcasted(bc))
+    A = _firstdimarray(bc)
+    return if A isa Nothing || _dims isa Nothing
+        dest
+    else
+        rebuild(A, data(dest), _dims, refdims(A), "")
+    end
+end
+
 Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T} = begin
     A = _firstdimarray(bc)
-    # TODO How do we know what the new dims are?
-    rebuildsliced(A, similar(Array{T}, axes(bc)), axes(bc), "")
+    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), "")
 end
 
 # Recursively unwraps `AbstractDimensionalArray`s and `DimensionalStyle`s.

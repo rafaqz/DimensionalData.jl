@@ -279,10 +279,11 @@ end
 
 near(dim::Dimension, sel::Near) =
     near(sampling(mode(dim)), mode(dim), dim, sel)
-near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) =
-    relate(dim, near(locus(mode), indexorder(dim), dim, sel))
-near(::Locus, ::Unordered, dim::Dimension, sel) =
-    throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
+near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
+    order = indexorder(dim)
+    order isa Unordered && throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
+    relate(dim, near(locus(mode), order, dim, sel))
+end
 # Start is just offset Center
 near(::Start, order::Order, dim::Dimension, sel::Near) =
     near(Center(), order, dim, Near(val(sel) - abs(step(dim)) / 2))
@@ -422,10 +423,11 @@ end
 
 between(dim::Dimension, sel::Between) =
     between(sampling(mode(dim)), mode(dim), dim, sel)
-between(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between) =
-    between(indexorder(dim), sampling, mode, dim, sel)
-between(::Unordered, sampling::Sampling, mode::IndexMode, dim::Dimension, sel) =
-    throw(ArgumentError("Cannot use `Between` on an unordered mode"))
+between(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between) = begin
+    order = indexorder(dim)
+    order isa Unordered && throw(ArgumentError("Cannot use `Between` on an unordered mode"))
+    between(order, sampling, mode, dim, sel)
+end
 
 between(order::Forward, ::Points, ::IndexMode, dim::Dimension, sel::Between) = begin
     low, high = _sorttuple(sel)

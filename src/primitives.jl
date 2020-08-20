@@ -9,9 +9,9 @@ const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
     _sortdims(tosort, Tuple(map(d -> basetypeof(d), order)))
 @inline Base.permutedims(tosort::UnionAllTupleOrVector, order::DimTuple) =
     _sortdims(Tuple(map(d -> basetypeof(d), tosort)), order)
-@inline Base.permutedims(tosort::DimTuple, order::DimVector) =
+@inline Base.permutedims(tosort::DimTuple, order::VectorOfDim) =
     _sortdims(tosort, Tuple(order))
-@inline Base.permutedims(tosort::DimVector, order::DimTuple) =
+@inline Base.permutedims(tosort::VectorOfDim, order::DimTuple) =
     _sortdims(Tuple(tosort), order)
 @inline Base.permutedims(tosort::DimTuple, order::DimTuple) =
     _sortdims(tosort, order)
@@ -120,6 +120,8 @@ end
 
 
 """
+    slicedims(A, I)
+
 Slice the dimensions to match the axis values of the new array
 
 All methods returns a tuple conatining two tuples: the new dimensions,
@@ -411,6 +413,8 @@ type: Z{Base.OneTo{Int64},NoIndex,Nothing}
 # Numbers are returned as-is
 @inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining) =
     (d[lookup[1]], _dims(d, tail(lookup), (), (rejected..., remaining...))...)
+# For method ambiguities
+@inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining::Tuple{}) = ()
 # Throw an error if the lookup is not found
 @inline _dims(d, lookup::Tuple, rejected, remaining::Tuple{}) =
     throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
@@ -419,22 +423,36 @@ type: Z{Base.OneTo{Int64},NoIndex,Nothing}
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple{}) = ()
 
 """
+    comparedims(A::AbstractDimArray...)
+    comparedims(A::Tuple...)
     comparedims(a, b)
 
-Check that dimensions or tuples of dimensions are the same.
+Check that dimensions or tuples of dimensions are the same,
+and return the first valid dimension. If `AbstractDimArray`s
+are passed as arguments their dimensions are compared.
 
-Empty tuples are allowed. `nothing` values are ignored,
-returning the non-nothing value if it exists:
+Empty tuples and `nothing` dimension values are ignored,
+returning the `Dimension` value if it exists.
 """
+function comparedims end
+
+@inline comparedims(A::Vararg{<:AbstractArray}) = 
+    comparedims(map(dims, A)...)
+@inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) = 
+    map(d -> comparedims(dims[1], d), dims)
+@inline comparedims() = ()
+
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
 @inline comparedims(::Nothing, ::Nothing) = nothing
 
+# Cant use `map` here, tuples may not be the same length
 @inline comparedims(a::DimTuple, b::DimTuple) =
     (comparedims(a[1], b[1]), comparedims(tail(a), tail(b))...)
 @inline comparedims(a::DimTuple, b::Tuple{}) = a
 @inline comparedims(a::Tuple{}, b::DimTuple) = b
 @inline comparedims(a::Tuple{}, b::Tuple{}) = ()
+@inline comparedims(a::AnonDim, b::AnonDim) = nothing
 @inline comparedims(a::Dimension, b::AnonDim) = a
 @inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin

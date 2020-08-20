@@ -14,6 +14,7 @@ using ConstructionBase,
       LinearAlgebra, 
       RecipesBase, 
       Statistics, 
+      SparseArrays,
       Dates
 
 using Base: tail, OneTo
@@ -24,7 +25,7 @@ export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
 
 export Selector, At, Between, Contains, Near, Where
 
-export Locus, Center, Start, End, AutoLocus, NoLocus
+export Locus, Center, Start, End, AutoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
@@ -44,7 +45,7 @@ export AbstractDimensionalArray, DimensionalArray, DimArray
 export data, dims, refdims, mode, metadata, name, shortname,
        val, label, units, order, bounds, locus, mode, <|
 
-export dimnum, hasdim, setdims, swapdims, rebuild
+export dimnum, hasdim, setdims, swapdims, rebuild, modify
 
 export order, indexorder, arrayorder, 
        reverseindex, reversearray, reorderindex, 
@@ -59,6 +60,7 @@ include("array.jl")
 include("selector.jl")
 include("broadcast.jl")
 include("methods.jl")
+include("matmul.jl")
 include("primitives.jl")
 include("utils.jl")
 include("plotrecipes.jl")
