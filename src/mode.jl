@@ -273,11 +273,11 @@ An [`IndexMode`](@ref) that is identical to the array axis.
 
 ## Example
 
-Defining a [`DimensionalArray`](@ref) without passing an index
+Defining a [`DimArray`](@ref) without passing an index
 to the dimension, the IndexMode will be `NoIndex`:
 
 ```jldoctest
-A = DimensionalArray(rand(3, 3), (X, Y))
+A = DimArray(rand(3, 3), (X, Y))
 map(mode, dims(A))
 
 # output
@@ -288,7 +288,7 @@ map(mode, dims(A))
 Is identical to:
 
 ```jldoctest
-A = DimensionalArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
+A = DimArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
 map(mode, dims(A))
 
 # output
@@ -392,7 +392,7 @@ Create an array with [`Interval`] sampling.
 ```jldoctest
 dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())),
          Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals())))
-A = DimensionalArray(rand(10, 4), dims_)
+A = DimArray(rand(10, 4), dims_)
 map(mode, dims(A))
 
 # output
@@ -442,7 +442,7 @@ Create an array with [`Interval`] sampling.
 
 ```jldoctest
 dims_ = X(["one", "two", "thee"]), Y([:a, :b, :c, :d])
-A = DimensionalArray(rand(3, 4), dims_)
+A = DimArray(rand(3, 4), dims_)
 map(mode, dims(A))
 
 # output
@@ -495,7 +495,7 @@ A = [1 2  3  4
      9 10 11 12];
 dimz = Dim{:t1}(mode=Transformed(m, X)),
               Dim{:t2}(mode=Transformed(m, Y))
-da = DimensionalArray(A, dimz)
+da = DimArray(A, dimz)
 
 da[X(At(6)), Y(At(2))]
 

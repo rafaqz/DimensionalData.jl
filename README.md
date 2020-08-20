@@ -90,7 +90,7 @@ selector is assumed, and can be dropped completely:
 
 ```julia
 julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])))
-DimensionalArray with dimensions:
+DimArray with dimensions:
  X: Val{(:a, :b, :c)}()
  Y: Float64[25.6, 25.7, 25.8]
 and data: 3×3 Array{Float64,2}
@@ -109,13 +109,13 @@ _Example usage:_
 ```julia
 using Dates, DimensionalData
 timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
-A = DimensionalArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
 
 julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
 0.658404535807791
 
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
-DimensionalArray with dimensions:
+DimArray with dimensions:
  X: 20:10:50
 and referenced dimensions:
  Time (type Ti): 2001-05-01T00:00:00
@@ -145,7 +145,7 @@ Base and Statistics methods:
 _Example usage:_
 
 ```julia
-A = DimensionalArray(rand(20,10), (X, Y))
+A = DimArray(rand(20,10), (X, Y))
 size(A, Y)
 using Statistics
 mean(A, dims=X)

@@ -6,8 +6,8 @@ using Combinatorics: combinations
 
 @testset "*" begin
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
-    A1 = DimensionalArray(rand(12), (Ti(timespan),)) 
-    A2 = DimensionalArray(rand(12, 1), (Ti(timespan), X(10:10:10))) 
+    A1 = DimArray(rand(12), (Ti(timespan),)) 
+    A2 = DimArray(rand(12, 1), (Ti(timespan), X(10:10:10))) 
 
     @test length.(dims(A1)) == size(A1)
     @test dims(parent(A1) * permutedims(A1)) isa Tuple{<:AnonDim,<:Ti}
@@ -37,9 +37,9 @@ using Combinatorics: combinations
     @test length.(dims(parent(A2') * A2)) == sze2
     @test length.(dims(A2' * parent(A2))) == sze2
 
-    B1 = DimensionalArray(rand(12, 6), (Ti(timespan), X(1:6)))
-    B2 = DimensionalArray(rand(8, 12), (Y(1:8), Ti(timespan)))
-    b1 = DimensionalArray(rand(12), Ti(timespan))
+    B1 = DimArray(rand(12, 6), (Ti(timespan), X(1:6)))
+    B2 = DimArray(rand(8, 12), (Y(1:8), Ti(timespan)))
+    b1 = DimArray(rand(12), Ti(timespan))
 
     # Test dimension propagation
     @test (B2 * B1) == (parent(B2) * parent(B1))

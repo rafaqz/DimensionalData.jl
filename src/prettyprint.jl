@@ -1,5 +1,5 @@
-# Full printing for DimensionalArray
-Base.show(io::IO, A::AbDimArray) = begin
+# Full printing for DimArray
+Base.show(io::IO, A::AbstractDimArray) = begin
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
     if label(A) != ""
@@ -24,8 +24,8 @@ Base.show(io::IO, A::AbDimArray) = begin
     print(io, summary(dataA), "\n")
     custom_show(io, data(A))
 end
-# Short printing for DimensionalArray
-Base.show(io::IO, ::MIME"text/plain", A::AbDimArray) = show(io, A)
+# Short printing for DimArray
+Base.show(io::IO, ::MIME"text/plain", A::AbstractDimArray) = show(io, A)
 # Full printing version for dimensions
 Base.show(io::IO, ::MIME"text/plain", dim::Dimension) = begin
     print(io, "dimension ")

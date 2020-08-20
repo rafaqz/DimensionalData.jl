@@ -7,7 +7,7 @@ Return the data wrapped by the dimentional array. This may not be
 the same as `Base.parent`, as it should never include data outside the
 bounds of the dimensions.
 
-In a disk based [`AbstractDimensionalArray`](@ref), `data` may need to
+In a disk based [`AbstractDimArray`](@ref), `data` may need to
 load data from disk.
 """
 function data end

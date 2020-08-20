@@ -1,13 +1,13 @@
 
 # API
 
-To use the functionality of DimensionalData in your module, dispatch on `AbstractDimensionalArray` and `AbstractDimension`.
+To use the functionality of DimensionalData in your module, dispatch on `AbstractDimArray` and `AbstractDimension`.
 
 Arrays:
 
 ```@docs
-AbstractDimensionalArray
-DimensionalArray
+AbstractDimArray
+DimArray
 ```
 
 ## Core types

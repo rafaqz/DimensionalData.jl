@@ -36,7 +36,7 @@ and wont be used.
 ## Example
 
 ```jldoctest
-A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
+A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(At(20)), Y(At(6))]
 
 # output
@@ -67,7 +67,7 @@ index value for [`Start`](@ref) and [`End`](@ref) loci.
 ## Example
 
 ```jldoctest
-A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
+A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Near(23)), Y(Near(5.1))] 
 
 # output
@@ -92,7 +92,7 @@ Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 ```jldoctest
 dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
-A = DimensionalArray([1 2 3; 4 5 6], dims_)
+A = DimArray([1 2 3; 4 5 6], dims_)
 A[X(Contains(8)), Y(Contains(6.8))]
 
 # output
@@ -117,12 +117,12 @@ results with the same index and values - this is the intended behaviour.
 ## Example
 
 ```jldoctest
-A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
+A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Between(15, 25)), Y(Between(4, 6.5))] 
 
 # output
 
-DimensionalArray with dimensions:
+DimArray with dimensions:
  X: 20:10:20
  Y: 5:6
 and data: 1×2 Array{Int64,2}
@@ -144,12 +144,12 @@ a single value from the index and returns a `Bool`.
 ## Example
 
 ```jldoctest
-A = DimensionalArray([1 2 3; 4 5 6], (X(10:10:20), Y(19:21)))
+A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(19:21)))
 A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 
 # output
 
-DimensionalArray with dimensions:
+DimArray with dimensions:
  X: Int64[20]
  Y: Int64[19, 21]
 and data: 1×2 Array{Int64,2}

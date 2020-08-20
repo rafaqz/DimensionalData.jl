@@ -11,7 +11,7 @@ using DimensionalData: reversearray, reverseindex, reorderarray, reorderindex,
     @test order(revdimi) == Ordered(Reverse(), Forward(), Reverse())
 
     A = [1 2 3; 4 5 6]
-    da = DimensionalArray(A, (X(10:10:20), Y(300:-100:100)))
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
 
     reva = reversearray(da; dims=Y);
     @test reva == [3 2 1; 6 5 4]
@@ -60,7 +60,7 @@ end
 
 @testset "modify" begin
     A = [1 2 3; 4 5 6]
-    da = DimensionalArray(A, (X(10:10:20), Y(300:-100:100)))
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
     mda = modify(A -> A .> 3, da)
     @test dims(mda) === dims(da)
     @test mda == [false false false; true true true]

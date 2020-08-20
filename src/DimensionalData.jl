@@ -40,7 +40,7 @@ export Aligned, AbstractSampled, Sampled,
 
 export Unaligned, Transformed
 
-export AbstractDimensionalArray, DimensionalArray, DimArray
+export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
 export data, dims, refdims, mode, metadata, name, shortname,
        val, label, units, order, bounds, locus, mode, <|
@@ -52,6 +52,7 @@ export order, indexorder, arrayorder,
        reorderarray, reorderrelation
 
 export @dim
+
 
 include("interface.jl")
 include("mode.jl")
@@ -65,5 +66,9 @@ include("primitives.jl")
 include("utils.jl")
 include("plotrecipes.jl")
 include("prettyprint.jl")
+
+# For compat with old versions
+const AbstractDimensionalArray = AbstractDimArray
+const DimensionalArray = DimArray
 
 end

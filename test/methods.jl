@@ -7,15 +7,15 @@ using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims,
 @testset "map" begin
     a = [1 2; 3 4]
     dimz = (X((143, 145)), Y((-38, -36)))
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test map(x -> 2x, da) == [2 4; 6 8]
-    @test map(x -> 2x, da) isa DimensionalArray{Int64,2}
+    @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test sum(da; dims=X()) == sum(a; dims=1)
     @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
@@ -66,7 +66,7 @@ end
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
     a = [1 2 3; 4 5 6]
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test median(da) == 3.5
     @test median(da; dims=X()) == [2.5 3.5 4.5]
     @test median(da; dims=2) == [2.0 5.0]'
@@ -75,11 +75,11 @@ end
 @testset "dimension dropping methods" begin
     a = [1 2 3; 4 5 6]
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     # Dimensions must have length 1 to be dropped
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
-    @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimensionalArray{Int,0,Tuple{}}
+    @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimArray{Int,0,Tuple{}}
     @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
         (X(143.0; mode=Sampled(Ordered(), Regular(2.0), Points())),)
     dropped = dropdims(da[X(1:1)]; dims=X)
@@ -93,7 +93,7 @@ if VERSION > v"1.1-"
              3 4 5 6
              5 6 7 8]
         # eachslice
-        da = DimensionalArray(a, (Y((10, 30)), Ti(1:4)))
+        da = DimArray(a, (Y((10, 30)), Ti(1:4)))
         @test [mean(s) for s in eachslice(da; dims=Ti)] == [3.0, 4.0, 5.0, 6.0]
         @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
         slices = [s .* 2 for s in eachslice(da; dims=Y)]
@@ -110,7 +110,7 @@ if VERSION > v"1.1-"
 end
 
 @testset "simple dimension permuting methods" begin
-    da = DimensionalArray(zeros(5, 4), (Y((10, 20); mode=Sampled()), 
+    da = DimArray(zeros(5, 4), (Y((10, 20); mode=Sampled()), 
                                         X(1:4; mode=Sampled())))
     tda = transpose(da)
     @test tda == transpose(data(da))
@@ -125,7 +125,7 @@ end
     @test dims(tda) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test size(tda) == (4, 5)
-    @test typeof(tda) <: DimensionalArray
+    @test typeof(tda) <: DimArray
 
     ada = adjoint(da)
     @test ada == adjoint(data(da))
@@ -140,7 +140,7 @@ end
 
 
 @testset "dimension permuting methods with specified permutation" begin
-    da = DimensionalArray(ones(5, 2, 4), (Y((10, 20); mode=Sampled()), 
+    da = DimArray(ones(5, 2, 4), (Y((10, 20); mode=Sampled()), 
                                           Ti(10:11; mode=Sampled()), 
                                           X(1:4; mode=Sampled())))
     dsp = permutedims(da, [3, 1, 2])
@@ -154,7 +154,7 @@ end
                         Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())))
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
-    @test typeof(dsp) <: DimensionalArray
+    @test typeof(dsp) <: DimArray
 end
 
 @testset "reversing methods" begin
@@ -163,7 +163,7 @@ end
     @test order(revdim) == Ordered(Reverse(), Forward(), Reverse())
 
     A = [1 2 3; 4 5 6]
-    da = DimensionalArray(A, (X(10:10:20), Y(300:-100:100)))
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
     rev = reverse(da; dims=Y);
     @test rev == [3 2 1; 6 5 4]
     @test val(dims(rev, X)) == 10:10:20
@@ -209,7 +209,7 @@ end
 
 @testset "dimension mirroring methods" begin
     a = rand(5, 4)
-    da = DimensionalArray(a, (Y((10, 20); mode=Sampled()), 
+    da = DimArray(a, (Y((10, 20); mode=Sampled()), 
                               X(1:4; mode=Sampled())))
 
     cvda = cov(da; dims=X)
@@ -226,7 +226,7 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    da = DimensionalArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())), 
+    da = DimArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())), 
                               Ti(1:4; mode=Sampled(sampling=Intervals()))))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
@@ -239,7 +239,7 @@ end
 end
 
 @testset "array info" begin
-    da = DimensionalArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
+    da = DimArray(zeros(5, 4), (Y((10, 20)), X(1:4)))
     @test size(da, Y) == 5
     @test size(da, X()) == 4
     @test axes(da, Y()) == Base.OneTo(5)
@@ -252,9 +252,9 @@ end
 
 @testset "cat" begin
     a = [1 2 3; 4 5 6]
-    da = DimensionalArray(a, (X(1:2), Y(1:3)))
+    da = DimArray(a, (X(1:2), Y(1:3)))
     b = [7 8 9; 10 11 12]
-    db = DimensionalArray(b, (X(3:4), Y(1:3)))
+    db = DimArray(b, (X(3:4), Y(1:3)))
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
     testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
                 Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
@@ -273,7 +273,7 @@ end
 
 @testset "unique" begin
     a = [1 1 6; 1 1 6]
-    da = DimensionalArray(a, (X(1:2), Y(1:3)))
+    da = DimArray(a, (X(1:2), Y(1:3)))
     @test unique(da; dims=X()) == [1 1 6]
     @test unique(da; dims=Y) == [1 6; 1 6]
 end

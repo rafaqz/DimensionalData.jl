@@ -5,21 +5,21 @@ This is brief a tutorial for DimensionalData.jl.
 The main functionality is explained here, but the full list of features is
 listed at the [API](@ref) page.
 
-## Dimensions and DimensionalArrays
+## Dimensions and DimArrays
 
 The core type of DimensionalData.jl is the [`Dimension`](@ref) and the types
 that inherit from it, such as `Ti`, `X`, `Y`, `Z`, the generic `Dim{:x}`, or
 others that you define manually using the [`@dim`](@ref) macro.
 
-`Dimension`s are primarily used in [`DimensionalArray`](@ref), other
-[`AbstractDimensionalArray`](@ref).
+`Dimension`s are primarily used in [`DimArray`](@ref), other
+[`AbstractDimArray`](@ref).
 
 We can use dimensions without a value index - these simply label the axis.
-A `DimensionalArray` with labelled dimensions is constructed by:
+A `DimArray` with labelled dimensions is constructed by:
 
 ```@example main
 using DimensionalData
-A = DimensionalArray(rand(5, 5), (X, Y))
+A = DimArray(rand(5, 5), (X, Y))
 ```
 
 But often we want to provide values for the dimension.
@@ -34,11 +34,11 @@ Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
 exported dimensions are `X, Y, Z, Ti`. `Ti` is shortening of `Time` -
 to avoid the conflict with `Dates.Time`.
 
-We pass a `Tuple` of the dimensions to the constructor of `DimensionalArray`,
+We pass a `Tuple` of the dimensions to the constructor of `DimArray`,
 after the array:
 
 ```@example main
-A = DimensionalArray(rand(12, 10), (t, x))
+A = DimArray(rand(12, 10), (t, x))
 ```
 
 The length of each dimension index has to match the size of the corresponding
@@ -66,8 +66,8 @@ A[X(1:3:10)]
 ```
 
 !!! info "Indexing"
-    Indexing `AbstractDimensionalArray`s works with `getindex`, `setindex!` and
-    `view`. The result is still an `AbstracDimensionalArray`.
+    Indexing `AbstractDimArray`s works with `getindex`, `setindex!` and
+    `view`. The result is still an `AbstracDimArray`.
 
 
 ## Selecting by name and value
@@ -117,7 +117,7 @@ A[1:5]
 
 selects the first 5 entries of the underlying array. In the case that `A` has
 only one dimension, it will be retained. Multidimensional
-`AbstracDimensionalArray` indexed this way will return a regular array.
+`AbstracDimArray` indexed this way will return a regular array.
 
 
 
@@ -125,7 +125,7 @@ only one dimension, it will be retained. Multidimensional
 
 In many Julia functions like `size, sum`, you can specify the dimension along
 which to perform the operation, as an `Int`. It is also possible to do this
-using `Dimension` types with `AbstractDimensionalArray`:
+using `Dimension` types with `AbstractDimArray`:
 
 ```@example main
 sum(A; dims=X)
@@ -133,17 +133,17 @@ sum(A; dims=X)
 
 ## Numeric operations on dimension arrays and dimensions
 
-Numeric operations on a `AbstractDimensionalArray` match base Julia as much as
+Numeric operations on a `AbstractDimArray` match base Julia as much as
 possible. Standard broadcasting and other type of operations across dimensional
 arrays typically perform as expected while still returning an
-`AbstractDimensionalArray` type with correct dimensions.
+`AbstractDimArray` type with correct dimensions.
 
 In cases where you would like to do some operation on the dimension index, e.g.
 take the cosines of the values of the dimension `X` while still keeping the
 dimensional information of `X`, you can use the syntax:
 
 ```@example main
-DimensionalArray(cos, x)
+DimArray(cos, x)
 ```
 
 ## Referenced dimensions

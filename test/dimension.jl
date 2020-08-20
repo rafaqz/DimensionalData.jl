@@ -37,9 +37,9 @@ end
 a = ones(5, 4)
 # Must construct with a tuple for dims/refdims
 
-@test_throws MethodError DimensionalArray(a, X((140, 148)))
-@test_throws MethodError DimensionalArray(a, (X((140, 148)), Y((2, 11))), Z(1))
-da = DimensionalArray(a, (X((140, 148)), Y((2, 11))))
+@test_throws MethodError DimArray(a, X((140, 148)))
+@test_throws MethodError DimArray(a, (X((140, 148)), Y((2, 11))), Z(1))
+da = DimArray(a, (X((140, 148)), Y((2, 11))))
 
 dimz = dims(da)
 @test d = typeof(slicedims(dimz, (2:4, 3))) == 
@@ -53,7 +53,7 @@ dimz = dims(da)
 a = [1 2 3 4
      2 3 4 5
      3 4 5 6]
-da = DimensionalArray(a, (X((143, 145)), Y((-38, -35))))
+da = DimArray(a, (X((143, 145)), Y((-38, -35))))
 dimz = dims(da) 
 
 @testset "dims" begin
@@ -85,7 +85,7 @@ end
 
 @testset "applying function on a dimension" begin
     d = X(0:0.01:2π)
-    a = DimensionalArray(cos, d)
+    a = DimArray(cos, d)
     @test length(dims(a)) == 1
     @test typeof(dims(a)[1]) <: X
     @test a.data == cos.(d.val)
