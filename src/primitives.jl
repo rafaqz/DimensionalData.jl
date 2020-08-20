@@ -50,8 +50,11 @@ Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 Convert `Dimension` or `Selector` to regular indices for any object with a `dims` method,
 usually an array.
 """
-@inline dims2indices(A, lookup, emptyval=Colon()) =
-    dims2indices(dims(A), lookup, emptyval)
+@inline dims2indices(A, lookup, emptyval=Colon()) = begin
+    dims_ = dims(A)
+    dims_ isa Nothing && throw(ArgumentError("Object does not define a `dims` method"))
+    dims2indices(dims_, lookup, emptyval)
+end
 """
 dims2indices(dims, lookup, [emptyval=Colon()])
 

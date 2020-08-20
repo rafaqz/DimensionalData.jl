@@ -2,7 +2,7 @@ using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 
 using LinearAlgebra: Transpose
 
-using DimensionalData: Forward, Reverse
+using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims, rottype
 
 @testset "map" begin
     a = [1 2; 3 4]
@@ -171,6 +171,41 @@ end
     @test order(dims(rev, X)) == Ordered(Forward(), Forward(), Forward())
     @test order(dims(rev, Y)) == Ordered(Reverse(), Reverse(), Reverse())
 end
+
+
+@testset "dimension rotating methods" begin
+    @test rottype(-100) == Rot360()
+    @test rottype(-4) == Rot360()
+    @test rottype(-3) == Rot90()
+    @test rottype(-2) == Rot180()
+    @test rottype(-1) == Rot270()
+    @test rottype(0) == Rot360()
+    @test rottype(1) == Rot90()
+    @test rottype(2) == Rot180()
+    @test rottype(3) == Rot270()
+    @test rottype(4) == Rot360()
+    @test rottype(101) == Rot90()
+
+    da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
+    DimensionalData.dims2indices(da, (X(:a), Y(At(2.0))))
+
+    l90 = rotl90(da)
+    r90 = rotr90(da)
+    r180_1 = rot180(da)
+    r180_2 = rotl90(da, 2)
+    r180_3 = rotr90(da, 2)
+    r270 = rotl90(da, 3)
+    r360 = rotr90(da, 4)
+    da[X(:a), Y(At(2.0))]
+    @test l90[X(:a), Y(At(2.0))] == 2
+    @test r90[X(:a), Y(At(2.0))] == 2
+    @test r180_1[X(:a), Y(At(2.0))] == 2
+    @test r180_2[X(:a), Y(At(2.0))] == 2
+    @test r180_3[X(:a), Y(At(2.0))] == 2
+    @test r270[X(:a), Y(At(2.0))] == 2
+    @test r360[X(:a), Y(At(2.0))] == 2
+end
+
 
 @testset "dimension mirroring methods" begin
     a = rand(5, 4)

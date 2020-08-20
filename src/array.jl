@@ -94,17 +94,17 @@ Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::CartesianIndex) =
     setindex!(data(A), x, I)
 
 # Dimension indexing. Additional methods for dispatch ambiguity
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.getindex(A::AbDimArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(A::AbDimArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.view(A::AbDimArray, dim::Dimension, dims::Dimension...) =
     view(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Dimension...) =
     view(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Vararg{<:Dimension}) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
 # Selector indexing without dim wrappers. Must be in the right order!

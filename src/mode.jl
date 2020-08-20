@@ -95,7 +95,7 @@ fliparray(o::Unordered) = o
 fliparray(o::Ordered) =
     Ordered(indexorder(o), reverse(arrayorder(o)), relationorder(o))
 
-fliprelation(o::Unordered) = o
+fliprelation(o::Unordered) = Unordered(reverse(relationorder(o)))
 fliprelation(o::Ordered) =
     Ordered(indexorder(o), arrayorder(o), reverse(relationorder(o)))
 
