@@ -1,8 +1,10 @@
 using DimensionalData, Documenter, Aqua
 
-Aqua.test_all(DimensionalData)
-Aqua.test_project_extras(DimensionalData)
-Aqua.test_stale_deps(DimensionalData)
+if VERSION >= v"1.5.0"
+    Aqua.test_all(DimensionalData)
+    Aqua.test_project_extras(DimensionalData)
+    Aqua.test_stale_deps(DimensionalData)
+end
 
 include("matmul.jl")
 include("methods.jl")
