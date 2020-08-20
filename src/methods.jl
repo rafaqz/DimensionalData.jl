@@ -122,32 +122,33 @@ struct Rot360 end
 
 function rottype(k)
     k = mod(k, 4)
-    r = if k == 1
+    if k == 1
         Rot90()
-    elseif k == 1
+    elseif k == 2
         Rot180()
-    elseif k == 1
+    elseif k == 3
         Rot270()
     else
         Rot360()
     end
-    println(k, r)
-    r
 end
-  
-rotl90(A::AbstractDimMatrix) = rebuild(A, rotl90(parent(A)), rotdims(Rot90(), dims(A)))
-rotl90(A::AbstractDimMatrix, k::Integer) = 
+
+Base.rotl90(A::AbstractDimMatrix) =
+    rebuild(A, rotl90(parent(A)), rotdims(Rot90(), dims(A)))
+Base.rotl90(A::AbstractDimMatrix, k::Integer) =
     rebuild(A, rotl90(parent(A), k), rotdims(rottype(k), dims(A)))
 
-rotr90(A::AbstractDimMatrix) = rebuild(A, rotr90(parent(A)), rotdims(Rot270(), dims(A)))
-rotr90(A::AbstractDimMatrix, k::Integer) = 
+Base.rotr90(A::AbstractDimMatrix) =
+    rebuild(A, rotr90(parent(A)), rotdims(Rot270(), dims(A)))
+Baserotr90(A::AbstractDimMatrix, k::Integer) =
     rebuild(A, rotr90(parent(A), k), rotdims(rottype(-k), dims(A)))
 
-rot180(A::AbstractDimMatrix) = rebuild(A, rot180(parent(A)), rotdims(Rot180(), dims(A)))
+Base.rot180(A::AbstractDimMatrix) =
+    rebuild(A, rot180(parent(A)), rotdims(Rot180(), dims(A)))
 
-rotdims(::Rot90, (dima, dimb)) = fliprelation(dimb), dima  
-rotdims(::Rot180, dims) = map(reversearray, dims)  
-rotdims(::Rot270, (dima, dimb)) = dimb, fliprelation(dima)  
+rotdims(::Rot90, (dima, dimb)) = (fliprelation(dimb), dima)
+rotdims(::Rot180, dims) = map(reversearray, dims)
+rotdims(::Rot270, (dima, dimb)) = (dimb, fliprelation(dima))
 rotdims(::Rot360, dims) = dims
 
 

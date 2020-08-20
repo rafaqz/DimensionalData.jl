@@ -46,6 +46,9 @@ end
 @inline fliparray(dim::Dimension) =
     rebuild(dim, val(dim), fliparray(mode(dim)))
 
+@inline fliprelation(dim::Dimension) =
+    rebuild(dim, val(dim), fliprelation(mode(dim)))
+
 
 """
     reorderindex(A, order::Union{Order,Dimension{<:Order},Tuple})
