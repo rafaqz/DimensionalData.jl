@@ -172,6 +172,26 @@ end
     @test order(dims(rev, Y)) == Ordered(Reverse(), Reverse(), Reverse())
 end
 
+
+@testset "dimension rotating methods" begin
+    da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
+    r90 = rotr90(da)
+    r180 = rot180(da)
+    l90 = rotl90(da)
+    r270 = rotl90(da, 3)
+    r360 = rotr90(da, 4)
+    da[X(:a), Y(At(2.0))]
+    l90[X(:a), Y(At(2.0))]
+    r90[X(:a), Y(At(2.0))]
+    r180[X(:a), Y(At(2.0))]
+    r270[X(:a), Y(At(2.0))]
+    r270
+    map(order, dims(da))
+    map(order, dims(r270))
+    r360[X(:a), Y(At(2.0))]
+end
+
+
 @testset "dimension mirroring methods" begin
     a = rand(5, 4)
     da = DimensionalArray(a, (Y((10, 20); mode=Sampled()), 
