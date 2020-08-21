@@ -366,7 +366,7 @@ julia> dimnum(B, Ti)
 @inline swapdims(A::AbstractArray, newdims::Tuple) =
     rebuild(A, data(A), formatdims(A, swapdims(dims(A), newdims)))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
-    map((d, nd) -> _swapdims(d, nd), dims, symbol2dim(newdims))
+    map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
 @inline _swapdims(dim::Dimension, newdim::DimType) =
     basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
@@ -537,3 +537,4 @@ symbol2dim(s::Symbol) = Dim{s}()
 symbol2dim(dim::Dimension) = dim
 symbol2dim(dimtype::Type{<:Dimension}) = dimtype
 symbol2dim(dims::Tuple) = map(symbol2dim, dims)
+symbol2dim(dim) = dim

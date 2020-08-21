@@ -147,8 +147,7 @@ end
         @test dims(A) == 
             (Dim{:one}(Base.OneTo(4), NoIndex(), nothing), 
              Dim{:two}(Base.OneTo(5), NoIndex(), nothing))
-        @test dims(A, :two) == (Dim{:two}(),)
-             (Dim{:two}(Base.OneTo(5), NoIndex(), nothing),)
+        @test dims(A, :two) == Dim{:two}(Base.OneTo(5), NoIndex(), nothing)
     end
 end
 
