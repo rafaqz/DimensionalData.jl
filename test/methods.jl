@@ -12,6 +12,36 @@ using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims,
     @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
+@testset "copy and friends" begin
+    rebuild(da2, copy(data(da2)))
+
+    dac = copy(da2)
+    @test dac == da2
+    @test dims(dac) == dims(da2)
+    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
+    @test name(dac) == name(da2) == "test2"
+    @test metadata(dac) == metadata(da2)
+    dadc = deepcopy(da2)
+    @test dadc == da2
+    @test dims(dadc) == dims(da2)
+    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
+    @test name(dadc) == name(da2) == "test2"
+    @test metadata(dadc) == metadata(da2)
+
+    o = one(da)
+    @test o == [1 0; 0 1]
+    @test dims(o) == dims(da) 
+
+    ou = oneunit(da)
+    @test ou == [1 0; 0 1]
+    @test dims(ou) == dims(da) 
+
+    da1 = DimArray(zeros(5), :a)
+    e = empty!(da1)
+    @test e == [1 0; 0 1]
+    @test dims(ou) == dims(da) 
+end
+
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())

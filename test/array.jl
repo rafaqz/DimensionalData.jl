@@ -232,23 +232,6 @@ end
     @test ac == a2
 end
 
-@testset "copy" begin
-    rebuild(da2, copy(data(da2)))
-
-    dac = copy(da2)
-    @test dac == da2
-    @test dims(dac) == dims(da2)
-    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
-    @test name(dac) == name(da2) == "test2"
-    @test metadata(dac) == metadata(da2)
-    dadc = deepcopy(da2)
-    @test dadc == da2
-    @test dims(dadc) == dims(da2)
-    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
-    @test name(dadc) == name(da2) == "test2"
-    @test metadata(dadc) == metadata(da2)
-end
-
 if VERSION > v"1.1-"
     dimz = (X(LinRange(143.0, 145.0, 3); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
             Y(LinRange(-38.0, -36.0, 4); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
@@ -273,3 +256,11 @@ end
     @test_throws DimensionMismatch DimArray(1:5, (X(1:5), Y(1:2)))
 end
 
+
+@testset "fill constructor" begin
+    da = fill(5.0, (X(4), Y(40.0:10.0:80.0)))
+    @test da == fill(5.0, (4, 5))
+    @test dims(da) == 
+        (X(Base.OneTo(4), NoIndex(), nothing), 
+         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
+end

@@ -105,6 +105,11 @@ isrev(::Reverse) = true
 """
 Locii indicate the position of index values in cells.
 
+These allow for values array cells to align with the [`Start`](@ref), 
+[`Center`](@ref), or [`End`](@ref) of the index. 
+This means they can be plotted correctly, and allows automatic converrsions 
+to between formats with different standards (such as NetCDF and GeoTiff).
+
 Locii are often `Start` for time series, but often `Center`
 for spatial data.
 """

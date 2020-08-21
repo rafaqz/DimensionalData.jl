@@ -141,6 +141,7 @@ Base and Statistics methods:
 - `mean`, `median`, `extrema`, `std`, `var`, `cor`, `cov`
 - `permutedims`, `adjoint`, `transpose`, `Transpose`
 - `mapslices`, `eachslice`
+- `fill`
 
 _Example usage:_
 

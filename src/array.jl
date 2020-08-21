@@ -9,7 +9,9 @@ const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
 const StandardIndices = Union{AbstractArray,Colon,Integer}
 
-# Interface methods ############################################################
+
+
+# DimensionalData.jl interface methods ############################################################
 
 """
     bounds(A::AbstractArray)
@@ -53,6 +55,8 @@ order(A::AbstractDimArray, args...) = order(dims(A, args...))
 arrayorder(A::AbstractDimArray, args...) = arrayorder(dims(A, args...))
 indexorder(A::AbstractDimArray, args...) = indexorder(dims(A, args...))
    
+
+
 
 # Array interface methods ######################################################
 
@@ -131,9 +135,6 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, N} where N, i::Sta
 Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
     rebuildsliced(A, view(data(A), i), (i,))
 
-Base.copy(A::AbstractDimArray) = rebuild(A, copy(data(A)))
-
-
 Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
 Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
 Base.copy!(dst::AbstractArray{T,N}, src::AbstractDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
@@ -146,7 +147,6 @@ Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = cop
 Base.Array(A::AbstractDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
-# Don't remove these even though they look redundant 
 Base.similar(A::AbstractDimArray) = 
     rebuild(A, similar(data(A)), dims(A), refdims(A), "")
 Base.similar(A::AbstractDimArray, ::Type{T}) where T = 
@@ -156,8 +156,6 @@ Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T 
     similar(data(A), T, I)
 Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = 
     similar(data(A), T, i, I...)
-
-
 
 # Concrete implementation ######################################################
 
@@ -223,3 +221,17 @@ the given dimension. Optionally provide a name for the result.
 DimArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")")) =
      DimArray(f.(val(dim)), (dim,), name)
 
+
+Base.fill(x, dims::Dimension...) = fill(x, dims)
+Base.fill(x, dims::Tuple{<:Dimension,Vararg{<:Dimension}}) = begin
+    dims = map(_intdim2rangedim, dims)
+    DimArray(fill(x, map(length, dims)), dims)
+end
+
+_intdim2rangedim(dim::Dimension{<:Integer}) =  begin
+    mode_ = mode(dim) isa AutoMode ? NoIndex() : mode(dim)
+    basetypeof(dim)(Base.OneTo(val(dim)), mode_, metadata(dim))
+end
+_intdim2rangedim(dim::Dimension{<:AbstractArray}) = dim
+_intdim2rangedim(dim::Dimension) = 
+    error("dim $(basetypeof(dim)) must hold an Integer or an AbstractArray. Has $(val(dim))")

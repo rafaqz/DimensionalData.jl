@@ -6,6 +6,13 @@ for (mod, fname) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Bas
     end
 end
 
+# Copies
+for func in (:copy, :one, :oneunit)
+    @eval begin
+        (Base.$func)(A::AbstractDimArray) = rebuild(A, ($func)(parent(A)))
+    end
+end
+
 # Reducing methods
 
 for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
@@ -31,7 +38,7 @@ for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
         # Returns a scalar
         @inline ($mod.$fname)(A::AbstractDimArray) = ($mod.$fname)(data(A))
         # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractArray, corrected::Bool, mean, dims::AllDims) =
+        @inline ($mod.$_fname)(A::AbstractDimArray, corrected::Bool, mean, dims::AllDims) =
             rebuild(A, ($mod.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(A::AbstractDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =
             rebuild(A, ($mod.$_fname)(data(A), corrected, mean, dims), reducedims(A, dims))
@@ -62,6 +69,7 @@ end
 
 
 # Dimension dropping
+
 Base._dropdims(A::AbstractDimArray, dim::DimOrDimType) =
     rebuildsliced(A, Base._dropdims(data(A), dimnum(A, dim)),
                   dims2indices(A, basetypeof(dim)(1)))
@@ -108,13 +116,15 @@ for fname in (:cor, :cov)
 end
 
 
-# Reverse.
+# Reverse
+
 Base.reverse(A::AbstractDimArray{T,N}; dims=1) where {T,N} =
     reversearray(A; dims=dims)
 Base.reverse(dim::Dimension) = reverseindex(dim)
 
 
 # Rotations
+
 struct Rot90 end
 struct Rot180 end
 struct Rot270 end
@@ -222,8 +232,10 @@ _vcat_modes(::Intervals, ::Irregular, modes...) = begin
 end
 _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
+
 Base.inv(A::AbstractDimArray{T, 2}) where T =
     rebuild(A, inv(parent(A)), reverse(map(flipindex, dims(A))))
+
 
 # Index breaking
 
@@ -232,8 +244,3 @@ Base.inv(A::AbstractDimArray{T, 2}) where T =
 Base.unique(A::AbstractDimArray{<:Any,1}) = unique(data(A))
 Base.unique(A::AbstractDimArray; dims::DimOrDimType) =
     unique(data(A); dims=dimnum(A, dims))
-
-
-# TODO cov, cor mapslices, eachslice, reverse, sort and sort! need _methods without kwargs in base so
-# we can dispatch on dims. Instead we dispatch on array type for now, which means
-# these aren't usefull unless you inherit from AbstractDimArray.

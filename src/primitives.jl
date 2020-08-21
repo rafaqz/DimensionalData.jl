@@ -325,7 +325,8 @@ val(dims(B, Y))
 'a':1:'j'
 ```
 """
-@inline setdims(A, newdims::Union{Dimension,DimTuple}) = rebuild(A, data(A), setdims(dims(A), newdims))
+@inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
+    rebuild(A, data(A), setdims(dims(A), newdims))
 @inline setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
 # TODO handle the multiples of the same dim.
 @inline setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
