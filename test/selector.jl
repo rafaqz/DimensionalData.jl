@@ -8,7 +8,7 @@ a = [1 2  3  4
 
 dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
-A = DimensionalArray([1 2 3; 4 5 6], dims_)
+A = DimArray([1 2 3; 4 5 6], dims_)
 
 
 @testset "selector primitives" begin
@@ -281,7 +281,7 @@ end
 
 
 @testset "Selectors on Sampled" begin
-    da = DimensionalArray(a, (Y((10, 30); mode=Sampled()),
+    da = DimArray(a, (Y((10, 30); mode=Sampled()),
                               Ti((1:4)u"s"; mode=Sampled())))
 
     @test At(10.0) == At(10.0, nothing, nothing)
@@ -355,10 +355,10 @@ end
         for idx in indices
             from2d = da[idx]
             @test from2d == data(da)[idx]
-            @test !(from2d isa AbstractDimensionalArray)
+            @test !(from2d isa AbstractDimArray)
             from1d = da[Y <| At(10)][idx]
             @test from1d == data(da)[1, :][idx]
-            @test from1d isa AbstractDimensionalArray
+            @test from1d isa AbstractDimArray
         end
     end
 
@@ -375,7 +375,7 @@ end
             @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(data(da)[1, :], idx)
-            @test from1d isa AbstractDimensionalArray
+            @test from1d isa AbstractDimArray
         end
     end
 
@@ -404,7 +404,7 @@ end
     @testset "more Unitful dims" begin
         dimz = Ti(1.0u"s":1.0u"s":3.0u"s"; mode=Sampled()),
                Y((1u"km", 4u"km"); mode=Sampled())
-        db = DimensionalArray(a, dimz)
+        db = DimArray(a, dimz)
         @test db[Y<|Between(2u"km", 3.9u"km"), Ti<|At<|3.0u"s"] == [10, 11]
     end
 
@@ -414,7 +414,7 @@ end
              9 10 11 12]
 
         @testset "forward index with reverse relation" begin
-            da_ffr = DimensionalArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Reverse()))),
+            da_ffr = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Reverse()))),
                                          Ti((1:1:4)u"s"; mode=Sampled(order=Ordered(Forward(), Forward(), Reverse())))))
             @test indexorder(dims(da_ffr, Ti)) == Forward()
             @test arrayorder(dims(da_ffr, Ti)) == Forward()
@@ -428,7 +428,7 @@ end
         end
 
         @testset "reverse index with forward relation" begin
-            da_rff = DimensionalArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Forward()))),
+            da_rff = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Forward()))),
                                          Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(Reverse(), Forward(), Forward())))))
             @test da_rff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_rff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [6 5; 2 1]
@@ -439,7 +439,7 @@ end
         end
 
         @testset "forward index with forward relation" begin
-            da_fff = DimensionalArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Forward()))),
+            da_fff = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Forward()))),
                                          Ti((1:4)u"s"; mode=Sampled(order=Ordered(Forward(), Forward(), Forward())))))
             @test da_fff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_fff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
@@ -449,7 +449,7 @@ end
         end
 
         @testset "reverse index with reverse relation" begin
-            da_rfr = DimensionalArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Reverse()))),
+            da_rfr = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Reverse()))),
                                          Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(Reverse(), Forward(), Reverse())))))
             @test da_rfr[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_rfr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
@@ -462,7 +462,7 @@ end
 
     @testset "setindex! with selectors" begin
         c = deepcopy(a)
-        dc = DimensionalArray(c, (Y((10, 30)), Ti((1:4)u"s")))
+        dc = DimArray(c, (Y((10, 30)), Ti((1:4)u"s")))
         dc[Near(11), At(3u"s")] = 100
         @test c[1, 3] == 100
         dc[Ti<|Near(2.2u"s"), Y<|Between(10, 30)] = [200, 201, 202]
@@ -472,7 +472,7 @@ end
 end
 
 @testset "Selectors on Sampled and Intervals" begin
-    da = DimensionalArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())),
+    da = DimArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())),
                               Ti((1:4)u"s"; mode=Sampled(sampling=Intervals()))))
 
     @testset "selectors with dim wrappers" begin
@@ -499,7 +499,7 @@ end
 
 @testset "Selectors on NoIndex" begin
     dimz = Ti(), Y()
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test da[Ti(At([1, 2])), Y(Contains(2))] == [2, 6]
     @test da[Near(2), Between(2, 4)] == [6, 7, 8]
     @test da[Contains([1, 3]), Near([2, 3, 4])] == [2 3 4; 10 11 12]
@@ -512,7 +512,7 @@ end
 
     dimz = Ti([:one, :two, :three]; mode=Categorical(Ordered())),
         Y([:a, :b, :c, :d]; mode=Categorical(Ordered()))
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
     @test da[At(:two), Between(:b, :d)] == [6, 7, 8]
     @test da[:two, :b] == 6
@@ -521,7 +521,7 @@ end
    
     dimz = Ti([:one, :two, :three]; mode=Categorical(Unordered())),
         Y([:a, :b, :c, :d]; mode=Categorical(Unordered()))
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test_throws ArgumentError da[At(:two), Between(:b, :d)] == [6, 7, 8]
 
     a = [1 2  3  4
@@ -530,14 +530,14 @@ end
 
     valdimz = Ti(Val((2.4, 2.5, 2.6)); mode=Categorical(Ordered())),
         Y(Val((:a, :b, :c, :d)); mode=Categorical(Ordered()))
-    da = DimensionalArray(a, valdimz)
+    da = DimArray(a, valdimz)
     @test da[Val(2.5), Val(:c)] == 7
     @test da[2.4, :a] == 1
 end
 
 @testset "Where " begin
     dimz = Ti((1:1:3)u"s"), Y(10:10:40)
-    da = DimensionalArray(a, dimz)
+    da = DimArray(a, dimz)
     @test da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([1u"s", 3u"s"])))] == [3 4; 11 12]
 end
 
@@ -554,7 +554,7 @@ end
         @test permutedims((Y(), Z(), X()), dimz) == (X(), Y(), Z())
     end
 
-    da = DimensionalArray(reshape(a, 3, 4, 1), dimz)
+    da = DimArray(reshape(a, 3, 4, 1), dimz)
 
     @testset "Indexing with array dims indexes the array as usual" begin
         @test da[Dim{:trans1}(3), Dim{:trans2}(1), Z(1)] == 9

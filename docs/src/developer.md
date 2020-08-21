@@ -34,7 +34,7 @@ Both AxisArrays and NamedDims use concrete types for dispatch on arrays, and for
 dimension type `Axis` in AxisArrays. This makes them hard to extend.
 
 Its a little easier with DimensionalData.jl. You can inherit from
-`AbstractDimensionalArray`, or just implement `dims` and `rebuild` methods. Dims
+`AbstractDimArray`, or just implement `dims` and `rebuild` methods. Dims
 and selectors in DimensionalData.jl are also extensible. Recursive primitive
 methods allow inserting whatever methods you want to add extra types.
 `@generated` is only used to match and permute arbitrary tuples of types, and
@@ -54,13 +54,13 @@ DimensionalData.jl provides the concrete `DimenstionalArray` type. But it's
 core purpose is to be easily used with other array types.
 
 Some of the functionality in DimensionalData.jl will work without inheriting
-from `AbstractDimensionalArray`. The main requirement define a `dims` method
+from `AbstractDimArray`. The main requirement define a `dims` method
 that returns a `Tuple` of `AbstractDimension` that matches the dimension order
 and axis values of your data. Define `rebuild`, and base methods for `similar`
 and `parent` if you want the metadata to persist through transformations (see
-the `DimensionalArray` and `AbstractDimensionalArray` types). A `refdims` method
+the `DimArray` and `AbstractDimArray` types). A `refdims` method
 returns the lost dimensions of a previous transformation, passed in to the
 `rebuild` method. `refdims` can be discarded, the main loss being plot labels.
 
-Inheriting from `AbstractDimensionalArray` will give all the functionality
-of using `DimensionalArray`.
+Inheriting from `AbstractDimArray` will give all the functionality
+of using `DimArray`.

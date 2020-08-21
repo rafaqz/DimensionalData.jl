@@ -5,7 +5,7 @@ a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
 refdimz = (Ti(1:1),)
-da = DimensionalArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
+da = DimArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -17,13 +17,13 @@ end
 
 @testset "LinearIndex getindex returns an Array, except Vector" begin
     @test da[1:2] isa Array
-    @test da[1, :][1:2] isa DimensionalArray
+    @test da[1, :][1:2] isa DimArray
 end
 
 @testset "getindex returns DimensionArray slices with the right dimensions" begin
     a = da[X(1:2), Y(1)]
     @test a == [1, 3]
-    @test typeof(a) <: DimensionalArray{Int,1}
+    @test typeof(a) <: DimArray{Int,1}
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(a) == 
@@ -37,7 +37,7 @@ end
 
     a = da[X(1), Y(1:2)]
     @test a == [1, 2]
-    @test typeof(a) <: DimensionalArray{Int,1}
+    @test typeof(a) <: DimArray{Int,1}
     @test typeof(data(a)) <: Array{Int,1}
     @test dims(a) == 
         (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
@@ -50,7 +50,7 @@ end
 
     a = da[X(:), Y(:)]
     @test a == [1 2; 3 4]
-    @test typeof(a) <: DimensionalArray{Int,2}
+    @test typeof(a) <: DimArray{Int,2}
     @test typeof(data(a)) <: Array{Int,2}
     @test typeof(dims(a)) <: Tuple{<:X,<:Y}
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
@@ -66,7 +66,7 @@ end
 @testset "view returns DimensionArray containing views" begin
     v = @inferred view(da, Y(1), X(1))
     @test v[] == 1
-    @test typeof(v) <: DimensionalArray{Int,0}
+    @test typeof(v) <: DimArray{Int,0}
     @test typeof(data(v)) <:SubArray{Int,0}
     @test typeof(dims(v)) == Tuple{}
     @test dims(v) == ()
@@ -79,7 +79,7 @@ end
 
     v = @inferred view(da, Y(1), X(1:2))
     @test v == [1, 3]
-    @test typeof(v) <: DimensionalArray{Int,1}
+    @test typeof(v) <: DimArray{Int,1}
     @test typeof(data(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:X}
     @test dims(v) == 
@@ -93,7 +93,7 @@ end
 
     v = @inferred view(da, Y(1:2), X(1:1))
     @test v == [1 2]
-    @test typeof(v) <: DimensionalArray{Int,2}
+    @test typeof(v) <: DimArray{Int,2}
     @test typeof(data(v)) <: SubArray{Int,2}
     @test typeof(dims(v)) <: Tuple{<:X,<:Y}
     @test dims(v) == 
@@ -123,13 +123,13 @@ b2 = [4 4 4 4
       4 4 4 4]
 
 @testset "indexing into empty dims is just regular indexing" begin
-    ida = @inferred DimensionalArray(a2, (X(), Y()))
+    ida = @inferred DimArray(a2, (X(), Y()))
     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
 end
 
 
 dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-da2 = DimensionalArray(a2, dimz2, "test2"; refdims=refdimz)
+da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
 
 @testset "arbitrary dimension names also work for indexing" begin
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
@@ -150,10 +150,10 @@ end
     oa = OffsetArray(a2, -1:1, 5:8)
     @testset "Regular dimensions don't work: axes must match" begin
         dimz = (X(100:100:300), Y([:a, :b, :c, :d]))
-        @test_throws DimensionMismatch DimensionalArray(oa, dimz)
+        @test_throws DimensionMismatch DimArray(oa, dimz)
     end
     odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
-    oda = DimensionalArray(oa, odimz)
+    oda = DimArray(oa, odimz)
     @testset "Indexing and selectors work with offsets" begin
         @test axes(oda) == (-1:1, 5:8)
         @test oda[-1, 5] == oa[-1, 5] == 1
@@ -183,7 +183,7 @@ end
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
 
-    sda = DimensionalArray(sprand(Float64, 10, 10, .5), (X, Y))
+    sda = DimArray(sprand(Float64, 10, 10, .5), (X, Y))
     sparse_size_int = similar(sda, Int64, (5, 5))
     @test eltype(sparse_size_int) == Int64 != eltype(sda)
     @test size(sparse_size_int) == (5, 5)
@@ -196,7 +196,7 @@ end
 end
 
 @testset "broadcast" begin
-    da = DimensionalArray(ones(Int, 5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
+    da = DimArray(ones(Int, 5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
     dab = da .* 2.0
     @test dab == fill(2.0, 5, 2, 4)
     @test eltype(dab) <: Float64
@@ -213,10 +213,10 @@ end
 
 @testset "eachindex" begin
     # Should have linear index
-    da = DimensionalArray(ones(5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
+    da = DimArray(ones(5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
     @test eachindex(da) == eachindex(data(da))
     # Should have cartesian index
-    sda = DimensionalArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
+    sda = DimArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
     @test eachindex(sda) == eachindex(data(sda))
 end
 
@@ -247,8 +247,8 @@ if VERSION > v"1.1-"
     dimz = (X(LinRange(143.0, 145.0, 3); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
             Y(LinRange(-38.0, -36.0, 4); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
     @testset "copy!" begin
-        db = DimensionalArray(deepcopy(b2), dimz)
-        dc = DimensionalArray(deepcopy(b2), dimz)
+        db = DimArray(deepcopy(b2), dimz)
+        dc = DimArray(deepcopy(b2), dimz)
         @test db != da2
         @test b2 != da2
 
@@ -262,8 +262,8 @@ if VERSION > v"1.1-"
 end
 
 @testset "constructor" begin
-    da = DimensionalArray(rand(5, 4), (X, Y))
-    @test_throws DimensionMismatch DimensionalArray(1:5, X(1:6))
-    @test_throws MethodError DimensionalArray(1:5, (X(1:5), Y(1:2)))
+    da = DimArray(rand(5, 4), (X, Y))
+    @test_throws DimensionMismatch DimArray(1:5, X(1:6))
+    @test_throws MethodError DimArray(1:5, (X(1:5), Y(1:2)))
 end
 

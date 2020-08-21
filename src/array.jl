@@ -2,10 +2,8 @@
 """
 Parent type for all dimensional arrays.
 """
-abstract type AbstractDimensionalArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
+abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
-const AbDimArray = AbstractDimensionalArray
-const AbstractDimArray = AbstractDimensionalArray
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
@@ -34,35 +32,35 @@ bounds(A::AbstractArray, dims::DimOrDimType) =
 Returns the bounds for the specified dimension(s).
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
 """
-metadata(A::AbstractDimensionalArray, dim) = metadata(dims(A, dim))
-metadata(A::AbstractDimensionalArray, dims::Tuple) =
+metadata(A::AbstractDimArray, dim) = metadata(dims(A, dim))
+metadata(A::AbstractDimArray, dims::Tuple) =
     map(metadata, DimensionalData.dims(A, dims))
 
 # Standard fields
 
-dims(A::AbDimArray) = A.dims
-refdims(A::AbDimArray) = A.refdims
-data(A::AbDimArray) = A.data
-name(A::AbDimArray) = A.name
-metadata(A::AbDimArray) = A.metadata
-label(A::AbDimArray) = name(A)
+dims(A::AbstractDimArray) = A.dims
+refdims(A::AbstractDimArray) = A.refdims
+data(A::AbstractDimArray) = A.data
+name(A::AbstractDimArray) = A.name
+metadata(A::AbstractDimArray) = A.metadata
+label(A::AbstractDimArray) = name(A)
 
 @inline rebuild(A::AbstractArray, data, dims::Tuple=dims(A), refdims=refdims(A),
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-order(A::AbstractDimensionalArray, args...) = order(dims(A, args...))
-arrayorder(A::AbstractDimensionalArray, args...) = arrayorder(dims(A, args...))
-indexorder(A::AbstractDimensionalArray, args...) = indexorder(dims(A, args...))
+order(A::AbstractDimArray, args...) = order(dims(A, args...))
+arrayorder(A::AbstractDimArray, args...) = arrayorder(dims(A, args...))
+indexorder(A::AbstractDimArray, args...) = indexorder(dims(A, args...))
    
 
 # Array interface methods ######################################################
 
-Base.size(A::AbDimArray) = size(data(A))
-Base.axes(A::AbDimArray) = axes(data(A))
-Base.iterate(A::AbDimArray, args...) = iterate(data(A), args...)
-Base.IndexStyle(A::AbstractDimensionalArray) = Base.IndexStyle(data(A))
-Base.parent(A::AbDimArray) = data(A)
+Base.size(A::AbstractDimArray) = size(data(A))
+Base.axes(A::AbstractDimArray) = axes(data(A))
+Base.iterate(A::AbstractDimArray, args...) = iterate(data(A), args...)
+Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(data(A))
+Base.parent(A::AbstractDimArray) = data(A)
 
 @inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
 @inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
@@ -71,88 +69,88 @@ Base.parent(A::AbDimArray) = data(A)
     rebuild(A, data, slicedims(A, I)..., name)
 
 # Standard indices
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, i::Integer, I::Integer...) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer, I::Integer...) =
     getindex(data(A), i, I...)
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, i::StandardIndices, I::StandardIndices...) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
     rebuildsliced(A, getindex(data(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.view(A::AbDimArray, i::StandardIndices, I::StandardIndices...) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
     rebuildsliced(A, view(data(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, i::StandardIndices, I::StandardIndices...) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i::StandardIndices, I::StandardIndices...) =
     setindex!(data(A), x, i, I...)
 
 # No indices
-Base.@propagate_inbounds Base.getindex(A::AbDimArray) = getindex(data(A))
-Base.@propagate_inbounds Base.view(A::AbDimArray) = view(data(A))
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x) = setindex!(data(A), x)
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray) = getindex(data(A))
+Base.@propagate_inbounds Base.view(A::AbstractDimArray) = view(data(A))
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(data(A), x)
 
 # Cartesian indices
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, I::CartesianIndex) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, I::CartesianIndex) =
     getindex(data(A), I)
-Base.@propagate_inbounds Base.view(A::AbDimArray, I::CartesianIndex) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, I::CartesianIndex) =
     view(data(A), I)
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, I::CartesianIndex) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
     setindex!(data(A), x, I)
 
 # Dimension indexing. Additional methods for dispatch ambiguity
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, dim::Dimension, dims::Dimension...) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
 Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(A::AbDimArray, dim::Dimension, dims::Dimension...) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
     view(A, dims2indices(A, (dim, dims...))...)
 Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Dimension...) =
     view(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, dim::Dimension, dims::Dimension...) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
 # Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(A::AbDimArray, i, I...) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
     getindex(A, sel2indices(A, maybeselector(i, I...))...)
-Base.@propagate_inbounds Base.view(A::AbDimArray, i, I...) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, i, I...) =
     view(A, sel2indices(A, maybeselector(i, I...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbDimArray, x, i, I...) =
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, sel2indices(A, maybeselector(i, I...))...)
 
 # Linear indexing returns Array
-Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
     getindex(data(A), i)
 # Exempt 1D DimArrays
-Base.@propagate_inbounds Base.getindex(A::AbDimArray{<:Any, 1}, i::Union{Colon,AbstractArray}) =
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractArray}) =
     rebuildsliced(A, getindex(data(A), i), (i,))
 
 # Linear indexing returns unwrapped SubArray
-Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, N} where N, i::StandardIndices) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, N} where N, i::StandardIndices) =
     view(data(A), i)
 # Exempt 1D DimArrays
-Base.@propagate_inbounds Base.view(A::AbDimArray{<:Any, 1}, i::StandardIndices) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
     rebuildsliced(A, view(data(A), i), (i,))
 
-Base.copy(A::AbDimArray) = rebuild(A, copy(data(A)))
+Base.copy(A::AbstractDimArray) = rebuild(A, copy(data(A)))
 
 
-Base.copy!(dst::AbDimArray{T,N}, src::AbDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
-Base.copy!(dst::AbDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
-Base.copy!(dst::AbstractArray{T,N}, src::AbDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
+Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
+Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
+Base.copy!(dst::AbstractArray{T,N}, src::AbstractDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
 # Most of these methods are for resolving ambiguity errors
-Base.copy!(dst::SparseArrays.SparseVector, src::AbDimArray{T,1}) where T = copy!(dst, parent(src))
-Base.copy!(dst::AbDimArray{T,1}, src::AbstractArray{T,1}) where T = copy!(parent(dst), src)
-Base.copy!(dst::AbstractArray{T,1}, src::AbDimArray{T,1}) where T = copy!(dst, parent(src))
-Base.copy!(dst::AbDimArray{T,1}, src::AbDimArray{T,1}) where T = copy!(parent(dst), parent(src))
+Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
+Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractArray{T,1}) where T = copy!(parent(dst), src)
+Base.copy!(dst::AbstractArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
+Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(parent(dst), parent(src))
 
-Base.Array(A::AbDimArray) = data(A)
+Base.Array(A::AbstractDimArray) = data(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
 # Don't remove these even though they look redundant 
-Base.similar(A::AbDimArray) = 
+Base.similar(A::AbstractDimArray) = 
     rebuild(A, similar(data(A)), dims(A), refdims(A), "")
-Base.similar(A::AbDimArray, ::Type{T}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}) where T = 
     rebuild(A, similar(data(A), T), dims(A), refdims(A), "")
 # If the shape changes, use the wrapped array:
-Base.similar(A::AbDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = 
     similar(data(A), T, I)
-Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = 
     similar(data(A), T, i, I...)
 
 
@@ -160,13 +158,13 @@ Base.similar(A::AbDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T
 # Concrete implementation ######################################################
 
 """
-    DimensionalArray(data, dims, refdims, name)
+    DimArray(data, dims, refdims, name)
 
-The main subtype of `AbstractDimensionalArray`.
+The main subtype of `AbstractDimArray`.
 Maintains and updates its dimensions through transformations and moves dimensions to
 `refdims` after reducing operations (like e.g. `mean`).
 """
-struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimensionalArray{T,N,D,A}
+struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
@@ -174,11 +172,11 @@ struct DimensionalArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Abstract
     metadata::Me
 end
 
-const DimArray = DimensionalArray
+const DimArray = DimArray
 
 
 """
-    DimensionalArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
+    DimArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
 
 Constructor with optional `name`, and keyword `refdims` and `metadata`.
 
@@ -188,38 +186,39 @@ using Dates, DimensionalData
 
 ti = (Ti(DateTime(2001):Month(1):DateTime(2001,12)),
 x = X(10:10:100))
-A = DimensionalArray(rand(12,10), (ti, x), "example")
+A = DimArray(rand(12,10), (ti, x), "example")
 
 julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
 
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
-DimensionalArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
-    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
-DimensionalArray(A::AbstractDimensionalArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
-    DimensionalArray(A, formatdims(data(A), _to_tuple(dims)), refdims, name, metadata)
-DimensionalArray(; data, dims, refdims=(), name="", metadata=nothing) = 
-    DimensionalArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
+DimArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
+    DimArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
+DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
+    DimArray(A, formatdims(data(A), _to_tuple(dims)), refdims, name, metadata)
+DimArray(; data, dims, refdims=(), name="", metadata=nothing) = 
+    DimArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
 
 _to_tuple(t::T where T <: Tuple) = t
 _to_tuple(t) = tuple(t)
 
-# AbstractDimensionalArray interface
-@inline rebuild(A::DimensionalArray, data::AbstractArray, dims::Tuple,
+# AbstractDimArray interface
+@inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
                 refdims::Tuple, name::AbstractString, metadata) =
-    DimensionalArray(data, dims, refdims, name, metadata)
+    DimArray(data, dims, refdims, name, metadata)
 
-# Array interface (AbstractDimensionalArray takes care of everything else)
-Base.@propagate_inbounds Base.setindex!(A::DimensionalArray, x, I::Vararg{StandardIndices}) =
+# Array interface (AbstractDimArray takes care of everything else)
+Base.@propagate_inbounds Base.setindex!(A::DimArray, x, I::Vararg{StandardIndices}) =
     setindex!(data(A), x, I...)
 
 """
-    DimensionalArray(f::Function, dim::Dimension [, name])
+    DimArray(f::Function, dim::Dimension [, name])
 
 Apply function `f` across the values of the dimension `dim`
 (using `broadcast`), and return the result as a dimensional array with
 the given dimension. Optionally provide a name for the result.
 """
-DimensionalArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")")) =
-     DimensionalArray(f.(val(dim)), (dim,), name)
+DimArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")")) =
+     DimArray(f.(val(dim)), (dim,), name)
+

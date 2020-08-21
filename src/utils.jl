@@ -2,7 +2,7 @@
 for func in (:reversearray, :reverseindex, :fliparray, :flipindex, :fliprelation)
     if func != :reversearray
         @eval begin
-            ($func)(A::AbDimArray{T,N}; dims=1) where {T,N} = begin
+            ($func)(A::AbstractDimArray{T,N}; dims=1) where {T,N} = begin
                 dnum = dimnum(A, dims)
                 # Reverse the dimension. TODO: make this type stable
                 newdims = $func(DimensionalData.dims(A), dnum)
@@ -24,7 +24,7 @@ for func in (:reversearray, :reverseindex, :fliparray, :flipindex, :fliprelation
     end
 end
 
-reversearray(A::AbDimArray{T,N}; dims=1) where {T,N} = begin
+reversearray(A::AbstractDimArray{T,N}; dims=1) where {T,N} = begin
     dnum = dimnum(A, dims)
     # Reverse the dimension. TODO: make this type stable
     newdims = reversearray(DimensionalData.dims(A), dnum)
@@ -95,39 +95,39 @@ for target in (:index, :array, :relation)
     end
     @eval begin
 
-        ($reorder)(A::AbstractDimensionalArray, order::Tuple, args...) = begin
+        ($reorder)(A::AbstractDimArray, order::Tuple, args...) = begin
             for dim in _sortdims(order, dims(A))
                 A = ($reorder)(A, dim, args...)
             end
             A
         end
-        ($reorder)(A::AbstractDimensionalArray, orderdim::Dimension{<:Order}) =
+        ($reorder)(A::AbstractDimArray, orderdim::Dimension{<:Order}) =
             ($reorder)(A, orderdim, val(orderdim))
-        ($reorder)(A::AbstractDimensionalArray, order::Nothing) = A
-        ($reorder)(A::AbstractDimensionalArray, order::Order=Forward()) = begin
+        ($reorder)(A::AbstractDimArray, order::Nothing) = A
+        ($reorder)(A::AbstractDimArray, order::Order=Forward()) = begin
             for dim in dims(A)
                 A = ($reorder)(A, dim, order)
             end
             A
         end
-        ($reorder)(A::AbstractDimensionalArray, dim::DimOrDimType, order::Order) =
+        ($reorder)(A::AbstractDimArray, dim::DimOrDimType, order::Order) =
             if order == ($order)(dims(A, dim))
                 A
             else
                 ($reverse)(A; dims=dim)
             end
-        ($reorder)(A::AbstractDimensionalArray, dim::DimOrDimType, order::Unordered) = A
+        ($reorder)(A::AbstractDimArray, dim::DimOrDimType, order::Unordered) = A
     end
 end
 
 
 """
-    modify(f, A::AbstractDimensionalArray)
+    modify(f, A::AbstractDimArray)
 
-Modify the parent data, rebuilding the `AbstractDimensionalArray` wrapper.
+Modify the parent data, rebuilding the `AbstractDimArray` wrapper.
 `f` must return a `AbstractArray` of the same size as the original.
 """
-modify(f, A::AbstractDimensionalArray) = begin
+modify(f, A::AbstractDimArray) = begin
     newdata = f(data(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
     rebuild(A, newdata)

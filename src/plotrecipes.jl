@@ -7,7 +7,7 @@ struct ViolinLike end
 
 struct DimensionalPlot end
 
-@recipe function f(A::AbstractDimensionalArray) 
+@recipe function f(A::AbstractDimArray) 
     DimensionalPlot(), A
 end
 

@@ -19,7 +19,7 @@ dimz = (X(), Y())
 end
 
 a = [1 2 3; 4 5 6]
-da = DimensionalArray(a, (X((143, 145)), Y((-38, -36))))
+da = DimArray(a, (X((143, 145)), Y((-38, -36))))
 dimz = dims(da)
 
 @testset "slicedims" begin
@@ -33,7 +33,7 @@ dimz = dims(da)
         @test slicedims((), (1:2, 3)) == ((), ())
     end
     @testset "Irregular" begin
-        irreg = DimensionalArray(a, (X([140.0, 142.0]; mode=Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start()))), 
+        irreg = DimArray(a, (X([140.0, 142.0]; mode=Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start()))), 
                                      Y([10.0, 20.0, 40.0]; mode=Sampled(Ordered(), Irregular(0.0, 60.0), Intervals(Center()))), ))
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == 
@@ -45,7 +45,7 @@ dimz = dims(da)
         @test slicedims((), (1:2, 3)) == ((), ())
     end
     @testset "Val index" begin
-        da = DimensionalArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
+        da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == 
             ((X(Val((143,145)), Categorical(), nothing),),

@@ -34,7 +34,7 @@ A = DimArray(rand(3, 5, 12), (y, x, ti))
 
 # output
 
-DimensionalArray with dimensions:
+DimArray with dimensions:
  Y: Char[a, b, c]
  X: 2:2:10
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
@@ -54,7 +54,7 @@ x = A[X(2), Y(3)]
 
 # output
 
-DimensionalArray with dimensions:
+DimArray with dimensions:
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
 and referenced dimensions:
  Y: c
@@ -70,7 +70,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-DimensionalArray with dimensions:
+DimArray with dimensions:
  X: 4:2:4
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
 and referenced dimensions:

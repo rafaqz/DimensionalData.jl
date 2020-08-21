@@ -7,7 +7,7 @@ for N ∈ (10, 100, 1000)
 x = X(range(1; length = N))
 y = Y(range(1; length = N))
 d = (x, y)
-A = DimensionalArray(rand(length.(d)...), d)
+A = DimArray(rand(length.(d)...), d)
 
 println("N=$(N). Time to access via X(1:3)")
 @btime $(A)[$(X(1:3))];

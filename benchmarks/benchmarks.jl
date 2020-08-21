@@ -45,7 +45,7 @@ have an overhead for slicing the dimensions. =#
 const suite = BenchmarkGroup()
 
 suite["view"] = BenchmarkGroup(["view"])
-g = DimensionalArray(rand(100, 50), (X(51:150), Y(-40:9)))
+g = DimArray(rand(100, 50), (X(51:150), Y(-40:9)))
 
 vi1(g) = view(data(g), 1, 2)
 vd1(g) = view(g, X(1), Y(2))
@@ -77,7 +77,7 @@ suite["getindex"]["Parent indices with UnitRange"] = @benchmarkable i3($g)
 suite["getindex"]["Dims with UnitRange"] = @benchmarkable d3($g);
 
 a = rand(5, 4, 3);
-da = DimensionalArray(a, (Y((1u"m", 5u"m")), X(1:4), Ti(1:3)))
+da = DimArray(a, (Y((1u"m", 5u"m")), X(1:4), Ti(1:3)))
 dimz = dims(da)
 
 if VERSION > v"1.1-"
@@ -112,7 +112,7 @@ suite["reverse"]["dimarray_dim"] = @benchmarkable reverse($da; dims = Y())
 @dim Obs "Observation"
 
 sparse_a = sprand(1000, 1000, 0.1)
-sparse_d = DimensionalArray(sparse_a, (Var <| 1:1000, Obs <| 1:1000))
+sparse_d = DimArray(sparse_a, (Var <| 1:1000, Obs <| 1:1000))
 
 suite["sparse"] = BenchmarkGroup()
 # Benchmarks
