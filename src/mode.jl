@@ -276,24 +276,26 @@ An [`IndexMode`](@ref) that is identical to the array axis.
 Defining a [`DimArray`](@ref) without passing an index
 to the dimension, the IndexMode will be `NoIndex`:
 
-```jldoctest
+```jldoctest NoIndex
+using DimensionalData
+
 A = DimArray(rand(3, 3), (X, Y))
 map(mode, dims(A))
 
 # output
 
-(NoIndex(), NoIndex())
+(NoIndex, NoIndex)
 ```
 
 Is identical to:
 
-```jldoctest
+```jldoctest NoIndex
 A = DimArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
 map(mode, dims(A))
 
 # output
 
-(NoIndex(), NoIndex())
+(NoIndex, NoIndex)
 ```
 """
 struct NoIndex <: Aligned{Ordered{Forward,Forward,Forward}} end
@@ -389,7 +391,9 @@ The `Sampled` mode is assigned for all indexes of `AbstractRange` not assigned t
 
 Create an array with [`Interval`] sampling.
 
-```jldoctest
+```jldoctest Sampled
+using DimensionalData
+
 dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())),
          Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals())))
 A = DimArray(rand(10, 4), dims_)
@@ -397,7 +401,7 @@ map(mode, dims(A))
 
 # output
 
-(Sampled{Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Reverse(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), Sampled{Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Forward(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
+(Sampled: Ordered Regular Intervals, Sampled: Ordered Regular Intervals)
 ```
 """
 struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
@@ -440,14 +444,16 @@ it instead defaults to [`Unordered`].
 
 Create an array with [`Interval`] sampling.
 
-```jldoctest
+```jldoctest Categorical
+using DimensionalData
+
 dims_ = X(["one", "two", "thee"]), Y([:a, :b, :c, :d])
 A = DimArray(rand(3, 4), dims_)
 map(mode, dims(A))
 
 # output
 
-(Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())), Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())))
+(Categorical: Unordered, Categorical: Unordered)
 ```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}
@@ -487,7 +493,7 @@ from CoordinateTransformations.jl may be useful.
 ## Example
 
 ```jldoctest
-using CoordinateTransformations
+using DimensionalData, CoordinateTransformations
 
 m = LinearMap([0.5 0.0; 0.0 0.5])
 A = [1 2  3  4

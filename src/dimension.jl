@@ -25,24 +25,24 @@ contexts, like geospatial data in GeoData.jl. By default it is `nothing`.
 Example:
 
 ```jldoctest Dimension
-using Dates
+using DimensionalData, Dates
 x = X(2:2:10)
 y = Y(['a', 'b', 'c'])
 ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
 
-A = DimArray(rand(3, 5, 12), (y, x, ti))
+A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
 DimArray with dimensions:
- Y: Char[a, b, c]
- X: 2:2:10
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
+ Y: Char[a, b, c] (Categorical: Unordered)
+ X: 2:2:10 (Sampled: Ordered Regular Points)
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and data: 3×5×12 Array{Float64,3}
 [:, :, 1]
- 0.590845  0.460085  0.200586  0.579672   0.066423
- 0.766797  0.794026  0.298614  0.648882   0.956753
- 0.566237  0.854147  0.246837  0.0109059  0.646691
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0  0.0
 [and 11 more slices...]
 ```
 
@@ -55,12 +55,12 @@ x = A[X(2), Y(3)]
 # output
 
 DimArray with dimensions:
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
- Y: c
- X: 4
+ Y: c (Categorical: Unordered)
+ X: 4 (Sampled: Ordered Regular Points)
 and data: 12-element Array{Float64,1}
-[0.854147, 0.950498, 0.496169, 0.658815, 0.082207, 0.431188, 0.0878598, 0.468079, 0.0677996, 0.836482, 0.0813266, 0.661835]
+[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 ```
 
 A `Dimension` can also wrap [`Selector`](@ref).
@@ -71,12 +71,12 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 # output
 
 DimArray with dimensions:
- X: 4:2:4
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")
+ X: 4:2:4 (Sampled: Ordered Regular Points)
+ Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
- Y: b
+ Y: b (Categorical: Unordered)
 and data: 1×12 Array{Float64,2}
- 0.794026  0.842714  0.0460428  0.499531  …  0.182757  0.140473  0.52376
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 
 `Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields
@@ -219,13 +219,15 @@ ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
 they are not the only type of dimension availabile.
 
 ```jldoctest
+using DimensionalData
+
 dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-dimension Dim custom (type Dim):
+dimension Dim{:custom} (type Dim):
 val: Char[a, b, c]
-mode: AutoMode{AutoOrder}(AutoOrder())
+mode: AutoMode
 metadata: nothing
 type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},Nothing}
 ```
@@ -382,9 +384,7 @@ const Time = Ti # For some backwards compat
 Format the passed-in dimension(s) `dims` to match the array `A`.
 
 This means converting indexes of `Tuple` to `LinRange`, and running
-`identify` on . 
-Errors are also thrown if
-dims don't match the array dims or size.
+`identify`. Errors are also thrown if dims don't match the array dims or size.
 
 If a [`IndexMode`](@ref) hasn't been specified, an mode is chosen
 based on the type and element type of the index:

@@ -210,12 +210,12 @@ The return type will be a Tuple of `Int` or a single `Int`,
 depending on wether `lookup` is a `Tuple` or single `Dimension`.
 
 ## Example
+
 ```jldoctest
+julia> using DimensionalData
+
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-
-julia> dimnum(A, Z)
-3
 ```
 """
 @inline dimnum(A, lookup) = dimnum(dims(A), lookup)
@@ -252,13 +252,10 @@ Check if an object or tuple contains an `Dimension`, or a tuple of dimensions.
 
 ## Example
 ```jldoctest
+julia> using DimensionalData
+
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-julia> hasdim(A, X)
-true
-
-julia> hasdim(A, Ti)
-false
 ```
 """
 @inline hasdim(A::AbstractArray, lookup) = hasdim(dims(A), lookup)
@@ -283,13 +280,10 @@ A tuple holding the unmatched dimensions is always returned.
 
 ## Example
 ```jldoctest
+julia> using DimensionalData
+
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-julia> otherdims(A, X)
-(Y: Base.OneTo(10), Z: Base.OneTo(10))
-
-julia> otherdims(A, Ti)
-(X: Base.OneTo(10), Y: Base.OneTo(10), Z: Base.OneTo(10))
 ```
 """
 @inline otherdims(A::AbstractArray, lookup) = otherdims(dims(A), lookup)
@@ -320,6 +314,8 @@ and returns a new object or tuple with the dimension updated.
 
 # Example
 ```jldoctest
+using DimensionalData
+
 A = DimArray(ones(10, 10), (X, Y(10:10:100)))
 B = setdims(A, Y('a':'j'))
 val(dims(B, Y))
@@ -353,14 +349,10 @@ dimension as-is.
 
 # Example
 ```jldoctest
+julia> using DimensionalData
+
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-
-julia> B = swapdims(A, (Z, Dim{:custom}, Ti));
-
-
-julia> dimnum(B, Ti)
-3
 ```
 """
 @inline swapdims(A::AbstractArray, newdims::Tuple) =
@@ -458,15 +450,10 @@ any combination of either.
 
 ## Example
 ```jldoctest
+julia> using DimensionalData
+
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-
-julia> dims(A, Z)
-dimension Z:
-val: Base.OneTo(10)
-mode: NoIndex()
-metadata: nothing
-type: Z{Base.OneTo{Int64},NoIndex,Nothing}
 ```
 """
 @inline dims(A::AbstractArray, lookup) = dims(dims(A), lookup)
