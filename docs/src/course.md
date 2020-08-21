@@ -20,29 +20,42 @@ A `DimArray` with labelled dimensions is constructed by:
 ```@example main
 using DimensionalData
 A = DimArray(rand(5, 5), (X, Y))
+A[Y(1), X(2)]
 ```
 
-But often we want to provide values for the dimension.
+Or we can use the `Dim{X}` dim by using `Symbol`s:
+
+```@example main
+A = DimArray(rand(5, 5), (:a, :b))
+A[a=3, b=5]
+```
+
+But often, we want to provide a lookup index for the dimension:
 
 ```@example main
 using Dates
-t = Ti(DateTime(2001):Month(1):DateTime(2001,12))
-x = X(10:10:100)
+t = DateTime(2001):Month(1):DateTime(2001,12)
+x = 10:10:100
+A = DimArray(rand(12, 10), (X(x), Ti(t)))
 ```
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
-exported dimensions are `X, Y, Z, Ti`. `Ti` is shortening of `Time` -
-to avoid the conflict with `Dates.Time`.
-
-We pass a `Tuple` of the dimensions to the constructor of `DimArray`,
-after the array:
-
-```@example main
-A = DimArray(rand(12, 10), (t, x))
-```
+exported dimensions are `X, Y, Z, Ti`. `Ti` is shortening of `Time` - to avoid
+the conflict with `Dates.Time`.
 
 The length of each dimension index has to match the size of the corresponding
 array axis. 
+
+This can also be done with `Symbol`, using `Dim{X}`:
+
+```@example main
+A = DimArray(rand(12, 10), (:time=t, :distance=x))
+```
+
+Symbols can be more convenient than defining dims with `@dim`, but have some
+downsides. They don't inherit from a specific `Dimension` type, so plots will
+not know what axis to put them on. If you need to specify the dimension `mode`
+or `metadata` manually, the `Dim{X}` syntax becomes less beneficial. 
 
 
 ## Indexing the array by name and index
@@ -115,17 +128,17 @@ standard `Array`:
 A[1:5]
 ```
 
-selects the first 5 entries of the underlying array. In the case that `A` has
-only one dimension, it will be retained. Multidimensional
-`AbstracDimArray` indexed this way will return a regular array.
+This selects the first 5 entries of the underlying array. In the case that `A`
+has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
+indexed this way will return a regular array.
 
 
 
 ## Specifying `dims` keyword arguments with `Dimension`
 
-In many Julia functions like `size, sum`, you can specify the dimension along
-which to perform the operation, as an `Int`. It is also possible to do this
-using `Dimension` types with `AbstractDimArray`:
+In many Julia functions like `size` or `sum`, you can specify the dimension
+along which to perform the operation as an `Int`. It is also possible to do this
+using [`Dimension`](@ref) types with `AbstractDimArray`:
 
 ```@example main
 sum(A; dims=X)
@@ -158,17 +171,22 @@ changes.
 DimensionalData provides types for specifying details about the dimension index.
 This enables optimisations with `Selector`s, and modified behaviours such as
 selection of intervals or points, which will give slightly different results for
-selectors like [`Between`](@ref).
+selectors like [`Between`](@ref) for [`Points`](@ref) and [`Intervals`](@ref).
 
-The major categories are [`Categorical`](@ref), [`Sampled`](@ref) and
-[`NoIndex`](@ref), which are all types of [`Aligned`](@ref).
-[`Unaligned`](@ref) also exists to handle dimensions with an index that is
-rotated or otherwise transformed in relation to the underlying array, such as
-[`Transformed`](@ref). These are a work in progress.
+It also allows plots to always be the right way up when either the index or the 
+array is backwards - reverseing the data lazily when required for plotting if
+reqiured, not when loaded.
 
-[`Aligned`] types will be detected automatically if not specified. A
-Dimension containing and index of `String`, `Char` or `Symbol` will be labelled
-with [`Categorical`](@ref). A range will be [`Sampled`](@ref),
-defaulting to [`Points`](@ref) and [`Regular`](@ref). 
+The major categories of [`IndexMode`](@ref) are [`Categorical`](@ref),
+[`Sampled`](@ref) and [`NoIndex`](@ref), which are all subtypes of
+[`Aligned`](@ref). [`Unaligned`](@ref) also exists to handle dimensions with an
+index that is rotated or otherwise transformed in relation to the underlying
+array, such as [`Transformed`](@ref). These are a work in progress.
+
+[`Aligned`](@ref) types will be detected automatically if not specified. A
+Dimension containing and index of `String`, `Char` or `Symbol` will be given the
+[`Categorical`](@ref) mode. A range will be [`Sampled`](@ref), defaulting to
+[`Points`](@ref) and [`Regular`](@ref), with the [`Order`](@ref) detected
+automatically. 
 
 See the api docs for specifics about these [`IndexMode`](@ref)s.

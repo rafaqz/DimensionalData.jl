@@ -240,7 +240,7 @@ end
 
 Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
     Dim{X}(val, mode, metadata)
-name(::Type{<:Dim{X}}) where X = "Dim $X"
+name(::Type{<:Dim{X}}) where X = "Dim{:$X}"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
 
@@ -389,32 +389,41 @@ dims don't match the array dims or size.
 If a [`IndexMode`](@ref) hasn't been specified, an mode is chosen
 based on the type and element type of the index:
 """
-formatdims(A::AbstractArray{T,N} where T, dims::NTuple{N,Any}) where N =
-    formatdims(axes(A), dims)
-formatdims(axes::Tuple{Vararg{<:AbstractRange}},
-           dims::Tuple{Vararg{<:Union{<:Dimension,<:UnionAll}}}) =
-    map(formatdims, axes, dims)
+formatdims(A::AbstractArray, dims) = formatdims(A, (dims,))
+formatdims(A::AbstractArray, dims::NamedTuple) = begin
+    dims = map((k, v) -> Dim{k}(v), keys(dims), values(dims))
+    _formatdims(axes(A), dims)
+end
+formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,N}}) where N =
+    _formatdims(axes(A), dims)
+formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,M}}) where {N,M} =
+    throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M"))
+                                                                               
 
-formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
+_formatdims(axes::Tuple{Vararg{<:AbstractRange}}, dims::Tuple) =
+    map(_formatdims, axes, dims)
+_formatdims(axis::AbstractRange, dimname::Symbol) =
+    Dim{dimname}(axis, NoIndex(), nothing)
+_formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
     dimtype(axis, NoIndex(), nothing)
-formatdims(axis::AbstractRange, dim::Dimension) = begin
+_formatdims(axis::AbstractRange, dim::Dimension) = begin
     checkaxis(dim, axis)
     rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
 end
-formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
+_formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
     start, stop = val(dim)
     range = LinRange(start, stop, length(axis))
-    formatdims(axis, rebuild(dim, range))
+    _formatdims(axis, rebuild(dim, range))
 end
 # Dimensions holding colon dispatch on mode
-formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
-    formatdims(mode(dim), axis, dim)
+_formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
+    _formatdims(mode(dim), axis, dim)
 
 # Dimensions holding colon has the array axis inserted as the index
-formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
+_formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, NoIndex())
 # Dimensions holding colon has the array axis inserted as the index
-formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
+_formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, mode)
 
 checkaxis(dim, axis) =

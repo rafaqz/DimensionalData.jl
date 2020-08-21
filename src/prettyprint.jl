@@ -54,9 +54,17 @@ Base.show(io::IO, dim::Dimension) = begin
         printstyled(io, nameof(typeof(dim)); color=:red)
         print(io, ")")
     end
-    print(io, ": ")
+    printdimproperties(io, dim)
+end
+Base.show(io::IO, dim::Dim) = begin
+    printstyled(io, name(dim); color=:red)
+    printdimproperties(io, dim)
+end
 
+printdimproperties(io, dim) = begin
+    print(io, ": ")
     _printdimval(io, val(dim))
+    print(io, " (", mode(dim), ")")
 end
 
 _printdimval(io, A::AbstractArray) = printlimited(io, A)
@@ -72,6 +80,22 @@ function printlimited(io, v::AbstractVector)
     end
     print(io, s*svals*"]")
 end
+
+Base.show(io::IO, mode::IndexMode) = _printmode(io, mode)
+Base.show(io::IO, mode::AbstractSampled) = begin
+    _printmode(io, mode)
+    _printorder(io, mode)
+    print(io, " ", nameof(typeof(span(mode))))
+    print(io, " ", nameof(typeof(sampling(mode))))
+end
+Base.show(io::IO, mode::AbstractCategorical) = begin
+    _printmode(io, mode)
+    _printorder(io, mode)
+end
+
+_printmode(io, mode) = printstyled(io, nameof(typeof(mode)); color=:green)
+
+_printorder(io, mode) = print(io, ": ", nameof(typeof(order(mode))))
 
 # Thanks to Michael Abbott for the following function
 custom_show(io::IO, A::AbstractArray{T,0}) where T =

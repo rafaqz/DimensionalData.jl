@@ -105,6 +105,10 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, 
 Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
+# Symbol indexing. This allows indexing with A[somedim=25.0] for Dim{:somedim}
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, args::Dimension...; kwargs...) =
+    getindex(A, args..., map((key, val) -> Dim{key}(val), keys(kwargs), values(kwargs))...)
+
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
     getindex(A, sel2indices(A, maybeselector(i, I...))...)
@@ -194,14 +198,11 @@ julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
 DimArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
-    DimArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
+    DimArray(A, formatdims(A, dims), refdims, name, metadata)
 DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
-    DimArray(A, formatdims(data(A), _to_tuple(dims)), refdims, name, metadata)
+    DimArray(A, formatdims(data(A), dims), refdims, name, metadata)
 DimArray(; data, dims, refdims=(), name="", metadata=nothing) = 
-    DimArray(A, formatdims(A, _to_tuple(dims)), refdims, name, metadata)
-
-_to_tuple(t::T where T <: Tuple) = t
-_to_tuple(t) = tuple(t)
+    DimArray(A, formatdims(A, dims), refdims, name, metadata)
 
 # AbstractDimArray interface
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,

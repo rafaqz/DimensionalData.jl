@@ -134,8 +134,14 @@ da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
 @testset "arbitrary dimension names also work for indexing" begin
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
     @test da2[Dim{:column}(4)] == [4, 6, 7]
+    @test da2[column=4] == [4, 6, 7]
     @test da2[Dim{:column}(1), Dim{:row}(3)] == 4
+    @test da2[column=1, Dim{:row}(3)] == 4
+    @test da2[Dim{:column}(1), row=3] == 4
+    @test da2[column=1, row=3] == 4
     @inferred getindex(da2, Dim{:column}(1), Dim{:row}(3))
+    # We can also construct without using `Dim{X}`
+    @test dims(DimArray(a2, (:a, :b))) == dims(DimArray(a2, (Dim{:a}, Dim{:b})))
 end
 
 @testset "size and axes" begin
@@ -264,6 +270,6 @@ end
 @testset "constructor" begin
     da = DimArray(rand(5, 4), (X, Y))
     @test_throws DimensionMismatch DimArray(1:5, X(1:6))
-    @test_throws MethodError DimArray(1:5, (X(1:5), Y(1:2)))
+    @test_throws DimensionMismatch DimArray(1:5, (X(1:5), Y(1:2)))
 end
 

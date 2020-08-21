@@ -11,6 +11,8 @@
 - Minimal interface: implementing a dimension-aware type should be easy.
 - Functional style: structs are always rebuilt, and other than the array data,
   fields are not mutated in place.
+- Laziness. Label data correctly, and manipulate them when needed - 
+  instead of standardising eagerly.
 - Least surprise: everything works the same as in Base, but with named dims. If
   a method accepts numeric indices or `dims=X` in base, you should be able to
   use DimensionalData.jl dims.
@@ -45,22 +47,27 @@ packages and scripts.
 ### Syntax
 
 AxisArrays.jl is verbose by default: `a[Axis{:y}(1)]` vs `a[Y(1)]` used here.
-NamedDims.jl has concise syntax, but the dimensions are no longer types.
+NamedDims.jl has concise syntax, but the dimensions are no longer types,
+NamedDims.jl syntax can now be replicated using `Dim{:X}`: 
 
+```julia
+A = Dimarray(rand(4, 5), (:a, :b)
+A[:b=5, :a=3] = 25.0
+```
 
 ## Data types and the interface
 
-DimensionalData.jl provides the concrete `DimenstionalArray` type. But it's
+DimensionalData.jl provides the concrete `DimArray` type. But it's
 core purpose is to be easily used with other array types.
 
 Some of the functionality in DimensionalData.jl will work without inheriting
 from `AbstractDimArray`. The main requirement define a `dims` method
-that returns a `Tuple` of `AbstractDimension` that matches the dimension order
+that returns a `Tuple` of `Dimension` that matches the dimension order
 and axis values of your data. Define `rebuild`, and base methods for `similar`
 and `parent` if you want the metadata to persist through transformations (see
 the `DimArray` and `AbstractDimArray` types). A `refdims` method
 returns the lost dimensions of a previous transformation, passed in to the
 `rebuild` method. `refdims` can be discarded, the main loss being plot labels.
 
-Inheriting from `AbstractDimArray` will give all the functionality
+Inheriting from `AbstractDimArray` will give nearly all the functionality
 of using `DimArray`.
