@@ -354,10 +354,10 @@ end
         ]
         for idx in indices
             from2d = da[idx]
-            @test from2d == data(da)[idx]
+            @test from2d == parent(da)[idx]
             @test !(from2d isa AbstractDimArray)
-            from1d = da[Y <| At(10)][idx]
-            @test from1d == data(da)[1, :][idx]
+            from1d = da[Y(At(10))][idx]
+            @test from1d == parent(da)[1, :][idx]
             @test from1d isa AbstractDimArray
         end
     end
@@ -371,10 +371,10 @@ end
         ]
         for idx in indices
             from2d = view(da, idx)
-            @test from2d == view(data(da), idx)
+            @test from2d == view(parent(da), idx)
             @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
-            @test from1d == view(data(da)[1, :], idx)
+            @test from1d == view(parent(da)[1, :], idx)
             @test from1d isa AbstractDimArray
         end
     end
@@ -389,13 +389,13 @@ end
         for idx in indices
             # 2D case
             da2d = copy(da)
-            a2d = copy(data(da2d))
+            a2d = copy(parent(da2d))
             replacement = zero(a2d[idx])
             @test setindex!(da2d, replacement, idx) == setindex!(a2d, replacement, idx)
             @test da2d == a2d
             # 1D array
-            da1d = da[Y <| At(10)]
-            a1d = copy(data(da1d))
+            da1d = da[Y(At(10))]
+            a1d = copy(parent(da1d))
             @test setindex!(da1d, replacement, idx) == setindex!(a1d, replacement, idx)
             @test da1d == a1d
         end

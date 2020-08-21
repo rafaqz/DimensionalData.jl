@@ -1,14 +1,14 @@
 """
-Dimension is the abstract supertype of all dimension types.
+Supertype of all dimension types.
 
-Example concrete implementations are `X`, `Y`, `Z`, 
-`Ti` (Time), and the custom `Dim{:custom}` dimension.
+Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref), 
+[`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
-`Dimension`s label the axes of an `AbstractDimesnionalArray`, 
-or other dimensional data. 
+`Dimension`s label the axes of an [`AbstractDimesnionalArray`](@ref), 
+or other dimensional objects, and are used to index into the array.
 
 They may also provide an alternate index to lookup for each array axis.
-This may be any `AbstractArray` matching the array axis length, or a `Val`
+This may be any `AbstractVector` matching the array axis length, or a `Val`
 holding a tuple for compile-time index lookups.
 
 `Dimension`s also have `mode` and `metadata` fields. 
@@ -26,6 +26,7 @@ Example:
 
 ```jldoctest Dimension
 using DimensionalData, Dates
+
 x = X(2:2:10)
 y = Y(['a', 'b', 'c'])
 ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
@@ -85,36 +86,36 @@ to track additional information about the data and the index, and their relation
 abstract type Dimension{T,IM,M} end
 
 """
-Abstract supertype for independent dimensions. Thise will plot on the X axis.
+Supertype for independent dimensions. Thise will plot on the X axis.
 """
 abstract type IndependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
-Abstract supertype for Dependent dimensions. These will plot on the Y axis.
+Supertype for Dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
-Abstract parent type for all X dimensions. 
+Supertype for all X dimensions. 
 """
 abstract type XDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
 """
-Abstract parent type for all Y dimensions.
+Supertype for all Y dimensions.
 """
 abstract type YDim{T,IM,M} <: DependentDim{T,IM,M} end
 
 """
-Abstract parent type for all Z dimensions.
+Supertype for all Z dimensions.
 """
 abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
 
 """
-Abstract parent type for all time dimensions.
+Supertype for all time dimensions.
 
-An index in a `TimeDime` with `Interval` sampling the locus will automatically be
-set to `Start()`, as a date/time index generally defines the start of a 
-month, second etc, not the central point as is more common with spatial data.
+In a `TimeDime` with `Interval` sampling the locus will automatically 
+be set to `Start()`. Dates and times generally refer to the start of a 
+month, hour, second etc., not the central point as is more common with spatial data.
 `"""
 abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
 
@@ -144,27 +145,37 @@ sampling(dim::Dimension) = sampling(mode(dim))
 
 index(dim::Dimension) = unwrap(val(dim))
 
+
 # DimensionalData interface methods
+
+"""
+    rebuild(dim::Dimension, val, mode=mode(dim), metadata=metadata(dim)) => Dimension
+    rebuild(dim::Dimension, val=val(dim), mode=mode(dim), metadata=metadata(dim)) => Dimension
+
+Rebuild dim with fields from `dim`, and new fields passed in.
+"""
 rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
     constructorof(D)(val, mode, metadata)
 
-dims(x::Dimension) = x
-dims(x::DimTuple) = x
+dims(dim::Dimension) = dim
+dims(dims::DimTuple) = dims
+
 name(dim::Dimension) = name(typeof(dim))
+
 shortname(d::Dimension) = shortname(typeof(d))
 shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
+
 units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
-
-bounds(dim::Dimension) = bounds(mode(dim), dim)
+bounds(dims_::DimTuple, lookup) = bounds(dims(dims_, lookup))
 bounds(dims::DimTuple) = map(bounds, dims)
 bounds(dims::Tuple{}) = ()
-bounds(dims::DimTuple, lookupdims::Tuple) = map(l -> bounds(dims, l), lookupdims)
-bounds(dims::DimTuple, lookupdim::DimOrDimType) = bounds(dims[dimnum(dims, lookupdim)])
+bounds(dim::Dimension) = bounds(mode(dim), dim)
 
 
 # Base methods
+
 Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(dim::Dimension) = size(val(dim))
@@ -204,14 +215,14 @@ Base.:(==)(dim1::Dimension, dim2::Dimension) =
 
 
 """
-Dimensions with user-set type paremeters
+Supertype for Dimensions with user-set type paremeters
 """
 abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
     Dim{:X}()
     Dim{:X}(val, mode, metadata)
-    Dim{:X}(val=:; [mode=AutoMode()], [metadata=nothing])
+    Dim{:X}(val=:; mode=AutoMode(), metadata=nothing)
 
 A generic dimension. For use when custom dims are required when loading
 data from a file. The sintax is ugly and verbose to use for indexing,
@@ -304,7 +315,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
 # Define some common dimensions.
 
 """
-    X(val=:)
+    X(val=:; mode=AutoMode(), metadata=nothing)
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
@@ -320,7 +331,7 @@ mean(A; dims=X)
 @dim X XDim
 
 """
-    Y(val=:)
+    Y(val=:; mode=AutoMode(), metadata=nothing)
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
@@ -336,7 +347,7 @@ mean(A; dims=Y)
 @dim Y YDim
 
 """
-    Z(val=:)
+    Z(val=:; mode=AutoMode(), metadata=nothing)
 
 Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 
@@ -352,7 +363,7 @@ mean(A; dims=Z)
 @dim Z ZDim
 
 """
-    Ti(val=:)
+    Ti(val=:; mode=AutoMode(), metadata=nothing)
 
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
 
@@ -379,7 +390,7 @@ const Time = Ti # For some backwards compat
 
 
 """
-    formatdims(A, dims)
+    formatdims(A, dims) => Tuple{Vararg{<:Dimension,N}}
 
 Format the passed-in dimension(s) `dims` to match the array `A`.
 

@@ -1,20 +1,23 @@
 # Key methods to add for a new dimensional data type
 
 """
-    data(x)
+    rebuild(x, args...)
+    rebuild(x; kwargs...)
 
-Return the data wrapped by the dimentional array. This may not be
-the same as `Base.parent`, as it should never include data outside the
-bounds of the dimensions.
+Rebuild an object struct with updated field values. 
 
-In a disk based [`AbstractDimArray`](@ref), `data` may need to
-load data from disk.
+This is an abstraction that alows inbuilt and custom types to be rebuilt 
+functionally to update them, as most objects in DimensionalData are immutable.
+
+`x` can be a `AbstractDimArray`, a `Dimension`, `IndexMode` or other custom types.
+
+The arguments reuired are defined for the abstract type that has a `rebuild` method.
 """
-function data end
-data(x) = x
+function rebuild end
+rebuild(x; kwargs...) = ConstructionBase.setproperties(x, (;kwargs...))
 
 """
-    dims(x)
+    dims(x) => Tuple{Vararg{<:Dimension}}
 
 Return a tuple of `Dimension`s for an object, in the order that matches 
 the axes or columns etc. of the underlying data.
@@ -23,7 +26,7 @@ function dims end
 dims(x) = nothing
 
 """
-    refdims(x)
+    refdims(x) => Tuple{Vararg{<:Dimension}}
 
 Reference dimensions for an array that is a slice or view of another
 array with more dimensions.
@@ -35,14 +38,6 @@ captions empty.
 """
 function refdims end
 refdims(x) = ()
-"""
-    rebuild(x, args...)
-    rebuild(x; kwargs...)
-
-Rebuild an object struct with updated values.
-"""
-function rebuild end
-rebuild(x; kwargs...) = ConstructionBase.setproperties(x, (;kwargs...))
 
 """
     val(x)
@@ -59,24 +54,28 @@ Return the metadata of a dimension or data object.
 function metadata end
 
 """
-    mode(x)
+    mode(x) => IndexMode 
 
-Return the `IndexMode` of a dimension.
+Returns the [`IndexMode`](@ref) of a dimension. This dictates
+properties of the dimension such as array axis and index order, 
+and sampling properties.
 """
 function mode end
 
 """
-    bounds(x, [dims])
+    bounds(x, [dims]) => Union{Tuple{T,T},Tuple{Vararg{<:Tuple{T,T}}}
 
 Return the bounds of all dimensions of an object, of a specific dimension,
 or of a tuple of dimensions.
 
-Returns a length 2 `Tuple` in ascending order.
+Returns a `Tuple` of length 2 `Tuple` in ascending order for each dimension.
+
+A single value for `dims` will return a single bounds `Tuple`.
 """
 function bounds end
 
 """
-    name(x)
+    name(x) => String
 
 Get the name of data or a dimension.
 """
@@ -86,7 +85,7 @@ name(x::Type) = ""
 name(xs::Tuple) = map(name, xs)
 
 """
-    shortname(x)
+    shortname(x) => String
 
 Get the short name of array data or a dimension.
 
@@ -99,9 +98,9 @@ shortname(xs::Tuple) = map(shortname, xs)
 shortname(x::Type) = ""
 
 """
-    units(x)
+    units(x) => Union{Nothing,Any}
 
-Return the units of a dimension. This could be a string, a unitful unit, or nothing.
+Return the units of a dimension. This could be a string, a unitful unit, or `nothing`.
 
 Units do not have a field, and may or may not be included in `metadata`.
 This method is to facilitate use in labels and plots when units are available, 
@@ -112,7 +111,7 @@ units(x) = nothing
 units(xs::Tuple) = map(units, xs)
 
 """
-    label(x)
+    label(x) => String
 
 Get a plot label for data or a dimension. This will include the name and units
 if they exist, and anything else that should be shown on a plot.

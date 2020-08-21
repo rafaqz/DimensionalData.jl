@@ -20,9 +20,9 @@ Base.show(io::IO, A::AbstractDimArray) = begin
     end
     print(io, "and")
     printstyled(io, " data: "; color=:green)
-    dataA = data(A)
+    dataA = parent(A)
     print(io, summary(dataA), "\n")
-    custom_show(io, data(A))
+    custom_show(io, parent(A))
 end
 # Short printing for DimArray
 Base.show(io::IO, ::MIME"text/plain", A::AbstractDimArray) = show(io, A)

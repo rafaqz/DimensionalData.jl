@@ -33,10 +33,12 @@ const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 @inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
 """
-    commondims(x, lookup)
+    commondims(x, lookup) => Tuple{Vararg{<:Dimension}}
 
 This is basically `dims(x, lookup)` where the order of the original is kept, 
 unlike [`dims`](@ref) where the lookup tuple determines the order
+
+Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
 """
 commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
 commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
@@ -66,7 +68,7 @@ are at least rotations/transformations of the same type.
 @inline dimsmatch(dim::Nothing, match::Nothing) = false
 
 """
-    dims2indices(dim::Dimension, lookup, [emptyval=Colon()])
+    dims2indices(dim::Dimension, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
 
 Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 """
@@ -75,7 +77,7 @@ Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 @inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
 
 """
-    dims2indices(A, lookup, [emptyval=Colon()])
+    dims2indices(A, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
 
 Convert `Dimension` or `Selector` to regular indices for any object with a `dims` method,
 usually an array.
@@ -86,7 +88,7 @@ usually an array.
     dims2indices(dims_, lookup, emptyval)
 end
 """
-dims2indices(dims, lookup, [emptyval=Colon()])
+dims2indices(dims, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
 
 Convert `Dimension` or `Selector` to regular indices for `dims` - a `Tuple` of `Dimension`.
 `lookup` can be a `Tuple` or a single object.
@@ -153,7 +155,7 @@ end
 
 
 """
-    slicedims(A, I)
+    slicedims(x, I) => Tuple{Tuple,Tuple}
 
 Slice the dimensions to match the axis values of the new array
 
@@ -163,6 +165,11 @@ the new struct but are useful to give context to plots.
 
 Called at the array level the returned tuple will also include the
 previous reference dims attached to the array.
+
+# Arguments
+
+- `x`: An `AbstractDimArray`, `Tuple` of `Dimension`, or `Dimension`
+- `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
 function slicedims(A, I) end
 
@@ -182,14 +189,14 @@ end
 
 @inline slicedims(d::Dimension, i::Colon) = (d,), ()
 # TODO why is `relate` used here? we care about the index order not the relation order
-@inline slicedims(d::Dimension, i::Number) =
+@inline slicedims(d::Dimension, i::Integer) =
     (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
-@inline slicedims(d::Dimension{<:Colon}, i::Number) = (), (d,)
+@inline slicedims(d::Dimension{<:Colon}, i::Integer) = (), (d,)
 
 @inline relate(d::Dimension, i) = maybeflip(relationorder(d), d, i)
 
@@ -198,7 +205,8 @@ end
 @inline maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
 
 """
-    dimnum(x, lookup)
+    dimnum(x, lookup::Tuple) => NTuple{Int}
+    dimnum(x, lookup) => Int
 
 Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object.
 
@@ -242,7 +250,8 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 @inline _dimnum(dims::Tuple{}, lookup::Tuple{}, rejected, n) = ()
 
 """
-    hasdim(x, lookup)
+    hasdim(x, lookup::Tuple) => NTUple{Bool}
+    hasdim(x, lookup) => Bool
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
@@ -326,7 +335,7 @@ val(dims(B, Y))
 ```
 """
 @inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
-    rebuild(A, data(A), setdims(dims(A), newdims))
+    rebuild(A, parent(A), setdims(dims(A), newdims))
 @inline setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
 # TODO handle the multiples of the same dim.
 @inline setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
@@ -334,7 +343,8 @@ val(dims(B, Y))
     basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
 
 """
-    swapdims(x, newdims)
+    swapdims(x::T, newdims) => T
+    swapdims(dims::Tuple, newdims) => Tuple{Dimension} 
 
 Swap dimensions for the passed in dimensions, in the
 order passed.
@@ -345,8 +355,8 @@ objectes replace the original dimension. `nothing` leaves the original
 dimension as-is.
 
 ## Arguments
-- `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
-- `newdim`: Tuple or single `Dimension` or dimension `Type`.
+- `x`: any object with a `dims` method or a `Tuple` of `Dimension`.
+- `newdim`: Tuple of `Dimension` or dimension `Type`.
 
 # Example
 ```jldoctest
@@ -357,7 +367,7 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 ```
 """
 @inline swapdims(A::AbstractArray, newdims::Tuple) =
-    rebuild(A, data(A), formatdims(A, swapdims(dims(A), newdims)))
+    rebuild(A, parent(A), formatdims(A, swapdims(dims(A), newdims)))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
     map((d, nd) -> _swapdims(d, nd), dims, newdims)
 

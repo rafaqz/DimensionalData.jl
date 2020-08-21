@@ -12,36 +12,6 @@ using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims,
     @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
-@testset "copy and friends" begin
-    rebuild(da2, copy(data(da2)))
-
-    dac = copy(da2)
-    @test dac == da2
-    @test dims(dac) == dims(da2)
-    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
-    @test name(dac) == name(da2) == "test2"
-    @test metadata(dac) == metadata(da2)
-    dadc = deepcopy(da2)
-    @test dadc == da2
-    @test dims(dadc) == dims(da2)
-    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
-    @test name(dadc) == name(da2) == "test2"
-    @test metadata(dadc) == metadata(da2)
-
-    o = one(da)
-    @test o == [1 0; 0 1]
-    @test dims(o) == dims(da) 
-
-    ou = oneunit(da)
-    @test ou == [1 0; 0 1]
-    @test dims(ou) == dims(da) 
-
-    da1 = DimArray(zeros(5), :a)
-    e = empty!(da1)
-    @test e == [1 0; 0 1]
-    @test dims(ou) == dims(da) 
-end
-
 @testset "dimension reducing methods" begin
     a = [1 2; 3 4]
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
@@ -143,7 +113,7 @@ end
     da = DimArray(zeros(5, 4), (Y((10, 20); mode=Sampled()), 
                                         X(1:4; mode=Sampled())))
     tda = transpose(da)
-    @test tda == transpose(data(da))
+    @test tda == transpose(parent(da))
     resultdims = (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                   Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test typeof(dims(tda)) == typeof(resultdims) 
@@ -151,20 +121,20 @@ end
     @test size(tda) == (4, 5)
 
     tda = Transpose(da)
-    @test tda == Transpose(data(da))
+    @test tda == Transpose(parent(da))
     @test dims(tda) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimArray
 
     ada = adjoint(da)
-    @test ada == adjoint(data(da))
+    @test ada == adjoint(parent(da))
     @test dims(ada) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())))
     @test size(ada) == (4, 5)
 
     dsp = permutedims(da)
-    @test permutedims(data(da)) == data(dsp)
+    @test permutedims(parent(da)) == parent(dsp)
     @test dims(dsp) == reverse(dims(da))
 end
 
@@ -178,12 +148,12 @@ end
     @test permutedims(da, [X, Y, Ti]) == permutedims(da, (X, Y, Ti))
     @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
     dsp = permutedims(da, (X(), Y(), Ti()))
-    @test dsp == permutedims(data(da), (3, 1, 2))
+    @test dsp == permutedims(parent(da), (3, 1, 2))
     @test dims(dsp) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
                         Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())))
     dsp = PermutedDimsArray(da, (3, 1, 2))
-    @test dsp == PermutedDimsArray(data(da), (3, 1, 2))
+    @test dsp == PermutedDimsArray(parent(da), (3, 1, 2))
     @test typeof(dsp) <: DimArray
 end
 
@@ -265,7 +235,7 @@ end
             Ti(1:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start())))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Ti)
-    @test data(ms) == [10 18 26]'
+    @test parent(ms) == [10 18 26]'
 end
 
 @testset "array info" begin

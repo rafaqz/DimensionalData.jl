@@ -44,7 +44,7 @@ histogram(da2)
 stephist(da2)
 barhist(da2)
 scatterhist(da2)
-histogram2d(data(da2))
+histogram2d(parent(da2))
 histogram2d(da2)
 hline(da2)
 vline(da2)
@@ -65,20 +65,20 @@ ea_histogram(da2)
 
 # TODO handle everything
 
-# These don't seem to work for plot(data(da2))
+# These don't seem to work for plot(parent(da2))
 # path3d(da2)
-# hexbin(data(da1))
+# hexbin(parent(da1))
 # plot(da2; seriestype=:histogram3d)
 
 # Crashes GR
-# groupedbar(data(da2))
+# groupedbar(parent(da2))
 
 # surface(da2)
 # plot(da2; seriestype=:bins2d)
 # plot(da2; seriestype=:volume)
 # plot(da2; seriestype=:stepbins)
-# plot(data(da2); seriestype=:barbins)
-# plot(data(da2); seriestype=:contour3d)
+# plot(parent(da2); seriestype=:barbins)
+# plot(parent(da2); seriestype=:contour3d)
 # pie(da2)
 #
 # Crashes GR for some reason

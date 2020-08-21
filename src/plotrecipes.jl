@@ -24,17 +24,17 @@ end
         HistogramLike(), Afwd
     elseif sertype in [:hline]
         :yguide --> label(Afwd)
-        data(Afwd)
+        parent(Afwd)
     elseif sertype in [:vline, :andrews]
         :xguide --> label(Afwd)
-        data(Afwd)
+        parent(Afwd)
     elseif sertype in [:violin, :dotplot, :boxplot]
         ViolinLike(), Afwd
     elseif sertype in [:plot, :histogram2d, :none, :line, :path, :steppre, :steppost, :sticks, :scatter, 
                        :hexbin, :barbins, :scatterbins, :stepbins, :bins2d, :bar]
         SeriesLike(), Afwd
     else
-        data(Afwd)
+        parent(Afwd)
     end
 end
 
@@ -51,13 +51,13 @@ end
     :yguide --> label(A)
     :legendtitle --> label(dep)
     :label --> permutedims(index(dep))
-    index(ind), data(A)
+    index(ind), parent(A)
 end
 
 @recipe function f(::HistogramLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
     :xguide --> label(A)
-    index(dim), data(A)
+    index(dim), parent(A)
 end
 @recipe function f(::HistogramLike, A::AbstractArray{T,2}) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
@@ -65,13 +65,13 @@ end
     :xguide --> label(A)
     :legendtitle --> label(dep)
     :label --> permutedims(index(dep))
-    index(ind), data(A)
+    index(ind), parent(A)
 end
 
 @recipe function f(::ViolinLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
     :yguide --> label(A)
-    data(A)
+    parent(A)
 end
 @recipe function f(::ViolinLike, A::AbstractArray{T,2}) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
@@ -80,14 +80,14 @@ end
     :yguide --> label(A)
     :legendtitle --> label(dep)
     :label --> permutedims(index(dep))
-    data(A)
+    parent(A)
 end
 
 @recipe function f(::HeatMapLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
-    index(dim), data(A)
+    index(dim), parent(A)
 end
 
 @recipe function f(::HeatMapLike, A::AbstractArray{T,2}) where T
@@ -97,11 +97,11 @@ end
     :yguide --> label(y)
     :zguide --> label(A)
     :colorbar_title --> label(A)
-    reverse(map(index, dims(A)))..., data(A)
+    reverse(map(index, dims(A)))..., parent(A)
 end
 
 @recipe function f(::ImageLike, A::AbstractArray{T,2}) where T
-    data(A)
+    parent(A)
 end
 
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A

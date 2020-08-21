@@ -55,15 +55,15 @@ Base.:*(A::Adjoint{<:Any,<:RealHermSymComplexHerm}, B::AbstractDimVector) = rebu
 
 rebuildmul(A::AbstractDimVector, B::AbstractDimMatrix) = begin
     # Vector has no dim 2 to compare
-    rebuild(A, data(A) * data(B), (first(dims(A)), last(dims(B)),))
+    rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B)),))
 end
 rebuildmul(A::AbstractDimMatrix, B::AbstractDimVector) = begin
     comparedims(last(dims(A)), first(dims(B)))
-    rebuild(A, data(A) * data(B), (first(dims(A)),))
+    rebuild(A, parent(A) * parent(B), (first(dims(A)),))
 end
 rebuildmul(A::AbstractDimMatrix, B::AbstractDimMatrix) = begin
     comparedims(last(dims(A)), first(dims(B)))
-    rebuild(A, data(A) * data(B), (first(dims(A)), last(dims(B))))
+    rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B))))
 end
 rebuildmul(A::AbstractDimVector, B::AbstractMatrix) =
     rebuild(A, parent(A) * B, (first(dims(A)), AnonDim(Base.OneTo(size(B, 2)))))
