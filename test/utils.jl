@@ -67,3 +67,25 @@ end
     typeof(parent(mda)) == BitArray{2}
     @test_throws ErrorException modify(A -> A[1, :], da)
 end
+
+@testset "dimwise" begin
+    A2 = [1 2 3; 4 5 6]
+    B1 = [1, 2, 3]
+    da2 = DimArray(A2, (X, Y))
+    db1 = DimArray(B1, (Y,))
+    dc2 = dimwise(+, da2, db1)
+    @test dc2 == [2 4 6; 5 7 9]
+
+    A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
+    da3 = DimArray(A3, (X, Y, Z))
+    db2 = DimArray(A2, (X, Y))
+    dc3 = dimwise(+, da3, db2)
+    @test dc3 == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
+
+    @testset "works with permuted dims" begin
+        db2p = permutedims(da2)
+        dc3p = dimwise(+, da3, db2p)
+        @test dc3p == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
+    end
+
+end
