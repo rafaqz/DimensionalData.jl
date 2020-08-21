@@ -6,8 +6,9 @@ if VERSION >= v"1.5.0"
     Aqua.test_stale_deps(DimensionalData)
 end
 
-include("matmul.jl")
 include("methods.jl")
+include("utils.jl")
+include("matmul.jl")
 include("dimension.jl")
 include("interface.jl")
 include("primitives.jl")

@@ -1,7 +1,7 @@
 using DimensionalData, Test
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, mode,
-      @dim, reducedims, XDim, YDim, ZDim, Forward
+      @dim, reducedims, XDim, YDim, ZDim, Forward, commondims
 
 dimz = (X(), Y())
 
@@ -138,6 +138,13 @@ end
     @test dims(x) == x
 end
 
+@testset "commondims" begin
+    commondims(da, X) == (dims(da, X),)
+    # Dims are always in the base order
+    commondims(da, (X, Y)) == dims(da, (X, Y))
+    commondims(da, (Y, X)) == dims(da, (X, Y))
+end
+
 @testset "hasdim" begin
     @test hasdim(da, X) == true
     @test hasdim(da, Ti) == false
@@ -151,6 +158,15 @@ end
     @test hasdim(dims(da), (XDim, XDim)) == (true, true)
     @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
     @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
+end
+
+@testset "otherdims" begin
+    A = DimArray(ones(5, 10, 15), (X, Y, Z));
+    @test otherdims(A, X) == dims(A, (Y, Z))
+    @test otherdims(A, Y) == dims(A, (X, Z))
+    @test otherdims(A, Z) == dims(A, (X, Y))
+    @test otherdims(A, (X, Z)) == dims(A, (Y,))
+    @test otherdims(A, Ti) == dims(A, (X, Y, Z))
 end
 
 @testset "setdims" begin

@@ -134,6 +134,77 @@ modify(f, A::AbstractDimArray) = begin
 end
 
 
+"""
+    dimwise!(f, A::AbstractDimArray, B::AbstractDimArray)
+
+Dimension-wise application of function `f`. 
+
+## Arguments
+
+-`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
+-`b`: `AbstractDimArray` to broadcast from all diensions. 
+  Dimensions must be a subset of a.
+
+This is like broadcasting over every slice of `A` if it is 
+sliced by the dimensions of `B`, and storing the value in `dest`.
+"""
+dimwise(f, A::AbstractDimArray, B::AbstractDimArray) = 
+    dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
+
+"""
+    dimwise!(f, dest::AbstractDimArray, A::AbstractDimArray, B::AbstractDimArray)
+
+Dimension-wise application of function `f`. 
+
+## Arguments
+
+-`dest`: `AbstractDimArray` to update
+-`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
+-`b`: `AbstractDimArray` to broadcast from all diensions. 
+  Dimensions must be a subset of a.
+
+This is like broadcasting over every slice of `A` if it is 
+sliced by the dimensions of `B`, and storing the value in `dest`.
+"""
+dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractDimArray{TB,NB}
+        ) where {T,TA,TB,N,NB} = begin
+    N >= NB || error("B-array cannot have more dimensions than A array")
+    comparedims(dest, a)
+    common = commondims(a, dims(b))
+    generators = dimwise_generators(otherdims(a, common))
+    # Lazily permute B dims to match the order in A, if required
+    if !dimsmatch(common, dims(b))
+        b = PermutedDimsArray(b, common)
+    end
+    map(generators) do otherdims
+        I = (common..., otherdims...)
+        dest[I...] .= f.(a[I...], b[common...])
+    end
+    return dest
+end
+
+dimwise_generators(dims::Tuple{<:Dimension}) =  
+    ((basetypeof(dims[1])(i),) for i in axes(dims[1], 1))
+
+dimwise_generators(dims::Tuple) = begin
+    dim_constructors = map(basetypeof, dims)
+    Base.Generator(
+        Base.Iterators.ProductIterator(map(d -> axes(d, 1), dims)),
+        vals -> map(dim_constructors, vals)
+    )
+end
+
+"""
+    basetypeof(x)
+
+Get the base type of an object - the minimum required to
+define the object without it's fields. By default this is the full
+`UnionAll` for the type. But custom `basetypeof` methods can be
+defined for types with free type parameters.
+
+In DimensionalData this is primariliy used for comparing dimensions,
+where `Dim{:x}` is different from `Dim{:y}`.
+"""
 basetypeof(x) = basetypeof(typeof(x))
 @generated function basetypeof(::Type{T}) where T
     getfield(parentmodule(T), nameof(T))

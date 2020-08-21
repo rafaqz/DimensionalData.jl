@@ -132,6 +132,7 @@ And some utility methods for transforming DimensionalData objects:
 rebuild
 modify
 dimwise
+dimwise!
 setdims
 swapdims
 reorderindex
