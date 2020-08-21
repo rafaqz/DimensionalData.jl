@@ -113,6 +113,8 @@ data
 dimnum
 dims
 hasdim
+otherdims
+commondims
 label
 mode
 metadata
@@ -121,6 +123,7 @@ refdims
 shortname
 units
 val
+basetypeof
 ```
 
 And some utility methods for transforming DimensionalData objects:
@@ -128,11 +131,17 @@ And some utility methods for transforming DimensionalData objects:
 ```@docs
 rebuild
 modify
+dimwise
 setdims
 swapdims
 reorderindex
 reorderarray
 reorderrelation
+reverseindex
+reversearray
+flipindex
+fliparray
+fliprelation
 ```
 
 ## Non-exported methods for developers
