@@ -3,19 +3,19 @@ using DimensionalData, Test
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
       @dim, reducedims, XDim, YDim, ZDim, Forward, commondims
 
-dimz = (X(), Y())
+dimz = (X(), Y(), Z(), Ti())
 
 @testset "permutedims" begin
-    @test permutedims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2))
-    @test permutedims((X(1),), dimz) == (X(1), nothing)
-    @test permutedims((Y(), X()), dimz) == (X(:), Y(:))
-    @test permutedims([Y(), X()], dimz) == (X(:), Y(:))
-    @test permutedims((Y, X),     dimz) == (X, Y)
-    @test permutedims([Y, X],     dimz) == (X, Y)
-    @test permutedims(dimz, (Y(), X())) == (Y(:), X(:))
-    @test permutedims(dimz, [Y(), X()]) == (Y(:), X(:))
-    @test permutedims(dimz, (Y, X)    ) == (Y(:), X(:))
-    @test permutedims(dimz, [Y, X]    ) == (Y(:), X(:))
+    @test @inferred permutedims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2), nothing, nothing)
+    @test @inferred permutedims((Ti(1),), dimz) == (nothing, nothing, nothing, Ti(1))
+    @test @inferred permutedims((Y, X, Z, Ti), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred permutedims((Y(), X(), Z(), Ti()), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred permutedims([Y(), X(), Z(), Ti()], dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred permutedims((Z(), Y(), X()),     dimz) == (X(), Y(), Z(), nothing)
+    @test @inferred permutedims(dimz, (Y(), Z())) == (Y(), Z())
+    @test @inferred permutedims(dimz, [Ti(), X(), Z()]) == (Ti(), X(), Z())
+    @test @inferred permutedims(dimz, (Y, Ti)    ) == (Y(), Ti())
+    @test @inferred permutedims(dimz, [Ti, Z, X, Y]    ) == (Ti(), Z(), X(), Y())
 end
 
 a = [1 2 3; 4 5 6]
