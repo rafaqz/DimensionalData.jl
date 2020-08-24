@@ -128,13 +128,14 @@ function reorderrelation end
 
 
 for target in (:index, :array, :relation)
-    local order = Symbol(target, :order)
     reorder = Symbol(:reorder, target)
-    reverse = if target == :relation 
+    if target == :relation 
         # Revsersing the relation reverses the array, not the index
-        :reversearray
+        reverse = :reversearray
+        ord = relation
     else
-        Symbol(:reverse, target)
+        reverse = Symbol(:reverse, target)
+        ord = Symbol(target, :order)
     end
     @eval begin
 
@@ -154,7 +155,7 @@ for target in (:index, :array, :relation)
             A
         end
         ($reorder)(A::AbstractDimArray, dim::DimOrDimType, order::Order) =
-            if order == ($order)(dims(A, dim))
+            if order == ($ord)(dims(A, dim))
                 A
             else
                 ($reverse)(A; dims=dim)

@@ -129,23 +129,6 @@ const DimOrDimType = Union{Dimension,DimType}
 const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
 
-# Getters
-val(dim::Dimension) = dim.val
-mode(dim::Dimension) = dim.mode
-mode(dim::Type{<:Dimension}) = NoIndex()
-metadata(dim::Dimension) = dim.metadata
-
-order(dim::Dimension) = order(mode(dim))
-indexorder(dim::Dimension) = indexorder(order(dim))
-arrayorder(dim::Dimension) = arrayorder(order(dim))
-relationorder(dim::Dimension) = relationorder(order(dim))
-
-locus(dim::Dimension) = locus(mode(dim))
-sampling(dim::Dimension) = sampling(mode(dim))
-
-index(dim::Dimension) = unwrap(val(dim))
-
-
 # DimensionalData interface methods
 
 """
@@ -157,21 +140,49 @@ Rebuild dim with fields from `dim`, and new fields passed in.
 rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
     constructorof(D)(val, mode, metadata)
 
-dims(dim::Dimension) = dim
+dims(dim::Union{Dimension,DimType}) = dim
 dims(dims::DimTuple) = dims
 
+val(dim::Dimension) = dim.val
+mode(dim::Dimension) = dim.mode
+mode(dim::DimType) = NoIndex()
+metadata(dim::Dimension) = dim.metadata
+
+index(dim::Dimension{<:AbstractArray}) = val(dim)
+index(dim::Dimension{<:Val}) = unwrap(val(dim))
+
 name(dim::Dimension) = name(typeof(dim))
-
 shortname(d::Dimension) = shortname(typeof(d))
-shortname(d::Type{<:Dimension}) = name(d) # Use `name` as fallback
-
+shortname(d::DimType) = name(d) # Use `name` as fallback
 units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
-bounds(dims_::DimTuple, lookup) = bounds(dims(dims_, lookup))
-bounds(dims::DimTuple) = map(bounds, dims)
-bounds(dims::Tuple{}) = ()
+order(dim::Dimension) = order(mode(dim))
+span(dim::Dimension) = span(mode(dim))
+sampling(dim::Dimension) = sampling(mode(dim))
+locus(dim::Dimension) = locus(mode(dim))
+
 bounds(dim::Dimension) = bounds(mode(dim), dim)
+
+indexorder(dim::Dimension) = indexorder(order(dim))
+arrayorder(dim::Dimension) = arrayorder(order(dim))
+relation(dim::Dimension) = relation(order(dim))
+
+modetype(dim::Dimension) = typeof(mode(dim))
+modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
+modetype(::UnionAll) = NoIndex
+modetype(::Type{UnionAll}) = NoIndex
+
+
+# Dipatch on Tuple{<:Dimension}, and map to single dim methods
+for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
+             :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
+    @eval begin
+        ($func)(dims_::DimTuple) = map($func, dims_)
+        ($func)(dims_::Tuple{}) = ()
+        ($func)(dims_::DimTuple, lookup) = ($func)(dims(dims_, symbol2dim(lookup)))
+    end
+end
 
 
 # Base methods
@@ -221,8 +232,8 @@ abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
 
 """
     Dim{:X}()
-    Dim{:X}(val, mode, metadata)
     Dim{:X}(val=:; mode=AutoMode(), metadata=nothing)
+    Dim{:X}(val, mode, metadata=nothing)
 
 A generic dimension. For use when custom dims are required when loading
 data from a file. The sintax is ugly and verbose to use for indexing,
@@ -247,12 +258,12 @@ struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
     val::T
     mode::IM
     metadata::M
-    Dim{X}(val, mode, metadata) where X =
-        new{X,typeof(val),typeof(mode),typeof(metadata)}(val, mode, metadata)
+    Dim{X}(val::T, mode::IM, metadata::M=nothing) where {X,T,IM,M} =
+        new{X,T,IM,M}(val, mode, metadata)
 end
-
 Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
     Dim{X}(val, mode, metadata)
+
 name(::Type{<:Dim{X}}) where X = "Dim{:$X}"
 shortname(::Type{<:Dim{X}}) where X = "$X"
 basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
@@ -307,6 +318,8 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             metadata::M
         end
         $typ(val=:; mode=AutoMode(), metadata=nothing) =
+            $typ(val, mode, metadata)
+        $typ(val, mode, metadata=nothing) =
             $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname

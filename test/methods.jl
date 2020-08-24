@@ -8,7 +8,7 @@ using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims,
     a = [1 2; 3 4]
     dimz = (X((143, 145)), Y((-38, -36)))
     da = DimArray(a, dimz)
-    @test map(x -> 2x, da) == [2 4; 6 8]
+    @test @inferred map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
@@ -16,55 +16,66 @@ end
     a = [1 2; 3 4]
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
     da = DimArray(a, dimz)
-    @test sum(da; dims=X()) == sum(a; dims=1)
-    @test sum(da; dims=Y()) == sum(a; dims=2)
+
+    @test @inferred sum(da; dims=X()) == sum(a; dims=1)
+    @test @inferred sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
-    @test prod(da; dims=X) == [3 8]
-    @test prod(da; dims=2) == [2 12]'
+
+    @test @inferred prod(da; dims=X) == [3 8]
+    @test @inferred prod(da; dims=2) == [2 12]'
     resultdimz =
         (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
          Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
-    @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
-    @test maximum(x -> 2x, da; dims=X) == [6 8]
-    @test maximum(x -> 2x, da; dims=2) == [4 8]'
-    @test maximum(da; dims=X) == [3 4]
-    @test maximum(da; dims=2) == [2 4]'
-    @test minimum(da; dims=1) == [1 2]
-    @test minimum(da; dims=Y()) == [1 3]'
+    @test @inferred bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
+
+    @test @inferred maximum(x -> 2x, da; dims=X) == [6 8]
+    @test @inferred maximum(x -> 2x, da; dims=2) == [4 8]'
+    @test @inferred maximum(da; dims=X) == [3 4]
+    @test @inferred maximum(da; dims=2) == [2 4]'
+
+    @test @inferred minimum(da; dims=1) == [1 2]
+    @test @inferred minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
         (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
          Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
+
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
     @test reduce(+, da; dims=Y()) == [3 7]'
     @test dims(reduce(+, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+
     @test std(da) === std(a)
     @test std(da; dims=1) == [1.4142135623730951 1.4142135623730951]
     @test std(da; dims=Y()) == [0.7071067811865476 0.7071067811865476]'
+
     @test var(da; dims=1) == [2.0 2.0]
     @test var(da; dims=Y()) == [0.5 0.5]'
+    @test dims(var(da; dims=Y())) ==
+        (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
+         Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+
     if VERSION > v"1.1-"
         @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
         @test extrema(da; dims=X) == [(1, 3) (2, 4)]
     end
-    @test dims(var(da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
-         Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+
     a = [1 2 3; 4 5 6]
     da = DimArray(a, dimz)
     @test median(da) == 3.5
@@ -88,20 +99,20 @@ end
 end
 
 if VERSION > v"1.1-"
-    @testset "iteration methods" begin
+    @testset "eachslice" begin
         a = [1 2 3 4
              3 4 5 6
              5 6 7 8]
-        # eachslice
         da = DimArray(a, (Y((10, 30)), Ti(1:4)))
         @test [mean(s) for s in eachslice(da; dims=Ti)] == [3.0, 4.0, 5.0, 6.0]
         @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
+
         slices = [s .* 2 for s in eachslice(da; dims=Y)]
-        @test map(sin, da) == map(sin, a)
         @test slices[1] == [2, 4, 6, 8]
         @test slices[2] == [6, 8, 10, 12]
         @test slices[3] == [10, 12, 14, 16]
         dims(slices[1]) == (Ti(1.0:1.0:4.0),)
+
         slices = [s .* 2 for s in eachslice(da; dims=Ti)]
         @test slices[1] == [2, 6, 10]
         dims(slices[1]) == (Y(10.0:10.0:30.0),)
@@ -144,7 +155,6 @@ end
                                           Ti(10:11; mode=Sampled()), 
                                           X(1:4; mode=Sampled())))
     dsp = permutedims(da, [3, 1, 2])
-
     @test permutedims(da, [X, Y, Ti]) == permutedims(da, (X, Y, Ti))
     @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
     dsp = permutedims(da, (X(), Y(), Ti()))
@@ -152,6 +162,7 @@ end
     @test dims(dsp) == (X(1:4; mode=Sampled(Ordered(), Regular(1), Points())),
                         Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
                         Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())))
+
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(parent(da), (3, 1, 2))
     @test typeof(dsp) <: DimArray
@@ -255,6 +266,7 @@ end
     da = DimArray(a, (X(1:2), Y(1:3)))
     b = [7 8 9; 10 11 12]
     db = DimArray(b, (X(3:4), Y(1:3)))
+
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
     testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
                 Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
@@ -277,9 +289,3 @@ end
     @test unique(da; dims=X()) == [1 1 6]
     @test unique(da; dims=Y) == [1 6; 1 6]
 end
-
-# These need fixes in base. kwargs are ::Integer so we can't add methods
-# or dispatch on AbstractDimension in underscore _methods
-# accumulate
-# cumsum
-# cumprod

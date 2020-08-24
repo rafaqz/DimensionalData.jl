@@ -24,32 +24,6 @@ const StandardIndices = Union{AbstractArray,Colon,Integer}
 
 # DimensionalData.jl interface methods ############################################################
 
-"""
-    bounds(A::AbstractArray) => Tuple{Vararg{Tuple,N}}
-
-Returns a tuple of bounds for each array axis.
-"""
-bounds(A::AbstractArray) = bounds(dims(A))
-"""
-    bounds(A::AbstractArray, dims::Dimension{T}) => Tuple{T,T}
-    bounds(A::AbstractArray, dims) => Tuple{Vararg{Tuple,N}}
-
-Returns the bounds for the specified dimension(s).
-`dims` can be a `Dimension`, a dimension type, or a tuple of either.
-"""
-bounds(A::AbstractArray, dims) =
-    bounds(DimensionalData.dims(A), dims)
-
-"""
-    metadata(A::AbstractArray, dims)
-
-Returns the metadata for the specified dimension(s).
-`dims` can be a `Dimension`, a dimension type, or a tuple of either.
-"""
-metadata(A::AbstractDimArray, dim) = metadata(dims(A, dim))
-metadata(A::AbstractDimArray, dims::Tuple) =
-    map(metadata, DimensionalData.dims(A, dims))
-
 # Standard fields
 
 dims(A::AbstractDimArray) = A.dims
@@ -75,11 +49,11 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-order(A::AbstractDimArray, args...) = order(dims(A, args...))
-arrayorder(A::AbstractDimArray, args...) = arrayorder(dims(A, args...))
-indexorder(A::AbstractDimArray, args...) = indexorder(dims(A, args...))
-   
-
+# Dipatch on Tuple of Dimension, and map
+for func in (:index, :mode, :metadata, :sampling, :span, :bounds, 
+             :locus, :order, :arrayorder, :indexorder, :relation)
+    @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A, args...))
+end
 
 
 # Array interface methods ######################################################
@@ -138,11 +112,22 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dim
 
 # Symbol keyword-argument indexing. This allows indexing with A[somedim=25.0] for Dim{:somedim}
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, args::Dimension...; kwargs...) =
-    getindex(A, args..., map((key, val) -> Dim{key}(val), keys(kwargs), values(kwargs))...)
+    getindex(A, args..., _kwargdims(kwargs.data)...)
 Base.@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwargs...) =
-    view(A, args..., map((key, val) -> Dim{key}(val), keys(kwargs), values(kwargs))...)
+    view(A, args..., _kwargdims(kwargs.data)...)
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
-    setindex!(A, x, args..., map((key, val) -> Dim{key}(val), keys(kwargs), values(kwargs))...)
+    setindex!(A, x, args..., _kwargdims(kwargs)...)
+
+
+_kwargdims(kwargs::Base.Iterators.Pairs) = _kwargdims(kwargs.data)
+_kwargdims(kwargsdata::NamedTuple) = 
+    _kwargdims(_kwargdimtypes(kwargsdata), values(kwargsdata))
+_kwargdims(dims::Tuple, vals::Tuple) = 
+    (rebuild(dims[1], vals[1]), _kwargdims(tail(dims), tail(vals))...)
+_kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
+
+_kwargdimtypes(::NamedTuple{Keys}) where Keys = map(k -> Dim{k}(), Keys)
+
 
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =

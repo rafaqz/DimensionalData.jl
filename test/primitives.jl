@@ -3,19 +3,26 @@ using DimensionalData, Test
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
       @dim, reducedims, XDim, YDim, ZDim, Forward, commondims
 
-dimz = (X(), Y(), Z(), Ti())
 
-@testset "permutedims" begin
-    @test @inferred permutedims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2), nothing, nothing)
-    @test @inferred permutedims((Ti(1),), dimz) == (nothing, nothing, nothing, Ti(1))
-    @test @inferred permutedims((Y, X, Z, Ti), dimz) == (X(), Y(), Z(), Ti())
-    @test @inferred permutedims((Y(), X(), Z(), Ti()), dimz) == (X(), Y(), Z(), Ti())
-    @test @inferred permutedims([Y(), X(), Z(), Ti()], dimz) == (X(), Y(), Z(), Ti())
-    @test @inferred permutedims((Z(), Y(), X()),     dimz) == (X(), Y(), Z(), nothing)
-    @test @inferred permutedims(dimz, (Y(), Z())) == (Y(), Z())
-    @test @inferred permutedims(dimz, [Ti(), X(), Z()]) == (Ti(), X(), Z())
-    @test @inferred permutedims(dimz, (Y, Ti)    ) == (Y(), Ti())
-    @test @inferred permutedims(dimz, [Ti, Z, X, Y]    ) == (Ti(), Z(), X(), Y())
+@testset "sortdims" begin
+    dimz = (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2), nothing, nothing)
+    @test @inferred sortdims((Ti(1),), dimz) == (nothing, nothing, nothing, Ti(1))
+    @test @inferred sortdims((Y, X, Z, Ti), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Y(), X(), Z(), Ti()), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims([Y(), X(), Z(), Ti()], dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Z(), Y(), X()),     dimz) == (X(), Y(), Z(), nothing)
+    @test @inferred sortdims(dimz, (Y(), Z())) == (Y(), Z())
+    @test @inferred sortdims(dimz, [Ti(), X(), Z()]) == (Ti(), X(), Z())
+    @test @inferred sortdims(dimz, (Y, Ti)    ) == (Y(), Ti())
+    @test @inferred sortdims(dimz, [Ti, Z, X, Y]    ) == (Ti(), Z(), X(), Y())
+    # Transformed
+    @test @inferred sortdims((Y(1:2; mode=Transformed(identity, Z())), X(1)), (X(), Z())) == 
+                             (X(1), Y(1:2; mode=Transformed(identity, Z()))) 
+    # Abstract
+    @test @inferred sortdims((Z(), Y(), X()), (XDim, TimeDim)) == (X(), nothing)
+    # Repeating
+    @test @inferred sortdims((Z(:a), Y(), Z(:b)), (YDim, Z(), ZDim)) == (Y(), Z(:a), Z(:b))
 end
 
 a = [1 2 3; 4 5 6]
@@ -152,10 +159,11 @@ end
 end
 
 @testset "commondims" begin
-    commondims(da, X) == (dims(da, X),)
+    @test commondims(da, X) == (dims(da, X),)
     # Dims are always in the base order
-    commondims(da, (X, Y)) == dims(da, (X, Y))
-    commondims(da, (Y, X)) == dims(da, (X, Y))
+    @test commondims(da, (X, Y)) == dims(da, (X, Y))
+    @test commondims(da, (Y, X)) == dims(da, (X, Y))
+    @test basetypeof(commondims(da, DimArray(zeros(5), Y))[1]) <: Y
 
     @testset "with Dim{X} and symbols" begin
         @test commondims((Dim{:a}(), Dim{:b}()), (:a, :c)) == (Dim{:a}(),)

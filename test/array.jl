@@ -115,6 +115,9 @@ end
     @test bounds(v) == ((-38.0, -36.0),)
 end
 
+@testset "" begin
+end
+
 a2 = [1 2 3 4
       3 4 5 6
       4 5 6 7]
@@ -142,12 +145,26 @@ da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
     @test view(da2, column=1, row=3) == fill(4)
     @test view(da2, column=1, Dim{:row}(1)) == fill(1)
     da2_set = deepcopy(da2)
-    da2_set[column=1, Dim{:row}(1)] = 99
+    da2_set[Dim{:column}(1), Dim{:row}(1)] = 99
     @test da2_set[1, 1] == 99
+    da2_set[column=2, row=2] = 88
+    @test da2_set[2, 2] == 88
+    da2_set[Dim{:row}(3), column=3] = 77
+    @test da2_set[3, 3] == 77
 
-    @inferred getindex(da2, Dim{:column}(1), Dim{:row}(3))
     # We can also construct without using `Dim{X}`
     @test dims(DimArray(a2, (:a, :b))) == dims(DimArray(a2, (Dim{:a}, Dim{:b})))
+
+    # Inrerence
+    @inferred getindex(da2, column=1, row=3)
+    @inferred view(da2, column=1, row=3)
+    @inferred setindex!(da2_set, 77, Dim{:row}(1), column=2)
+    # With a large type
+    da4 = DimArray(zeros(1, 2, 3, 4, 5, 6, 7, 8), (:a, :b, :c, :d, :d, :f, :g, :h))
+    @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5)
+    # Type inference breaks with 6 arguments.
+    # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
+    # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
 end
 
 @testset "size and axes" begin
@@ -220,9 +237,14 @@ end
     @test dims(da_float) == dims(da2)
     @test refdims(da_float) == refdims(da2)
 
+    # Changing the axis size removes dims.
     da_size_float = similar(da2, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
+    @test typeof(da_size_float) <: Array{Float64,2}
+    da_size_float_splat = similar(da2, Float64, 10, 10)
+    @test size(da_size_float_splat) == (10, 10)
+    @test typeof(da_size_float_splat)  <: Array{Float64,2}
 
     sda = DimArray(sprand(Float64, 10, 10, .5), (X, Y))
     sparse_size_int = similar(sda, Int64, (5, 5))
@@ -282,6 +304,18 @@ if VERSION > v"1.1-"
         @test db == da2
         copy!(dc, a2)
         @test db == a2
+
+        @testset "vector copy! (ambiguity fix)" begin
+            v = zeros(3)
+            dv = DimArray(zeros(3), X)
+            copy!(v, DimArray([1.0, 2.0, 3.0], X))
+            @test v == [1.0, 2.0, 3.0]
+            copy!(dv, DimArray([9.9, 9.9, 9.9], X))
+            @test dv == [9.9, 9.9, 9.9]
+            copy!(dv, [5.0, 5.0, 5.0])
+            @test dv == [5.0, 5.0, 5.0]
+        end
+
     end
 end
 
@@ -294,8 +328,9 @@ end
 
 @testset "fill constructor" begin
     da = fill(5.0, (X(4), Y(40.0:10.0:80.0)))
-    @test da == fill(5.0, (4, 5))
+    @test parent(da) == fill(5.0, (4, 5))
     @test dims(da) == 
         (X(Base.OneTo(4), NoIndex(), nothing), 
          Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
+    @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
 end

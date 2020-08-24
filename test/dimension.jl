@@ -4,6 +4,9 @@ using DimensionalData: Forward, slicedims, basetypeof, formatdims
 @dim TestDim "Test dimension"
 
 @testset "dims creation macro" begin
+    @test TestDim(1:10, Sampled()) == TestDim(1:10, Sampled(), nothing)
+    @test TestDim(1:10; mode=Categorical()) == TestDim(1:10, Categorical(), nothing)
+
     @test name(TestDim) == "Test dimension"
     @test label(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
@@ -41,55 +44,89 @@ end
     @test formatdims(A, (:a, :b)) == (Dim{:a}(Base.OneTo(2), NoIndex(), nothing),
                                       Dim{:b}(Base.OneTo(3), NoIndex(), nothing))
     @test formatdims(51:100, :c) == (Dim{:c}(Base.OneTo(50), NoIndex(), nothing),)
-    @test formatdims(A, (a=[:A, :B], b=(10.0:10.0:30.0))) == 
-        (Dim{:a}([:A, :B], Categorical(Unordered()), nothing), 
+    @test formatdims(A, (a=[:A, :B], b=(10.0:10.0:30.0))) ==
+        (Dim{:a}([:A, :B], Categorical(Unordered()), nothing),
          Dim{:b}(10.0:10:30.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
-    @test formatdims(A, (X([:A, :B]; metadata=5), 
-                   Y(10.0:10.0:30.0, Categorical(Ordered()), Dict("metadata"=>1)))) == 
-          (X([:A, :B], Categorical(Unordered()), 5), 
+    @test formatdims(A, (X([:A, :B]; metadata=5),
+                   Y(10.0:10.0:30.0, Categorical(Ordered()), Dict("metadata"=>1)))) ==
+          (X([:A, :B], Categorical(Unordered()), 5),
           Y(10.0:10:30.0, Categorical(Ordered()), Dict("metadata"=>1)))
+    @test formatdims(zeros(3, 4), 
+       (Dim{:row}(Val((:A, :B, :C))), 
+        Dim{:column}(Val((-20, -10, 0, 10)), Sampled(), nothing))) ==
+       (Dim{:row}(Val((:A, :B, :C)), Categorical(), nothing), 
+        Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Irregular(),Points()), nothing))
 end
 
 @testset "Basic dim and array initialisation" begin
     a = ones(5, 4)
-    # Must construct with a tuple for dims/refdims
 
     @test_throws DimensionMismatch DimArray(a, X)
     @test_throws DimensionMismatch DimArray(a, (X, Y, Z))
 
-    da = DimArray(a, (X((140, 148)), Y((2, 11))))
+    da = DimArray(a, (X(LinRange(140, 148, 5)), Y(LinRange(2, 11, 4))))
     dimz = dims(da)
-    @test d = typeof(slicedims(dimz, (2:4, 3))) == 
-        typeof(((X(LinRange(142,146,3); mode=Sampled(order=Ordered(), span=Regular(2.0))),),
-            (Y(8.0, mode=Sampled(order=Ordered(), span=Regular(3.0))),)))
+
+    @test val(dimz) == index(dimz) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
     @test name(dimz) == ("X", "Y")
     @test shortname(dimz) == ("X", "Y")
     @test units(dimz) == (nothing, nothing)
-    @test label(dimz) == ("X, Y")
+    @test label(dimz) == ("X", "Y")
+    @test sampling(dimz) == (Points(), Points())
+    @test span(dimz) == (Regular(2.0), Regular(3.0))
+    @test locus(dimz) == (Center(), Center())
+    @test order(dimz) == (Ordered(), Ordered())
+    @test arrayorder(dimz) == (Forward(), Forward())
+    @test indexorder(dimz) == (Forward(), Forward())
+    @test relation(dimz) == (Forward(), Forward())
+    @test bounds(dimz) == ((140, 148), (2, 11))
+
+    @test slicedims(dimz, (2:4, 3)) ==
+        ((X(LinRange(142,146,3); mode=Sampled(order=Ordered(), span=Regular(2.0))),),
+            (Y(8.0, mode=Sampled(order=Ordered(), span=Regular(3.0))),))
 end
 
 a = [1 2 3 4
      2 3 4 5
      3 4 5 6]
 da = DimArray(a, (X((143, 145)), Y((-38, -35))))
-dimz = dims(da) 
+dimz = dims(da)
 
 @testset "dims" begin
     @test dims(dimz) === dimz
     @test dims(dimz, X) === dimz[1]
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Ti)
-    @test typeof(dims(da)) == 
+    @test typeof(dims(da)) ==
         Tuple{X{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing},
               Y{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing}}
 end
 
-@testset "arbitrary dim names" begin
-    dimz = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
+@testset "arbitrary dim names and Val index" begin
+    dimz = formatdims(zeros(3, 4),
+           (Dim{:row}(Val((:A, :B, :C))), 
+            Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Regular(10),Points()), nothing))
+    )
     @test name(dimz) == ("Dim{:row}", "Dim{:column}")
     @test shortname(dimz) == ("row", "column")
-    @test label(dimz) == ("Dim{:row}, Dim{:column}")
+    @test label(dimz) == ("Dim{:row}", "Dim{:column}")
     @test basetypeof(dimz[1]) == Dim{:row}
+    @test length.(dimz) == (3, 4)
+    @test firstindex(dimz[1]) == 1
+    @test lastindex(dimz[1]) == 3
+    @test ndims(dimz[1]) == 1
+    @test Array(dimz[1]) == [:A, :B, :C]
+
+    @testset "specify dim with Symbol" begin
+        @test_throws ArgumentError arrayorder(dimz, :x)
+        # TODO Does this make sense?
+        @test arrayorder(dimz, :row) == Unordered()
+        @test arrayorder(dimz, :column) == Forward()
+        @test bounds(dimz, :row) == (nothing, nothing)
+        @test bounds(dimz, :column) == (-20, 10)
+        @test index(dimz, :row) == (:A, :B, :C)
+        @test index(dimz, :column) == (-20, -10, 0, 10)
+    end
 end
 
 @testset "repeating dims of the same type is allowed" begin
@@ -98,7 +135,7 @@ end
     @test dims(dimz, (X, X)) === dimz
     @test dimnum(dimz, (X, X)) === (1, 2)
     @test hasdim(dimz, (X, X)) === (true, true)
-    @test permutedims(dimz, (X, X)) === dimz
+    @test sortdims(dimz, (X, X)) === dimz
 end
 
 @testset "applying function on a dimension" begin

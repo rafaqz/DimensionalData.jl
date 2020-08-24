@@ -170,7 +170,7 @@ end
 for fname in [:permutedims, :PermutedDimsArray]
     @eval begin
         @inline Base.$fname(A::AbstractDimArray{T,N}, perm) where {T,N} =
-            rebuild(A, $fname(parent(A), dimnum(A, perm)), permutedims(dims(A), perm))
+            rebuild(A, $fname(parent(A), dimnum(A, perm)), sortdims(dims(A), perm))
     end
 end
 
@@ -206,7 +206,7 @@ _catifcatdim(catdims::Tuple, ds) =
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
 Base.vcat(dims::Dimension...) =
-    rebuild(dims[1], vcat(map(val, dims)...), vcat(map(mode, dims)...))
+    rebuild(dims[1], vcat(val(dims)...), vcat(mode(dims)...))
 
 Base.vcat(modes::IndexMode...) = first(modes)
 Base.vcat(modes::AbstractSampled...) =

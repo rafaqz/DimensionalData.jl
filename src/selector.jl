@@ -1,12 +1,12 @@
 """
 Selectors are wrappers that indicate that passed values are not the array indices,
 but values to be selected from the dimension index, such as `DateTime` objects for
-a `Ti` dimension. 
+a `Ti` dimension.
 
 Selectors provided in DimensionalData are:
 
-- [`At`](@ref) 
-- [`Between`](@ref) 
+- [`At`](@ref)
+- [`Between`](@ref)
 - [`Near`](@ref)
 - [`Where`](@ref)
 - [`Contains`](@ref)
@@ -69,11 +69,12 @@ rtol(sel::At) = sel.rtol
 """
     Near(x)
 
-Selector that selects the nearest index.
-With [`Points`](@ref) this is simply the index nearest to the
-contained value, however with [`Intervals`](@ref) it is the interval
-_center_ nearest to the contained value. This will be offset from the
-index value for [`Start`](@ref) and [`End`](@ref) loci.
+Selector that selects the nearest index to `x`.
+
+With [`Points`](@ref) this is simply the index values nearest to the `x`,
+however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
+This will be offset from the index value for [`Start`](@ref) and
+[`End`](@ref) loci.
 
 ## Example
 
@@ -81,7 +82,7 @@ index value for [`Start`](@ref) and [`End`](@ref) loci.
 using DimensionalData
 
 A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
-A[X(Near(23)), Y(Near(5.1))] 
+A[X(Near(23)), Y(Near(5.1))]
 
 # output
 
@@ -122,12 +123,24 @@ end
 """
     Between(a, b)
 
-Selector that retreive all indices located between 2 values.
+Selector that retreive all indices located between 2 values,
+evaluated with `>=` for the lower value, and `<` for the upper value.
+This means the same value will not be counted twice in 2 `Between`
+selections.
 
 For [`Intervals`](@ref) the whole interval must be lie between the
 values. For [`Points`](@ref) the points must fall between
-the 2 values. These different sampling traits will often give different
-results with the same index and values - this is the intended behaviour.
+the values. Different [`Sampling`](@ref) types may give different
+results with the same input - this is the intended behaviour.
+
+`Between` for [`Irregular`](@ref) intervals is a little complicated. The
+interval is the distance between a value and the next (for [`Start`](ref) locus)
+or previous (for [`End`](@ref) locus) value.
+
+For [`Center`](@ref), we take the mid point between two index values
+as the start and end of each interval. This may or may not make sense for
+the values in your indes, so use `Between` with `Irregular` `Intervals(Center())`
+with caution.
 
 ## Example
 
@@ -135,7 +148,7 @@ results with the same index and values - this is the intended behaviour.
 using DimensionalData
 
 A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
-A[X(Between(15, 25)), Y(Between(4, 6.5))] 
+A[X(Between(15, 25)), Y(Between(4, 6.5))]
 
 # output
 
@@ -181,11 +194,16 @@ end
 
 val(sel::Where) = sel.f
 
+
+# sel2indices ==========================================================================
+
+# Converts Selectors to regular indices
+
 # Get the dims in the same order as the mode
 # This would be called after RegularIndex and/or Categorical
 # dimensions are removed
 @inline _dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
-    sel2indices(mode, dims, map(val, permutedims(dimz, dims(mode))))
+    sel2indices(mode, dims, val(sortdims(dims, DD.dims(mode))))
 
 @inline sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 @inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
@@ -204,18 +222,18 @@ val(sel::Where) = sel.f
     sel2indices(mode, dim, sel)
 
 @inline sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
-    [i for (i, v) in enumerate(val(dim)) if sel.f(v)]
+    [i for (i, v) in enumerate(index(dim)) if sel.f(v)]
 
 # Then dispatch based on IndexMode -----------------
 
-# NoIndex
+# NoIndex -----------------------------
 # This just converts the selector to standard indices. Implemented just
 # so the Selectors actually work, not because what they do is useful or interesting.
 @inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(sel)
 @inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
-# Categorical
+# Categorical -------------------------
 @inline sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
         sel2indices(Points(), mode, dim, At(val(sel)))
@@ -223,17 +241,17 @@ val(sel::Where) = sel.f
         sel2indices(Points(), mode, dim, sel)
     end
 
-# Sampled
+# Sampled -----------------------------
 @inline sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
 # For Sampled filter based on sampling type and selector -----------------
 
-# At selector
+# At selector -------------------------
 @inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     at(sampling, mode, dim, sel)
 
-# Near selector
+# Near selector -----------------------
 @inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     if span(mode) isa Irregular && locus(mode) isa Union{Start,End}
         error("Near is not implemented for Irregular with Start or End loci. Use Contains")
@@ -241,22 +259,22 @@ val(sel::Where) = sel.f
     near(sampling, mode, dim, sel)
 end
 
-# Contains selector
+# Contains selector -------------------
 @inline sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
     throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
 @inline sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(sampling, mode, dim, sel)
 
-# Between selector
+# Between selector --------------------
 @inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
     between(sampling, mode, dim, sel)
 
 
-# Transformed IndexMode
+# Transformed IndexMode ------------------------------------------
 
 # We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-@inline sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}}, 
+@inline sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}},
             dims::DimTuple) =
     map(_to_int, sel, transform(modes[1])([map(val, sel)...]))
 
@@ -264,251 +282,204 @@ _to_int(::At, x) = convert(Int, x)
 _to_int(::Near, x) = round(Int, x)
 
 
+
 # Selector methods
+
+# at =============================================================================
 
 @inline at(dim::Dimension, sel::At) =
     at(sampling(mode(dim)), mode(dim), dim, sel)
 @inline at(::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     relate(dim, at(dim, val(sel), atol(sel), rtol(sel)))
 @inline at(dim::Dimension{<:Val{Index}}, selval, atol::Nothing, rtol::Nothing) where Index = begin
-    i = findfirst(x -> x == selval, Index)
-    i == nothing && selvalnotfound(dim, selval)
-    return i
-end
-@inline at(dim::Dimension{<:Val{Index}}, selval::Val, atol::Nothing, rtol::Nothing) where Index = begin
     i = findfirst(x -> x == unwrap(selval), Index)
     i == nothing && selvalnotfound(dim, selval)
     return i
 end
 @inline at(dim::Dimension, selval, atol::Nothing, rtol::Nothing) = begin
-    i = findfirst(x -> x == selval, val(dim))
+    i = findfirst(x -> x == selval, index(dim))
     i == nothing && selvalnotfound(dim, selval)
     return i
 end
-# @inline at(dim::Dimension, selval, atol, rtol) = begin
-#     # This is not particularly efficient. It should be separated
-#     # out for unordered dims and otherwise treated as an ordered list.
-#     i = findfirst(x -> isapprox(x, selval; atol=atol, rtol=rtol), val(dim))
-#     i == nothing && selvalnotfound(dim, selval)
-#     return i
-# end
 
-@noinline selvalnotfound(dim, selval) = 
+@noinline selvalnotfound(dim, selval) =
     throw(ArgumentError("$selval not found in $dim"))
 
-near(dim::Dimension, sel::Near) =
-    near(sampling(mode(dim)), mode(dim), dim, sel)
+
+# near ===========================================================================
+
+# Finds the nearest point in the index, adjusting for locus if necessary.
+# In Intevals we are finding the nearest point to the center of the interval.
+
+near(dim::Dimension, sel::Near) = near(sampling(mode(dim)), mode(dim), dim, sel)
 near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     order = indexorder(dim)
     order isa Unordered && throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
-    relate(dim, near(locus(mode), order, dim, sel))
-end
-# Start is just offset Center
-near(::Start, order::Order, dim::Dimension, sel::Near) =
-    near(Center(), order, dim, Near(val(sel) - abs(step(dim)) / 2))
-near(::Center, order::Forward, dim::Dimension, sel) = begin
-    selval = val(sel)
-    i = _inbounds(_searchfirst(order, dim, selval), dim)
-    if i <= firstindex(dim)
-        firstindex(dim)
+    locus = DD.locus(dim)
+
+    v = _locus_adjust(locus, val(sel), dim)
+    i = _inbounds(_searchorder(order)(order, dim, v), dim)
+    i = if (order isa Forward ? (<=) : (>=))(i, _dimlower(order, dim))
+        _dimlower(order, dim)
     else
-        abs(dim[i] - selval) <= abs(dim[i - 1] - selval) ? i : i - 1
+        previ = _prevind(order, i)
+        vl, vi = map(abs, (dim[previ] - v, dim[i] - v))
+        # We have to use the right >/>= for Start/End locus 
+        _lt(locus)(vl, vi) ? previ : i
     end
-end
-near(::Center, order::Reverse, dim::Dimension, sel::Near) = begin
-    selval = val(sel)
-    i = _inbounds(_searchlast(order, dim, selval), dim)
-    if i >= lastindex(dim)
-        lastindex(dim)
-    else
-        abs(dim[i] - selval) <= abs(dim[i + 1] - selval) ? i : i + 1
-    end
-end
-# End is offset and backwards.
-near(::End, order::Forward, dim::Dimension, sel::Near) = begin
-    selval = val(sel) + step(dim) / 2
-    i = _inbounds(_searchfirst(order, dim, selval), dim)
-    if i <= firstindex(dim)
-        firstindex(dim)
-    else
-        abs(dim[i] - selval) < abs(dim[i - 1] - selval) ? i : i - 1
-    end
-end
-near(::End, order::Reverse, dim::Dimension, sel::Near) = begin
-    selval = val(sel) - step(dim) / 2
-    i = _inbounds(_searchlast(order, dim, selval), dim)
-    if i >= lastindex(dim)
-        lastindex(dim)
-    else
-        abs(dim[i] - selval) < abs(dim[i + 1] - selval) ? i : i + 1
-    end
+    relate(dim, i)
 end
 
+_locus_adjust(locus::Start, v, dim) = v - abs(step(dim)) / 2
+_locus_adjust(locus::Center, v, dim) = v
+_locus_adjust(locus::End, v, dim) = v + abs(step(dim)) / 2
+
+
+# contains ================================================================================
+
+# Finds which interval contains a point
 
 contains(dim::Dimension, sel::Contains) =
     contains(sampling(mode(dim)), mode(dim), dim, sel)
 
+# Points --------------------------------------
 contains(::Points, ::IndexMode, dim::Dimension, sel::Contains) =
     throw(ArgumentError("Points IndexMode cannot use 'Contains', use 'Near' instead."))
-contains(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Contains) =
-    relate(dim, contains(indexorder(mode), span(mode), locus(mode), sampling, dim, sel))
 
-contains(order::Forward, span::Regular, ::Start, ::Intervals, dim::Dimension, sel::Contains) = begin
-    v = val(sel)
-    s = val(span)
-    (v < first(dim) || v >= last(dim) + s) && throw(BoundsError())
-    i = _searchlast(order, dim, v)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] + abs(s) > v) || error("No span for $v")
+# Intervals -----------------------------------
+contains(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
+    relate(dim, contains(span(mode), sampling, indexorder(mode), locus(mode), dim, sel))
+
+# Regular Intervals ---------------------------
+contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel::Contains) = begin
+    v = val(sel); s = abs(val(span))
+    _locus_checkbounds(locus, bounds(dim), v)
+    i = _whichsearch(locus, order)(order, dim, maybeaddhalf(locus, s, v))
+    # Check the value is in this cell - it might not be for Val or Vector.
+    if !(val(dim) isa AbstractRange) 
+        _lt(locus)(v, dim[i] + s) || error("No interval contains $(v)")
     end
     i
-end
-contains(order::Reverse, span::Regular, ::Start, ::Intervals, dim::Dimension, sel::Contains) = begin
-    v = val(sel)
-    (v < last(dim) || v >= first(dim) - val(span)) && throw(BoundsError())
-    i = _searchfirst(order, dim, v)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] + abs(val(span)) > v) || error("No span for $v")
-    end
-    i
-end
-contains(order::Forward, span::Regular, ::End, ::Intervals, dim::Dimension, sel::Contains) = begin
-    v = val(sel)
-    (v <= first(dim) - val(span) || v > last(dim)) && throw(BoundsError())
-    i = _searchfirst(order, dim, v)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] - abs(val(span)) <= v) || error("No span for $v")
-    end
-    i
-end
-contains(order::Reverse, span::Regular, ::End, ::Intervals, dim::Dimension, sel::Contains) = begin
-    v = val(sel)
-    (v <= last(dim) + val(span) || v > first(dim)) && throw(BoundsError())
-    i = _searchlast(order, dim, v)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] - abs(val(span)) <= v) || error("No span for $v")
-    end
-    i
-end
-contains(order::Forward, span::Regular, ::Center, ::Intervals, dim::Dimension, sel::Contains) = begin
-    half = abs(val(span) / 2)
-    v = val(sel)
-    (v < first(dim) - half || v >= last(dim) + half) && throw(BoundsError())
-    i = _searchlast(order, dim, v + half)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
-    end
-    i
-end
-contains(order::Reverse, span::Regular, ::Center, ::Intervals, dim::Dimension, sel::Contains) = begin
-    half = abs(val(span) / 2)
-    v = val(sel)
-    (v < last(dim) - half || v >= first(dim) + half) && throw(BoundsError())
-    i = _searchfirst(order, dim, v + half)
-    if !(val(dim) isa AbstractRange) # Check the value is in this cell
-        (dim[i] <= v - abs(half)) || (dim[i] > v + abs(half)) && error("No span for $v")
-    end
-    i
-end
-contains(order::Order, ::Irregular, ::Start, ::Intervals, dim::Dimension, sel::Contains) = begin
-    i = _searchlast(order, dim, val(sel))
-    checkbounds(val(dim), i)
-    i
-end
-contains(order::Order, ::Irregular, ::End, ::Intervals, dim::Dimension, sel::Contains) = begin
-    i = _searchfirst(order, dim, val(sel))
-    checkbounds(val(dim), i)
-    i
-end
-contains(order::Reverse, ::Irregular, ::Center, ::Intervals, dim::Dimension, sel::Contains) = begin
-    i = _searchlast(order, dim, val(sel))
-    checkbounds(val(dim), i)
-    if i == firstindex(dim)
-        firstindex(dim)
-    else
-        (dim[i] + dim[i - 1]) / 2 <= val(sel) ? i - 1 : i
-    end
-end
-contains(order::Forward, ::Irregular, ::Center, ::Intervals, dim::Dimension, sel::Contains) = begin
-    i = _searchlast(order, dim, val(sel))
-    checkbounds(val(dim), i)
-    if i == lastindex(dim)
-        lastindex(dim)
-    else
-        (dim[i] + dim[i + 1]) / 2 <= val(sel) ? i + 1 : i
-    end
 end
 
+# Irregular Intervals -------------------------
+contains(span::Irregular, ::Intervals, order::Order, locus::Locus, dim::Dimension, sel::Contains) = begin
+    _locus_checkbounds(locus, bounds(span), val(sel))
+    _whichsearch(locus, order)(order, dim, val(sel))
+end
+contains(span::Irregular, ::Intervals, order::Order, locus::Center, dim::Dimension, sel::Contains) = begin
+    v = val(sel)
+    _locus_checkbounds(locus, bounds(span), v)
+    i = _searchfirst(order, dim, v)
+    i <= firstindex(dim) && return firstindex(dim)
+    i > lastindex(dim) && return lastindex(dim)
+    
+    interval = abs(dim[i] - dim[i - 1])
+    distance = abs(dim[i] - v)
+    _order_lt(order)(interval / 2, distance) ? i - 1 : i
+end 
+
+_whichsearch(::Locus, ::Forward) = _searchlast
+_whichsearch(::Locus, ::Reverse) = _searchfirst
+_whichsearch(::End, ::Forward) = _searchfirst
+_whichsearch(::End, ::Reverse) = _searchlast
+
+maybeaddhalf(::Locus, s, v) = v
+maybeaddhalf(::Center, s, v) = v + s / 2
+
+_order_lt(::Forward) = (<)
+_order_lt(::Reverse) = (<=)
+
+
+
+# between ================================================================================
+
+# Finds all values between two points, adjusted for locus where necessary
 
 between(dim::Dimension, sel::Between) =
     between(sampling(mode(dim)), mode(dim), dim, sel)
 between(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between) = begin
     order = indexorder(dim)
-    order isa Unordered && throw(ArgumentError("Cannot use `Between` on an unordered mode"))
-    between(order, sampling, mode, dim, sel)
-end
-
-between(order::Forward, ::Points, ::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel)
-    a = _inbounds(_searchfirst(order, dim, low), dim)
-    b = _inbounds(_searchlast(order, dim, high), dim)
-    relate(dim, a:b)
-end
-between(order::Reverse, ::Points, ::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel)
-    a = _inbounds(_searchlast(order, dim, high), dim)
-    b = _inbounds(_searchfirst(order, dim, low), dim)
-    relate(dim, a:b)
-end
-between(order::Order, s::Intervals, mode::IndexMode, dim::Dimension, sel::Between) =
-    between(span(mode), order, mode, dim, sel)
-between(span::Regular, order::Forward, mode::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel) .+ _locus_adjustment(mode, span)
-    a = _inbounds(_searchfirst(order, dim, low), dim)
-    b = _inbounds(_searchlast(order, dim, high), dim)
-    relate(dim, a:b)
-end
-between(span::Regular, order::Reverse, mode::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel) .+ _locus_adjustment(mode, span)
-    a = _inbounds(_searchfirst(order, dim, high), dim)
-    b = _inbounds(_searchlast(order, dim, low), dim)
-    relate(dim, a:b)
-end
-between(span::Irregular, order::Forward, ::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel)
-    a = _inbounds(_searchfirst(order, dim, low), dim)
-    b = _inbounds(_searchlast(order, dim, high), dim)
-    relate(dim, a:b)
-end
-between(span::Irregular, order::Reverse, ::IndexMode, dim::Dimension, sel::Between) = begin
-    low, high = _sorttuple(sel)
-    a = _inbounds(_searchlast(order, dim, high), dim)
-    b = _inbounds(_searchfirst(order, dim, low), dim)
+    order isa Unordered && throw(ArgumentError("Cannot use `Between` with an Unordered IndexMode"))
+    a, b = between(sampling, order, mode, dim, sel)
     relate(dim, a:b)
 end
 
-_searchlast(::Forward, dim::Dimension, v) = searchsortedlast(val(dim), v)
-_searchlast(::Reverse, dim::Dimension, v) = searchsortedlast(val(dim), v; rev=true)
-_searchlast(::Forward, dim::Dimension{<:Val{Index}}, v) where Index = 
-    searchsortedlast(Index, v)
-_searchlast(::Reverse, dim::Dimension{<:Val{Index}}, v) where Index = 
-    searchsortedlast(Index, v; rev=true)
+# Points ------------------------------------
+between(sampling::Points, o::Order, ::IndexMode, dim::Dimension, sel::Between) = begin
+    b1, b2 = _maybeflip(o, _sorttuple(sel))
+    s1, s2 = _maybeflip(o, (_searchfirst, _searchlast))
+    _inbounds((s1(o, dim, b1), s2(o, dim, b2)), dim)
+end
 
-@inline _searchfirst(::Forward, dim::Dimension, v) = searchsortedfirst(val(dim), v)
-@inline _searchfirst(::Reverse, dim::Dimension, v) = searchsortedfirst(val(dim), v; rev=true)
-@inline _searchfirst(::Forward, dim::Dimension{<:Val{Index}}, v) where Index = 
-    searchsortedfirst(Index, v)
-@inline _searchfirst(::Reverse, dim::Dimension{<:Val{Index}}, v) where Index = 
-    searchsortedfirst(Index, v; rev=true)
+# Intervals -------------------------
+between(sampling::Intervals, o::Order, mode::IndexMode, dim::Dimension, sel::Between) =
+    between(span(mode), sampling, o, mode, dim, sel)
 
-_locus_adjustment(mode::AbstractSampled, span::Regular) =
-    _locus_adjustment(locus(mode), abs(step(span)))
-_locus_adjustment(locus::Start, step) = zero(step), -step
-_locus_adjustment(locus::Center, step) = step * 0.5, step * -0.5
-_locus_adjustment(locus::End, step) = step, zero(step)
+# Regular Intervals -------------------------
+between(span::Regular, ::Intervals, o::Order, mode::IndexMode, dim::Dimension, sel::Between) = begin
+    b1, b2 = _maybeflip(o, _sorttuple(sel) .+ _locus_adjust(mode))
+    _inbounds((_searchfirst(o, dim, b1), _searchlast(o, dim, b2)), dim)
+end
 
+_locus_adjust(mode) = _locus_adjust(locus(mode), abs(step(span(mode))))
+_locus_adjust(locus::Start, step) = zero(step), -step
+_locus_adjust(locus::Center, step) = step/2, -step/2
+_locus_adjust(locus::End, step) = step, zero(step)
+
+
+# Irregular Intervals -----------------------
+
+struct Upper end
+struct Lower end
+
+between(span::Irregular, ::Intervals, o::Order, mode::IndexMode, d::Dimension, sel::Between) = begin
+    l, h = _sorttuple(sel) 
+    bl, bh = bounds(span)
+    a = l <= bl ? _dimlower(o, d) : between(Lower(), locus(mode), o, d, l)
+    b = h >= bh ? _dimupper(o, d) : between(Upper(), locus(mode), o, d, h)
+    _maybeflip(o, (a, b))
+end
+
+between(x, locus::Union{Start,End}, o::Order, d::Dimension, v) =
+    _search(x, o, d, v) - ordscalar(o) * (locscalar(locus) + endshift(x))
+between(x, locus::Center, o::Order, d::Dimension, v) = begin
+    r = ordscalar(o); sh = endshift(x)
+    i = _search(x, o, d, v)
+    interval = abs(d[i] - d[i-r])
+    distance = abs(d[i] - v)
+    # Use the right >/>= to match interval bounds
+    _lt(x)(distance, (interval / 2)) ? i - sh * r : i - (1 + sh) * r
+end
+
+locscalar(::Start) = 1
+locscalar(::End) = 0
+endshift(::Lower) = -1
+endshift(::Upper) = 1
+ordscalar(::Forward) = 1
+ordscalar(::Reverse) = -1
+
+_search(x, order, dim, v) = 
+    _inbounds(_searchorder(order)(order, dim, v; lt=_lt(x)), dim)
+
+_lt(::Lower) = (<)
+_lt(::Upper) = (<=)
+
+
+# Shared utils ============================================================================
+
+_searchlast(o::Order, dim::Dimension, v; kwargs...) =
+    searchsortedlast(val(dim), v; rev=isrev(o), kwargs...)
+_searchlast(o::Order, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
+    searchsortedlast(Index, v; rev=isrev(o), kwargs...)
+
+_searchfirst(o::Order, dim::Dimension, v; kwargs...) =
+    searchsortedfirst(val(dim), v; rev=isrev(o), kwargs...)
+_searchfirst(o::Order, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
+    searchsortedfirst(Index, v; rev=isrev(o), kwargs...)
 
 # Return an inbounds index
+_inbounds(is::Tuple, dim::Dimension) = map(i -> _inbounds(i, dim), is)
 _inbounds(i::Int, dim::Dimension) =
     if i > lastindex(dim)
         lastindex(dim)
@@ -520,3 +491,27 @@ _inbounds(i::Int, dim::Dimension) =
 
 _sorttuple(sel::Between) = _sorttuple(val(sel))
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
+
+_maybeflip(o::Forward, (a, b)) = (a, b)
+_maybeflip(o::Reverse, (a, b)) = (b, a)
+
+_lt(::Locus) = (<)
+_lt(::End) = (<=)
+_gt(::Locus) = (>=)
+_gt(::End) = (>)
+
+_locus_ineq(locus) = _lt(locus), _gt(locus)
+
+_locus_checkbounds(loc, (l, h), v) = 
+    (_lt(loc)(v, l) || _gt(loc)(v, h)) && throw(BoundsError())
+
+_prevind(::Forward, i) = i - 1
+_prevind(::Reverse, i) = i + 1
+
+_dimlower(o::Forward, d) = firstindex(d)
+_dimlower(o::Reverse, d) = lastindex(d)
+_dimupper(o::Forward, d) = lastindex(d)
+_dimupper(o::Reverse, d) = firstindex(d)
+
+_searchorder(::Forward) = _searchfirst
+_searchorder(::Reverse) = _searchlast

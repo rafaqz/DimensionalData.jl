@@ -60,6 +60,8 @@ boxplot(da2)
 violin(da2)
 ea_histogram(da2)
 
+nothing
+
 # Not sure how recipes work for this
 # andrewsplot(da2)
 

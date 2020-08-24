@@ -42,7 +42,7 @@ end
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
-    unwrap(index(dim)), parent(A)
+    index(dim), parent(A)
 end
 @recipe function f(::SeriesLike, A::AbstractArray{T,2}) where T
     A = maybe_permute(A, (IndependentDim, DependentDim))
@@ -50,7 +50,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(dep)
-    :label --> permutedims(index(dep))
+    :label --> permutedims(val(dep))
     index(ind), parent(A)
 end
 
@@ -110,14 +110,15 @@ forwardorder(A::AbstractArray) =
     reorderindex(A, Forward()) |> a -> reorderrelation(a, Forward())
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
-refdims_title(dim::Dimension) = string(name(dim), ": ", refdims_title(mode(dim), dim))
-refdims_title(mode::AbstractSampled, dim::Dimension) = begin
-    start, stop = map(string, bounds(dim))
+refdims_title(refdim::Dimension) = 
+    string(name(refdim), ": ", refdims_title(mode(refdim), refdim))
+refdims_title(mode::AbstractSampled, refdim::Dimension) = begin
+    start, stop = map(string, bounds(refdim))
     if start == stop
         start
     else
          "$start to $stop"
     end
 end
-refdims_title(mode::IndexMode, dim::Dimension) = string(index(dim))
+refdims_title(mode::IndexMode, refdim::Dimension) = string(val(refdim))
 

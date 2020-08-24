@@ -37,7 +37,7 @@ Ordered(; index=Forward(), array=Forward(), relation=Forward()) =
 
 indexorder(order::Ordered) = order.index
 arrayorder(order::Ordered) = order.array
-relationorder(order::Ordered) = order.relation
+relation(order::Ordered) = order.relation
 
 """
     Unordered(relation=Forward())
@@ -55,7 +55,7 @@ Unordered() = Unordered(Forward())
 
 indexorder(order::Unordered) = Unordered()
 arrayorder(order::Unordered) = Unordered()
-relationorder(order::Unordered) = order.relation
+relation(order::Unordered) = order.relation
 
 """
     AutoOrder()
@@ -93,26 +93,26 @@ Base.reverse(::Reverse) = Forward()
 Base.reverse(::Forward) = Reverse()
 
 reverseindex(o::Unordered) =
-    Unordered(reverse(relationorder(o)))
+    Unordered(reverse(relation(o)))
 reverseindex(o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relationorder(o)))
+    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
 
 reversearray(o::Unordered) =
-    Unordered(reverse(relationorder(o)))
+    Unordered(reverse(relation(o)))
 reversearray(o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relationorder(o)))
+    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
 
 flipindex(o::Unordered) = o
 flipindex(o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), relationorder(o))
+    Ordered(reverse(indexorder(o)), arrayorder(o), relation(o))
 
 fliparray(o::Unordered) = o
 fliparray(o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), relationorder(o))
+    Ordered(indexorder(o), reverse(arrayorder(o)), relation(o))
 
-fliprelation(o::Unordered) = Unordered(reverse(relationorder(o)))
+fliprelation(o::Unordered) = Unordered(reverse(relation(o)))
 fliprelation(o::Ordered) =
-    Ordered(indexorder(o), arrayorder(o), reverse(relationorder(o)))
+    Ordered(indexorder(o), arrayorder(o), reverse(relation(o)))
 
 isrev(::Forward) = false
 isrev(::Reverse) = true
@@ -270,13 +270,14 @@ abstract type IndexMode end
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::Forward, ::IndexMode, dim) = first(dim), last(dim)
 bounds(::Reverse, ::IndexMode, dim) = last(dim), first(dim)
-bounds(::Unordered, ::IndexMode, dim) = error("Cannot call `bounds` on an unordered mode")
+bounds(::Unordered, ::IndexMode, dim) = (nothing, nothing)
 
 dims(::IndexMode) = nothing
+dims(::Type{<:IndexMode}) = nothing
 order(::IndexMode) = Unordered()
 arrayorder(mode::IndexMode) = arrayorder(order(mode))
 indexorder(mode::IndexMode) = indexorder(order(mode))
-relationorder(mode::IndexMode) = relationorder(order(mode))
+relation(mode::IndexMode) = relation(order(mode))
 locus(mode::IndexMode) = Center()
 
 Base.step(mode::T) where T <: IndexMode =
@@ -528,7 +529,6 @@ rebuild(mode::Categorical, order) = Categorical(order)
 
 
 
-
 """
 Supertype for [`IndexMode`](@ref) where the `Dimension` index is not aligned to the grid.
 
@@ -576,9 +576,11 @@ struct Transformed{F,D} <: Unaligned
     f::F
     dim::D
 end
+Transformed(f, D::UnionAll) = Transformed(f, D())
 
 transform(mode::Transformed) = mode.f
 dims(mode::Transformed) = mode.dim
+dims(::Type{<:Transformed{<:Any,D}}) where D = D
 
 """
     rebuild(mode::Transformed, f, dim)
@@ -615,7 +617,7 @@ identify(mode::Auto, dimtype::Type, index::Val) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
 
 # Sampled
-identify(mode::AbstractSampled, dimtype::Type, index::AbstractArray) = begin
+identify(mode::AbstractSampled, dimtype::Type, index) = begin
     mode = rebuild(mode,
         identify(order(mode), dimtype, index),
         identify(span(mode), dimtype, index),
@@ -626,13 +628,17 @@ end
 # Order
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
-identify(order::AutoOrder, dimtype::Type, index::AbstractUnitRange) = Ordered()
 
-_orderof(index::AbstractRange) =
-    Ordered(index=_indexorder(index))
-_orderof(index::AbstractArray) = begin
+_orderof(index::AbstractUnitRange) = Ordered()
+_orderof(index::AbstractRange) = Ordered(index=_indexorder(index))
+_orderof(index::Val) = _detectorder(unwrap(index))
+_orderof(index::AbstractArray) = _detectorder(index)
+
+function _detectorder(index)
+    # This is awful. But we don't know if we can
+    # call `issorted` on the contents of `index`.
     local sorted
-    local indord
+    local indord 
     try
         indord = _indexorder(index)
         sorted = issorted(index; rev=isrev(indord))
@@ -641,24 +647,24 @@ _orderof(index::AbstractArray) = begin
     end
     sorted ? Ordered(index=indord) : Unordered()
 end
-≈
 
-_indexorder(index::AbstractArray) =
+_indexorder(index) =
     first(index) <= last(index) ? Forward() : Reverse()
 
 # Span
-identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
+identify(span::AutoSpan, dimtype::Type, index::Union{AbstractArray,Val}) =
     Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
-identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractArray) =
+identify(span::Regular{AutoStep}, dimtype::Type, index::Union{AbstractArray,Val}) =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
-identify(span::Regular, dimtype::Type, index::AbstractArray) =
+identify(span::Regular, dimtype::Type, index::Union{AbstractArray,Val}) =
     span
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
-    step(span) isa Number && !(step(span) ≈ step(index)) && throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
+    step(span) isa Number && !(step(span) ≈ step(index)) && 
+        throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
     span
 end
 identify(span::Irregular{Nothing}, dimtype, index) =
