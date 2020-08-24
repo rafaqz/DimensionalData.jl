@@ -29,7 +29,31 @@ We can use dim wrappers for indexing, so that the dimension order in the underly
 does not need to be known:
 
 ```julia
-a[X(1:10), Y(1:4)]
+julia> using DimensionalData
+
+julia> A = DimArray(rand(40, 50), (X, Y));
+
+julia> A[Y(1), X(1:10)]
+DimArray with dimensions:
+ X: 1:10 (NoIndex)
+and referenced dimensions:
+ Y: 1 (NoIndex)
+and data: 10-element Array{Float64,1}
+[0.515774, 0.575247, 0.429075, 0.234041, 0.4484, 0.302562, 0.911098, 0.541537, 0.267234, 0.370663]
+```
+
+And this has no runtime cost:
+
+```julia
+julia> using BenchmarkTools
+
+julia> @btime A[X(1), Y(2)]
+  25.068 ns (1 allocation: 16 bytes)
+0.7302366320496405
+
+julia> @btime parent(A)[1, 2]
+  34.061 ns (1 allocation: 16 bytes)
+0.7302366320496405
 ```
 
 The core component is the `AbstractDimension`, and types that inherit from it,
@@ -39,16 +63,68 @@ define manually using the `@dim` macro.
 Dims can be used for indexing and views without knowing dimension order:
 
 ```julia
-a[X(20)]
-view(a, X(1:20), Y(30:40))
+A[X(10)]
+view(A, Y(30:40), X(1:20))
 ```
 
 And for indicating dimensions to reduce or permute in julia
 `Base` and `Statistics` functions that have dims arguments:
 
 ```julia
-`mean(a, dims=Time)` 
-`permutedims(a, [X, Y, Z, Time])` 
+using Statistics
+
+A = DimArray(rand(10, 10, 100), (X, Y, Ti));
+mean(A, dims=Ti)
+permutedims(A, [Ti, Y, X]) 
+```
+
+You can also use arbitrary symbol to create `Dim{X}` dimensions:
+
+
+```julia
+julia> A = DimArray(rand(10, 20, 30), (:a, :b, :c));
+
+julia> A[a=2:5, c=9]
+
+DimArray with dimensions:
+ Dim{:a}: 2:5 (NoIndex)
+ Dim{:b}: Base.OneTo(20) (NoIndex)
+and referenced dimensions:
+ Dim{:c}: 9 (NoIndex)
+and data: 4×20 Array{Float64,2}
+ 0.868237   0.528297   0.32389   …  0.89322   0.6776    0.604891
+ 0.635544   0.0526766  0.965727     0.50829   0.661853  0.410173
+ 0.732377   0.990363   0.728461     0.610426  0.283663  0.00224321
+ 0.0849853  0.554705   0.594263     0.217618  0.198165  0.661853
+```
+
+Other methods also work:
+
+```julia
+julia> bounds(A, (:b, :c))
+
+((1, 20), (1, 30))
+
+julia> mean(A, dim=Dim{:b})
+
+julia> mean(A, dims=Dim{:b})
+DimArray with dimensions:
+ Dim{:a}: Base.OneTo(10) (NoIndex)
+ Dim{:b}: 1 (NoIndex)
+ Dim{:c}: Base.OneTo(30) (NoIndex)
+and data: 10×1×30 Array{Float64,3}
+[:, :, 1]
+ 0.543099
+ 0.542407
+ 0.540647
+ 0.513554
+ 0.601689
+ 0.601558
+ 0.46997
+ 0.524254
+ 0.601844
+ 0.520966
+[and 29 more slices...]
 ```
 
 
@@ -69,18 +145,27 @@ Selectors find indices in the dimension based on values `At`, `Near`, or
 We can use selectors with dim wrappers:
 
 ```julia
-a[X(Between(1, 10)), Y(At(25.7))]
+A[X(Between(1, 10)), Y(At(25.7))]
 ```
 
 Without dim wrappers selectors must be in the right order:
 
 ```julia
 using Unitful
-a[Near(23u"s"), Between(10.5u"m", 50.5u"m")]
+
+julia> A = DimArray(rand(10, 20), (X((1:10:100)u"m"), Ti((1:5:100)u"s")))
+
+julia> A[Between(10.5u"m", 50.5u"m"), Near(23u"s")]
+DimArray with dimensions:
+ X: (11:10:41) m (Sampled: Ordered Regular Points)
+and referenced dimensions:
+ Time (type Ti): 21 s (Sampled: Ordered Regular Points)
+and data: 4-element Array{Float64,1}
+[0.819172, 0.418113, 0.461722, 0.379877]
 ```
 
-For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for regular indexing) the `At`
-selector is assumed, and can be dropped completely:
+For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for 
+regular indexing) the `At` selector is assumed, and can be dropped completely:
 
 ```julia
 julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])))
@@ -95,6 +180,33 @@ and data: 3×3 Array{Float64,2}
 julia> A[:b, 25.8]
 0.61839141062599
 ```
+
+Using all `Val` indexes (only recommended for small arrays)
+you can index with named dimensions `At` arbitrary values with no 
+runtime cost:
+
+
+```julia
+using BenchmarkTools
+
+julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)), 
+                                 val=Val((5.0, 6.0, 7.0))))
+DimArray with dimensions:
+ Dim{:cat}: Val{(:a, :b, :c)}() (Categorical: Unordered)
+ Dim{:val}: Val{(5.0, 6.0, 7.0)}() (Categorical: Unordered)
+and data: 3×3 Array{Float64,2}
+ 0.993357  0.765515  0.914423
+ 0.405196  0.98223   0.330779
+ 0.365312  0.388873  0.88732
+
+julia> @btime A[:a, 7.0]
+  26.333 ns (1 allocation: 16 bytes)
+0.32927504968939925
+
+julia> @btime A[cat=:a, val=7.0]
+  31.920 ns (2 allocations: 48 bytes)
+0.7476441117572306
+````
 
 It's also easy to write your own custom `Selector` if your need a different behaviour.
 
