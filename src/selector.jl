@@ -14,7 +14,7 @@ Selectors provided in DimensionalData are:
 """
 abstract type Selector{T} end
 
-const SelectorOrStandard = Union{Selector, StandardIndices}
+const SelectorOrStandard = Union{Selector,StandardIndices}
 
 val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
@@ -198,42 +198,46 @@ val(sel::Where) = sel.f
 # sel2indices ==========================================================================
 
 # Converts Selectors to regular indices
-
-# Get the dims in the same order as the mode
-# This would be called after RegularIndex and/or Categorical
-# dimensions are removed
-@inline _dims2indices(mode::Transformed, dims::Tuple, lookups::Tuple, emptyval) =
-    sel2indices(mode, dims, val(sortdims(dims, DD.dims(mode))))
-
+#
 @inline sel2indices(A::AbstractArray, lookup) = sel2indices(dims(A), lookup)
 @inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 @inline sel2indices(dims::Tuple, lookup::Tuple) =
-    map((d, l) -> sel2indices(l, mode(d), d), dims, lookup)
+    map((d, l) -> sel2indices(d, l), dims, lookup)
+
 
 # First filter based on rough selector properties -----------------
-# Mode is passed in from dims2indices
 
 # Standard indices are just returned.
-@inline sel2indices(sel::StandardIndices, ::IndexMode, ::Dimension) = sel
+@inline sel2indices(::Dimension, sel::StandardIndices) = sel
 # Vectors are mapped
-@inline sel2indices(sel::Selector{<:AbstractVector}, mode::IndexMode, dim::Dimension) =
-    [sel2indices(mode, dim, rebuild(sel, v)) for v in val(sel)]
-@inline sel2indices(sel::Selector, mode::IndexMode, dim::Dimension) =
-    sel2indices(mode, dim, sel)
+@inline sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) =
+    [sel2indices(mode(dim), dim, rebuild(sel, v)) for v in val(sel)]
+@inline sel2indices(dim::Dimension, sel::Selector) =
+    sel2indices(mode(dim), dim, sel)
 
-@inline sel2indices(sel::Where, mode::IndexMode, dim::Dimension) =
+
+# Where selector ==============================
+# Yes this is everything. 
+# Where doesn't need mode specialisation  
+@inline sel2indices(dim::Dimension, sel::Where) =
     [i for (i, v) in enumerate(index(dim)) if sel.f(v)]
 
+
+
 # Then dispatch based on IndexMode -----------------
+
+# Selectors can have varied behaviours depending on 
+# the index mode.
 
 # NoIndex -----------------------------
 # This just converts the selector to standard indices. Implemented just
 # so the Selectors actually work, not because what they do is useful or interesting.
-@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = val(sel)
+@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = 
+    val(sel)
 @inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
-# Categorical -------------------------
+# Categorical IndexMode -------------------------
 @inline sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
         sel2indices(Points(), mode, dim, At(val(sel)))
@@ -241,7 +245,8 @@ val(sel::Where) = sel.f
         sel2indices(Points(), mode, dim, sel)
     end
 
-# Sampled -----------------------------
+
+# Sampled IndexMode -----------------------------
 @inline sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
     sel2indices(sampling(mode), mode, dim, sel)
 
@@ -270,13 +275,21 @@ end
     between(sampling, mode, dim, sel)
 
 
-# Transformed IndexMode ------------------------------------------
+
+# Unaligned IndexMode ------------------------------------------
+
+# unalligned2indices is callled directly from dims2indices
 
 # We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-@inline sel2indices(sel::Tuple{Vararg{<:Selector}}, modes::Tuple{Vararg{<:Transformed}},
-            dims::DimTuple) =
-    map(_to_int, sel, transform(modes[1])([map(val, sel)...]))
+@inline unalligned2indices(dims::DimTuple, sel::Tuple) = sel
+@inline unalligned2indices(dims::DimTuple, sel::Tuple{<:Dimension,Vararg{<:Dimension}}) =
+    unalligned2indices(dims, map(val, sel))
+@inline unalligned2indices(dims::DimTuple, sel::Tuple{<:Selector,Vararg{<:Selector}}) = begin
+    coords = [map(val, sel)...]
+    transformed = transformfunc(mode(dims[1]))(coords)
+    map(_to_int, sel, transformed)
+end
 
 _to_int(::At, x) = convert(Int, x)
 _to_int(::Near, x) = round(Int, x)
@@ -293,6 +306,11 @@ _to_int(::Near, x) = round(Int, x)
     relate(dim, at(dim, val(sel), atol(sel), rtol(sel)))
 @inline at(dim::Dimension{<:Val{Index}}, selval, atol::Nothing, rtol::Nothing) where Index = begin
     i = findfirst(x -> x == unwrap(selval), Index)
+    i == nothing && selvalnotfound(dim, selval)
+    return i
+end
+@inline at(dim::Dimension{<:Val{Index}}, selval::Val{X}, atol::Nothing, rtol::Nothing) where {Index,X} = begin
+    i = findfirst(x -> x == X, Index)
     i == nothing && selvalnotfound(dim, selval)
     return i
 end

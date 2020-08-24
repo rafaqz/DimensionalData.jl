@@ -65,10 +65,9 @@ end
 
 @testset "dims2indices" begin
     emptyval = Colon()
-    @test DimensionalData._dims2indices(mode(dimz[1]), dimz[1], Y, Nothing) == Colon()
+    @test DimensionalData._dims2indices(dimz[1], Y, Nothing) == Colon()
     @test dims2indices(dimz, (Y(),), emptyval) == (Colon(), Colon())
     @test dims2indices(dimz, (Y(1),), emptyval) == (Colon(), 1)
-    # Time is just ignored if it's not in dims. Should this be an error?
     @test dims2indices(dimz, (Ti(4), X(2))) == (2, Colon())
     @test dims2indices(dimz, (Y(2), X(3:7)), emptyval) == (3:7, 2)
     @test dims2indices(dimz, (X(2), Y([1, 3, 4])), emptyval) == (2, [1, 3, 4])

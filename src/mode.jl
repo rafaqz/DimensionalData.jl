@@ -578,17 +578,17 @@ struct Transformed{F,D} <: Unaligned
 end
 Transformed(f, D::UnionAll) = Transformed(f, D())
 
-transform(mode::Transformed) = mode.f
+transformfunc(mode::Transformed) = mode.f
 dims(mode::Transformed) = mode.dim
 dims(::Type{<:Transformed{<:Any,D}}) where D = D
 
 """
     rebuild(mode::Transformed, f, dim)
-    rebuild(mode::Transformed, f=transform(mode), dim=dims(mode))
+    rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode))
 
 Rebuild the `Transformed` `IndexMode`.
 """
-rebuild(mode::Transformed, f=transform(mode), dim=dims(mode)) =
+rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
     Transformed(f, dim)
 
 # TODO bounds

@@ -14,9 +14,9 @@ or dimension type. Abstract supertypes like [`TimeDim`](@ref)
 can be used in `order`.
 """
 @inline sortdims(tosort, order::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
-    map(p -> Tuple(tosort)[p], Tuple(order))
-@inline sortdims(tosort, order) =
-    _sortdims(_maybeconstruct(Tuple(tosort)), _maybeconstruct(Tuple(order)))
+    map(p -> tosort[p], Tuple(order))
+@inline sortdims(tosort, order) = 
+    _sortdims(_maybeconstruct(Tuple(tosort)), Tuple(order))
 
 @generated _sortdims(tosort::Tuple{Vararg{<:Dimension}}, 
                       order::Tuple{Vararg{<:Dimension}}) = begin
@@ -59,12 +59,14 @@ end
 @inline _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 @inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
-
-_maybeconstruct(dims::Tuple) = map(_maybeconstruct, dims)
-_maybeconstruct(dim::Dimension) = dim
-_maybeconstruct(dimtype::UnionAll) = 
+@inline _maybeconstruct(dims::Array) = _maybeconstruct((dims...,)) 
+@inline _maybeconstruct(dims::Tuple) = 
+    (_maybeconstruct(dims[1]), _maybeconstruct(tail(dims))...)
+@inline _maybeconstruct(::Tuple{}) = ()
+@inline _maybeconstruct(dim::Dimension) = dim
+@inline _maybeconstruct(dimtype::UnionAll) = 
     isabstracttype(dimtype) ? dimtype : dimtype()
-_maybeconstruct(dimtype::DimType) = 
+@inline _maybeconstruct(dimtype::DimType) = 
     isabstracttype(dimtype) ? dimtype : dimtype()
 
 """
@@ -75,17 +77,17 @@ unlike [`dims`](@ref) where the lookup tuple determines the order
 
 Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
 """
-commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
-commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
-commondims(dims::Tuple, lookup) = commondims(dims, (lookup,))
-commondims(dims::Tuple, lookup::Tuple) = _commondims(symbol2dim(dims), symbol2dim(lookup))
-_commondims(dims::Tuple, lookup::Tuple) = 
+@inline commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
+@inline commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
+@inline commondims(dims::Tuple, lookup) = commondims(dims, (lookup,))
+@inline commondims(dims::Tuple, lookup::Tuple) = _commondims(symbol2dim(dims), symbol2dim(lookup))
+@inline _commondims(dims::Tuple, lookup::Tuple) = 
     if hasdim(lookup, dims[1])
         (dims[1], commondims(tail(dims), lookup)...)
     else
         commondims(tail(dims), lookup) 
     end
-_commondims(dims::Tuple{}, lookup::Tuple) = ()
+@inline _commondims(dims::Tuple{}, lookup::Tuple) = ()
 
 
 """
@@ -112,85 +114,71 @@ are at least rotations/transformations of the same type.
 Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 """
 @inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
-    _dims2indices(mode(dim), dim, lookup, emptyval)
+    _dims2indices(dim, lookup, emptyval)
 @inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
+@inline dims2indices(A, lookup, emptyval=Colon()) =
+    dims2indices(dims(A), lookup, emptyval)
 
-"""
-    dims2indices(A, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
+@noinline dimerror() = throw(ArgumentError("Object does not define a `dims` method"))
 
-Convert `Dimension` or `Selector` to regular indices for any object with a `dims` method,
-usually an array.
-"""
-@inline dims2indices(A, lookup, emptyval=Colon()) = begin
-    dims_ = dims(A)
-    dims_ isa Nothing && throw(ArgumentError("Object does not define a `dims` method"))
-    dims2indices(dims_, lookup, emptyval)
-end
-"""
-dims2indices(dims, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
-
-Convert `Dimension` or `Selector` to regular indices for `dims` - a `Tuple` of `Dimension`.
-`lookup` can be a `Tuple` or a single object.
-"""
 @inline dims2indices(dims::DimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
 # Standard array indices are simply returned
-@inline dims2indices(dims::DimTuple, lookup::Tuple{Vararg{StandardIndices}},
+@inline dims2indices(dims::DimTuple, lookup::Tuple{Vararg{<:StandardIndices}}, 
                      emptyval=Colon()) = lookup
 # Otherwise attempt to convert dims to indices
 @inline dims2indices(dims::DimTuple, lookup::Tuple, emptyval=Colon()) =
-    _dims2indices(mode(dims), dims, sortdims(lookup, dims), emptyval)
-# Recursively apply dims2indices over tuples of dims and lookups
-@inline _dims2indices(modes::Tuple{<:Aligned,Vararg}, dims::Tuple, lookup::Tuple, emptyval) =
-    (_dims2indices(modes[1], dims[1], lookup[1], emptyval),
-     _dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
+    _dims2indices(map(mode, dims), dims, sortdims(lookup, dims), emptyval)
+
+# Handle tuples with @generated
 @inline _dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
+@generated _dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
+    _dims2indices_inner(modes, dims, lookup, emptyval)
+
+_dims2indices_inner(modes::Type, dims::Type, lookup::Type, emptyval) = begin
+    unalligned = Expr(:tuple) 
+    ualookups = Expr(:tuple)
+    alligned = Expr(:tuple)
+    dimmerge = Expr(:tuple)
+    a_count = ua_count = 0
+    for (i, mp) in enumerate(modes.parameters)
+        if mp <: Unaligned
+            ua_count += 1
+            push!(unalligned.args, :(dims[$i]))
+            push!(ualookups.args, :(lookup[$i]))
+            push!(dimmerge.args, :(uadims[$ua_count])) 
+        else
+            a_count += 1
+            push!(alligned.args, :(_dims2indices(dims[$i], lookup[$i], emptyval)))
+            # Update  the merged tuple
+            push!(dimmerge.args, :(adims[$a_count])) 
+        end
+    end
+
+    if length(unalligned.args) > 1
+        # Output the dimmerge, that will combine uadims and adims in the right order 
+        quote 
+             adims = $alligned 
+             # Unaligned dims have to be run together as a set
+             uadims = unalligned2indices($unalligned, $ualookups)
+             $dimmerge
+        end
+    else
+        alligned
+    end
+end
 
 # Single dim methods
 
 # A Dimension type always means Colon(), as if it was constructed with the default value.
-@inline _dims2indices(mode, dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
+@inline _dims2indices(dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
 # Nothing means nothing was passed for this dimension, return the emptyval
-@inline _dims2indices(mode, dim::Dimension, lookup::Nothing, emptyval) = emptyval
+@inline _dims2indices(dim::Dimension, lookup::Nothing, emptyval) = emptyval
 # Simply unwrap dimensions
-@inline _dims2indices(mode, dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
+@inline _dims2indices(dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
 # Pass `Selector`s to sel2indices
-@inline _dims2indices(mode, dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
-    sel2indices(val(lookup), mode, dim)
-
-
-# Deal with unaligned mode that need multiple dimensions indexed together
-@inline _dims2indices(modes::Tuple{<:Unaligned,Vararg}, dims::Tuple, lookup::Tuple, emptyval) = begin
-    # Split dims and lookups into aligned and unaligned
-    (unaligneddims, unalignedlookup), (aligneddims, alignedlookup) = splitmodes(modes, dims, lookup)
-    # Convert aligned and unaligned separately. This is recursive, so there may have been
-    # other `Aligned` dims previously. There is at maximum one block of `Unaligned` dims in
-    # any set, so we don't have to worry about finding more at the end.
-    (unaligned2indices(mode(unaligneddims), unaligneddims, unalignedlookup, emptyval)...,
-     _dims2indices(mode(aligneddims), aligneddims, alignedlookup, emptyval)...)
-end
-
-# For `Unaligned` mode, `Selector`s select on mode dimensions
-@inline unaligned2indices(modes::Tuple, dims::Tuple,
-                          lookup::Tuple{Dimension{<:Selector},Vararg}, emptyval) =
-    sel2indices(val(lookup), modes, dims)
-# For non-selector dims, use regular dimension indexing
-@inline unaligned2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
-    (_dims2indices(modes[1], dims[1], lookup[1], emptyval),
-     _dims2indices(tail(modes), tail(dims), tail(lookup), emptyval)...)
-
-# Split out dims with Aligned and Unaligned modes
-@inline splitmodes(modes::Tuple{Unaligned,Vararg}, dims, lookup) = begin
-    (unaligneddims, unalignedlookup), aligned = splitmodes(tail(modes), tail(dims), tail(lookup))
-    unaligned = (dims[1], unaligneddims...), (lookup[1], unalignedlookup...)
-    unaligned, aligned
-end
-@inline splitmodes(modes::Tuple{IndexMode,Vararg}, dims, lookup) = begin
-    unaligned, (aligneddims, alignedlookup) = splitmodes(tail(modes), tail(dims), tail(lookup))
-    aligned = (dims[1], aligneddims...), (lookup[1], alignedlookup...)
-    unaligned, aligned
-end
-@inline splitmodes(modes::Tuple{}, dims, lookup) = ((), ()), ((), ())
+@inline _dims2indices(dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
+    sel2indices(dim, val(lookup))
 
 
 """
@@ -569,8 +557,8 @@ function comparedims end
     return a
 end
 
-symbol2dim(s::Symbol) = Dim{s}()
-symbol2dim(dim::Dimension) = dim
-symbol2dim(dimtype::Type{<:Dimension}) = dimtype
-symbol2dim(dims::Tuple) = map(symbol2dim, dims)
-symbol2dim(dim) = dim
+@inline symbol2dim(s::Symbol) = Dim{s}()
+@inline symbol2dim(dim::Dimension) = dim
+@inline symbol2dim(dimtype::Type{<:Dimension}) = dimtype
+@inline symbol2dim(dims::Tuple) = map(symbol2dim, dims)
+@inline symbol2dim(dim) = dim
