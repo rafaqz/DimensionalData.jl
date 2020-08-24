@@ -14,12 +14,6 @@ syntax, and additional functionality found in NamedDimensions.jl. It has similar
 goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
-:exclamation: | Status
-:-----------: | :-------
-
-    This is a work in progress under active development, it may be a while before
-    the interface stabilises and things are fully documented.
-
 
 ## Dimensions
 
