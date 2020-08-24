@@ -42,18 +42,17 @@ export Unaligned, Transformed
 
 export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
-export data, dims, refdims, mode, metadata, name, shortname,
-       val, label, units, order, bounds, locus, mode, <|
+export data, dims, refdims, mode, metadata, name, shortname, label, units,
+       val, index, order, sampling, span, bounds, locus, relation, <|
 
-export dimnum, hasdim, otherdims, commondims, setdims, swapdims, rebuild, 
-       modify, dimwise, dimwise!
+export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
+       rebuild, modify, dimwise, dimwise!
 
 export order, indexorder, arrayorder, 
        reverseindex, reversearray, reorderindex, 
        reorderarray, reorderrelation
 
 export @dim
-
 
 include("interface.jl")
 include("mode.jl")
@@ -71,5 +70,7 @@ include("prettyprint.jl")
 # For compat with old versions
 const AbstractDimensionalArray = AbstractDimArray
 const DimensionalArray = DimArray
+
+const DD = DimensionalData
 
 end

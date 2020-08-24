@@ -4,20 +4,28 @@ Traits for the order of the array, index and the relation between them.
 abstract type Order end
 
 """
+    Ordered(index, array, relation)
+    Ordered(; index=Forward(), array=Forward(), relation=Forward())
+
 Container object for dimension and array ordering.
 
-The default is `Ordered(Forward()`, `Forward(), Forward())`
+## Fields
 
-All combinations of forward and reverse order for data and indices seem to occurr
+Each can have a value of  `Forward` or `Reverse`.
+
+- `index`: The order of the dimension index
+- `array`: The order of array axis, in terms of how you would want to plot it
+- `relation`: The relation between the index and the array.
+
+All combinations of forward and reverse order for data and index seem to occurr
 in real datasets, as strange as that seems. We cover these possibilities by specifying
-the order of both explicitly.
+the order of both explicitly, and the direction of the relationship between them.
 
 Knowing the order of indices is important for using methods like `searchsortedfirst()`
 to find indices in sorted lists of values. Knowing the order of the data is then
-required to map to the actual indices. It's also used to plot the data later - which
-always happens in smallest to largest order.
+required to map to the actual indices. It's also used to plot the data later.
 
-Base also defines Forward and Reverse, but they seem overly complicated for our purposes.
+The default is `Ordered(Forward()`, `Forward(), Forward())`
 """
 struct Ordered{D,A,R} <: Order
     index::D
@@ -29,10 +37,16 @@ Ordered(; index=Forward(), array=Forward(), relation=Forward()) =
 
 indexorder(order::Ordered) = order.index
 arrayorder(order::Ordered) = order.array
-relationorder(order::Ordered) = order.relation
+relation(order::Ordered) = order.relation
 
 """
+    Unordered(relation=Forward())
+
 Trait indicating that the array or dimension has no order.
+This means the index cannot be searched with `searchsortedfirst`,
+or similar methods, and that plotting order does not matter. 
+
+It still has a relation between the array axis and the dimension index.
 """
 struct Unordered{R} <: Order
     relation::R
@@ -41,14 +55,14 @@ Unordered() = Unordered(Forward())
 
 indexorder(order::Unordered) = Unordered()
 arrayorder(order::Unordered) = Unordered()
-relationorder(order::Unordered) = order.relation
+relation(order::Unordered) = order.relation
 
 """
     AutoOrder()
 
 Order will be found automatically where possible.
 
-This will fail for all types without `isless` methods.
+This will fail for all dim eltypes without `isless` methods.
 """
 struct AutoOrder <: Order end
 
@@ -62,15 +76,16 @@ struct UnknownOrder <: Order end
 """
     Forward()
 
-Indicates that the array or dimension is in the normal forward order.
+Indicates that the array axis, dimension index or the relation
+between them is in the normal forward order.
 """
 struct Forward <: Order end
 
 """
     Reverse()
 
-Indicates that the array or dimension is in the reverse order.
-Selector lookup or plotting will be reversed.
+Indicates that the array axis, dimension index or the relation
+between them is in reverse order.
 """
 struct Reverse <: Order end
 
@@ -78,26 +93,26 @@ Base.reverse(::Reverse) = Forward()
 Base.reverse(::Forward) = Reverse()
 
 reverseindex(o::Unordered) =
-    Unordered(reverse(relationorder(o)))
+    Unordered(reverse(relation(o)))
 reverseindex(o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relationorder(o)))
+    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
 
 reversearray(o::Unordered) =
-    Unordered(reverse(relationorder(o)))
+    Unordered(reverse(relation(o)))
 reversearray(o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relationorder(o)))
+    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
 
 flipindex(o::Unordered) = o
 flipindex(o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), relationorder(o))
+    Ordered(reverse(indexorder(o)), arrayorder(o), relation(o))
 
 fliparray(o::Unordered) = o
 fliparray(o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), relationorder(o))
+    Ordered(indexorder(o), reverse(arrayorder(o)), relation(o))
 
-fliprelation(o::Unordered) = Unordered(reverse(relationorder(o)))
+fliprelation(o::Unordered) = Unordered(reverse(relation(o)))
 fliprelation(o::Ordered) =
-    Ordered(indexorder(o), arrayorder(o), reverse(relationorder(o)))
+    Ordered(indexorder(o), arrayorder(o), reverse(relation(o)))
 
 isrev(::Forward) = false
 isrev(::Reverse) = true
@@ -105,42 +120,55 @@ isrev(::Reverse) = true
 """
 Locii indicate the position of index values in cells.
 
-Locii are often `Start` for time series, but often `Center`
-for spatial data.
+These allow for values array cells to align with the [`Start`](@ref), 
+[`Center`](@ref), or [`End`](@ref) of values in the dimension index. 
+
+This means they can be plotted with correct axis markers, and allows automatic 
+converrsions to between formats with different standards (such as NetCDF and GeoTiff).
+
+Locii are often `Start` for time series, but often `Center` for spatial data.
+
+These are reflected in the default values: `Ti` dimensions with `Sampled` index mode
+will default to `Start` Locii. All others default to `Center`.
 """
 abstract type Locus end
 
 """
     Center()
 
-Indicates dimension index that matches the center coordinates/time/position.
+Indicates a dimension value is for the center of its corresponding array cell,
+in the direction of the dimension index order.
 """
 struct Center <: Locus end
 
 """
     Start()
 
-Indicates dimension index that matches the start coordinates/time/position.
+Indicates a dimension value is for the start of its corresponding array cell,
+in the direction of the dimension index order.
 """
 struct Start <: Locus end
 
 """
     End()
 
-Indicates dimension index that matches the end coordinates/time/position.
+Indicates a dimension value is for the end of its corresponding array cell,
+in the direction of the dimension index order.
 """
 struct End <: Locus end
 
 """
     AutoLocus()
 
-Indicates dimension where the index position is not known.
+Indicates a dimension where the index position is not yet known.
+This will be filled with a default on object construction.
 """
 struct AutoLocus <: Locus end
 
 
 """
-Indicates the sampling method used by the index.
+Indicates the sampling method used by the index: [`Points`](@ref)
+or [`Intervals`](@ref).
 """
 abstract type Sampling end
 
@@ -148,6 +176,8 @@ abstract type Sampling end
     Points()
 
 [`Sampling`](@ref) mode where single samples at exact points.
+
+These are always plotted at the center of array cells.
 """
 struct Points <: Sampling end
 
@@ -156,19 +186,30 @@ locus(sampling::Points) = Center()
 """
     Intervals(locus::Locus)
 
-[`Sampling`](@ref) mode where samples are the mean (or similar) value over an interval.
+[`Sampling`](@ref) mode where samples are the mean (or similar) 
+value over an interval.
+
+Intervals require a [`Locus`](@ref) of `Start`, `Center` or `End` 
+to define where in the interval the index values refer to.
 """
 struct Intervals{L} <: Sampling
     locus::L
 end
 Intervals() = Intervals(AutoLocus())
+
+"""
+    rebuild(::Intervals, locus::Locus) => Intervals
+
+Rebuild `Intervals` with a new Locus.
+"""
 rebuild(::Intervals, locus) = Intervals(locus)
 
 locus(sampling::Intervals) = sampling.locus
 
 
 """
-Mode defining the type of interval used in a InervalSampling index.
+Defines the type of span used in a [`Sampling`](@ref) index.
+These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
 abstract type Span end
 
@@ -206,6 +247,8 @@ Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 bounds(span::Irregular) = span.bounds
 
 """
+    AutoSpan()
+
 Span will be guessed and replaced by a constructor.
 """
 struct AutoSpan <: Span end
@@ -214,10 +257,10 @@ struct AutoSpan <: Span end
 
 
 """
-IndexModes are types defining the behaviour of a dimension, how they are plotted and
-how [`Selector`](@ref)s like [`Between`](@ref) work.
+Types defining the behaviour of a dimension, how they are plotted and
+how [`Selector`](@ref)s like [`Between`](@ref) work on them.
 
-An IndexMode may be a simple type like [`NoIndex`](@ref) indicating that the index is
+An `IndexMode` may be a simple type like [`NoIndex`](@ref) indicating that the index is
 just the underlying array axis. It could also be a [`Categorical`](@ref) index indicating
 the index is ordered or unordered categories, or a [`Sampled`](@ref) index indicating
 sampling along some transect.
@@ -227,13 +270,14 @@ abstract type IndexMode end
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::Forward, ::IndexMode, dim) = first(dim), last(dim)
 bounds(::Reverse, ::IndexMode, dim) = last(dim), first(dim)
-bounds(::Unordered, ::IndexMode, dim) = error("Cannot call `bounds` on an unordered mode")
+bounds(::Unordered, ::IndexMode, dim) = (nothing, nothing)
 
 dims(::IndexMode) = nothing
+dims(::Type{<:IndexMode}) = nothing
 order(::IndexMode) = Unordered()
 arrayorder(mode::IndexMode) = arrayorder(order(mode))
 indexorder(mode::IndexMode) = indexorder(order(mode))
-relationorder(mode::IndexMode) = relationorder(order(mode))
+relation(mode::IndexMode) = relation(order(mode))
 locus(mode::IndexMode) = Center()
 
 Base.step(mode::T) where T <: IndexMode =
@@ -244,8 +288,8 @@ slicemode(mode::IndexMode, index, I) = mode
 """
     AutoMode()
 
-Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically to
-another [`IndexMode`](@ref) when it is possible to detect it from the index.
+Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically 
+to another [`IndexMode`](@ref) when it is possible to detect it from the index.
 """
 struct AutoMode{O<:Order} <: IndexMode
     order::O
@@ -259,7 +303,7 @@ const Auto = AutoMode
 
 
 """
-Supertype for [`IndexMode`](@ref) where the index is aligned with the array axes.
+Supertype for [`IndexMode`](@ref)s where the index is aligned with the array axes.
 This is by far the most common case.
 """
 abstract type Aligned{O} <: IndexMode end
@@ -276,24 +320,26 @@ An [`IndexMode`](@ref) that is identical to the array axis.
 Defining a [`DimArray`](@ref) without passing an index
 to the dimension, the IndexMode will be `NoIndex`:
 
-```jldoctest
+```jldoctest NoIndex
+using DimensionalData
+
 A = DimArray(rand(3, 3), (X, Y))
 map(mode, dims(A))
 
 # output
 
-(NoIndex(), NoIndex())
+(NoIndex, NoIndex)
 ```
 
 Is identical to:
 
-```jldoctest
+```jldoctest NoIndex
 A = DimArray(rand(3, 3), (X(; mode=NoIndex()), Y(; mode=NoIndex())))
 map(mode, dims(A))
 
 # output
 
-(NoIndex(), NoIndex())
+(NoIndex, NoIndex)
 ```
 """
 struct NoIndex <: Aligned{Ordered{Forward,Forward,Forward}} end
@@ -304,6 +350,9 @@ order(mode::NoIndex) = Ordered(Forward(), Forward(), Forward())
 Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array,
 and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
 `Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
+
+A `rebuild` method for `AbstractSampled` must accept `order`, `span` 
+and `sampling`, arguments.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
@@ -373,7 +422,8 @@ It is capable of representing gridded data from a wide range of sources, allowin
 correct `bounds` and [`Selector`](@ref)s for points or intervals of regular, irregular,
 forward and reverse indexes.
 
-The `Sampled` mode is assigned for all indexes of `AbstractRange` not assigned to [`Categorical`](@ref).
+The `Sampled` mode is assigned for all indexes of `AbstractRange` 
+not assigned to [`Categorical`](@ref).
 
 ## Fields
 
@@ -389,7 +439,9 @@ The `Sampled` mode is assigned for all indexes of `AbstractRange` not assigned t
 
 Create an array with [`Interval`] sampling.
 
-```jldoctest
+```jldoctest Sampled
+using DimensionalData
+
 dims_ = (X(100:-10:10; mode=Sampled(sampling=Intervals())),
          Y([1, 4, 7, 10]; mode=Sampled(span=Regular(2), sampling=Intervals())))
 A = DimArray(rand(10, 4), dims_)
@@ -397,7 +449,7 @@ map(mode, dims(A))
 
 # output
 
-(Sampled{Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Reverse,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Reverse(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(-10), Intervals{Center}(Center())), Sampled{Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward},Regular{Int64},Intervals{Center}}(Ordered{DimensionalData.Forward,DimensionalData.Forward,DimensionalData.Forward}(DimensionalData.Forward(), DimensionalData.Forward(), DimensionalData.Forward()), Regular{Int64}(2), Intervals{Center}(Center())))
+(Sampled: Ordered Regular Intervals, Sampled: Ordered Regular Intervals)
 ```
 """
 struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
@@ -408,6 +460,12 @@ end
 Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=Points()) =
     Sampled(order, span, sampling)
 
+"""
+    rebuild(m::Sampled, order, span, sampling) => Sampled
+    rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) => Sampled
+
+Rebuild `Sampled` `IndexMode` with new field values 
+"""
 rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
     Sampled(order, span, sampling)
 
@@ -416,6 +474,8 @@ rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
 [`IndexMode`](@ref)s for dimensions where the values are categories.
 
 [`Categorical`](@ref) is the provided concrete implementation.
+
+A `rebuild` method for `AbstractCategorical` must accept the `order` argumen.
 """
 abstract type AbstractCategorical{O} <: Aligned{O} end
 
@@ -440,14 +500,16 @@ it instead defaults to [`Unordered`].
 
 Create an array with [`Interval`] sampling.
 
-```jldoctest
+```jldoctest Categorical
+using DimensionalData
+
 dims_ = X(["one", "two", "thee"]), Y([:a, :b, :c, :d])
 A = DimArray(rand(3, 4), dims_)
 map(mode, dims(A))
 
 # output
 
-(Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())), Categorical{Unordered{DimensionalData.Forward}}(Unordered{DimensionalData.Forward}(DimensionalData.Forward())))
+(Categorical: Unordered, Categorical: Unordered)
 ```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}
@@ -455,8 +517,14 @@ struct Categorical{O<:Order} <: AbstractCategorical{O}
 end
 Categorical(; order=Unordered()) = Categorical(order)
 
-rebuild(mode::Categorical, order) = Categorical(order)
 
+"""
+    rebuild(mode::Categorical, order::Order)
+    rebuild(mode::Categorical; order=order(mode))
+
+Rebuild `Categorical` `IndexMode` with new order.
+"""
+rebuild(mode::Categorical, order) = Categorical(order)
 
 
 
@@ -487,7 +555,7 @@ from CoordinateTransformations.jl may be useful.
 ## Example
 
 ```jldoctest
-using CoordinateTransformations
+using DimensionalData, CoordinateTransformations
 
 m = LinearMap([0.5 0.0; 0.0 0.5])
 A = [1 2  3  4
@@ -508,11 +576,19 @@ struct Transformed{F,D} <: Unaligned
     f::F
     dim::D
 end
+Transformed(f, D::UnionAll) = Transformed(f, D())
 
-transform(mode::Transformed) = mode.f
+transformfunc(mode::Transformed) = mode.f
 dims(mode::Transformed) = mode.dim
+dims(::Type{<:Transformed{<:Any,D}}) where D = D
 
-rebuild(mode::Transformed, f=transform(mode), dim=dims(mode)) =
+"""
+    rebuild(mode::Transformed, f, dim)
+    rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode))
+
+Rebuild the `Transformed` `IndexMode`.
+"""
+rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
     Transformed(f, dim)
 
 # TODO bounds
@@ -541,7 +617,7 @@ identify(mode::Auto, dimtype::Type, index::Val) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
 
 # Sampled
-identify(mode::AbstractSampled, dimtype::Type, index::AbstractArray) = begin
+identify(mode::AbstractSampled, dimtype::Type, index) = begin
     mode = rebuild(mode,
         identify(order(mode), dimtype, index),
         identify(span(mode), dimtype, index),
@@ -552,13 +628,17 @@ end
 # Order
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
-identify(order::AutoOrder, dimtype::Type, index::AbstractUnitRange) = Ordered()
 
-_orderof(index::AbstractRange) =
-    Ordered(index=_indexorder(index))
-_orderof(index::AbstractArray) = begin
+_orderof(index::AbstractUnitRange) = Ordered()
+_orderof(index::AbstractRange) = Ordered(index=_indexorder(index))
+_orderof(index::Val) = _detectorder(unwrap(index))
+_orderof(index::AbstractArray) = _detectorder(index)
+
+function _detectorder(index)
+    # This is awful. But we don't know if we can
+    # call `issorted` on the contents of `index`.
     local sorted
-    local indord
+    local indord 
     try
         indord = _indexorder(index)
         sorted = issorted(index; rev=isrev(indord))
@@ -567,24 +647,24 @@ _orderof(index::AbstractArray) = begin
     end
     sorted ? Ordered(index=indord) : Unordered()
 end
-≈
 
-_indexorder(index::AbstractArray) =
+_indexorder(index) =
     first(index) <= last(index) ? Forward() : Reverse()
 
 # Span
-identify(span::AutoSpan, dimtype::Type, index::AbstractArray) =
+identify(span::AutoSpan, dimtype::Type, index::Union{AbstractArray,Val}) =
     Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
-identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractArray) =
+identify(span::Regular{AutoStep}, dimtype::Type, index::Union{AbstractArray,Val}) =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
-identify(span::Regular, dimtype::Type, index::AbstractArray) =
+identify(span::Regular, dimtype::Type, index::Union{AbstractArray,Val}) =
     span
 identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
     Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
-    step(span) isa Number && !(step(span) ≈ step(index)) && throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
+    step(span) isa Number && !(step(span) ≈ step(index)) && 
+        throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
     span
 end
 identify(span::Irregular{Nothing}, dimtype, index) =

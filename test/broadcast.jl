@@ -14,7 +14,7 @@ using DimensionalData, Test
     end
 
     @testset "in place" begin
-        @test data(da .= 1 .* da .+ 7) == 8 * ones(3)
+        @test parent(da .= 1 .* da .+ 7) == 8 * ones(3)
         @test dims(da .= 1 .* da .+ 7) == dims(da)
     end
 
@@ -61,8 +61,8 @@ using DimensionalData, Test
         a = DimArray(reshape(1:12, (4, 3)), (X, Y))
         b = DimArray(1:3, Y)
         @test_throws DimensionMismatch a .* b
-        @test_throws DimensionMismatch data(a) .* data(b)
-        @test data(a) .* data(b)' == data(a .* b')
+        @test_throws DimensionMismatch parent(a) .* parent(b)
+        @test parent(a) .* parent(b)' == parent(a .* b')
         @test dims(a .* b') == dims(a)
     end
 

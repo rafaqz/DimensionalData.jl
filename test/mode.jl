@@ -1,7 +1,7 @@
 using DimensionalData, Test, Unitful
 using DimensionalData: Forward, Reverse,
       reversearray, reverseindex, slicebounds, slicemode, identify,
-      indexorder, arrayorder, relationorder
+      indexorder, arrayorder, relation
 
 @testset "identify IndexMode" begin
    @testset "identify Categorical from Auto" begin
@@ -34,6 +34,7 @@ using DimensionalData: Forward, Reverse,
             @test identify(Auto(), X, 10:-2:1) ==
                 Sampled(Ordered(Reverse(), Forward(), Forward()), Regular(-2), Points())
         end
+
     end
 
     @testset "identify Sampled" begin
@@ -68,10 +69,10 @@ end
 @testset "order" begin
     @test indexorder(Ordered()) == Forward()
     @test arrayorder(Ordered()) == Forward()
-    @test relationorder(Ordered()) == Forward()
+    @test relation(Ordered()) == Forward()
     @test indexorder(Unordered()) == Unordered()
     @test arrayorder(Unordered()) == Unordered()
-    @test relationorder(Unordered()) == Forward()
+    @test relation(Unordered()) == Forward()
 end
 
 @testset "reverse" begin
@@ -205,7 +206,7 @@ end
         last(dim), first(dim)
         @test bounds(dim) == (10, 15)
         dim = X(index; mode=Sampled(order=Unordered(), sampling=Points()))
-        @test_throws ErrorException bounds(dim)
+        @test bounds(dim) == (nothing, nothing)
     end
 
     @testset "Categorical" begin
@@ -215,7 +216,7 @@ end
         dim = X(index; mode=Categorical(; order=Ordered(;index=Reverse())))
         @test bounds(dim) == (:d, :a)
         dim = X(index; mode=Categorical(; order=Unordered()))
-        @test_throws ErrorException bounds(dim)
+        @test bounds(dim) == (nothing, nothing)
     end
 
 end

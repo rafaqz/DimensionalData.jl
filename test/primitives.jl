@@ -1,21 +1,28 @@
 using DimensionalData, Test
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, formatdims, mode,
+using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
       @dim, reducedims, XDim, YDim, ZDim, Forward, commondims
 
-dimz = (X(), Y())
 
-@testset "permutedims" begin
-    @test permutedims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2))
-    @test permutedims((X(1),), dimz) == (X(1), nothing)
-    @test permutedims((Y(), X()), dimz) == (X(:), Y(:))
-    @test permutedims([Y(), X()], dimz) == (X(:), Y(:))
-    @test permutedims((Y, X),     dimz) == (X, Y)
-    @test permutedims([Y, X],     dimz) == (X, Y)
-    @test permutedims(dimz, (Y(), X())) == (Y(:), X(:))
-    @test permutedims(dimz, [Y(), X()]) == (Y(:), X(:))
-    @test permutedims(dimz, (Y, X)    ) == (Y(:), X(:))
-    @test permutedims(dimz, [Y, X]    ) == (Y(:), X(:))
+@testset "sortdims" begin
+    dimz = (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2), nothing, nothing)
+    @test @inferred sortdims((Ti(1),), dimz) == (nothing, nothing, nothing, Ti(1))
+    @test @inferred sortdims((Y, X, Z, Ti), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Y(), X(), Z(), Ti()), dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims([Y(), X(), Z(), Ti()], dimz) == (X(), Y(), Z(), Ti())
+    @test @inferred sortdims((Z(), Y(), X()),     dimz) == (X(), Y(), Z(), nothing)
+    @test @inferred sortdims(dimz, (Y(), Z())) == (Y(), Z())
+    @test @inferred sortdims(dimz, [Ti(), X(), Z()]) == (Ti(), X(), Z())
+    @test @inferred sortdims(dimz, (Y, Ti)    ) == (Y(), Ti())
+    @test @inferred sortdims(dimz, [Ti, Z, X, Y]    ) == (Ti(), Z(), X(), Y())
+    # Transformed
+    @test @inferred sortdims((Y(1:2; mode=Transformed(identity, Z())), X(1)), (X(), Z())) == 
+                             (X(1), Y(1:2; mode=Transformed(identity, Z()))) 
+    # Abstract
+    @test @inferred sortdims((Z(), Y(), X()), (XDim, TimeDim)) == (X(), nothing)
+    # Repeating
+    @test @inferred sortdims((Z(:a), Y(), Z(:b)), (YDim, Z(), ZDim)) == (Y(), Z(:a), Z(:b))
 end
 
 a = [1 2 3; 4 5 6]
@@ -58,10 +65,9 @@ end
 
 @testset "dims2indices" begin
     emptyval = Colon()
-    @test DimensionalData._dims2indices(mode(dimz[1]), dimz[1], Y, Nothing) == Colon()
+    @test DimensionalData._dims2indices(dimz[1], Y, Nothing) == Colon()
     @test dims2indices(dimz, (Y(),), emptyval) == (Colon(), Colon())
     @test dims2indices(dimz, (Y(1),), emptyval) == (Colon(), 1)
-    # Time is just ignored if it's not in dims. Should this be an error?
     @test dims2indices(dimz, (Ti(4), X(2))) == (2, Colon())
     @test dims2indices(dimz, (Y(2), X(3:7)), emptyval) == (3:7, 2)
     @test dims2indices(dimz, (X(2), Y([1, 3, 4])), emptyval) == (2, [1, 3, 4])
@@ -89,6 +95,11 @@ end
     @test dimnum(da, Y()) == 2
     @test dimnum(da, (Y, X())) == (2, 1)
     @test_throws ArgumentError dimnum(da, Ti) == (2, 1)
+
+    @testset "with Dim{X} and symbols" begin
+        @test dimnum((Dim{:a}(), Dim{:b}()), :a) == 1
+        @test dimnum((Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y())) == (3, 1, 2)
+    end
 end
 
 @testset "reducedims" begin
@@ -136,13 +147,27 @@ end
     @test_throws ArgumentError dims(da, Ti)
     x = dims(da, X)
     @test dims(x) == x
+
+    @testset "with Dim{X} and symbols" begin
+        A = DimArray(zeros(4, 5), (:one, :two))
+        @test dims(A) == 
+            (Dim{:one}(Base.OneTo(4), NoIndex(), nothing), 
+             Dim{:two}(Base.OneTo(5), NoIndex(), nothing))
+        @test dims(A, :two) == Dim{:two}(Base.OneTo(5), NoIndex(), nothing)
+    end
 end
 
 @testset "commondims" begin
-    commondims(da, X) == (dims(da, X),)
+    @test commondims(da, X) == (dims(da, X),)
     # Dims are always in the base order
-    commondims(da, (X, Y)) == dims(da, (X, Y))
-    commondims(da, (Y, X)) == dims(da, (X, Y))
+    @test commondims(da, (X, Y)) == dims(da, (X, Y))
+    @test commondims(da, (Y, X)) == dims(da, (X, Y))
+    @test basetypeof(commondims(da, DimArray(zeros(5), Y))[1]) <: Y
+
+    @testset "with Dim{X} and symbols" begin
+        @test commondims((Dim{:a}(), Dim{:b}()), (:a, :c)) == (Dim{:a}(),)
+        @test commondims((Dim{:a}(), Y(), Dim{:b}()), (Y, :b, :z)) == (Y(), Dim{:b}())
+    end
 end
 
 @testset "hasdim" begin
@@ -151,13 +176,20 @@ end
     @test hasdim(dims(da), Y) == true
     @test hasdim(dims(da), (X, Y)) == (true, true)
     @test hasdim(dims(da), (X, Ti)) == (true, false)
-    # Abstract
-    @test hasdim(dims(da), (XDim, YDim)) == (true, true)
-    # TODO : should this actually be (true, false) ?
-    # Do we remove the second one for hasdim as well?
-    @test hasdim(dims(da), (XDim, XDim)) == (true, true)
-    @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
-    @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
+
+    @testset "hasdim for Abstract types" begin
+        @test hasdim(dims(da), (XDim, YDim)) == (true, true)
+        # TODO : should this actually be (true, false) ?
+        # Do we remove the second one for hasdim as well?
+        @test hasdim(dims(da), (XDim, XDim)) == (true, true)
+        @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
+        @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
+    end
+
+    @testset "with Dim{X} and symbols" begin
+        @test hasdim((Dim{:a}(), Dim{:b}()), (:a, :c)) == (true, false)
+        @test hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c)) == (true, true, false)
+    end
 end
 
 @testset "otherdims" begin
@@ -167,6 +199,11 @@ end
     @test otherdims(A, Z) == dims(A, (X, Y))
     @test otherdims(A, (X, Z)) == dims(A, (Y,))
     @test otherdims(A, Ti) == dims(A, (X, Y, Z))
+
+    @testset "with Dim{X} and symbols" begin
+        @test otherdims((Z(), Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y)) == (Z(),)
+        @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
+    end
 end
 
 @testset "setdims" begin

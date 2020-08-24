@@ -38,7 +38,7 @@ end
     a = da[X(1), Y(1:2)]
     @test a == [1, 2]
     @test typeof(a) <: DimArray{Int,1}
-    @test typeof(data(a)) <: Array{Int,1}
+    @test typeof(parent(a)) <: Array{Int,1}
     @test dims(a) == 
         (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test refdims(a) == 
@@ -51,7 +51,7 @@ end
     a = da[X(:), Y(:)]
     @test a == [1 2; 3 4]
     @test typeof(a) <: DimArray{Int,2}
-    @test typeof(data(a)) <: Array{Int,2}
+    @test typeof(parent(a)) <: Array{Int,2}
     @test typeof(dims(a)) <: Tuple{<:X,<:Y}
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
@@ -67,7 +67,7 @@ end
     v = @inferred view(da, Y(1), X(1))
     @test v[] == 1
     @test typeof(v) <: DimArray{Int,0}
-    @test typeof(data(v)) <:SubArray{Int,0}
+    @test typeof(parent(v)) <:SubArray{Int,0}
     @test typeof(dims(v)) == Tuple{}
     @test dims(v) == ()
     @test refdims(v) == 
@@ -80,7 +80,7 @@ end
     v = @inferred view(da, Y(1), X(1:2))
     @test v == [1, 3]
     @test typeof(v) <: DimArray{Int,1}
-    @test typeof(data(v)) <: SubArray{Int,1}
+    @test typeof(parent(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:X}
     @test dims(v) == 
         (X(LinRange(143.0, 145.0, 2), 
@@ -94,7 +94,7 @@ end
     v = @inferred view(da, Y(1:2), X(1:1))
     @test v == [1 2]
     @test typeof(v) <: DimArray{Int,2}
-    @test typeof(data(v)) <: SubArray{Int,2}
+    @test typeof(parent(v)) <: SubArray{Int,2}
     @test typeof(dims(v)) <: Tuple{<:X,<:Y}
     @test dims(v) == 
         (X(LinRange(143.0, 143.0, 1),
@@ -105,7 +105,7 @@ end
 
     v = @inferred view(da, Y(Base.OneTo(2)), X(1))
     @test v == [1, 2]
-    @test typeof(data(v)) <: SubArray{Int,1}
+    @test typeof(parent(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:Y}
     @test dims(v) == 
         (Y(LinRange(-38.0, -36.0, 2),
@@ -113,6 +113,9 @@ end
     @test refdims(v) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test bounds(v) == ((-38.0, -36.0),)
+end
+
+@testset "" begin
 end
 
 a2 = [1 2 3 4
@@ -134,8 +137,37 @@ da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
 @testset "arbitrary dimension names also work for indexing" begin
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
     @test da2[Dim{:column}(4)] == [4, 6, 7]
+    @test da2[column=4] == [4, 6, 7]
     @test da2[Dim{:column}(1), Dim{:row}(3)] == 4
-    @inferred getindex(da2, Dim{:column}(1), Dim{:row}(3))
+    @test da2[column=1, Dim{:row}(3)] == 4
+    @test da2[Dim{:column}(1), row=3] == 4
+    @test da2[column=1, row=3] == 4
+    @test view(da2, column=1, row=3) == fill(4)
+    @test view(da2, column=1, Dim{:row}(1)) == fill(1)
+    da2_set = deepcopy(da2)
+    da2_set[Dim{:column}(1), Dim{:row}(1)] = 99
+    @test da2_set[1, 1] == 99
+    da2_set[column=2, row=2] = 88
+    @test da2_set[2, 2] == 88
+    da2_set[Dim{:row}(3), column=3] = 77
+    @test da2_set[3, 3] == 77
+
+    # We can also construct without using `Dim{X}`
+    @test dims(DimArray(a2, (:a, :b))) == dims(DimArray(a2, (Dim{:a}, Dim{:b})))
+
+    # Inrerence
+    @inferred getindex(da2, column=1, row=3)
+    @inferred view(da2, column=1, row=3)
+    @inferred setindex!(da2_set, 77, Dim{:row}(1), column=2)
+    # With a large type
+
+    if VERSION >= v"1.5"
+        da4 = DimArray(zeros(1, 2, 3, 4, 5, 6, 7, 8), (:a, :b, :c, :d, :d, :f, :g, :h))
+        @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5)
+        # Type inference breaks with 6 arguments.
+        # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
+        # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
+    end
 end
 
 @testset "size and axes" begin
@@ -144,6 +176,35 @@ end
     @test axes(da2, Dim{:row}()) == 1:3
     @test axes(da2, Dim{:column}) == 1:4
     @inferred axes(da2, Dim{:column})
+end
+
+@testset "copy and friends" begin
+    rebuild(da2, copy(parent(da2)))
+
+    dac = copy(da2)
+    @test dac == da2
+    @test dims(dac) == dims(da2)
+    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
+    @test name(dac) == name(da2) == "test2"
+    @test metadata(dac) == metadata(da2)
+    dadc = deepcopy(da2)
+    @test dadc == da2
+    @test dims(dadc) == dims(da2)
+    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
+    @test name(dadc) == name(da2) == "test2"
+    @test metadata(dadc) == metadata(da2)
+
+    o = one(da)
+    @test o == [1 0; 0 1]
+    @test dims(o) == dims(da) 
+
+    ou = oneunit(da)
+    @test ou == [1 0; 0 1]
+    @test dims(ou) == dims(da) 
+
+    z = zero(da)
+    @test z == [0 0; 0 0]
+    @test dims(z) == dims(da) 
 end
 
 @testset "OffsetArray" begin
@@ -179,9 +240,14 @@ end
     @test dims(da_float) == dims(da2)
     @test refdims(da_float) == refdims(da2)
 
+    # Changing the axis size removes dims.
     da_size_float = similar(da2, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
+    @test typeof(da_size_float) <: Array{Float64,2}
+    da_size_float_splat = similar(da2, Float64, 10, 10)
+    @test size(da_size_float_splat) == (10, 10)
+    @test typeof(da_size_float_splat)  <: Array{Float64,2}
 
     sda = DimArray(sprand(Float64, 10, 10, .5), (X, Y))
     sparse_size_int = similar(sda, Int64, (5, 5))
@@ -214,33 +280,16 @@ end
 @testset "eachindex" begin
     # Should have linear index
     da = DimArray(ones(5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
-    @test eachindex(da) == eachindex(data(da))
+    @test eachindex(da) == eachindex(parent(da))
     # Should have cartesian index
     sda = DimArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
-    @test eachindex(sda) == eachindex(data(sda))
+    @test eachindex(sda) == eachindex(parent(sda))
 end
 
 @testset "convert" begin
     ac = convert(Array, da2)
     @test ac isa Array{Int,2}
     @test ac == a2
-end
-
-@testset "copy" begin
-    rebuild(da2, copy(data(da2)))
-
-    dac = copy(da2)
-    @test dac == da2
-    @test dims(dac) == dims(da2)
-    @test refdims(dac) == refdims(da2) == (Ti(1:1),)
-    @test name(dac) == name(da2) == "test2"
-    @test metadata(dac) == metadata(da2)
-    dadc = deepcopy(da2)
-    @test dadc == da2
-    @test dims(dadc) == dims(da2)
-    @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
-    @test name(dadc) == name(da2) == "test2"
-    @test metadata(dadc) == metadata(da2)
 end
 
 if VERSION > v"1.1-"
@@ -258,12 +307,33 @@ if VERSION > v"1.1-"
         @test db == da2
         copy!(dc, a2)
         @test db == a2
+
+        @testset "vector copy! (ambiguity fix)" begin
+            v = zeros(3)
+            dv = DimArray(zeros(3), X)
+            copy!(v, DimArray([1.0, 2.0, 3.0], X))
+            @test v == [1.0, 2.0, 3.0]
+            copy!(dv, DimArray([9.9, 9.9, 9.9], X))
+            @test dv == [9.9, 9.9, 9.9]
+            copy!(dv, [5.0, 5.0, 5.0])
+            @test dv == [5.0, 5.0, 5.0]
+        end
+
     end
 end
 
 @testset "constructor" begin
     da = DimArray(rand(5, 4), (X, Y))
     @test_throws DimensionMismatch DimArray(1:5, X(1:6))
-    @test_throws MethodError DimArray(1:5, (X(1:5), Y(1:2)))
+    @test_throws DimensionMismatch DimArray(1:5, (X(1:5), Y(1:2)))
 end
 
+
+@testset "fill constructor" begin
+    da = fill(5.0, (X(4), Y(40.0:10.0:80.0)))
+    @test parent(da) == fill(5.0, (4, 5))
+    @test dims(da) == 
+        (X(Base.OneTo(4), NoIndex(), nothing), 
+         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
+    @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
+end
