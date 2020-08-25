@@ -36,7 +36,7 @@ But often, we want to provide a lookup index for the dimension:
 using Dates
 t = DateTime(2001):Month(1):DateTime(2001,12)
 x = 10:10:100
-A = DimArray(rand(12, 10), (X(x), Ti(t)))
+A = DimArray(rand(10, 12), (X(x), Ti(t)))
 ```
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
