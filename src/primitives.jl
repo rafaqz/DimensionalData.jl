@@ -232,8 +232,10 @@ end
 @inline slicedims(d::Dimension, i::Integer) =
     (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
 # TODO deal with unordered arrays trashing the index order
-@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
-    (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
+@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) = begin
+    @warn "Indexing with non-range `AbstractArray` has undefined effects on the index. Use forward-ordered arrays only"
+    (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d)[i], i)),), ()
+end
 @inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Integer) = (), (d,)
