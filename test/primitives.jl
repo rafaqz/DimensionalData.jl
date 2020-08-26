@@ -51,6 +51,7 @@ dimz = dims(da)
               Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), nothing)), ())
         @test slicedims((), (1:2, 3)) == ((), ())
     end
+
     @testset "Val index" begin
         da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
@@ -61,6 +62,7 @@ dimz = dims(da)
             ((X(Val((145,)), Categorical(), nothing), 
               Y(Val((:x, :y, :z)), Categorical(), nothing)), ())
     end
+
 end
 
 @testset "dims2indices" begin

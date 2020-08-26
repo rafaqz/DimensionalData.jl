@@ -12,6 +12,9 @@ methods, although these are optional.
 
 A [`rebuild`](@ref) method for `AbstractDimArray` must accept 
 `data`, `dims`, `refdims`, `name`, `metadata` arguments.
+
+Indexing AbstractDimArray with non-range `AbstractArray` has undefined effects 
+on the `Dimension` index. Use forward-ordered arrays only"
 """
 abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
@@ -192,28 +195,29 @@ Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = cop
 
 """
     DimArray(data, dims, refdims, name)
-
-The main subtype of `AbstractDimArray`.
-Maintains and updates its dimensions through transformations and moves dimensions to
-`refdims` after reducing operations (like e.g. `mean`).
-"""
-struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimArray{T,N,D,A}
-    data::A
-    dims::D
-    refdims::R
-    name::Na
-    metadata::Me
-end
-
-const DimArray = DimArray
-
-
-"""
     DimArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
 
-Constructor with optional `name`, and keyword `refdims` and `metadata`.
+The main concrete subtype of [`AbstractDimArray`](@ref).
+
+`DimArray` maintains and updates its `Dimension`s through transformations and 
+moves dimensions to reference dimension `refdims` after reducing operations 
+(like e.g. `mean`).
+
+## Arguments/Fields
+
+- `data`: An `AbstractArray`.
+- `dims`: A `Tuple` of `Dimension`
+- `name`: A string name for the array. Shows in plots and tables.
+- `refdims`: refence dimensions. Usually set programmatically to track past 
+  slices and reductions of dimension for labelling and reconstruction.
+- `metadata`: Array metadata, or `nothing`
+
+Indexing can be done with all regular indices, or with [`Dimension`](@ref)s 
+and/or [`Selector`](@ref)s. Indexing AbstractDimArray with non-range `AbstractArray` 
+has undefined effects on the `Dimension` index. Use forward-ordered arrays only"
 
 Example:
+
 ```julia
 using Dates, DimensionalData
 
@@ -226,6 +230,13 @@ julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
+struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimArray{T,N,D,A}
+    data::A
+    dims::D
+    refdims::R
+    name::Na
+    metadata::Me
+end
 DimArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
     DimArray(A, formatdims(A, dims), refdims, name, metadata)
 DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =

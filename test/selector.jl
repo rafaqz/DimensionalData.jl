@@ -718,7 +718,9 @@ end
 @testset "Where " begin
     dimz = Ti((1:1:3)u"s"), Y(10:10:40)
     da = DimArray(a, dimz)
-    @test @inferred da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([1u"s", 3u"s"])))] == [3 4; 11 12]
+    wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
+    @test parent(wda) == [7 8; 11 12]
+    @test index(wda) == ([2u"s", 3u"s"], [30, 40])
 end
 
 @testset "TranformedIndex" begin

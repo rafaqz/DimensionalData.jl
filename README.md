@@ -259,6 +259,15 @@ mean(A, dims=X)
 std(A; dims=Y())
 ```
 
+## Warnings
+
+Indexing with unordered or reverse order arrays has undefined behaviour.
+It will trash the dimension index, break `searchsorted` and nothing will make
+sense any more. So do it at you own risk. However, indexing with sorted vectors
+of Int can be useful. So it's allowed. But it will still do strange things
+to your interval sizes if the dimension span is `Irregular`.
+
+
 ## Alternate Packages
 
 There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate any of their functionality, although with slightly more verbose syntax and less polish in some cases. If there is anything it doesn't do that these packages can do, put in an issue with the feature request.
