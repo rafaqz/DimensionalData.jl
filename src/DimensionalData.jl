@@ -49,7 +49,7 @@ export data, dims, refdims, mode, metadata, name, shortname, label, units,
        val, index, order, sampling, span, bounds, locus, relation, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
-       rebuild, modify, dimwise, dimwise!
+       set, rebuild, modify, dimwise, dimwise!
 
 export order, indexorder, arrayorder, 
        reverseindex, reversearray, reorderindex, 

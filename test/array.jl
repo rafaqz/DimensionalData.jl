@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
-using DimensionalData: Start, formatdims, basetypeof, identify
+using DimensionalData: Start, formatdims, basetypeof, identify, Reverse, Forward
 
 a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
@@ -119,9 +119,6 @@ end
     @test refdims(v) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test bounds(v) == ((-38.0, -36.0),)
-end
-
-@testset "" begin
 end
 
 a2 = [1 2 3 4
@@ -342,4 +339,20 @@ end
         (X(Base.OneTo(4), NoIndex(), nothing), 
          Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
     @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
+end
+
+@testset "set" begin
+    @test name(set(da2, "newname")) == "newname"
+    @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
+    @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
+    @test mode(set(da2, (Categorical(), Sampled()), (:column, :row))) == 
+        (Sampled(), Categorical())
+    @test order(set(da2, (Unordered(), Ordered(array=Reverse())))) == 
+        (Unordered(), Ordered(array=Reverse()))
+    @test span(set(da2, (Irregular(10, 12), Regular(9.9))), (:row, :column)) == 
+        (Irregular(10, 12), Regular(9.9))
+    @test_throws ErrorException set(da2, (End(), Center()))
+    interval_da2 = set(da2, (Intervals(), Intervals()))
+    @test sampling(interval_da2) == (Intervals(), Intervals())
+    @test locus(set(interval_da2, (End(), Center()))) == (End(), Center())
 end

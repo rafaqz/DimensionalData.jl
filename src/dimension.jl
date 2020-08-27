@@ -157,11 +157,6 @@ shortname(d::DimType) = name(d) # Use `name` as fallback
 units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
-order(dim::Dimension) = order(mode(dim))
-span(dim::Dimension) = span(mode(dim))
-sampling(dim::Dimension) = sampling(mode(dim))
-locus(dim::Dimension) = locus(mode(dim))
-
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 
 indexorder(dim::Dimension) = indexorder(order(dim))
@@ -172,6 +167,18 @@ modetype(dim::Dimension) = typeof(mode(dim))
 modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
+
+set(dims::Tuple{Vararg{<:Dimension}}, xs::Tuple) = map(set, dims, xs)
+set(dim::Dimension, mode::IndexMode) = rebuild(dim; mode=mode)
+# Otherwise pass this on to set fields on the mode
+set(dim::Dimension, x) = rebuild(dim; mode=set(mode(dim), x))
+# Has to be here (not mode.jl) to dispatch on Dimension
+set(tr::Transformed, dim::Dimension) = rebuild(tr; dim=dim)
+
+
+for func in (:order, :span, :sampling, :locus)
+    @eval ($func)(dim::Dimension) = ($func)(mode(dim))
+end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 

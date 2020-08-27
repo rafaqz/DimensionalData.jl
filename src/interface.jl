@@ -253,3 +253,12 @@ and the array axis, for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function relation end
+
+"""
+    set(dim:Dimension, x::T, [dims]) => Dimension
+    set(dims::Tuple, x::T, [dims]) => Tuple{Vararg{<:Dimension}}
+    set(A::AbstractDimArray, x::T, [dims::Tuple]) => AbstractDimArray
+
+Set the field matching the type T and return a new object.
+"""
+function set end

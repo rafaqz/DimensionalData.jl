@@ -211,6 +211,7 @@ end
 @testset "setdims" begin
     A = setdims(da, X(LinRange(150,152,2)))
     @test val(dims(dims(A), X())) == LinRange(150,152,2)
+    @test dims(dims(A)) isa Tuple{<:X,<:Y}
 end
 
 @testset "swapdims" begin

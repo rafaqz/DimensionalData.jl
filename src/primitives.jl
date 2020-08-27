@@ -399,11 +399,10 @@ val(dims(B, Y))
 """
 @inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
     rebuild(A, parent(A), setdims(dims(A), newdims))
-@inline setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
-# TODO handle the multiples of the same dim.
-@inline setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
-@inline setdims(dim::Dimension, newdim::Dimension) =
-    basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
+@inline setdims(dims::DimTuple, newdims::DimTuple) = 
+    swapdims(dims, sortdims(newdims, dims))
+@inline setdims(dims::DimTuple, newdim::Dimension) =
+    swapdims(dims, sortdims(newdims, (newdim,)))
 
 """
     swapdims(x::T, newdims) => T
@@ -480,11 +479,11 @@ cell step, sampling type and order.
 @inline reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
     rebuild(dim, reducedims(Center(), dim::Dimension), mode)
 @inline reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode, Ordered(), span(mode))
+    mode = rebuild(mode; order=Ordered(), span=span(mode))
     rebuild(dim, reducedims(locus(mode), dim), mode)
 end
 @inline reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode, Ordered(), Regular(step(mode) * length(dim)))
+    mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
     rebuild(dim, reducedims(locus(mode), dim), mode)
 end
 
