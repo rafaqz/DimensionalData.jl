@@ -1,7 +1,7 @@
 using DimensionalData, Test
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
-      @dim, reducedims, XDim, YDim, ZDim, Forward, commondims
+      @dim, reducedims, XDim, YDim, ZDim, Forward, commondims, dim2key, key2dim
 
 
 @testset "sortdims" begin
@@ -211,6 +211,7 @@ end
 @testset "setdims" begin
     A = setdims(da, X(LinRange(150,152,2)))
     @test val(dims(dims(A), X())) == LinRange(150,152,2)
+    @test dims(dims(A)) isa Tuple{<:X,<:Y}
 end
 
 @testset "swapdims" begin
@@ -240,3 +241,20 @@ end
     end
 end
 
+@dim Tst
+
+@testset "dim2key" begin
+    @test dim2key(X()) == :X
+    @test dim2key(Dim{:x}) == :x
+    @test dim2key(Tst()) == :Tst
+    @test dim2key(Dim{:test}()) == :test 
+end
+
+@testset "key2dim" begin
+    @test key2dim(:test) == Dim{:test}()
+    @test key2dim(:X) == X()
+    @test key2dim(:x) == Dim{:x}()
+    @test key2dim(:Ti) == Ti()
+    @test key2dim(:ti) == Dim{:ti}()
+    @test key2dim(:Tst) == Tst()
+end

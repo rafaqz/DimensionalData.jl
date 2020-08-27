@@ -375,7 +375,6 @@ Then we can compare with `dimsmatch`, and splat away the matches. =#
 """
     setdims(A::AbstractArray, newdims) => AbstractArray
     setdims(::Tuple, newdims) => Tuple{Vararg{<:Dimension,N}}
-    setdims(dim::Dimension, newdims) => Dimension
 
 Replaces the first dim matching `<: basetypeof(newdim)` with newdim, 
 and returns a new object or tuple with the dimension updated.
@@ -397,13 +396,12 @@ val(dims(B, Y))
 'a':1:'j'
 ```
 """
-@inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
-    rebuild(A, parent(A), setdims(dims(A), newdims))
-@inline setdims(dims::DimTuple, newdims::DimTuple) = map(nd -> setdims(dims, nd), newdims)
-# TODO handle the multiples of the same dim.
-@inline setdims(dims::DimTuple, newdim::Dimension) = map(d -> setdims(d, newdim), dims)
-@inline setdims(dim::Dimension, newdim::Dimension) =
-    basetypeof(dim) <: basetypeof(newdim) ? newdim : dim
+@inline setdims(A, newdims) = 
+    rebuild(A, parent(A), setdims(dims(A), key2dim(newdims)))
+@inline setdims(dims::DimTuple, newdim::Dimension) =
+    setdims(dims, (newdim,))
+@inline setdims(dims::DimTuple, newdims::DimTuple) = 
+    swapdims(dims, sortdims(newdims, dims))
 
 """
     swapdims(x::T, newdims) => T
@@ -480,11 +478,11 @@ cell step, sampling type and order.
 @inline reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
     rebuild(dim, reducedims(Center(), dim::Dimension), mode)
 @inline reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode, Ordered(), span(mode))
+    mode = rebuild(mode; order=Ordered(), span=span(mode))
     rebuild(dim, reducedims(locus(mode), dim), mode)
 end
 @inline reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode, Ordered(), Regular(step(mode) * length(dim)))
+    mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
     rebuild(dim, reducedims(locus(mode), dim), mode)
 end
 
@@ -641,3 +639,13 @@ although it will be for `Array`.
 @inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
 @inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
 
+
+@inline _kwargdims(kwargs::Base.Iterators.Pairs) = _kwargdims(kwargs.data)
+@inline _kwargdims(kwargsdata::NamedTuple{Keys}) where Keys =
+    _kwargdims(key2dim(Keys), values(kwargsdata))
+@inline _kwargdims(dims::Tuple, vals::Tuple) =
+    (rebuild(dims[1], vals[1]), _kwargdims(tail(dims), tail(vals))...)
+_kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
+
+@inline _pairdims(pairs::Pair...) = 
+    map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)

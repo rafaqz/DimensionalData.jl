@@ -128,7 +128,6 @@ const VectorOfDim = Vector{<:Dimension}
 const DimOrDimType = Union{Dimension,DimType}
 const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
-
 # DimensionalData interface methods
 
 """
@@ -137,8 +136,8 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
 Rebuild dim with fields from `dim`, and new fields passed in.
 """
-rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)) where D <: Dimension =
-    constructorof(D)(val, mode, metadata)
+rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)
+       ) where D <: Dimension = constructorof(D)(val, mode, metadata)
 
 dims(dim::Union{Dimension,DimType}) = dim
 dims(dims::DimTuple) = dims
@@ -157,11 +156,6 @@ shortname(d::DimType) = name(d) # Use `name` as fallback
 units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
-order(dim::Dimension) = order(mode(dim))
-span(dim::Dimension) = span(mode(dim))
-sampling(dim::Dimension) = sampling(mode(dim))
-locus(dim::Dimension) = locus(mode(dim))
-
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 
 indexorder(dim::Dimension) = indexorder(order(dim))
@@ -172,6 +166,59 @@ modetype(dim::Dimension) = typeof(mode(dim))
 modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
+
+# set
+
+# Convert args/kwargs to dims and set
+set(dims_::DimTuple, args::Dimension...; kwargs...) =
+    _set(dims_, (args..., _kwargdims(kwargs)...))
+set(dims_::DimTuple, nt::NamedTuple) = 
+    _set(dims_, _kwargdims(nt))
+# Convert pairs to wrapped dims and set
+set(dims_::DimTuple, p::Pair, ps::Vararg{<:Pair}) =
+    _set(dims_, _pairdims(p, ps...))
+# Wrap naked vals with dims and set
+set(dims::Tuple{Vararg{<:Dimension,N}}, xs::Tuple{Vararg{<:Any,N}}) where N = begin
+    dimwrappers = map((d, v) -> basetypeof(d)(v), dims, xs)
+    _set(dims, dimwrappers)
+end
+set(dims::DimTuple, dimwrappers::DimTuple) =
+    _set(dims, dimwrappers)
+   
+# Set dims with (possibly unsorted) dimwrapper vals
+_set(dims::DimTuple, dimwrappers::DimTuple) = begin
+    sortednewvals = map(val, sortdims(dimwrappers, dims))
+    swapdims(dims, map(set, dims, sortednewvals))
+end
+
+# Set the index
+set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
+set(dim::Dimension, index::Val) = rebuild(dim; val=index)
+
+# Set the mode
+set(dim::Dimension, newmode::IndexMode) = 
+    rebuild(dim; mode=set(mode(dim), newmode))
+
+# Set the dim, checking the mode
+set(dim::Dimension, newdim::Dimension) = 
+    rebuild(newdim; mode=set(mode(dim), mode(newdim)))
+set(dim::Dimension, ::Nothing) = dim
+
+# Swap the dim type, keeping mode and metadata
+set(dim::Dimension, key::Symbol) = 
+    basetypeof(key2dim(key))(val(dim), mode(dim), metadata(dim))
+set(dim::Dimension, dt::DimType) = 
+    basetypeof(dt)(val(dim), mode(dim), metadata(dim))
+
+# Otherwise pass this on to set fields on the mode
+set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=set(mode(dim), x))
+# Has to be here (not mode.jl) to dispatch on Dimension
+set(tr::Transformed, dim::Dimension) = rebuild(tr; dim=dim)
+
+
+for func in (:order, :span, :sampling, :locus)
+    @eval ($func)(dim::Dimension) = ($func)(mode(dim))
+end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
@@ -254,22 +301,21 @@ metadata: nothing
 type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},Nothing}
 ```
 """
-struct Dim{X,T,IM<:IndexMode,M} <: ParametricDimension{X,T,IM,M}
+struct Dim{S,T,IM<:IndexMode,M} <: ParametricDimension{S,T,IM,M}
     val::T
     mode::IM
     metadata::M
-    Dim{X}(val::T, mode::IM, metadata::M=nothing) where {X,T,IM,M} =
-        new{X,T,IM,M}(val, mode, metadata)
+    Dim{S}(val::T, mode::IM, metadata::M=nothing) where {S,T,IM,M} =
+        new{S,T,IM,M}(val, mode, metadata)
 end
-Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
-    Dim{X}(val, mode, metadata)
+Dim{S}(val=:; mode=AutoMode(), metadata=nothing) where S =
+    Dim{S}(val, mode, metadata)
 
 name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
 shortname(::Type{<:Dim{S}}) where S = "$S"
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
 key2dim(s::Val{S}) where S = Dim{S}()
 dim2key(::Type{D}) where D<:Dim{S} where S = S
-
 
 """
     AnonDim()
@@ -283,7 +329,6 @@ end
 AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
-val(dim::AnonDim) = dim.val
 mode(::AnonDim) = NoIndex()
 metadata(::AnonDim) = nothing
 name(::AnonDim) = "Anon"

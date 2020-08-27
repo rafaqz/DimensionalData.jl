@@ -2,26 +2,11 @@ using DimensionalData, Tables, Test, DataFrames
 
 using DimensionalData: key2dim, dim2key, DimTable, DimColumn, dimstride
 
-@dim Tst
-
 da = DimArray(
     ones(3, 2, 3), 
     (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0)), 
     "data"
 )
-
-@testset "dim2key" begin
-    @test dim2key(X()) == :X
-    @test dim2key(Tst()) == :Tst
-    @test dim2key(Dim{:test}()) == :test 
-end
-
-@testset "key2dim" begin
-    @test key2dim(:test) == Dim{:test}()
-    @test key2dim(:X) == X()
-    @test key2dim(:Ti) == Ti()
-    @test key2dim(:Tst) == Tst()
-end
 
 @testset "dimstride" begin
     @test dimstride(da, X()) == 1

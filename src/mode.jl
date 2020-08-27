@@ -4,6 +4,15 @@ Traits for the order of the array, index and the relation between them.
 abstract type Order end
 
 """
+    AutoOrder()
+
+Order will be found automatically where possible.
+
+This will fail for all dim eltypes without `isless` methods.
+"""
+struct AutoOrder <: Order end
+
+"""
     Ordered(index, array, relation)
     Ordered(; index=Forward(), array=Forward(), relation=Forward())
 
@@ -57,14 +66,6 @@ indexorder(order::Unordered) = Unordered()
 arrayorder(order::Unordered) = Unordered()
 relation(order::Unordered) = order.relation
 
-"""
-    AutoOrder()
-
-Order will be found automatically where possible.
-
-This will fail for all dim eltypes without `isless` methods.
-"""
-struct AutoOrder <: Order end
 
 """
     UnknownOrder()
@@ -172,6 +173,8 @@ or [`Intervals`](@ref).
 """
 abstract type Sampling end
 
+struct AutoSampling <: Sampling end
+
 """
     Points()
 
@@ -197,6 +200,8 @@ struct Intervals{L} <: Sampling
 end
 Intervals() = Intervals(AutoLocus())
 
+locus(sampling::Intervals) = sampling.locus
+
 """
     rebuild(::Intervals, locus::Locus) => Intervals
 
@@ -204,14 +209,18 @@ Rebuild `Intervals` with a new Locus.
 """
 rebuild(::Intervals, locus) = Intervals(locus)
 
-locus(sampling::Intervals) = sampling.locus
-
-
 """
 Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
 abstract type Span end
+
+"""
+    AutoSpan()
+
+Span will be guessed and replaced by a constructor.
+"""
+struct AutoSpan <: Span end
 
 struct AutoStep end
 
@@ -246,15 +255,15 @@ Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 
 bounds(span::Irregular) = span.bounds
 
+
+const ModeComponent = Union{Order,Sampling,Span,Locus} 
+
+
 """
-    AutoSpan()
-
-Span will be guessed and replaced by a constructor.
+Supertype for all `Dimension` modes.
+Defines or modifies dimension behaviour.
 """
-struct AutoSpan <: Span end
-
-
-
+abstract type Mode end
 
 """
 Types defining the behaviour of a dimension, how they are plotted and
@@ -265,7 +274,23 @@ just the underlying array axis. It could also be a [`Categorical`](@ref) index i
 the index is ordered or unordered categories, or a [`Sampled`](@ref) index indicating
 sampling along some transect.
 """
-abstract type IndexMode end
+abstract type IndexMode <: Mode end
+
+"""
+    AutoMode()
+
+Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically 
+to another [`IndexMode`](@ref) when it is possible to detect it from the index.
+"""
+struct AutoMode{O<:Order} <: IndexMode
+    order::O
+end
+AutoMode() = AutoMode(AutoOrder())
+
+order(mode::AutoMode) = mode.order
+
+const Auto = AutoMode
+
 
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::Forward, ::IndexMode, dim) = first(dim), last(dim)
@@ -284,21 +309,6 @@ Base.step(mode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `Sampled` with `Regular`")
 
 slicemode(mode::IndexMode, index, I) = mode
-
-"""
-    AutoMode()
-
-Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically 
-to another [`IndexMode`](@ref) when it is possible to detect it from the index.
-"""
-struct AutoMode{O<:Order} <: IndexMode
-    order::O
-end
-AutoMode() = AutoMode(AutoOrder())
-
-order(mode::AutoMode) = mode.order
-
-const Auto = AutoMode
 
 
 
@@ -351,17 +361,21 @@ Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the 
 and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
 `Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 
-A `rebuild` method for `AbstractSampled` must accept `order`, `span` 
-and `sampling`, arguments.
+`AbstractSampled` must have  `order`, `span` and `sampling` fields, 
+or a `rebuild` method that accpts them as keyword arguments.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
 span(mode::AbstractSampled) = mode.span
+span(mode::T) where T<:IndexMode = error("$T has no span. Pass a `span` field manually.")
 sampling(mode::AbstractSampled) = mode.sampling
+sampling(mode::IndexMode) = Points()
 locus(mode::AbstractSampled) = locus(sampling(mode))
 
 Base.step(mode::AbstractSampled) = step(span(mode))
 
+
+# bounds
 bounds(mode::AbstractSampled, dim) =
     bounds(sampling(mode), span(mode), mode, dim)
 
@@ -397,7 +411,7 @@ slicemode(mode::AbstractSampled, index, I) =
 slicemode(::Any, ::Any, mode::AbstractSampled, index, I) = mode
 slicemode(::Intervals, ::Irregular, mode::AbstractSampled, index, I) = begin
     span = Irregular(slicebounds(mode, index, I))
-    rebuild(mode, order(mode), span, sampling(mode))
+    rebuild(mode; order=order(mode), span=span, sampling=sampling(mode))
 end
 
 slicebounds(m::IndexMode, index, I) =
@@ -475,11 +489,13 @@ rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
 
 [`Categorical`](@ref) is the provided concrete implementation.
 
-A `rebuild` method for `AbstractCategorical` must accept the `order` argumen.
+`AbstractCategorical` must have an `order` field or a `rebuild` 
+method with an `order` keyword argument.
 """
 abstract type AbstractCategorical{O} <: Aligned{O} end
 
 order(mode::AbstractCategorical) = mode.order
+
 
 """
     Categorical(o::Order)
@@ -516,7 +532,6 @@ struct Categorical{O<:Order} <: AbstractCategorical{O}
     order::O
 end
 Categorical(; order=Unordered()) = Categorical(order)
-
 
 """
     rebuild(mode::Categorical, order::Order)
@@ -578,14 +593,15 @@ struct Transformed{F,D} <: Unaligned
 end
 Transformed(f, D::UnionAll) = Transformed(f, D())
 
-transformfunc(mode::Transformed) = mode.f
+f(mode::Transformed) = mode.f
+transformfunc(mode::Transformed) = f(mode)
 dims(mode::Transformed) = mode.dim
 dims(::Type{<:Transformed{<:Any,D}}) where D = D
+
 
 """
     rebuild(mode::Transformed, f, dim)
     rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode))
-
 Rebuild the `Transformed` `IndexMode`.
 """
 rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
@@ -594,6 +610,58 @@ rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
 # TODO bounds
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
+
+
+# set
+
+# Order
+set(mode::IndexMode, neworder::Order) = 
+    rebuild(mode; order=set(order(mode), neworder))
+set(order::Order, neworder::Order) = neworder
+set(order::Order, neworder::AutoOrder) = order
+
+# Span
+set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
+set(mode::AbstractSampled, span::AutoSpan) = mode
+set(span::Span, newspan::Span) = newspan
+set(span::Span, newspan::AutoSpan) = span
+
+# Sampling
+set(mode::AbstractSampled, newsampling::Sampling) = 
+    rebuild(mode; sampling=set(sampling(mode), newsampling))
+set(mode::AbstractSampled, sampling::AutoSampling) = mode
+set(sampling::Sampling, newsampling::Sampling) = newsampling
+set(sampling::Sampling, newsampling::AutoSampling) = newsampling
+
+# Locus
+set(mode::AbstractSampled, locus::Locus) = 
+    rebuild(mode; sampling=set(sampling(mode), locus))
+set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
+set(sampling::Points, locus::Locus) = 
+    error("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points")
+set(sampling::Intervals, locus::Locus) = Intervals(locus) 
+set(sampling::Intervals, locus::AutoLocus) = sampling
+
+# IndexMode
+
+# AutoMode
+set(mode::IndexMode, newmode::AutoMode) = mode
+# Categorical
+set(mode::IndexMode, newmode::Categorical) = 
+    rebuild(newmode; order=set(order(mode), order(newmode)))
+# Sampled
+set(mode::IndexMode, newmode::Sampled) = begin
+    o = set(order(mode), order(newmode))
+    sp = set(span(mode), span(newmode))
+    sa = set(sampling(mode), sampling(newmode))
+    rebuild(mode; order=o, span=sp, sampling=sa)
+end
+# NoIndex
+set(mode::IndexMode, newmode::NoIndex) = newmode
+# Transformed
+set(tr::Transformed, f::Function) = rebuild(tr; f=f)
+# set for `dim` is in dimension.jl, for dispatch
+
 
 """
     identify(indexmode, index)
@@ -618,10 +686,10 @@ identify(mode::Auto, dimtype::Type, index::Val) =
 
 # Sampled
 identify(mode::AbstractSampled, dimtype::Type, index) = begin
-    mode = rebuild(mode,
-        identify(order(mode), dimtype, index),
-        identify(span(mode), dimtype, index),
-        identify(sampling(mode), dimtype, index)
+    mode = rebuild(mode;
+        order=identify(order(mode), dimtype, index),
+        span=identify(span(mode), dimtype, index),
+        sampling=identify(sampling(mode), dimtype, index)
     )
 end
 

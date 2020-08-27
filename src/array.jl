@@ -2,15 +2,15 @@
 """
 Supertype for all "dim" arrays.
 
-These arrays return a [`Tuple`](@ref) of [`Dimension`](@ref) 
+These arrays return a [`Tuple`](@ref) of [`Dimension`](@ref)
 from a [`dims`](@ref) method, and can be rebuilt using [`rebuild`](@ref).
 
 `parent` must return the source array.
 
-They should have [`metadata`](@ref), [`name`](@ref) and [`refdims`](@ref) 
-methods, although these are optional. 
+They should have [`metadata`](@ref), [`name`](@ref) and [`refdims`](@ref)
+methods, although these are optional.
 
-A [`rebuild`](@ref) method for `AbstractDimArray` must accept 
+A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 `data`, `dims`, `refdims`, `name`, `metadata` arguments.
 
 Indexing AbstractDimArray with non-range `AbstractArray` has undefined effects 
@@ -37,12 +37,12 @@ metadata(A::AbstractDimArray) = A.metadata
 label(A::AbstractDimArray) = name(A)
 
 """
-    rebuild(A::AbstractDimArray, data, dims=dims(A), refdims=refdims(A), 
+    rebuild(A::AbstractDimArray, data, dims=dims(A), refdims=refdims(A),
             name=name(A), metadata=metadata(A)) => AbstractDimArray
 
 Rebuild and `AbstractDimArray` with some field changes. All types
 that inherit from `AbstractDimArray` must define this method if they
-have any additional fields or alternate field order. 
+have any additional fields or alternate field order.
 
 They can discard arguments like `refdims`, `name` and `metadata`.
 
@@ -52,8 +52,16 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
+set(A::AbstractDimArray, args...; kwargs...) = set(dims(A), args...; kwargs...)
+set(A::AbstractDimArray, data::AbstractArray) = begin
+    axes(A) == axes(data) || 
+        throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
+    rebuild(A; data=data)
+end
+set(A::AbstractDimArray, name::AbstractString) = rebuild(A; name=name)
+
 # Dipatch on Tuple of Dimension, and map
-for func in (:index, :mode, :metadata, :sampling, :span, :bounds, 
+for func in (:index, :mode, :metadata, :sampling, :span, :bounds,
              :locus, :order, :arrayorder, :indexorder, :relation)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A, args...))
 end
@@ -122,17 +130,6 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwar
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
     setindex!(A, x, args..., _kwargdims(kwargs)...)
 
-
-_kwargdims(kwargs::Base.Iterators.Pairs) = _kwargdims(kwargs.data)
-_kwargdims(kwargsdata::NamedTuple) = 
-    _kwargdims(_kwargdimtypes(kwargsdata), values(kwargsdata))
-_kwargdims(dims::Tuple, vals::Tuple) = 
-    (rebuild(dims[1], vals[1]), _kwargdims(tail(dims), tail(vals))...)
-_kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
-
-_kwargdimtypes(::NamedTuple{Keys}) where Keys = map(k -> Dim{k}(), Keys)
-
-
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
     getindex(A, sel2indices(A, maybeselector(i, I...))...)
@@ -161,14 +158,14 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardInd
 # Similar
 
 # Need to cover a few type signatures to avoid ambiguity with base
-Base.similar(A::AbstractDimArray) = 
+Base.similar(A::AbstractDimArray) =
     rebuild(A, similar(parent(A)), dims(A), refdims(A), "")
-Base.similar(A::AbstractDimArray, ::Type{T}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}) where T =
     rebuild(A, similar(parent(A), T), dims(A), refdims(A), "")
 # If the shape changes, use the wrapped array:
-Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T = 
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
     similar(parent(A), T, i, I...)
 
 
@@ -246,10 +243,10 @@ DimArray(; data, dims, refdims=(), name="", metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 
 """
-    rebuild(A::DimArray, data::AbstractArray, dims::Tuple, 
+    rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
             refdims::Tuple, name::AbstractString, metadata) => DimArray
 
-Rebuild a `DimArray` with new fields. Handling partial field 
+Rebuild a `DimArray` with new fields. Handling partial field
 update is dealth with in `rebuild` for `AbstractDimArray`.
 """
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
@@ -278,7 +275,6 @@ DimArray(f::Function, dim::Dimension, name=string(nameof(f), "(", name(dim), ")"
 Create a [`DimArray`](@ref) from a fill value `x` and `Dimension`s.
 
 A `Dimension` with an `AbstractVector` value will set the array axis
-to the vector length, while the vector values become the dimension index. 
 
 A `Dimension` holding an `Integer` will set the length
 of the Array axis, and set the dimension mode to [`NoIndex`](@ref).
@@ -294,5 +290,5 @@ _intdim2rangedim(dim::Dimension{<:Integer}) =  begin
     basetypeof(dim)(Base.OneTo(val(dim)), mode_, metadata(dim))
 end
 _intdim2rangedim(dim::Dimension{<:AbstractArray}) = dim
-_intdim2rangedim(dim::Dimension) = 
+_intdim2rangedim(dim::Dimension) =
     error("dim $(basetypeof(dim)) must hold an Integer or an AbstractArray. Has $(val(dim))")
