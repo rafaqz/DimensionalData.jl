@@ -179,7 +179,7 @@ end
 
 
 """
-    dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M) => AbstractDimArray{T3,N}
+    dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
 
 Dimension-wise application of function `f` to `A` and `B`. 
 
