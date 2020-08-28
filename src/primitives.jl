@@ -250,6 +250,11 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
+julia> dimnum(A, (Z, X, Y))
+(3, 1, 2)
+
+julia> dimnum(A, Y)
+2
 ```
 """
 @inline dimnum(A, lookup) = dimnum(dims(A), lookup)
