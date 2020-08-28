@@ -296,6 +296,14 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
+julia> hasdim(A, X)
+true
+
+julia> hasdim(A, (Z, X, Y))
+(true, true, true)
+
+julia> hasdim(A, Ti)
+false
 ```
 """
 @inline hasdim(A::AbstractArray, lookup) = hasdim(dims(A), lookup)
