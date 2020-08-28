@@ -200,12 +200,16 @@ struct Intervals{L} <: Sampling
 end
 Intervals() = Intervals(AutoLocus())
 
-set(sampling::Intervals, locus::Locus) = Intervals(locus)
-
-rebuild(::Intervals, locus) = Intervals(locus)
-
 locus(sampling::Intervals) = sampling.locus
 
+"""
+    rebuild(::Intervals, locus::Locus) => Intervals
+
+Rebuild `Intervals` with a new Locus.
+"""
+rebuild(::Intervals, locus) = Intervals(locus)
+
+set(sampling::Intervals, locus::Locus) = Intervals(locus) 
 
 """
 Defines the type of span used in a [`Sampling`](@ref) index.
@@ -254,8 +258,6 @@ Span will be guessed and replaced by a constructor.
 struct AutoSpan <: Span end
 
 
-
-
 """
 Types defining the behaviour of a dimension, how they are plotted and
 how [`Selector`](@ref)s like [`Between`](@ref) work on them.
@@ -266,6 +268,9 @@ the index is ordered or unordered categories, or a [`Sampled`](@ref) index indic
 sampling along some transect.
 """
 abstract type IndexMode end
+
+
+const ModeComponent = Union{IndexMode,Order,Sampling,Span,Locus} 
 
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::Forward, ::IndexMode, dim) = first(dim), last(dim)
@@ -285,8 +290,7 @@ Base.step(mode::T) where T <: IndexMode =
 
 slicemode(mode::IndexMode, index, I) = mode
 
-set(mode::IndexMode, order::Order) = 
-    rebuild(mode; order=order)
+set(mode::IndexMode, order::Order) = rebuild(mode; order=order)
 
 """
     AutoMode()
@@ -359,6 +363,7 @@ or a `rebuild` method that accpts them as keyword arguments.
 """
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
+
 set(mode::AbstractSampled, sampling::Sampling) = rebuild(mode; sampling=sampling)
 set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
 set(mode::AbstractSampled, locus::Locus) = 
@@ -382,14 +387,18 @@ bounds(::Intervals, span::Irregular, mode::AbstractSampled, dim) =
 bounds(::Intervals, span::Regular, mode::AbstractSampled, dim) =
     bounds(locus(mode), indexorder(mode), span, mode, dim)
 
-bounds(::Start, ::Forward, span, mode, dim) = first(dim), last(dim) + step(span)
-bounds(::Start, ::Reverse, span, mode, dim) = last(dim), first(dim) - step(span)
+bounds(::Start, ::Forward, span, mode, dim) =
+    first(dim), last(dim) + step(span)
+bounds(::Start, ::Reverse, span, mode, dim) =
+    last(dim), first(dim) - step(span)
 bounds(::Center, ::Forward, span, mode, dim) =
     first(dim) - step(span) / 2, last(dim) + step(span) / 2
 bounds(::Center, ::Reverse, span, mode, dim) =
     last(dim) + step(span) / 2, first(dim) - step(span) / 2
-bounds(::End, ::Forward, span, mode, dim) = first(dim) - step(span), last(dim)
-bounds(::End, ::Reverse, span, mode, dim) = last(dim) + step(span), first(dim)
+bounds(::End, ::Forward, span, mode, dim) =
+    first(dim) - step(span), last(dim)
+bounds(::End, ::Reverse, span, mode, dim) =
+    last(dim) + step(span), first(dim)
 
 sortbounds(mode::IndexMode, bounds) = sortbounds(indexorder(mode), bounds)
 sortbounds(mode::Forward, bounds) = bounds
@@ -486,6 +495,7 @@ abstract type AbstractCategorical{O} <: Aligned{O} end
 
 order(mode::AbstractCategorical) = mode.order
 
+
 """
     Categorical(o::Order)
     Categorical(; order=Unordered())
@@ -493,7 +503,7 @@ order(mode::AbstractCategorical) = mode.order
 An IndexMode where the values are categories.
 
 This will be automatically assigned if the index contains `AbstractString`,
-eSymbol` or `Char`. Otherwise it can be assigned manually.
+`Symbol` or `Char`. Otherwise it can be assigned manually.
 
 [`Order`](@ref) will not be determined automatically for [`Categorical`](@ref),
 it instead defaults to [`Unordered`].
@@ -521,6 +531,16 @@ struct Categorical{O<:Order} <: AbstractCategorical{O}
     order::O
 end
 Categorical(; order=Unordered()) = Categorical(order)
+
+"""
+    rebuild(mode::Categorical, order::Order)
+    rebuild(mode::Categorical; order=order(mode))
+
+Rebuild `Categorical` `IndexMode` with new order.
+"""
+rebuild(mode::Categorical, order) = Categorical(order)
+
+
 
 
 """
@@ -580,6 +600,11 @@ dims(::Type{<:Transformed{<:Any,D}}) where D = D
 set(tr::Transformed, f::Function) = rebuild(tr; f=f)
 # set for `dim` is in dimension.jl, for dispatch
 
+"""
+    rebuild(mode::Transformed, f, dim)
+    rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode))
+Rebuild the `Transformed` `IndexMode`.
+"""
 rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
     Transformed(f, dim)
 
@@ -672,7 +697,7 @@ identify(span::Irregular{<:Tuple}, dimtype, index) = span
 # Sampling
 identify(sampling::Points, dimtype::Type, index) = sampling
 identify(sampling::Intervals, dimtype::Type, index) =
-    Intervals(identify(locus(sampling), dimtype, index))
+    rebuild(sampling, identify(locus(sampling), dimtype, index))
 
 # Locus
 identify(locus::AutoLocus, dimtype::Type, index) = Center()

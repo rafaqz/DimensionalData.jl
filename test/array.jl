@@ -347,6 +347,7 @@ end
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     @test mode(set(da2, (Categorical(), Sampled()), (:column, :row))) == 
         (Sampled(), Categorical())
+    @test mode(set(da2, NoIndex(), :column)) == (Sampled(), NoIndex())
     @test order(set(da2, (Unordered(), Ordered(array=Reverse())))) == 
         (Unordered(), Ordered(array=Reverse()))
     @test span(set(da2, (Irregular(10, 12), Regular(9.9))), (:row, :column)) == 
@@ -354,5 +355,10 @@ end
     @test_throws ErrorException set(da2, (End(), Center()))
     interval_da2 = set(da2, (Intervals(), Intervals()))
     @test sampling(interval_da2) == (Intervals(), Intervals())
-    @test locus(set(interval_da2, (End(), Center()))) == (End(), Center())
+    @test locus(set(interval_da2, (End()), Y(Center()))) == (End(), Center())
+
+    @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == (Intervals(End()), Intervals(Start()))
+    @test mode(set(da, (X(NoIndex()), Y(Categorical())))) == (NoIndex(), Categorical())
+    @test order(set(da, Y(Unordered()))) == (Ordered(), Unordered())
+    dims(set(da, Y(Unordered())))
 end

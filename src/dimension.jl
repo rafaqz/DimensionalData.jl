@@ -168,6 +168,8 @@ modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
 
+set(dims::Tuple, dimwrappers::Tuple{Vararg{<:Dimension{<:ModeComponent}}}) =
+    set(dims(A, dimwrappers), map(val, dimwrappers))
 set(dims::Tuple{Vararg{<:Dimension}}, xs::Tuple) = map(set, dims, xs)
 set(dim::Dimension, mode::IndexMode) = rebuild(dim; mode=mode)
 # Otherwise pass this on to set fields on the mode

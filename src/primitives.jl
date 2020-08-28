@@ -375,7 +375,6 @@ Then we can compare with `dimsmatch`, and splat away the matches. =#
 """
     setdims(A::AbstractArray, newdims) => AbstractArray
     setdims(::Tuple, newdims) => Tuple{Vararg{<:Dimension,N}}
-    setdims(dim::Dimension, newdims) => Dimension
 
 Replaces the first dim matching `<: basetypeof(newdim)` with newdim, 
 and returns a new object or tuple with the dimension updated.
@@ -399,10 +398,12 @@ val(dims(B, Y))
 """
 @inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
     rebuild(A, parent(A), setdims(dims(A), newdims))
+@inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
+    rebuild(A, parent(A), setdims(dims(A), newdims))
+@inline setdims(dims::DimTuple, newdim::Dimension) =
+    setdims(dims, (newdim,))
 @inline setdims(dims::DimTuple, newdims::DimTuple) = 
     swapdims(dims, sortdims(newdims, dims))
-@inline setdims(dims::DimTuple, newdim::Dimension) =
-    swapdims(dims, sortdims(newdims, (newdim,)))
 
 """
     swapdims(x::T, newdims) => T
