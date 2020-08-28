@@ -189,7 +189,7 @@ Dimension-wise application of function `f` to `A` and `B`.
 -`b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is 
-sliced by the dimensions of `B`, and storing the value in `dest`.
+sliced by the dimensions of `B`.
 """
 dimwise(f, A::AbstractDimArray, B::AbstractDimArray) = 
     dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
