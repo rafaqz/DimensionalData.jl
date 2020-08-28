@@ -186,7 +186,7 @@ Dimension-wise application of function `f` to `A` and `B`.
 ## Arguments
 
 -`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
--`b`: `AbstractDimArray` to broadcast from all diensions. Dimensions must be a subset of a.
+-`b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is 
 sliced by the dimensions of `B`, and storing the value in `dest`.
@@ -203,7 +203,7 @@ Dimension-wise application of function `f`.
 
 -`dest`: `AbstractDimArray` to update
 -`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
--`b`: `AbstractDimArray` to broadcast from all diensions. Dimensions must be a subset of a.
+-`b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is 
 sliced by the dimensions of `B`, and storing the value in `dest`.
