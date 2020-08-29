@@ -56,7 +56,7 @@ julia> @btime parent(A)[1, 2]
 0.7302366320496405
 ```
 
-The core component is the `AbstractDimension`, and types that inherit from it,
+The core component is the `Dimension`, and types that inherit from it,
 such as `Time`, `X`, `Y`, `Z`, the generic `Dim{:x}` or others you
 define manually using the `@dim` macro.
 
