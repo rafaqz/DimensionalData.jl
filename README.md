@@ -206,7 +206,7 @@ julia> @btime A[:a, 7.0]
 julia> @btime A[cat=:a, val=7.0]
   31.920 ns (2 allocations: 48 bytes)
 0.7476441117572306
-````
+```
 
 It's also easy to write your own custom `Selector` if your need a different behaviour.
 
