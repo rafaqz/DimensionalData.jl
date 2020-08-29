@@ -173,6 +173,9 @@ modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
 
+dimtypeof(symbol::Symbol) = dimtypeof(Val(symbol)) 
+dimkey(d::Dimension) = dimkey(typeof(d))
+dimkey(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
@@ -189,6 +192,7 @@ end
 
 Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
+Base.eltype(dim::Type{<:Dimension{<:Val{Index}}}) where Index where T = T
 Base.size(dim::Dimension) = size(val(dim))
 Base.size(dim::Dimension{<:Val}) = (length(unwrap(val(dim))),)
 Base.axes(dim::Dimension) = axes(val(dim))
@@ -264,9 +268,12 @@ end
 Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
     Dim{X}(val, mode, metadata)
 
-name(::Type{<:Dim{X}}) where X = "Dim{:$X}"
-shortname(::Type{<:Dim{X}}) where X = "$X"
-basetypeof(::Type{<:Dim{X}}) where {X} = Dim{X}
+name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
+shortname(::Type{<:Dim{S}}) where S = "$S"
+basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
+dimtypeof(::Val{S}) where S = Dim{S} 
+dimkey(::Type{D}) where D<:Dim{S} where S = S
+
 
 """
     AnonDim()
@@ -323,6 +330,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
+        DimensionalData.dimtypeof(::Val{$(QuoteNode(typ))}) = $typ
     end)
 
 # Define some common dimensions.
