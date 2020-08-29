@@ -75,7 +75,7 @@ using Statistics
 
 A = DimArray(rand(10, 10, 100), (X, Y, Ti));
 mean(A, dims=Ti)
-permutedims(A, [Ti, Y, X]) 
+permutedims(A, [Ti, Y, X])
 ```
 
 You can also use arbitrary symbol to create `Dim{X}` dimensions:
@@ -136,10 +136,10 @@ Selectors find indices in the dimension based on values `At`, `Near`, or
 
 - `At(x)`: get indices exactly matching the passed in value(s)
 - `Near(x)`: get the closest indices to the passed in value(s)
-- `Where(f::Function)`: filter the array axis by a function of dimension 
+- `Where(f::Function)`: filter the array axis by a function of dimension
   index values.
 - `Between(a, b)`: get all indices between two values (inclusive)
-- `Contains(x)`: get indices where the value x falls in the interval. 
+- `Contains(x)`: get indices where the value x falls in the interval.
   Only used for `Sampled` `Intervals`, for `Points` us `At`.
 
 We can use selectors with dim wrappers:
@@ -164,7 +164,7 @@ and data: 4-element Array{Float64,1}
 [0.819172, 0.418113, 0.461722, 0.379877]
 ```
 
-For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for 
+For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for
 regular indexing) the `At` selector is assumed, and can be dropped completely:
 
 ```julia
@@ -182,14 +182,14 @@ julia> A[:b, 25.8]
 ```
 
 Using all `Val` indexes (only recommended for small arrays)
-you can index with named dimensions `At` arbitrary values with no 
+you can index with named dimensions `At` arbitrary values with no
 runtime cost:
 
 
 ```julia
 using BenchmarkTools
 
-julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)), 
+julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)),
                                  val=Val((5.0, 6.0, 7.0))))
 DimArray with dimensions:
  Dim{:cat}: Val{(:a, :b, :c)}() (Categorical: Unordered)
@@ -243,7 +243,7 @@ Base and Statistics methods:
 - `reverse`
 - `dropdims`
 - `reduce`, `mapreduce`
-- `sum`, `prod`, `maximum`, `minimum`, 
+- `sum`, `prod`, `maximum`, `minimum`,
 - `mean`, `median`, `extrema`, `std`, `var`, `cor`, `cov`
 - `permutedims`, `adjoint`, `transpose`, `Transpose`
 - `mapslices`, `eachslice`
