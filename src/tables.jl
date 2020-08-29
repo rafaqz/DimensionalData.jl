@@ -51,13 +51,13 @@ dim(c::DimColumn) = getfield(c, :dim)
 stride(c::DimColumn) = getfield(c, :stride)
 dimnum(c::DimColumn) = dimnum(array(c), dim(c))
 
-Base.getindex(c::DimColumn, i) = dim(c)[mod((i - 1) ÷ stride(c), length(dim(c))) + 1]
+Base.getindex(c::DimColumn, i::Int) = dim(c)[mod((i - 1) ÷ stride(c), length(dim(c))) + 1]
+Base.getindex(c::DimColumn, ::Colon) = vec(c)
+Base.getindex(c::DimColumn, range::AbstractRange) = [c[i] for i in range] 
 Base.length(c::DimColumn) = length(array(c))
 Base.size(c::DimColumn) = (length(array(c)),)
 Base.axes(c::DimColumn) = (Base.OneTo(length(array(c))),)
 # Base.iterate(A::DimColumn, args...) = 
-# Base.IndexStyle(A::DimColumn) = Base.IndexStyle(parent(A))
-# Base.parent(A::DimColumn) = index(dim(A))
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
 
