@@ -332,6 +332,14 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
+julia> otherdims(A, X)
+(Y: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
+
+julia> otherdims(A, (Y, Z))
+(X: Base.OneTo(10) (NoIndex),)
+
+julia> otherdims(A, Ti)
+(X: Base.OneTo(10) (NoIndex), Y: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
 ```
 """
 @inline otherdims(A::AbstractArray, lookup) = otherdims(dims(A), lookup)
