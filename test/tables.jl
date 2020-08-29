@@ -17,15 +17,16 @@ da = DimArray(rand(3, 3), (X([:a, :b, :c]), Dim{:test}(1.0:1.0:3.0)))
 @test Tables.columnaccess(da) == true
 @test Tables.rowaccess(da) == false
 
-cols = Tables.columns(da)
-@test cols isa DimTable
-Tables.columnnames(cols)
+t = Tables.columns(da)
+@test t isa DimTable
+Tables.columnnames(t)
+@test dims(t) == dims(da)
 
 c = DimColumn(dims(da, :test), da)
 @test length(c) == length(da)
 @test size(c) == (length(da),)
 @test axes(c) == (Base.OneTo(length(da)),) 
-@test vec(c) == Array(dc) == Vector(dc) == [1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0]
+@test vec(c) == Array(c) == Vector(c) == [1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 3.0, 3.0, 3.0]
 
 dcX = DimColumn(dims(da, X), da)
 @test vec(dcX) == Array(dcX) == Vector(dcX) == [:a, :b, :c, :a, :b, :c, :a, :b, :c]

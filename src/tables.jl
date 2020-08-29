@@ -70,6 +70,11 @@ struct DimTable{A} <: Tables.AbstractColumns
 end
 array(dc::DimTable) = getfield(dc, :array)
 
+for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
+             :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
+    @eval ($func)(t::DimTable, args...) = ($func)(array(t), args...)
+end
+
 Tables.columnnames(c::DimTable) = _colnames(array(c))
 Tables.schema(c::DimTable{T}) where T = Tables.Schema(array(c))
 Tables.getcolumn(c::DimTable, x::Symbol) = Tables.getcolumn(array(c), x)
