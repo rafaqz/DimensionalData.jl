@@ -179,17 +179,17 @@ end
 
 
 """
-    dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M) => AbstractDimArray{T3,N}
+    dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
 
 Dimension-wise application of function `f` to `A` and `B`. 
 
 ## Arguments
 
--`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
--`b`: `AbstractDimArray` to broadcast from all diensions. Dimensions must be a subset of a.
+- `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
+- `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is 
-sliced by the dimensions of `B`, and storing the value in `dest`.
+sliced by the dimensions of `B`.
 """
 dimwise(f, A::AbstractDimArray, B::AbstractDimArray) = 
     dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
@@ -201,9 +201,9 @@ Dimension-wise application of function `f`.
 
 ## Arguments
 
--`dest`: `AbstractDimArray` to update
--`a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
--`b`: `AbstractDimArray` to broadcast from all diensions. Dimensions must be a subset of a.
+- `dest`: `AbstractDimArray` to update
+- `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
+- `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is 
 sliced by the dimensions of `B`, and storing the value in `dest`.
