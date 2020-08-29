@@ -76,6 +76,20 @@ This is basically `dims(x, lookup)` where the order of the original is kept,
 unlike [`dims`](@ref) where the lookup tuple determines the order
 
 Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
+```jldoctest
+julia> using DimensionalData
+
+julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
+
+julia> commondims(A, X)
+(X: Base.OneTo(10) (NoIndex),)
+
+julia> commondims(A, (X, Z))
+(X: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
+
+julia> commondims(A, Ti)
+()
+```
 """
 @inline commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
 @inline commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
