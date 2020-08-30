@@ -218,22 +218,31 @@ dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractD
     if !dimsmatch(common, dims(b))
         b = PermutedDimsArray(b, common)
     end
-    map(generators) do d
-        dest[d...] .= f.(a[d...], b)
+    # Broadcast over b for each combination of dimensional indices D
+    map(generators) do D
+        dest[D...] .= f.(a[D...], b)
     end
     return dest
 end
 
+# Single dimension generator
 dimwise_generators(dims::Tuple{<:Dimension}) =  
     ((basetypeof(dims[1])(i),) for i in axes(dims[1], 1))
 
+# Multi dimensional generators
 dimwise_generators(dims::Tuple) = begin
     dim_constructors = map(basetypeof, dims)
-    Base.Generator(
-        Base.Iterators.ProductIterator(map(d -> axes(d, 1), dims)),
-        vals -> map(dim_constructors, vals)
-    )
+    # Get the axes of the dims to iterate over
+    dimaxes = map(d -> axes(d, 1), dims)
+    # Make an iterator over all axes
+    proditr = Base.Iterators.ProductIterator(dimaxes)
+    # Wrap the produced index I in dimensions as it is generated
+    Base.Generator(proditr) do I
+        map((D, i) -> D(i), dim_constructors, I)
+    end
 end
+
+
 
 """
     basetypeof(x) => Type

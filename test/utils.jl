@@ -82,6 +82,12 @@ end
     dc3 = dimwise(+, da3, db2)
     @test dc3 == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
 
+    A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
+    da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
+    db1 = DimArray(B1, (Y([:a, :b, :c]),))
+    dc3 = dimwise(+, da3, db1)
+    @test dc3 == cat([2 4 6; 5 7 9], [12 14 16; 15 17 19]; dims=3)
+
     @testset "works with permuted dims" begin
         db2p = permutedims(da2)
         dc3p = dimwise(+, da3, db2p)
