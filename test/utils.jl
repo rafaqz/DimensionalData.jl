@@ -71,8 +71,8 @@ end
 @testset "dimwise" begin
     A2 = [1 2 3; 4 5 6]
     B1 = [1, 2, 3]
-    da2 = DimArray(A2, (X, Y))
-    db1 = DimArray(B1, (Y,))
+    da2 = DimArray(A2, (X([20, 30]), Y([:a, :b, :c])))
+    db1 = DimArray(B1, (Y([:a, :b, :c]),))
     dc2 = dimwise(+, da2, db1)
     @test dc2 == [2 4 6; 5 7 9]
 
