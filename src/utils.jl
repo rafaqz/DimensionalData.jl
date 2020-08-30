@@ -218,9 +218,8 @@ dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractD
     if !dimsmatch(common, dims(b))
         b = PermutedDimsArray(b, common)
     end
-    map(generators) do otherdims
-        I = (common..., otherdims...)
-        dest[I...] .= f.(a[I...], b[common...])
+    map(generators) do d
+        dest[d...] .= f.(a[d...], b)
     end
     return dest
 end
