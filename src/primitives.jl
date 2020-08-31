@@ -234,6 +234,8 @@ end
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
+@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray{Bool}) =
+    (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
 @inline slicedims(d::Dimension{<:Colon}, i::Integer) = (), (d,)

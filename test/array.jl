@@ -61,6 +61,12 @@ end
     @test name(a) == "test"
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
     @test bounds(a, X) == (143.0, 145.0)
+
+    # Indexing with array works
+    a = da[X([2, 1]), Y([2, 1])]
+    @test a == [4 3; 2 1]
+    @test dims(a) == 
+        ((X([145.0, 143.0], mode(da, X), metadata(da, X)), Y([-36.0, -38.0], mode(da, Y), metadata(da, Y))))
 end
 
 @testset "view returns DimensionArray containing views" begin
