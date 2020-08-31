@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: Forward, slicedims, basetypeof, formatdims
+using DimensionalData: Forward, slicedims, basetypeof, formatdims, symbol2dim
 
 @dim TestDim "Test dimension"
 
@@ -144,4 +144,11 @@ end
     @test length(dims(a)) == 1
     @test typeof(dims(a)[1]) <: X
     @test a.data == cos.(d.val)
+end
+
+@testset "symbol2dim" begin
+    @test symbol2dim(:X) == X()
+    @test symbol2dim(:x) == Dim{:x}()
+    @test symbol2dim(:Ti) == Ti()
+    @test symbol2dim(:ti) == Dim{:ti}()
 end

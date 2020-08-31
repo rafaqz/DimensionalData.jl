@@ -396,10 +396,8 @@ val(dims(B, Y))
 'a':1:'j'
 ```
 """
-@inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
-    rebuild(A, parent(A), setdims(dims(A), newdims))
-@inline setdims(A, newdims::Union{Dimension,DimTuple}) = 
-    rebuild(A, parent(A), setdims(dims(A), newdims))
+@inline setdims(A, newdims) = 
+    rebuild(A, parent(A), setdims(dims(A), symbol2dim(newdims)))
 @inline setdims(dims::DimTuple, newdim::Dimension) =
     setdims(dims, (newdim,))
 @inline setdims(dims::DimTuple, newdims::DimTuple) = 
@@ -641,3 +639,13 @@ although it will be for `Array`.
 @inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
 @inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
 
+
+@inline _kwargdims(kwargs::Base.Iterators.Pairs) = _kwargdims(kwargs.data)
+@inline _kwargdims(kwargsdata::NamedTuple{Keys}) where Keys =
+    _kwargdims(symbol2dim(Keys), values(kwargsdata))
+@inline _kwargdims(dims::Tuple, vals::Tuple) =
+    (rebuild(dims[1], vals[1]), _kwargdims(tail(dims), tail(vals))...)
+_kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
+
+@inline _pairdims(pairs::Pair...) = 
+    map(p -> basetypeof(symbol2dim(first(p)))(last(p)), pairs)

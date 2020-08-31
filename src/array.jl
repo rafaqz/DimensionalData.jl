@@ -52,9 +52,7 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-set(A::AbstractDimArray, xs::Tuple) = set(dims(A), xs)
-set(A::AbstractDimArray, args::Dimension...; kwargs...) = 
-    set(A, (args..., _kwargdims(kwargs)...))
+set(A::AbstractDimArray, args...; kwargs...) = set(dims(A), args...; kwargs...)
 set(A::AbstractDimArray, data::AbstractArray) = begin
     axes(A) == axes(data) || 
         throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
@@ -131,17 +129,6 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwar
     view(A, args..., _kwargdims(kwargs.data)...)
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
     setindex!(A, x, args..., _kwargdims(kwargs)...)
-
-
-_kwargdims(kwargs::Base.Iterators.Pairs) = _kwargdims(kwargs.data)
-_kwargdims(kwargsdata::NamedTuple) =
-    _kwargdims(_kwargdimtypes(kwargsdata), values(kwargsdata))
-_kwargdims(dims::Tuple, vals::Tuple) =
-    (rebuild(dims[1], vals[1]), _kwargdims(tail(dims), tail(vals))...)
-_kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
-
-_kwargdimtypes(::NamedTuple{Keys}) where Keys = map(k -> Dim{k}(), Keys)
-
 
 # Selector indexing without dim wrappers. Must be in the right order!
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =

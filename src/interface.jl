@@ -59,6 +59,7 @@ Return the contained value of a wrapper object.
 Objects that don't define a `val` method are returned unaltered.
 """
 function val end
+val(::Nothing) = nothing
 
 """
     index(dim::Dimension{<:Val}) => Tuple
@@ -255,10 +256,50 @@ and the array axis, for each dimension.
 function relation end
 
 """
-    set(dim:Dimension, x::T, [dims]) => Dimension
-    set(dims::Tuple, x::T, [dims]) => Tuple{Vararg{<:Dimension}}
-    set(A::AbstractDimArray, x::T, [dims::Tuple]) => AbstractDimArray
+    set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
+    set(A::AbstractDimArray, name::String) => AbstractDimArray
 
-Set the field matching the type T and return a new object.
+    set(A, xs::Pairs...) => x with updated field/s
+    set(A, xs...; kwargs...) => x with updated field/s
+    set(A, xs::Tuple) => x with updated field/s
+    set(A, xs::NamedTuple) => x with updated field/s
+
+Set the field matching the supertypes of values in xs and return a new object. 
+
+As DimensionalData is so strongly typed you do not need to specify what field
+to `set` as there is no ambiguity. 
+
+You do need to specify which dimension to to set which values on, and
+this can be done using `Dimension => val` pairs, `Dimension` wrapped arguments, 
+keyword arguments or a `NamedTuple`. 
+
+If no dimensions are specified the length of the tuple must match the length of 
+the dimensions, and be in the right order.
+
+
+## Examples
+
+```julia
+da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
+
+# set array fields
+set(da, "newname")
+set(da, zeros(3, 4))
+
+# swap dimension types
+set(da, :Z => Ti, :custom => Z)
+set(da, :custom => X, Z => Z)
+set(da, :custom => X, Z => :a)
+
+# set the dimension index
+set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
+set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
+
+# set dim modes
+set(da, Z => NoIndex(), :custom => Sampled())
+set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
+set(da, Z => NoIndex(), :custom => Sampled())
+set(da, custom=Ordered(array=Reverse()), Z(Unordered()))
+```
 """
 function set end

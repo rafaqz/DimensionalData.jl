@@ -342,23 +342,52 @@ end
 end
 
 @testset "set" begin
+    dimz2 = (Dim{:row}(10.0:010.0:30.0), Dim{:column}(-20:010.0:10.0))
+    da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
+
+    # Array fields
     @test name(set(da2, "newname")) == "newname"
     @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
-    @test mode(set(da2, (Categorical(), Sampled()), (:column, :row))) == 
-        (Sampled(), Categorical())
-    @test mode(set(da2, column=NoIndex())) == (Sampled(), NoIndex())
+
+    # Array dims
+    @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
+    @test typeof(dims(set(da, X=:a, Y=:b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
+    @test typeof(dims(set(da2, :column => Ti(), :row => Z()))) <: Tuple{<:Z,<:Ti}
+    @test typeof(dims(set(da2, (row=Y, column=X)))) <: Tuple{<:Y,<:X}
+    @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(da2, (row=Y(), column=X())))) <: Tuple{<:Y,<:X};
+    @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+
+    # Array dim index
+    @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
+        (4:6, [:a, :b, :c, :d])
+    @test index(set(da2, :column => Val((:a, :b, :c, :d)), :row => Val((4:6...,)))) == 
+        ((4:6...,), (:a, :b, :c, :d))
+
+    # Array dim mode
+    @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
+        (Sampled(), NoIndex())
+    @test mode(set(da2, column=NoIndex())) == 
+        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
     @test order(set(da2, (Unordered(), Ordered(array=Reverse())))) == 
         (Unordered(), Ordered(array=Reverse()))
     @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
         (Irregular(10, 12), Regular(9.9))
     @test_throws ErrorException set(da2, (End(), Center()))
-    interval_da2 = set(da2, (Intervals(), Intervals()))
-    @test sampling(interval_da2) == (Intervals(), Intervals())
-    @test locus(set(interval_da2, X(End()), Y(Center()))) == (End(), Center())
+    @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
+        (Sampled(), NoIndex())
 
-    @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == (Intervals(End()), Intervals(Start()))
-    @test mode(set(da, (X(NoIndex()), Y(Categorical())))) == (NoIndex(), Categorical())
+    interval_da = set(da, (Intervals(), Intervals()))
+    @test sampling(interval_da) == (Intervals(), Intervals())
+    @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
+    @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
+    @test locus(set(interval_da, X=End(), Y=Center())) == (End(), Center())
+
+    @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
+        (Intervals(End()), Intervals(Start()))
+    @test mode(set(da, X=NoIndex(), Y=Categorical())) == 
+        (NoIndex(), Categorical())
     @test order(set(da, Y(Unordered()))) == (Ordered(), Unordered())
-    dims(set(da, Y(Unordered())))
 end
