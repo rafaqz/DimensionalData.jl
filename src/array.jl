@@ -52,15 +52,9 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-set(A::AbstractDimArray, xs::Tuple) = set(A, xs, dims(A)) 
-set(A::AbstractDimArray, x) = set(A, (x,))
-
-set(A, dim::Tuple) = set(dims(A, dims), dims)
-set(A, x, lookup) = set(A, (x,), (lookup,))
-set(A, xs::Tuple, lookup::Tuple) = begin
-    newdims = set(dims(A, lookup), symbol2dim(xs))
-    setdims(dims(A), newdims)
-end
+set(A::AbstractDimArray, xs::Tuple) = set(dims(A), xs)
+set(A::AbstractDimArray, args::Dimension...; kwargs...) = 
+    set(A, (args..., _kwargdims(kwargs)...))
 set(A::AbstractDimArray, data::AbstractArray) = begin
     axes(A) == axes(data) || 
         throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
