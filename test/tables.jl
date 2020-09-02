@@ -43,14 +43,14 @@ end
 end
 
 @testset "DimColumn" begin
-    c = DimColumn(dims(da, Y), da)
+    c = DimColumn(dims(da, Y), dims(da))
     @test length(c) == length(da)
     @test size(c) == (length(da),)
     @test axes(c) == (Base.OneTo(length(da)),) 
     @test vec(c) == Array(c) == Vector(c) == 
         repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
 
-    cX = DimColumn(dims(da, X), da)
+    cX = DimColumn(dims(da, X), dims(da))
     @test vec(cX) == Array(cX) == Vector(cX) == repeat([:a, :b, :c], 6)
 end
 

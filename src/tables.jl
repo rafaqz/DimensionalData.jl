@@ -18,7 +18,7 @@ Tables.getcolumn(A::AbstractDimArray{T,N}, i::Int) where {T,N} = begin
         vec(parent(A))
     elseif i <= N
         dim = dims(A, i)
-        DimColumn(dim, A)
+        DimColumn(dim, dims(A))
     else
         error("There is no column $i")
     end
@@ -29,46 +29,38 @@ Tables.getcolumn(A::AbstractDimArray, key::Symbol) = begin
         vec(parent(A))
     else
         dim = dims(A, key2dim(key))
-        DimColumn(dim, A)
+        DimColumn(dim, dims(A))
     end
 end
 
 # a custom row type; acts as a "view" into a row of an AbstractMatrix
-struct DimColumn{T,D<:Dimension,A<:AbstractDimArray} <: AbstractVector{T}
+struct DimColumn{T,D<:Dimension} <: AbstractVector{T}
     dim::D
-    array::A
-    stride::Int
-    DimColumn(dim::D, array::A) where {D<:Dimension,A<:AbstractDimArray} = begin
-        # This is the apparent stride for indexing purposes, 
-        # which is not always the real array stride
-        stride = dimstride(array, dim) 
-        new{eltype(dim),D,A}(dim, array, stride)
-    end
+    length::Int
+    dimstride::Int
+end
+DimColumn(dim::D, dims::DimTuple) where D<:Dimension = begin
+    # This is the apparent stride for indexing purposes, 
+    # which is not always the real array stride
+    stride = dimstride(dims, dim) 
+    len = prod(map(length, dims))
+    DimColumn{eltype(dim),D}(dim, len, stride)
 end
 array(c::DimColumn) = getfield(c, :array)
 dim(c::DimColumn) = getfield(c, :dim)
-stride(c::DimColumn) = getfield(c, :stride)
-dimnum(c::DimColumn) = dimnum(array(c), dim(c))
+dimstride(c::DimColumn) = getfield(c, :dimstride)
+Base.length(c::DimColumn) = getfield(c, :length)
 
-# Probably not type-stable yet
-@inline dimstride(x, n) = dimstride(dims(x), n) 
-@inline dimstride(::Nothing, n) = error("no dims Tuple available")
-@inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
-@inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
-
-Base.getindex(c::DimColumn, i::Int) = dim(c)[mod((i - 1) ÷ stride(c), length(dim(c))) + 1]
+Base.getindex(c::DimColumn, i::Int) = 
+    dim(c)[mod((i - 1) ÷ dimstride(c), length(dim(c))) + 1]
 Base.getindex(c::DimColumn, ::Colon) = vec(c)
 Base.getindex(c::DimColumn, range::AbstractRange) = [c[i] for i in range] 
-Base.length(c::DimColumn) = length(array(c))
-Base.size(c::DimColumn) = (length(array(c)),)
-Base.axes(c::DimColumn) = (Base.OneTo(length(array(c))),)
+Base.length(c::DimColumn) = c.length
+Base.size(c::DimColumn) = (length(c),)
+Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 # Base.iterate(A::DimColumn, args...) = 
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
-
-_nreps(c::DimColumn) = _nreps(dim(c), array(c))
-_nreps(dim::Dimension, A::AbstractDimArray) = (length(A) ÷ length(dim))
-
 
 struct DimTable{A} <: Tables.AbstractColumns 
     array::A
@@ -95,3 +87,10 @@ Tables.getcolumn(c::DimTable, key::Symbol) = Tables.getcolumn(array(c), key)
 Tables.getcolumn(c::DimTable, i::Int) = Tables.getcolumn(array(c), i)
 Tables.getcolumn(row, ::Type{T}, i::Int, key::Symbol) where T =
     Tables.getcolumn(row, key)
+
+
+# This can move to primitives.jl
+@inline dimstride(x, n) = dimstride(dims(x), n) 
+@inline dimstride(::Nothing, n) = error("no dims Tuple available")
+@inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
+@inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
