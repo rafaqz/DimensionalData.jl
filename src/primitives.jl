@@ -94,7 +94,7 @@ julia> commondims(A, Ti)
 @inline commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
 @inline commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
 @inline commondims(dims::Tuple, lookup) = commondims(dims, (lookup,))
-@inline commondims(dims::Tuple, lookup::Tuple) = _commondims(symbol2dim(dims), symbol2dim(lookup))
+@inline commondims(dims::Tuple, lookup::Tuple) = _commondims(key2dim(dims), key2dim(lookup))
 @inline _commondims(dims::Tuple, lookup::Tuple) = 
     if hasdim(lookup, dims[1])
         (dims[1], commondims(tail(dims), lookup)...)
@@ -276,7 +276,7 @@ julia> dimnum(A, Y)
 @inline dimnum(A, lookup) = dimnum(dims(A), lookup)
 @inline dimnum(d::Tuple, lookup) = dimnum(d, (lookup,))[1]
 @inline dimnum(d::Tuple, lookup::AbstractArray) = dimnum(d, (lookup...,))
-@inline dimnum(d::Tuple, lookup::Tuple) = _dimnum(d, symbol2dim(lookup), (), 1)
+@inline dimnum(d::Tuple, lookup::Tuple) = _dimnum(d, key2dim(lookup), (), 1)
 
 # Match dim and lookup, also check if the mode has a transformed dimension that matches
 @inline _dimnum(d::Tuple, lookup::Tuple, rejected, n) =
@@ -324,7 +324,7 @@ false
 """
 @inline hasdim(A::AbstractArray, lookup) = hasdim(dims(A), lookup)
 @inline hasdim(d::Tuple, lookup::Tuple) = map(l -> hasdim(d, l), lookup)
-@inline hasdim(d::Tuple, lookup::Symbol) = hasdim(d, symbol2dim(lookup))
+@inline hasdim(d::Tuple, lookup::Symbol) = hasdim(d, key2dim(lookup))
 @inline hasdim(d::Tuple, lookup::DimOrDimType) =
     if dimsmatch(d[1], lookup)
         true
@@ -361,7 +361,7 @@ julia> otherdims(A, Ti)
 @inline otherdims(A::AbstractArray, lookup) = otherdims(dims(A), lookup)
 @inline otherdims(dims::Tuple, lookup::DimOrDimType) = otherdims(dims, (lookup,))
 @inline otherdims(dims::Tuple, lookup::Tuple) =
-    _otherdims(dims, _sortdims(symbol2dim(lookup), symbol2dim(dims)))
+    _otherdims(dims, _sortdims(key2dim(lookup), key2dim(dims)))
 
 #= Work with a sorted lookup where the missing dims are `nothing`.
 Then we can compare with `dimsmatch`, and splat away the matches. =#
@@ -533,7 +533,7 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 @inline dims(A::AbstractArray, lookup) = dims(dims(A), lookup)
 @inline dims(d::DimTuple, lookup) = dims(d, (lookup,))[1]
 @inline dims(d::DimTuple, lookup::Tuple) = 
-    _dims(d, symbol2dim(lookup), (), d)
+    _dims(d, key2dim(lookup), (), d)
 
 @inline _dims(d, lookup::Tuple, rejected, remaining) =
     if dimsmatch(remaining[1], lookup[1])
@@ -594,8 +594,9 @@ function comparedims end
     return a
 end
 
-@inline symbol2dim(s::Symbol) = Dim{s}()
-@inline symbol2dim(dim::Dimension) = dim
-@inline symbol2dim(dimtype::Type{<:Dimension}) = dimtype
-@inline symbol2dim(dims::Tuple) = map(symbol2dim, dims)
-@inline symbol2dim(dim) = dim
+@inline key2dim(s::Symbol) = key2dim(Val(s))
+@inline key2dim(dims::Tuple) = map(key2dim, dims)
+# Allow other things to pass through
+@inline key2dim(dim::Dimension) = dim
+@inline key2dim(dimtype::Type{<:Dimension}) = dimtype
+@inline key2dim(dim) = dim

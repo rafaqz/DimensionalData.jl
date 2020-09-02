@@ -4,7 +4,7 @@ Supertype of all dimension types.
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref), 
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
-`Dimension`s label the axes of an [`AbstractDimesnionalArray`](@ref), 
+`Dimension`s label the axes of an [`AbstractDimArray`](@ref), 
 or other dimensional objects, and are used to index into the array.
 
 They may also provide an alternate index to lookup for each array axis.
@@ -173,7 +173,6 @@ modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
 
-dimtypeof(symbol::Symbol) = dimtypeof(Val(symbol)) 
 dimkey(d::Dimension) = dimkey(typeof(d))
 dimkey(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
 
@@ -183,7 +182,7 @@ for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, 
     @eval begin
         ($func)(dims_::DimTuple) = map($func, dims_)
         ($func)(dims_::Tuple{}) = ()
-        ($func)(dims_::DimTuple, lookup) = ($func)(dims(dims_, symbol2dim(lookup)))
+        ($func)(dims_::DimTuple, lookup) = ($func)(dims(dims_, key2dim(lookup)))
     end
 end
 
@@ -271,7 +270,7 @@ Dim{X}(val=:; mode=AutoMode(), metadata=nothing) where X =
 name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
 shortname(::Type{<:Dim{S}}) where S = "$S"
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
-dimtypeof(::Val{S}) where S = Dim{S} 
+key2dim(s::Val{S}) where S = Dim{S}()
 dimkey(::Type{D}) where D<:Dim{S} where S = S
 
 
@@ -330,7 +329,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             $typ(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
-        DimensionalData.dimtypeof(::Val{$(QuoteNode(typ))}) = $typ
+        DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
     end)
 
 # Define some common dimensions.

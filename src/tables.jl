@@ -11,7 +11,8 @@ Tables.columns(A::AbstractDimArray) = DimTable(A)
 Tables.columnnames(A::AbstractDimArray) = _colnames(A)
 Tables.schema(A::AbstractDimArray{T}) where T = 
     Tables.Schema(_colnames(A), (map(eltype, dims(A))..., T))
-#	Retrieve a column by index
+
+# Retrieve a column by index
 Tables.getcolumn(A::AbstractDimArray{T,N}, i::Int) where {T,N} = begin
     if i == N + 1
         vec(parent(A))
@@ -23,33 +24,37 @@ Tables.getcolumn(A::AbstractDimArray{T,N}, i::Int) where {T,N} = begin
     end
 end
 # Retrieve a column by name
-Tables.getcolumn(A::AbstractDimArray, nm::Symbol) = begin
-    if nm == Symbol(name(A)) || nm == :value
+Tables.getcolumn(A::AbstractDimArray, key::Symbol) = begin
+    if key == Symbol(name(A)) || key == :value
         vec(parent(A))
     else
-        dim = dims(A, dimtypeof(nm))
+        dim = dims(A, key2dim(key))
         DimColumn(dim, A)
     end
 end
 
 # a custom row type; acts as a "view" into a row of an AbstractMatrix
-struct DimColumn{T,D<:Dimension,A<:AbstractArray} <: AbstractVector{T}
+struct DimColumn{T,D<:Dimension,A<:AbstractDimArray} <: AbstractVector{T}
     dim::D
     array::A
     stride::Int
     DimColumn(dim::D, array::A) where {D<:Dimension,A<:AbstractDimArray} = begin
-        dnum = dimnum(array, dim)
         # This is the apparent stride for indexing purposes, 
-        # which is not always the real stride
-        stride = reduce((x, y) -> x * y, size(dim)[1:dnum-1]; init=1)
+        # which is not always the real array stride
+        stride = dimstride(array, dim) 
         new{eltype(dim),D,A}(dim, array, stride)
     end
 end
-
 array(c::DimColumn) = getfield(c, :array)
 dim(c::DimColumn) = getfield(c, :dim)
 stride(c::DimColumn) = getfield(c, :stride)
 dimnum(c::DimColumn) = dimnum(array(c), dim(c))
+
+# Probably not type-stable yet
+@inline dimstride(x, n) = dimstride(dims(x), n) 
+@inline dimstride(::Nothing, n) = error("no dims Tuple available")
+@inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
+@inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
 
 Base.getindex(c::DimColumn, i::Int) = dim(c)[mod((i - 1) ÷ stride(c), length(dim(c))) + 1]
 Base.getindex(c::DimColumn, ::Colon) = vec(c)
@@ -76,12 +81,6 @@ for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :b
 end
 
 Tables.columnnames(c::DimTable) = _colnames(array(c))
-Tables.schema(c::DimTable{T}) where T = Tables.Schema(array(c))
-Tables.getcolumn(c::DimTable, x::Symbol) = Tables.getcolumn(array(c), x)
-Tables.getcolumn(c::DimTable, x::Int) = Tables.getcolumn(array(c), x)
-Tables.getcolumn(row, ::Type{T}, i::Int, nm::Symbol) where T =
-    Tables.getcolumn(row, T, i, nm)
-Tables.columnnames(c::DimTable) = _colnames(array(c))
 
 _colnames(A) = begin
     arraykey = name(A) == "" ? :value : Symbol(name(A))
@@ -90,5 +89,9 @@ _colnames(A) = begin
     (dimkeys..., arraykey)
 end
 
-# Given a column eltype T, index i, and column name nm, retrieve the column. Provides a type-stable or even constant-prop-able mechanism for efficiency.
-# Tables.getcolumn(table, ::Type{T}, i::Int, nm::Symbol)	
+Tables.schema(c::DimTable{T}) where T = Tables.Schema(array(c))
+
+Tables.getcolumn(c::DimTable, key::Symbol) = Tables.getcolumn(array(c), key)
+Tables.getcolumn(c::DimTable, i::Int) = Tables.getcolumn(array(c), i)
+Tables.getcolumn(row, ::Type{T}, i::Int, key::Symbol) where T =
+    Tables.getcolumn(row, key)
