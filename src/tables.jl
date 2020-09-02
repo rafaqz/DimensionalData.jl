@@ -2,36 +2,20 @@
 # https://juliadata.github.io/Tables.jl/stable/
 
 
+
+# DimArray tables interface 
+
 # Declare that your table type implements the interface
 Tables.istable(::Type{<:AbstractDimArray}) = true
 Tables.istable(::AbstractDimArray) = true
 Tables.columnaccess(::Type{<:AbstractDimArray}) = true
 Tables.columns(A::AbstractDimArray) = DimTable(A)
-# Return column names for a table as an indexable collection
 Tables.columnnames(A::AbstractDimArray) = _colnames(A)
 Tables.schema(A::AbstractDimArray{T}) where T = 
     Tables.Schema(_colnames(A), (map(eltype, dims(A))..., T))
 
-# Retrieve a column by index
-Tables.getcolumn(A::AbstractDimArray{T,N}, i::Int) where {T,N} = begin
-    if i == N + 1
-        vec(parent(A))
-    elseif i <= N
-        dim = dims(A, i)
-        DimColumn(dim, dims(A))
-    else
-        error("There is no column $i")
-    end
-end
-# Retrieve a column by name
-Tables.getcolumn(A::AbstractDimArray, key::Symbol) = begin
-    if key == Symbol(name(A)) || key == :value
-        vec(parent(A))
-    else
-        dim = dims(A, key2dim(key))
-        DimColumn(dim, dims(A))
-    end
-end
+
+# DimColumn
 
 # a custom row type; acts as a "view" into a row of an AbstractMatrix
 struct DimColumn{T,D<:Dimension} <: AbstractVector{T}
@@ -62,17 +46,56 @@ Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
 
-struct DimTable{A} <: Tables.AbstractColumns 
+
+
+# DimTable
+
+struct DimTable{Keys,A,C} <: Tables.AbstractColumns 
     array::A
+    dimcolumns::C
 end
-array(dc::DimTable) = getfield(dc, :array)
+DimTable(A::AbstractDimArray) = begin
+    dims_ = dims(A)
+    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
+    keys = _colnames(A)
+    DimTable{keys,typeof(A),typeof(dimcolumns)}(A, dimcolumns)
+end
+array(t::DimTable) = getfield(t, :array)
+dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
+dims(t::DimTable) = dims(array(t))
 
 for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
              :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
     @eval ($func)(t::DimTable, args...) = ($func)(array(t), args...)
 end
 
-Tables.columnnames(c::DimTable) = _colnames(array(c))
+Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
+Tables.schema(t::DimTable{Keys}) where Keys = begin
+    A = array(t)
+    Tables.Schema(Keys, (map(eltype, dims(A))..., eltype(A)))
+end
+
+@inline Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys = begin
+    nkeys = length(Keys) 
+    if i == nkeys
+        vec(parent(array(t)))
+    elseif i < nkeys
+        dimcolumns(t)[i]
+    else
+        error("There is no column $i")
+    end
+end
+# Retrieve a column by name
+@inline Tables.getcolumn(t::DimTable{Keys}, key::Symbol) where Keys = begin
+    if key == last(Keys)
+        vec(parent(array(t)))
+    else
+        dimcolumns(t)[dimnum(dims(t), key)]
+    end
+end
+@inline Tables.getcolumn(row, ::Type{T}, i::Int, key::Symbol) where T =
+    Tables.getcolumn(row, key)
+
 
 _colnames(A) = begin
     arraykey = name(A) == "" ? :value : Symbol(name(A))
@@ -80,13 +103,6 @@ _colnames(A) = begin
     # The data is always the last column
     (dimkeys..., arraykey)
 end
-
-Tables.schema(c::DimTable{T}) where T = Tables.Schema(array(c))
-
-Tables.getcolumn(c::DimTable, key::Symbol) = Tables.getcolumn(array(c), key)
-Tables.getcolumn(c::DimTable, i::Int) = Tables.getcolumn(array(c), i)
-Tables.getcolumn(row, ::Type{T}, i::Int, key::Symbol) where T =
-    Tables.getcolumn(row, key)
 
 
 # This can move to primitives.jl

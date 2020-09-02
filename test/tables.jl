@@ -30,16 +30,15 @@ end
     @test Tables.istable(da) == true
     @test Tables.columnaccess(da) == true
     @test Tables.rowaccess(da) == false
-    @test Tables.columnnames(da) == (:X, :Y, :test, :value)
 
-    s = Tables.schema(da)
+    t = Tables.columns(da);
+    @test Tables.columnnames(t) == (:X, :Y, :test, :value)
+    @test t isa DimTable
+    @test dims(t) == dims(da)
+
+    s = Tables.schema(t)
     @test s.names == (:X, :Y, :test, :value)
     @test s.types == (Symbol, Float64, Float64, Float64)
-
-    t = Tables.columns(da)
-    @test t isa DimTable
-    @test Tables.columnnames(t) == (:X, :Y, :test, :value)
-    @test dims(t) == dims(da)
 end
 
 @testset "DimColumn" begin
@@ -55,14 +54,15 @@ end
 end
 
 @testset "DataFrame conversion" begin
-    @time df = DataFrame(DimensionalData.DimTable(da); copycols=true)
+    @time t = DimensionalData.DimTable(da)
+    @time df = DataFrame(t; copycols=true)
     @test names(df) == ["X", "Y", "test", "value"]
 
-    @test Tables.getcolumn(da, 1) == Tables.getcolumn(da, :X) == 
+    @test Tables.getcolumn(t, 1) == Tables.getcolumn(t, :X) == 
         repeat([:a, :b, :c], 6)
-    @test Tables.getcolumn(da, 2) == Tables.getcolumn(da, :Y) == 
+    @test Tables.getcolumn(t, 2) == Tables.getcolumn(t, :Y) == 
         repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
-    @test Tables.getcolumn(da, 3) == Tables.getcolumn(da, :test) == 
+    @test Tables.getcolumn(t, 3) == Tables.getcolumn(t, :test) == 
         vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
-    @test Tables.getcolumn(da, 4) == Tables.getcolumn(da, :value) == ones(3 * 2 * 3)
+    @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :value) == ones(3 * 2 * 3)
 end
