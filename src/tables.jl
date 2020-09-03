@@ -65,6 +65,7 @@ Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
 
+abstract type AbstractDimTable <: Tables.AbstractColumns end
 
 """
     DimTable(A::AbstractDimArray)
@@ -82,7 +83,7 @@ column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
-struct DimTable{Keys,A,C} <: Tables.AbstractColumns 
+struct DimTable{Keys,A,C} <: AbstractDimTable
     array::A
     dimcolumns::C
 end

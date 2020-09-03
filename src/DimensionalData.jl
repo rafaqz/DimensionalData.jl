@@ -43,7 +43,7 @@ export Unaligned, Transformed
 
 export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
-export DimTable
+export AbstractDimTable, DimTable
 
 export data, dims, refdims, mode, metadata, name, shortname, label, units,
        val, index, order, sampling, span, bounds, locus, relation, <|
