@@ -27,7 +27,6 @@ end
     @test dimstride(da, X()) == 1
     @test dimstride(da, Y()) == 3
     @test dimstride(da, Dim{:test}()) == 6
-    @inferred dimstride(da, X())
 end
 
 @testset "DimArray Tables interface" begin
@@ -60,8 +59,6 @@ end
     @test Tables.getcolumn(t, Float64, 4, :data) == 
         ones(3 * 2 * 3)
 
-    # Dim indexing is always type-stable
-    @inferred Tables.getcolumn(t, X)
 end
 
 @testset "DimColumn" begin
