@@ -11,11 +11,12 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
       Unknown
 
 using ConstructionBase, 
+      Dates,
       LinearAlgebra, 
       RecipesBase, 
       Statistics, 
       SparseArrays,
-      Dates
+      Tables
 
 using Base: tail, OneTo
 
@@ -42,6 +43,8 @@ export Unaligned, Transformed
 
 export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
+export AbstractDimTable, DimTable
+
 export data, dims, refdims, mode, metadata, name, shortname, label, units,
        val, index, order, sampling, span, bounds, locus, relation, <|
 
@@ -65,6 +68,7 @@ include("matmul.jl")
 include("primitives.jl")
 include("utils.jl")
 include("plotrecipes.jl")
+include("tables.jl")
 include("prettyprint.jl")
 
 # For compat with old versions
