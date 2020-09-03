@@ -75,10 +75,12 @@ This table will have a column for the array data and columns for each
 `Dimension` index, as a [`DimColumn`]. These are lazy, and generated
 as required.
 
-Column names  are converted from the dimension types using `dim2key`.
+Column names are converted from the dimension types using 
+[`DimensionalData.dim2key`](@ref). This means type `Ti` becomes the 
+column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 
-This means type `Ti` becomes the column name `:Ti`, and `Dim{:custom}`
-becomes `:custom`.
+To get dimension columns, you can index with `Dimension` (`X()`) or
+`Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
 struct DimTable{Keys,A,C} <: Tables.AbstractColumns 
     array::A
@@ -121,6 +123,8 @@ end
         error("There is no column $i")
     end
 end
+@inline Tables.getcolumn(t::DimTable, dim::DimOrDimType) =
+    Tables.getcolumn(t, dimnum(t, dim))
 # Retrieve a column by name
 @inline Tables.getcolumn(t::DimTable{Keys}, key::Symbol) where Keys = begin
     if key == last(Keys)

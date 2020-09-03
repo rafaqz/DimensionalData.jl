@@ -49,7 +49,7 @@ end
     @test sa.names == st.names == (:X, :Y, :test, :data)
     @test sa.types == st.types == (Symbol, Float64, Float64, Float64)
 
-    @test Tables.getcolumn(t, 1) == Tables.getcolumn(t, :X) == 
+    @test Tables.getcolumn(t, 1) == Tables.getcolumn(t, :X) == Tables.getcolumn(t, X) == 
         repeat([:a, :b, :c], 6)
     @test Tables.getcolumn(t, 2) == Tables.getcolumn(t, :Y) == 
         repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
@@ -59,6 +59,9 @@ end
         ones(3 * 2 * 3)
     @test Tables.getcolumn(t, Float64, 4, :data) == 
         ones(3 * 2 * 3)
+
+    # Dim indexing is always type-stable
+    @inferred Tables.getcolumn(t, X)
 end
 
 @testset "DimColumn" begin
