@@ -24,6 +24,7 @@ Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
+DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
 OffsetArrays = "6fe1bfb0-de20-5000-8ca7-80f57d26f881"
@@ -34,4 +35,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [targets]
-test = ["Aqua", "BenchmarkTools", "Combinatorics", "CoordinateTransformations", "Distributions", "Documenter", "OffsetArrays", "Plots", "Random", "StatsPlots", "Test", "Unitful"]
+test = ["Aqua", "BenchmarkTools", "Combinatorics", "CoordinateTransformations", "DataFrames", "Distributions", "Documenter", "OffsetArrays", "Plots", "Random", "StatsPlots", "Test", "Unitful"]
