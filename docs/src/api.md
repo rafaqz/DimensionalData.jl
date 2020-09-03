@@ -148,10 +148,19 @@ fliprelation
 ## Non-exported methods for developers
 
 ```@docs
+DimensionalData.dim2key
+DimensionalData.key2dim
 DimensionalData.dims2indices
 DimensionalData.formatdims
 DimensionalData.reducedims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.identify
+```
+
+## Implementation of the Tables.jl interface
+
+```@docs
+DimColumn
+DimArray
 ```

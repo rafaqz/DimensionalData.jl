@@ -173,9 +173,6 @@ modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
 modetype(::Type{UnionAll}) = NoIndex
 
-dimkey(d::Dimension) = dimkey(typeof(d))
-dimkey(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
-
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
              :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
@@ -271,7 +268,7 @@ name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
 shortname(::Type{<:Dim{S}}) where S = "$S"
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
 key2dim(s::Val{S}) where S = Dim{S}()
-dimkey(::Type{D}) where D<:Dim{S} where S = S
+dim2key(::Type{D}) where D<:Dim{S} where S = S
 
 
 """

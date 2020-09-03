@@ -594,9 +594,50 @@ function comparedims end
     return a
 end
 
+"""
+    key2dim(s::Symbol) => Dimension
+    key2dim(dims::Tuple) => Dimension
+
+Convert a symbol to a dimension object. `:X`, `:Y`, `:Ti` etc will be converted.
+to `X()`, `Y()`, `Ti()`, as with any other dims generated with the [`@dim`](@ref) macro.
+
+All other `Symbol`s `S` will generate `Dim{S}()` dimensions. 
+"""
 @inline key2dim(s::Symbol) = key2dim(Val(s))
 @inline key2dim(dims::Tuple) = map(key2dim, dims)
 # Allow other things to pass through
 @inline key2dim(dim::Dimension) = dim
 @inline key2dim(dimtype::Type{<:Dimension}) = dimtype
 @inline key2dim(dim) = dim
+
+
+"""
+    dim2key(dim::Dimension) => Symbol
+    dim2key(dims::Type{<:Dimension}) => Symbol
+
+Convert a dimension object to a simbol. `X()`, `Y()`, `Ti()` etc will be converted.
+to `:X`, `:Y`, `:Ti`, as with any other dims generated with the [`@dim`](@ref) macro.
+
+All other `Symbol`s `S` will generate `Dim{S}()` dimensions. 
+"""
+@inline dim2key(dim::Dimension) = dim2key(typeof(dim))
+@inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
+
+"""
+    dimstride(x, dim)
+
+Will get the stride of the dimension relative to the other dimensions. 
+
+This may or may not be eual to the stride of the related array, 
+although it will be for `Array`.
+
+## Arguments
+
+- `x` is any object with a `dims` method, or a `Tuple` of `Dimension`.
+- `dim` is a `Dimension`, `Dimension` type, or and `Int`. Using an `Int` is not type-stable. 
+"""
+@inline dimstride(x, n) = dimstride(dims(x), n) 
+@inline dimstride(::Nothing, n) = error("no dims Tuple available")
+@inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
+@inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
+
