@@ -191,15 +191,25 @@ _set(dims::DimTuple, dimwrappers::DimTuple) = begin
     swapdims(dims, map(set, dims, sortednewvals))
 end
 
+# Set the index
 set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
 set(dim::Dimension, index::Val) = rebuild(dim; val=index)
-set(dim::Dimension, newdim::Dimension) = newdim
-set(dim::Dimension, mode::IndexMode) = rebuild(dim; mode=mode)
-set(dim::Dimension, symbol::Symbol) = 
-    basetypeof(symbol2dim(symbol))(val(dim), mode(dim), metadata(dim))
+
+# Set the mode
+set(dim::Dimension, newmode::IndexMode) = 
+    rebuild(dim; mode=set(mode(dim), newmode))
+
+# Set the dim, checking the mode
+set(dim::Dimension, newdim::Dimension) = 
+    rebuild(newdim; mode=set(mode(dim), mode(newdim)))
+set(dim::Dimension, ::Nothing) = dim
+
+# Swap the dim type, keeping mode and metadata
+set(dim::Dimension, key::Symbol) = 
+    basetypeof(key2dim(key))(val(dim), mode(dim), metadata(dim))
 set(dim::Dimension, dt::DimType) = 
     basetypeof(dt)(val(dim), mode(dim), metadata(dim))
-set(dim::Dimension, ::Nothing) = dim
+
 # Otherwise pass this on to set fields on the mode
 set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=set(mode(dim), x))
 # Has to be here (not mode.jl) to dispatch on Dimension
@@ -319,7 +329,6 @@ end
 AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
-val(dim::AnonDim) = dim.val
 mode(::AnonDim) = NoIndex()
 metadata(::AnonDim) = nothing
 name(::AnonDim) = "Anon"

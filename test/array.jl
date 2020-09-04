@@ -342,7 +342,7 @@ end
 end
 
 @testset "set" begin
-    dimz2 = (Dim{:row}(10.0:010.0:30.0), Dim{:column}(-20:010.0:10.0))
+    dimz2 = (Dim{:row}(10.0:10.0:30.0), Dim{:column}(-2:1.0:1.0))
     da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
 
     # Array fields
@@ -367,8 +367,8 @@ end
         ((4:6...,), (:a, :b, :c, :d))
 
     # Array dim mode
-    @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
-        (Sampled(), NoIndex())
+    @test mode(set(da2, :column => NoIndex(), :row => Sampled(sampling=Intervals(Center())))) == 
+        (Sampled(Ordered(), Regular(10.0), Intervals(Center())), NoIndex())
     @test mode(set(da2, column=NoIndex())) == 
         (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
     @test order(set(da2, (Unordered(), Ordered(array=Reverse())))) == 
@@ -377,7 +377,7 @@ end
         (Irregular(10, 12), Regular(9.9))
     @test_throws ErrorException set(da2, (End(), Center()))
     @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
-        (Sampled(), NoIndex())
+        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
 
     interval_da = set(da, (Intervals(), Intervals()))
     @test sampling(interval_da) == (Intervals(), Intervals())
