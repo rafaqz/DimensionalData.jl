@@ -129,20 +129,16 @@ basetypeof
 And some utility methods for transforming DimensionalData objects:
 
 ```@docs
+set
 rebuild
 modify
 dimwise
 dimwise!
-setdims
-swapdims
 reorderindex
 reorderarray
 reorderrelation
 reverseindex
 reversearray
-flipindex
-fliparray
-fliprelation
 ```
 
 ## Non-exported methods for developers
