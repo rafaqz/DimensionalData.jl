@@ -267,11 +267,11 @@ function relation end
 Set the field matching the supertypes of values in xs and return a new object. 
 
 As DimensionalData is so strongly typed you do not need to specify what field
-to `set` as there is no ambiguity. 
+to `set` - there is no ambiguity. 
 
 You do need to specify which dimension to to set which values on, and
 this can be done using `Dimension => val` pairs, `Dimension` wrapped arguments, 
-keyword arguments or a `NamedTuple`. 
+keyword arguments or a `NamedTuple`.
 
 If no dimensions are specified the length of the tuple must match the length of 
 the dimensions, and be in the right order.
@@ -282,24 +282,37 @@ the dimensions, and be in the right order.
 ```julia
 da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
 
-# set array fields
-set(da, "newname")
+# Set the array values
 set(da, zeros(3, 4))
 
-# swap dimension types
-set(da, :Z => Ti, :custom => Z)
-set(da, :custom => X, Z => Z)
-set(da, :custom => X, Z => :a)
+# Set the array name
+set(da, "newname")
 
-# set the dimension index
+# Swap dimension type
+
+# Using Pairs
+set(da, :Z => Ti, :custom => Z)
+set(da, :custom => X, Z => Y)
+
+# Using keyword arguments 
+set(da, custom = X, Z = :a)
+
+# Using Dimension wrappers
+set(da, Dim{:custom}(X), Z(Dim{:a}))
+
+# Set the dimension index
+
+# To an `AbstractArray`
 set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
+
+# To a `Val` tuple index (compile time indexing)
 set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
 
-# set dim modes
-set(da, Z => NoIndex(), :custom => Sampled())
+# Set dim modes
+set(da, Z=NoIndex(), custom=Sampled())
 set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
-set(da, Z => NoIndex(), :custom => Sampled())
-set(da, custom=Ordered(array=Reverse()), Z(Unordered()))
+set(da, (Z=NoIndex(), custom=Sampled()))
+set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 ```
 """
 function set end
