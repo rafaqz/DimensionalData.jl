@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
-using DimensionalData: Start, formatdims, basetypeof, identify, Reverse, Forward
+using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
@@ -339,55 +339,4 @@ end
         (X(Base.OneTo(4), NoIndex(), nothing), 
          Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
     @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
-end
-
-@testset "set" begin
-    dimz2 = (Dim{:row}(10.0:10.0:30.0), Dim{:column}(-2:1.0:1.0))
-    da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
-
-    # Array fields
-    @test name(set(da2, "newname")) == "newname"
-    @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
-    @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
-
-    # Array dims
-    @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
-    @test typeof(dims(set(da, X=:a, Y=:b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
-    @test typeof(dims(set(da2, :column => Ti(), :row => Z()))) <: Tuple{<:Z,<:Ti}
-    @test typeof(dims(set(da2, (row=Y, column=X)))) <: Tuple{<:Y,<:X}
-    @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, (row=Y(), column=X())))) <: Tuple{<:Y,<:X};
-    @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
-
-    # Array dim index
-    @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
-        (4:6, [:a, :b, :c, :d])
-    @test index(set(da2, :column => Val((:a, :b, :c, :d)), :row => Val((4:6...,)))) == 
-        ((4:6...,), (:a, :b, :c, :d))
-
-    # Array dim mode
-    @test mode(set(da2, :column => NoIndex(), :row => Sampled(sampling=Intervals(Center())))) == 
-        (Sampled(Ordered(), Regular(10.0), Intervals(Center())), NoIndex())
-    @test mode(set(da2, column=NoIndex())) == 
-        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
-    @test order(set(da2, (Unordered(), Ordered(array=Reverse())))) == 
-        (Unordered(), Ordered(array=Reverse()))
-    @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
-        (Irregular(10, 12), Regular(9.9))
-    @test_throws ErrorException set(da2, (End(), Center()))
-    @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
-        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
-
-    interval_da = set(da, (Intervals(), Intervals()))
-    @test sampling(interval_da) == (Intervals(), Intervals())
-    @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
-    @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
-    @test locus(set(interval_da, X=End(), Y=Center())) == (End(), Center())
-
-    @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
-        (Intervals(End()), Intervals(Start()))
-    @test mode(set(da, X=NoIndex(), Y=Categorical())) == 
-        (NoIndex(), Categorical())
-    @test order(set(da, Y(Unordered()))) == (Ordered(), Unordered())
 end

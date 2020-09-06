@@ -36,6 +36,7 @@ name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
 label(A::AbstractDimArray) = name(A)
 
+
 """
     rebuild(A::AbstractDimArray, data, dims=dims(A), refdims=refdims(A),
             name=name(A), metadata=metadata(A)) => AbstractDimArray
@@ -52,19 +53,13 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-set(A::AbstractDimArray, args...; kwargs...) = set(dims(A), args...; kwargs...)
-set(A::AbstractDimArray, data::AbstractArray) = begin
-    axes(A) == axes(data) || 
-        throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
-    rebuild(A; data=data)
-end
-set(A::AbstractDimArray, name::AbstractString) = rebuild(A; name=name)
-
 # Dipatch on Tuple of Dimension, and map
-for func in (:index, :mode, :metadata, :sampling, :span, :bounds,
-             :locus, :order, :arrayorder, :indexorder, :relation)
-    @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A, args...))
+for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
+    @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
+
+order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) = 
+    order(ot, dims(A), args...)
 
 
 # Array interface methods ######################################################

@@ -332,12 +332,12 @@ end
 near(dim::Dimension, sel::Near) = near(sampling(mode(dim)), mode(dim), dim, sel)
 near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     order = indexorder(dim)
-    order isa Unordered && throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
+    order isa UnorderedIndex && throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
     locus = DD.locus(dim)
 
     v = _locus_adjust(locus, val(sel), dim)
     i = _inbounds(_searchorder(order)(order, dim, v), dim)
-    i = if (order isa Forward ? (<=) : (>=))(i, _dimlower(order, dim))
+    i = if (order isa ForwardIndex ? (<=) : (>=))(i, _dimlower(order, dim))
         _dimlower(order, dim)
     else
         previ = _prevind(order, i)
@@ -381,11 +381,11 @@ contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel::Contains
 end
 
 # Irregular Intervals -------------------------
-contains(span::Irregular, ::Intervals, order::Order, locus::Locus, dim::Dimension, sel::Contains) = begin
+contains(span::Irregular, ::Intervals, order::IndexOrder, locus::Locus, dim::Dimension, sel::Contains) = begin
     _locus_checkbounds(locus, bounds(span), val(sel))
     _whichsearch(locus, order)(order, dim, val(sel))
 end
-contains(span::Irregular, ::Intervals, order::Order, locus::Center, dim::Dimension, sel::Contains) = begin
+contains(span::Irregular, ::Intervals, order::IndexOrder, locus::Center, dim::Dimension, sel::Contains) = begin
     v = val(sel)
     _locus_checkbounds(locus, bounds(span), v)
     i = _searchfirst(order, dim, v)
@@ -397,16 +397,16 @@ contains(span::Irregular, ::Intervals, order::Order, locus::Center, dim::Dimensi
     _order_lt(order)(interval / 2, distance) ? i - 1 : i
 end 
 
-_whichsearch(::Locus, ::Forward) = _searchlast
-_whichsearch(::Locus, ::Reverse) = _searchfirst
-_whichsearch(::End, ::Forward) = _searchfirst
-_whichsearch(::End, ::Reverse) = _searchlast
+_whichsearch(::Locus, ::ForwardIndex) = _searchlast
+_whichsearch(::Locus, ::ReverseIndex) = _searchfirst
+_whichsearch(::End, ::ForwardIndex) = _searchfirst
+_whichsearch(::End, ::ReverseIndex) = _searchlast
 
 maybeaddhalf(::Locus, s, v) = v
 maybeaddhalf(::Center, s, v) = v + s / 2
 
-_order_lt(::Forward) = (<)
-_order_lt(::Reverse) = (<=)
+_order_lt(::ForwardIndex) = (<)
+_order_lt(::ReverseIndex) = (<=)
 
 
 
@@ -418,24 +418,24 @@ between(dim::Dimension, sel::Between) =
     between(sampling(mode(dim)), mode(dim), dim, sel)
 between(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between) = begin
     order = indexorder(dim)
-    order isa Unordered && throw(ArgumentError("Cannot use `Between` with an Unordered IndexMode"))
+    order isa UnorderedIndex && throw(ArgumentError("Cannot use `Between` with UnorderedIndex"))
     a, b = between(sampling, order, mode, dim, sel)
     relate(dim, a:b)
 end
 
 # Points ------------------------------------
-between(sampling::Points, o::Order, ::IndexMode, dim::Dimension, sel::Between) = begin
+between(sampling::Points, o::IndexOrder, ::IndexMode, dim::Dimension, sel::Between) = begin
     b1, b2 = _maybeflip(o, _sorttuple(sel))
     s1, s2 = _maybeflip(o, (_searchfirst, _searchlast))
     _inbounds((s1(o, dim, b1), s2(o, dim, b2)), dim)
 end
 
 # Intervals -------------------------
-between(sampling::Intervals, o::Order, mode::IndexMode, dim::Dimension, sel::Between) =
+between(sampling::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between) =
     between(span(mode), sampling, o, mode, dim, sel)
 
 # Regular Intervals -------------------------
-between(span::Regular, ::Intervals, o::Order, mode::IndexMode, dim::Dimension, sel::Between) = begin
+between(span::Regular, ::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between) = begin
     b1, b2 = _maybeflip(o, _sorttuple(sel) .+ _locus_adjust(mode))
     _inbounds((_searchfirst(o, dim, b1), _searchlast(o, dim, b2)), dim)
 end
@@ -451,7 +451,7 @@ _locus_adjust(locus::End, step) = step, zero(step)
 struct Upper end
 struct Lower end
 
-between(span::Irregular, ::Intervals, o::Order, mode::IndexMode, d::Dimension, sel::Between) = begin
+between(span::Irregular, ::Intervals, o::IndexOrder, mode::IndexMode, d::Dimension, sel::Between) = begin
     l, h = _sorttuple(sel) 
     bl, bh = bounds(span)
     a = l <= bl ? _dimlower(o, d) : between(Lower(), locus(mode), o, d, l)
@@ -459,9 +459,9 @@ between(span::Irregular, ::Intervals, o::Order, mode::IndexMode, d::Dimension, s
     _maybeflip(o, (a, b))
 end
 
-between(x, locus::Union{Start,End}, o::Order, d::Dimension, v) =
+between(x, locus::Union{Start,End}, o::IndexOrder, d::Dimension, v) =
     _search(x, o, d, v) - ordscalar(o) * (locscalar(locus) + endshift(x))
-between(x, locus::Center, o::Order, d::Dimension, v) = begin
+between(x, locus::Center, o::IndexOrder, d::Dimension, v) = begin
     r = ordscalar(o); sh = endshift(x)
     i = _search(x, o, d, v)
     interval = abs(d[i] - d[i-r])
@@ -474,8 +474,8 @@ locscalar(::Start) = 1
 locscalar(::End) = 0
 endshift(::Lower) = -1
 endshift(::Upper) = 1
-ordscalar(::Forward) = 1
-ordscalar(::Reverse) = -1
+ordscalar(::ForwardIndex) = 1
+ordscalar(::ReverseIndex) = -1
 
 _search(x, order, dim, v) = 
     _inbounds(_searchorder(order)(order, dim, v; lt=_lt(x)), dim)
@@ -486,14 +486,14 @@ _lt(::Upper) = (<=)
 
 # Shared utils ============================================================================
 
-_searchlast(o::Order, dim::Dimension, v; kwargs...) =
+_searchlast(o::IndexOrder, dim::Dimension, v; kwargs...) =
     searchsortedlast(val(dim), v; rev=isrev(o), kwargs...)
-_searchlast(o::Order, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
+_searchlast(o::IndexOrder, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
     searchsortedlast(Index, v; rev=isrev(o), kwargs...)
 
-_searchfirst(o::Order, dim::Dimension, v; kwargs...) =
+_searchfirst(o::IndexOrder, dim::Dimension, v; kwargs...) =
     searchsortedfirst(val(dim), v; rev=isrev(o), kwargs...)
-_searchfirst(o::Order, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
+_searchfirst(o::IndexOrder, dim::Dimension{<:Val{Index}}, v; kwargs...) where Index =
     searchsortedfirst(Index, v; rev=isrev(o), kwargs...)
 
 # Return an inbounds index
@@ -510,8 +510,8 @@ _inbounds(i::Int, dim::Dimension) =
 _sorttuple(sel::Between) = _sorttuple(val(sel))
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
 
-_maybeflip(o::Forward, (a, b)) = (a, b)
-_maybeflip(o::Reverse, (a, b)) = (b, a)
+_maybeflip(o::ForwardIndex, (a, b)) = (a, b)
+_maybeflip(o::ReverseIndex, (a, b)) = (b, a)
 
 _lt(::Locus) = (<)
 _lt(::End) = (<=)
@@ -523,13 +523,13 @@ _locus_ineq(locus) = _lt(locus), _gt(locus)
 _locus_checkbounds(loc, (l, h), v) = 
     (_lt(loc)(v, l) || _gt(loc)(v, h)) && throw(BoundsError())
 
-_prevind(::Forward, i) = i - 1
-_prevind(::Reverse, i) = i + 1
+_prevind(::ForwardIndex, i) = i - 1
+_prevind(::ReverseIndex, i) = i + 1
 
-_dimlower(o::Forward, d) = firstindex(d)
-_dimlower(o::Reverse, d) = lastindex(d)
-_dimupper(o::Forward, d) = lastindex(d)
-_dimupper(o::Reverse, d) = firstindex(d)
+_dimlower(o::ForwardIndex, d) = firstindex(d)
+_dimlower(o::ReverseIndex, d) = lastindex(d)
+_dimupper(o::ForwardIndex, d) = lastindex(d)
+_dimupper(o::ReverseIndex, d) = firstindex(d)
 
-_searchorder(::Forward) = _searchfirst
-_searchorder(::Reverse) = _searchlast
+_searchorder(::ForwardIndex) = _searchfirst
+_searchorder(::ReverseIndex) = _searchlast

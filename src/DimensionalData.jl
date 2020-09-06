@@ -30,6 +30,10 @@ export Locus, Center, Start, End, AutoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
+export IndexOrder, ArrayOrder, RelationOrder,
+       ForwardIndex, ReverseIndex, UnorderedIndex,
+       ForwardArray, ReverseArray, ForwardRelation, ReverseRelation
+
 export Sampling, Points, Intervals
 
 export Span, Regular, Irregular, AutoSpan
@@ -46,26 +50,26 @@ export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 export AbstractDimTable, DimTable
 
 export data, dims, refdims, mode, metadata, name, shortname, label, units,
-       val, index, order, sampling, span, bounds, locus, relation, <|
+       val, index, order, sampling, span, bounds, locus, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
-       set, rebuild, modify, dimwise, dimwise!
+       set, rebuild, reorder, modify, dimwise, dimwise!
 
-export order, indexorder, arrayorder, 
-       reverseindex, reversearray, reorderindex, 
-       reorderarray, reorderrelation
+export order, indexorder, arrayorder, relation
 
 export @dim
 
 include("interface.jl")
 include("mode.jl")
+include("identify.jl")
 include("dimension.jl")
 include("array.jl")
 include("selector.jl")
+include("primitives.jl")
 include("broadcast.jl")
 include("methods.jl")
 include("matmul.jl")
-include("primitives.jl")
+include("set.jl")
 include("utils.jl")
 include("plotrecipes.jl")
 include("tables.jl")

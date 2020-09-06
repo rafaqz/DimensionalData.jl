@@ -1,6 +1,5 @@
 using DimensionalData, Test, Unitful, Combinatorics
-using DimensionalData: Forward, Reverse, Ordered,
-      arrayorder, indexorder, relation, between, at, near, contains
+using DimensionalData: between, at, near, contains
 
 a = [1 2  3  4
      5 6  7  8
@@ -17,10 +16,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
         # Varnames: locusindexorderrelation
 
-        startfwdfwd = Ti(11.0:30.0;      mode=Sampled(Ordered(Forward(),Forward(),Forward()), Regular(1), Intervals(Start())))
-        startfwdrev = Ti(11.0:30.0;      mode=Sampled(Ordered(Forward(),Forward(),Reverse()), Regular(1), Intervals(Start())))
-        startrevfwd = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1), Intervals(Start())))
-        startrevrev = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), Regular(-1), Intervals(Start())))
+        startfwdfwd = Ti(11.0:30.0;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), Regular(1), Intervals(Start())))
+        startfwdrev = Ti(11.0:30.0;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), Regular(1), Intervals(Start())))
+        startrevfwd = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(Start())))
+        startrevrev = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(Start())))
 
         @testset "Any at" begin
             @test at(startfwdfwd, At(30)) == 20
@@ -89,10 +88,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test near(startfwdfwd, Near(100)) == 20
         end
 
-        centerfwdfwd = Ti((11.0:30.0);      mode=Sampled(Ordered(Forward(),Forward(),Forward()), Regular(1), Intervals(Center())))
-        centerfwdrev = Ti((11.0:30.0);      mode=Sampled(Ordered(Forward(),Forward(),Reverse()), Regular(1), Intervals(Center())))
-        centerrevfwd = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1), Intervals(Center())))
-        centerrevrev = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), Regular(-1), Intervals(Center())))
+        centerfwdfwd = Ti((11.0:30.0);      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), Regular(1), Intervals(Center())))
+        centerfwdrev = Ti((11.0:30.0);      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), Regular(1), Intervals(Center())))
+        centerrevfwd = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(Center())))
+        centerrevrev = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(Center())))
 
         @testset "Center between" begin
             @test between(centerfwdfwd, Between(10.5, 14.6)) === 1:4
@@ -145,10 +144,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test near(centerrevrev, Near(29.4)) == 19
         end
 
-        endfwdfwd = Ti((11.0:30.0);      mode=Sampled(Ordered(Forward(),Forward(),Forward()), Regular(1), Intervals(End())))
-        endfwdrev = Ti((11.0:30.0);      mode=Sampled(Ordered(Forward(),Forward(),Reverse()), Regular(1), Intervals(End())))
-        endrevfwd = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(Reverse(),Forward(),Forward()), Regular(-1), Intervals(End())))
-        endrevrev = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), Regular(-1), Intervals(End())))
+        endfwdfwd = Ti((11.0:30.0);      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), Regular(1), Intervals(End())))
+        endfwdrev = Ti((11.0:30.0);      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), Regular(1), Intervals(End())))
+        endrevfwd = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(End())))
+        endrevrev = Ti((30.0:-1.0:11.0); mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(End())))
 
         @testset "End between" begin
             @test between(endfwdfwd, Between(10.1, 14.9)) === 2:4
@@ -220,8 +219,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
     end
 
     @testset "Regular Intervals with array" begin
-        startfwd = Ti([1, 3, 4, 5]; mode=Sampled(Ordered(index=Forward()), Regular(1), Intervals(Start())))
-        startrev = Ti([5, 4, 3, 1]; mode=Sampled(Ordered(index=Reverse()), Regular(-1), Intervals(Start())))
+        startfwd = Ti([1, 3, 4, 5]; mode=Sampled(Ordered(index=ForwardIndex()), Regular(1), Intervals(Start())))
+        startrev = Ti([5, 4, 3, 1]; mode=Sampled(Ordered(index=ReverseIndex()), Regular(-1), Intervals(Start())))
         @test_throws BoundsError contains(startfwd, Contains(0.9))
         @test contains(startfwd, Contains(1.0)) == 1
         @test contains(startfwd, Contains(1.9)) == 1
@@ -244,10 +243,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
         # Varnames: locusindexorderrelation
         args = Irregular(1.0, 121.0), Intervals(Start())
-        startfwdfwd = Ti((1:10).^2;    mode=Sampled(Ordered(Forward(),Forward(),Forward()), args...))
-        startfwdrev = Ti((1:10).^2;    mode=Sampled(Ordered(Forward(),Forward(),Reverse()), args...))
-        startrevfwd = Ti((10:-1:1).^2; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), args...))
-        startrevrev = Ti((10:-1:1).^2; mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), args...))
+        startfwdfwd = Ti((1:10).^2;    mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), args...))
+        startfwdrev = Ti((1:10).^2;    mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), args...))
+        startrevfwd = Ti((10:-1:1).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), args...))
+        startrevrev = Ti((10:-1:1).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), args...))
 
         @testset "Any at" begin
             @test at(startfwdfwd, At(25)) == 5
@@ -312,10 +311,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         args = Irregular(0.5, 111.5), Intervals(Center())
-        centerfwdfwd =Ti((1.0:10.0).^2;      mode=Sampled(Ordered(Forward(),Forward(),Forward()), args...))
-        centerfwdrev =Ti((1.0:10.0).^2;      mode=Sampled(Ordered(Forward(),Forward(),Reverse()), args...))
-        centerrevfwd =Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), args...))
-        centerrevrev =Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), args...))
+        centerfwdfwd =Ti((1.0:10.0).^2;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), args...))
+        centerfwdrev =Ti((1.0:10.0).^2;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), args...))
+        centerrevfwd =Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), args...))
+        centerrevrev =Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), args...))
 
         @testset "Center between" begin
             @test between(centerfwdfwd, Between(6.5, 30.5)) === 3:5
@@ -350,18 +349,15 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(centerrevfwd, Contains(111.4)) == 1
             @test contains(centerrevfwd, Contains(90.5)) == 1
             @test contains(centerrevfwd, Contains(90.4)) == 2
-
             @test contains(centerrevrev, Contains(90.5)) == 10
             @test contains(centerrevrev, Contains(90.4)) == 9
         end
 
-        # @testset "Center near" begi
-
         args = Irregular(0.0, 100.0), Intervals(End())
-        endfwdfwd = Ti((1.0:10.0).^2;      mode=Sampled(Ordered(Forward(),Forward(),Forward()), args...))
-        endfwdrev = Ti((1.0:10.0).^2;      mode=Sampled(Ordered(Forward(),Forward(),Reverse()), args...))
-        endrevfwd = Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(Reverse(),Forward(),Forward()), args...))
-        endrevrev = Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(Reverse(),Forward(),Reverse()), args...))
+        endfwdfwd = Ti((1.0:10.0).^2;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), args...))
+        endfwdrev = Ti((1.0:10.0).^2;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), args...))
+        endrevfwd = Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), args...))
+        endrevrev = Ti((10.0:-1.0:1.0).^2; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), args...))
 
         @testset "End between" begin
             @test between(endfwdfwd, Between(4, 25)) === 3:5
@@ -417,10 +413,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
 
     @testset "Points mode" begin
 
-        fwdfwd = Ti((5.0:30.0);      mode=Sampled(order=Ordered(Forward(),Forward(),Forward())))
-        fwdrev = Ti((5.0:30.0);      mode=Sampled(order=Ordered(Forward(),Forward(),Reverse())))
-        revfwd = Ti((30.0:-1.0:5.0); mode=Sampled(order=Ordered(Reverse(),Forward(),Forward())))
-        revrev = Ti((30.0:-1.0:5.0); mode=Sampled(order=Ordered(Reverse(),Forward(),Reverse())))
+        fwdfwd = Ti((5.0:30.0);      mode=Sampled(order=Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), sampling=Points()))
+        fwdrev = Ti((5.0:30.0);      mode=Sampled(order=Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), sampling=Points()))
+        revfwd = Ti((30.0:-1.0:5.0); mode=Sampled(order=Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), sampling=Points()))
+        revrev = Ti((30.0:-1.0:5.0); mode=Sampled(order=Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), sampling=Points()))
 
         @testset "between" begin
             @test between(fwdfwd, Between(10, 15)) === 6:11
@@ -594,11 +590,11 @@ end
              9 10 11 12]
 
         @testset "forward index with reverse relation" begin
-            da_ffr = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Reverse()))),
-                                         Ti((1:1:4)u"s"; mode=Sampled(order=Ordered(Forward(), Forward(), Reverse())))))
-            @test indexorder(dims(da_ffr, Ti)) == Forward()
-            @test arrayorder(dims(da_ffr, Ti)) == Forward()
-            @test relation(dims(da_ffr, Ti)) == Reverse()
+            da_ffr = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ReverseRelation()))),
+                                         Ti((1:1:4)u"s"; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ReverseRelation())))))
+            @test indexorder(dims(da_ffr, Ti)) == ForwardIndex()
+            @test arrayorder(dims(da_ffr, Ti)) == ForwardArray()
+            @test relation(dims(da_ffr, Ti)) == ReverseRelation()
             @test da_ffr[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_ffr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [6 5; 2 1]
             @test da_ffr[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [6, 5]
@@ -608,8 +604,8 @@ end
         end
 
         @testset "reverse index with forward relation" begin
-            da_rff = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Forward()))),
-                                         Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(Reverse(), Forward(), Forward())))))
+            da_rff = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation()))),
+                                         Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))))
             @test da_rff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_rff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [6 5; 2 1]
             @test da_rff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [6, 5]
@@ -619,8 +615,8 @@ end
         end
 
         @testset "forward index with forward relation" begin
-            da_fff = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(Forward(), Forward(), Forward()))),
-                                         Ti((1:4)u"s"; mode=Sampled(order=Ordered(Forward(), Forward(), Forward())))))
+            da_fff = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ForwardRelation()))),
+                                         Ti((1:4)u"s"; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())))))
             @test da_fff[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_fff[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_fff[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
@@ -629,8 +625,8 @@ end
         end
 
         @testset "reverse index with reverse relation" begin
-            da_rfr = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(Reverse(), Forward(), Reverse()))),
-                                         Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(Reverse(), Forward(), Reverse())))))
+            da_rfr = DimArray(a, (Y(30:-10:10; mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ReverseRelation()))),
+                                         Ti((4:-1:1)u"s"; mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())))))
             @test da_rfr[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [7, 8]
             @test da_rfr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [7 8; 11 12]
             @test da_rfr[Y<|Near(22), Ti<|Near([3.3u"s", 4.3u"s"])] == [7, 8]
@@ -674,6 +670,7 @@ end
         # Between also accepts a tuple input
         @test @inferred view(da, Between((11, 26)), Between((2u"s", 4u"s"))) == [6 7]
     end
+
 end
 
 
@@ -755,4 +752,5 @@ end
         # Indexing directly with mode dims also just works, but maybe shouldn't?
         @test @inferred da[X(2), Y(2), Z(1)] == 6
     end
+
 end

@@ -1,12 +1,11 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: Forward, slicedims, basetypeof, formatdims
+using DimensionalData: slicedims, basetypeof, formatdims
 
 @dim TestDim "Test dimension"
 
 @testset "dims creation macro" begin
     @test TestDim(1:10, Sampled()) == TestDim(1:10, Sampled(), nothing)
     @test TestDim(1:10; mode=Categorical()) == TestDim(1:10, Categorical(), nothing)
-
     @test name(TestDim) == "Test dimension"
     @test label(TestDim) == "Test dimension"
     @test shortname(TestDim) == "TestDim"
@@ -76,14 +75,14 @@ end
     @test span(dimz) == (Regular(2.0), Regular(3.0))
     @test locus(dimz) == (Center(), Center())
     @test order(dimz) == (Ordered(), Ordered())
-    @test arrayorder(dimz) == (Forward(), Forward())
-    @test indexorder(dimz) == (Forward(), Forward())
-    @test relation(dimz) == (Forward(), Forward())
+    @test order(ArrayOrder, dimz) == (ForwardArray(), ForwardArray())
+    @test order(IndexOrder, dimz) == (ForwardIndex(), ForwardIndex())
+    @test relation(dimz) == (ForwardRelation(), ForwardRelation())
     @test bounds(dimz) == ((140, 148), (2, 11))
 
     @test slicedims(dimz, (2:4, 3)) ==
-        ((X(LinRange(142,146,3); mode=Sampled(order=Ordered(), span=Regular(2.0))),),
-            (Y(8.0, mode=Sampled(order=Ordered(), span=Regular(3.0))),))
+        ((X(LinRange(142,146,3); mode=Sampled(Ordered(), Regular(2.0), Points())),),
+             (Y(8.0, mode=Sampled(Ordered(), Regular(3.0), Points())),))
 end
 
 a = [1 2 3 4
@@ -98,8 +97,8 @@ dimz = dims(da)
     @test dims(dimz, Y) === dimz[2]
     @test_throws ArgumentError dims(dimz, Ti)
     @test typeof(dims(da)) ==
-        Tuple{X{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing},
-              Y{LinRange{Float64},Sampled{Ordered{Forward,Forward,Forward},Regular{Float64},Points},Nothing}}
+        Tuple{X{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing},
+              Y{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}}
 end
 
 @testset "arbitrary dim names and Val index" begin
@@ -120,13 +119,14 @@ end
     @testset "specify dim with Symbol" begin
         @test_throws ArgumentError arrayorder(dimz, :x)
         # TODO Does this make sense?
-        @test arrayorder(dimz, :row) == Unordered()
-        @test arrayorder(dimz, :column) == Forward()
+        @test arrayorder(dimz, :row) == ForwardArray()
+        @test arrayorder(dimz, :column) == ForwardArray()
         @test bounds(dimz, :row) == (nothing, nothing)
         @test bounds(dimz, :column) == (-20, 10)
         @test index(dimz, :row) == (:A, :B, :C)
         @test index(dimz, :column) == (-20, -10, 0, 10)
     end
+
 end
 
 @testset "repeating dims of the same type is allowed" begin

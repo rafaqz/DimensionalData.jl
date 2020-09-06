@@ -113,13 +113,6 @@ for fname in (:cor, :cov)
 end
 
 
-# Reverse
-
-Base.reverse(A::AbstractDimArray{T,N}; dims=1) where {T,N} =
-    reversearray(A; dims=dims)
-Base.reverse(dim::Dimension) = reverseindex(dim)
-
-
 # Rotations
 
 struct Rot90 end
@@ -153,9 +146,9 @@ Baserotr90(A::AbstractDimMatrix, k::Integer) =
 Base.rot180(A::AbstractDimMatrix) =
     rebuild(A, rot180(parent(A)), rotdims(Rot180(), dims(A)))
 
-rotdims(::Rot90, (dima, dimb)) = (fliprelation(dimb), dima)
-rotdims(::Rot180, dims) = map(reversearray, dims)
-rotdims(::Rot270, (dima, dimb)) = (dimb, fliprelation(dima))
+rotdims(::Rot90, (dima, dimb)) = (flip(RelationOrder, dimb), dima)
+rotdims(::Rot180, dims) = map(d -> flip(RelationOrder, d), dims)
+rotdims(::Rot270, (dima, dimb)) = (dimb, flip(RelationOrder, dima))
 rotdims(::Rot360, dims) = dims
 
 
@@ -231,7 +224,7 @@ _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
 
 Base.inv(A::AbstractDimArray{T, 2}) where T =
-    rebuild(A, inv(parent(A)), reverse(map(flipindex, dims(A))))
+    rebuild(A, inv(parent(A)), reverse(map(d -> flip(IndexOrderd, d), dims(A))))
 
 
 # Index breaking

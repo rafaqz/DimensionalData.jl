@@ -230,6 +230,7 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function arrayorder end
+arrayorder(args...) = order(ArrayOrder, args...)
 
 """
     indexorder(dim:Dimension) => Union{Forward,Reverse}
@@ -242,6 +243,7 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function indexorder end
+indexorder(args...) = order(IndexOrder, args...)
 
 """
     relation(dim:Dimension) => Union{Forward,Reverse}
@@ -254,65 +256,4 @@ and the array axis, for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function relation end
-
-"""
-    set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
-    set(A::AbstractDimArray, name::String) => AbstractDimArray
-
-    set(A, xs::Pairs...) => x with updated field/s
-    set(A, xs...; kwargs...) => x with updated field/s
-    set(A, xs::Tuple) => x with updated field/s
-    set(A, xs::NamedTuple) => x with updated field/s
-
-Set the field matching the supertypes of values in xs and return a new object. 
-
-As DimensionalData is so strongly typed you do not need to specify what field
-to `set` - there is no ambiguity. 
-
-You do need to specify which dimension to to set which values on, and
-this can be done using `Dimension => val` pairs, `Dimension` wrapped arguments, 
-keyword arguments or a `NamedTuple`.
-
-If no dimensions are specified the length of the tuple must match the length of 
-the dimensions, and be in the right order.
-
-
-## Examples
-
-```julia
-da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
-
-# Set the array values
-set(da, zeros(3, 4))
-
-# Set the array name
-set(da, "newname")
-
-# Swap dimension type
-
-# Using Pairs
-set(da, :Z => Ti, :custom => Z)
-set(da, :custom => X, Z => Y)
-
-# Using keyword arguments 
-set(da, custom = X, Z = :a)
-
-# Using Dimension wrappers
-set(da, Dim{:custom}(X), Z(Dim{:a}))
-
-# Set the dimension index
-
-# To an `AbstractArray`
-set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
-
-# To a `Val` tuple index (compile time indexing)
-set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
-
-# Set dim modes
-set(da, Z=NoIndex(), custom=Sampled())
-set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
-set(da, (Z=NoIndex(), custom=Sampled()))
-set(da, custom=Ordered(array=Reverse()), Z=Unordered())
-```
-"""
-function set end
+relation(args...) = order(RelationOrder, args...)

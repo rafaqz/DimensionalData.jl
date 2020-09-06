@@ -242,9 +242,11 @@ end
 
 @inline relate(d::Dimension, i) = maybeflip(relation(d), d, i)
 
-@inline maybeflip(::Forward, d, i) = i
-@inline maybeflip(::Reverse, d, i::Integer) = lastindex(d) - i + 1
-@inline maybeflip(::Reverse, d, i::AbstractArray) = reverse(lastindex(d) .- i .+ 1)
+@inline maybeflip(::Union{ForwardRelation,ForwardIndex}, d, i) = i
+@inline maybeflip(::Union{ReverseRelation,ReverseIndex}, d, i::Integer) = 
+    lastindex(d) - i + 1
+@inline maybeflip(::Union{ReverseRelation,ReverseIndex}, d, i::AbstractArray) = 
+    reverse(lastindex(d) .- i .+ 1)
 
 """
     dimnum(x, lookup::Tuple) => NTuple{Int}
