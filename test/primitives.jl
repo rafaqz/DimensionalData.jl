@@ -1,7 +1,7 @@
 using DimensionalData, Test
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
-      @dim, reducedims, XDim, YDim, ZDim, Forward, commondims, dim2key, key2dim
+      @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim
 
 
 @testset "sortdims" begin

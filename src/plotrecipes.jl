@@ -107,7 +107,7 @@ end
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
 
 forwardorder(A::AbstractArray) =
-    reorderindex(A, Forward()) |> a -> reorderrelation(a, Forward())
+    reorder(ForwardIndex, A) |> a -> reorder(ForwardRelation, a)
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
 refdims_title(refdim::Dimension) = 

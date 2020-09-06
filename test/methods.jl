@@ -2,7 +2,7 @@ using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 
 using LinearAlgebra: Transpose
 
-using DimensionalData: Forward, Reverse, Rot90, Rot180, Rot270, Rot360, rotdims, rottype
+using DimensionalData: Rot90, Rot180, Rot270, Rot360, rotdims, rottype
 
 @testset "map" begin
     a = [1 2; 3 4]
@@ -171,16 +171,17 @@ end
 @testset "reversing methods" begin
     revdim = reverse(X(10:10:20; mode=Sampled(order=Ordered())))
     @test val(revdim) == 20:-10:10
-    @test order(revdim) == Ordered(Reverse(), Forward(), Reverse())
+    @test order(revdim) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
 
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
-    rev = reverse(da; dims=Y);
+    rev = reverse(ArrayOrder, da, Y)
+
     @test rev == [3 2 1; 6 5 4]
     @test val(dims(rev, X)) == 10:10:20
     @test val(dims(rev, Y)) == 300:-100:100
-    @test order(dims(rev, X)) == Ordered(Forward(), Forward(), Forward())
-    @test order(dims(rev, Y)) == Ordered(Reverse(), Reverse(), Reverse())
+    @test order(dims(rev, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(dims(rev, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 end
 
 
@@ -198,7 +199,6 @@ end
     @test rottype(101) == Rot90()
 
     da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
-    DimensionalData.dims2indices(da, (X(:a), Y(At(2.0))))
 
     l90 = rotl90(da)
     r90 = rotr90(da)
@@ -222,7 +222,6 @@ end
     a = rand(5, 4)
     da = DimArray(a, (Y((10, 20); mode=Sampled()), 
                               X(1:4; mode=Sampled())))
-
     cvda = cov(da; dims=X)
     @test cvda == cov(a; dims=2)
     @test dims(cvda) == (Y(LinRange(10.0, 20.0, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
@@ -266,7 +265,6 @@ end
     da = DimArray(a, (X(1:2), Y(1:3)))
     b = [7 8 9; 10 11 12]
     db = DimArray(b, (X(3:4), Y(1:3)))
-
     @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
     testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
                 Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
