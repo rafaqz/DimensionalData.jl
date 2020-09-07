@@ -106,8 +106,8 @@ for fname in (:cor, :cov)
     @eval Statistics.$fname(A::AbstractDimArray{T,2}; dims=1, kwargs...) where T = begin
         newdata = Statistics.$fname(parent(A); dims=dimnum(A, dims), kwargs...)
         removed_idx = dimnum(A, dims)
-        newrefdims = $dims(A)[removed_idx]
-        newdims = $dims(A)[3 - removed_idx]
+        newrefdims = dims(A)[removed_idx]
+        newdims = dims(A)[3 - removed_idx]
         rebuild(A, newdata, (newdims, newdims), (newrefdims,))
     end
 end
@@ -140,7 +140,7 @@ Base.rotl90(A::AbstractDimMatrix, k::Integer) =
 
 Base.rotr90(A::AbstractDimMatrix) =
     rebuild(A, rotr90(parent(A)), rotdims(Rot270(), dims(A)))
-Baserotr90(A::AbstractDimMatrix, k::Integer) =
+Base.rotr90(A::AbstractDimMatrix, k::Integer) =
     rebuild(A, rotr90(parent(A), k), rotdims(rottype(-k), dims(A)))
 
 Base.rot180(A::AbstractDimMatrix) =
