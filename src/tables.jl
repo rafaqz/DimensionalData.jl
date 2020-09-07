@@ -1,18 +1,27 @@
 # Tables.jl interface
 
-Tables.istable(::Type{<:AbstractDimArray}) = true
-Tables.istable(::AbstractDimArray) = true
-Tables.columnaccess(::Type{<:AbstractDimArray}) = true
-Tables.columns(A::AbstractDimArray) = DimTable(A)
-Tables.columnnames(A::AbstractDimArray) = _colnames(A)
-Tables.schema(A::AbstractDimArray{T}) where T = 
-    Tables.Schema(_colnames(A), (map(eltype, dims(A))..., T))
-@inline Tables.getcolumn(A::AbstractDimArray, i::Int) =
-    Tables.getcolumn(DimTable(A), i)
-@inline Tables.getcolumn(A::AbstractDimArray, key::Symbol) =
-    Tables.getcolumn(DimTable(A), key)
-@inline Tables.getcolumn(A::AbstractDimArray, ::Type{T}, i::Int, key::Symbol) where T =
-    Tables.getcolumn(DimTable(A), T, i, key)
+DimTableSources = Union{AbstractDimDataset,AbstractDimArray}
+
+Tables.istable(::Type{<:DimTableSources}) = true
+Tables.istable(::DimTableSources) = true
+Tables.columnaccess(::Type{<:DimTableSources}) = true
+Tables.columns(x::DimTableSources) = DimTable(x)
+
+Tables.columnnames(A::AbstractDimArray) = _colnames(DimDataset(A))
+Tables.schema(A::AbstractDimArray) = Tables.schema(DimDataset(A))
+
+Tables.columnnames(ds::AbstractDimDataset) = _colnames(ds)
+Tables.schema(ds::AbstractDimDataset) = 
+    Tables.Schema(_colnames(ds), (map(eltype, dims(ds))..., map(eltype, layers(ds))...))
+
+@inline Tables.getcolumn(x::DimTableSources, i::Int) =
+    Tables.getcolumn(DimTable(x), i)
+@inline Tables.getcolumn(x::DimTableSources, key::Symbol) =
+    Tables.getcolumn(DimTable(x), key)
+@inline Tables.getcolumn(x::DimTableSources, ::Type{T}, i::Int, key::Symbol) where T =
+    Tables.getcolumn(DimTable(x), T, i, key)
+@inline Tables.getcolumn(t::DimTableSources, dim::DimOrDimType) =
+    Tables.getcolumn(t, dimnum(t, dim))
 
 """
     DimColumn{T,D<:Dimension} <: AbstractVector{T}
@@ -47,7 +56,7 @@ DimColumn(dim::D, dims::DimTuple) where D<:Dimension = begin
     DimColumn{eltype(dim),D}(dim, len, stride)
 end
 
-array(c::DimColumn) = getfield(c, :array)
+dataset(c::DimColumn) = getfield(c, :dataset)
 dim(c::DimColumn) = getfield(c, :dim)
 dimstride(c::DimColumn) = getfield(c, :dimstride)
 
@@ -83,23 +92,24 @@ column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
-struct DimTable{Keys,A,C} <: AbstractDimTable
-    array::A
+struct DimTable{Keys,DS,C} <: AbstractDimTable
+    dataset::DS
     dimcolumns::C
 end
-DimTable(A::AbstractDimArray) = begin
-    dims_ = dims(A)
+DimTable(A::AbstractDimArray) = DimTable(DimDataset(A))
+DimTable(ds::AbstractDimDataset) = begin
+    dims_ = dims(ds)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-    keys = _colnames(A)
-    DimTable{keys,typeof(A),typeof(dimcolumns)}(A, dimcolumns)
+    keys = _colnames(ds)
+    DimTable{keys,typeof(ds),typeof(dimcolumns)}(ds, dimcolumns)
 end
-array(t::DimTable) = getfield(t, :array)
+dataset(t::DimTable) = getfield(t, :dataset)
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
-dims(t::DimTable) = dims(array(t))
+dims(t::DimTable) = dims(dataset(t))
 
 for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
              :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
-    @eval ($func)(t::DimTable, args...) = ($func)(array(t), args...)
+    @eval ($func)(t::DimTable, args...) = ($func)(dataset(t), args...)
 end
 
 # Tables interface
@@ -110,14 +120,14 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
 Tables.schema(t::DimTable{Keys}) where Keys = begin
-    A = array(t)
-    Tables.Schema(Keys, (map(eltype, dims(A))..., eltype(A)))
+    ds = dataset(t)
+    Tables.Schema(Keys, (map(eltype, dims(ds))..., map(eltype, layers(ds))...))
 end
 
 @inline Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys = begin
     nkeys = length(Keys) 
-    if i == nkeys
-        vec(array(t))
+    if i > length(dims(t))
+        vec(values(dataset(t))[i - length(dims(t))])
     elseif i < nkeys
         dimcolumns(t)[i]
     else
@@ -128,8 +138,8 @@ end
     Tables.getcolumn(t, dimnum(t, dim))
 # Retrieve a column by name
 @inline Tables.getcolumn(t::DimTable{Keys}, key::Symbol) where Keys = begin
-    if key == last(Keys)
-        vec(array(t))
+    if key in keys(dataset(t))
+        vec(dataset(t)[key])
     else
         dimcolumns(t)[dimnum(dims(t), key)]
     end
@@ -137,10 +147,8 @@ end
 @inline Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T =
     Tables.getcolumn(t, key)
 
-
-_colnames(A) = begin
-    arraykey = name(A) == "" ? :value : Symbol(name(A))
-    dimkeys = map(dim2key, (dims(A)))
+_colnames(ds::AbstractDimDataset) = begin
+    dimkeys = map(dim2key, (dims(ds)))
     # The data is always the last column
-    (dimkeys..., arraykey)
+    (dimkeys..., keys(ds)...)
 end

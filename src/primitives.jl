@@ -130,10 +130,11 @@ Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
 @inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
     _dims2indices(dim, lookup, emptyval)
 @inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
-@inline dims2indices(A, lookup, emptyval=Colon()) =
-    dims2indices(dims(A), lookup, emptyval)
+@inline dims2indices(x, lookup, emptyval=Colon()) =
+    dims2indices(dims(x), lookup, emptyval)
+@inline dims2indices(::Nothing, lookup, emptyval=Colon()) = dimerror()
 
-@noinline dimerror() = throw(ArgumentError("Object does not define a `dims` method"))
+@noinline dimerror() = throw(ArgumentError("Object not define a `dims` method"))
 
 @inline dims2indices(dims::DimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
@@ -568,10 +569,10 @@ returning the `Dimension` value if it exists.
 """
 function comparedims end
 
-@inline comparedims(A::Vararg{<:AbstractArray}) = 
-    comparedims(map(dims, A)...)
+@inline comparedims(A::AbstractArray...) = comparedims(A)
+@inline comparedims(A::Tuple{Vararg{<:AbstractArray}}) = comparedims(map(dims, A)...)
 @inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) = 
-    map(d -> comparedims(dims[1], d), dims)
+    map(d -> comparedims(dims[1], d), dims)[1]
 @inline comparedims() = ()
 
 @inline comparedims(a::DimTuple, ::Nothing) = a

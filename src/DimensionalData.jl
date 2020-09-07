@@ -49,8 +49,10 @@ export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
 export AbstractDimTable, DimTable
 
+export AbstractDimDataset, DimDataset
+
 export data, dims, refdims, mode, metadata, name, shortname, label, units,
-       val, index, order, sampling, span, bounds, locus, <|
+       val, index, order, sampling, span, bounds, locus, layers, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
        set, rebuild, reorder, modify, dimwise, dimwise!
@@ -71,8 +73,9 @@ include("methods.jl")
 include("matmul.jl")
 include("set.jl")
 include("utils.jl")
-include("plotrecipes.jl")
+include("dataset.jl")
 include("tables.jl")
+include("plotrecipes.jl")
 include("prettyprint.jl")
 
 # For compat with old versions

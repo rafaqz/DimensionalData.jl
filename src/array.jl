@@ -21,7 +21,7 @@ abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
-const StandardIndices = Union{AbstractArray,Colon,Integer}
+const StandardIndices = Union{AbstractVector{<:Integer},Colon,Integer}
 
 
 

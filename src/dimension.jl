@@ -83,32 +83,32 @@ and data: 1×12 Array{Float64,2}
 `Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields
 to track additional information about the data and the index, and their relationship.
 """
-abstract type Dimension{T,IM,M} end
+abstract type Dimension{T,Mo,Me} end
 
 """
 Supertype for independent dimensions. Thise will plot on the X axis.
 """
-abstract type IndependentDim{T,IM,M} <: Dimension{T,IM,M} end
+abstract type IndependentDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
 Supertype for Dependent dimensions. These will plot on the Y axis.
 """
-abstract type DependentDim{T,IM,M} <: Dimension{T,IM,M} end
+abstract type DependentDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
 Supertype for all X dimensions. 
 """
-abstract type XDim{T,IM,M} <: IndependentDim{T,IM,M} end
+abstract type XDim{T,Mo,Me} <: IndependentDim{T,Mo,Me} end
 
 """
 Supertype for all Y dimensions.
 """
-abstract type YDim{T,IM,M} <: DependentDim{T,IM,M} end
+abstract type YDim{T,Mo,Me} <: DependentDim{T,Mo,Me} end
 
 """
 Supertype for all Z dimensions.
 """
-abstract type ZDim{T,IM,M} <: Dimension{T,IM,M} end
+abstract type ZDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
 Supertype for all time dimensions.
@@ -117,7 +117,7 @@ In a `TimeDime` with `Interval` sampling the locus will automatically
 be set to `Start()`. Dates and times generally refer to the start of a 
 month, hour, second etc., not the central point as is more common with spatial data.
 `"""
-abstract type TimeDim{T,IM,M} <: IndependentDim{T,IM,M} end
+abstract type TimeDim{T,Mo,Me} <: IndependentDim{T,Mo,Me} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
 
@@ -233,7 +233,7 @@ Base.:(==)(dim1::Dimension, dim2::Dimension) =
 """
 Supertype for Dimensions with user-set type paremeters
 """
-abstract type ParametricDimension{X,T,IM,M} <: Dimension{T,IM,M} end
+abstract type ParametricDimension{X,T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
     Dim{:X}()
@@ -259,12 +259,12 @@ metadata: nothing
 type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},Nothing}
 ```
 """
-struct Dim{S,T,IM<:IndexMode,M} <: ParametricDimension{S,T,IM,M}
+struct Dim{S,T,Mo<:Mode,Me} <: ParametricDimension{S,T,Mo,Me}
     val::T
-    mode::IM
-    metadata::M
-    Dim{S}(val::T, mode::IM, metadata::M=nothing) where {S,T,IM,M} =
-        new{S,T,IM,M}(val, mode, metadata)
+    mode::Mo
+    metadata::Me
+    Dim{S}(val::T, mode::Mo, metadata::Me=nothing) where {S,T,Mo<:Mode,Me} =
+        new{S,T,Mo,Me}(val, mode, metadata)
 end
 Dim{S}(val=:; mode=AutoMode(), metadata=nothing) where S =
     Dim{S}(val, mode, metadata)
@@ -318,15 +318,15 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        Base.@__doc__ struct $typ{T,IM<:IndexMode,M} <: $supertype{T,IM,M}
+        Base.@__doc__ struct $typ{T,Mo<:Mode,Me} <: $supertype{T,Mo,Me}
             val::T
-            mode::IM
-            metadata::M
+            mode::Mo
+            metadata::Me
         end
-        $typ(val=:; mode=AutoMode(), metadata=nothing) =
+        $typ(val=:; mode::Mode=AutoMode(), metadata=nothing) =
             $typ(val, mode, metadata)
-        $typ(val, mode, metadata=nothing) =
-            $typ(val, mode, metadata)
+        $typ(val::V, mode::Mo, metadata::Me=nothing) where {V,Mo<:Mode,Me} =
+            $typ{V,Mo,Me}(val, mode, metadata)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
         DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()

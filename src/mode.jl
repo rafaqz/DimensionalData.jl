@@ -313,8 +313,8 @@ Defines or modifies dimension behaviour.
 abstract type Mode end
 
 """
-Types defining the behaviour of a dimension, how they are plotted and
-how [`Selector`](@ref)s like [`Between`](@ref) work on them.
+Types defining the behaviour of a dimension index, how it is plotted 
+and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
 An `IndexMode` may be a simple type like [`NoIndex`](@ref) indicating that the index is
 just the underlying array axis. It could also be a [`Categorical`](@ref) index indicating
