@@ -44,11 +44,12 @@ end
 
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
+    @test mean(x -> 2x, da; dims=1) == [4.0 6.0]
+    @test mean(x -> 2x, da; dims=Y) == [3.0 7.0]'
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
-    @test mean(x -> 2x, da; dims=1) == [4.0 6.0]
-    @test mean(x -> 2x, da; dims=Y) == [3.0 7.0]'
+
 
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
@@ -73,10 +74,8 @@ end
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
 
-    if VERSION > v"1.1-"
-        @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
-        @test extrema(da; dims=X) == [(1, 3) (2, 4)]
-    end
+    @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
+    @test extrema(da; dims=X) == [(1, 3) (2, 4)]
 
     a = [1 2 3; 4 5 6]
     da = DimArray(a, dimz)
@@ -100,26 +99,24 @@ end
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
 
-if VERSION > v"1.1-"
-    @testset "eachslice" begin
-        a = [1 2 3 4
-             3 4 5 6
-             5 6 7 8]
-        da = DimArray(a, (Y((10, 30)), Ti(1:4)))
-        @test [mean(s) for s in eachslice(da; dims=Ti)] == [3.0, 4.0, 5.0, 6.0]
-        @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
+@testset "eachslice" begin
+    a = [1 2 3 4
+         3 4 5 6
+         5 6 7 8]
+    da = DimArray(a, (Y((10, 30)), Ti(1:4)))
+    @test [mean(s) for s in eachslice(da; dims=Ti)] == [3.0, 4.0, 5.0, 6.0]
+    @test [mean(s) for s in eachslice(da; dims=2)] == [3.0, 4.0, 5.0, 6.0]
 
-        slices = [s .* 2 for s in eachslice(da; dims=Y)]
-        @test slices[1] == [2, 4, 6, 8]
-        @test slices[2] == [6, 8, 10, 12]
-        @test slices[3] == [10, 12, 14, 16]
-        dims(slices[1]) == (Ti(1.0:1.0:4.0),)
+    slices = [s .* 2 for s in eachslice(da; dims=Y)]
+    @test slices[1] == [2, 4, 6, 8]
+    @test slices[2] == [6, 8, 10, 12]
+    @test slices[3] == [10, 12, 14, 16]
+    dims(slices[1]) == (Ti(1.0:1.0:4.0),)
 
-        slices = [s .* 2 for s in eachslice(da; dims=Ti)]
-        @test slices[1] == [2, 6, 10]
-        dims(slices[1]) == (Y(10.0:10.0:30.0),)
-        @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
-    end
+    slices = [s .* 2 for s in eachslice(da; dims=Ti)]
+    @test slices[1] == [2, 6, 10]
+    dims(slices[1]) == (Y(10.0:10.0:30.0),)
+    @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
 end
 
 @testset "simple dimension permuting methods" begin

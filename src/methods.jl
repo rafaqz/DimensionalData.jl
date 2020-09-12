@@ -86,16 +86,14 @@ end
 # This is copied from base as we can't efficiently wrap this function
 # through the kwarg with a rebuild in the generator. Doing it this way
 # also makes it faster to use a dim than an integer.
-if VERSION > v"1.1-"
-    Base.eachslice(A::AbstractDimArray; dims=1, kwargs...) = begin
-        if dims isa Tuple && length(dims) != 1
-            throw(ArgumentError("only single dimensions are supported"))
-        end
-        dim = first(dimnum(A, dims))
-        dim <= ndims(A) || throw(DimensionMismatch("A doesn't have $dim dimensions"))
-        idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
-        return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
+Base.eachslice(A::AbstractDimArray; dims=1, kwargs...) = begin
+    if dims isa Tuple && length(dims) != 1
+        throw(ArgumentError("only single dimensions are supported"))
     end
+    dim = first(dimnum(A, dims))
+    dim <= ndims(A) || throw(DimensionMismatch("A doesn't have $dim dimensions"))
+    idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
+    return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
 end
 
 
