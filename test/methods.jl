@@ -8,7 +8,7 @@ using DimensionalData: Rot90, Rot180, Rot270, Rot360, rotdims, rottype
     a = [1 2; 3 4]
     dimz = (X((143, 145)), Y((-38, -36)))
     da = DimArray(a, dimz)
-    @test @inferred map(x -> 2x, da) == [2 4; 6 8]
+    @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
@@ -17,27 +17,27 @@ end
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
     da = DimArray(a, dimz)
 
-    @test @inferred sum(da; dims=X()) == sum(a; dims=1)
-    @test @inferred sum(da; dims=Y()) == sum(a; dims=2)
+    @test sum(da; dims=X()) == sum(a; dims=1)
+    @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
 
-    @test @inferred prod(da; dims=X) == [3 8]
-    @test @inferred prod(da; dims=2) == [2 12]'
+    @test prod(da; dims=X) == [3 8]
+    @test prod(da; dims=2) == [2 12]'
     resultdimz =
         (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
          Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
-    @test @inferred bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
+    @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
 
-    @test @inferred maximum(x -> 2x, da; dims=X) == [6 8]
-    @test @inferred maximum(x -> 2x, da; dims=2) == [4 8]'
-    @test @inferred maximum(da; dims=X) == [3 4]
-    @test @inferred maximum(da; dims=2) == [2 4]'
+    @test maximum(da; dims=X) == [3 4]
+    @test maximum(da; dims=2) == [2 4]'
+    @test maximum(x -> 2x, da; dims=X) == [6 8]
+    @test maximum(x -> 2x, da; dims=2) == [4 8]'
 
-    @test @inferred minimum(da; dims=1) == [1 2]
-    @test @inferred minimum(da; dims=Y()) == [1 3]'
+    @test minimum(da; dims=1) == [1 2]
+    @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
         (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
          Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
@@ -47,6 +47,8 @@ end
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+    @test mean(x -> 2x, da; dims=1) == [4.0 6.0]
+    @test mean(x -> 2x, da; dims=Y) == [3.0 7.0]'
 
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'

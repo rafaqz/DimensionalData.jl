@@ -13,12 +13,14 @@ include("dimension.jl")
 include("interface.jl")
 include("primitives.jl")
 include("array.jl")
+include("dataset.jl")
 include("broadcast.jl")
 include("mode.jl")
 include("selector.jl")
 include("set.jl")
 include("tables.jl")
 include("prettyprinting.jl")
+
 if !Sys.iswindows()
     include("plotrecipes.jl")
 
@@ -29,7 +31,7 @@ if !Sys.iswindows()
             Random.seed!(1234)
         end
         DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-        doctest(DimensionalData)
+        doctest(DimensionalData; fix=true)
     end
 
 end

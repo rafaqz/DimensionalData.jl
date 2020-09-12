@@ -53,6 +53,9 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
+@inline rebuildsliced(A, data, I, name::String=name(A)) =
+    rebuild(A, data, slicedims(A, I)..., name)
+
 # Dipatch on Tuple of Dimension, and map
 for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
@@ -74,26 +77,43 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 @inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
 @inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 
-@inline rebuildsliced(A, data, I, name::String=name(A)) =
-    rebuild(A, data, slicedims(A, I)..., name)
+# Only compare data and dim - metadata and refdims can be different
+Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) = 
+    parent(A1) == parent(A2) && dims(A1) == dims(A2)
 
 
 # getindex/view/setindex! ======================================================
 
-# Standard indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer, I::Integer...) =
-    getindex(parent(A), i, I...)
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, getindex(parent(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, view(parent(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i::StandardIndices, I::StandardIndices...) =
-    setindex!(parent(A), x, i, I...)
 
 # No indices
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray) = getindex(parent(A))
 Base.@propagate_inbounds Base.view(A::AbstractDimArray) = view(parent(A))
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
+
+# Integer getindex returns a single value
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
+    getindex(parent(A), i1, i2, I...)
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer) = getindex(parent(A), i)
+
+# Standard indices
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, getindex(parent(A), i1, i2, I...), (i1, i2, I...))
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, view(parent(A), i1, i2, I...), (i1, i2, I...))
+Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    setindex!(parent(A), x, i1, i2, I...)
+# Linear indexing returns Array
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
+    getindex(parent(A), i)
+# Exempt 1D DimArrays
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
+    rebuildsliced(A, getindex(parent(A), i), (i,))
+# Linear indexing view returns unwrapped SubArray
+Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, N} where N, i::StandardIndices) =
+    view(parent(A), i)
+# Exempt 1D DimArrays
+Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
+    rebuildsliced(A, view(parent(A), i), (i,))
 
 # Cartesian indices
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, I::CartesianIndex) =
@@ -103,18 +123,12 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray, I::CartesianIndex) =
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
     setindex!(parent(A), x, I)
 
-# Dimension indexing. Additional methods for dispatch ambiguity
+# Dimension indexing.
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
-    getindex(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.getindex(A::AbstractArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
 Base.@propagate_inbounds Base.view(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
     view(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(A::AbstractArray, dim::Dimension, dims::Dimension...) =
-    view(A, dims2indices(A, (dim, dims...))...)
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, dims::Dimension...) =
-    setindex!(A, x, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbstractArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
 # Symbol keyword-argument indexing. This allows indexing with A[somedim=25.0] for Dim{:somedim}
@@ -132,20 +146,6 @@ Base.@propagate_inbounds Base.view(A::AbstractDimArray, i, I...) =
     view(A, sel2indices(A, maybeselector(i, I...))...)
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, sel2indices(A, maybeselector(i, I...))...)
-
-# Linear indexing returns Array
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
-    getindex(parent(A), i)
-# Exempt 1D DimArrays
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractArray}) =
-    rebuildsliced(A, getindex(parent(A), i), (i,))
-
-# Linear indexing returns unwrapped SubArray
-Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, N} where N, i::StandardIndices) =
-    view(parent(A), i)
-# Exempt 1D DimArrays
-Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
-    rebuildsliced(A, view(parent(A), i), (i,))
 
 
 # Methods that create copies of an AbstractDimArray #######################################

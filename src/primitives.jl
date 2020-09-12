@@ -325,7 +325,8 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(A::AbstractArray, lookup) = hasdim(dims(A), lookup)
+@inline hasdim(x, lookup) = hasdim(dims(x), lookup)
+@inline hasdim(x::Nothing, lookup) = dimerror()
 @inline hasdim(d::Tuple, lookup::Tuple) = map(l -> hasdim(d, l), lookup)
 @inline hasdim(d::Tuple, lookup::Symbol) = hasdim(d, key2dim(lookup))
 @inline hasdim(d::Tuple, lookup::DimOrDimType) =
@@ -361,7 +362,8 @@ julia> otherdims(A, Ti)
 (X: Base.OneTo(10) (NoIndex), Y: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
 ```
 """
-@inline otherdims(A::AbstractArray, lookup) = otherdims(dims(A), lookup)
+@inline otherdims(x, lookup) = otherdims(dims(x), lookup)
+@inline otherdims(::Nothing, lookup) = dimerror()
 @inline otherdims(dims::Tuple, lookup::DimOrDimType) = otherdims(dims, (lookup,))
 @inline otherdims(dims::Tuple, lookup::Tuple) =
     _otherdims(dims, _sortdims(key2dim(lookup), key2dim(dims)))
@@ -430,8 +432,8 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 ```
 """
-@inline swapdims(A::AbstractArray, newdims::Tuple) =
-    rebuild(A, parent(A), formatdims(A, swapdims(dims(A), newdims)))
+@inline swapdims(x, newdims::Tuple) =
+    rebuild(x; dims=formatdims(x, swapdims(dims(x), newdims)))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
     map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
@@ -451,8 +453,8 @@ but the number of dimensions has not changed.
 `IndexMode` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
-@inline reducedims(A, dimstoreduce) = reducedims(A, (dimstoreduce,))
-@inline reducedims(A, dimstoreduce::Tuple) = reducedims(dims(A), dimstoreduce)
+@inline reducedims(x, dimstoreduce) = reducedims(x, (dimstoreduce,))
+@inline reducedims(x, dimstoreduce::Tuple) = reducedims(dims(x), dimstoreduce)
 @inline reducedims(dims::DimTuple, dimstoreduce::Tuple) =
     map(reducedims, dims, sortdims(dimstoreduce, dims))
 # Map numbers to corresponding dims. Not always type-stable
@@ -531,7 +533,8 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 ```
 """
-@inline dims(A::AbstractArray, lookup) = dims(dims(A), lookup)
+@inline dims(x, lookup) = dims(dims(x), lookup)
+@inline dims(x::Nothing, lookup) = dimerror()
 @inline dims(d::DimTuple, lookup) = dims(d, (lookup,))[1]
 @inline dims(d::DimTuple, lookup::Tuple) = 
     _dims(d, key2dim(lookup), (), d)
@@ -569,8 +572,8 @@ returning the `Dimension` value if it exists.
 """
 function comparedims end
 
-@inline comparedims(A::AbstractArray...) = comparedims(A)
-@inline comparedims(A::Tuple{Vararg{<:AbstractArray}}) = comparedims(map(dims, A)...)
+@inline comparedims(x...) = comparedims(x)
+@inline comparedims(A::Tuple) = comparedims(map(dims, A)...)
 @inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) = 
     map(d -> comparedims(dims[1], d), dims)[1]
 @inline comparedims() = ()

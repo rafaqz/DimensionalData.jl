@@ -296,20 +296,18 @@ end
 end
 
 if VERSION > v"1.1-"
-    dimz = (X(LinRange(143.0, 145.0, 3); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
-            Y(LinRange(-38.0, -36.0, 4); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
     @testset "copy!" begin
-        db = DimArray(deepcopy(b2), dimz)
-        dc = DimArray(deepcopy(b2), dimz)
-        @test db != da2
-        @test b2 != da2
+        dimz = dims(da2)
+        A = zero(b2)
+        db = DimArray(deepcopy(A), dimz)
+        dc = DimArray(deepcopy(A), dimz)
 
-        copy!(b2, da2)
-        @test b2 == a2
+        copy!(A, da2)
+        @test A == parent(da2)
         copy!(db, da2)
-        @test db == da2
+        @test parent(db) == parent(da2)
         copy!(dc, a2)
-        @test db == a2
+        @test parent(db) == a2
 
         @testset "vector copy! (ambiguity fix)" begin
             v = zeros(3)
@@ -330,7 +328,6 @@ end
     @test_throws DimensionMismatch DimArray(1:5, X(1:6))
     @test_throws DimensionMismatch DimArray(1:5, (X(1:5), Y(1:2)))
 end
-
 
 @testset "fill constructor" begin
     da = fill(5.0, (X(4), Y(40.0:10.0:80.0)))

@@ -210,10 +210,8 @@ val(sel::Where) = sel.f
 # Standard indices are just returned.
 @inline sel2indices(::Dimension, sel::StandardIndices) = sel
 # Vectors are mapped
-@inline sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) = begin
-    @show typeof(val(sel))
+@inline sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) =
     [sel2indices(mode(dim), dim, rebuild(sel, v)) for v in val(sel)]
-end
 @inline sel2indices(dim::Dimension, sel::Selector) =
     sel2indices(mode(dim), dim, sel)
 
@@ -246,15 +244,6 @@ end
     else
         sel2indices(Points(), mode, dim, sel)
     end
-
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer, I::Integer...) =
-    getindex(parent(A), i, I...)
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, getindex(parent(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, view(parent(A), i, I...), (i, I...))
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i::StandardIndices, I::StandardIndices...) =
-    setindex!(parent(A), x, i, I...)
 
 
 # Sampled IndexMode -----------------------------

@@ -16,12 +16,11 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         # Returns a reduced array
         @inline ($mod.$_fname)(A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Colon) =
-            rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims(A))), reducedims(A, dims(A)))
+        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Colon) = ($mod.$fname)(parent(A))
         @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Colon) =
-            rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims(A))), reducedims(A, dims(A)))
+        @inline ($mod.$fname)(f, A::AbstractDimArray, dims::Colon) =
+            ($mod.$fname)(f, parent(A))
     end
 end
 
@@ -63,16 +62,15 @@ end
 
 # Dimension dropping
 
-Base._dropdims(A::AbstractDimArray, dim::DimOrDimType) = begin
-    data = Base._dropdims(parent(A), dimnum(A, dim))
-    I = dims2indices(A, basetypeof(dim)(1))
-    rebuildsliced(A, data, I)
+Base.dropdims(A::AbstractDimArray; dims) = begin
+    dims = DD.dims(A, dims)
+    data = Base.dropdims(parent(A); dims=dimnum(A, dims))
+    rebuildsliced(A, data, _dropinds(A, dims))
 end
-Base._dropdims(A::AbstractDimArray, dims::DimTuple) = begin
-    data = Base._dropdims(parent(A), dimnum(A, dims))
-    I = dims2indices(A, map(d -> basetypeof(d)(1), dims))
-    rebuildsliced(A, data, I)
-end
+
+@inline _dropinds(A, dims::DimTuple) = dims2indices(A, map(d -> basetypeof(d)(1), dims))
+@inline _dropinds(A, dim::Dimension) = dims2indices(A, basetypeof(dim)(1))
+
 
 
 # Function application
@@ -100,6 +98,7 @@ if VERSION > v"1.1-"
     end
 end
 
+
 # Duplicated dims
 
 for fname in (:cor, :cov)
@@ -120,6 +119,8 @@ struct Rot180 end
 struct Rot270 end
 struct Rot360 end
 
+# Not type stable - but we have to lose type stability somewhere when 
+# dims are being swapped, by an Int value, so it may as well be here
 function rottype(k)
     k = mod(k, 4)
     if k == 1
@@ -205,6 +206,7 @@ _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...)
 Base.vcat(dims::Dimension...) =
     rebuild(dims[1], vcat(val(dims)...), vcat(mode(dims)...))
 
+# IndexModes may need adjustment for `cat`
 Base.vcat(modes::IndexMode...) = first(modes)
 Base.vcat(modes::AbstractSampled...) =
     _vcat_modes(sampling(first(modes)), span(first(modes)), modes...)
@@ -223,9 +225,8 @@ end
 _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
 
-Base.inv(A::AbstractDimArray{T, 2}) where T =
-    rebuild(A, inv(parent(A)), reverse(map(d -> flip(IndexOrderd, d), dims(A))))
-
+Base.inv(A::AbstractDimArray{T,2}) where T =
+    rebuild(A, inv(parent(A)), reverse(map(d -> flip(IndexOrder, d), dims(A))))
 
 # Index breaking
 

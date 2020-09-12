@@ -15,16 +15,21 @@ struct AutoOrder <: Order end
 """
     UnknownOrder()
 
-Order is not known and can't be determined.
+Specifies that Order is not known and can't be determined.
 """
 struct UnknownOrder <: Order end
 
 
+"""
+Supertype for sub-components of `Order` types
+"""
 abstract type SubOrder <: Order end
 
+
+"""
+Supertype for dim index order
+"""
 abstract type IndexOrder <: SubOrder end
-abstract type ArrayOrder <: SubOrder end
-abstract type RelationOrder <: SubOrder end
 
 """
     ForwardIndex()
@@ -45,6 +50,11 @@ struct UnorderedIndex <: IndexOrder end
 struct AutoIndexOrder <: IndexOrder end
 
 """
+Supertype for array ordering
+"""
+abstract type ArrayOrder <: SubOrder end
+
+"""
     ForwardArray()
 
 Indicates that the array axis is in the normal forward order.
@@ -61,6 +71,13 @@ It will be plotted backwards.
 struct ReverseArray <: ArrayOrder end
 
 struct AutoArrayOrder <: ArrayOrder end
+
+
+
+"""
+Supertype for index/array relationship
+"""
+abstract type RelationOrder <: SubOrder end
 
 """
     ForwardRelation()
@@ -149,21 +166,6 @@ isrev(::ForwardArray) = false
 isrev(::ReverseArray) = true
 isrev(::ForwardRelation) = false
 isrev(::ReverseRelation) = true
-
-Base.reverse(ot::Type{<:SubOrder}, o::Ordered) = set(mode, reverse(order(ot, o)))
-
-Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
-Base.reverse(::Type{<:Union{ArrayOrder,RelationOrder}}, o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
-Base.reverse(::Type{<:SubOrder}, o::Unordered) = Unordered(reverse(relation(o)))
-
-Base.reverse(::ReverseIndex) = ForwardIndex()
-Base.reverse(::ForwardIndex) = ReverseIndex()
-Base.reverse(::ReverseArray) = ForwardArray()
-Base.reverse(::ForwardArray) = ReverseArray()
-Base.reverse(::ReverseRelation) = ForwardRelation()
-Base.reverse(::ForwardRelation) = ReverseRelation()
 
 """
 Locii indicate the position of index values in cells.

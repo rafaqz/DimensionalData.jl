@@ -46,8 +46,7 @@ set(da, Dim{:custom}(X), Z(Dim{:a}))
 
 # Set the dimension index
 
-# To an `AbstractArray`
-set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
+# To an `AbstractArray` set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
 
 # To a `Val` tuple index (compile time indexing)
 set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
@@ -63,7 +62,6 @@ function set end
 
 
 
-
 # Array
 
 set(A::AbstractDimArray, args...; kwargs...) =
@@ -74,6 +72,13 @@ set(A::AbstractDimArray, data::AbstractArray) = begin
     rebuild(A; data=data)
 end
 set(A::AbstractDimArray, name::AbstractString) = rebuild(A; name=name)
+
+
+
+# Dataset
+
+set(ds::AbstractDimDataset, args...; kwargs...) =
+    rebuild(ds, layers(ds), set(dims(ds), args...; kwargs...))
 
 
 # Dimension
@@ -123,45 +128,6 @@ set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=set(mode(dim), newmo
 set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=set(mode(dim), x))
 
 
-# Order
-set(mode::IndexMode, neworder::Order) =
-    rebuild(mode; order=set(order(mode), neworder))
-set(order::Order, neworder::Order) = neworder
-set(order::Order, neworder::AutoOrder) = order
-
-# SubOrder
-set(order::Ordered, suborder::IndexOrder) =
-    rebuild(order; index=set(indexorder(order), suborder))
-set(order::Ordered, suborder::ArrayOrder) =
-    rebuild(order; array=set(arrayorder(order), suborder))
-set(order::Ordered, suborder::RelationOrder) =
-    rebuild(order; relation=set(relationorder(order), suborder))
-
-set(order::SubOrder, neworder::AutoSubOrder) = order
-set(order::SubOrder, neworder::SubOrder) = neworder
-
-# Span
-set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
-set(mode::AbstractSampled, span::AutoSpan) = mode
-set(span::Span, newspan::Span) = newspan
-set(span::Span, newspan::AutoSpan) = span
-
-# Sampling
-set(mode::AbstractSampled, newsampling::Sampling) =
-    rebuild(mode; sampling=set(sampling(mode), newsampling))
-set(mode::AbstractSampled, sampling::AutoSampling) = mode
-set(sampling::Sampling, newsampling::Sampling) = newsampling
-set(sampling::Sampling, newsampling::AutoSampling) = sampling
-
-# Locus
-set(mode::AbstractSampled, locus::Locus) =
-    rebuild(mode; sampling=set(sampling(mode), locus))
-set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
-set(sampling::Points, locus::Locus) =
-    error("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points")
-set(sampling::Intervals, locus::Locus) = Intervals(locus)
-set(sampling::Intervals, locus::AutoLocus) = sampling
-
 # IndexMode
 
 # AutoMode
@@ -182,3 +148,45 @@ set(mode::IndexMode, newmode::NoIndex) = newmode
 set(tr::Transformed, f::Function) = rebuild(tr; f=f)
 # set for `dim` is in dimension.jl, for dispatch
 
+
+# Order
+set(mode::IndexMode, neworder::Order) =
+    rebuild(mode; order=set(order(mode), neworder))
+set(order::Order, neworder::Order) = neworder
+set(order::Order, neworder::AutoOrder) = order
+
+# SubOrder
+set(order::Ordered, suborder::IndexOrder) =
+    rebuild(order; index=set(indexorder(order), suborder))
+set(order::Ordered, suborder::ArrayOrder) =
+    rebuild(order; array=set(arrayorder(order), suborder))
+set(order::Ordered, suborder::RelationOrder) =
+    rebuild(order; relation=set(relationorder(order), suborder))
+
+set(order::SubOrder, neworder::AutoSubOrder) = order
+set(order::SubOrder, neworder::SubOrder) = neworder
+
+
+# Span
+set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
+set(mode::AbstractSampled, span::AutoSpan) = mode
+set(span::Span, newspan::Span) = newspan
+set(span::Span, newspan::AutoSpan) = span
+
+
+# Sampling
+set(mode::AbstractSampled, newsampling::Sampling) =
+    rebuild(mode; sampling=set(sampling(mode), newsampling))
+set(mode::AbstractSampled, sampling::AutoSampling) = mode
+set(sampling::Sampling, newsampling::Sampling) = newsampling
+set(sampling::Sampling, newsampling::AutoSampling) = sampling
+
+
+# Locus
+set(mode::AbstractSampled, locus::Locus) =
+    rebuild(mode; sampling=set(sampling(mode), locus))
+set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
+set(sampling::Points, locus::Locus) =
+    error("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points")
+set(sampling::Intervals, locus::Locus) = Intervals(locus)
+set(sampling::Intervals, locus::AutoLocus) = sampling

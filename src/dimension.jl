@@ -266,7 +266,7 @@ struct Dim{S,T,Mo<:Mode,Me} <: ParametricDimension{S,T,Mo,Me}
     Dim{S}(val::T, mode::Mo, metadata::Me=nothing) where {S,T,Mo<:Mode,Me} =
         new{S,T,Mo,Me}(val, mode, metadata)
 end
-Dim{S}(val=:; mode=AutoMode(), metadata=nothing) where S =
+Dim{S}(val=:; mode::Mode=AutoMode(), metadata=nothing) where S =
     Dim{S}(val, mode, metadata)
 
 name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
@@ -318,15 +318,15 @@ end
 
 dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
     esc(quote
-        Base.@__doc__ struct $typ{T,Mo<:Mode,Me} <: $supertype{T,Mo,Me}
+        Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me} <: $supertype{T,Mo,Me}
             val::T
             mode::Mo
             metadata::Me
         end
-        $typ(val=:; mode::Mode=AutoMode(), metadata=nothing) =
+        $typ(val=:; mode::DimensionalData.Mode=DimensionalData.AutoMode(), metadata=nothing) =
             $typ(val, mode, metadata)
-        $typ(val::V, mode::Mo, metadata::Me=nothing) where {V,Mo<:Mode,Me} =
-            $typ{V,Mo,Me}(val, mode, metadata)
+        $typ(val::V, mode::Mo) where {V,Mo<:DimensionalData.Mode} =
+            $typ{V,Mo,Nothing}(val, mode, nothing)
         DimensionalData.name(::Type{<:$typ}) = $name
         DimensionalData.shortname(::Type{<:$typ}) = $shortname
         DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()

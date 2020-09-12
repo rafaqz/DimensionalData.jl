@@ -11,13 +11,27 @@ a2 = [1 2 3 4
 dimz2 = (Dim{:row}(10.0:10.0:30.0), Dim{:column}(-2:1.0:1.0))
 da2 = DimArray(a2, dimz2, "test2")
 
+ds = DimDataset(da2, DimArray(2a2, dimz2, "test3"))
+
+
 @testset " Array fields" begin
     @test name(set(da2, "newname")) == "newname"
     @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
 end
 
-@testset " Array dims" begin
+@testset "DimDataset dims" begin
+    @test typeof(dims(set(ds, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
+    @test typeof(dims(set(ds, :column => Ti(), :row => Z()))) <: Tuple{<:Z,<:Ti}
+    @test typeof(dims(set(ds, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
+    @test typeof(dims(set(ds, row=X, column=Z))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(ds, (row=Y(), column=X())))) <: Tuple{<:Y,<:X}
+    @test typeof(dims(set(ds, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(ds, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+    @test index(set(ds, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+end
+
+@testset "DimArray dims" begin
     @test typeof(dims(set(da2, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
     @test typeof(dims(set(da, X=:a, Y=:b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
