@@ -2,16 +2,9 @@ using DimensionalData, Tables, Test, DataFrames
 
 using DimensionalData: key2dim, dim2key, DimTable, DimColumn, dimstride
 
-da = DimArray(
-    ones(3, 2, 3),
-    (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0)),
-    "data"
-)
-da2 = DimArray(
-    fill(2, (3, 2, 3)),
-    (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0)),
-    "data2"
-)
+dimz = (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0))
+da = DimArray(ones(3, 2, 3), dimz, :data)
+da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
 
 @testset "dimstride" begin
     @test dimstride(da, X()) == 1

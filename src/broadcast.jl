@@ -45,7 +45,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     return if A isa Nothing || _dims isa Nothing
         data
     else
-        rebuild(A, data, _dims, refdims(A), "")
+        rebuild(A, data, _dims, refdims(A), Symbol(""))
     end
 end
 
@@ -73,7 +73,7 @@ end
 
 Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T} = begin
     A = _firstdimarray(bc)
-    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), "")
+    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
 
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.

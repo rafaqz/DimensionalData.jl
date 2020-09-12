@@ -3,9 +3,9 @@ using DimensionalData, Test, LinearAlgebra, Statistics
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
 
-da1 = DimArray(A, (X([:a, :b]), Y(10.0:10.0:30.0)), "one")
-da2 = DimArray(2A, (X([:a, :b]), Y(10.0:10.0:30.0)), "two")
-da3 = DimArray(3A, (X([:a, :b]), Y(10.0:10.0:30.0)), "three")
+da1 = DimArray(A, (X([:a, :b]), Y(10.0:10.0:30.0)), :one)
+da2 = DimArray(Float32.(2A), (X([:a, :b]), Y(10.0:10.0:30.0)), :two)
+da3 = DimArray(Int.(3A), (X([:a, :b]), Y(10.0:10.0:30.0)), :three)
 #da3 = DimArray(cat(3A, 3A; dims=Z(1:2; mode=NoIndex())), (X([:a, :b]), Y(10.0:10.0:30.0), Z()), "three")
 #@edit cat(da1, da2; dims=3)
 
@@ -23,13 +23,12 @@ ds = DimDataset(das)
 end
 
 @testset "getindex" begin
-    @test ds[1, 1] == (one=1.0, two=2.0, three=3.0)
-    @test ds[X(2), Y(3)] == (one=6.0, two=12.0, three=18.0)
-    @test ds[X=:b, Y=10.0] == (one=4.0, two=8.0, three=12.0)
+    @test ds[1, 1] === (one=1.0, two=2.0f0, three=3)
+    @test ds[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
+    @test ds[X=:b, Y=10.0] === (one=4.0, two=8.0f0, three=12)
     slicedds = ds[:a, :]
-    sA = [1.0, 2.0, 3.0]
-    @test slicedds[:one] == sA
-    @test layers(slicedds) == (one=1sA, two=2sA, three=3sA)
+    @test slicedds[:one] == [1.0, 2.0, 3.0]
+    @test layers(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
 end
 
 @testset "map" begin
@@ -38,10 +37,7 @@ end
     @test map(a -> a[1], ds) == (one=1.0, two=2.0, three=3.0)
 end
 
-# Test that methods work
 
-
-# And the other methods (in the same eval loops) are in the right list
 
 @testset "Methods with no arguments" begin
     @testset "permuting methods" begin
@@ -52,7 +48,6 @@ end
         @test adjoint(ds) == DimDataset(adjoint(da1), adjoint(da2), adjoint(da3))
         @test transpose(ds) == DimDataset(transpose(da1), transpose(da2), transpose(da3))
         @test Transpose(ds) == DimDataset(Transpose(da1), Transpose(da2), Transpose(da3))
-
         @test layers(rotl90(ds)) ==
             (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
              two=[6.0 12.0; 4.0 10.0; 2.0 8.0],
@@ -68,15 +63,15 @@ end
     @test inv(ds[1:2, 1:2]) isa DimDataset
 
     @testset "reducing methods" begin
-        @test sum(ds) == (one=21.0, two=42.0, three=63.0)
-        @test prod(ds) == (one=720.0, two=46080.0, three=524880.0)
-        @test Base.minimum(ds) == (one=1.0, two=2.0, three=3.0)
-        @test maximum(ds) == (one=6.0, two=12.0, three=18.0)
-        @test extrema(ds) == (one=(1.0, 6.0), two=(2.0, 12.0), three=(3.0, 18.0))
-        @test mean(ds) == (one=3.5, two=7.0, three=10.5)
-        @test std(ds) == (one=1.8708286933869707, two=3.7416573867739413, three=5.612486080160912)
-        @test var(ds) == (one=3.5, two=14.0, three=31.5)
-        @test median(ds) == (one=3.5, two=7.0, three=10.5)
+        @test sum(ds) === (one=21.0, two=42.0f0, three=63)
+        @test prod(ds) === (one=720.0, two=46080.0f0, three=524880)
+        @test Base.minimum(ds) === (one=1.0, two=2.0f0, three=3)
+        @test maximum(ds) === (one=6.0, two=12.0f0, three=18)
+        @test extrema(ds) === (one=(1.0, 6.0), two=(2.0f0, 12.0f0), three=(3, 18))
+        @test mean(ds) === (one=3.5, two=7.0f0, three=10.5)
+        @test std(ds) === (one=1.8708286933869707, two=3.7416575f0, three=5.612486080160912)
+        @test var(ds) === (one=3.5, two=14.0f0, three=31.5)
+        @test median(ds) === (one=3.5, two=7.0f0, three=10.5)
     end
 end
 
@@ -116,10 +111,11 @@ end
         DimDataset(PermutedDimsArray(da1, (Y, X)), PermutedDimsArray(da2, (Y, X)), PermutedDimsArray(da3, (Y, X)))
     rot = rotl90(ds, 1)
     @test rot isa DimDataset
+    @test typeof(layers(rot)) == NamedTuple{(:one, :two, :three),Tuple{Matrix{Float64},Matrix{Float32},Matrix{Int64}}}
     @test layers(rot) ==
         (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
-         two=[6.0 12.0; 4.0 10.0; 2.0 8.0],
-       three=[9.0 18.0; 6.0 15.0; 3.0 12.0])
+         two=[6.0f0 12.0f0; 4.0f0 10.0f0; 2.0f0 8.0f0],
+       three=[9 18; 6 15; 3 12])
     @test rot[:one][X(:a), Y(10.0)] == da1[X(:a), Y(10.0)]
     @test rotr90(ds, 2) == DimDataset(rotr90(da1, 2), rotr90(da2, 2), rotr90(da3, 2))
     @test rot180(ds, 1) == DimDataset(rot180(da1, 1), rot180(da2, 1), rot180(da3, 1))

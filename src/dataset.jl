@@ -8,21 +8,31 @@ abstract type AbstractDimDataset{L,D} end
 """
     DimDataset(layers::AbstractDimArray...)
     DimDataset(layers::Tuple{Vararg{<:AbstractDimArray}})
+    DimDataset(layers::NamedTuple{Keys,Vararg{<:AbstractDimArray}}) 
     DimDataset(layers::NamedTuple, dims::DimTuple; metadata=nothing)
 
 DimDataset holds multiple objects with the same dimensions, in a `NamedTuple`.
 Indexing operates as for [`AbstractDimArray`](@ref), except it occurs for all
 layers of the dataset simulataneously. Layer objects can hold values of any type.
 
+DimDataset can be constructed from multiple `AbstractDimArray` or a `NamedTuple`
+of `AbstractArray` and a matching `dims` `Tuple`. If `AbstractDimArray`s have
+the same name they will be given the name `:layer1`, substitiuting the actual
+layer number for `1`.
+
 `getindex` with `Int` or `Dimension`s or `Selector`s that resolve to `Int` will
-return a `NamedTuple` of values from each layer in the dataset.
+return a `NamedTuple` of values from each layer in the dataset. This has very good
+performace, and usually takes less time than the sum of indexing each array 
+separately.
+
 Indexing with a `Vector` or `Colon` will return another `DimDataset` where
 all layers have been sliced.  `setindex!` must pass a `Tuple` or `NamedTuple` maching 
 the layers.
 
 Most `Base` and `Statistics` methods that apply gto `AbstractArray` can be used on 
-all layers of the dataset simulataneously. The result is always a `DimDataset`, or
-a NamedTuple if methods like `mean` are used without `dims` arguments.
+all layers of the dataset simulataneously. The result is a `DimDataset`, or
+a `NamedTuple` if methods like `mean` are used without `dims` arguments, and 
+return a single non-array value.
 
 ## Example
 
@@ -35,12 +45,18 @@ julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
 (X: Symbol[a, b] (AutoMode), Y: 10.0:10.0:30.0 (AutoMode))
 
 julia> da1 = DimArray(1A, dimz, "one");
+┌ Warning: The AbstractDimArray name field is now a Symbol
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> da2 = DimArray(2A, dimz, "two");
+┌ Warning: The AbstractDimArray name field is now a Symbol
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> da3 = DimArray(3A, dimz, "three");
+┌ Warning: The AbstractDimArray name field is now a Symbol
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> ds = DimDataset(da1, da2, da3)
@@ -76,7 +92,9 @@ DimDataset(layers::NamedTuple, dims::DimTuple; refdims=(), metadata=nothing) =
 
 layers(ds::AbstractDimDataset) = ds.layers
 dimarrays(ds::AbstractDimDataset{<:NamedTuple{Keys}}) where Keys =
-    NamedTuple{Keys}(map(k -> ds[k], Keys))
+    NamedTuple{Keys}(map(Keys, values(ds)) do k, A
+        DimArray(A, dims(ds), refdims(ds), k, nothing)
+    end)
 dims(ds::DimDataset) = ds.dims
 metadata(ds::AbstractDimDataset) = ds.metadata
 Base.keys(ds::AbstractDimDataset) = keys(layers(ds))
@@ -113,6 +131,10 @@ maybedataset(x::NamedTuple) = x
 
 # getindex/view/setindex!
 
+# Symbol key
+Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, key::Symbol) =
+    DimArray(layers(ds)[key], dims(ds), refdims(ds), key, nothing)
+
 # No indices
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset) = 
     map(A -> getindex(parent(A), dimarrays(ds)))
@@ -120,10 +142,6 @@ Base.@propagate_inbounds Base.view(ds::AbstractDimDataset) =
     map(A -> view(parent(A), dimarrays(ds)))
 Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x) = 
     map(A -> setindex!(parent(A), x), dimarrays(ds))
-
-# Symbol key
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, key::Symbol) =
-    DimArray(layers(ds)[key], dims(ds), String(key))
 
 # Integer getindex returns a single value
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i::Int, I::Int...) =
@@ -224,7 +242,7 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
                 map(A -> ($mod.$fname)(f, A), layers(ds))
             # Otherwise return a DimDataset
             ($_fname)(f::Function, ds::AbstractDimDataset, dims) =
-                map(A -> ($mod.$fname)(f, A; dims), ds)
+                map(A -> ($mod.$fname)(f, A; dims=dims), ds)
         end
     end
 end

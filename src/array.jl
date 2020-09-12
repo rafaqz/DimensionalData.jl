@@ -53,7 +53,7 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A), metadata=metadata(A)) =
     rebuild(A, data, dims, refdims, name, metadata)
 
-@inline rebuildsliced(A, data, I, name::String=name(A)) =
+@inline rebuildsliced(A, data, I, name::Symbol=name(A)) =
     rebuild(A, data, slicedims(A, I)..., name)
 
 # Dipatch on Tuple of Dimension, and map
@@ -154,9 +154,9 @@ Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
 
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(A::AbstractDimArray) =
-    rebuild(A, similar(parent(A)), dims(A), refdims(A), "")
+    rebuild(A, similar(parent(A)), dims(A), refdims(A), Symbol(""))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
-    rebuild(A, similar(parent(A), T), dims(A), refdims(A), "")
+    rebuild(A, similar(parent(A), T), dims(A), refdims(A), Symbol(""))
 # If the shape changes, use the wrapped array:
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
@@ -188,7 +188,7 @@ Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = cop
 
 """
     DimArray(data, dims, refdims, name)
-    DimArray(data, dims::Tuple [, name::String]; refdims=(), metadata=nothing)
+    DimArray(data, dims::Tuple [, name::Symbol]; refdims=(), metadata=nothing)
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -223,14 +223,18 @@ julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
-struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:AbstractString,Me} <: AbstractDimArray{T,N,D,A}
+struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Symbol,Me} <: AbstractDimArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
     name::Na
     metadata::Me
 end
-DimArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) =
+DimArray(A::AbstractArray, dims, refdims, name::String, metadata) = begin
+    @warn "The AbstractDimArray name field is now a Symbol"
+    DimArray(A, dims, refdims, Symbol(name), metadata)
+end
+DimArray(A::AbstractArray, dims, name=Symbol(""); refdims=(), metadata=nothing) =
     DimArray(A, formatdims(A, dims), refdims, name, metadata)
 DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
     DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
@@ -239,13 +243,13 @@ DimArray(; data, dims, refdims=(), name="", metadata=nothing) =
 
 """
     rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
-            refdims::Tuple, name::AbstractString, metadata) => DimArray
+            refdims::Tuple, name::Symbol, metadata) => DimArray
 
 Rebuild a `DimArray` with new fields. Handling partial field
 update is dealth with in `rebuild` for `AbstractDimArray`.
 """
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
-                refdims::Tuple, name::AbstractString, metadata) =
+                refdims::Tuple, name::Symbol, metadata) =
     DimArray(data, dims, refdims, name, metadata)
 
 # Array interface (AbstractDimArray takes care of everything else)

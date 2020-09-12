@@ -5,7 +5,10 @@ a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
 refdimz = (Ti(1:1),)
-da = DimArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
+
+# We warn about the name field type-change if you use a String
+@test_logs (:warn, "The AbstractDimArray name field is now a Symbol") DimArray(a, dimz, "test")
+da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -28,7 +31,7 @@ end
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(a) == 
         (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test metadata(a) == Dict(:meta => "da")
     @test metadata(a, X) == Dict(:meta => "X")
     @test bounds(a) == ((143.0, 145.0),)
@@ -43,7 +46,7 @@ end
         (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test refdims(a) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test metadata(a) == Dict(:meta => "da")
     @test bounds(a) == ((-38.0, -36.0),)
     @test bounds(a, Y()) == (-38.0, -36.0)
@@ -58,7 +61,7 @@ end
                       Y(LinRange(-38.0, -36.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
     @test refdims(a) == (Ti(1:1),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
     @test bounds(a, X) == (143.0, 145.0)
 
@@ -79,7 +82,7 @@ end
     @test refdims(v) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
          Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
-    @test name(v) == "test"
+    @test name(v) == :test
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ()
 
@@ -93,7 +96,7 @@ end
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(v) == 
         (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
-    @test name(v) == "test"
+    @test name(v) == :test
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ((143.0, 145.0),)
 
@@ -135,7 +138,7 @@ end
 
 
 dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
+da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
 
 @testset "arbitrary dimension names also work for indexing" begin
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
@@ -188,13 +191,13 @@ end
     @test dac == da2
     @test dims(dac) == dims(da2)
     @test refdims(dac) == refdims(da2) == (Ti(1:1),)
-    @test name(dac) == name(da2) == "test2"
+    @test name(dac) == name(da2) == :test2
     @test metadata(dac) == metadata(da2)
     dadc = deepcopy(da2)
     @test dadc == da2
     @test dims(dadc) == dims(da2)
     @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
-    @test name(dadc) == name(da2) == "test2"
+    @test name(dadc) == name(da2) == :test2
     @test metadata(dadc) == metadata(da2)
 
     o = one(da)

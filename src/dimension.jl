@@ -35,7 +35,7 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-DimArray with dimensions:
+DimArray (named ) with dimensions:
  Y: Char[a, b, c] (Categorical: Unordered)
  X: 2:2:10 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
@@ -55,7 +55,7 @@ x = A[X(2), Y(3)]
 
 # output
 
-DimArray with dimensions:
+DimArray (named ) with dimensions:
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
  Y: c (Categorical: Unordered)
@@ -71,7 +71,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-DimArray with dimensions:
+DimArray (named ) with dimensions:
  X: 4:2:4 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:

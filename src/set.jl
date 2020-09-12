@@ -1,7 +1,7 @@
 
 """
     set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
-    set(A::AbstractDimArray, name::String) => AbstractDimArray
+    set(A::AbstractDimArray, name::Symbol) => AbstractDimArray
 
     set(A, xs::Pairs...) => x with updated field/s
     set(A, xs...; kwargs...) => x with updated field/s
@@ -71,7 +71,7 @@ set(A::AbstractDimArray, data::AbstractArray) = begin
         throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
     rebuild(A; data=data)
 end
-set(A::AbstractDimArray, name::AbstractString) = rebuild(A; name=name)
+set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
 
 
 
