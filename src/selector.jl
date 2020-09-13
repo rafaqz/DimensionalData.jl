@@ -153,8 +153,8 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 # output
 
 DimArray (named ) with dimensions:
- X: 20:10:20 (Sampled: Ordered Regular Points)
- Y: 5:6 (Sampled: Ordered Regular Points)
+ X (type X): 20:10:20 (Sampled: Ordered Regular Points)
+ Y (type Y): 5:6 (Sampled: Ordered Regular Points)
 and data: 1×2 Array{Int64,2}
  4  5
 ```
@@ -182,8 +182,8 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 # output
 
 DimArray (named ) with dimensions:
- X: Int64[20] (Sampled: Ordered Regular Points)
- Y: Int64[19, 21] (Sampled: Ordered Regular Points)
+ X (type X): Int64[20] (Sampled: Ordered Regular Points)
+ Y (type Y): Int64[19, 21] (Sampled: Ordered Regular Points)
 and data: 1×2 Array{Int64,2}
  4  6
 ```

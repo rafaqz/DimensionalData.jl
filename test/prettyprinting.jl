@@ -1,8 +1,8 @@
 using DimensionalData, Test, Dates
 
 # define dims with both long name and Type name
-@dim Lon "Longitude" "lon"
-@dim Lat "Latitude" "lat"
+@dim Lon "Longitude"
+@dim Lat "Latitude"
 
 @testset "prettyprinting" begin
 
@@ -28,7 +28,7 @@ using DimensionalData, Test, Dates
     end
 
     # Test again but now with labelled array A
-    A = DimArray(rand(length.(d)...), d, "test")
+    A = DimArray(rand(length.(d)...), d, :test)
     s1 = sprint(show, A)
     @test occursin("test", s1)
 
@@ -43,13 +43,13 @@ using DimensionalData, Test, Dates
     @test occursin("test", s3)
 
     # It should NOT propagate after binary operations
-    B = DimArray(rand(length.(d)...), d, "test2")
+    B = DimArray(rand(length.(d)...), d, :test2)
     C = A .+ B
     s4 = sprint(show, C)
     @test !occursin("test", s4)
 
     # Test that broadcasted setindex! retains name
-    D = DimArray(ones(length.(d)...), d, "olo")
+    D = DimArray(ones(length.(d)...), d, :olo)
     @. D = A + B
     s5 = sprint(show, D)
     @test occursin("olo", s5)

@@ -11,7 +11,7 @@ using DimensionalData, Test
     @test span(revdimi) == Regular(-10)
 
     A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), "test")
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
     ds = DimDataset(da)
 
     reva = reverse(ArrayOrder, da; dims=Y)
@@ -88,8 +88,8 @@ end
     @testset "dataset" begin
         A = [1 2 3; 4 5 6]
         dimz = (X(10:10:20), Y(300:-100:100))
-        da1 = DimArray(A, dimz, "da1")
-        da2 = DimArray(2A, dimz, "da2")
+        da1 = DimArray(A, dimz, :da1)
+        da2 = DimArray(2A, dimz, :da2)
         ds = DimDataset(da1, da2)
         mds = modify(A -> A .> 3, ds)
         @test layers(mds) == (da1=[false false false; true true true],

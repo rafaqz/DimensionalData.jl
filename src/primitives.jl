@@ -82,10 +82,10 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-(X: Base.OneTo(10) (NoIndex),)
+(X (type X): Base.OneTo(10) (NoIndex),)
 
 julia> commondims(A, (X, Z))
-(X: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
+(X (type X): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
 
 julia> commondims(A, Ti)
 ()
@@ -353,13 +353,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
+(Y (type Y): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
 
 julia> otherdims(A, (Y, Z))
-(X: Base.OneTo(10) (NoIndex),)
+(X (type X): Base.OneTo(10) (NoIndex),)
 
 julia> otherdims(A, Ti)
-(X: Base.OneTo(10) (NoIndex), Y: Base.OneTo(10) (NoIndex), Z: Base.OneTo(10) (NoIndex))
+(X (type X): Base.OneTo(10) (NoIndex), Y (type Y): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
 ```
 """
 @inline otherdims(x, lookup) = otherdims(dims(x), lookup)

@@ -36,8 +36,8 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 # output
 
 DimArray (named ) with dimensions:
- Y: Char[a, b, c] (Categorical: Unordered)
- X: 2:2:10 (Sampled: Ordered Regular Points)
+ Y (type Y): Char[a, b, c] (Categorical: Unordered)
+ X (type X): 2:2:10 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and data: 3×5×12 Array{Float64,3}
 [:, :, 1]
@@ -58,8 +58,8 @@ x = A[X(2), Y(3)]
 DimArray (named ) with dimensions:
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
- Y: c (Categorical: Unordered)
- X: 4 (Sampled: Ordered Regular Points)
+ Y (type Y): c (Categorical: Unordered)
+ X (type X): 4 (Sampled: Ordered Regular Points)
 and data: 12-element Array{Float64,1}
 [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 ```
@@ -72,10 +72,10 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 # output
 
 DimArray (named ) with dimensions:
- X: 4:2:4 (Sampled: Ordered Regular Points)
+ X (type X): 4:2:4 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
- Y: b (Categorical: Unordered)
+ Y (type Y): b (Categorical: Unordered)
 and data: 1×12 Array{Float64,2}
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
@@ -151,8 +151,6 @@ index(dim::Dimension{<:AbstractArray}) = val(dim)
 index(dim::Dimension{<:Val}) = unwrap(val(dim))
 
 name(dim::Dimension) = name(typeof(dim))
-shortname(d::Dimension) = shortname(typeof(d))
-shortname(d::DimType) = name(d) # Use `name` as fallback
 units(dim::Dimension) =
     metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
 
@@ -170,7 +168,7 @@ end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
-             :name, :shortname, :label, :units)
+             :name, :label, :units)
     @eval begin
         ($func)(dims::DimTuple) = map($func, dims)
         ($func)(dims::Tuple{}) = ()
@@ -252,7 +250,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-dimension Dim{:custom} (type Dim):
+dimension custom (type Dim):
 val: Char[a, b, c]
 mode: AutoMode
 metadata: nothing
@@ -269,8 +267,7 @@ end
 Dim{S}(val=:; mode::Mode=AutoMode(), metadata=nothing) where S =
     Dim{S}(val, mode, metadata)
 
-name(::Type{<:Dim{S}}) where S = "Dim{:$S}"
-shortname(::Type{<:Dim{S}}) where S = "$S"
+name(::Type{<:Dim{S}}) where S = S
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
 key2dim(s::Val{S}) where S = Dim{S}()
 dim2key(::Type{D}) where D<:Dim{S} where S = S
@@ -289,10 +286,10 @@ AnonDim(val, arg1, args...) = AnonDim(val)
 
 mode(::AnonDim) = NoIndex()
 metadata(::AnonDim) = nothing
-name(::AnonDim) = "Anon"
+name(::AnonDim) = :Anon
 
 """
-    @dim typ [supertype=Dimension] [name=string(typ)] [shortname=string(typ)]
+    @dim typ [supertype=Dimension] [name::String=typ]
 
 Macro to easily define new dimensions. The supertype will be inserted
 into the type of the dim. The default is simply `YourDim <: Dimension`. Making
@@ -316,7 +313,7 @@ macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
 
-dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
+dimmacro(typ, supertype, name::String=string(typ)) =
     esc(quote
         Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me} <: $supertype{T,Mo,Me}
             val::T
@@ -327,8 +324,7 @@ dimmacro(typ, supertype, name=string(typ), shortname=string(typ)) =
             $typ(val, mode, metadata)
         $typ(val::V, mode::Mo) where {V,Mo<:DimensionalData.Mode} =
             $typ{V,Mo,Nothing}(val, mode, nothing)
-        DimensionalData.name(::Type{<:$typ}) = $name
-        DimensionalData.shortname(::Type{<:$typ}) = $shortname
+        DimensionalData.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
         DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
     end)
 

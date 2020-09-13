@@ -1,18 +1,17 @@
 using DimensionalData, Test, Unitful
 using DimensionalData: slicedims, basetypeof, formatdims
 
-@dim TestDim "Test dimension"
+@dim TestDim "Testname"
 
 @testset "dims creation macro" begin
     @test TestDim(1:10, Sampled()) == TestDim(1:10, Sampled(), nothing)
     @test TestDim(1:10; mode=Categorical()) == TestDim(1:10, Categorical(), nothing)
-    @test name(TestDim) == "Test dimension"
-    @test label(TestDim) == "Test dimension"
-    @test shortname(TestDim) == "TestDim"
-    @test val(TestDim(:test)) == :test
+    @test DimensionalData.name(TestDim) == :Testname
+    @test label(TestDim) == "Testname"
+    @test val(TestDim(:testval)) == :testval
     @test metadata(TestDim(1, AutoMode(), "metadata")) == "metadata"
     @test units(TestDim) == nothing
-    @test label(TestDim) == "Test dimension"
+    @test label(TestDim) == "Testname"
     @test eltype(TestDim(1)) <: Int
     @test eltype(TestDim([1, 2, 3])) <: Int
     @test length(TestDim(1)) == 1
@@ -67,8 +66,7 @@ end
     dimz = dims(da)
 
     @test val(dimz) == index(dimz) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
-    @test name(dimz) == ("X", "Y")
-    @test shortname(dimz) == ("X", "Y")
+    @test name(dimz) == (:X, :Y)
     @test units(dimz) == (nothing, nothing)
     @test label(dimz) == ("X", "Y")
     @test sampling(dimz) == (Points(), Points())
@@ -106,9 +104,8 @@ end
            (Dim{:row}(Val((:A, :B, :C))), 
             Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Regular(10),Points()), nothing))
     )
-    @test name(dimz) == ("Dim{:row}", "Dim{:column}")
-    @test shortname(dimz) == ("row", "column")
-    @test label(dimz) == ("Dim{:row}", "Dim{:column}")
+    @test name(dimz) == (:row, :column)
+    @test label(dimz) == ("row", "column")
     @test basetypeof(dimz[1]) == Dim{:row}
     @test length.(dimz) == (3, 4)
     @test firstindex(dimz[1]) == 1
