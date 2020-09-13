@@ -19,8 +19,8 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         @inline ($mod.$_fname)(A::AbstractDimArray, dims::Colon) = ($mod.$fname)(parent(A))
         @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$fname)(f, A::AbstractDimArray, dims::Colon) =
-            ($mod.$fname)(f, parent(A))
+        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Colon) =
+            ($mod.$_fname)(f, parent(A))
     end
 end
 
