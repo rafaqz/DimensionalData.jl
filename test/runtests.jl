@@ -21,17 +21,18 @@ include("matmul.jl")
 include("tables.jl")
 include("prettyprinting.jl")
 
-if !Sys.iswindows()
+if Sys.islinux()
+    # Unfortunately this can hang on other platforms.
+    # Maybe ram use of all the plots on the small CI machine? idk
     include("plotrecipes.jl")
+end
 
-    # Test documentation
-    if VERSION >= v"1.5.0"
-        docsetup = quote
-            using DimensionalData, Random
-            Random.seed!(1234)
-        end
-        DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-        doctest(DimensionalData; fix=true)
+# Test documentation
+if VERSION >= v"1.5.0"
+    docsetup = quote
+        using DimensionalData, Random
+        Random.seed!(1234)
     end
-
+    DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
+    doctest(DimensionalData; fix=true)
 end
