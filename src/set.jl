@@ -136,11 +136,11 @@ set(mode::IndexMode, newmode::AutoMode) = mode
 set(mode::IndexMode, newmode::Categorical) =
     rebuild(newmode; order=set(order(mode), order(newmode)))
 # Sampled
-set(mode::IndexMode, newmode::Sampled) = begin
+set(mode::IndexMode, newmode::AbstractSampled) = begin
     o = set(order(mode), order(newmode))
     sp = set(span(mode), span(newmode))
     sa = set(sampling(mode), sampling(newmode))
-    rebuild(mode; order=o, span=sp, sampling=sa)
+    rebuild(newmode; order=o, span=sp, sampling=sa)
 end
 # NoIndex
 set(mode::IndexMode, newmode::NoIndex) = newmode
