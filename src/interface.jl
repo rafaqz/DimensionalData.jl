@@ -29,7 +29,7 @@ the axes or columns etc. of the underlying data.
 The default is to return `nothing`.
 """
 function dims end
-dims(x) = nothing
+dims(x) = error("Object has no `dims` method")
 
 """
     refdims(x) => Tuple{Vararg{<:Dimension}}
@@ -127,22 +127,6 @@ Get the name of an array or Dimension, or a tuple of of either.
 function name end
 name(x) = name(typeof(x))
 name(x::Type) = ""
-
-"""
-    shortname(x) => String
-    shortname(xs::NTuple{N}) => NTuple{N,String}
-    shortname(A::AbstractDimArray, dims::NTuple{N}) => NTuple{N,String}
-
-Get the shortname of an array or Dimension, or a tuple of of either.
-
-This may be a shorter version more suitable for small labels than 
-`name`, but it may also be identical to `name`.
-
-`dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
-"""
-function shortname end
-shortname(x) = shortname(typeof(x))
-shortname(x::Type) = ""
 
 """
     units(x) => Union{Nothing,Any}
