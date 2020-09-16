@@ -96,25 +96,12 @@ Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Int
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer) = getindex(parent(A), i)
 
 # Standard indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    I = finalindices(dims(A), (i1, i2, I...))
-    rebuildsliced(A, getindex(parent(A), I...), I)
-end
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    I = finalindices(dims(A), (i1, i2, I...))
-    rebuildsliced(A, view(parent(A), I...), I)
-end
+Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, getindex(parent(A), i1, i2, I...), (i1, i2, I...))
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    rebuildsliced(A, view(parent(A), i1, i2, I...), (i1, i2, I...))
 Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    setindex!(parent(A), x, finalindices(dims(A), (i1, i2, I...))...)
-
-@inline finalindices(dims::Tuple, I::Tuple) = map(finalindices, dims, I) 
-@inline finalindices(dim::Dimension, i) = finalindices(mode(dim), dim, i)
-# Here you can do something with i based on IndexMode, like make it circular.
-@inline finalindices(mode::IndexMode, dim::Dimension, i) = i
-# @inline finalindices(mode::Circular, dim::Dimension, i) = i
-    # mod((i - 1) ÷ length(dim), length(dim(c))) + 1
-
-
+    setindex!(parent(A), x, i1, i2, I...)
 # Linear indexing returns Array
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
     getindex(parent(A), i)
@@ -122,7 +109,7 @@ Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,Abstr
 Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
     rebuildsliced(A, getindex(parent(A), i), (i,))
 # Linear indexing view returns unwrapped SubArray
-Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, N} where N, i::StandardIndices) =
+Base.@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices) =
     view(parent(A), i)
 # Except 1D DimArrays
 Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
