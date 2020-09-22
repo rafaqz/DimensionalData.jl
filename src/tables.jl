@@ -96,13 +96,16 @@ struct DimTable{Keys,DS,C} <: AbstractDimTable
     dataset::DS
     dimcolumns::C
 end
-DimTable(A::AbstractDimArray) = DimTable(DimDataset(A))
+DimTable(A::AbstractDimArray, As::AbstractDimArray...) = DimTable((A, As...))
+DimTable(As::Tuple{<:AbstractDimArray,Vararg{<:AbstractDimArray}}...) = 
+    DimTable(DimDataset(As...))
 DimTable(ds::AbstractDimDataset) = begin
     dims_ = dims(ds)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
     keys = _colnames(ds)
     DimTable{keys,typeof(ds),typeof(dimcolumns)}(ds, dimcolumns)
 end
+
 dataset(t::DimTable) = getfield(t, :dataset)
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dims(t::DimTable) = dims(dataset(t))
@@ -149,6 +152,6 @@ end
 
 _colnames(ds::AbstractDimDataset) = begin
     dimkeys = map(dim2key, (dims(ds)))
-    # The data is always the last column
+    # The data is always the last column/s
     (dimkeys..., keys(ds)...)
 end

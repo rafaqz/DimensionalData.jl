@@ -1,7 +1,10 @@
+
+abstract type ModeComponent end
+
 """
 Traits for the order of the array, index and the relation between them.
 """
-abstract type Order end
+abstract type Order <: ModeComponent end
 
 """
     AutoOrder()
@@ -181,7 +184,7 @@ Locii are often `Start` for time series, but often `Center` for spatial data.
 These are reflected in the default values: `Ti` dimensions with `Sampled` index mode
 will default to `Start` Locii. All others default to `Center`.
 """
-abstract type Locus end
+abstract type Locus <: ModeComponent end
 
 """
     Center()
@@ -220,7 +223,7 @@ struct AutoLocus <: Locus end
 Indicates the sampling method used by the index: [`Points`](@ref)
 or [`Intervals`](@ref).
 """
-abstract type Sampling end
+abstract type Sampling <: ModeComponent end
 
 struct AutoSampling <: Sampling end
 
@@ -262,7 +265,7 @@ rebuild(::Intervals, locus) = Intervals(locus)
 Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
-abstract type Span end
+abstract type Span <: ModeComponent end
 
 """
     AutoSpan()
@@ -303,9 +306,6 @@ Irregular() = Irregular(nothing, nothing)
 Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 
 bounds(span::Irregular) = span.bounds
-
-
-const ModeComponent = Union{<:Order,<:Sampling,<:Span,<:Locus}
 
 
 """

@@ -49,6 +49,8 @@ end
         (4:6, [:a, :b, :c, :d])
     @test index(set(da2, :column => Val((:a, :b, :c, :d)), :row => Val((4:6...,)))) == 
         ((4:6...,), (:a, :b, :c, :d))
+    @test index(set(da2, :column => 10:5:20, :row => 4:6)) == (4:6, 10:5:20)
+    @test step.(span(dims(set(da2, :column => 10:5:20, :row => 4:6)))) == (1, 5)
 end
 
 @testset "Array dim mode" begin
@@ -60,7 +62,7 @@ end
         (Unordered(), Ordered(array=ReverseArray()))
     @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
         (Irregular(10, 12), Regular(9.9))
-    @test_throws ErrorException set(da2, (End(), Center()))
+    @test_throws ArgumentError set(da2, (End(), Center()))
     @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
         (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
 
@@ -75,4 +77,29 @@ end
     @test mode(set(da, X=NoIndex(), Y=Categorical())) == 
         (NoIndex(), Categorical())
     @test order(set(da, Y(Unordered()))) == (Ordered(), Unordered())
+end
+
+@testset "metadata" begin
+    @test metadata(set(X(), Dict(:a=>1, :b=>2))) == Dict(:a=>1, :b=>2)
+    dax = set(da, X(Dict(:a=>1, :b=>2)))
+    @test metadata(dims(dax), X) == Dict(:a=>1, :b=>2)
+    @test metadata(dims(dax), Y) == Dict(:meta => "Y") 
+    dax = set(da, X(; metadata=Dict(:a=>1, :b=>2)))
+    @test metadata(dims(dax, X)) == Dict(:a=>1, :b=>2)
+
+    dax = set(da2, row=Dict(:a=>1, :b=>2))
+    @test metadata(dims(dax, :row)) == Dict(:a=>1, :b=>2)
+    dax = set(da2, column=Dict(:a=>1, :b=>2))
+    @test metadata(dims(dax, :column)) == Dict(:a=>1, :b=>2)
+end
+
+@testset "all dim fields" begin
+    dax = set(da, X(20:-10:10; mode=Sampled(), metadata=Dict(:a=>1, :b=>2)))
+    x = dims(dax, X)
+    order(x)
+    @test val(x) == 20:-10:10
+    @test order(x) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    @test span(x) == Regular(-10)
+    @test mode(x) == Sampled(Ordered(ReverseIndex(), ForwardArray(), ForwardRelation()), Regular(-10), Points())
+    @test metadata(x) == Dict(:a=>1, :b=>2) 
 end

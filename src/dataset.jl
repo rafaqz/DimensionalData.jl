@@ -46,17 +46,17 @@ julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
 
 julia> da1 = DimArray(1A, dimz, "one");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:247
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> da2 = DimArray(2A, dimz, "two");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:247
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> da3 = DimArray(3A, dimz, "three");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:247
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
 
 
 julia> ds = DimDataset(da1, da2, da3)

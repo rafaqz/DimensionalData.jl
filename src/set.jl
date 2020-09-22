@@ -67,8 +67,9 @@ function set end
 set(A::AbstractDimArray, args...; kwargs...) =
     rebuild(A, data(A), set(dims(A), args...; kwargs...))
 set(A::AbstractDimArray, data::AbstractArray) = begin
-    axes(A) == axes(data) ||
-        throw(ArgumentError("axes of passed in array $(axes(data)) do not match the currect array $(axes(A))"))
+    @noinline axiserr(A, d) = 
+        throw(ArgumentError("axes of passed in array $(axes(d)) do not match the currect array $(axes(A))"))
+    axes(A) == axes(data) || axiserr(A, data)
     rebuild(A; data=data)
 end
 set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
@@ -104,14 +105,26 @@ _set(dims::DimTuple, wrappers::DimTuple) = begin
 end
 
 # Set the index
-set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
 set(dim::Dimension, index::Val) = rebuild(dim; val=index)
+set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
+set(dim::Dimension, index::AbstractRange) = begin
+    dim = set(dim, _orderof(index))
+    _set(mode(dim), dim, index)
+end
+set(dim::Dimension, index::Colon) = dim
+
+_set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
+# Update the Sampling mode of Sampled dims - it must match the range.
+_set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) = 
+    rebuild(dim; val=index, mode=set(mode, Regular(step(index))))
 
 # Set the dim, checking the mode
-set(dim::Dimension, newdim::Dimension) =
-    rebuild(newdim; mode=set(mode(dim), mode(newdim)))
+set(dim::Dimension, newdim::Dimension) = begin
+    dim = set(set(dim, mode(newdim)), val(newdim))
+    basetypeof(newdim)(val(dim), mode(dim), set(metadata(dim), metadata(newdim)))
+end
 # Set things wrapped in dims
-set(dim::Dimension, wrapper::Dimension{<:Union{Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}}) = 
+set(dim::Dimension, wrapper::Dimension{<:Union{AbstractDict,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}}) = 
     set(dim::Dimension, val(wrapper))
 
 # Construct types
@@ -186,7 +199,16 @@ set(sampling::Sampling, newsampling::AutoSampling) = sampling
 set(mode::AbstractSampled, locus::Locus) =
     rebuild(mode; sampling=set(sampling(mode), locus))
 set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
-set(sampling::Points, locus::Locus) =
-    error("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points")
+@noinline set(sampling::Points, locus::Locus) =
+    throw(ArgumentError("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
 set(sampling::Intervals, locus::Locus) = Intervals(locus)
 set(sampling::Intervals, locus::AutoLocus) = sampling
+
+
+# Metadata: TODO: implement metadata types so this can use set
+set(dim::Dimension, newmetadata::AbstractDict) = 
+    rebuild(dim, val(dim), mode(dim), set(metadata(dim), newmetadata))
+set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
+set(metadata::AbstractDict, newmetadata::Nothing) = metadata
+set(metadata::Nothing, newmetadata::Nothing) = nothing
+set(metadata::Nothing, newmetadata::AbstractDict) = newmetadata
