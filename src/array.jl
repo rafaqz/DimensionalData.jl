@@ -243,7 +243,7 @@ DimArray(A::AbstractArray, dims, name::String=""; refdims=(), metadata=nothing) 
 DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
     DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
 DimArray(; data, dims, refdims=(), name="", metadata=nothing) = 
-    DimArray(A, formatdims(A, dims), refdims, name, metadata)
+    DimArray(data, formatdims(data, dims), refdims, name, metadata)
 
 """
     rebuild(A::DimArray, data::AbstractArray, dims::Tuple, 
