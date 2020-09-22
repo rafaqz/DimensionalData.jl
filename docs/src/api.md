@@ -50,9 +50,10 @@ Contains
 Where
 ```
 
-## Index Modes
+## Modes
 
 ```@docs
+Mode
 IndexMode
 Aligned
 AbstractSampled
@@ -73,10 +74,13 @@ Unordered
 Ordered
 AutoOrder
 UnknownOrder
+IndexOrder
 ForwardIndex
 ReverseIndex
+ArrayOrder
 ForwardArray
 ReverseArray
+RelationOrder
 ForwardRelation
 ReverseRelation
 ```
@@ -115,8 +119,8 @@ AutoLocus
 ## Tables.jl interface
 
 ```@docs
-DimColumn
-DimArray
+DimTable
+DimensionalData.DimColumn
 ```
 
 
@@ -129,17 +133,29 @@ These useful functions for obtaining information from your dimensional data:
 ```@docs
 dims
 refdims
-mode
 metadata
-index
-val
-data
-layers
-bounds
 name
 units
 label
 ```
+
+Dimesion and mode properties:
+
+```@docs
+val
+index
+mode
+bounds
+sampling
+locus
+span
+order
+indexorder
+arrayorder
+relation
+```
+
+Dimension querying
 
 ```@docs
 hasdim
@@ -168,8 +184,12 @@ DimensionalData.key2dim
 DimensionalData.dims2indices
 DimensionalData.formatdims
 DimensionalData.reducedims
+DimensionalData.swapdims
 DimensionalData.slicedims
 DimensionalData.comparedims
+DimensionalData.sortdims
 DimensionalData.identify
 DimensionalData.basetypeof
+DimensionalData.setdims
+DimensionalData.flip
 ```

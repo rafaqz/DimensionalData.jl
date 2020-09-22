@@ -34,9 +34,9 @@ But often, we want to provide a lookup index for the dimension:
 
 ```@example main
 using Dates
-t = DateTime(2001):Month(1):DateTime(2001,12)
-x = 10:10:100
-A = DimArray(rand(12, 10), (Ti(t), X(x)))
+t = Ti(DateTime(2001):Month(1):DateTime(2001,12))
+x = X(10:10:100)
+A = DimArray(rand(12, 10), (t, x))
 ```
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
@@ -48,8 +48,8 @@ array axis.
 
 This can also be done with `Symbol`, using `Dim{X}`:
 
-```@example main
-A = DimArray(rand(12, 10), (time=t, distance=x))
+```@example
+A2 = DimArray(rand(12, 10), (time=t, distance=x))
 ```
 
 Symbols can be more convenient than defining dims with `@dim`, but have some
@@ -131,7 +131,6 @@ A[1:5]
 This selects the first 5 entries of the underlying array. In the case that `A`
 has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
 indexed this way will return a regular array.
-
 
 
 ## Specifying `dims` keyword arguments with `Dimension`

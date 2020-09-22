@@ -38,7 +38,7 @@ export Sampling, Points, Intervals
 
 export Span, Regular, Irregular, AutoSpan
 
-export IndexMode, Auto, AutoMode, NoIndex
+export Mode, IndexMode, Auto, AutoMode, NoIndex
 
 export Aligned, AbstractSampled, Sampled,
        AbstractCategorical, Categorical
