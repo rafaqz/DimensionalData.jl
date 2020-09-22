@@ -3,11 +3,18 @@
 
 To use the functionality of DimensionalData in your module, dispatch on `AbstractDimArray` and `AbstractDimension`.
 
-Arrays:
+## Arrays
 
 ```@docs
 AbstractDimArray
 DimArray
+```
+
+## Multi-array datasets
+
+```@docs
+AbstractDimDataset
+DimDataset
 ```
 
 ## Core types
@@ -66,8 +73,12 @@ Unordered
 Ordered
 AutoOrder
 UnknownOrder
-DimensionalData.Forward
-DimensionalData.Reverse
+ForwardIndex
+ReverseIndex
+ForwardArray
+ReverseArray
+ForwardRelation
+ReverseRelation
 ```
 
 Index modes for [`Intervals`](@ref)
@@ -101,6 +112,14 @@ End
 AutoLocus
 ```
 
+## Tables.jl interface
+
+```@docs
+DimColumn
+DimArray
+```
+
+
 ## Methods
 
 ## Getting basic info
@@ -108,22 +127,25 @@ AutoLocus
 These useful functions for obtaining information from your dimensional data:
 
 ```@docs
-bounds
-data
-dimnum
 dims
-hasdim
-otherdims
-commondims
-label
+refdims
 mode
 metadata
-name
-refdims
-shortname
-units
+index
 val
-basetypeof
+data
+layers
+bounds
+name
+units
+label
+```
+
+```@docs
+hasdim
+dimnum
+otherdims
+commondims
 ```
 
 And some utility methods for transforming DimensionalData objects:
@@ -134,11 +156,8 @@ rebuild
 modify
 dimwise
 dimwise!
-reorderindex
-reorderarray
-reorderrelation
-reverseindex
-reversearray
+reorder
+reverse
 ```
 
 ## Non-exported methods for developers
@@ -152,11 +171,5 @@ DimensionalData.reducedims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.identify
-```
-
-## Implementation of the Tables.jl interface
-
-```@docs
-DimColumn
-DimArray
+DimensionalData.basetypeof
 ```
