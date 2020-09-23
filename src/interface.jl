@@ -240,4 +240,4 @@ and the array axis, for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function relation end
-relation(args...) = order(RelationOrder, args...)
+relation(args...) = order(Relation, args...)

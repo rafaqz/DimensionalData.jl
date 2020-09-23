@@ -1,4 +1,7 @@
 
+"""
+Supertype of all component objects of [`Mode`](@ref).
+"""
 abstract type ModeComponent end
 
 """
@@ -80,7 +83,7 @@ struct AutoArrayOrder <: ArrayOrder end
 """
 Supertype for index/array relationship
 """
-abstract type RelationOrder <: SubOrder end
+abstract type Relation <: SubOrder end
 
 """
     ForwardRelation()
@@ -88,16 +91,16 @@ abstract type RelationOrder <: SubOrder end
 Indicates that the relationship between the index and the array is
 int the normal forward direction.
 """
-struct ForwardRelation <: RelationOrder end
+struct ForwardRelation <: Relation end
 
 """
     ReverseRelation()
 
 Indicates that the relationship between the index and the array is reversed.
 """
-struct ReverseRelation <: RelationOrder end
+struct ReverseRelation <: Relation end
 
-struct AutoRelation <: RelationOrder end
+struct AutoRelation <: Relation end
 
 
 const AutoSubOrder = Union{AutoIndexOrder,AutoArrayOrder,AutoRelation}
@@ -126,7 +129,7 @@ required to map to the actual indices. It's also used to plot the data later.
 
 The default is `Ordered(ForwardIndex()`, `ForwardArray(), ForwardRelation())`
 """
-struct Ordered{D<:IndexOrder,A<:ArrayOrder,R<:RelationOrder} <: Order
+struct Ordered{D<:IndexOrder,A<:ArrayOrder,R<:Relation} <: Order
     index::D
     array::A
     relation::R
@@ -160,7 +163,7 @@ relation(order::Unordered) = order.relation
 # Get the order specifying type
 order(ot::Type{<:IndexOrder}, order::Union{Ordered,Unordered}) = indexorder(order)
 order(ot::Type{<:ArrayOrder}, order::Union{Ordered,Unordered}) = arrayorder(order)
-order(ot::Type{<:RelationOrder}, order::Union{Ordered,Unordered}) = relation(order)
+order(ot::Type{<:Relation}, order::Union{Ordered,Unordered}) = relation(order)
 
 # Sometimes you need order as a Bool, like for serarchsorted
 isrev(::ForwardIndex) = false

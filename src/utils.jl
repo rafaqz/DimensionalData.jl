@@ -40,7 +40,7 @@ rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
 # Order
 Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
     Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
-Base.reverse(::Type{<:Union{ArrayOrder,RelationOrder}}, o::Ordered) =
+Base.reverse(::Type{<:Union{ArrayOrder,Relation}}, o::Ordered) =
     Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
 Base.reverse(::Type{<:SubOrder}, o::Unordered) = Unordered(reverse(relation(o)))
 
@@ -81,7 +81,7 @@ flip(ot::Type{<:SubOrder}, o::Order) = set(o, reverse(ot, o))
 Reorder every dims index/array/relation to `order`, or reorder index for
 the the given dimension(s) to the `Order` they wrap.
 
-Reorderind `RelationOrder` will reverse the array, not the dimension index.
+Reorderind `Relation` will reverse the array, not the dimension index.
 
 `order` can be an [`Order`](@ref), a single [`Dimension`](@ref)
 or a `Tuple` of `Dimension`.
@@ -114,8 +114,8 @@ _reorder(neworder::SubOrder, x, dim::DimOrDimType) =
 # Reverse the dimension index
 _reorder(ot::Type{<:IndexOrder}, x, dim::DimOrDimType) =
     ot == basetypeof(order(ot, dim)) ? x : set(x, reverse(ot, dim))
-# If either ArrayOrder or RelationOrder are reversed, we reverse the array
-_reorder(ot::Type{<:Union{ArrayOrder,RelationOrder}}, x, dim::DimOrDimType) =
+# If either ArrayOrder or Relation are reversed, we reverse the array
+_reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
     ot == basetypeof(order(ot, dim)) ? x : reverse(x; dims=dim)
 
 

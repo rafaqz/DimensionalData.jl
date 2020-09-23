@@ -173,7 +173,7 @@ set(order::Ordered, suborder::IndexOrder) =
     rebuild(order; index=set(indexorder(order), suborder))
 set(order::Ordered, suborder::ArrayOrder) =
     rebuild(order; array=set(arrayorder(order), suborder))
-set(order::Ordered, suborder::RelationOrder) =
+set(order::Ordered, suborder::Relation) =
     rebuild(order; relation=set(relationorder(order), suborder))
 
 set(order::SubOrder, neworder::AutoSubOrder) = order

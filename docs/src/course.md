@@ -34,9 +34,9 @@ But often, we want to provide a lookup index for the dimension:
 
 ```@example main
 using Dates
-t = Ti(DateTime(2001):Month(1):DateTime(2001,12))
-x = X(10:10:100)
-A = DimArray(rand(12, 10), (t, x))
+t = DateTime(2001):Month(1):DateTime(2001,12)
+x = 10:10:100
+A = DimArray(rand(12, 10), (Ti(t), X(x)))
 ```
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
@@ -48,7 +48,7 @@ array axis.
 
 This can also be done with `Symbol`, using `Dim{X}`:
 
-```@example
+```@example main
 A2 = DimArray(rand(12, 10), (time=t, distance=x))
 ```
 
@@ -155,7 +155,7 @@ take the cosines of the values of the dimension `X` while still keeping the
 dimensional information of `X`, you can use the syntax:
 
 ```@example main
-DimArray(cos, x)
+DimArray(cos, dims(A, X))
 ```
 
 ## Referenced dimensions

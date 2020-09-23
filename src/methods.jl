@@ -145,9 +145,9 @@ Baserotr90(A::AbstractDimMatrix, k::Integer) =
 Base.rot180(A::AbstractDimMatrix) =
     rebuild(A, rot180(parent(A)), rotdims(Rot180(), dims(A)))
 
-rotdims(::Rot90, (dima, dimb)) = (flip(RelationOrder, dimb), dima)
-rotdims(::Rot180, dims) = map(d -> flip(RelationOrder, d), dims)
-rotdims(::Rot270, (dima, dimb)) = (dimb, flip(RelationOrder, dima))
+rotdims(::Rot90, (dima, dimb)) = (flip(Relation, dimb), dima)
+rotdims(::Rot180, dims) = map(d -> flip(Relation, d), dims)
+rotdims(::Rot270, (dima, dimb)) = (dimb, flip(Relation, dima))
 rotdims(::Rot360, dims) = dims
 
 

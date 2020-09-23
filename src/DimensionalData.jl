@@ -30,7 +30,7 @@ export Locus, Center, Start, End, AutoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
-export IndexOrder, ArrayOrder, RelationOrder,
+export IndexOrder, ArrayOrder, Relation,
        ForwardIndex, ReverseIndex, UnorderedIndex,
        ForwardArray, ReverseArray, ForwardRelation, ReverseRelation
 

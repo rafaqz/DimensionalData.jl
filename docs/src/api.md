@@ -80,7 +80,7 @@ ReverseIndex
 ArrayOrder
 ForwardArray
 ReverseArray
-RelationOrder
+Relation
 ForwardRelation
 ReverseRelation
 ```
