@@ -50,7 +50,6 @@ refdims(x) = ()
 """
     val(x)
     val(dims::Tuple) => Tuple
-    val(A::AbstractDimArray, dims::Tuple)  => Tuple
 
 Return the contained value of a wrapper object.
 
