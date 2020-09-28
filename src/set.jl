@@ -1,24 +1,24 @@
-
 """
-    set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
-    set(A::AbstractDimArray, name::Symbol) => AbstractDimArray
-
-    set(A, xs::Pairs...) => x with updated field/s
-    set(A, xs...; kwargs...) => x with updated field/s
-    set(A, xs::Tuple) => x with updated field/s
-    set(A, xs::NamedTuple) => x with updated field/s
 
 Set the field matching the supertypes of values in xs and return a new object.
 
 As DimensionalData is so strongly typed you do not need to specify what field
 to `set` - there is no ambiguity.
 
-You do need to specify which dimension to to set which values on, and
-this can be done using `Dimension => val` pairs, `Dimension` wrapped arguments,
-keyword arguments or a `NamedTuple`.
+To set fields of dimensions you need to specify the dimension. This can be done using 
+`Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments, 
+or a `NamedTuple`.
 
-If no dimensions are specified the length of the tuple must match the length of
-the dimensions, and be in the right order.
+When dimensions or IndexModes are passed to `set` to replace the existing ones, 
+fields that are not set will keep their original values.
+
+## Notes:
+
+Changing the dimension index range will set the `Sampled` mode 
+component `Regular` with a new step size, and set the dimension order. 
+
+Setting [`Order`](@ref) will *not* reverse the array or dimension to match. Use 
+[`reverse`](@ref) and [`reorder`](@ref) to do this.
 
 
 ## Examples
@@ -61,154 +61,241 @@ set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 function set end
 
 
+@noinline set(A::Union{AbstractDimArray,AbstractDimDataset}, name::T) where {T<:Union{Mode,ModeComponent}} =  
+    throw(ArgumentError("Can only set $(typeof(T)) for a dimension. Specify which dimension you want to set it for"))
+@noinline set(A, x) = _cantset(A, x)
+@noinline _set(A, x) = _cantset(A, x)
+
+_cantset(a, b) = throw(ArgumentError("Can not set any fields of $a to $b"))
+
+@noinline _axiserr(a, b) = 
+    throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
+
+"""
+    set(x, args::Pairs...) => x with updated field/s
+    set(x, args...; kwargs...) => x with updated field/s
+    set(x, args::Tuple{Vararg{<:Dimension}}; kwargs...) => x with updated field/s
+
+Set the dimensions or any properties of the dimensions for `AbstractDimArray` 
+or `AbstractDimDataset`.
+
+Set can be passed Keyword arguments or arguments of Pairs using dimension names, 
+tuples of values wrapped in the intended dimensions. Or fully or partially
+constructed dimensions with val, mode or metadata fields set to intended 
+values. Dimension fields not assigned a value will be ignored, and the orginals kept.
+"""
+set(A::Union{AbstractDimArray,AbstractDimDataset}, args::Union{Dimension,DimTuple,Pair}...; kwargs...) =
+    rebuild(A, data(A), _set(dims(A), args...; kwargs...))
 
 # Array
 
-set(A::AbstractDimArray, args...; kwargs...) =
-    rebuild(A, data(A), set(dims(A), args...; kwargs...))
-set(A::AbstractDimArray, data::AbstractArray) = begin
-    @noinline axiserr(A, d) = 
-        throw(ArgumentError("axes of passed in array $(axes(d)) do not match the currect array $(axes(A))"))
-    axes(A) == axes(data) || axiserr(A, data)
-    rebuild(A; data=data)
+"""
+    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+
+`AbstractArray` is always data, and update the `data` field of the array.
+This is what is returned by `parent(A)`. It must be the same size as the 
+original value to match the `Dimension`s in the dims field.
+"""
+set(A::AbstractDimArray, newdata::AbstractArray) = begin
+    axes(A) == axes(newdata) || _axiserr(A, newdata)
+    rebuild(A; data=newdata)
 end
+"""
+    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+
+AbstractDicts are always metadata, and update the `metadata` field of the array.
+"""
+set(A::AbstractDimArray, metadata::AbstractDict) = rebuild(A; metadata=metadata)
+"""
+    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+
+Symbols are always names, and update the `name` field of the array.
+"""
 set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
-
-
 
 # Dataset
 
-set(ds::AbstractDimDataset, args...; kwargs...) =
-    rebuild(ds, layers(ds), set(dims(ds), args...; kwargs...))
+"""
+    set(ds::AbstractDimDataset, data::NamedTuple) => AbstractDimDataset
 
+`NamedTuple`s are always data, and update the `data` field of the dataset.
+The values must be `AbstractArray of the same size as the original data, to 
+match the `Dimension`s in the dims field.
+"""
+set(ds::AbstractDimDataset, newdata::NamedTuple) = begin
+    map(data(ds)) do l
+        axes(l) == axes(first(data(ds))) || _axiserr(first(data(ds)), l)
+    end
+    rebuild(ds; data=newdata)
+end
+"""
+    set(ds::AbstractDimDataset, metadata::AbstractDict) => AbstractDimDataset
 
-# Dimension
+AbstractDicts are always metadata, and update the `metadata` field of the dataset.
+"""
+set(ds::AbstractDimDataset, metadata::AbstractDict) = rebuild(ds; metadata=metadata)
+
+"""
+    set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
+    set(dim::Dimension, mode::Mode) => Dimension
+    set(dim::Dimension, modecomponent::ModeComponent) => Dimension
+    set(dim::Dimension, metadata::AbstractDict) => Dimension
+
+Set fields of the dimension
+"""
+set(dim::Dimension, x::Union{AbstractArray,Val,Mode,ModeComponent,AbstractDict}) = 
+    _set(dim, x)
+
 
 # Convert args/kwargs to dims and set
-set(dims_::DimTuple, args::Dimension...; kwargs...) =
+_set(dims_::DimTuple, args::Dimension...; kwargs...) =
     _set(dims_, (args..., _kwargdims(kwargs)...))
-set(dims_::DimTuple, nt::NamedTuple) = _set(dims_, _kwargdims(nt))
 # Convert pairs to wrapped dims and set
-set(dims_::DimTuple, p::Pair, ps::Vararg{<:Pair}) = set(dims_, (p, ps...))
-set(dims_::DimTuple, ps::Tuple{Vararg{<:Pair}}) = _set(dims_, _pairdims(ps...))
-# Wrap naked vals with dims and set
-set(dims::Tuple{Vararg{<:Dimension,N}}, xs::Tuple{Vararg{<:Any,N}}) where N = begin
-    wrappers = map((d, v) -> basetypeof(d)(v), dims, xs)
-    _set(dims, wrappers)
-end
-set(dims::DimTuple, wrappers::DimTuple) = _set(dims, wrappers)
+_set(dims_::DimTuple, p::Pair, ps::Vararg{<:Pair}) = _set(dims_, (p, ps...))
+_set(dims_::DimTuple, ps::Tuple{Vararg{<:Pair}}) = _set(dims_, _pairdims(ps...))
 
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin
-    newdims = map(set, dims, sortdims(wrappers, dims))
+    # Check the dimension types match
+    map(wrappers) do w 
+        hasdim(dims, w) || _wrongdimserr(dims, w)
+    end
+    # Missing dims return `nothing` from sortdims
+    newdims = map(_set, dims, sortdims(wrappers, dims))
+    # Swaps existing dims with non-nothing new dims 
     swapdims(dims, newdims)
 end
 
+@noinline _wrongdimserr(dims, w) = 
+    throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
+
+# Set things wrapped in dims
+_set(dim::Dimension, wrapper::Dimension{<:Union{AbstractDict,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}}) = 
+    _set(dim::Dimension, val(wrapper))
+
 # Set the index
-set(dim::Dimension, index::Val) = rebuild(dim; val=index)
-set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
-set(dim::Dimension, index::AbstractRange) = begin
-    dim = set(dim, _orderof(index))
+_set(dim::Dimension, index::Val) = rebuild(dim; val=index)
+_set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
+_set(dim::Dimension, index::AbstractRange) = begin
+    dim = _set(dim, _orderof(index))
     _set(mode(dim), dim, index)
 end
-set(dim::Dimension, index::Colon) = dim
+_set(dim::Dimension, index::Colon) = dim
 
 _set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
 # Update the Sampling mode of Sampled dims - it must match the range.
 _set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) = 
-    rebuild(dim; val=index, mode=set(mode, Regular(step(index))))
+    rebuild(dim; val=index, mode=_set(mode, Regular(step(index))))
 
 # Set the dim, checking the mode
-set(dim::Dimension, newdim::Dimension) = begin
-    dim = set(set(dim, mode(newdim)), val(newdim))
-    basetypeof(newdim)(val(dim), mode(dim), set(metadata(dim), metadata(newdim)))
+_set(dim::Dimension, newdim::Dimension) = begin
+    # Get new metadata and val
+    dim = _set(dim, val(newdim))
+    dim = _set(dim, metadata(newdim))
+    dim = _set(dim, mode(newdim))
+    # then wrap the updated dim in the new type
+    basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
 end
-# Set things wrapped in dims
-set(dim::Dimension, wrapper::Dimension{<:Union{AbstractDict,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}}) = 
-    set(dim::Dimension, val(wrapper))
 
 # Construct types
-set(dim::Dimension, ::Type{T}) where T = set(dim, T())
+_set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
 
-set(dim::Dimension, ::Nothing) = dim
-set(dim::Dimension, key::Symbol) = set(dim, key2dim(key))
-set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim), mode(dim), metadata(dim))
+_set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
+_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim), mode(dim), metadata(dim))
 
 # Set the mode
-set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=set(mode(dim), newmode))
+_set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=_set(mode(dim), newmode))
 
 # Otherwise pass this on to set fields on the mode
-set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=set(mode(dim), x))
+_set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=_set(mode(dim), x))
 
 
 # IndexMode
 
 # AutoMode
-set(mode::IndexMode, newmode::AutoMode) = mode
+_set(mode::IndexMode, newmode::AutoMode) = mode
 # Categorical
-set(mode::IndexMode, newmode::Categorical) =
-    rebuild(newmode; order=set(order(mode), order(newmode)))
+_set(mode::IndexMode, newmode::Categorical) =
+    rebuild(newmode; order=_set(order(mode), order(newmode)))
 # Sampled
-set(mode::IndexMode, newmode::AbstractSampled) = begin
-    o = set(order(mode), order(newmode))
-    sp = set(span(mode), span(newmode))
-    sa = set(sampling(mode), sampling(newmode))
+_set(mode::IndexMode, newmode::AbstractSampled) = begin
+    # Update each field separately. The old mode may not have these fields, or may hav 
+    # a subset with the rest being traits. The new mode may have some fields missing.
+    o = _set(order(mode), order(newmode))
+    sp = _set(span(mode), span(newmode))
+    sa = _set(sampling(mode), sampling(newmode))
+    # Rebuild the new mode with the merged fields
     rebuild(newmode; order=o, span=sp, sampling=sa)
 end
 # NoIndex
-set(mode::IndexMode, newmode::NoIndex) = newmode
-# Transformed
-set(tr::Transformed, f::Function) = rebuild(tr; f=f)
-# set for `dim` is in dimension.jl, for dispatch
+_set(mode::IndexMode, newmode::NoIndex) = newmode
 
 
 # Order
-set(mode::IndexMode, neworder::Order) =
-    rebuild(mode; order=set(order(mode), neworder))
-set(order::Order, neworder::Order) = neworder
-set(order::Order, neworder::AutoOrder) = order
+_set(mode::IndexMode, neworder::Order) =
+    rebuild(mode; order=_set(order(mode), neworder))
+
+_set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
+    index = _set(indexorder(order), indexorder(neworder)) 
+    array = _set(arrayorder(order), arrayorder(neworder)) 
+    rel = _set(relation(order), relation(neworder)) 
+    Ordered(index, array, rel)
+end
+_set(order::Union{Ordered,Unordered}, neworder::Unordered) =
+    Unordered(_set(relation(order), relation(neworder)))
+
+
+# AutoOrder
+_set(order::Order, neworder::AutoOrder) = order
+_set(order::AutoOrder, neworder::Order) = order
+_set(order::AutoOrder, neworder::AutoOrder) = AutoOrder()
 
 # SubOrder
-set(order::Ordered, suborder::IndexOrder) =
-    rebuild(order; index=set(indexorder(order), suborder))
-set(order::Ordered, suborder::ArrayOrder) =
-    rebuild(order; array=set(arrayorder(order), suborder))
-set(order::Ordered, suborder::Relation) =
-    rebuild(order; relation=set(relationorder(order), suborder))
+_set(order::Unordered, suborder::Relation) =
+    rebuild(order; relation=_set(relation(order), suborder))
 
-set(order::SubOrder, neworder::AutoSubOrder) = order
-set(order::SubOrder, neworder::SubOrder) = neworder
+_set(order::Ordered, suborder::IndexOrder) =
+    rebuild(order; index=_set(indexorder(order), suborder))
+_set(order::Ordered, suborder::ArrayOrder) =
+    rebuild(order; array=_set(arrayorder(order), suborder))
+_set(order::Ordered, suborder::Relation) =
+    rebuild(order; relation=_set(relation(order), suborder))
+
+_set(suborder::ArrayOrder, newsuborder::ArrayOrder) = newsuborder
+_set(suborder::IndexOrder, newsuborder::IndexOrder) = newsuborder
+_set(suborder::Relation, newsuborder::Relation) = newsuborder
 
 
 # Span
-set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
-set(mode::AbstractSampled, span::AutoSpan) = mode
-set(span::Span, newspan::Span) = newspan
-set(span::Span, newspan::AutoSpan) = span
+_set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
+_set(mode::AbstractSampled, span::AutoSpan) = mode
+_set(span::Span, newspan::Span) = newspan
+_set(span::Span, newspan::AutoSpan) = span
 
 
 # Sampling
-set(mode::AbstractSampled, newsampling::Sampling) =
-    rebuild(mode; sampling=set(sampling(mode), newsampling))
-set(mode::AbstractSampled, sampling::AutoSampling) = mode
-set(sampling::Sampling, newsampling::Sampling) = newsampling
-set(sampling::Sampling, newsampling::AutoSampling) = sampling
+_set(mode::AbstractSampled, newsampling::Sampling) =
+    rebuild(mode; sampling=_set(sampling(mode), newsampling))
+_set(mode::AbstractSampled, sampling::AutoSampling) = mode
+_set(sampling::Sampling, newsampling::Sampling) = newsampling
+_set(sampling::Sampling, newsampling::AutoSampling) = sampling
 
 
 # Locus
-set(mode::AbstractSampled, locus::Locus) =
-    rebuild(mode; sampling=set(sampling(mode), locus))
-set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
-@noinline set(sampling::Points, locus::Locus) =
-    throw(ArgumentError("Cannot set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
-set(sampling::Intervals, locus::Locus) = Intervals(locus)
-set(sampling::Intervals, locus::AutoLocus) = sampling
+_set(mode::AbstractSampled, locus::Locus) =
+    rebuild(mode; sampling=_set(sampling(mode), locus))
+_set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
+@noinline _set(sampling::Points, locus::Locus) =
+    throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
+_set(sampling::Intervals, locus::Locus) = Intervals(locus)
+_set(sampling::Intervals, locus::AutoLocus) = sampling
 
 
-# Metadata: TODO: implement metadata types so this can use set
-set(dim::Dimension, newmetadata::AbstractDict) = 
-    rebuild(dim, val(dim), mode(dim), set(metadata(dim), newmetadata))
-set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
-set(metadata::AbstractDict, newmetadata::Nothing) = metadata
-set(metadata::Nothing, newmetadata::Nothing) = nothing
-set(metadata::Nothing, newmetadata::AbstractDict) = newmetadata
+# Metadata: TODO: implement metadata types
+_set(dim::Dimension, newmetadata::AbstractDict) = 
+    rebuild(dim, val(dim), mode(dim), _set(metadata(dim), newmetadata))
+_set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
+
+_set(x, ::Nothing) = x
+_set(::Nothing, x) = x
+_set(::Nothing, ::Nothing) = nothing # For ambiguity
