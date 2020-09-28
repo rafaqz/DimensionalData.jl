@@ -234,14 +234,15 @@ Supertype for Dimensions with user-set type paremeters
 abstract type ParametricDimension{X,T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
-    Dim{:X}()
-    Dim{:X}(val=:; mode=AutoMode(), metadata=nothing)
-    Dim{:X}(val, mode, metadata=nothing)
+    Dim{S}()
+    Dim{S}(val=:; mode=AutoMode(), metadata=nothing)
+    Dim{S}(val, mode, metadata=nothing)
 
 A generic dimension. For use when custom dims are required when loading
-data from a file. The sintax is ugly and verbose to use for indexing,
-ie `Dim{:lat}(1:9)` rather than `Lat(1:9)`. This is the main reason
-they are not the only type of dimension availabile.
+data from a file. Can be used as keyword arguments for indexing.
+
+Dimension types take precedence over same named `Dim` types when indexing 
+with symbols, or e.g. creating Tables.jl keys.
 
 ```jldoctest
 using DimensionalData
