@@ -8,22 +8,20 @@ Reverse the array order, and update the dim to match.
 Base.reverse(A::AbstractDimArray; dims=1) = reverse(ArrayOrder, A, dims)
 Base.reverse(ds::AbstractDimDataset; dims=1) = reverse(ArrayOrder, ds, dims)
 Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
-Base.reverse(ot::Type{<:SubOrder}, x, lookup) =
-    set(x, reverse(ot, dims(x, lookup)))
+Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
 Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
     newdims = reverse(ot, dims(x, lookup))
     newdata = _reversedata(x, dimnum(x, lookup))
-    x = rebuild(x, newdata)
-    set(x, newdims)
+    setdims(rebuild(x, newdata), newdims)
 end
 
 _reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
 _reversedata(ds::AbstractDimDataset, dimnum) = 
-    map(l -> reverse(parent(l); dims=dimnum), layers(ds))
+    map(a -> reverse(parent(a); dims=dimnum), data(ds))
 
 # Dimension
 Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
-Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = set(dim, reverse(ot, order(dim)))
+Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, reverse(ot, order(dim)))
 # Reverse the index
 Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) =
     rebuild(dim, reverse(index(dim)), reverse(ot, mode(dim)))
@@ -66,11 +64,11 @@ Base.reverse(span::Regular) = Regular(-step(span))
 function flip end
 
 flip(ot::Type{<:SubOrder}, x; lookup) = flip(ot, x, lookup)
-flip(ot::Type{<:SubOrder}, x, lookup) = set(x, flip(ot, dims(A, lookup)))
+flip(ot::Type{<:SubOrder}, x, lookup) = _set(x, flip(ot, dims(A, lookup)))
 flip(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> flip(ot, d), dims)
-flip(ot::Type{<:SubOrder}, dim::Dimension) = set(dim, flip(ot, mode(dim)))
-flip(ot::Type{<:SubOrder}, mode::IndexMode) = set(mode, flip(ot, order(mode)))
-flip(ot::Type{<:SubOrder}, o::Order) = set(o, reverse(ot, o))
+flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
+flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
+flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 
 
 """
@@ -140,7 +138,7 @@ A = DimArray(rand(100, 100), (X, Y))
 modify(CuArray, A)
 ```
 
-This also works for all the layers in a `DimDataset`.
+This also works for all the data layers in a `DimDataset`.
 """
 modify(f, A::AbstractDimArray) = begin
     newdata = f(parent(A))

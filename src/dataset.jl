@@ -6,14 +6,14 @@ These have multiple layers of data, but share dimensions.
 abstract type AbstractDimDataset{L,D} end
 
 """
-    DimDataset(layers::AbstractDimArray...)
-    DimDataset(layers::Tuple{Vararg{<:AbstractDimArray}})
-    DimDataset(layers::NamedTuple{Keys,Vararg{<:AbstractDimArray}}) 
-    DimDataset(layers::NamedTuple, dims::DimTuple; metadata=nothing)
+    DimDataset(data::AbstractDimArray...)
+    DimDataset(data::Tuple{Vararg{<:AbstractDimArray}})
+    DimDataset(data::NamedTuple{Keys,Vararg{<:AbstractDimArray}}) 
+    DimDataset(data::NamedTuple, dims::DimTuple; metadata=nothing)
 
 DimDataset holds multiple objects with the same dimensions, in a `NamedTuple`.
 Indexing operates as for [`AbstractDimArray`](@ref), except it occurs for all
-layers of the dataset simulataneously. Layer objects can hold values of any type.
+data layers of the dataset simulataneously. Layer objects can hold values of any type.
 
 DimDataset can be constructed from multiple `AbstractDimArray` or a `NamedTuple`
 of `AbstractArray` and a matching `dims` `Tuple`. If `AbstractDimArray`s have
@@ -26,7 +26,7 @@ performace, and usually takes less time than the sum of indexing each array
 separately.
 
 Indexing with a `Vector` or `Colon` will return another `DimDataset` where
-all layers have been sliced.  `setindex!` must pass a `Tuple` or `NamedTuple` maching 
+all data layers have been sliced.  `setindex!` must pass a `Tuple` or `NamedTuple` maching 
 the layers.
 
 Most `Base` and `Statistics` methods that apply gto `AbstractArray` can be used on 
@@ -69,10 +69,9 @@ julia> ds[X(:a)]
 DimDataset{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,1},Array{Float64,1},Array{Float64,1}}},Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},Nothing}},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0, 2.0, 3.0], two = [2.0, 4.0, 6.0], three = [3.0, 6.0, 9.0]), (Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X (type X): a (Categorical: Unordered),), (one = nothing, two = nothing, three = nothing))
 ```
 
-
 """
 struct DimDataset{L,D,R,M} <: AbstractDimDataset{L,D}
-    layers::L
+    data::L
     dims::D
     refdims::R
     metadata::M
@@ -81,34 +80,34 @@ DimDataset(das::AbstractDimArray...) = DimDataset(das)
 DimDataset(das::Tuple{Vararg{<:AbstractDimArray}}) =
     DimDataset(NamedTuple{uniquekeys(das)}(das))
 DimDataset(das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}) = begin
-    layers = map(parent, das)
+    data = map(parent, das)
     dims = comparedims(das...)
     meta = map(metadata, das)
     refdims = () # das might have different refdims
-    DimDataset(layers, dims, refdims, meta)
+    DimDataset(data, dims, refdims, meta)
 end
-DimDataset(layers::NamedTuple, dims::DimTuple; refdims=(), metadata=nothing) =
-    DimDataset(layers, formatdims(first(layers), dims), refdims, metadata)
+DimDataset(data::NamedTuple, dims::DimTuple; refdims=(), metadata=nothing) =
+    DimDataset(data, formatdims(first(data), dims), refdims, metadata)
 
-layers(ds::AbstractDimDataset) = ds.layers
+data(ds::AbstractDimDataset) = ds.data
 dimarrays(ds::AbstractDimDataset{<:NamedTuple{Keys}}) where Keys =
     NamedTuple{Keys}(map(Keys, values(ds)) do k, A
         DimArray(A, dims(ds), refdims(ds), k, nothing)
     end)
 dims(ds::DimDataset) = ds.dims
 metadata(ds::AbstractDimDataset) = ds.metadata
-Base.keys(ds::AbstractDimDataset) = keys(layers(ds))
-Base.values(ds::AbstractDimDataset) = values(layers(ds))
+Base.keys(ds::AbstractDimDataset) = keys(data(ds))
+Base.values(ds::AbstractDimDataset) = values(data(ds))
 
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(ds1::AbstractDimDataset, ds2::AbstractDimDataset) = 
-    layers(ds1) == layers(ds2) && dims(ds1) == dims(ds2)
+    data(ds1) == data(ds2) && dims(ds1) == dims(ds2)
 
-rebuild(ds::AbstractDimDataset, layers, dims=dims(ds), refdims=refdims(ds), metadata=metadata(ds)) =
-    basetypeof(ds)(layers, dims, refdims, metadata)
+rebuild(ds::AbstractDimDataset, data, dims=dims(ds), refdims=refdims(ds), metadata=metadata(ds)) =
+    basetypeof(ds)(data, dims, refdims, metadata)
 
-rebuildsliced(A::AbstractDimDataset, layers, I) =
-    rebuild(A, layers, slicedims(A, I)...)
+rebuildsliced(A::AbstractDimDataset, data, I) =
+    rebuild(A, data, slicedims(A, I)...)
 
 # Dipatch on Tuple of Dimension, and map
 for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
@@ -133,7 +132,7 @@ maybedataset(x::NamedTuple) = x
 
 # Symbol key
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, key::Symbol) =
-    DimArray(layers(ds)[key], dims(ds), refdims(ds), key, nothing)
+    DimArray(data(ds)[key], dims(ds), refdims(ds), key, nothing)
 
 # No indices
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset) = 
@@ -145,32 +144,32 @@ Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x) =
 
 # Integer getindex returns a single value
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i::Int, I::Int...) =
-    map(l -> getindex(l, i, I...), layers(ds))
+    map(l -> getindex(l, i, I...), data(ds))
 
 # Standard indices
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newlayers = map(l -> getindex(l, i1, i2, I...), layers(ds))
-    rebuildsliced(ds, newlayers, (i1, i2, I...))
+    newdata = map(l -> getindex(l, i1, i2, I...), data(ds))
+    rebuildsliced(ds, newdata, (i1, i2, I...))
 end
 Base.@propagate_inbounds Base.view(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newlayers = map(l -> view(l, i1, i2, I...), layers(ds))
-    rebuildsliced(ds, newlayers, (i1, i2, I...))
+    newdata = map(l -> view(l, i1, i2, I...), data(ds))
+    rebuildsliced(ds, newdata, (i1, i2, I...))
 end
 Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    map(l -> setindex!(l, x, i1, i2, I...), layers(ds))
+    map(l -> setindex!(l, x, i1, i2, I...), data(ds))
 
 # Linear indexing returns a NamedTuple of Arrays
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
-    map(l -> getindex(l, i, I...), layers(ds))
+    map(l -> getindex(l, i, I...), data(ds))
 # Exempt 1D DimArrays
 Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any, 1}, i::Union{Colon,AbstractArray}) =
-    rebuildsliced(A, map(l -> getindex(l, i, I...), layers(ds)), (i,))
+    rebuildsliced(A, map(l -> getindex(l, i, I...), data(ds)), (i,))
 # Linear indexing returns a NamedTuple of unwrapped SubArrays
 Base.@propagate_inbounds Base.view(A::AbstractDimDataset{<:Any, N} where N, i::StandardIndices) =
-    map(l -> view(l, i, I...), layers(ds))
+    map(l -> view(l, i, I...), data(ds))
 # Exempt 1D DimArrays
 Base.@propagate_inbounds Base.view(A::AbstractDimDataset{<:Any, 1}, i::StandardIndices) =
-    rebuildsliced(A, map(l -> view(l, i, I...), layers(ds)), (i,))
+    rebuildsliced(A, map(l -> view(l, i, I...), data(ds)), (i,))
 
 # Cartesian indices
 Base.@propagate_inbounds Base.getindex(A::AbstractDimDataset, I::CartesianIndex) =
@@ -239,7 +238,7 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
                 ($_fname)(f, ds, dims)
             # Colon returns a NamedTuple
             ($_fname)(f::Function, ds::AbstractDimDataset, dims::Colon) =
-                map(A -> ($mod.$fname)(f, A), layers(ds))
+                map(A -> ($mod.$fname)(f, A), data(ds))
             # Otherwise return a DimDataset
             ($_fname)(f::Function, ds::AbstractDimDataset, dims) =
                 map(A -> ($mod.$fname)(f, A; dims=dims), ds)

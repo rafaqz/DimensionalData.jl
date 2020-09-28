@@ -12,7 +12,7 @@ Tables.schema(A::AbstractDimArray) = Tables.schema(DimDataset(A))
 
 Tables.columnnames(ds::AbstractDimDataset) = _colnames(ds)
 Tables.schema(ds::AbstractDimDataset) = 
-    Tables.Schema(_colnames(ds), (map(eltype, dims(ds))..., map(eltype, layers(ds))...))
+    Tables.Schema(_colnames(ds), (map(eltype, dims(ds))..., map(eltype, data(ds))...))
 
 @inline Tables.getcolumn(x::DimTableSources, i::Int) =
     Tables.getcolumn(DimTable(x), i)
@@ -124,7 +124,7 @@ Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
 Tables.schema(t::DimTable{Keys}) where Keys = begin
     ds = dataset(t)
-    Tables.Schema(Keys, (map(eltype, dims(ds))..., map(eltype, layers(ds))...))
+    Tables.Schema(Keys, (map(eltype, dims(ds))..., map(eltype, data(ds))...))
 end
 
 @inline Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys = begin

@@ -53,8 +53,6 @@ struct ReverseIndex <: IndexOrder end
 
 struct UnorderedIndex <: IndexOrder end
 
-struct AutoIndexOrder <: IndexOrder end
-
 """
 Supertype for array ordering
 """
@@ -75,8 +73,6 @@ Indicates that the array axis is in reverse order.
 It will be plotted backwards.
 """
 struct ReverseArray <: ArrayOrder end
-
-struct AutoArrayOrder <: ArrayOrder end
 
 
 
@@ -100,10 +96,6 @@ Indicates that the relationship between the index and the array is reversed.
 """
 struct ReverseRelation <: Relation end
 
-struct AutoRelation <: Relation end
-
-
-const AutoSubOrder = Union{AutoIndexOrder,AutoArrayOrder,AutoRelation}
 
 """
     Ordered(index, array, relation)

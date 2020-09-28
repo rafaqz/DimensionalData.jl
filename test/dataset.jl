@@ -15,8 +15,8 @@ ds = DimDataset(das)
 
 @testset "Properties" begin
     @test DimensionalData.dims(ds) == dims(da1)
-    @test keys(layers(ds)) == (:one, :two, :three)
-    @test keys(layers(ds)) == (:one, :two, :three)
+    @test keys(data(ds)) == (:one, :two, :three)
+    @test keys(data(ds)) == (:one, :two, :three)
     da1x = ds[:one]
     @test parent(da1x) === parent(da1)
     @test dims(da1x) === dims(da1)
@@ -28,7 +28,7 @@ end
     @test ds[X=:b, Y=10.0] === (one=4.0, two=8.0f0, three=12)
     slicedds = ds[:a, :]
     @test slicedds[:one] == [1.0, 2.0, 3.0]
-    @test layers(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+    @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
 end
 
 @testset "map" begin
@@ -41,14 +41,14 @@ end
 
 @testset "Methods with no arguments" begin
     @testset "permuting methods" begin
-        @test layers(permutedims(ds)) == 
+        @test data(permutedims(ds)) == 
             (one=[1.0 4.0; 2.0 5.0; 3.0 6.0],
              two=[2.0 8.0; 4.0 10.0; 6.0 12.0],
              three=[3.0 12.0; 6.0 15.0; 9.0 18.0])
         @test adjoint(ds) == DimDataset(adjoint(da1), adjoint(da2), adjoint(da3))
         @test transpose(ds) == DimDataset(transpose(da1), transpose(da2), transpose(da3))
         @test Transpose(ds) == DimDataset(Transpose(da1), Transpose(da2), Transpose(da3))
-        @test layers(rotl90(ds)) ==
+        @test data(rotl90(ds)) ==
             (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
              two=[6.0 12.0; 4.0 10.0; 2.0 8.0],
            three=[9.0 18.0; 6.0 15.0; 3.0 12.0])
@@ -111,8 +111,8 @@ end
         DimDataset(PermutedDimsArray(da1, (Y, X)), PermutedDimsArray(da2, (Y, X)), PermutedDimsArray(da3, (Y, X)))
     rot = rotl90(ds, 1)
     @test rot isa DimDataset
-    @test typeof(layers(rot)) == NamedTuple{(:one, :two, :three),Tuple{Matrix{Float64},Matrix{Float32},Matrix{Int64}}}
-    @test layers(rot) ==
+    @test typeof(data(rot)) == NamedTuple{(:one, :two, :three),Tuple{Matrix{Float64},Matrix{Float32},Matrix{Int64}}}
+    @test data(rot) ==
         (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
          two=[6.0f0 12.0f0; 4.0f0 10.0f0; 2.0f0 8.0f0],
        three=[9 18; 6 15; 3 12])
@@ -123,9 +123,9 @@ end
 
 @testset "reducing methods that take a function" begin
     f = x -> 2x
-    @test layers(minimum(f, ds; dims=X)) == 
+    @test data(minimum(f, ds; dims=X)) == 
         (one=[2.0 4.0 6.0], two=[4.0 8.0 12.0], three=[6.0 12.0 18.0])
-    @test layers(mean(x -> 2x, ds; dims=X())) ==
+    @test data(mean(x -> 2x, ds; dims=X())) ==
         (one=mean(2da1; dims=X) , two=mean(2da2; dims=X), three=mean(2da3; dims=X))
     @test mean(f, ds; dims=X) == DimDataset(mean(f, da1; dims=X), mean(f, da2; dims=X), mean(f, da3; dims=X))
     @test reduce(+, ds; dims=X) == DimDataset(reduce(+, da1; dims=X), reduce(+, da2; dims=X), reduce(+, da3; dims=X))

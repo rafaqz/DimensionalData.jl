@@ -66,16 +66,12 @@ _indexorder(index) =
     first(index) <= last(index) ? ForwardIndex() : ReverseIndex()
 
 # Span
-identify(span::AutoSpan, dimtype::Type, index::Union{AbstractArray,Val}) =
-    Irregular()
-identify(span::AutoSpan, dimtype::Type, index::AbstractRange) =
-    Regular(step(index))
+identify(span::AutoSpan, dimtype::Type, index::Union{AbstractArray,Val}) = Irregular()
+identify(span::AutoSpan, dimtype::Type, index::AbstractRange) = Regular(step(index))
 identify(span::Regular{AutoStep}, dimtype::Type, index::Union{AbstractArray,Val}) =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
-identify(span::Regular, dimtype::Type, index::Union{AbstractArray,Val}) =
-    span
-identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) =
-    Regular(step(index))
+identify(span::Regular, dimtype::Type, index::Union{AbstractArray,Val}) = span
+identify(span::Regular{AutoStep}, dimtype::Type, index::AbstractRange) = Regular(step(index))
 identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
     step(span) isa Number && !(step(span) ≈ step(index)) && 
         throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))

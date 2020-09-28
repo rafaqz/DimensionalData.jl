@@ -401,8 +401,8 @@ val(dims(B, Y))
 'a':1:'j'
 ```
 """
-@inline setdims(A, newdims) = 
-    rebuild(A, parent(A), setdims(dims(A), key2dim(newdims)))
+@inline setdims(x, newdims) = 
+    rebuild(x, data(x), setdims(dims(x), key2dim(newdims)))
 @inline setdims(dims::DimTuple, newdim::Dimension) =
     setdims(dims, (newdim,))
 @inline setdims(dims::DimTuple, newdims::DimTuple) = 

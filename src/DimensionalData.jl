@@ -52,7 +52,7 @@ export AbstractDimTable, DimTable
 export AbstractDimDataset, DimDataset
 
 export data, dims, refdims, mode, metadata, name, shortname, label, units,
-       val, index, order, sampling, span, bounds, locus, layers, <|
+       val, index, order, sampling, span, bounds, locus, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
        set, rebuild, reorder, modify, dimwise, dimwise!

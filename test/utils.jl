@@ -92,7 +92,7 @@ end
         da2 = DimArray(2A, dimz, :da2)
         ds = DimDataset(da1, da2)
         mds = modify(A -> A .> 3, ds)
-        @test layers(mds) == (da1=[false false false; true true true],
+        @test data(mds) == (da1=[false false false; true true true],
                               da2=[false true  true ; true true true])
         @test typeof(parent(mds[:da2])) == BitArray{2}
     end

@@ -180,6 +180,7 @@ end
     @test val(dims(rev, X)) == 10:10:20
     @test val(dims(rev, Y)) == 300:-100:100
     @test order(dims(rev, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(dims(da, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
     @test order(dims(rev, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 end
 
