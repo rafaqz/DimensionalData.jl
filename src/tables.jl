@@ -2,7 +2,6 @@
 
 DimTableSources = Union{AbstractDimDataset,AbstractDimArray}
 
-Tables.istable(::Type{<:DimTableSources}) = true
 Tables.istable(::DimTableSources) = true
 Tables.columnaccess(::Type{<:DimTableSources}) = true
 Tables.columns(x::DimTableSources) = DimTable(x)
@@ -56,7 +55,6 @@ DimColumn(dim::D, dims::DimTuple) where D<:Dimension = begin
     DimColumn{eltype(dim),D}(dim, len, stride)
 end
 
-dataset(c::DimColumn) = getfield(c, :dataset)
 dim(c::DimColumn) = getfield(c, :dim)
 dimstride(c::DimColumn) = getfield(c, :dimstride)
 
@@ -68,7 +66,7 @@ Base.length(c::DimColumn) = getfield(c, :length)
     dim(c)[mod((i - 1) ÷ dimstride(c), length(dim(c))) + 1]
 end
 Base.getindex(c::DimColumn, ::Colon) = vec(c)
-Base.getindex(c::DimColumn, range::AbstractRange) = [c[i] for i in range] 
+Base.getindex(c::DimColumn, A::AbstractArray) = [c[i] for i in A] 
 Base.size(c::DimColumn) = (length(c),)
 Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
@@ -111,13 +109,12 @@ dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dims(t::DimTable) = dims(dataset(t))
 
 for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
-             :name, :shortname, :label, :units, :arrayorder, :indexorder, :relation)
+             :name, :label, :units, :arrayorder, :indexorder, :relation)
     @eval ($func)(t::DimTable, args...) = ($func)(dataset(t), args...)
 end
 
 # Tables interface
 
-Tables.istable(::Type{<:DimTable}) = true
 Tables.istable(::DimTable) = true
 Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t

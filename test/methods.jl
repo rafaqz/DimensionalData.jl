@@ -22,6 +22,8 @@ end
     @test dims(sum(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
+    @test sum(da; dims=:) == 10
+    @test sum(x -> 2x, da; dims=:) == 20
 
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=2) == [2 12]'
@@ -175,13 +177,12 @@ end
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
     rev = reverse(ArrayOrder, da, Y)
-
-    @test rev == [3 2 1; 6 5 4]
-    @test val(dims(rev, X)) == 10:10:20
-    @test val(dims(rev, Y)) == 300:-100:100
-    @test order(dims(rev, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(da, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(rev, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    @test rev == [3 2 1; 6 5 4] 
+    @test val(rev, X) == 10:10:20
+    @test val(rev, Y) == 300:-100:100
+    @test order(rev, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(da, Y) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    @test order(rev, Y) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 end
 
 
@@ -271,14 +272,23 @@ end
     @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
           cat(da, db; dims=1) == cat(da, db; dims=(1,))
     @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
-    @test val.(dims(cat(da, db; dims=X()))) == val.(testdims)
-    @test mode.(dims(cat(da, db; dims=X()))) == mode.(testdims)
+    @test val(cat(da, db; dims=X())) == val(testdims)
+    @test mode(cat(da, db; dims=X())) == mode(testdims)
     @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
     @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
     @test cat(da, db; dims=(Z(1:1), Ti(1:2))) == cat(a, b; dims=4)
     @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=3)
     dx = cat(da, db; dims=(X(), Ti(1:2)))
     @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Ti(1:2)))
+
+    ni_dim = vcat(X(Base.OneTo(10), NoIndex()), X(Base.OneTo(10), NoIndex()))
+    @test mode(ni_dim) == NoIndex()
+    @test index(ni_dim) == Base.OneTo(20)
+    ir_dim = vcat(X([1, 3, 4], Sampled(Ordered(), Irregular(1, 5), Intervals())), 
+                  X([7, 8], Sampled(Ordered(), Irregular(7, 9), Intervals())))
+    @test span(ir_dim) == Irregular(1, 9)
+    @test mode(ir_dim) == Sampled(Ordered(), Irregular(1, 9), Intervals())
+    @test index(ir_dim) == [1, 3, 4, 7, 8]
 end
 
 @testset "unique" begin
@@ -286,4 +296,5 @@ end
     da = DimArray(a, (X(1:2), Y(1:3)))
     @test unique(da; dims=X()) == [1 1 6]
     @test unique(da; dims=Y) == [1 6; 1 6]
+    @test unique(da) == [1, 6]
 end

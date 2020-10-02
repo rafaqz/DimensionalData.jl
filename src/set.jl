@@ -178,6 +178,7 @@ _set(dim::Dimension, index::Val) = rebuild(dim; val=index)
 _set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
 _set(dim::Dimension, index::AbstractRange) = begin
     dim = _set(dim, _orderof(index))
+    # We might need to update the index mode
     _set(mode(dim), dim, index)
 end
 _set(dim::Dimension, index::Colon) = dim
@@ -219,8 +220,8 @@ _set(mode::IndexMode, newmode::Categorical) =
     rebuild(newmode; order=_set(order(mode), order(newmode)))
 # Sampled
 _set(mode::IndexMode, newmode::AbstractSampled) = begin
-    # Update each field separately. The old mode may not have these fields, or may hav 
-    # a subset with the rest being traits. The new mode may have some fields missing.
+    # Update each field separately. The old mode may not have these fields, or may have
+    # a subset with the rest being traits. The new mode may have some auto fields.
     o = _set(order(mode), order(newmode))
     sp = _set(span(mode), span(newmode))
     sa = _set(sampling(mode), sampling(newmode))
@@ -298,4 +299,4 @@ _set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
 
 _set(x, ::Nothing) = x
 _set(::Nothing, x) = x
-_set(::Nothing, ::Nothing) = nothing # For ambiguity
+_set(::Nothing, ::Nothing) = nothing

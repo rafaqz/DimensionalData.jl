@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: slicebounds, slicemode
+using DimensionalData: slicebounds, slicemode, isrev
 
 @testset "order" begin
     @test indexorder(Ordered()) == ForwardIndex()
@@ -8,6 +8,16 @@ using DimensionalData: slicebounds, slicemode
     @test indexorder(Unordered()) == UnorderedIndex()
     @test arrayorder(Unordered()) == ForwardArray()
     @test relation(Unordered()) == ForwardRelation()
+end
+
+
+@testset "isrev" begin
+    @test isrev(ForwardIndex()) == false
+    @test isrev(ForwardArray()) == false
+    @test isrev(ForwardRelation()) == false
+    @test isrev(ReverseIndex()) == true
+    @test isrev(ReverseArray()) == true
+    @test isrev(ReverseRelation()) == true
 end
 
 @testset "reverse" begin
@@ -34,7 +44,7 @@ end
         Ordered(ReverseIndex(), ReverseArray(), ForwardRelation())
 end
 
-@testset "slicbounds" begin
+@testset "slicebounds" begin
     index = [10.0, 20.0, 30.0, 40.0, 50.0]
     bound = (10.0, 60.0)
     @test slicebounds(Start(), bounds, index, 2:3) == (20.0, 40.0)

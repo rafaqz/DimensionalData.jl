@@ -413,9 +413,12 @@ or a `rebuild` method that accpts them as keyword arguments.
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
 span(mode::AbstractSampled) = mode.span
-span(mode::T) where T<:IndexMode = error("$T has no span. Pass a `span` field manually.")
+@noinline span(mode::T) where T<:IndexMode = 
+    error("$T has no span. Pass a `span` field manually.")
+
 sampling(mode::AbstractSampled) = mode.sampling
 sampling(mode::IndexMode) = Points()
+
 locus(mode::AbstractSampled) = locus(sampling(mode))
 
 Base.step(mode::AbstractSampled) = step(span(mode))
@@ -447,6 +450,7 @@ bounds(::End, ::ForwardIndex, span, mode, dim) =
 bounds(::End, ::ReverseIndex, span, mode, dim) =
     last(dim) + step(span), first(dim)
 
+# Bounds are always in ascending order
 sortbounds(mode::IndexMode, bounds) = sortbounds(indexorder(mode), bounds)
 sortbounds(mode::ForwardIndex, bounds) = bounds
 sortbounds(mode::ReverseIndex, bounds) = bounds[2], bounds[1]
@@ -521,16 +525,6 @@ Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=AutoSampling()) =
     Sampled(order, span, sampling)
 
 """
-    rebuild(m::Sampled, order, span, sampling) => Sampled
-    rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) => Sampled
-
-Rebuild `Sampled` `IndexMode` with new field values
-"""
-rebuild(m::Sampled, order=order(m), span=span(m), sampling=sampling(m)) =
-    Sampled(order, span, sampling)
-
-
-"""
 [`IndexMode`](@ref)s for dimensions where the values are categories.
 
 [`Categorical`](@ref) is the provided concrete implementation.
@@ -578,14 +572,6 @@ struct Categorical{O<:Order} <: AbstractCategorical{O}
     order::O
 end
 Categorical(; order=Unordered()) = Categorical(order)
-
-"""
-    rebuild(mode::Categorical, order::Order)
-    rebuild(mode::Categorical; order=order(mode))
-
-Rebuild `Categorical` `IndexMode` with new order.
-"""
-rebuild(mode::Categorical, order) = Categorical(order)
 
 
 
@@ -643,16 +629,6 @@ f(mode::Transformed) = mode.f
 transformfunc(mode::Transformed) = f(mode)
 dims(mode::Transformed) = mode.dim
 dims(::Type{<:Transformed{<:Any,D}}) where D = D
-
-
-"""
-    rebuild(mode::Transformed, f, dim)
-    rebuild(mode::Transformed, f=f(mode), dim=dims(mode))
-
-Rebuild the `Transformed` `IndexMode`.
-"""
-rebuild(mode::Transformed, f=transformfunct(mode), dim=dims(mode)) =
-    Transformed(f, dim)
 
 # TODO bounds
 

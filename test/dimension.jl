@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: slicedims, basetypeof, formatdims
+using DimensionalData: slicedims, basetypeof, formatdims, modetype
 
 @dim TestDim "Testname"
 
@@ -54,9 +54,11 @@ end
         Dim{:column}(Val((-20, -10, 0, 10)), Sampled(), nothing))) ==
        (Dim{:row}(Val((:A, :B, :C)), Categorical(), nothing), 
         Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Irregular(),Points()), nothing))
+    @test formatdims(A, (X(:, Sampled(Ordered(), Regular(), Points())), Y)) == 
+        (X(Base.OneTo(2), Sampled(Ordered(), Regular(1), Points()), nothing), Y(Base.OneTo(3), NoIndex(), nothing))
 end
 
-@testset "Basic dim and array initialisation" begin
+@testset "Basic dim and array initialisation and methods" begin
     a = ones(5, 4)
 
     @test_throws DimensionMismatch DimArray(a, X)
@@ -73,31 +75,23 @@ end
     @test span(dimz) == (Regular(2.0), Regular(3.0))
     @test locus(dimz) == (Center(), Center())
     @test order(dimz) == (Ordered(), Ordered())
-    @test order(ArrayOrder, dimz) == (ForwardArray(), ForwardArray())
-    @test order(IndexOrder, dimz) == (ForwardIndex(), ForwardIndex())
-    @test relation(dimz) == (ForwardRelation(), ForwardRelation())
+    @test arrayorder(dimz) == order(ArrayOrder, dimz) == (ForwardArray(), ForwardArray())
+    @test indexorder(dimz) == order(IndexOrder, dimz) == (ForwardIndex(), ForwardIndex())
+    @test relation(dimz) == order(Relation, dimz) == (ForwardRelation(), ForwardRelation())
+    @test order(Relation, dimz, X) == ForwardRelation()
     @test bounds(dimz) == ((140, 148), (2, 11))
+    @test mode(dimz) == (Sampled(Ordered(), Regular(2.0), Points()), 
+                         Sampled(Ordered(), Regular(3.0), Points()))
 
+    @test dims(dimz, Y) === dimz[2]
     @test slicedims(dimz, (2:4, 3)) ==
         ((X(LinRange(142,146,3); mode=Sampled(Ordered(), Regular(2.0), Points())),),
              (Y(8.0, mode=Sampled(Ordered(), Regular(3.0), Points())),))
+
+    @test mode(X) == NoIndex()
+    @test modetype(dims(dimz, X)) == Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points}
 end
 
-a = [1 2 3 4
-     2 3 4 5
-     3 4 5 6]
-da = DimArray(a, (X((143, 145)), Y((-38, -35))))
-dimz = dims(da)
-
-@testset "dims" begin
-    @test dims(dimz) === dimz
-    @test dims(dimz, X) === dimz[1]
-    @test dims(dimz, Y) === dimz[2]
-    @test_throws ArgumentError dims(dimz, Ti)
-    @test typeof(dims(da)) ==
-        Tuple{X{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing},
-              Y{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}}
-end
 
 @testset "arbitrary dim names and Val index" begin
     dimz = formatdims(zeros(3, 4),
@@ -108,6 +102,8 @@ end
     @test label(dimz) == ("row", "column")
     @test basetypeof(dimz[1]) == Dim{:row}
     @test length.(dimz) == (3, 4)
+    @test size.(dimz) == ((3,), (4,))
+    @test eltype.(dimz) == (Symbol, Int)
     @test firstindex(dimz[1]) == 1
     @test lastindex(dimz[1]) == 3
     @test ndims(dimz[1]) == 1

@@ -63,8 +63,8 @@ Base.reverse(span::Regular) = Regular(-step(span))
 """
 function flip end
 
-flip(ot::Type{<:SubOrder}, x; lookup) = flip(ot, x, lookup)
-flip(ot::Type{<:SubOrder}, x, lookup) = _set(x, flip(ot, dims(A, lookup)))
+flip(ot::Type{<:SubOrder}, x; dims) = flip(ot, x, dims)
+flip(ot::Type{<:SubOrder}, x, lookupdims) = set(x, flip(ot, dims(x, lookupdims)))
 flip(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> flip(ot, d), dims)
 flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
 flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
@@ -150,12 +150,12 @@ modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
 modify(f, dim::Dimension) = begin
     newindex = f(index(dim))
     size(newindex) == size(dim) || error("$f returns a vector with a different size")
-    rebuild(A, newindex)
+    rebuild(dim, newindex)
 end
 modify(f, dim::Dimension{<:Val{Index}}) where Index = begin
     newindex = f(Index)
-    size(newindex) == size(dim) || error("$f returns a Tuple with a different size")
-    rebuild(A, Val(newindex))
+    length(newindex) == length(dim) || error("$f returns a Tuple with a different size")
+    rebuild(dim, Val(newindex))
 end
 
 
@@ -243,9 +243,13 @@ end
 # Left pipe operator for cleaning up brackets
 f <| x = f(x)
 
+# Unwrap Val
 unwrap(::Val{X}) where X = X
 unwrap(::Type{Val{X}}) where X = X
 unwrap(x) = x
+
+# Get a tuple of unique keys for DimArrays. If they have the same
+# name we call them layerI.
 uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}}) =
     uniquekeys(Symbol.(map(name, das)))
 uniquekeys(keys::Tuple{String,Vararg{<:String}}) = uniquekeys(map(Symbol, keys))

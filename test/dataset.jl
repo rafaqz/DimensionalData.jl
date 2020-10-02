@@ -2,16 +2,18 @@ using DimensionalData, Test, LinearAlgebra, Statistics
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
+dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
+da1 = DimArray(A, dimz, :one)
+da2 = DimArray(Float32.(2A), dimz, :two)
+da3 = DimArray(Int.(3A), dimz, :three)
 
-da1 = DimArray(A, (X([:a, :b]), Y(10.0:10.0:30.0)), :one)
-da2 = DimArray(Float32.(2A), (X([:a, :b]), Y(10.0:10.0:30.0)), :two)
-da3 = DimArray(Int.(3A), (X([:a, :b]), Y(10.0:10.0:30.0)), :three)
-#da3 = DimArray(cat(3A, 3A; dims=Z(1:2; mode=NoIndex())), (X([:a, :b]), Y(10.0:10.0:30.0), Z()), "three")
-#@edit cat(da1, da2; dims=3)
+ds = DimDataset((da1, da2, da3))
 
-das = (da1, da2, da3)
-
-ds = DimDataset(das)
+@testset "Constructors" begin
+    @test DimDataset((one=A, two=2A, three=3A), dimz) == ds
+    @test DimDataset(da1, da2, da3) == ds
+    @test DimDataset((one=da1, two=da2, three=da3), dimz) == ds
+end
 
 @testset "Properties" begin
     @test DimensionalData.dims(ds) == dims(da1)
@@ -29,6 +31,59 @@ end
     slicedds = ds[:a, :]
     @test slicedds[:one] == [1.0, 2.0, 3.0]
     @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+    @testset "linear indices" begin
+        linear2d = ds[1:2]
+        @test linear2d isa NamedTuple
+        @test linear2d == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+        linear1d = ds[Y(1)][1:2]
+        @test linear1d isa DimDataset
+        @test data(linear1d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+    end
+end
+
+@testset "view" begin
+    dsv = view(ds, 1, 1)
+    @test dsv.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+    @test dims(dsv) == ()
+    dsv = view(ds, X(1:2), Y(3:3)) 
+    @test dsv.data == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
+    slicedds = view(ds, X=:a, Y=:)
+    @test slicedds[:one] == [1.0, 2.0, 3.0]
+    @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+    @testset "linear indices" begin
+        linear2d = view(ds, 1)
+        @test linear2d isa NamedTuple
+        @test linear2d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+        linear1d = view(ds[X(1)], 1)
+        @test linear1d isa DimDataset
+        @test data(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+    end
+end
+
+@testset "setindex!" begin
+    ds_set = deepcopy(ds)
+    ds_set[1, 1] = (one=9, two=10, three=11)
+    @test ds_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
+    ds_set[X=:b, Y=10.0] = (one=7, two=11, three=13)
+    @test ds_set[2, 1] === (one=7.0, two=11.0f0, three=13) 
+end
+
+
+@testset "Empty getindedex/view/setindex throws a BoundsError" begin
+    @test_throws BoundsError ds[]
+    @test_throws BoundsError view(ds)
+    @test_throws BoundsError ds[] = 1
+end
+
+@testset "Cartesian indices work as usual" begin
+    @test ds[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
+    @test view(ds, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), data(ds))
+    ds_set = deepcopy(ds)
+    ds_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
+    @test ds_set[2, 2] === (one=5.0, two=6.0f0, three=7)
+    ds_set[CartesianIndex(2, 2)] = (9, 10, 11)
+    @test ds_set[2, 2] === (one=9.0, two=10.0f0, three=11)
+    @test_throws ArgumentError ds_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
 end
 
 @testset "map" begin
@@ -50,8 +105,8 @@ end
         @test Transpose(ds) == DimDataset(Transpose(da1), Transpose(da2), Transpose(da3))
         @test data(rotl90(ds)) ==
             (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
-             two=[6.0 12.0; 4.0 10.0; 2.0 8.0],
-           three=[9.0 18.0; 6.0 15.0; 3.0 12.0])
+             two=[6.0f0 12.0f0; 4.0f0 10.0f0; 2.0f0 8.0],
+           three=[9 18; 6 15; 3 12])
         @test rotl90(ds) == DimDataset(rotl90(da1), rotl90(da2), rotl90(da3))
         @test rotr90(ds) == DimDataset(rotr90(da1), rotr90(da2), rotr90(da3))
         @test rot180(ds) == DimDataset(rot180(da1), rot180(da2), rot180(da3))
@@ -140,4 +195,10 @@ end
     @test maximum(f, ds) == (one=12.0, two=24.0, three=36.0)
     @test extrema(f, ds) == (one=(2.0, 12.0), two=(4.0, 24.0), three=(6.0, 36.0))
     @test mean(f, ds) == (one=7.0, two=14.0, three=21)
+end
+
+@testset "reverse" begin
+    rev_ds = reverse(ds; dims=X) 
+    @test rev_ds[:one] == [4.0 5.0 6.0; 1.0 2.0 3.0]
+    @test rev_ds[:three] == [12.0 15.0 18.0; 3.0 6.0 9.0]
 end

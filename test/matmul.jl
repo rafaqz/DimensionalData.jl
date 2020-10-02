@@ -1,13 +1,11 @@
-using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
-
-using LinearAlgebra: Transpose
+using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates, LinearAlgebra
 
 using Combinatorics: combinations
 
 @testset "*" begin
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
-    A1 = DimArray(rand(12), (Ti(timespan),)) 
-    A2 = DimArray(rand(12, 1), (Ti(timespan), X(10:10:10))) 
+    A1 = DimArray(rand(12), (Ti(timespan),))
+    A2 = DimArray(rand(12, 1), (Ti(timespan), X(10:10:10)))
 
     @test length.(dims(A1)) == size(A1)
     @test dims(parent(A1) * permutedims(A1)) isa Tuple{<:AnonDim,<:Ti}
@@ -65,4 +63,34 @@ using Combinatorics: combinations
 
 end
 
+@testset "some matmul ambiguity methods" begin
+    special_types = (Adjoint, Diagonal, Symmetric, Tridiagonal, SymTridiagonal, BitArray,)
+
+    @testset "matrix" begin
+        da = DimArray(ones(5,5), (:a, :b))
+        @testset "$T" for T in special_types
+            x = T(ones(5,5))
+            @test dims(x * da) isa Tuple{<:AnonDim, Dim{:b}}
+            @test dims(da * x) isa Tuple{Dim{:a}, <:AnonDim}
+            @test typeof(x * da) <: DimArray
+            @test typeof(da * x) <: DimArray
+            @test parent(da' * x) == parent(da)' * x
+            @test parent(x * da) == x * parent(da) 
+        end
+    end
+
+    @testset "vector" begin
+        dv = DimArray(ones(5), :vec)
+        @testset "$T" for T in special_types
+            x = T(ones(5,5))
+            @test dims(x * dv) isa Tuple{<:AnonDim}
+            @test dims(dv' * x) isa Tuple{<:AnonDim,<:AnonDim}
+            @test typeof(x * dv) <: DimArray
+            @test typeof(dv' * x) <: DimArray
+            @test parent(dv' * x) == parent(dv)' * x
+            @test parent(x * dv) == x * parent(dv) 
+        end
+    end
+
+end
 

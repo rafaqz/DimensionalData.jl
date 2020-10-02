@@ -3,7 +3,7 @@ Supertype for dimensional datasets.
 
 These have multiple layers of data, but share dimensions.
 """
-abstract type AbstractDimDataset{L,D} end
+abstract type AbstractDimDataset{L,N,D} end
 
 """
     DimDataset(data::AbstractDimArray...)
@@ -46,35 +46,39 @@ julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
 
 julia> da1 = DimArray(1A, dimz, "one");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
 
 
 julia> da2 = DimArray(2A, dimz, "two");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
 
 
 julia> da3 = DimArray(3A, dimz, "three");
 ┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:234
+└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
 
 
 julia> ds = DimDataset(da1, da2, da3)
-DimDataset{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,2},Array{Float64,2},Array{Float64,2}}},Tuple{X{Array{Symbol,1},Categorical{Unordered{ForwardRelation}},Nothing},Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}},Tuple{},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0 2.0 3.0; 4.0 5.0 6.0], two = [2.0 4.0 6.0; 8.0 10.0 12.0], three = [3.0 6.0 9.0; 12.0 15.0 18.0]), (X (type X): Symbol[a, b] (Categorical: Unordered), Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points)), (), (one = nothing, two = nothing, three = nothing))
+DimDataset{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,2},Array{Float64,2},Array{Float64,2}}},2,Tuple{X{Array{Symbol,1},Categorical{Unordered{ForwardRelation}},Nothing},Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}},Tuple{},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0 2.0 3.0; 4.0 5.0 6.0], two = [2.0 4.0 6.0; 8.0 10.0 12.0], three = [3.0 6.0 9.0; 12.0 15.0 18.0]), (X (type X): Symbol[a, b] (Categorical: Unordered), Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points)), (), (one = nothing, two = nothing, three = nothing))
 
 julia> ds[:b, 10.0]
 (one = 4.0, two = 8.0, three = 12.0)
 
 julia> ds[X(:a)]
-DimDataset{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,1},Array{Float64,1},Array{Float64,1}}},Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},Nothing}},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0, 2.0, 3.0], two = [2.0, 4.0, 6.0], three = [3.0, 6.0, 9.0]), (Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X (type X): a (Categorical: Unordered),), (one = nothing, two = nothing, three = nothing))
+DimDataset{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,1},Array{Float64,1},Array{Float64,1}}},1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},Nothing}},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0, 2.0, 3.0], two = [2.0, 4.0, 6.0], three = [3.0, 6.0, 9.0]), (Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X (type X): a (Categorical: Unordered),), (one = nothing, two = nothing, three = nothing))
 ```
 
 """
-struct DimDataset{L,D,R,M} <: AbstractDimDataset{L,D}
+struct DimDataset{L,N,D,R,M} <: AbstractDimDataset{L,N,D}
     data::L
     dims::D
     refdims::R
     metadata::M
+    DimDataset(data::L, dims::D, refdims::R, metadata::M) where {L,D,R,M} = begin
+        N = length(dims)
+        new{L,N,D,R,M}(data, dims, refdims, metadata)
+    end
 end
 DimDataset(das::AbstractDimArray...) = DimDataset(das)
 DimDataset(das::Tuple{Vararg{<:AbstractDimArray}}) =
@@ -106,8 +110,8 @@ Base.:(==)(ds1::AbstractDimDataset, ds2::AbstractDimDataset) =
 rebuild(ds::AbstractDimDataset, data, dims=dims(ds), refdims=refdims(ds), metadata=metadata(ds)) =
     basetypeof(ds)(data, dims, refdims, metadata)
 
-rebuildsliced(A::AbstractDimDataset, data, I) =
-    rebuild(A, data, slicedims(A, I)...)
+rebuildsliced(ds::AbstractDimDataset, data, I) =
+    rebuild(ds, data, slicedims(ds, I)...)
 
 # Dipatch on Tuple of Dimension, and map
 for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
@@ -131,75 +135,90 @@ maybedataset(x::NamedTuple) = x
 # getindex/view/setindex!
 
 # Symbol key
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, key::Symbol) =
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, key::Symbol) =
     DimArray(data(ds)[key], dims(ds), refdims(ds), key, nothing)
 
-# No indices
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset) = 
-    map(A -> getindex(parent(A), dimarrays(ds)))
-Base.@propagate_inbounds Base.view(ds::AbstractDimDataset) = 
-    map(A -> view(parent(A), dimarrays(ds)))
-Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x) = 
-    map(A -> setindex!(parent(A), x), dimarrays(ds))
+# No indices. These just prevent stack overflows
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset) = 
+    map(A -> getindex(A), data(ds))
+@propagate_inbounds Base.view(ds::AbstractDimDataset) = 
+    map(A -> view(A), data(ds))
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs) = 
+    map((A, x) -> setindex!(A, x), data(ds), xs)
 
 # Integer getindex returns a single value
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i::Int, I::Int...) =
-    map(l -> getindex(l, i, I...), data(ds))
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i::Int, I::Int...) =
+    map(A -> getindex(A, i, I...), data(ds))
 
 # Standard indices
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newdata = map(l -> getindex(l, i1, i2, I...), data(ds))
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
+    newdata = map(A -> getindex(A, i1, i2, I...), data(ds))
     rebuildsliced(ds, newdata, (i1, i2, I...))
 end
-Base.@propagate_inbounds Base.view(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newdata = map(l -> view(l, i1, i2, I...), data(ds))
+@propagate_inbounds Base.view(ds::AbstractDimDataset, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
+    newdata = map(A -> view(A, i1, i2, I...), data(ds))
     rebuildsliced(ds, newdata, (i1, i2, I...))
 end
-Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    map(l -> setindex!(l, x, i1, i2, I...), data(ds))
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs::Tuple, 
+                              i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+    map((A, x) -> setindex!(A, x, i1, i2, I...), data(ds), xs)
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset{<:NamedTuple{K1}}, xs::NamedTuple{K2}, 
+                                   i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) where {K1,K2} = begin
+    K1 == K2 || _keysmismatch(K1, K2)
+    map((A, x) -> setindex!(A, x, i1, i2, I...), data(ds), xs)
+end
 
 # Linear indexing returns a NamedTuple of Arrays
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any, N} where N, i::Union{Colon,AbstractArray}) =
-    map(l -> getindex(l, i, I...), data(ds))
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any,N} where N, i::Union{Colon,AbstractArray}) =
+    map(A -> getindex(A, i), data(ds))
 # Exempt 1D DimArrays
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any, 1}, i::Union{Colon,AbstractArray}) =
-    rebuildsliced(A, map(l -> getindex(l, i, I...), data(ds)), (i,))
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset{<:Any,1}, i::Union{Colon,AbstractArray}) =
+    rebuildsliced(ds, map(A -> getindex(A, i), data(ds)), (i,))
 # Linear indexing returns a NamedTuple of unwrapped SubArrays
-Base.@propagate_inbounds Base.view(A::AbstractDimDataset{<:Any, N} where N, i::StandardIndices) =
-    map(l -> view(l, i, I...), data(ds))
+@propagate_inbounds Base.view(ds::AbstractDimDataset{<:Any,N} where N, i::StandardIndices) =
+    map(A -> view(A, i), data(ds))
 # Exempt 1D DimArrays
-Base.@propagate_inbounds Base.view(A::AbstractDimDataset{<:Any, 1}, i::StandardIndices) =
-    rebuildsliced(A, map(l -> view(l, i, I...), data(ds)), (i,))
+@propagate_inbounds Base.view(ds::AbstractDimDataset{<:Any,1}, i::StandardIndices) =
+    rebuildsliced(ds, map(A -> view(A, i), data(ds)), (i,))
 
 # Cartesian indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimDataset, I::CartesianIndex) =
-    map(A -> getindex(parent(A), I), dimarrays(A))
-Base.@propagate_inbounds Base.view(A::AbstractDimDataset, I::CartesianIndex) =
-    map(A -> view(parent(A), I), dimarrays(A))
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimDataset, x, I::CartesianIndex) =
-    map(A -> setindex!(parent(A), x, I), dimarrays(A))
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, I::CartesianIndex) =
+    map(A -> getindex(A, I), data(ds))
+@propagate_inbounds Base.view(ds::AbstractDimDataset, I::CartesianIndex) =
+    map(A -> view(A, I), data(ds))
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs::Tuple, I::CartesianIndex) =
+    map((A, x) -> setindex!(A, x, I), data(ds), xs)
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset{<:NamedTuple{K1}}, 
+                                   xs::NamedTuple{K2}, I::CartesianIndex) where {K1,K2} = begin
+    K1 == K2 || _keysmismatch(K1, K2)
+    map((A, x) -> setindex!(A, x, I), data(ds), xs)
+end
+
+_keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach dataset keys $K1"))
 
 # Selectors with standard indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimDataset, i, I...) =
-    getindex(A, sel2indices(A, maybeselector(i, I...))...)
-Base.@propagate_inbounds Base.view(A::AbstractDimDataset, i, I...) =
-    view(A, sel2indices(A, maybeselector(i, I...))...)
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, i, I...) =
+    getindex(ds, sel2indices(ds, maybeselector(i, I...))...)
+@propagate_inbounds Base.view(ds::AbstractDimDataset, i, I...) =
+    view(ds, sel2indices(ds, maybeselector(i, I...))...)
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs, i, I...) =
+    setindex!(ds, xs, sel2indices(ds, maybeselector(i, I...))...)
 
 # Dimensions
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, dim::Dimension, dims::Dimension...) =
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, dim::Dimension, dims::Dimension...) =
     getindex(ds, dims2indices(ds, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(ds::AbstractDimDataset, dim::Dimension, dims::Dimension...) =
+@propagate_inbounds Base.view(ds::AbstractDimDataset, dim::Dimension, dims::Dimension...) =
     view(ds, dims2indices(ds, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x, dim::Dimension, dims::Dimension...) =
-    setindex!(ds, x, dims2indices(ds, (dim, dims...))...)
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs, dim::Dimension, dims::Dimension...) =
+    setindex!(ds, xs, dims2indices(ds, (dim, dims...))...)
 
 # Symbol keyword-argument indexing.
-Base.@propagate_inbounds Base.getindex(ds::AbstractDimDataset, args::Dimension...; kwargs...) =
+@propagate_inbounds Base.getindex(ds::AbstractDimDataset, args::Dimension...; kwargs...) =
     getindex(ds, args..., _kwargdims(kwargs.data)...)
-Base.@propagate_inbounds Base.view(ds::AbstractDimDataset, args::Dimension...; kwargs...) =
+@propagate_inbounds Base.view(ds::AbstractDimDataset, args::Dimension...; kwargs...) =
     view(ds, args..., _kwargdims(kwargs.data)...)
-Base.@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, x, args::Dimension...; kwargs...) =
-    setindex!(ds, x, args..., _kwargdims(kwargs)...)
+@propagate_inbounds Base.setindex!(ds::AbstractDimDataset, xs, args::Dimension...; kwargs...) =
+    setindex!(ds, xs, args..., _kwargdims(kwargs)...)
 
 
 # Array methods

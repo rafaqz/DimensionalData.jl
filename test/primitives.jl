@@ -1,7 +1,7 @@
 using DimensionalData, Test
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
-      @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim
+      @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride
 
 
 @testset "sortdims" begin
@@ -51,7 +51,6 @@ dimz = dims(da)
               Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), nothing)), ())
         @test slicedims((), (1:2, 3)) == ((), ())
     end
-
     @testset "Val index" begin
         da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
@@ -62,7 +61,22 @@ dimz = dims(da)
             ((X(Val((145,)), Categorical(), nothing), 
               Y(Val((:x, :y, :z)), Categorical(), nothing)), ())
     end
+    @testset "NoIndex" begin
+        da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
+        dimz = dims(da)
+        @test slicedims(dimz, (1:2, 3)) == 
+            ((X(Val((143,145)), Categorical(), nothing),),
+             (Y(Val(:z), Categorical(), nothing),))
+        @test slicedims(dimz, (2:2, :)) == 
+            ((X(Val((145,)), Categorical(), nothing), 
+              Y(Val((:x, :y, :z)), Categorical(), nothing)), ())
+    end
 
+    @testset "No slicing" begin
+        da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
+        dimz = dims(da)
+        @test slicedims(dimz, (Ti(),), ()) == (dimz, (Ti(),))
+    end
 end
 
 @testset "dims2indices" begin
@@ -139,16 +153,15 @@ end
 end
 
 @testset "dims" begin
+    dimz = dims(da)
+    @test dims(X()) == X()
+    @test dims(dimz, Y) isa Y
+    @test dims(dimz, 1) isa X
+    @test dims(dimz, (2, 1)) isa Tuple{<:Y,<:X}
+    @test dims(dimz, (2, Y)) isa Tuple{<:Y,<:Y}
     @test dims(da, X) isa X
     @test dims(da, (X, Y)) isa Tuple{<:X,<:Y}
-    @test dims(dims(da), Y) isa Y
-    @test dims(dims(da), 1) isa X
-    @test dims(dims(da), (2, 1)) isa Tuple{<:Y,<:X}
-    @test dims(dims(da), (2, Y)) isa Tuple{<:Y,<:Y}
     @test dims(da, ()) == ()
-    @test_throws ArgumentError dims(da, Ti)
-    x = dims(da, X)
-    @test dims(x) == x
 
     @testset "with Dim{X} and symbols" begin
         A = DimArray(zeros(4, 5), (:one, :two))
@@ -157,6 +170,17 @@ end
              Dim{:two}(Base.OneTo(5), NoIndex(), nothing))
         @test dims(A, :two) == Dim{:two}(Base.OneTo(5), NoIndex(), nothing)
     end
+    @test_throws ArgumentError dims(da, Ti)
+    @test_throws ArgumentError dims(dimz, Ti)
+    @test_throws ArgumentError dims(nothing, X)
+
+    @test dims(dimz) === dimz
+    @test dims(dimz, X) === dimz[1]
+    @test dims(dimz, Y) === dimz[2]
+    @test dims(dimz, Y) === dimz[2]
+    @test typeof(dims(da)) ==
+        Tuple{X{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing},
+              Y{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}}
 end
 
 @testset "commondims" begin
@@ -192,6 +216,7 @@ end
         @test hasdim((Dim{:a}(), Dim{:b}()), (:a, :c)) == (true, false)
         @test hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c)) == (true, true, false)
     end
+    @test_throws ArgumentError hasdim(nothing, X)
 end
 
 @testset "otherdims" begin
@@ -206,6 +231,7 @@ end
         @test otherdims((Z(), Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y)) == (Z(),)
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
+    @test_throws ArgumentError otherdims(nothing, X)
 end
 
 @testset "setdims" begin
@@ -257,4 +283,13 @@ end
     @test key2dim(:Ti) == Ti()
     @test key2dim(:ti) == Dim{:ti}()
     @test key2dim(:Tst) == Tst()
+end
+
+@testset "dimstride" begin
+    dimz = (X(), Y(), Dim{:test}())
+    da = DimArray(ones(3, 2, 3), dimz, :data)
+    @test dimstride(da, X()) == 1
+    @test dimstride(da, Y()) == 3
+    @test dimstride(da, Dim{:test}()) == 6
+    @test_throws ArgumentError dimstride(nothing, X())
 end

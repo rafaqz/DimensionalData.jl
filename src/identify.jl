@@ -16,9 +16,6 @@ correct `searchsorted` method for it.
 """
 function identify end
 
-identify(IM::Type{<:IndexMode}, dimtype::Type, index) =
-    identify(IM(), dimtype, index)
-
 # No more identification required for some types
 identify(mode::IndexMode, dimtype::Type, index) = mode
 
@@ -49,10 +46,10 @@ _orderof(index::Val) = _detectorder(unwrap(index))
 _orderof(index::AbstractArray) = _detectorder(index)
 
 function _detectorder(index)
+    local sorted, indord 
     # This is awful. But we don't know if we can
     # call `issorted` on the contents of `index`.
-    local sorted
-    local indord 
+    # This may be resolved by: https://github.com/JuliaLang/julia/pull/37239
     try
         indord = _indexorder(index)
         sorted = issorted(index; rev=isrev(indord))

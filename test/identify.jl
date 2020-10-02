@@ -11,6 +11,7 @@ using DimensionalData: identify
     end
 
     @testset "identify Categorical" begin
+        @test identify(Categorical(Ordered()), X, [1, 2]) == Categorical(Ordered())
         @test identify(Categorical(), X, [1, 2]) == Categorical(Unordered())
     end
 

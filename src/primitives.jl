@@ -59,13 +59,13 @@ end
 @inline _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
 @inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
 
-@inline _maybeconstruct(dims::Array) = _maybeconstruct((dims...,)) 
+# @inline _maybeconstruct(dims::Array) = _maybeconstruct((dims...,)) 
 @inline _maybeconstruct(dims::Tuple) = 
     (_maybeconstruct(dims[1]), _maybeconstruct(tail(dims))...)
 @inline _maybeconstruct(::Tuple{}) = ()
 @inline _maybeconstruct(dim::Dimension) = dim
-@inline _maybeconstruct(dimtype::UnionAll) = 
-    isabstracttype(dimtype) ? dimtype : dimtype()
+# @inline _maybeconstruct(dimtype::UnionAll) = 
+    # isabstracttype(dimtype) ? dimtype : dimtype()
 @inline _maybeconstruct(dimtype::DimType) = 
     isabstracttype(dimtype) ? dimtype : dimtype()
 
@@ -125,16 +125,14 @@ are at least rotations/transformations of the same type.
 """
     dims2indices(dim::Dimension, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
 
-Convert a `Dimension` or `Selector` lookup to indices, ranges or Colon.
+Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or Colon.
 """
 @inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
     _dims2indices(dim, lookup, emptyval)
 @inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
 @inline dims2indices(x, lookup, emptyval=Colon()) =
     dims2indices(dims(x), lookup, emptyval)
-@inline dims2indices(::Nothing, lookup, emptyval=Colon()) = dimerror()
-
-@noinline dimerror() = throw(ArgumentError("Object not define a `dims` method"))
+@inline dims2indices(::Nothing, lookup, emptyval=Colon()) = _dimsnotdefinederror()
 
 @inline dims2indices(dims::DimTuple, lookup, emptyval=Colon()) =
     dims2indices(dims, (lookup,), emptyval)
@@ -213,7 +211,7 @@ previous reference dims attached to the array.
 - `x`: An `AbstractDimArray`, `Tuple` of `Dimension`, or `Dimension`
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
-function slicedims(A, I) end
+function slicedims end
 
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
@@ -235,11 +233,6 @@ end
 # TODO deal with unordered arrays trashing the index order
 @inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
-@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray{Bool}) =
-    (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
-@inline slicedims(d::Dimension{<:Colon}, i::Colon) = (d,), ()
-@inline slicedims(d::Dimension{<:Colon}, i::AbstractArray) = (d,), ()
-@inline slicedims(d::Dimension{<:Colon}, i::Integer) = (), (d,)
 
 @inline relate(d::Dimension, i) = maybeflip(relation(d), d, i)
 
@@ -291,10 +284,10 @@ julia> dimnum(A, Y)
     end
 # Numbers are returned as-is
 @inline _dimnum(dims::Tuple, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
+# For ambiguity
 @inline _dimnum(dims::Tuple{}, lookup::Tuple{Number,Vararg}, rejected, n) = lookup
 # Throw an error if the lookup is not found
-@inline _dimnum(dims::Tuple{}, lookup::Tuple, rejected, n) =
-    throw(ArgumentError("No $(name(lookup[1])) in dims"))
+@noinline _dimnum(dims::Tuple{}, lookup::Tuple, rejected, n) = _nolookuperror(lookup)
 # Return an empty tuple when we run out of lookups
 @inline _dimnum(dims::Tuple, lookup::Tuple{}, rejected, n) = ()
 @inline _dimnum(dims::Tuple{}, lookup::Tuple{}, rejected, n) = ()
@@ -326,7 +319,7 @@ false
 ```
 """
 @inline hasdim(x, lookup) = hasdim(dims(x), lookup)
-@inline hasdim(x::Nothing, lookup) = dimerror()
+@inline hasdim(x::Nothing, lookup) = _dimsnotdefinederror()
 @inline hasdim(d::Tuple, lookup::Tuple) = map(l -> hasdim(d, l), lookup)
 @inline hasdim(d::Tuple, lookup::Symbol) = hasdim(d, key2dim(lookup))
 @inline hasdim(d::Tuple, lookup::DimOrDimType) =
@@ -363,7 +356,7 @@ julia> otherdims(A, Ti)
 ```
 """
 @inline otherdims(x, lookup) = otherdims(dims(x), lookup)
-@inline otherdims(::Nothing, lookup) = dimerror()
+@inline otherdims(::Nothing, lookup) = _dimsnotdefinederror()
 @inline otherdims(dims::Tuple, lookup::DimOrDimType) = otherdims(dims, (lookup,))
 @inline otherdims(dims::Tuple, lookup::Tuple) =
     _otherdims(dims, _sortdims(key2dim(lookup), key2dim(dims)))
@@ -469,7 +462,7 @@ cell step, sampling type and order.
 
 # NoIndex. Defaults to Start locus.
 @inline reducedims(mode::NoIndex, dim::Dimension) =
-    rebuild(dim, first(val(dim)), NoIndex())
+    rebuild(dim, first(index(dim)), NoIndex())
 # Categories are combined.
 @inline reducedims(mode::Unaligned, dim::Dimension) =
     rebuild(dim, [nothing], NoIndex)
@@ -493,8 +486,8 @@ end
 
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
-@inline reducedims(locus::Start, dim::Dimension) = [first(val(dim))]
-@inline reducedims(locus::End, dim::Dimension) = [last(val(dim))]
+@inline reducedims(locus::Start, dim::Dimension) = [first(index(dim))]
+@inline reducedims(locus::End, dim::Dimension) = [last(index(dim))]
 @inline reducedims(locus::Center, dim::Dimension) = begin
     index = val(dim)
     len = length(index)
@@ -534,7 +527,7 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 ```
 """
 @inline dims(x, lookup) = dims(dims(x), lookup)
-@inline dims(x::Nothing, lookup) = dimerror()
+@inline dims(x::Nothing, lookup) = _dimsnotdefinederror()
 @inline dims(d::DimTuple, lookup) = dims(d, (lookup,))[1]
 @inline dims(d::DimTuple, lookup::Tuple) = 
     _dims(d, key2dim(lookup), (), d)
@@ -552,8 +545,7 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 # For method ambiguities
 @inline _dims(d, lookup::Tuple{Number,Vararg}, rejected, remaining::Tuple{}) = ()
 # Throw an error if the lookup is not found
-@inline _dims(d, lookup::Tuple, rejected, remaining::Tuple{}) =
-    throw(ArgumentError("No $(name(lookup[1])) in dims"))
+@noinline _dims(d, lookup::Tuple, rejected, remaining::Tuple{}) = _nolookuperror(lookup)
 # Return an empty tuple when we run out of lookups
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple) = ()
 @inline _dims(d, lookup::Tuple{}, rejected, remaining::Tuple{}) = ()
@@ -576,7 +568,6 @@ function comparedims end
 @inline comparedims(A::Tuple) = comparedims(map(dims, A)...)
 @inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) = 
     map(d -> comparedims(dims[1], d), dims)[1]
-@inline comparedims() = ()
 
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
@@ -592,11 +583,11 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim) = a
 @inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin
-    basetypeof(a) == basetypeof(b) ||
-        throw(DimensionMismatch("$(name(a)) and $(name(b)) dims on the same axis"))
+    basetypeof(a) == basetypeof(b) || _dimsmismatcherror(a, b)
     # TODO compare the mode, and maybe the index.
     return a
 end
+
 
 """
     key2dim(s::Symbol) => Dimension
@@ -641,7 +632,7 @@ although it will be for `Array`.
 - `dim` is a `Dimension`, `Dimension` type, or and `Int`. Using an `Int` is not type-stable. 
 """
 @inline dimstride(x, n) = dimstride(dims(x), n) 
-@inline dimstride(::Nothing, n) = error("no dims Tuple available")
+@inline dimstride(::Nothing, n) = _dimsnotdefinederror()
 @inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d)) 
 @inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
 
@@ -655,3 +646,12 @@ _kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
 
 @inline _pairdims(pairs::Pair...) = 
     map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+
+
+# Error methods. @noinline to avoid allocations.
+@noinline _dimsnotdefinederror() = throw(ArgumentError("Object not define a `dims` method"))
+
+@noinline _nolookuperror(lookup) = throw(ArgumentError("No $(name(lookup[1])) in dims"))
+
+@noinline _dimsmismatcherror(a, b) = 
+    throw(DimensionMismatch("$(name(a)) and $(name(b)) dims on the same axis"))

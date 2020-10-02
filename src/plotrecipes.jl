@@ -1,5 +1,4 @@
 struct HeatMapLike end
-struct ImageLike end
 struct WireframeLike end
 struct SeriesLike end
 struct HistogramLike end
@@ -98,10 +97,6 @@ end
     :zguide --> label(A)
     :colorbar_title --> label(A)
     reverse(map(index, dims(A)))..., parent(A)
-end
-
-@recipe function f(::ImageLike, A::AbstractArray{T,2}) where T
-    parent(A)
 end
 
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A

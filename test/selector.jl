@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful, Combinatorics
-using DimensionalData: between, at, near, contains
+using DimensionalData: between, at, near, contains, sel2indices
 
 a = [1 2  3  4
      5 6  7  8
@@ -224,16 +224,16 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         @test_throws BoundsError contains(startfwd, Contains(0.9))
         @test contains(startfwd, Contains(1.0)) == 1
         @test contains(startfwd, Contains(1.9)) == 1
-        @test_throws ErrorException contains(startfwd, Contains(2))
-        @test_throws ErrorException contains(startfwd, Contains(2.9))
+        @test_throws ArgumentError contains(startfwd, Contains(2))
+        @test_throws ArgumentError contains(startfwd, Contains(2.9))
         @test contains(startfwd, Contains(3)) == 2
         @test contains(startfwd, Contains(5.9)) == 4
         @test_throws BoundsError contains(startfwd, Contains(6))
         @test_throws BoundsError contains(startrev, Contains(0.9))
         @test contains(startrev, Contains(1.0)) == 4
         @test contains(startrev, Contains(1.9)) == 4
-        @test_throws ErrorException contains(startrev, Contains(2))
-        @test_throws ErrorException contains(startrev, Contains(2.9))
+        @test_throws ArgumentError contains(startrev, Contains(2))
+        @test_throws ArgumentError contains(startrev, Contains(2.9))
         @test contains(startrev, Contains(3)) == 3
         @test contains(startrev, Contains(5.9)) == 1
         @test_throws BoundsError contains(startrev, Contains(6))
@@ -563,6 +563,7 @@ end
             4:-2:1,
         ]
         for idx in indices
+            idx = indices[1]
             # 2D case
             da2d = copy(da)
             a2d = copy(parent(da2d))
@@ -710,9 +711,11 @@ end
     da = DimArray(a, valdimz)
     @test @inferred da[Val(2.5), Val(:c)] == 7
     @test @inferred da[2.4, :a] == 1
+    @test @inferred da[Near(2.5), At(:c)] == 7
 end
 
 @testset "Where " begin
+    @test val(Where(identity)) == identity
     dimz = Ti((1:1:3)u"s"), Y(10:10:40)
     da = DimArray(a, dimz)
     wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
@@ -752,5 +755,10 @@ end
         # Indexing directly with mode dims also just works, but maybe shouldn't?
         @test @inferred da[X(2), Y(2), Z(1)] == 6
     end
-
 end
+
+@testset "errors" begin
+    @test_throws ArgumentError sel2indices(Points(), Sampled(), X(), Contains(1))
+end
+
+

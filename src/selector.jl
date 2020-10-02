@@ -125,8 +125,8 @@ end
 
 Selector that retreive all indices located between 2 values,
 evaluated with `>=` for the lower value, and `<` for the upper value.
-This means the same value will not be counted twice in 2 `Between`
-selections.
+This means the same value will not be counted twice in 2 adjacent 
+`Between` selections.
 
 For [`Intervals`](@ref) the whole interval must be lie between the
 values. For [`Points`](@ref) the points must fall between
@@ -162,8 +162,7 @@ and data: 1×2 Array{Int64,2}
 struct Between{T<:Union{Tuple{Any,Any},Nothing}} <: Selector{T}
     val::T
 end
-Between(args...) = Between{typeof(args)}(args)
-Between(x::Tuple) = Between{typeof(x)}(x)
+Between(args...) = Between(args)
 
 """
     Where(f::Function)
@@ -258,14 +257,14 @@ val(sel::Where) = sel.f
 
 # Near selector -----------------------
 @inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
-    if span(mode) isa Irregular && locus(mode) isa Union{Start,End}
-        error("Near is not implemented for Irregular with Start or End loci. Use Contains")
-    end
+    span(mode) isa Irregular && locus(mode) isa Union{Start,End} && _nearerror()
     near(sampling, mode, dim, sel)
 end
 
+@noinline _nearerror() = throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
+
 # Contains selector -------------------
-@inline sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
+@noinline sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
     throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
 @inline sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(sampling, mode, dim, sel)
@@ -332,7 +331,7 @@ end
 near(dim::Dimension, sel::Near) = near(sampling(mode(dim)), mode(dim), dim, sel)
 near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     order = indexorder(dim)
-    order isa UnorderedIndex && throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
+    order isa UnorderedIndex && _nearunorderederror()
     locus = DD.locus(dim)
 
     v = _locus_adjust(locus, val(sel), dim)
@@ -348,6 +347,8 @@ near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     relate(dim, i)
 end
 
+@noinline _nearunorderederror() = throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
+
 _locus_adjust(locus::Start, v, dim) = v - abs(step(dim)) / 2
 _locus_adjust(locus::Center, v, dim) = v
 _locus_adjust(locus::End, v, dim) = v + abs(step(dim)) / 2
@@ -361,7 +362,7 @@ contains(dim::Dimension, sel::Contains) =
     contains(sampling(mode(dim)), mode(dim), dim, sel)
 
 # Points --------------------------------------
-contains(::Points, ::IndexMode, dim::Dimension, sel::Contains) =
+@noinline contains(::Points, ::IndexMode, dim::Dimension, sel::Contains) =
     throw(ArgumentError("Points IndexMode cannot use 'Contains', use 'Near' instead."))
 
 # Intervals -----------------------------------
@@ -373,12 +374,15 @@ contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel::Contains
     v = val(sel); s = abs(val(span))
     _locus_checkbounds(locus, bounds(dim), v)
     i = _whichsearch(locus, order)(order, dim, maybeaddhalf(locus, s, v))
-    # Check the value is in this cell - it might not be for Val or Vector.
+    # Check the value is in this cell. 
+    # It is always for AbstractRange but might not be for Val tuple or Vector.
     if !(val(dim) isa AbstractRange) 
-        _lt(locus)(v, dim[i] + s) || error("No interval contains $(v)")
+        _lt(locus)(v, dim[i] + s) || _notcontainederror(v)
     end
     i
 end
+
+@noinline _notcontainederror(v) = throw(ArgumentError("No interval contains $(v)"))
 
 # Irregular Intervals -------------------------
 contains(span::Irregular, ::Intervals, order::IndexOrder, locus::Locus, dim::Dimension, sel::Contains) = begin
@@ -517,8 +521,6 @@ _lt(::Locus) = (<)
 _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
-
-_locus_ineq(locus) = _lt(locus), _gt(locus)
 
 _locus_checkbounds(loc, (l, h), v) = 
     (_lt(loc)(v, l) || _gt(loc)(v, h)) && throw(BoundsError())

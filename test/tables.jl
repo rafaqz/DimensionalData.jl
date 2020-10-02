@@ -6,30 +6,23 @@ dimz = (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0))
 da = DimArray(ones(3, 2, 3), dimz, :data)
 da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
 
-@testset "dimstride" begin
-    @test dimstride(da, X()) == 1
-    @test dimstride(da, Y()) == 3
-    @test dimstride(da, Dim{:test}()) == 6
-end
-
 @testset "DimArray Tables interface" begin
-    @test Tables.istable(da) == true
-    @test Tables.columnaccess(da) == true
-    @test Tables.rowaccess(da) == false
-
     ds = DimDataset(da)
     t = Tables.columns(ds)
-    @test Tables.columnnames(t) == (:X, :Y, :test, :data)
     @test t isa DimTable
     @test dims(t) == dims(da)
+
     @test Tables.columns(t) === t
     @test t[:X] isa DimColumn
     @test t[:data] isa Array
     @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
 
-    sa = Tables.schema(da)
-    sds = Tables.schema(ds)
-    st = Tables.schema(t)
+    @test Tables.istable(t) == Tables.istable(da) == Tables.istable(ds) == true
+    @test Tables.columnaccess(t) == Tables.columnaccess(da) == Tables.columnaccess(ds) == true
+    @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
+    @test Tables.columnnames(t) == Tables.columnnames(da) == Tables.columnnames(ds) == (:X, :Y, :test, :data)
+
+    sa, sds, st = Tables.schema.((da, ds, t))
     @test sa.names == sds.names == st.names == (:X, :Y, :test, :data)
     @test sa.types == sds.types == st.types == (Symbol, Float64, Float64, Float64)
 
@@ -48,9 +41,9 @@ end
     @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :data) ==
           Tables.getcolumn(da, 4) == Tables.getcolumn(da, :data) ==
           Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) == ones(3 * 2 * 3)
-    @test Tables.getcolumn(t, Float64, 4, :data) ==
-        ones(3 * 2 * 3)
-
+    @test Tables.getcolumn(t, Float64, 4, :data) == ones(3 * 2 * 3)
+    @test Tables.getcolumn(t, Float64, 2, :Y) == Tables.getcolumn(da, Float64, 2, :Y) ==
+          Tables.getcolumn(ds, Float64, 2, :Y) == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
 end
 
 @testset "DimColumn" begin
@@ -64,6 +57,7 @@ end
     @test c[4] == 20.0
     @test c[7] == 10.0
     @test c[18] == 20.0
+    @test c[1:5] == [10.0, 10.0, 10.0, 20.0, 20.0]
     @test_throws BoundsError c[-1]
     @test_throws BoundsError c[19]
 
@@ -80,7 +74,7 @@ end
     @test Tables.columntype(df, :data) == Float64
     @test Tables.columntype(df, :data2) == Int
 
-    @test Tables.getcolumn(df, 1) == Tables.getcolumn(df, :X) ==
+    @test Tables.getcolumn(df, 1)[:] == Tables.getcolumn(df, :X)[1:18] ==
         repeat([:a, :b, :c], 6)
     @test Tables.getcolumn(t, 2) == Tables.getcolumn(df, :Y) ==
         repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
@@ -90,4 +84,10 @@ end
         ones(3 * 2 * 3)
     @test Tables.getcolumn(t, 5) == Tables.getcolumn(t, :data2) ==
         fill(2, 3 * 2 * 3)
+end
+
+@testset "dim methods" begin
+    t = DimDataset(da)
+    @test dims(t) == dims(da)
+    @test mode(t) == mode(dims(da))
 end

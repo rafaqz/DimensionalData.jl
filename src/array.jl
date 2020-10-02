@@ -50,14 +50,14 @@ They can discard arguments like `refdims`, `name` and `metadata`.
 This method can also be used with keyword arguments in place of regular arguments.
 """
 @inline rebuild(A::AbstractDimArray, data, dims::Tuple=dims(A), refdims=refdims(A),
-                name=name(A), metadata=metadata(A)) =
-    rebuild(A, data, dims, refdims, name, metadata)
+                name=name(A)) =
+    rebuild(A, data, dims, refdims, name, metadata(A))
 
 @inline rebuildsliced(A, data, I, name::Symbol=name(A)) =
     rebuild(A, data, slicedims(A, I)..., name)
 
-# Dipatch on Tuple of Dimension, and map
-for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
+for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
+             :arrayorder, :indexorder, :relation)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
 
@@ -85,66 +85,66 @@ Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
 # getindex/view/setindex! ======================================================
 
 
-# No indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray) = getindex(parent(A))
-Base.@propagate_inbounds Base.view(A::AbstractDimArray) = view(parent(A))
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
+# No indices. These just prevent stack overflows
+@propagate_inbounds Base.getindex(A::AbstractDimArray) = getindex(parent(A))
+@propagate_inbounds Base.view(A::AbstractDimArray) = view(parent(A))
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
 
 # Integer getindex returns a single value
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
     getindex(parent(A), i1, i2, I...)
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer) = getindex(parent(A), i)
+@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer) = getindex(parent(A), i)
 
 # Standard indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
     rebuildsliced(A, getindex(parent(A), i1, i2, I...), (i1, i2, I...))
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
+@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
     rebuildsliced(A, view(parent(A), i1, i2, I...), (i1, i2, I...))
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    setindex!(parent(A), x, i1, i2, I...)
 # Linear indexing returns Array
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
     getindex(parent(A), i)
 # Except 1D DimArrays
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
     rebuildsliced(A, getindex(parent(A), i), (i,))
 # Linear indexing view returns unwrapped SubArray
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices) =
+@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices) =
     view(parent(A), i)
 # Except 1D DimArrays
-Base.@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
+@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
     rebuildsliced(A, view(parent(A), i), (i,))
+# Setindex is the same in either case
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
+    setindex!(parent(A), x, i1, I...)
 
 # Cartesian indices
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, I::CartesianIndex) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, I::CartesianIndex) =
     getindex(parent(A), I)
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, I::CartesianIndex) =
+@propagate_inbounds Base.view(A::AbstractDimArray, I::CartesianIndex) =
     view(parent(A), I)
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
     setindex!(parent(A), x, I)
 
 # Dimension indexing.
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
     getindex(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
-    view(A, dims2indices(A, (dim, dims...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, dims::Dimension...) =
+@propagate_inbounds Base.view(A::AbstractDimArray, dim::Dimension, dims::Dimension...) = view(A, dims2indices(A, (dim, dims...))...)
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, dims::Dimension...) =
     setindex!(A, x, dims2indices(A, (dim, dims...))...)
 
 # Symbol keyword-argument indexing. This allows indexing with A[somedim=25.0] for Dim{:somedim}
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, args::Dimension...; kwargs...) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, args::Dimension...; kwargs...) =
     getindex(A, args..., _kwargdims(kwargs.data)...)
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwargs...) =
+@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwargs...) =
     view(A, args..., _kwargdims(kwargs.data)...)
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
     setindex!(A, x, args..., _kwargdims(kwargs)...)
 
 # Selector indexing without dim wrappers. Must be in the right order!
-Base.@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
+@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
     getindex(A, sel2indices(A, maybeselector(i, I...))...)
-Base.@propagate_inbounds Base.view(A::AbstractDimArray, i, I...) =
+@propagate_inbounds Base.view(A::AbstractDimArray, i, I...) =
     view(A, sel2indices(A, maybeselector(i, I...))...)
-Base.@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, sel2indices(A, maybeselector(i, I...))...)
 
 
@@ -177,7 +177,7 @@ Base.Array(A::AbstractDimArray) = Array(parent(A))
 Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
 Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
 Base.copy!(dst::AbstractArray{T,N}, src::AbstractDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
-# Most of these methods are for resolving ambiguity errors
+# For resolving ambiguity errors
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
 Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractArray{T,1}) where T = copy!(parent(dst), src)
 Base.copy!(dst::AbstractArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
@@ -230,16 +230,21 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Symbol,Me} <: Ab
     name::Na
     metadata::Me
 end
+# Warn string conversion for compatibility
 DimArray(A::AbstractArray, dims, refdims, name::String, metadata) = begin
     @warn "The AbstractDimArray name field is now a Symbol"
     DimArray(A, dims, refdims, Symbol(name), metadata)
 end
-DimArray(A::AbstractArray, dims, name=Symbol(""); refdims=(), metadata=nothing) =
-    DimArray(A, formatdims(A, dims), refdims, name, metadata)
-DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)) =
-    DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
-DimArray(; data, dims, refdims=(), name="", metadata=nothing) = 
+# 2 or 3 arg version
+DimArray(data::AbstractArray, dims, name=Symbol(""); refdims=(), metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
+# All kwargs version
+DimArray(; data, dims, refdims=(), name=Symbol(""), metadata=nothing) =
+    DimArray(data, formatdims(data, dims), refdims, name, metadata)
+# Construct from another AbstractDimArray
+DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), 
+         name=name(A), metadata=metadata(A)) =
+    DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
 
 """
     rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
@@ -251,10 +256,6 @@ update is dealth with in `rebuild` for `AbstractDimArray`.
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
                 refdims::Tuple, name::Symbol, metadata) =
     DimArray(data, dims, refdims, name, metadata)
-
-# Array interface (AbstractDimArray takes care of everything else)
-Base.@propagate_inbounds Base.setindex!(A::DimArray, x, I::Vararg{StandardIndices}) =
-    setindex!(parent(A), x, I...)
 
 """
     DimArray(f::Function, dim::Dimension [, name])

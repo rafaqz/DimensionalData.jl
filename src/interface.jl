@@ -59,7 +59,6 @@ Return the contained value of a wrapper object.
 Objects that don't define a `val` method are returned unaltered.
 """
 function val end
-val(::Nothing) = nothing
 
 """
     index(dim::Dimension{<:Val}) => Tuple

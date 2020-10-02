@@ -1,4 +1,5 @@
 using DimensionalData, Test
+using DimensionalData: flip
 
 @testset "reversing methods" begin
     revdima = reverse(ArrayOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
@@ -50,7 +51,7 @@ using DimensionalData, Test
     @test order(dims(reoa, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
     @test order(dims(reoa, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
-    reoi = reorder(da, X=ReverseIndex, Y=ReverseIndex)
+    reoi = reorder(da, ReverseIndex, (X(), Y()))
     @test reoi == A 
     @test val(dims(reoi, X)) == 20:-10:10
     @test val(dims(reoi, Y)) == 300:-100:100
@@ -71,23 +72,39 @@ using DimensionalData, Test
     @test order(dims(reor, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
     @test order(dims(reor, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
 
-    # TODO test this more thouroughly
+    revallids = reverse(IndexOrder, da; dims=(X, Y))
+    @test index(revallids) == (20:-10:10, 100:100:300)
+    @test indexorder(revallids) == (ReverseIndex(), ForwardIndex())
+
+    @testset "Val index" begin
+        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
+                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
+        revdav = reverse(IndexOrder, dav; dims=(X, Y))
+        @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
+    end
+end
+
+@testset "flip" begin
+    A = [1 2 3; 4 5 6]
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
+    fda = flip(IndexOrder, da; dims=(X, Y))
+    @test indexorder(fda) == (ReverseIndex(), ForwardIndex())
+    fda = flip(Relation, da, Y)
+    @test relation(fda, Y) == ReverseRelation()
 end
 
 @testset "modify" begin
+    A = [1 2 3; 4 5 6]
+    dimz = (X(10:10:20), Y(300:-100:100))
     @testset "array" begin
-        A = [1 2 3; 4 5 6]
-        da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
+        da = DimArray(A, dimz)
         mda = modify(A -> A .> 3, da)
         @test dims(mda) === dims(da)
         @test mda == [false false false; true true true]
         @test typeof(parent(mda)) == BitArray{2}
         @test_throws ErrorException modify(A -> A[1, :], da)
     end
-
     @testset "dataset" begin
-        A = [1 2 3; 4 5 6]
-        dimz = (X(10:10:20), Y(300:-100:100))
         da1 = DimArray(A, dimz, :da1)
         da2 = DimArray(2A, dimz, :da2)
         ds = DimDataset(da1, da2)
@@ -95,6 +112,17 @@ end
         @test data(mds) == (da1=[false false false; true true true],
                               da2=[false true  true ; true true true])
         @test typeof(parent(mds[:da2])) == BitArray{2}
+    end
+    @testset "dimension" begin
+        dim = X(10:10:20)
+        mdim = modify(x -> 3 .* x, dim)
+        @test index(mdim) === 30:30:60
+        dim = Y(Val((1,2,3,4,5)))
+        mdim = modify(xs -> 2 .* xs, dim)
+        @test index(mdim) === (2, 4, 6, 8, 10)
+        da = DimArray(A, dimz)
+        mda = modify(y -> vec(4 .* y), da, Y)
+        @test index(mda, Y) == [1200.0, 800.0, 400.0]
     end
 end
 

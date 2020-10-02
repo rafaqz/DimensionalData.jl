@@ -20,7 +20,7 @@ for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :
         @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
             rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims)), reducedims(A, dims))
         @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Colon) =
-            ($mod.$_fname)(f, parent(A))
+            ($mod.$_fname)(f, parent(A), dims)
     end
 end
 
@@ -54,7 +54,7 @@ Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims
 # Base._accumulate!(op, B, A, dims::AllDims, init::Union{Nothing, Some}) =
     # Base._accumulate!(op, B, A, dimnum(A, dims), init)
 
-Base._extrema_dims(f, A::AbstractArray, dims::AllDims) = begin
+function Base._extrema_dims(f, A::AbstractArray, dims::AllDims)
     dnums = dimnum(A, dims)
     rebuild(A, Base._extrema_dims(f, parent(A), dnums), reducedims(A, dnums))
 end
@@ -62,7 +62,7 @@ end
 
 # Dimension dropping
 
-Base.dropdims(A::AbstractDimArray; dims) = begin
+function Base.dropdims(A::AbstractDimArray; dims)
     dims = DD.dims(A, dims)
     data = Base.dropdims(parent(A); dims=dimnum(A, dims))
     rebuildsliced(A, data, _dropinds(A, dims))
@@ -77,7 +77,7 @@ end
 
 @inline Base.map(f, A::AbstractDimArray) = rebuild(A, map(f, parent(A)))
 
-Base.mapslices(f, A::AbstractDimArray; dims=1, kwargs...) = begin
+function Base.mapslices(f, A::AbstractDimArray; dims=1, kwargs...)
     dimnums = dimnum(A, dims)
     _data = mapslices(f, parent(A); dims=dimnums, kwargs...)
     rebuild(A, _data, reducedims(A, DimensionalData.dims(A, dimnums)))
@@ -86,7 +86,7 @@ end
 # This is copied from base as we can't efficiently wrap this function
 # through the kwarg with a rebuild in the generator. Doing it this way
 # also makes it faster to use a dim than an integer.
-Base.eachslice(A::AbstractDimArray; dims=1, kwargs...) = begin
+function Base.eachslice(A::AbstractDimArray; dims=1, kwargs...)
     if dims isa Tuple && length(dims) != 1
         throw(ArgumentError("only single dimensions are supported"))
     end
@@ -139,7 +139,7 @@ Base.rotl90(A::AbstractDimMatrix, k::Integer) =
 
 Base.rotr90(A::AbstractDimMatrix) =
     rebuild(A, rotr90(parent(A)), rotdims(Rot270(), dims(A)))
-Baserotr90(A::AbstractDimMatrix, k::Integer) =
+Base.rotr90(A::AbstractDimMatrix, k::Integer) =
     rebuild(A, rotr90(parent(A), k), rotdims(rottype(-k), dims(A)))
 
 Base.rot180(A::AbstractDimMatrix) =
@@ -175,7 +175,7 @@ end
 
 Base._cat(catdims::Union{Int,Base.Dims}, Xin::AbstractDimArray...) =
     Base._cat(dims(first(Xin), catdims), Xin...)
-Base._cat(catdims::AllDims, Xin::AbstractDimArray...) = begin
+function Base._cat(catdims::AllDims, Xin::AbstractDimArray...)
     A1 = first(Xin)
     comparedims(Xin...)
     if all(hasdim(A1, catdims))
@@ -201,14 +201,15 @@ _catifcatdim(catdims::Tuple, ds) =
     any(map(cd -> basetypeof(cd) <: basetypeof(ds[1]), catdims)) ? vcat(ds...) : ds[1]
 _catifcatdim(catdim, ds) = basetypeof(catdim) <: basetypeof(ds[1]) ? vcat(ds...) : ds[1]
 
-Base.vcat(dims::Dimension...) =
-    rebuild(dims[1], vcat(val(dims)...), vcat(mode(dims)...))
+Base.vcat(dims::Dimension...) = begin
+    newmode = _vcat_modes(mode(dims)...)
+    rebuild(dims[1], _vcat_index(newmode, index(dims)...), newmode)
+end
 
 # IndexModes may need adjustment for `cat`
-Base.vcat(modes::IndexMode...) = first(modes)
-Base.vcat(modes::AbstractSampled...) =
+_vcat_modes(modes::IndexMode...) = first(modes)
+_vcat_modes(modes::AbstractSampled...) =
     _vcat_modes(sampling(first(modes)), span(first(modes)), modes...)
-
 _vcat_modes(::Any, ::Regular, modes...) = begin
     _step = step(first(modes))
     map(modes) do mode
@@ -217,10 +218,22 @@ _vcat_modes(::Any, ::Regular, modes...) = begin
     first(modes)
 end
 _vcat_modes(::Intervals, ::Irregular, modes...) = begin
-    bounds = bounds(modes[1])[1], bounds(modes[end])[end]
-    rebuild(modes[1]; span=Irregular(sortbounds(indexorder(modes[1]), bounds)))
+    allbounds = map(bounds ∘ span, modes)
+    @show allbounds
+    newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
+    @show newbounds
+    rebuild(modes[1]; span=Irregular(newbounds))
 end
 _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
+
+# Index vcat depends on mode:
+# NoIndex is always just Base.OneTo(length)
+# TODO: handle vcat OffsetArrays?
+_vcat_index(mode::NoIndex, A...) = Base.OneTo(sum(map(length, A)))
+# Otherwise just vcat. TODO: handle order breaking vcat?
+_vcat_index(mode::IndexMode, A...) = vcat(A...)
+
+
 
 
 Base.inv(A::AbstractDimArray{T,2}) where T =
@@ -230,6 +243,6 @@ Base.inv(A::AbstractDimArray{T,2}) where T =
 
 # TODO: change the index and traits of the reduced dimension
 # and return a DimArray.
-Base.unique(A::AbstractDimArray{<:Any,1}) = unique(parent(A))
 Base.unique(A::AbstractDimArray; dims::DimOrDimType) =
     unique(parent(A); dims=dimnum(A, dims))
+Base.unique(A::AbstractDimArray) = unique(parent(A))

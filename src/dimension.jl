@@ -159,7 +159,6 @@ bounds(dim::Dimension) = bounds(mode(dim), dim)
 modetype(dim::Dimension) = typeof(mode(dim))
 modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
 modetype(::UnionAll) = NoIndex
-modetype(::Type{UnionAll}) = NoIndex
 
 
 for func in (:order, :span, :sampling, :locus)
@@ -191,7 +190,8 @@ order(ot::Type{<:SubOrder}, dim::Dimension) = order(ot, mode(dim))
 
 Base.eltype(dim::Type{<:Dimension{T}}) where T = T
 Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
-Base.eltype(dim::Type{<:Dimension{<:Val{Index}}}) where Index where T = T
+# TODO Use a vector wrapper instead of Val
+Base.eltype(dim::Type{<:Dimension{<:Val{Index}}}) where Index = typeof(first(Index))
 Base.size(dim::Dimension) = size(val(dim))
 Base.size(dim::Dimension{<:Val}) = (length(unwrap(val(dim))),)
 Base.axes(dim::Dimension) = axes(val(dim))
@@ -203,8 +203,8 @@ Base.length(dim::Dimension{<:Val}) = length(unwrap(val(dim)))
 Base.ndims(dim::Dimension) = 0
 Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
 Base.ndims(dim::Dimension{<:Val}) = 1
-Base.getindex(dim::Dimension) = val(dim)
-Base.getindex(dim::Dimension{<:AbstractArray}, I...) = getindex(val(dim), I...)
+Base.getindex(dim::Dimension{<:Number}) = val(dim)
+Base.getindex(dim::Dimension{<:AbstractArray}, i1, I...) = getindex(val(dim), i1, I...)
 Base.getindex(dim::Dimension{<:Val}, i) = Val(getindex(unwrap(val(dim)), i))
 Base.iterate(dim::Dimension{<:AbstractArray}, args...) = iterate(val(dim), args...)
 Base.first(dim::Dimension) = val(dim)
@@ -420,10 +420,10 @@ based on the type and element type of the index:
 formatdims(A::AbstractArray, dims) = formatdims(A, (dims,))
 formatdims(A::AbstractArray, dims::NamedTuple) = begin
     dims = map((k, v) -> Dim{k}(v), keys(dims), values(dims))
-    _formatdims(axes(A), dims)
+    formatdims(axes(A), dims)
 end
 formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,N}}) where N =
-    _formatdims(axes(A), dims)
+    formatdims(axes(A), dims)
 formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,M}}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M"))
 formatdims(axes::Tuple, dims::Tuple) = _formatdims(axes, dims)
@@ -453,7 +453,7 @@ _formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, NoIndex())
 # Dimensions holding colon has the array axis inserted as the index
 _formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
-    rebuild(dim, axis, mode)
+    rebuild(dim, axis, identify(mode, basetypeof(dim), axis))
 
 checkaxis(dim, axis) =
     first(axes(dim)) == axis ||

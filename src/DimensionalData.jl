@@ -18,7 +18,7 @@ using ConstructionBase,
       SparseArrays,
       Tables
 
-using Base: tail, OneTo
+using Base: tail, OneTo, @propagate_inbounds
 
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
@@ -51,7 +51,7 @@ export AbstractDimTable, DimTable
 
 export AbstractDimDataset, DimDataset
 
-export data, dims, refdims, mode, metadata, name, shortname, label, units,
+export data, dims, refdims, mode, metadata, name, label, units,
        val, index, order, sampling, span, bounds, locus, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
@@ -60,6 +60,8 @@ export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims,
 export order, indexorder, arrayorder, relation
 
 export @dim
+
+const DD = DimensionalData
 
 include("interface.jl")
 include("mode.jl")
@@ -81,7 +83,5 @@ include("prettyprint.jl")
 # For compat with old versions
 const AbstractDimensionalArray = AbstractDimArray
 const DimensionalArray = DimArray
-
-const DD = DimensionalData
 
 end

@@ -53,7 +53,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(dest, _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
-    return if A isa Nothing || _dims isa Nothing
+    if A isa Nothing || _dims isa Nothing
         dest
     else
         rebuild(A, parent(dest), _dims, refdims(A))
@@ -64,7 +64,7 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(parent(dest), _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
-    return if A isa Nothing || _dims isa Nothing
+    if A isa Nothing || _dims isa Nothing
         dest
     else
         rebuild(A, parent(dest), _dims, refdims(A))

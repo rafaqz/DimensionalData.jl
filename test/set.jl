@@ -76,12 +76,15 @@ end
     @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
     @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
     @test locus(set(interval_da, X=End, Y=Center)) == (End(), Center())
+    @test locus(set(da, Y=Center())) == (Center(), Center())
 
     @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
         (Intervals(End()), Intervals(Start()))
     @test mode(set(da, X=NoIndex(), Y=Categorical())) == 
         (NoIndex(), Categorical())
-    @test order(set(da, Y(Unordered()))) == (Ordered(), Unordered())
+    uda = set(da, Y(Unordered()))
+    @test order(uda) == (Ordered(), Unordered(ForwardRelation()))
+    @test order(set(uda, Y=ReverseRelation())) == (Ordered(), Unordered(ReverseRelation()))
 end
 
 @testset "order" begin
@@ -112,4 +115,10 @@ end
     @test span(x) == Regular(-10)
     @test mode(x) == Sampled(Ordered(ReverseIndex(), ForwardArray(), ForwardRelation()), Regular(-10), Points())
     @test metadata(x) == Dict(:a=>1, :b=>2) 
+end
+
+@testset "errors with set" begin
+    @test_throws ArgumentError set(da, Sampled())
+    @test_throws ArgumentError set(da, X=7)
+    @test_throws ArgumentError DimensionalData._set(dims(da, X), X(7))
 end
