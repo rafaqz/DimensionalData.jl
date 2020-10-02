@@ -10,7 +10,7 @@
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions. It's a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
-syntax, and additional functionality found in NamedDimensions.jl. It has similar
+syntax, and additional functionality found in NamedDims.jl. It has similar
 goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
