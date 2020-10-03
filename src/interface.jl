@@ -30,6 +30,7 @@ The default is to return `nothing`.
 """
 function dims end
 dims(x) = nothing
+dims(::Nothing) = error("No dims found")
 
 """
     refdims(x) => Tuple{Vararg{<:Dimension}}
@@ -128,22 +129,6 @@ name(x) = name(typeof(x))
 name(x::Type) = ""
 
 """
-    shortname(x) => String
-    shortname(xs::NTuple{N}) => NTuple{N,String}
-    shortname(A::AbstractDimArray, dims::NTuple{N}) => NTuple{N,String}
-
-Get the shortname of an array or Dimension, or a tuple of of either.
-
-This may be a shorter version more suitable for small labels than 
-`name`, but it may also be identical to `name`.
-
-`dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
-"""
-function shortname end
-shortname(x) = shortname(typeof(x))
-shortname(x::Type) = ""
-
-"""
     units(x) => Union{Nothing,Any}
     units(::NTuple{N}) => NTuple{N}
     unit(A::AbstractDimArray, dims::NTuple{N}) => NTuple{N,String}
@@ -228,6 +213,7 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function arrayorder end
+arrayorder(args...) = order(ArrayOrder, args...)
 
 """
     indexorder(dim:Dimension) => Union{Forward,Reverse}
@@ -240,6 +226,7 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function indexorder end
+indexorder(args...) = order(IndexOrder, args...)
 
 """
     relation(dim:Dimension) => Union{Forward,Reverse}
@@ -252,3 +239,4 @@ and the array axis, for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function relation end
+relation(args...) = order(Relation, args...)

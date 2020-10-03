@@ -1,5 +1,4 @@
 struct HeatMapLike end
-struct ImageLike end
 struct WireframeLike end
 struct SeriesLike end
 struct HistogramLike end
@@ -100,14 +99,10 @@ end
     reverse(map(index, dims(A)))..., parent(A)
 end
 
-@recipe function f(::ImageLike, A::AbstractArray{T,2}) where T
-    parent(A)
-end
-
 maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
 
 forwardorder(A::AbstractArray) =
-    reorderindex(A, Forward()) |> a -> reorderrelation(a, Forward())
+    reorder(A, ForwardIndex) |> a -> reorder(a, ForwardRelation)
 
 refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
 refdims_title(refdim::Dimension) = 

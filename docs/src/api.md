@@ -3,11 +3,18 @@
 
 To use the functionality of DimensionalData in your module, dispatch on `AbstractDimArray` and `AbstractDimension`.
 
-Arrays:
+## Arrays
 
 ```@docs
 AbstractDimArray
 DimArray
+```
+
+## Multi-array datasets
+
+```@docs
+AbstractDimDataset
+DimDataset
 ```
 
 ## Core types
@@ -43,9 +50,10 @@ Contains
 Where
 ```
 
-## Index Modes
+## Modes
 
 ```@docs
+Mode
 IndexMode
 Aligned
 AbstractSampled
@@ -66,8 +74,15 @@ Unordered
 Ordered
 AutoOrder
 UnknownOrder
-DimensionalData.Forward
-DimensionalData.Reverse
+IndexOrder
+ForwardIndex
+ReverseIndex
+ArrayOrder
+ForwardArray
+ReverseArray
+Relation
+ForwardRelation
+ReverseRelation
 ```
 
 Index modes for [`Intervals`](@ref)
@@ -101,6 +116,14 @@ End
 AutoLocus
 ```
 
+## Tables.jl interface
+
+```@docs
+DimTable
+DimensionalData.DimColumn
+```
+
+
 ## Methods
 
 ## Getting basic info
@@ -108,41 +131,49 @@ AutoLocus
 These useful functions for obtaining information from your dimensional data:
 
 ```@docs
-bounds
-data
-dimnum
 dims
-hasdim
-otherdims
-commondims
-label
-mode
+refdims
 metadata
 name
-refdims
-shortname
 units
+label
+```
+
+Dimesion and mode properties:
+
+```@docs
 val
-basetypeof
+index
+mode
+bounds
+sampling
+locus
+span
+order
+indexorder
+arrayorder
+relation
+```
+
+Dimension querying
+
+```@docs
+hasdim
+dimnum
+otherdims
+commondims
 ```
 
 And some utility methods for transforming DimensionalData objects:
 
 ```@docs
+set
 rebuild
 modify
 dimwise
 dimwise!
-setdims
-swapdims
-reorderindex
-reorderarray
-reorderrelation
-reverseindex
-reversearray
-flipindex
-fliparray
-fliprelation
+reorder
+reverse
 ```
 
 ## Non-exported methods for developers
@@ -153,14 +184,12 @@ DimensionalData.key2dim
 DimensionalData.dims2indices
 DimensionalData.formatdims
 DimensionalData.reducedims
+DimensionalData.swapdims
 DimensionalData.slicedims
 DimensionalData.comparedims
+DimensionalData.sortdims
 DimensionalData.identify
-```
-
-## Implementation of the Tables.jl interface
-
-```@docs
-DimColumn
-DimArray
+DimensionalData.basetypeof
+DimensionalData.setdims
+DimensionalData.flip
 ```

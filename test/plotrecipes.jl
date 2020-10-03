@@ -3,7 +3,8 @@ using DimensionalData, Test, Plots, Dates, StatsPlots
 import Distributions
 
 A1 = rand(Distributions.Normal(), 100)
-da1 = DimArray(A1, X(1:10:1000), "Normal"; refdims=(Ti(1),))
+ref = (Ti(1, Sampled(Ordered(), Regular(Day(1)), Points())),)
+da1 = DimArray(A1, X(1:10:1000), :Normal; refdims=ref)
 
 # Plots
 plot(da1)
@@ -32,7 +33,7 @@ ea_histogram(da1)
 density(da1)
 
 A2 = rand(Distributions.Normal(), 40, 20)
-da2 = DimArray(A2, (X(1:10:400), Y(1:5:100)), "Normal")
+da2 = DimArray(A2, (X(1:10:400), Y(1:5:100)), :Normal)
 
 # Plots
 plot(da2)

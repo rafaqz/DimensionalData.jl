@@ -5,7 +5,10 @@ a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
 refdimz = (Ti(1:1),)
-da = DimArray(a, dimz, "test"; refdims=refdimz, metadata=Dict(:meta => "da"))
+
+# We warn about the name field type-change if you use a String
+@test_logs (:warn, "The AbstractDimArray name field is now a Symbol") DimArray(a, dimz, "test")
+da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=Dict(:meta => "da"))
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -28,7 +31,7 @@ end
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(a) == 
         (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test metadata(a) == Dict(:meta => "da")
     @test metadata(a, X) == Dict(:meta => "X")
     @test bounds(a) == ((143.0, 145.0),)
@@ -43,7 +46,7 @@ end
         (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
     @test refdims(a) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test metadata(a) == Dict(:meta => "da")
     @test bounds(a) == ((-38.0, -36.0),)
     @test bounds(a, Y()) == (-38.0, -36.0)
@@ -58,7 +61,7 @@ end
                       Y(LinRange(-38.0, -36.0, 2),
                         Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
     @test refdims(a) == (Ti(1:1),)
-    @test name(a) == "test"
+    @test name(a) == :test
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
     @test bounds(a, X) == (143.0, 145.0)
 
@@ -67,10 +70,11 @@ end
     @test a == [4 3; 2 1]
     @test dims(a) == 
         ((X([145.0, 143.0], mode(da, X), metadata(da, X)), Y([-36.0, -38.0], mode(da, Y), metadata(da, Y))))
+
 end
 
 @testset "view returns DimensionArray containing views" begin
-    v = @inferred view(da, Y(1), X(1))
+    v = view(da, Y(1), X(1))
     @test v[] == 1
     @test typeof(v) <: DimArray{Int,0}
     @test typeof(parent(v)) <:SubArray{Int,0}
@@ -79,11 +83,11 @@ end
     @test refdims(v) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
          Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
-    @test name(v) == "test"
+    @test name(v) == :test
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ()
 
-    v = @inferred view(da, Y(1), X(1:2))
+    v = view(da, Y(1), X(1:2))
     @test v == [1, 3]
     @test typeof(v) <: DimArray{Int,1}
     @test typeof(parent(v)) <: SubArray{Int,1}
@@ -93,11 +97,11 @@ end
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
     @test refdims(v) == 
         (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
-    @test name(v) == "test"
+    @test name(v) == :test
     @test metadata(v) == Dict(:meta => "da")
     @test bounds(v) == ((143.0, 145.0),)
 
-    v = @inferred view(da, Y(1:2), X(1:1))
+    v = view(da, Y(1:2), X(1:1))
     @test v == [1 2]
     @test typeof(v) <: DimArray{Int,2}
     @test typeof(parent(v)) <: SubArray{Int,2}
@@ -109,7 +113,7 @@ end
            Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
     @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
-    v = @inferred view(da, Y(Base.OneTo(2)), X(1))
+    v = view(da, Y(Base.OneTo(2)), X(1))
     @test v == [1, 2]
     @test typeof(parent(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:Y}
@@ -121,7 +125,18 @@ end
     @test bounds(v) == ((-38.0, -36.0),)
 end
 
-@testset "" begin
+@testset "Empty getindedex/view/setindex throws a BoundsError" begin
+    @test_throws BoundsError da[]
+    @test_throws BoundsError view(da)
+    @test_throws BoundsError da[] = 1
+end
+
+@testset "Cartesian indices work as usual" begin
+    @test da[CartesianIndex(2, 2)] == 4 
+    @test view(da, CartesianIndex(2, 2)) == view(parent(da), 2, 2) 
+    da_set = deepcopy(da)
+    da_set[CartesianIndex(2, 2)] = 5
+    @test da_set[2, 2] == 5
 end
 
 a2 = [1 2 3 4
@@ -132,15 +147,15 @@ b2 = [4 4 4 4
       4 4 4 4]
 
 @testset "indexing into empty dims is just regular indexing" begin
-    ida = @inferred DimArray(a2, (X(), Y()))
+    ida = DimArray(a2, (X(), Y()))
     ida[Y(3:4), X(2:3)] = [5 6; 6 7]
 end
 
 
 dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
+da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
 
-@testset "arbitrary dimension names also work for indexing" begin
+@testset "Symbol dimension names also work for indexing" begin
     @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
     @test da2[Dim{:column}(4)] == [4, 6, 7]
     @test da2[column=4] == [4, 6, 7]
@@ -160,7 +175,10 @@ da2 = DimArray(a2, dimz2, "test2"; refdims=refdimz)
 
     # We can also construct without using `Dim{X}`
     @test dims(DimArray(a2, (:a, :b))) == dims(DimArray(a2, (Dim{:a}, Dim{:b})))
+end
 
+@testset "Type inference holds with Symbol dimension names" begin
+    da2_set = deepcopy(da2)
     # Inrerence
     @inferred getindex(da2, column=1, row=3)
     @inferred view(da2, column=1, row=3)
@@ -191,13 +209,13 @@ end
     @test dac == da2
     @test dims(dac) == dims(da2)
     @test refdims(dac) == refdims(da2) == (Ti(1:1),)
-    @test name(dac) == name(da2) == "test2"
+    @test name(dac) == name(da2) == :test2
     @test metadata(dac) == metadata(da2)
     dadc = deepcopy(da2)
     @test dadc == da2
     @test dims(dadc) == dims(da2)
     @test refdims(dadc) == refdims(da2) == (Ti(1:1),)
-    @test name(dadc) == name(da2) == "test2"
+    @test name(dadc) == name(da2) == :test2
     @test metadata(dadc) == metadata(da2)
 
     o = one(da)
@@ -299,20 +317,18 @@ end
 end
 
 if VERSION > v"1.1-"
-    dimz = (X(LinRange(143.0, 145.0, 3); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
-            Y(LinRange(-38.0, -36.0, 4); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
     @testset "copy!" begin
-        db = DimArray(deepcopy(b2), dimz)
-        dc = DimArray(deepcopy(b2), dimz)
-        @test db != da2
-        @test b2 != da2
+        dimz = dims(da2)
+        A = zero(b2)
+        db = DimArray(deepcopy(A), dimz)
+        dc = DimArray(deepcopy(A), dimz)
 
-        copy!(b2, da2)
-        @test b2 == a2
+        copy!(A, da2)
+        @test A == parent(da2)
         copy!(db, da2)
-        @test db == da2
+        @test parent(db) == parent(da2)
         copy!(dc, a2)
-        @test db == a2
+        @test parent(db) == a2
 
         @testset "vector copy! (ambiguity fix)" begin
             v = zeros(3)
@@ -329,17 +345,36 @@ if VERSION > v"1.1-"
 end
 
 @testset "constructor" begin
-    da = DimArray(rand(5, 4), (X, Y))
+    da = DimArray(; data=rand(5, 4), dims=(X, Y))
     @test_throws DimensionMismatch DimArray(1:5, X(1:6))
     @test_throws DimensionMismatch DimArray(1:5, (X(1:5), Y(1:2)))
+    da_reconstructed = DimArray(da)
+    @test da == da_reconstructed
+    @test dims(da) == dims(da_reconstructed)
 end
 
-
 @testset "fill constructor" begin
-    da = fill(5.0, (X(4), Y(40.0:10.0:80.0)))
+    da = fill(5.0, X(4), Y(40.0:10.0:80.0))
     @test parent(da) == fill(5.0, (4, 5))
     @test dims(da) == 
         (X(Base.OneTo(4), NoIndex(), nothing), 
          Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
     @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
+end
+
+@testset "dims methods" begin
+    @test index(da) == val(da) == (LinRange(143.0, 145.0, 2), LinRange(-38.0, -36.0, 2))
+    @test mode(da) == (Sampled(Ordered(), Regular(2.0), Points()), 
+                       Sampled(Ordered(), Regular(2.0), Points()))
+    @test order(da) == (Ordered(), Ordered())
+    @test sampling(da) == (Points(), Points())
+    @test span(da) == (Regular(2.0), Regular(2.0))
+    @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
+    @test locus(da) == (Center(), Center())
+    @test indexorder(da) == (ForwardIndex(), ForwardIndex())
+    @test arrayorder(da) == (ForwardArray(), ForwardArray())
+    @test relation(da) == (ForwardRelation(), ForwardRelation())
+    # Dim args work too
+    @test relation(da, X) == ForwardRelation()
+    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
 end

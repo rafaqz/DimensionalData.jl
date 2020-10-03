@@ -45,7 +45,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     return if A isa Nothing || _dims isa Nothing
         data
     else
-        rebuild(A, data, _dims, refdims(A), "")
+        rebuild(A, data, _dims, refdims(A), Symbol(""))
     end
 end
 
@@ -53,10 +53,10 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(dest, _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
-    return if A isa Nothing || _dims isa Nothing
+    if A isa Nothing || _dims isa Nothing
         dest
     else
-        rebuild(A, parent(dest), _dims, refdims(A), "")
+        rebuild(A, parent(dest), _dims, refdims(A))
     end
 end
 
@@ -64,16 +64,16 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(parent(dest), _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
-    return if A isa Nothing || _dims isa Nothing
+    if A isa Nothing || _dims isa Nothing
         dest
     else
-        rebuild(A, parent(dest), _dims, refdims(A), "")
+        rebuild(A, parent(dest), _dims, refdims(A))
     end
 end
 
 Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T} = begin
     A = _firstdimarray(bc)
-    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), "")
+    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
 
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.

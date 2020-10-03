@@ -101,7 +101,6 @@ using DimensionalData, Test
         # check that dest is written into:
         @test dims(z .= ab .+ ba') == dims(ab .+ ba')
         @test z == (ab.data .+ ba.data')
-        @test z isa Array  # has not itself magically gained names
 
         @test dims(z .= ab .+ a_) == 
             (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))

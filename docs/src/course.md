@@ -49,7 +49,7 @@ array axis.
 This can also be done with `Symbol`, using `Dim{X}`:
 
 ```@example main
-A = DimArray(rand(12, 10), (time=t, distance=x))
+A2 = DimArray(rand(12, 10), (time=t, distance=x))
 ```
 
 Symbols can be more convenient than defining dims with `@dim`, but have some
@@ -133,7 +133,6 @@ has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
 indexed this way will return a regular array.
 
 
-
 ## Specifying `dims` keyword arguments with `Dimension`
 
 In many Julia functions like `size` or `sum`, you can specify the dimension
@@ -156,7 +155,7 @@ take the cosines of the values of the dimension `X` while still keeping the
 dimensional information of `X`, you can use the syntax:
 
 ```@example main
-DimArray(cos, x)
+DimArray(cos, dims(A, X))
 ```
 
 ## Referenced dimensions

@@ -1,203 +1,184 @@
+
 """
-    reversearray(A; dims) => AbstractDimArray
-    reversearray(dim::Dimension) => Dimension
+    reverse(A; dims) => AbstractDimArray
+    reverse(dim::Dimension) => Dimension
 
 Reverse the array order, and update the dim to match.
 """
-function reversearray end
+Base.reverse(A::AbstractDimArray; dims=1) = reverse(ArrayOrder, A, dims)
+Base.reverse(ds::AbstractDimDataset; dims=1) = reverse(ArrayOrder, ds, dims)
+Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
+Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
+Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
+    newdims = reverse(ot, dims(x, lookup))
+    newdata = _reversedata(x, dimnum(x, lookup))
+    setdims(rebuild(x, newdata), newdims)
+end
+
+_reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
+_reversedata(ds::AbstractDimDataset, dimnum) = 
+    map(a -> reverse(parent(a); dims=dimnum), data(ds))
+
+# Dimension
+Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
+Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, reverse(ot, order(dim)))
+# Reverse the index
+Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) =
+    rebuild(dim, reverse(index(dim)), reverse(ot, mode(dim)))
+Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension{<:Val{Keys}}) where Keys =
+    rebuild(dim, Val(reverse(Keys)), reverse(ot, mode(dim)))
+Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
+
+# Mode
+Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) = 
+    rebuild(mode; order=reverse(ot, order(mode)))
+Base.reverse(ot::Type{<:SubOrder}, mode::Sampled) = 
+rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
+
+# Order
+Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
+    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
+Base.reverse(::Type{<:Union{ArrayOrder,Relation}}, o::Ordered) =
+    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
+Base.reverse(::Type{<:SubOrder}, o::Unordered) = Unordered(reverse(relation(o)))
+
+# SubOrder
+Base.reverse(::ReverseIndex) = ForwardIndex()
+Base.reverse(::ForwardIndex) = ReverseIndex()
+Base.reverse(::ReverseArray) = ForwardArray()
+Base.reverse(::ForwardArray) = ReverseArray()
+Base.reverse(::ReverseRelation) = ForwardRelation()
+Base.reverse(::ForwardRelation) = ReverseRelation()
+
+# Span 
+Base.reverse(::Type{<:IndexOrder}, span::Regular) = reverse(span)
+Base.reverse(::Type{<:SubOrder}, span::Span) = span
+Base.reverse(span::Regular) = Regular(-step(span))
 
 """
-    reverseindex(A; dims) => AbstractDimArray
-    reverseindex(dim::Dimension) => Dimension
-
-Reverse the dimension index.
-"""
-function reverseindex end
-
-"""
-    fliparray(A; dims) => AbstractDimArray
+    fliparray(Order, A, dims) => AbstractDimArray
     fliparray(dim::Dimension) => Dimension
 
 `Flip` the array order without changing any data.
 """
-function fliparray end
+function flip end
 
-"""
-    flipindex(A; dims) => AbstractDimArray
-    flipindex(dim::Dimension) => Dimension
-
-`Flip` the index order without changing any data.
-"""
-function flipindex end
-
-"""
-    fliprelation(A; dims) => AbstractDimArray
-    fliprelation(dim::Dimension) => Dimension
-
-`Flip` the relation between the dimension order and the array axis,
-without actually changing any data.
-"""
-function fliprelation end
-
-for func in (:reversearray, :reverseindex, :fliparray, :flipindex, :fliprelation)
-    if func != :reversearray
-        @eval begin
-            ($func)(A::AbstractDimArray{T,N}; dims) where {T,N} = begin
-                dnum = dimnum(A, dims)
-                # Reverse the dimension. TODO: make this type stable
-                newdims = $func(DimensionalData.dims(A), dnum)
-                rebuild(A, parent(A), newdims)
-            end
-        end
-    end
-    @eval begin
-        # TODO rewrite this it's awful and not type-stable
-        @inline ($func)(dimstorev::Tuple, dnum) = begin
-            dim = if length(dimstorev) == dnum
-                ($func)(dimstorev[end])
-            else
-                dimstorev[end]
-            end
-            (($func)(Base.front(dimstorev), dnum)..., dim)
-        end
-        @inline ($func)(dimstorev::Tuple{}, i) = ()
-        ($func)(mode::IndexMode) = rebuild(mode, ($func)(order(mode)))
-    end
-end
-
-reversearray(A::AbstractDimArray{T,N}; dims=1) where {T,N} = begin
-    dnum = dimnum(A, dims)
-    # Reverse the dimension. TODO: make this type stable
-    newdims = reversearray(DimensionalData.dims(A), dnum)
-    # Reverse the data
-    newdata = reverse(parent(A); dims=dnum)
-    rebuild(A, newdata, newdims)
-end
-@inline reversearray(dim::Dimension) =
-    rebuild(dim, val(dim), reversearray(mode(dim)))
-
-@inline reverseindex(dim::Dimension) =
-    rebuild(dim, reverse(val(dim)), reverseindex(mode(dim)))
-@inline reverseindex(dim::Dimension{<:Val}) =
-    rebuild(dim, Val(reverse(unwrap(val(dim)))), reverseindex(mode(dim)))
-
-@inline flipindex(dim::Dimension) =
-    rebuild(dim, val(dim), flipindex(mode(dim)))
-
-@inline fliparray(dim::Dimension) =
-    rebuild(dim, val(dim), fliparray(mode(dim)))
-
-@inline fliprelation(dim::Dimension) =
-    rebuild(dim, val(dim), fliprelation(mode(dim)))
+flip(ot::Type{<:SubOrder}, x; dims) = flip(ot, x, dims)
+flip(ot::Type{<:SubOrder}, x, lookupdims) = set(x, flip(ot, dims(x, lookupdims)))
+flip(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> flip(ot, d), dims)
+flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
+flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
+flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 
 
 """
-    reorderindex(A, order::Union{Order,Dimension{<:Order},Tuple})
+    reorder(::order, A::AbstractDimArray) => AbstractDimArray
+    reorder(A::AbstractDimArray, order::Union{Order,Dimension{<:Order},Tuple}) => AbstractDimArray
+    reorder(A::AbstractDimArray, order::Pair{<:Dimension,<:SubOrder}...) => AbstractDimArray
 
-Reorder every dims index to `order`, or reorder index for 
+Reorder every dims index/array/relation to `order`, or reorder index for
 the the given dimension(s) to the `Order` they wrap.
 
-`order` can be an [`Order`](@ref), a single [`Dimension`](@ref) 
+Reorderind `Relation` will reverse the array, not the dimension index.
+
+`order` can be an [`Order`](@ref), a single [`Dimension`](@ref)
 or a `Tuple` of `Dimension`.
 """
-function reorderindex end
+function reorder end
 
-"""
-    reorderarray(A, order::Union{Order,Dimension{<:Order},Tuple})
+reorder(x, args...; kwargs...) =
+    reorder(x, (args..., _kwargdims(kwargs)...))
+reorder(x, nt::NamedTuple) = reorder(x, _kwargdims(nt))
+reorder(x, p::Pair, ps::Vararg{<:Pair}) = reorder(x, (p, ps...))
+reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, _pairdims(ps...))
+# Reorder specific dims.
+reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
+# Reorder all dims.
+reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}) =
+    _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
+reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}, dims_) =
+    _reorder(x, map(d -> basetypeof(d)(ot), dims(x, dims_)))
 
-Reorder the array to `order` for every axis, or reorder array 
-for the the given dimension(s) to the `Order` they wrap.
+# Recursive reordering. x may be reversed here
+_reorder(x, dims::DimTuple) =
+    _reorder(reorder(x, dims[1]), tail(dims))
+_reorder(x, dims::Tuple{}) = x
 
-`order` can be an [`Order`](@ref), a single [`Dimension`](@ref) 
-or a `Tuple` of `Dimension`.
-"""
-function reorderarray end
+reorder(x, orderdim::Dimension) =
+    _reorder(val(orderdim), x, dims(x, orderdim))
 
-"""
-    reorderrelation(A, order::Union{Order,Dimension{<:Order},Tuple})
-
-Reorder relation to `order` for every dimension, or reorder relation 
-for the the given dimension(s) to the `Order` they wrap.
-
-This will reverse the array, not the dimension index.
-
-`order` can be an [`Order`](@ref), a single [`Dimension`](@ref) 
-or a `Tuple` of `Dimension`.
-"""
-function reorderrelation end
-
-
-for target in (:index, :array, :relation)
-    reorder = Symbol(:reorder, target)
-    if target == :relation 
-        # Revsersing the relation reverses the array, not the index
-        reverse = :reversearray
-        ord = relation
-    else
-        reverse = Symbol(:reverse, target)
-        ord = Symbol(target, :order)
-    end
-    @eval begin
-
-        ($reorder)(A::AbstractDimArray, order::Tuple, args...) = begin
-            for dim in _sortdims(order, dims(A))
-                A = ($reorder)(A, dim, args...)
-            end
-            A
-        end
-        ($reorder)(A::AbstractDimArray, orderdim::Dimension{<:Order}) =
-            ($reorder)(A, orderdim, val(orderdim))
-        ($reorder)(A::AbstractDimArray, order::Nothing) = A
-        ($reorder)(A::AbstractDimArray, order::Order=Forward()) = begin
-            for dim in dims(A)
-                A = ($reorder)(A, dim, order)
-            end
-            A
-        end
-        ($reorder)(A::AbstractDimArray, dim::DimOrDimType, order::Order) =
-            if order == ($ord)(dims(A, dim))
-                A
-            else
-                ($reverse)(A; dims=dim)
-            end
-        ($reorder)(A::AbstractDimArray, dim::DimOrDimType, order::Unordered) = A
-    end
-end
+_reorder(neworder::SubOrder, x, dim::DimOrDimType) =
+    _reorder(basetypeof(neworder), x, dim)
+# Reverse the dimension index
+_reorder(ot::Type{<:IndexOrder}, x, dim::DimOrDimType) =
+    ot == basetypeof(order(ot, dim)) ? x : set(x, reverse(ot, dim))
+# If either ArrayOrder or Relation are reversed, we reverse the array
+_reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
+    ot == basetypeof(order(ot, dim)) ? x : reverse(x; dims=dim)
 
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray
+    modify(f, ds::AbstractDimDataset) => AbstractDimDataset
+    modify(f, dim::Dimension) => Dimension
+    modify(f, x, lookupdim::Dimension) => typeof(x)
 
-Modify the parent data, rebuilding the `AbstractDimArray` wrapper without
+Modify the parent data, rebuilding the object wrapper without
 change. `f` must return a `AbstractArray` of the same size as the original.
+
+This method is mostly useful as a way of swapping the parent array type of
+an object.
+
+## Example
+
+If we have a previously-defined `DimArray`, we can copy it to an Nvidia GPU with:
+
+```julia
+A = DimArray(rand(100, 100), (X, Y))
+modify(CuArray, A)
+```
+
+This also works for all the data layers in a `DimDataset`.
 """
 modify(f, A::AbstractDimArray) = begin
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
     rebuild(A, newdata)
 end
+modify(f, ds::AbstractDimDataset) = map(f, ds)
+modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
+modify(f, dim::Dimension) = begin
+    newindex = f(index(dim))
+    size(newindex) == size(dim) || error("$f returns a vector with a different size")
+    rebuild(dim, newindex)
+end
+modify(f, dim::Dimension{<:Val{Index}}) where Index = begin
+    newindex = f(Index)
+    length(newindex) == length(dim) || error("$f returns a Tuple with a different size")
+    rebuild(dim, Val(newindex))
+end
 
 
 """
     dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
 
-Dimension-wise application of function `f` to `A` and `B`. 
+Dimension-wise application of function `f` to `A` and `B`.
 
 ## Arguments
 
 - `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
 - `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
-This is like broadcasting over every slice of `A` if it is 
+This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-dimwise(f, A::AbstractDimArray, B::AbstractDimArray) = 
+dimwise(f, A::AbstractDimArray, B::AbstractDimArray) =
     dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
 
 """
     dimwise!(f, dest::AbstractDimArray{T1,N}, A::AbstractDimArray{T2,N}, B::AbstractDimArray) => dest
 
-Dimension-wise application of function `f`. 
+Dimension-wise application of function `f`.
 
 ## Arguments
 
@@ -205,7 +186,7 @@ Dimension-wise application of function `f`.
 - `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
 - `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
-This is like broadcasting over every slice of `A` if it is 
+This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`, and storing the value in `dest`.
 """
 dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractDimArray{TB,NB}
@@ -226,7 +207,7 @@ dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractD
 end
 
 # Single dimension generator
-dimwise_generators(dims::Tuple{<:Dimension}) =  
+dimwise_generators(dims::Tuple{<:Dimension}) =
     ((basetypeof(dims[1])(i),) for i in axes(dims[1], 1))
 
 # Multi dimensional generators
@@ -241,7 +222,6 @@ dimwise_generators(dims::Tuple) = begin
         map((D, i) -> D(i), dim_constructors, I)
     end
 end
-
 
 
 """
@@ -263,8 +243,19 @@ end
 # Left pipe operator for cleaning up brackets
 f <| x = f(x)
 
+# Unwrap Val
 unwrap(::Val{X}) where X = X
 unwrap(::Type{Val{X}}) where X = X
 unwrap(x) = x
 
-
+# Get a tuple of unique keys for DimArrays. If they have the same
+# name we call them layerI.
+uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}}) =
+    uniquekeys(Symbol.(map(name, das)))
+uniquekeys(keys::Tuple{String,Vararg{<:String}}) = uniquekeys(map(Symbol, keys))
+uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}}) = begin
+    ids = ntuple(x -> x, length(keys))
+    map(keys, ids) do k, id
+        count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+    end
+end

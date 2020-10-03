@@ -67,13 +67,25 @@ rebuildmul(A::AbstractDimMatrix, B::AbstractDimMatrix) = begin
 end
 rebuildmul(A::AbstractDimVector, B::AbstractMatrix) =
     rebuild(A, parent(A) * B, (first(dims(A)), AnonDim(Base.OneTo(size(B, 2)))))
-rebuildmul(A::AbstractDimMatrix, B::AbstractVector) =
-    rebuild(A, parent(A) * B, (first(dims(A)),))
+rebuildmul(A::AbstractDimMatrix, B::AbstractVector) = begin
+    newdata = parent(A) * B
+    if newdata isa AbstractArray
+        rebuild(A, parent(A) * B, (first(dims(A)),))
+    else
+        newdata
+    end
+end
 rebuildmul(A::AbstractDimMatrix, B::AbstractMatrix) =
     rebuild(A, parent(A) * B, (first(dims(A)), AnonDim(Base.OneTo(size(B, 2)))))
 rebuildmul(A::AbstractVector, B::AbstractDimMatrix) =
-    rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))) )
-rebuildmul(A::AbstractMatrix, B::AbstractDimVector) =
-    rebuild(B, A * parent(B), (AnonDim(Base.OneTo(1)),))
+    rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))))
+rebuildmul(A::AbstractMatrix, B::AbstractDimVector) = begin
+    newdata = A * parent(B)
+    if newdata isa AbstractArray
+        rebuild(B, A * parent(B), (AnonDim(Base.OneTo(1)),))
+    else
+        newdata
+    end
+end
 rebuildmul(A::AbstractMatrix, B::AbstractDimMatrix) =
     rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))))

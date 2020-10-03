@@ -18,7 +18,7 @@ using ConstructionBase,
       SparseArrays,
       Tables
 
-using Base: tail, OneTo
+using Base: tail, OneTo, @propagate_inbounds
 
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
@@ -30,11 +30,15 @@ export Locus, Center, Start, End, AutoLocus
 
 export Order, Ordered, Unordered, UnknownOrder, AutoOrder
 
+export IndexOrder, ArrayOrder, Relation,
+       ForwardIndex, ReverseIndex, UnorderedIndex,
+       ForwardArray, ReverseArray, ForwardRelation, ReverseRelation
+
 export Sampling, Points, Intervals
 
 export Span, Regular, Irregular, AutoSpan
 
-export IndexMode, Auto, AutoMode, NoIndex
+export Mode, IndexMode, Auto, AutoMode, NoIndex
 
 export Aligned, AbstractSampled, Sampled,
        AbstractCategorical, Categorical
@@ -45,36 +49,39 @@ export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
 export AbstractDimTable, DimTable
 
-export data, dims, refdims, mode, metadata, name, shortname, label, units,
-       val, index, order, sampling, span, bounds, locus, relation, <|
+export AbstractDimDataset, DimDataset
+
+export data, dims, refdims, mode, metadata, name, label, units,
+       val, index, order, sampling, span, bounds, locus, <|
 
 export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
-       rebuild, modify, dimwise, dimwise!
+       set, rebuild, reorder, modify, dimwise, dimwise!
 
-export order, indexorder, arrayorder, 
-       reverseindex, reversearray, reorderindex, 
-       reorderarray, reorderrelation
+export order, indexorder, arrayorder, relation
 
 export @dim
 
+const DD = DimensionalData
+
 include("interface.jl")
 include("mode.jl")
+include("identify.jl")
 include("dimension.jl")
 include("array.jl")
+include("dataset.jl")
+include("tables.jl")
 include("selector.jl")
+include("primitives.jl")
 include("broadcast.jl")
 include("methods.jl")
 include("matmul.jl")
-include("primitives.jl")
+include("set.jl")
 include("utils.jl")
 include("plotrecipes.jl")
-include("tables.jl")
 include("prettyprint.jl")
 
 # For compat with old versions
 const AbstractDimensionalArray = AbstractDimArray
 const DimensionalArray = DimArray
-
-const DD = DimensionalData
 
 end
