@@ -34,5 +34,5 @@ if VERSION >= v"1.5.0"
         Random.seed!(1234)
     end
     DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-    doctest(DimensionalData; fix=true)
+    doctest(DimensionalData)
 end
