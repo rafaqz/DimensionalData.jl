@@ -44,19 +44,16 @@ julia> A = [1.0 2.0 3.0; 4.0 5.0 6.0];
 julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
 (X (type X): Symbol[a, b] (AutoMode), Y (type Y): 10.0:10.0:30.0 (AutoMode))
 
-julia> da1 = DimArray(1A, dimz, "one");
-┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
+julia> da1 = DimArray(1A, dimz, :one);
 
 
-julia> da2 = DimArray(2A, dimz, "two");
-┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
+
+julia> da2 = DimArray(2A, dimz, :two);
 
 
-julia> da3 = DimArray(3A, dimz, "three");
-┌ Warning: The AbstractDimArray name field is now a Symbol
-└ @ DimensionalData ~/.julia/dev/DimensionalData/src/array.jl:235
+
+julia> da3 = DimArray(3A, dimz, :three);
+
 
 
 julia> ds = DimDataset(da1, da2, da3)
