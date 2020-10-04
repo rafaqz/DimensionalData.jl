@@ -34,7 +34,6 @@ refdims(A::AbstractDimArray) = A.refdims
 data(A::AbstractDimArray) = A.data
 name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
-label(A::AbstractDimArray) = name(A)
 
 
 """
