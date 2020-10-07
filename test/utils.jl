@@ -94,21 +94,22 @@ end
 end
 
 @testset "diff" begin
-    @testset "Array 3D" begin
-        x = X(2:2:10)
+    @testset "Array 2D" begin
         y = Y(['a', 'b', 'c'])
-        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
-        A = DimArray(zeros(3, 5, 12), (y, x, ti))
-        @test diff(A; dims=1) == diff(A; dims=Y) == diff(A; dims=:Y) == diff(A; dims=y) == DimArray(zeros(2, 5, 12), (Y(['b', 'c']), x, ti))
-        @test diff(A; dims=2) == diff(A; dims=X) == diff(A; dims=:X) == diff(A; dims=x) == DimArray(zeros(3, 4, 12), (y, X(4:2:10), ti))
-        @test diff(A; dims=3) == diff(A; dims=Ti) == diff(A; dims=:Ti) == diff(A; dims=ti) == DimArray(zeros(3, 5, 11), (y, x, Ti(DateTime(2021, 2):Month(1):DateTime(2021, 12))))
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        data = [-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7]
+        A = DimArray(data, (y, ti))
+        @test diff(A; dims=1) == diff(A; dims=Y) == diff(A; dims=:Y) == diff(A; dims=y) == DimArray([111 93 -169 142; 98 -55 110 -131], (Y(['b', 'c']), ti))
+        @test diff(A; dims=2) == diff(A; dims=Ti) == diff(A; dims=:Ti) == diff(A; dims=ti) == DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 2):Month(1):DateTime(2021, 4))))
         @test_throws MethodError diff(A; dims='X')
         @test_throws ArgumentError diff(A; dims=Z)
-        @test_throws ArgumentError diff(A; dims=4)
+        @test_throws ArgumentError diff(A; dims=3)
     end
     @testset "Vector" begin
-        x = DimArray(1:10, X(2:2:20))
-        @test diff(x) == diff(x; dims=1) == diff(x; dims=X) == DimArray(ones(9), X(4:2:20))
+        x = DimArray([56, -123, -60, -44, -64, 70, 52, -48, -74, 86], X(2:2:20))
+        @test diff(x) == diff(x; dims=1) == diff(x; dims=X) == DimArray([-179, 63, 16, -20, 134, -18, -100, -26, 160], X(4:2:20))
     end
 end
 
