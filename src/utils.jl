@@ -80,8 +80,8 @@ function _diff(a::AbstractArray{T,N}; dims::Integer) where {T,N}
 
     return view(a, r1...) .- view(a, r0...)
 end
-Base.diff(A::AbstractDimArray; dims) = _diff(A; dims = dimnum(A, dims))
-Base.diff(A::AbstractDimVector) = diff(A; dims = 1)
+Base.diff(A::AbstractDimArray; dims) = _diff(A; dims=dimnum(A, dims))
+Base.diff(A::AbstractDimVector) = diff(A; dims=1)
 
 """
     reorder(::order, A::AbstractDimArray) => AbstractDimArray
