@@ -93,6 +93,25 @@ end
     @test relation(fda, Y) == ReverseRelation()
 end
 
+@testset "diff" begin
+    @testset "Array 3D" begin
+        x = X(2:2:10)
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
+        A = DimArray(zeros(3, 5, 12), (y, x, ti))
+        @test diff(A; dims = 1) == diff(A; dims = Y) == diff(A; dims = :Y) == diff(A; dims = y) == DimArray(zeros(2, 5, 12), (Y(['b', 'c']), x, ti))
+        @test diff(A; dims = 2) == diff(A; dims = X) == diff(A; dims = :X) == diff(A; dims = x) == DimArray(zeros(3, 4, 12), (y, X(4:2:10), ti))
+        @test diff(A; dims = 3) == diff(A; dims = Ti) == diff(A; dims = :Ti) == diff(A; dims = ti) == DimArray(zeros(3, 5, 11), (y, x, Ti(DateTime(2021, 2):Month(1):DateTime(2021, 12))))
+        @test_throws MethodError diff(A; dims = 'X')
+        @test_throws ArgumentError diff(A; dims = Z)
+        @test_throws ArgumentError diff(A; dims = 4)
+    end
+    @testset "Vector" begin
+        x = DimArray(1:10, X(2:2:20))
+        @test diff(x) == diff(x; dims = 1) == diff(x; dims = X) == DimArray(ones(9), X(4:2:20))
+    end
+end
+
 @testset "modify" begin
     A = [1 2 3; 4 5 6]
     dimz = (X(10:10:20), Y(300:-100:100))
