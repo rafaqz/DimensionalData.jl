@@ -273,6 +273,7 @@ julia> dimnum(A, Y)
 @inline dimnum(d::Tuple, lookup) = dimnum(d, (lookup,))[1]
 @inline dimnum(d::Tuple, lookup::AbstractArray) = dimnum(d, (lookup...,))
 @inline dimnum(d::Tuple, lookup::Tuple) = _dimnum(d, key2dim(lookup), (), 1)
+@inline dimnum(d::Tuple, lookup::Colon) = Colon()
 
 # Match dim and lookup, also check if the mode has a transformed dimension that matches
 @inline _dimnum(d::Tuple, lookup::Tuple, rejected, n) =

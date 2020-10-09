@@ -243,6 +243,6 @@ Base.inv(A::AbstractDimArray{T,2}) where T =
 
 # TODO: change the index and traits of the reduced dimension
 # and return a DimArray.
-Base.unique(A::AbstractDimArray; dims::DimOrDimType) =
+Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Colon}=:) =
     unique(parent(A); dims=dimnum(A, dims))
-Base.unique(A::AbstractDimArray) = unique(parent(A))
+Base.unique(A::AbstractDimArray{<:Any,1}) = unique(parent(A))
