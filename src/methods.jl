@@ -9,8 +9,8 @@ end
 # Reducing methods
 
 # With a function arg version
-for (mod, fname) in ((:Base, :any), (:Base, :all), (:Base, :sum), (:Base, :prod),
-                     (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
+for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), 
+                     (:Statistics, :mean))
     _fname = Symbol('_', fname)
     @eval begin
         # Base methods
@@ -48,7 +48,7 @@ for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
             ($mod.$fname)(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims))
     end
 end
-for (mod, fname) in ((:Statistics, :median), (:Base, :extrema))
+for (mod, fname) in ((:Statistics, :median), (:Base, :extrema), (:Base, :any), (:Base, :all))
     _fname = Symbol('_', fname)
     @eval begin
         # Base methods
