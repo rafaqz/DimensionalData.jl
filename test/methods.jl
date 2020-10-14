@@ -101,6 +101,14 @@ end
     @test median(da) == 3.5
     @test median(da; dims=X()) == [2.5 3.5 4.5]
     @test median(da; dims=2) == [2.0 5.0]'
+
+    a = Bool[0 1 1; 0 0 0]
+    da = DimArray(a, dimz)
+    @test any(da) === true
+    @test any(da; dims=Y) == reshape([true, false], 2, 1)
+    @test all(da) === false
+    @test all(da; dims=Y) == reshape([false, false], 2, 1)
+    @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
 end
 
 @testset "dimension dropping methods" begin
