@@ -17,6 +17,27 @@ end
     dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
     da = DimArray(a, dimz)
 
+    # Test all dime combinations with maxium
+    @test maximum(da; dims=2) == [2 4]'
+    @test maximum(da; dims=Y()) == [2 4]'
+    @test maximum(da; dims=Y) == [2 4]'
+    @test maximum(da; dims=:Y) == [2 4]'
+    @test maximum(da; dims=(1, 2)) == [4]'
+    @test maximum(da; dims=(X, Y)) == [4]'
+    @test maximum(da; dims=(X(), Y())) == [4]'
+    @test maximum(da; dims=(:X, :Y)) == [4]'
+    @test maximum(x -> 2x, da; dims=X) == [6 8]
+    @test maximum(x -> 2x, da; dims=2) == [4 8]'
+    @test maximum(x -> 2x, da; dims=(X, Y)) == [8]'
+    @test maximum(x -> 2x, da; dims=(:X, :Y)) == [8]'
+    @test maximum(x -> 2x, da; dims=(X(), Y())) == [8]'
+
+    @test minimum(da; dims=1) == [1 2]
+    @test minimum(da; dims=Y()) == [1 3]'
+    @test dims(minimum(da; dims=X())) ==
+        (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
+         Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
+
     @test sum(da; dims=X()) == sum(a; dims=1)
     @test sum(da; dims=Y()) == sum(a; dims=2)
     @test dims(sum(da; dims=Y())) ==
@@ -33,35 +54,30 @@ end
     @test typeof(dims(prod(da; dims=X()))) == typeof(resultdimz)
     @test bounds(dims(prod(da; dims=X()))) == bounds(resultdimz)
 
-    @test maximum(da; dims=X) == [3 4]
-    @test maximum(da; dims=2) == [2 4]'
-    @test maximum(x -> 2x, da; dims=X) == [6 8]
-    @test maximum(x -> 2x, da; dims=2) == [4 8]'
-
-    @test minimum(da; dims=1) == [1 2]
-    @test minimum(da; dims=Y()) == [1 3]'
-    @test dims(minimum(da; dims=X())) ==
-        (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), nothing),
-         Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing))
-
     @test mean(da; dims=1) == [2.0 3.0]
     @test mean(da; dims=Y()) == [1.5 3.5]'
+    @test mean(da; dims=(1, 2)) == [2.5]'
+    @test mean(da; dims=(X, Y)) == [2.5]'
     @test mean(x -> 2x, da; dims=1) == [4.0 6.0]
     @test mean(x -> 2x, da; dims=Y) == [3.0 7.0]'
+    @test mean(x -> 2x, da; dims=(1, 2)) == [5.0]'
+    @test mean(x -> 2x, da; dims=(:X, :Y)) == [5.0]'
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
 
 
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
-    @test mapreduce(x -> x > 3, +, da; dims=2) == [0 1]'
+    @test mapreduce(x -> x > 3, +, da; dims=(X, Y)) == [1]'
+    @test mapreduce(x -> x > 3, +, da; dims=(:X, :Y)) == [1]'
+    @test mapreduce(x -> x > 3, +, da; dims=(1, 2)) == [1]'
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
 
     @test reduce(+, da) == reduce(+, a)
     @test reduce(+, da; dims=X) == [4 6]
-    @test reduce(+, da; dims=Y()) == [3 7]'
+    @test reduce(+, da; dims=(X, Y())) == [10]'
     @test dims(reduce(+, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), nothing),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), nothing))
@@ -78,6 +94,7 @@ end
 
     @test extrema(da; dims=Y) == permutedims([(1, 2) (3, 4)])
     @test extrema(da; dims=X) == [(1, 3) (2, 4)]
+    @test extrema(da; dims=(X, Y)) == reshape([(1, 4)], 1, 1)
 
     a = [1 2 3; 4 5 6]
     da = DimArray(a, dimz)

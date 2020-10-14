@@ -8,43 +8,63 @@ end
 
 # Reducing methods
 
-for (mod, fname) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
+# With a function arg version
+for (mod, fname) in ((:Base, :any), (:Base, :all), (:Base, :sum), (:Base, :prod),
+                     (:Base, :maximum), (:Base, :minimum), (:Statistics, :mean))
     _fname = Symbol('_', fname)
     @eval begin
-        # Returns a scalar
-        @inline ($mod.$fname)(A::AbstractDimArray) = ($mod.$fname)(parent(A))
-        # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
-            rebuild(A, ($mod.$_fname)(parent(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(A::AbstractDimArray, dims::Colon) = ($mod.$fname)(parent(A))
-        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Union{Int,Base.Dims,AllDims}) =
-            rebuild(A, ($mod.$_fname)(f, parent(A), dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(f, A::AbstractDimArray, dims::Colon) =
-            ($mod.$_fname)(f, parent(A), dims)
+        # Base methods
+        ($mod.$fname)(A::AbstractDimArray; dims=:, kw...) =
+            ($_fname)(A::AbstractDimArray, dims; kw...)
+        ($mod.$fname)(f, A::AbstractDimArray; dims=:, kw...) =
+            ($_fname)(f, A::AbstractDimArray, dims; kw...)
+        # Local dispatch methods
+        # - Return a reduced DimArray
+        ($_fname)(A::AbstractDimArray, dims; kw...) =
+            rebuild(A, ($mod.$fname)(parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+        ($_fname)(f, A::AbstractDimArray, dims; kw...) =
+            rebuild(A, ($mod.$fname)(f, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+        # - Return a scalar
+        ($_fname)(A::AbstractDimArray, dims::Colon; kw...) = 
+            ($mod.$fname)(parent(A); kw...)
+        ($_fname)(f, A::AbstractDimArray, dims::Colon; kw...) =
+            ($mod.$fname)(f, parent(A); dims=dims, kw...)
     end
 end
 
+# With no function arg version
 for (mod, fname) in ((:Statistics, :std), (:Statistics, :var))
     _fname = Symbol('_', fname)
     @eval begin
-        # Returns a scalar
-        @inline ($mod.$fname)(A::AbstractDimArray) = ($mod.$fname)(parent(A))
-        # Returns a reduced array
-        @inline ($mod.$_fname)(A::AbstractDimArray, corrected::Bool, mean, dims::AllDims) =
-            rebuild(A, ($mod.$_fname)(A, corrected, mean, dimnum(A, dims)), reducedims(A, dims))
-        @inline ($mod.$_fname)(A::AbstractDimArray, corrected::Bool, mean, dims::Union{Int,Base.Dims}) =
-            rebuild(A, ($mod.$_fname)(parent(A), corrected, mean, dims), reducedims(A, dims))
+        # Base methods
+        ($mod.$fname)(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
+            ($_fname)(A, corrected, mean, dims)
+        # Local dispatch methods
+        # - Returns a reduced array
+        ($_fname)(A::AbstractDimArray, corrected, mean, dims) =
+            rebuild(A, ($mod.$fname)(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims)), reducedims(A, dims))
+        # - Returns a scalar
+        ($_fname)(A::AbstractDimArray, corrected, mean, dims::Colon) =
+            ($mod.$fname)(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims))
+    end
+end
+for (mod, fname) in ((:Statistics, :median), (:Base, :extrema))
+    _fname = Symbol('_', fname)
+    @eval begin
+        # Base methods
+        ($mod.$fname)(A::AbstractDimArray; dims=:) = ($_fname)(A, dims)
+        # Local dispatch methods
+        # - Returns a reduced array
+        ($_fname)(A::AbstractDimArray, dims) =
+            rebuild(A, ($mod.$fname)(parent(A); dims=dimnum(A, dims)), reducedims(A, dims))
+        # - Returns a scalar
+        ($_fname)(A::AbstractDimArray, dims::Colon) =
+            ($mod.$fname)(parent(A); dims=dimnum(A, dims))
     end
 end
 
-Statistics.median(A::AbstractDimArray) = Statistics.median(parent(A))
-Statistics._median(A::AbstractDimArray, dims::AllDims) =
-    rebuild(A, Statistics._median(parent(A), dimnum(A, dims)), reducedims(A, dims))
-Statistics._median(A::AbstractDimArray, dims::Union{Int,Base.Dims}) =
-    rebuild(A, Statistics._median(parent(A), dims), reducedims(A, dims))
-
-Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray,
-                    dims::Union{Int,Base.Dims,AllDims}) =
+# These are not exported but it makes a lot of things easier using them
+Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims) =
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon) =
     Base._mapreduce_dim(f, op, nt, parent(A), dims)
@@ -53,12 +73,6 @@ Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
 # Base._accumulate!(op, B, A, dims::AllDims, init::Union{Nothing, Some}) =
     # Base._accumulate!(op, B, A, dimnum(A, dims), init)
-
-function Base._extrema_dims(f, A::AbstractArray, dims::AllDims)
-    dnums = dimnum(A, dims)
-    rebuild(A, Base._extrema_dims(f, parent(A), dnums), reducedims(A, dnums))
-end
-
 
 # Dimension dropping
 
@@ -117,7 +131,7 @@ struct Rot180 end
 struct Rot270 end
 struct Rot360 end
 
-# Not type stable - but we have to lose type stability somewhere when 
+# Not type stable - but we have to lose type stability somewhere when
 # dims are being swapped, by an Int value, so it may as well be here
 function rottype(k)
     k = mod(k, 4)

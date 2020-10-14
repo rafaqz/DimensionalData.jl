@@ -30,14 +30,7 @@ da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
 set(da, zeros(3, 4))
 
 # Set the array name
-set(da, "newname")
-
-# Swap dimension type
-
-# Using Pairs
-set(da, :Z => Ti, :custom => Z)
-set(da, :custom => X, Z => Y)
-
+set(da, "newname") # Swap dimension type # Using Pairs set(da, :Z => Ti, :custom => Z) set(da, :custom => X, Z => Y)
 # Using keyword arguments
 set(da, custom = X, Z = :a)
 

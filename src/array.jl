@@ -52,7 +52,7 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A)) =
     rebuild(A, data, dims, refdims, name, metadata(A))
 
-@inline rebuildsliced(A, data, I, name::Symbol=name(A)) =
+@inline rebuildsliced(A, data, I, name=name(A)) =
     rebuild(A, data, slicedims(A, I)..., name)
 
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 

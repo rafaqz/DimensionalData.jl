@@ -447,49 +447,51 @@ but the number of dimensions has not changed.
 `IndexMode` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
-@inline reducedims(x, dimstoreduce) = reducedims(x, (dimstoreduce,))
-@inline reducedims(x, dimstoreduce::Tuple) = reducedims(dims(x), dimstoreduce)
-@inline reducedims(dims::DimTuple, dimstoreduce::Tuple) =
-    map(reducedims, dims, sortdims(dimstoreduce, dims))
+@inline reducedims(x, dimstoreduce) = _reducedims(x, key2dim(dimstoreduce))
+
+@inline _reducedims(x, dimstoreduce) = _reducedims(x, (dimstoreduce,))
+@inline _reducedims(x, dimstoreduce::Tuple) = _reducedims(dims(x), dimstoreduce)
+@inline _reducedims(dims::DimTuple, dimstoreduce::Tuple) =
+    map(_reducedims, dims, sortdims(dimstoreduce, dims))
 # Map numbers to corresponding dims. Not always type-stable
-@inline reducedims(dims::DimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
-    map(reducedims, dims, sortdims(map(i -> dims[i], dimstoreduce), dims))
+@inline _reducedims(dims::DimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
+    map(_reducedims, dims, sortdims(map(i -> dims[i], dimstoreduce), dims))
 
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
-@inline reducedims(dim::Dimension, ::Nothing) = dim
-@inline reducedims(dim::Dimension, ::DimOrDimType) = reducedims(mode(dim), dim)
+@inline _reducedims(dim::Dimension, ::Nothing) = dim
+@inline _reducedims(dim::Dimension, ::DimOrDimType) = _reducedims(mode(dim), dim)
 
 # Now reduce specialising on mode type
 
 # NoIndex. Defaults to Start locus.
-@inline reducedims(mode::NoIndex, dim::Dimension) =
+@inline _reducedims(mode::NoIndex, dim::Dimension) =
     rebuild(dim, first(index(dim)), NoIndex())
 # Categories are combined.
-@inline reducedims(mode::Unaligned, dim::Dimension) =
+@inline _reducedims(mode::Unaligned, dim::Dimension) =
     rebuild(dim, [nothing], NoIndex)
-@inline reducedims(mode::Categorical, dim::Dimension{Vector{String}}) =
+@inline _reducedims(mode::Categorical, dim::Dimension{Vector{String}}) =
     rebuild(dim, ["combined"], Categorical())
-@inline reducedims(mode::Categorical, dim::Dimension) =
+@inline _reducedims(mode::Categorical, dim::Dimension) =
     rebuild(dim, [:combined], Categorical())
 
-@inline reducedims(mode::AbstractSampled, dim::Dimension) =
-    reducedims(span(mode), sampling(mode), mode, dim)
-@inline reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
-    rebuild(dim, reducedims(Center(), dim::Dimension), mode)
-@inline reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
+@inline _reducedims(mode::AbstractSampled, dim::Dimension) =
+    _reducedims(span(mode), sampling(mode), mode, dim)
+@inline _reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
+    rebuild(dim, _reducedims(Center(), dim::Dimension), mode)
+@inline _reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
     mode = rebuild(mode; order=Ordered(), span=span(mode))
-    rebuild(dim, reducedims(locus(mode), dim), mode)
+    rebuild(dim, _reducedims(locus(mode), dim), mode)
 end
-@inline reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
+@inline _reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
     mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
-    rebuild(dim, reducedims(locus(mode), dim), mode)
+    rebuild(dim, _reducedims(locus(mode), dim), mode)
 end
 
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
-@inline reducedims(locus::Start, dim::Dimension) = [first(index(dim))]
-@inline reducedims(locus::End, dim::Dimension) = [last(index(dim))]
-@inline reducedims(locus::Center, dim::Dimension) = begin
+@inline _reducedims(locus::Start, dim::Dimension) = [first(index(dim))]
+@inline _reducedims(locus::End, dim::Dimension) = [last(index(dim))]
+@inline _reducedims(locus::Center, dim::Dimension) = begin
     index = val(dim)
     len = length(index)
     if iseven(len)
@@ -498,7 +500,7 @@ end
         [index[len ÷ 2 + 1]]
     end
 end
-@inline reducedims(locus::Locus, dim::Dimension) = reducedims(Center(), dim)
+@inline _reducedims(locus::Locus, dim::Dimension) = _reducedims(Center(), dim)
 
 # Need to specialise for more types
 @inline centerval(index::AbstractArray{<:AbstractFloat}, len) =
