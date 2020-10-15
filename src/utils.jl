@@ -32,8 +32,8 @@ Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
 # Mode
 Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) = 
     rebuild(mode; order=reverse(ot, order(mode)))
-Base.reverse(ot::Type{<:SubOrder}, mode::Sampled) = 
-rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
+Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) = 
+    rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
 
 # Order
 Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
