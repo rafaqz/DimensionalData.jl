@@ -5,7 +5,9 @@
 
 Reverse the array order, and update the dim to match.
 """
-Base.reverse(A::AbstractDimArray; dims=1) = reverse(ArrayOrder, A, dims)
+Base.reverse(A::AbstractDimArray; dims=1) =
+    reverse(IndexOrder, reverse(ArrayOrder, A, dims), dims)
+
 Base.reverse(ds::AbstractDimDataset; dims=1) = reverse(ArrayOrder, ds, dims)
 Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
 Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
@@ -16,7 +18,7 @@ Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
 end
 
 _reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
-_reversedata(ds::AbstractDimDataset, dimnum) = 
+_reversedata(ds::AbstractDimDataset, dimnum) =
     map(a -> reverse(parent(a); dims=dimnum), data(ds))
 
 # Dimension
@@ -30,9 +32,9 @@ Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension{<:Val{Keys}}) where Keys =
 Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
 
 # Mode
-Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) = 
+Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
     rebuild(mode; order=reverse(ot, order(mode)))
-Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) = 
+Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) =
     rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
 
 # Order
@@ -50,7 +52,7 @@ Base.reverse(::ForwardArray) = ReverseArray()
 Base.reverse(::ReverseRelation) = ForwardRelation()
 Base.reverse(::ForwardRelation) = ReverseRelation()
 
-# Span 
+# Span
 Base.reverse(::Type{<:IndexOrder}, span::Regular) = reverse(span)
 Base.reverse(::Type{<:SubOrder}, span::Span) = span
 Base.reverse(span::Regular) = Regular(-step(span))
@@ -126,7 +128,7 @@ _reorder(ot::Type{<:IndexOrder}, x, dim::DimOrDimType) =
     ot == basetypeof(order(ot, dim)) ? x : set(x, reverse(ot, dim))
 # If either ArrayOrder or Relation are reversed, we reverse the array
 _reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
-    ot == basetypeof(order(ot, dim)) ? x : reverse(x; dims=dim)
+    ot == basetypeof(order(ot, dim)) ? x : reverse(ArrayOrder, x; dims=dim)
 
 
 """

@@ -194,22 +194,6 @@ end
     @test typeof(dsp) <: DimArray
 end
 
-@testset "reversing methods" begin
-    revdim = reverse(X(10:10:20; mode=Sampled(order=Ordered())))
-    @test val(revdim) == 20:-10:10
-    @test order(revdim) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-
-    A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
-    rev = reverse(ArrayOrder, da, Y)
-    @test rev == [3 2 1; 6 5 4] 
-    @test val(rev, X) == 10:10:20
-    @test val(rev, Y) == 300:-100:100
-    @test order(rev, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(da, Y) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
-    @test order(rev, Y) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
-end
-
 
 @testset "dimension rotating methods" begin
     @test rottype(-100) == Rot360()
