@@ -54,7 +54,6 @@ julia> @btime $A[X(1), Y(2)]
 julia> @btime parent($A)[1, 2]
   2.092 ns (0 allocations: 0 bytes)
 0.27317596504655417
-
 ```
 
 Dims can be used for indexing and views without knowing dimension order:
@@ -224,25 +223,27 @@ runtime cost:
 
 
 ```julia
-using BenchmarkTools
-
 julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)),
                                  val=Val((5.0, 6.0, 7.0))))
 DimArray with dimensions:
- Dim{:cat}: Val{(:a, :b, :c)}() (Categorical: Unordered)
- Dim{:val}: Val{(5.0, 6.0, 7.0)}() (Categorical: Unordered)
+ cat: Val{(:a, :b, :c)}() (Categorical: Unordered)
+ val: Val{(5.0, 6.0, 7.0)}() (Categorical: Unordered)
 and data: 3×3 Array{Float64,2}
- 0.993357  0.765515  0.914423
- 0.405196  0.98223   0.330779
- 0.365312  0.388873  0.88732
+ 0.0308355  0.942655  0.256206
+ 0.540099   0.787544  0.799768
+ 0.696685   0.636324  0.0614229
 
-julia> @btime A[:a, 7.0]
-  26.333 ns (1 allocation: 16 bytes)
-0.32927504968939925
+julia> @btime $A[1, 3]
+  2.093 ns (0 allocations: 0 bytes)
+0.25620608873275397
 
-julia> @btime A[cat=:a, val=7.0]
-  31.920 ns (2 allocations: 48 bytes)
-0.7476441117572306
+julia> @btime $A[:a, 7.0]
+  2.094 ns (0 allocations: 0 bytes)
+0.25620608873275397
+
+julia> @btime $A[cat=:a, val=7.0]
+  2.091 ns (0 allocations: 0 bytes)
+0.25620608873275397
 ```
 
 It's also easy to write your own custom `Selector` if your need a different behaviour.
