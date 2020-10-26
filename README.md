@@ -45,33 +45,74 @@ and data: 10-element Array{Float64,1}
 And this has no runtime cost:
 
 ```julia
-julia> using BenchmarkTools
+julia> A = DimArray(rand(40, 50), (X, Y));
 
-julia> @btime A[X(1), Y(2)]
-  25.068 ns (1 allocation: 16 bytes)
-0.7302366320496405
+julia> @btime $A[X(1), Y(2)]
+  2.092 ns (0 allocations: 0 bytes)
+0.27317596504655417
 
-julia> @btime parent(A)[1, 2]
-  34.061 ns (1 allocation: 16 bytes)
-0.7302366320496405
+julia> @btime parent($A)[1, 2]
+  2.092 ns (0 allocations: 0 bytes)
+0.27317596504655417
+
 ```
 
 Dims can be used for indexing and views without knowing dimension order:
 
 ```julia
-A[X(10)]
-view(A, Y(30:40), X(1:20))
+julia> A[X(10)]
+DimArray with dimensions:
+ Y (type Y): Base.OneTo(50) (NoIndex)
+and referenced dimensions:
+ X (type X): 10 (NoIndex)
+and data: 50-element Array{Float64,1}
+[0.0850249, 0.313408, 0.0762157, 0.549103, 0.297763, 0.309075, 0.854535, 0.659537, 0.392969, 0.89998  …  0.63791, 0.875881, 0.437688, 0.925918, 0.291636, 0.358024, 0.692283, 0.606932, 0.629122, 0.284592]
+
+julia> view(A, Y(30:40), X(1:5))
+DimArray with dimensions:
+ X (type X): 1:5 (NoIndex)
+ Y (type Y): 30:40 (NoIndex)
+and data: 5×11 view(::Array{Float64,2}, 1:5, 30:40) with eltype Float64
+ 0.508793   0.721117  0.558849  …  0.505518   0.532322
+ 0.869126   0.754219  0.328315     0.0148934  0.778308
+ 0.0596468  0.458492  0.250458     0.980508   0.524938
+ 0.446838   0.659638  0.632399     0.33478    0.549402
+ 0.292962   0.995038  0.26026      0.526124   0.589176
 ```
 
 And for indicating dimensions to reduce or permute in julia
 `Base` and `Statistics` functions that have dims arguments:
 
 ```julia
-using Statistics
+julia> using Statistics
 
-A = DimArray(rand(10, 10, 100), (X, Y, Ti));
-mean(A, dims=Ti)
-permutedims(A, [Ti, Y, X])
+julia> A = DimArray(rand(3, 4, 5), (X, Y, Ti));
+
+julia> mean(A, dims=Ti)
+DimArray with dimensions:
+ X (type X): Base.OneTo(3) (NoIndex)
+ Y (type Y): Base.OneTo(4) (NoIndex)
+ Time (type Ti): 1 (NoIndex)
+and data: 3×4×1 Array{Float64,3}
+[:, :, 1]
+ 0.495295  0.650432  0.787521  0.502066
+ 0.576573  0.568132  0.770812  0.504983
+ 0.39432   0.5919    0.498638  0.337065
+[and 0 more slices...]
+
+julia> permutedims(A, [Ti, Y, X])
+DimArray with dimensions:
+ Time (type Ti): Base.OneTo(5) (NoIndex)
+ Y (type Y): Base.OneTo(4) (NoIndex)
+ X (type X): Base.OneTo(3) (NoIndex)
+and data: 5×4×3 Array{Float64,3}
+[:, :, 1]
+ 0.401374  0.469474  0.999326  0.265688
+ 0.439387  0.57274   0.493883  0.88678
+ 0.425845  0.617372  0.998552  0.650999
+ 0.852777  0.954702  0.928367  0.0045136
+ 0.357095  0.637873  0.517476  0.702351
+[and 2 more slices...]
 ```
 
 You can also use arbitrary symbol to create `Dim{X}` dimensions:
@@ -244,16 +285,6 @@ Base and Statistics methods:
 - `permutedims`, `adjoint`, `transpose`, `Transpose`
 - `mapslices`, `eachslice`
 - `fill`
-
-_Example usage:_
-
-```julia
-A = DimArray(rand(20,10), (X, Y))
-size(A, Y)
-using Statistics
-mean(A, dims=X)
-std(A; dims=Y())
-```
 
 ## Warnings
 
