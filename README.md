@@ -114,8 +114,7 @@ and data: 5×4×3 Array{Float64,3}
 [and 2 more slices...]
 ```
 
-You can also use arbitrary symbol to create `Dim{X}` dimensions:
-
+You can also use symbols to create `Dim{X}` dimensions:
 
 ```julia
 julia> A = DimArray(rand(10, 20, 30), (:a, :b, :c));
@@ -134,36 +133,6 @@ and data: 4×20 Array{Float64,2}
  0.0849853  0.554705   0.594263     0.217618  0.198165  0.661853
 ```
 
-Other methods also work:
-
-```julia
-julia> bounds(A, (:b, :c))
-
-((1, 20), (1, 30))
-
-julia> mean(A, dim=Dim{:b})
-
-julia> mean(A, dims=Dim{:b})
-DimArray with dimensions:
- Dim{:a}: Base.OneTo(10) (NoIndex)
- Dim{:b}: 1 (NoIndex)
- Dim{:c}: Base.OneTo(30) (NoIndex)
-and data: 10×1×30 Array{Float64,3}
-[:, :, 1]
- 0.543099
- 0.542407
- 0.540647
- 0.513554
- 0.601689
- 0.601558
- 0.46997
- 0.524254
- 0.601844
- 0.520966
-[and 29 more slices...]
-```
-
-
 ## Selectors
 
 Selectors find indices in the dimension based on values `At`, `Near`, or
@@ -181,7 +150,20 @@ Selectors find indices in the dimension based on values `At`, `Near`, or
 We can use selectors with dim wrappers:
 
 ```julia
-A[X(Between(1, 10)), Y(At(25.7))]
+using Dates, DimensionalData
+timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
+A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+
+julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
+0.658404535807791
+
+julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+DimArray with dimensions:
+ X: 20:10:50
+and referenced dimensions:
+ Time (type Ti): 2001-05-01T00:00:00
+and data: 4-element Array{Float64,1}
+[0.456175, 0.737336, 0.658405, 0.520152]
 ```
 
 Without dim wrappers selectors must be in the right order:
@@ -204,38 +186,21 @@ For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for
 regular indexing) the `At` selector is assumed, and can be dropped completely:
 
 ```julia
-julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])))
-DimArray with dimensions:
- X: Val{(:a, :b, :c)}()
- Y: Float64[25.6, 25.7, 25.8]
-and data: 3×3 Array{Float64,2}
- 0.280308  0.92255    0.023938
- 0.129487  0.0993857  0.618391
- 0.246378  0.276186   0.0425624
+julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])));
 
 julia> A[:b, 25.8]
 0.61839141062599
 ```
 
+### Compile-time selectors
+
 Using all `Val` indexes (only recommended for small arrays)
 you can index with named dimensions `At` arbitrary values with no
 runtime cost:
 
-
 ```julia
 julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)),
-                                 val=Val((5.0, 6.0, 7.0))))
-DimArray with dimensions:
- cat: Val{(:a, :b, :c)}() (Categorical: Unordered)
- val: Val{(5.0, 6.0, 7.0)}() (Categorical: Unordered)
-and data: 3×3 Array{Float64,2}
- 0.0308355  0.942655  0.256206
- 0.540099   0.787544  0.799768
- 0.696685   0.636324  0.0614229
-
-julia> @btime $A[1, 3]
-  2.093 ns (0 allocations: 0 bytes)
-0.25620608873275397
+                                 val=Val((5.0, 6.0, 7.0))));
 
 julia> @btime $A[:a, 7.0]
   2.094 ns (0 allocations: 0 bytes)
@@ -246,29 +211,6 @@ julia> @btime $A[cat=:a, val=7.0]
 0.25620608873275397
 ```
 
-It's also easy to write your own custom `Selector` if your need a different behaviour.
-
-_Example usage:_
-
-```julia
-using Dates, DimensionalData
-timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
-A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
-
-julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
-0.658404535807791
-
-julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
-DimArray with dimensions:
- X: 20:10:50
-and referenced dimensions:
- Time (type Ti): 2001-05-01T00:00:00
-and data: 4-element Array{Float64,1}
-[0.456175, 0.737336, 0.658405, 0.520152]
-```
-
-Dim types or objects can be used instead of a dimension number in many
-Base and Statistics methods:
 
 ## Methods where dims can be used containing indices or Selectors
 
