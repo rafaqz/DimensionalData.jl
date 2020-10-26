@@ -408,7 +408,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(endrevfwd, Contains(81.0)) == 2
             @test contains(endrevfwd, Contains(81.1)) == 1
         end
-
     end
 
     @testset "Points mode" begin
@@ -593,8 +592,8 @@ end
         @testset "forward index with reverse relation" begin
             da_ffr = DimArray(a, (Y(10:10:30; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ReverseRelation()))),
                                          Ti((1:1:4)u"s"; mode=Sampled(order=Ordered(ForwardIndex(), ForwardArray(), ReverseRelation())))))
-            @test indexorder(dims(da_ffr, Ti)) == ForwardIndex()
-            @test arrayorder(dims(da_ffr, Ti)) == ForwardArray()
+            @test indexorder(da_ffr, Ti) == ForwardIndex()
+            @test arrayorder(da_ffr, Ti) == ForwardArray()
             @test relation(dims(da_ffr, Ti)) == ReverseRelation()
             @test da_ffr[Y<|At(20), Ti<|At((3.0:4.0)u"s")] == [6, 5]
             @test da_ffr[Y<|At([20, 30]), Ti<|At((3.0:4.0)u"s")] == [6 5; 2 1]
