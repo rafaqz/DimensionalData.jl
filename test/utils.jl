@@ -1,7 +1,21 @@
-using DimensionalData, Test
+using DimensionalData, Test, Dates
 using DimensionalData: flip
 
-@testset "reversing methods" begin
+@testset "reverse" begin
+    revdim = reverse(X(10:10:20; mode=Sampled(order=Ordered())))
+    @test val(revdim) == 20:-10:10
+    @test order(revdim) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
+
+    A = [1 2 3; 4 5 6]
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)))
+    rev = reverse(da; dims=Y)
+    @test rev == [3 2 1; 6 5 4] 
+    @test val(rev, X) == 10:10:20
+    @test val(rev, Y) == 100:100:300
+    @test order(rev, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(da, Y)  == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    @test order(rev, Y) == Ordered(ForwardIndex(), ReverseArray(), ForwardRelation())
+
     revdima = reverse(ArrayOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
     @test val(revdima) == 10:10:20
     @test order(revdima) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
@@ -11,7 +25,6 @@ using DimensionalData: flip
     @test order(revdimi) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
     @test span(revdimi) == Regular(-10)
 
-    A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
     ds = DimDataset(da)
 
@@ -42,7 +55,11 @@ using DimensionalData: flip
     @test val(dims(revids, X)) == 10:10:20
     @test val(dims(revids, Y)) == 100:100:300
     @test order(dims(revids, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+end
 
+@testset "reorder" begin
+    A = [1 2 3; 4 5 6]
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
 
     reoa = reorder(da, ReverseArray())
     @test reoa == [6 5 4; 3 2 1]
