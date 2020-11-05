@@ -68,10 +68,11 @@ of the `Ti` dimension and every 3rd point of the `X` dimension. This is done
 with the simple `Ti(range)` syntax like so:
 
 ```@example main
-A[X(1:3:end), Ti(1:2:end)]
+A[X(1:3:11), Ti(1:2:11)]
 ```
 
-Of course, when specifying only one dimension, all elements of the other
+Of course, wh
+specifying only one dimension, all elements of the other
 dimensions are assumed to be included:
 
 ```@example main
