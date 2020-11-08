@@ -13,10 +13,14 @@ in `order` but missing from `tosort` are replaced with `nothing`.
 or dimension type. Abstract supertypes like [`TimeDim`](@ref)
 can be used in `order`.
 """
-@inline sortdims(tosort, order::Union{Vector{<:Integer},Tuple{<:Integer,Vararg}}) =
+@inline sortdims(tosort, order) = sortdims(Tuple(tosort), Tuple(order))
+@inline sortdims(tosort::Tuple, order::Tuple{<:Integer,Vararg}) =
     map(p -> tosort[p], Tuple(order))
-@inline sortdims(tosort, order) = 
+@inline sortdims(tosort::Tuple, order::Tuple) = begin
+    extradims = otherdims(tosort, order)
+    length(extradims) > 0 && _warnextradims(extradims)
     _sortdims(_maybeconstruct(Tuple(tosort)), Tuple(order))
+end
 
 @generated _sortdims(tosort::Tuple{Vararg{<:Dimension}}, 
                       order::Tuple{Vararg{<:Dimension}}) = begin
@@ -616,7 +620,7 @@ All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 Convert a dimension object to a simbol. `X()`, `Y()`, `Ti()` etc will be converted.
 to `:X`, `:Y`, `:Ti`, as with any other dims generated with the [`@dim`](@ref) macro.
 
-All other `Symbol`s `S` will generate `Dim{S}()` dimensions. 
+All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 """
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
 @inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
@@ -652,9 +656,11 @@ _kwargdims(dims::Tuple{}, vals::Tuple{}) = ()
 
 
 # Error methods. @noinline to avoid allocations.
-@noinline _dimsnotdefinederror() = throw(ArgumentError("Object not define a `dims` method"))
+@noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 
 @noinline _nolookuperror(lookup) = throw(ArgumentError("No $(name(lookup[1])) in dims"))
 
 @noinline _dimsmismatcherror(a, b) = 
     throw(DimensionMismatch("$(name(a)) and $(name(b)) dims on the same axis"))
+
+@noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
