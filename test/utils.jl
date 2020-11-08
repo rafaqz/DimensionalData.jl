@@ -97,7 +97,8 @@ end
         dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
                            Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
         revdav = reverse(IndexOrder, dav; dims=(X, Y))
-        @test index(revdav) == (Val((20, 10)), Val((100, 200, 300)))
+        @test val(dims(revdav)) == (Val((20, 10)), Val((100, 200, 300)))
+        @test index(revdav) == ((20, 10), (100, 200, 300))
     end
 end
 
