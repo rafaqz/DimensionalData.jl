@@ -30,10 +30,10 @@ using DimensionalData: flip
 
     reva = reverse(ArrayOrder, da; dims=Y)
     @test reva == [3 2 1; 6 5 4]
-    @test val(dims(reva, X)) == 10:10:20
-    @test val(dims(reva, Y)) == 300:-100:100
-    @test order(dims(reva, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(reva, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    @test index(reva, X) == 10:10:20
+    @test index(reva, Y) == 300:-100:100
+    @test order(reva, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(reva, Y) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
     revi = reverse(IndexOrder, da; dims=Y)
     @test revi == A
@@ -43,18 +43,18 @@ using DimensionalData: flip
 
     revads = reverse(ArrayOrder, ds; dims=Y)
     @test reva == [3 2 1; 6 5 4]
-    @test val(dims(revads, X)) == 10:10:20
-    @test val(dims(revads, Y)) == 300:-100:100
-    @test order(dims(revads, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(revads, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    @test index(revads, X) == 10:10:20
+    @test index(revads, Y) == 300:-100:100
+    @test order(revads, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test order(revads, Y) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
     revids = reverse(IndexOrder, ds; dims=Y)
     span(reverse(IndexOrder, mode(dims(revids, X))))
     span(dims(revids, X))
     @test revids[:test] == A
-    @test val(dims(revids, X)) == 10:10:20
-    @test val(dims(revids, Y)) == 100:100:300
-    @test order(dims(revids, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+    @test index(revids, X) == 10:10:20
+    @test index(revids, Y) == 100:100:300
+    @test order(revids, X) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
 end
 
 @testset "reorder" begin
@@ -63,31 +63,31 @@ end
 
     reoa = reorder(da, ReverseArray())
     @test reoa == [6 5 4; 3 2 1]
-    @test val(dims(reoa, X)) == 10:10:20
-    @test val(dims(reoa, Y)) == 300:-100:100
-    @test order(dims(reoa, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-    @test order(dims(reoa, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    @test index(reoa, X) == 10:10:20
+    @test index(reoa, Y) == 300:-100:100
+    @test order(reoa, X) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
+    @test order(reoa, Y) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
     reoi = reorder(da, ReverseIndex, (X(), Y()))
     @test reoi == A 
     @test val(dims(reoi, X)) == 20:-10:10
     @test val(dims(reoi, Y)) == 300:-100:100
-    @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-    @test order(dims(reoi, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    @test order(reoi, X) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
+    @test order(reoi, Y) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
 
     reoi = reorder(da, (Y=ForwardIndex, X=ReverseIndex))
     @test reoi == A
-    @test val(dims(reoi, X)) == 20:-10:10
-    @test val(dims(reoi, Y)) == 100:100:300
-    @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-    @test order(dims(reoi, Y)) == Ordered(ForwardIndex(), ForwardArray(), ReverseRelation())
+    @test val(reoi, X) == 20:-10:10
+    @test val(reoi, Y) == 100:100:300
+    @test order(reoi, X) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
+    @test order(reoi, Y) == Ordered(ForwardIndex(), ForwardArray(), ReverseRelation())
 
     reor = reorder(da, X => ReverseRelation, Y => ForwardRelation)
     @test reor == [4 5 6; 1 2 3]
-    @test val(dims(reor, X)) == 10:10:20
-    @test val(dims(reor, Y)) == 300:-100:100
-    @test order(dims(reor, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-    @test order(dims(reor, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    @test index(reor, X) == 10:10:20
+    @test index(reor, Y) == 300:-100:100
+    @test order(reor, X) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
+    @test order(reor, Y) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
 
     revallids = reverse(IndexOrder, da; dims=(X, Y))
     @test index(revallids) == (20:-10:10, 100:100:300)
@@ -97,7 +97,8 @@ end
         dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
                            Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
         revdav = reverse(IndexOrder, dav; dims=(X, Y))
-        @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
+        @test val(dims(revdav)) == (Val((20, 10)), Val((100, 200, 300)))
+        @test index(revdav) == ((20, 10), (100, 200, 300))
     end
 end
 
