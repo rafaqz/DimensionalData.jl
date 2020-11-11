@@ -300,7 +300,7 @@ are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
 Example:
 ```julia
-@dim Lat "Lattitude" "lat"
+@dim Lat YDim "latitude"
 @dim Lon XDim "Longitude"
 ```
 """
