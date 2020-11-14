@@ -307,7 +307,7 @@ Example:
 macro dim end
 
 macro dim(typ::Symbol, args...)
-    dimmacro(typ::Symbol, :Dimension, args...)
+    dimmacro(typ::Symbol, :(DimensionalData.Dimension), args...)
 end
 
 macro dim(typ::Symbol, supertyp::Symbol, args...)
