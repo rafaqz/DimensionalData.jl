@@ -80,6 +80,9 @@ values. Dimension fields not assigned a value will be ignored, and the orginals 
 set(A::Union{AbstractDimArray,AbstractDimDataset}, args::Union{Dimension,DimTuple,Pair}...; kwargs...) =
     rebuild(A, data(A), _set(dims(A), args...; kwargs...))
 
+
+_set(dim::Union{AbstractDimArray,AbstractDimDataset}, ::Type{T}) where T = _set(dim, T())
+
 # Array
 
 """
@@ -96,15 +99,15 @@ end
 """
     set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
 
-AbstractDicts are always metadata, and update the `metadata` field of the array.
+Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::AbstractDict) = rebuild(A; metadata=metadata)
+set(A::AbstractDimArray, metadata::ArrayMetadata) = rebuild(A; metadata=metadata)
 """
     set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
 
 Symbols are always names, and update the `name` field of the array.
 """
-set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
+set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=name)
 
 # Dataset
 
@@ -228,6 +231,7 @@ _set(mode::IndexMode, newmode::NoIndex) = newmode
 # Order
 _set(mode::IndexMode, neworder::Order) =
     rebuild(mode; order=_set(order(mode), neworder))
+_set(mode::NoIndex, neworder::Order) = mode
 
 _set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
     index = _set(indexorder(order), indexorder(neworder)) 
@@ -285,10 +289,9 @@ _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 
-# Metadata: TODO: implement metadata types
-_set(dim::Dimension, newmetadata::AbstractDict) = 
+_set(dim::Dimension, newmetadata::Metadata) = 
     rebuild(dim, val(dim), mode(dim), _set(metadata(dim), newmetadata))
-_set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
+_set(metadata::Metadata, newmetadata::Metadata) = newmetadata
 
 _set(x, ::Nothing) = x
 _set(::Nothing, x) = x
