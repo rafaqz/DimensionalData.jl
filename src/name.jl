@@ -1,10 +1,13 @@
 
 abstract type AbstractName end
 
-struct NoName <: AbstractName end
 struct Name{X} <: AbstractName end
+Name(name::Symbol) = Name{name}()
 
-Base.string(::Name{X}) where X = string(X)
-Base.string(::NoName) = ""
 Base.Symbol(::Name{X}) where X = X
+Base.string(::Name{X}) where X = string(X)
+
+struct NoName <: AbstractName end
+
+Base.string(::NoName) = ""
 Base.Symbol(::NoName) = Symbol("")

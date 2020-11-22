@@ -16,6 +16,8 @@ ds = DimDataset(da2, DimArray(2a2, dimz2, :test3))
 
 @testset " Array fields" begin
     @test name(set(da2, :newname)) == :newname
+    @test name(set(da2, Name(:newname))) == Name{:newname}()
+    @test name(set(da2, NoName())) == NoName()
     @test metadata(set(da2, ArrayMetadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
