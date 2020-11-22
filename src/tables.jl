@@ -1,17 +1,17 @@
 # Tables.jl interface
 
-DimTableSources = Union{AbstractDimDataset,AbstractDimArray}
+DimTableSources = Union{AbstractDimStack,AbstractDimArray}
 
 Tables.istable(::DimTableSources) = true
 Tables.columnaccess(::Type{<:DimTableSources}) = true
 Tables.columns(x::DimTableSources) = DimTable(x)
 
-Tables.columnnames(A::AbstractDimArray) = _colnames(DimDataset(A))
-Tables.schema(A::AbstractDimArray) = Tables.schema(DimDataset(A))
+Tables.columnnames(A::AbstractDimArray) = _colnames(DimStack(A))
+Tables.schema(A::AbstractDimArray) = Tables.schema(DimStack(A))
 
-Tables.columnnames(ds::AbstractDimDataset) = _colnames(ds)
-Tables.schema(ds::AbstractDimDataset) = 
-    Tables.Schema(_colnames(ds), (map(eltype, dims(ds))..., map(eltype, data(ds))...))
+Tables.columnnames(s::AbstractDimStack) = _colnames(s)
+Tables.schema(s::AbstractDimStack) = 
+    Tables.Schema(_colnames(s), (map(eltype, dims(s))..., map(eltype, data(s))...))
 
 @inline Tables.getcolumn(x::DimTableSources, i::Int) =
     Tables.getcolumn(DimTable(x), i)
@@ -96,12 +96,12 @@ struct DimTable{Keys,DS,C} <: AbstractDimTable
 end
 DimTable(A::AbstractDimArray, As::AbstractDimArray...) = DimTable((A, As...))
 DimTable(As::Tuple{<:AbstractDimArray,Vararg{<:AbstractDimArray}}...) = 
-    DimTable(DimDataset(As...))
-DimTable(ds::AbstractDimDataset) = begin
-    dims_ = dims(ds)
+    DimTable(DimStack(As...))
+DimTable(s::AbstractDimStack) = begin
+    dims_ = dims(s)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-    keys = _colnames(ds)
-    DimTable{keys,typeof(ds),typeof(dimcolumns)}(ds, dimcolumns)
+    keys = _colnames(s)
+    DimTable{keys,typeof(s),typeof(dimcolumns)}(s, dimcolumns)
 end
 
 dataset(t::DimTable) = getfield(t, :dataset)
@@ -120,8 +120,8 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
 Tables.schema(t::DimTable{Keys}) where Keys = begin
-    ds = dataset(t)
-    Tables.Schema(Keys, (map(eltype, dims(ds))..., map(eltype, data(ds))...))
+    s = dataset(t)
+    Tables.Schema(Keys, (map(eltype, dims(s))..., map(eltype, data(s))...))
 end
 
 @inline Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys = begin
@@ -147,8 +147,8 @@ end
 @inline Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T =
     Tables.getcolumn(t, key)
 
-_colnames(ds::AbstractDimDataset) = begin
-    dimkeys = map(dim2key, (dims(ds)))
+_colnames(s::AbstractDimStack) = begin
+    dimkeys = map(dim2key, (dims(s)))
     # The data is always the last column/s
-    (dimkeys..., keys(ds)...)
+    (dimkeys..., keys(s)...)
 end

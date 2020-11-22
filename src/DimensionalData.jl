@@ -49,7 +49,7 @@ export AbstractDimArray, DimArray, AbstractDimensionalArray, DimensionalArray
 
 export AbstractDimTable, DimTable
 
-export AbstractDimDataset, DimDataset
+export AbstractDimStack, DimStack
 
 export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata, 
        ArrayMetadata, DimMetadata, StackMetadata, NoMetadata
@@ -75,7 +75,7 @@ include("name.jl")
 include("identify.jl")
 include("dimension.jl")
 include("array.jl")
-include("dataset.jl")
+include("stack.jl")
 include("tables.jl")
 include("selector.jl")
 include("primitives.jl")
@@ -90,5 +90,8 @@ include("show.jl")
 # For compat with old versions
 const AbstractDimensionalArray = AbstractDimArray
 const DimensionalArray = DimArray
+
+const AbstractDimDataset = AbstractDimStack
+const DimDataset = DimStack
 
 end
