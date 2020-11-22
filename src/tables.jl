@@ -127,7 +127,7 @@ end
 @inline Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys = begin
     nkeys = length(Keys) 
     if i > length(dims(t))
-        vec(values(dataset(t))[i - length(dims(t))])
+        vec(values(data(dataset(t)))[i - length(dims(t))])
     elseif i < nkeys
         dimcolumns(t)[i]
     else

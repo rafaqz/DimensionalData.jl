@@ -14,8 +14,6 @@ Selectors provided in DimensionalData are:
 """
 abstract type Selector{T} end
 
-const SelectorOrStandard = Union{Selector,StandardIndices}
-
 val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
@@ -197,28 +195,28 @@ val(sel::Where) = sel.f
 # sel2indices ==========================================================================
 
 # Converts Selectors to regular indices
-#
+
 @inline sel2indices(x, lookup) = sel2indices(dims(x), lookup)
 @inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 @inline sel2indices(dims::Tuple, lookup::Tuple) =
     map((d, l) -> sel2indices(d, l), dims, lookup)
-
+@inline sel2indices(dims::Tuple, lookup::Tuple{}) = ()
+@inline sel2indices(dim::Dimension, sel) = _sel2indices(dim, maybeselector(sel))
 
 # First filter based on rough selector properties -----------------
 
 # Standard indices are just returned.
-@inline sel2indices(::Dimension, sel::StandardIndices) = sel
+@inline _sel2indices(::Dimension, sel::StandardIndices) = sel
 # Vectors are mapped
-@inline sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) =
-    [sel2indices(mode(dim), dim, rebuild(sel, v)) for v in val(sel)]
-@inline sel2indices(dim::Dimension, sel::Selector) =
-    sel2indices(mode(dim), dim, sel)
+@inline _sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) =
+    [_sel2indices(mode(dim), dim, rebuild(sel, v)) for v in val(sel)]
+@inline _sel2indices(dim::Dimension, sel::Selector) =
+    _sel2indices(mode(dim), dim, sel)
 
 
 # Where selector ==============================
-# Yes this is everything. 
-# Where doesn't need mode specialisation  
-@inline sel2indices(dim::Dimension, sel::Where) =
+# Yes this is everything. Where doesn't need mode specialisation  
+@inline _sel2indices(dim::Dimension, sel::Where) =
     [i for (i, v) in enumerate(index(dim)) if sel.f(v)]
 
 
@@ -231,32 +229,32 @@ val(sel::Where) = sel.f
 # NoIndex -----------------------------
 # This just converts the selector to standard indices. Implemented just
 # so the Selectors actually work, not because what they do is useful or interesting.
-@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = 
+@inline _sel2indices(mode::NoIndex, dim::Dimension, sel::Union{At,Near,Contains}) = 
     val(sel)
-@inline sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
+@inline _sel2indices(mode::NoIndex, dim::Dimension, sel::Union{Between}) =
     val(sel)[1]:val(sel)[2]
 
 # Categorical IndexMode -------------------------
-@inline sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
+@inline _sel2indices(mode::Categorical, dim::Dimension, sel::Selector) =
     if sel isa Union{Contains,Near}
-        sel2indices(Points(), mode, dim, At(val(sel)))
+        _sel2indices(Points(), mode, dim, At(val(sel)))
     else
-        sel2indices(Points(), mode, dim, sel)
+        _sel2indices(Points(), mode, dim, sel)
     end
 
 
 # Sampled IndexMode -----------------------------
-@inline sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
-    sel2indices(sampling(mode), mode, dim, sel)
+@inline _sel2indices(mode::AbstractSampled, dim::Dimension, sel::Selector) =
+    _sel2indices(sampling(mode), mode, dim, sel)
 
 # For Sampled filter based on sampling type and selector -----------------
 
 # At selector -------------------------
-@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
+@inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     at(sampling, mode, dim, sel)
 
 # Near selector -----------------------
-@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
+@inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
     span(mode) isa Irregular && locus(mode) isa Union{Start,End} && _nearerror()
     near(sampling, mode, dim, sel)
 end
@@ -264,13 +262,13 @@ end
 @noinline _nearerror() = throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
 
 # Contains selector -------------------
-@noinline sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
+@noinline _sel2indices(sampling::Points, mode::T, dim::Dimension, sel::Contains) where T =
     throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
-@inline sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
+@inline _sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(sampling, mode, dim, sel)
 
 # Between selector --------------------
-@inline sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
+@inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
     between(sampling, mode, dim, sel)
 
 

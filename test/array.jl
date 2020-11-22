@@ -119,6 +119,8 @@ end
     @test refdims(v) == 
         (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
     @test bounds(v) == ((-38.0, -36.0),)
+
+    @test view(da, 1) == fill(1)
 end
 
 @testset "Empty getindedex/view/setindex throws a BoundsError" begin

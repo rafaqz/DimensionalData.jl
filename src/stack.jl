@@ -92,13 +92,14 @@ DimStack(data::NamedTuple, dims::DimTuple; refdims=(), metadata=nothing) =
 
 data(s::AbstractDimStack) = s.data
 dimarrays(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys =
-    NamedTuple{Keys}(map(Keys, values(s)) do k, A
+    NamedTuple{Keys}(map(Keys, values(data(s))) do k, A
         DimArray(A, dims(s), refdims(s), k, nothing)
     end)
 dims(s::DimStack) = s.dims
 metadata(s::AbstractDimStack) = s.metadata
 Base.keys(s::AbstractDimStack) = keys(data(s))
-Base.values(s::AbstractDimStack) = values(data(s))
+Base.values(s::AbstractDimStack) = values(dimarrays(s))
+Base.first(s::AbstractDimStack) = first(dimarrays(s))
 
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) = 
@@ -127,95 +128,6 @@ Base.map(f, s::AbstractDimStack) = maybestack(map(f, dimarrays(s)))
 
 maybestack(As::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}) = DimStack(As)
 maybestack(x::NamedTuple) = x
-
-
-# getindex/view/setindex!
-
-# Symbol key
-@propagate_inbounds Base.getindex(s::AbstractDimStack, key::Symbol) =
-    DimArray(data(s)[key], dims(s), refdims(s), key, nothing)
-
-# No indices. These just prevent stack overflows
-@propagate_inbounds Base.getindex(s::AbstractDimStack) = 
-    map(A -> getindex(A), data(s))
-@propagate_inbounds Base.view(s::AbstractDimStack) = 
-    map(A -> view(A), data(s))
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs) = 
-    map((A, x) -> setindex!(A, x), data(s), xs)
-
-# Integer getindex returns a single value
-@propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
-    map(A -> getindex(A, i, I...), data(s))
-
-# Standard indices
-@propagate_inbounds Base.getindex(s::AbstractDimStack, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newdata = map(A -> getindex(A, i1, i2, I...), data(s))
-    rebuildsliced(s, newdata, (i1, i2, I...))
-end
-@propagate_inbounds Base.view(s::AbstractDimStack, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) = begin
-    newdata = map(A -> view(A, i1, i2, I...), data(s))
-    rebuildsliced(s, newdata, (i1, i2, I...))
-end
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::Tuple, 
-                              i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    map((A, x) -> setindex!(A, x, i1, i2, I...), data(s), xs)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack{<:NamedTuple{K1}}, xs::NamedTuple{K2}, 
-                                   i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) where {K1,K2} = begin
-    K1 == K2 || _keysmismatch(K1, K2)
-    map((A, x) -> setindex!(A, x, i1, i2, I...), data(s), xs)
-end
-
-# Linear indexing returns a NamedTuple of Arrays
-@propagate_inbounds Base.getindex(s::AbstractDimStack{<:Any,N} where N, i::Union{Colon,AbstractArray}) =
-    map(A -> getindex(A, i), data(s))
-# Exempt 1D DimArrays
-@propagate_inbounds Base.getindex(s::AbstractDimStack{<:Any,1}, i::Union{Colon,AbstractArray}) =
-    rebuildsliced(s, map(A -> getindex(A, i), data(s)), (i,))
-# Linear indexing returns a NamedTuple of unwrapped SubArrays
-@propagate_inbounds Base.view(s::AbstractDimStack{<:Any,N} where N, i::StandardIndices) =
-    map(A -> view(A, i), data(s))
-# Exempt 1D DimArrays
-@propagate_inbounds Base.view(s::AbstractDimStack{<:Any,1}, i::StandardIndices) =
-    rebuildsliced(s, map(A -> view(A, i), data(s)), (i,))
-
-# Cartesian indices
-@propagate_inbounds Base.getindex(s::AbstractDimStack, I::CartesianIndex) =
-    map(A -> getindex(A, I), data(s))
-@propagate_inbounds Base.view(s::AbstractDimStack, I::CartesianIndex) =
-    map(A -> view(A, I), data(s))
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::Tuple, I::CartesianIndex) =
-    map((A, x) -> setindex!(A, x, I), data(s), xs)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack{<:NamedTuple{K1}}, 
-                                   xs::NamedTuple{K2}, I::CartesianIndex) where {K1,K2} = begin
-    K1 == K2 || _keysmismatch(K1, K2)
-    map((A, x) -> setindex!(A, x, I), data(s), xs)
-end
-
-_keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))
-
-# Selectors with standard indices
-@propagate_inbounds Base.getindex(s::AbstractDimStack, i, I...) =
-    getindex(s, sel2indices(s, maybeselector(i, I...))...)
-@propagate_inbounds Base.view(s::AbstractDimStack, i, I...) =
-    view(s, sel2indices(s, maybeselector(i, I...))...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, i, I...) =
-    setindex!(s, xs, sel2indices(s, maybeselector(i, I...))...)
-
-# Dimensions
-@propagate_inbounds Base.getindex(s::AbstractDimStack, dim::Dimension, dims::Dimension...) =
-    getindex(s, dims2indices(s, (dim, dims...))...)
-@propagate_inbounds Base.view(s::AbstractDimStack, dim::Dimension, dims::Dimension...) =
-    view(s, dims2indices(s, (dim, dims...))...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, dim::Dimension, dims::Dimension...) =
-    setindex!(s, xs, dims2indices(s, (dim, dims...))...)
-
-# Symbol keyword-argument indexing.
-@propagate_inbounds Base.getindex(s::AbstractDimStack, args::Dimension...; kwargs...) =
-    getindex(s, args..., _kwargdims(kwargs.data)...)
-@propagate_inbounds Base.view(s::AbstractDimStack, args::Dimension...; kwargs...) =
-    view(s, args..., _kwargdims(kwargs.data)...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, args::Dimension...; kwargs...) =
-    setindex!(s, xs, args..., _kwargdims(kwargs)...)
 
 
 # Array methods

@@ -1,4 +1,3 @@
-
 """
 Supertype for all "dim" arrays.
 
@@ -13,7 +12,7 @@ methods, although these are optional.
 A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 `data`, `dims`, `refdims`, `name`, `metadata` arguments.
 
-Indexing AbstractDimArray with non-range `AbstractArray` has undefined effects 
+Indexing AbstractDimArray with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
 abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
@@ -23,7 +22,7 @@ const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
 const StandardIndices = Union{AbstractVector{<:Integer},Colon,Integer}
 
-# DimensionalData.jl interface methods ############################################################
+# DimensionalData.jl interface methods ####################################################
 
 # Standard fields
 
@@ -50,15 +49,14 @@ This method can also be used with keyword arguments in place of regular argument
                 name=name(A)) =
     rebuild(A, data, dims, refdims, name, metadata(A))
 
-@inline rebuildsliced(A, data, I, name=name(A)) =
-    rebuild(A, data, slicedims(A, I)..., name)
+@inline rebuildsliced(A, data, I, name=name(A)) = rebuild(A, data, slicedims(A, I)..., name)
 
-for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
+for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
              :arrayorder, :indexorder, :relation)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
 
-order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) = 
+order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) =
     order(ot, dims(A), args...)
 
 
@@ -75,75 +73,8 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 @inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 
 # Only compare data and dim - metadata and refdims can be different
-Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) = 
+Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
-
-# getindex/view/setindex! ======================================================
-
-
-# No indices. These just prevent stack overflows
-@propagate_inbounds Base.getindex(A::AbstractDimArray) = getindex(parent(A))
-@propagate_inbounds Base.view(A::AbstractDimArray) = view(parent(A))
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
-
-# Integer getindex returns a single value
-@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
-    getindex(parent(A), i1, i2, I...)
-@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Integer) = getindex(parent(A), i)
-
-# Standard indices
-@propagate_inbounds Base.getindex(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, getindex(parent(A), i1, i2, I...), (i1, i2, I...))
-@propagate_inbounds Base.view(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-    rebuildsliced(A, view(parent(A), i1, i2, I...), (i1, i2, I...))
-# Linear indexing returns Array
-@propagate_inbounds Base.getindex(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
-    getindex(parent(A), i)
-# Except 1D DimArrays
-@propagate_inbounds Base.getindex(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
-    rebuildsliced(A, getindex(parent(A), i), (i,))
-# Linear indexing view returns unwrapped SubArray
-@propagate_inbounds Base.view(A::AbstractDimArray, i::StandardIndices) =
-    view(parent(A), i)
-# Except 1D DimArrays
-@propagate_inbounds Base.view(A::AbstractDimArray{<:Any, 1}, i::StandardIndices) =
-    rebuildsliced(A, view(parent(A), i), (i,))
-# Setindex is the same in either case
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
-    setindex!(parent(A), x, i1, I...)
-
-# Cartesian indices
-@propagate_inbounds Base.getindex(A::AbstractDimArray, I::CartesianIndex) =
-    getindex(parent(A), I)
-@propagate_inbounds Base.view(A::AbstractDimArray, I::CartesianIndex) =
-    view(parent(A), I)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
-    setindex!(parent(A), x, I)
-
-# Dimension indexing.
-@propagate_inbounds Base.getindex(A::AbstractDimArray, dim::Dimension, dims::Dimension...) =
-    getindex(A, dims2indices(A, (dim, dims...))...)
-@propagate_inbounds Base.view(A::AbstractDimArray, dim::Dimension, dims::Dimension...) = view(A, dims2indices(A, (dim, dims...))...)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, dim::Dimension, dims::Dimension...) =
-    setindex!(A, x, dims2indices(A, (dim, dims...))...)
-
-# Symbol keyword-argument indexing. This allows indexing with A[somedim=25.0] for Dim{:somedim}
-@propagate_inbounds Base.getindex(A::AbstractDimArray, args::Dimension...; kwargs...) =
-    getindex(A, args..., _kwargdims(kwargs.data)...)
-@propagate_inbounds Base.view(A::AbstractDimArray, args::Dimension...; kwargs...) =
-    view(A, args..., _kwargdims(kwargs.data)...)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kwargs...) =
-    setindex!(A, x, args..., _kwargdims(kwargs)...)
-
-# Selector indexing without dim wrappers. Must be in the right order!
-@propagate_inbounds Base.getindex(A::AbstractDimArray, i, I...) =
-    getindex(A, sel2indices(A, maybeselector(i, I...))...)
-@propagate_inbounds Base.view(A::AbstractDimArray, i, I...) =
-    view(A, sel2indices(A, maybeselector(i, I...))...)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
-    setindex!(A, x, sel2indices(A, maybeselector(i, I...))...)
-
 
 # Methods that create copies of an AbstractDimArray #######################################
 
@@ -189,8 +120,8 @@ Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = cop
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
-`DimArray` maintains and updates its `Dimension`s through transformations and 
-moves dimensions to reference dimension `refdims` after reducing operations 
+`DimArray` maintains and updates its `Dimension`s through transformations and
+moves dimensions to reference dimension `refdims` after reducing operations
 (like e.g. `mean`).
 
 ## Arguments/Fields
@@ -198,12 +129,12 @@ moves dimensions to reference dimension `refdims` after reducing operations
 - `data`: An `AbstractArray`.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
-- `refdims`: refence dimensions. Usually set programmatically to track past 
+- `refdims`: refence dimensions. Usually set programmatically to track past
   slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: Array metadata, or `nothing`
 
-Indexing can be done with all regular indices, or with [`Dimension`](@ref)s 
-and/or [`Selector`](@ref)s. Indexing AbstractDimArray with non-range `AbstractArray` 
+Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
+and/or [`Selector`](@ref)s. Indexing AbstractDimArray with non-range `AbstractArray`
 has undefined effects on the `Dimension` index. Use forward-ordered arrays only"
 
 Example:
@@ -234,9 +165,18 @@ DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing)
 DimArray(; data, dims, refdims=(), name=NoName(), metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 # Construct from another AbstractDimArray
-DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), 
+DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A),
          name=name(A), metadata=metadata(A)) =
     DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
+"""
+    DimArray(f::Function, dim::Dimension [, name])
+
+Apply function `f` across the values of the dimension `dim`
+(using `broadcast`), and return the result as a dimensional array with
+the given dimension. Optionally provide a name for the result.
+"""
+DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")")) =
+     DimArray(f.(val(dim)), (dim,), name)
 
 """
     rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
@@ -248,16 +188,6 @@ update is dealth with in `rebuild` for `AbstractDimArray`.
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
                 refdims::Tuple, name, metadata) =
     DimArray(data, dims, refdims, name, metadata)
-
-"""
-    DimArray(f::Function, dim::Dimension [, name])
-
-Apply function `f` across the values of the dimension `dim`
-(using `broadcast`), and return the result as a dimensional array with
-the given dimension. Optionally provide a name for the result.
-"""
-DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")")) =
-     DimArray(f.(val(dim)), (dim,), name)
 
 
 """
@@ -272,15 +202,16 @@ A `Dimension` holding an `Integer` will set the length
 of the Array axis, and set the dimension mode to [`NoIndex`](@ref).
 """
 Base.fill(x, dim1::Dimension, dims::Dimension...) = fill(x, (dim1, dims...))
-Base.fill(x, dims::Tuple{<:Dimension,Vararg{<:Dimension}}) = begin
+function Base.fill(x, dims::Tuple{<:Dimension,Vararg{<:Dimension}})
     dims = map(_intdim2rangedim, dims)
     DimArray(fill(x, map(length, dims)), dims)
 end
 
-_intdim2rangedim(dim::Dimension{<:Integer}) =  begin
+_intdim2rangedim(dim::Dimension{<:AbstractArray}) = dim
+function _intdim2rangedim(dim::Dimension{<:Integer})
     mode_ = mode(dim) isa AutoMode ? NoIndex() : mode(dim)
     basetypeof(dim)(Base.OneTo(val(dim)), mode_, metadata(dim))
 end
-_intdim2rangedim(dim::Dimension{<:AbstractArray}) = dim
-_intdim2rangedim(dim::Dimension) =
+@noinline function _intdim2rangedim(dim::Dimension)
     error("dim $(basetypeof(dim)) must hold an Integer or an AbstractArray. Has $(val(dim))")
+end

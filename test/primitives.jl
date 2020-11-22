@@ -80,22 +80,13 @@ dimz = dims(da)
 end
 
 @testset "dims2indices" begin
-    emptyval = Colon()
-    @test DimensionalData._dims2indices(dimz[1], Y, Nothing) == Colon()
-    @test dims2indices(dimz, (Y(),), emptyval) == (Colon(), Colon())
-    @test dims2indices(dimz, (Y(1),), emptyval) == (Colon(), 1)
+    @test DimensionalData._dims2indices(dimz[1], Y) == Colon()
+    @test dims2indices(dimz, (Y(),)) == (Colon(), Colon())
+    @test dims2indices(dimz, (Y(1),)) == (Colon(), 1)
     @test dims2indices(dimz, (Ti(4), X(2))) == (2, Colon())
-    @test dims2indices(dimz, (Y(2), X(3:7)), emptyval) == (3:7, 2)
-    @test dims2indices(dimz, (X(2), Y([1, 3, 4])), emptyval) == (2, [1, 3, 4])
-    @test dims2indices(da, (X(2), Y([1, 3, 4])), emptyval) == (2, [1, 3, 4])
-    emptyval=()
-    @test dims2indices(dimz, (Y,), emptyval) == ((), Colon())
-    @test dims2indices(dimz, (Y, X), emptyval) == (Colon(), Colon())
-    @test dims2indices(da, X, emptyval) == (Colon(), ())
-    @test dims2indices(da, (1:3, [1, 2, 3]), emptyval) == (1:3, [1, 2, 3])
-    @test dims2indices(da, 1, emptyval) == (1, )
-    @test dims2indices(X(), 1) == 1
-    @test dims2indices(X(), X(2)) == 2
+    @test dims2indices(dimz, (Y(2), X(3:7))) == (3:7, 2)
+    @test dims2indices(dimz, (X(2), Y([1, 3, 4]))) == (2, [1, 3, 4])
+    @test dims2indices(da, (X(2), Y([1, 3, 4]))) == (2, [1, 3, 4])
 end
 
 @testset "dims2indices with Transformed" begin
