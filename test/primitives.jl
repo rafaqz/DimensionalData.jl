@@ -32,11 +32,11 @@ dimz = dims(da)
 @testset "slicedims" begin
     @testset "Regular" begin
         @test slicedims(dimz, (1:2, 3)) == 
-            ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), nothing),),
-             (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), nothing),))
+            ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),),
+             (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata()),))
         @test slicedims(dimz, (2:2, :)) == 
-            ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), nothing), 
-              Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), nothing)), ())
+            ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()), 
+              Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())), ())
         @test slicedims((), (1:2, 3)) == ((), ())
     end
     @testset "Irregular" begin
@@ -44,32 +44,32 @@ dimz = dims(da)
                                      Y([10.0, 20.0, 40.0]; mode=Sampled(Ordered(), Irregular(0.0, 60.0), Intervals(Center()))), ))
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == 
-            ((X([140.0, 142.0], Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start())), nothing),),
-                    (Y(40.0, Sampled(Ordered(), Irregular(30.0, 60.0), Intervals(Center())), nothing),))
+            ((X([140.0, 142.0], Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start())), NoMetadata()),),
+                    (Y(40.0, Sampled(Ordered(), Irregular(30.0, 60.0), Intervals(Center())), NoMetadata()),))
         @test slicedims(irreg, (2:2, 1:2)) == 
-            ((X([142.0], Sampled(Ordered(), Irregular(142.0, 144.0), Intervals(Start())), nothing), 
-              Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), nothing)), ())
+            ((X([142.0], Sampled(Ordered(), Irregular(142.0, 144.0), Intervals(Start())), NoMetadata()), 
+              Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), NoMetadata())), ())
         @test slicedims((), (1:2, 3)) == ((), ())
     end
     @testset "Val index" begin
         da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == 
-            ((X(Val((143,145)), Categorical(), nothing),),
-             (Y(Val(:z), Categorical(), nothing),))
+            ((X(Val((143,145)), Categorical(), NoMetadata()),),
+             (Y(Val(:z), Categorical(), NoMetadata()),))
         @test slicedims(dimz, (2:2, :)) == 
-            ((X(Val((145,)), Categorical(), nothing), 
-              Y(Val((:x, :y, :z)), Categorical(), nothing)), ())
+            ((X(Val((145,)), Categorical(), NoMetadata()), 
+              Y(Val((:x, :y, :z)), Categorical(), NoMetadata())), ())
     end
     @testset "NoIndex" begin
         da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == 
-            ((X(Val((143,145)), Categorical(), nothing),),
-             (Y(Val(:z), Categorical(), nothing),))
+            ((X(Val((143,145)), Categorical(), NoMetadata()),),
+             (Y(Val(:z), Categorical(), NoMetadata()),))
         @test slicedims(dimz, (2:2, :)) == 
-            ((X(Val((145,)), Categorical(), nothing), 
-              Y(Val((:x, :y, :z)), Categorical(), nothing)), ())
+            ((X(Val((145,)), Categorical(), NoMetadata()), 
+              Y(Val((:x, :y, :z)), Categorical(), NoMetadata())), ())
     end
 
     @testset "No slicing" begin
@@ -121,30 +121,30 @@ end
 @testset "reducedims" begin
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Points()))), (X, Y)) == 
-                     (X([4], Sampled(Ordered(), Regular(2), Points()), nothing), 
-                      Y([3], Sampled(Ordered(), Regular(5), Points()), nothing))
+                     (X([4], Sampled(Ordered(), Regular(2), Points()), NoMetadata()), 
+                      Y([3], Sampled(Ordered(), Regular(5), Points()), NoMetadata()))
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start()))), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Intervals(End())))), (X, Y)) ==
-        (X([3], Sampled(Ordered(), Regular(2), Intervals(Start())), nothing), 
-         Y([5], Sampled(Ordered(), Regular(5), Intervals(End())), nothing))
+        (X([3], Sampled(Ordered(), Regular(2), Intervals(Start())), NoMetadata()), 
+         Y([5], Sampled(Ordered(), Regular(5), Intervals(End())), NoMetadata()))
 
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center()))),
                       Y(1:5; mode=Sampled(Ordered(), Irregular(0.5, 5.5), Intervals(Center())))), (X, Y))[1] ==
-                     (X([4], Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center())), nothing),
-                      Y([3], Sampled(Ordered(), Irregular(0.5, 5.5), Intervals(Center())), nothing))[1]
+                     (X([4], Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center())), NoMetadata()),
+                      Y([3], Sampled(Ordered(), Irregular(0.5, 5.5), Intervals(Center())), NoMetadata()))[1]
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(3, 5), Intervals(Start()))),
                       Y(1:5; mode=Sampled(Ordered(), Irregular(0, 5), Intervals(End()  )))), (X, Y))[1] ==
-                     (X([3], Sampled(Ordered(), Irregular(3, 5), Intervals(Start())), nothing),
-                      Y([5], Sampled(Ordered(), Irregular(0, 5), Intervals(End()  )), nothing))[1]
+                     (X([3], Sampled(Ordered(), Irregular(3, 5), Intervals(Start())), NoMetadata()),
+                      Y([5], Sampled(Ordered(), Irregular(0, 5), Intervals(End()  )), NoMetadata()))[1]
 
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Irregular(), Points()))), (X, Y)) ==
-        (X([4], Sampled(Ordered(), Irregular(), Points()), nothing), 
-         Y([3], Sampled(Ordered(), Irregular(), Points()), nothing))
+        (X([4], Sampled(Ordered(), Irregular(), Points()), NoMetadata()), 
+         Y([3], Sampled(Ordered(), Irregular(), Points()), NoMetadata()))
     @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Points()))), (X, Y)) ==
-                     (X([4], Sampled(Ordered(), Regular(2), Points()), nothing), 
-                      Y([3], Sampled(Ordered(), Regular(5), Points()), nothing))
+                     (X([4], Sampled(Ordered(), Regular(2), Points()), NoMetadata()), 
+                      Y([3], Sampled(Ordered(), Regular(5), Points()), NoMetadata()))
 
     @test reducedims((X([:a,:b]; mode=Categorical()), 
                       Y(["1","2","3","4","5"]; mode=Categorical())), (X, Y)) ==
@@ -166,9 +166,9 @@ end
     @testset "with Dim{X} and symbols" begin
         A = DimArray(zeros(4, 5), (:one, :two))
         @test dims(A) == 
-            (Dim{:one}(Base.OneTo(4), NoIndex(), nothing), 
-             Dim{:two}(Base.OneTo(5), NoIndex(), nothing))
-        @test dims(A, :two) == Dim{:two}(Base.OneTo(5), NoIndex(), nothing)
+            (Dim{:one}(Base.OneTo(4), NoIndex(), NoMetadata()), 
+             Dim{:two}(Base.OneTo(5), NoIndex(), NoMetadata()))
+        @test dims(A, :two) == Dim{:two}(Base.OneTo(5), NoIndex(), NoMetadata())
     end
     @test_throws ArgumentError dims(da, Ti)
     @test_throws ArgumentError dims(dimz, Ti)
@@ -179,8 +179,8 @@ end
     @test dims(dimz, Y) === dimz[2]
     @test dims(dimz, Y) === dimz[2]
     @test typeof(dims(da)) ==
-        Tuple{X{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing},
-              Y{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},Nothing}}
+        Tuple{X{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata},
+              Y{LinRange{Float64},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}}
 end
 
 @testset "commondims" begin

@@ -2,13 +2,13 @@ using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
 using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
-dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
-        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
+xmeta = DimMetadata(:meta => "X")
+ymeta = DimMetadata(:meta => "Y")
+ameta = ArrayMetadata(:meta => "da")
+dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
+        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
 refdimz = (Ti(1:1),)
-
-# We warn about the name field type-change if you use a String
-@test_logs (:warn, "The AbstractDimArray name field is now a Symbol") DimArray(a, dimz, "test")
-da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=Dict(:meta => "da"))
+da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=ameta)
 
 @testset "getindex for single integers returns values" begin
     @test da[X(1), Y(2)] == 2
@@ -28,14 +28,14 @@ end
     @test a == [1, 3]
     @test typeof(a) <: DimArray{Int,1}
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+                        Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
     @test refdims(a) == 
-        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
     @test name(a) == :test
-    @test metadata(a) == Dict(:meta => "da")
-    @test metadata(a, X) == Dict(:meta => "X")
-    @test bounds(a) == ((143.0, 145.0),)
-    @test bounds(a, X) == (143.0, 145.0)
+    @test metadata(a) === ameta
+    @test metadata(a, X) === xmeta
+    @test bounds(a) === ((143.0, 145.0),)
+    @test bounds(a, X) === (143.0, 145.0)
     @test locus(mode(dims(da, X))) == Center()
 
     a = da[X(1), Y(1:2)]
@@ -43,11 +43,11 @@ end
     @test typeof(a) <: DimArray{Int,1}
     @test typeof(parent(a)) <: Array{Int,1}
     @test dims(a) == 
-        (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
     @test refdims(a) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
     @test name(a) == :test
-    @test metadata(a) == Dict(:meta => "da")
+    @test metadata(a) == ameta
     @test bounds(a) == ((-38.0, -36.0),)
     @test bounds(a, Y()) == (-38.0, -36.0)
 
@@ -57,9 +57,9 @@ end
     @test typeof(parent(a)) <: Array{Int,2}
     @test typeof(dims(a)) <: Tuple{<:X,<:Y}
     @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
+                        Sampled(Ordered(), Regular(2.0), Points()), xmeta),
                       Y(LinRange(-38.0, -36.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
+                        Sampled(Ordered(), Regular(2.0), Points()), ymeta))
     @test refdims(a) == (Ti(1:1),)
     @test name(a) == :test
     @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
@@ -69,7 +69,7 @@ end
     a = da[X([2, 1]), Y([2, 1])]
     @test a == [4 3; 2 1]
     @test dims(a) == 
-        ((X([145.0, 143.0], mode(da, X), metadata(da, X)), Y([-36.0, -38.0], mode(da, Y), metadata(da, Y))))
+        ((X([145.0, 143.0], mode(da, X), xmeta), Y([-36.0, -38.0], mode(da, Y), ymeta)))
 
 end
 
@@ -81,10 +81,10 @@ end
     @test typeof(dims(v)) == Tuple{}
     @test dims(v) == ()
     @test refdims(v) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
-         Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),
+         Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta))
     @test name(v) == :test
-    @test metadata(v) == Dict(:meta => "da")
+    @test metadata(v) == ameta
     @test bounds(v) == ()
 
     v = view(da, Y(1), X(1:2))
@@ -93,12 +93,11 @@ end
     @test typeof(parent(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:X}
     @test dims(v) == 
-        (X(LinRange(143.0, 145.0, 2), 
-           Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+        (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
     @test refdims(v) == 
-        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
     @test name(v) == :test
-    @test metadata(v) == Dict(:meta => "da")
+    @test metadata(v) == ameta
     @test bounds(v) == ((143.0, 145.0),)
 
     v = view(da, Y(1:2), X(1:1))
@@ -107,10 +106,8 @@ end
     @test typeof(parent(v)) <: SubArray{Int,2}
     @test typeof(dims(v)) <: Tuple{<:X,<:Y}
     @test dims(v) == 
-        (X(LinRange(143.0, 143.0, 1),
-           Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),
-         Y(LinRange(-38, -36, 2), 
-           Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")))
+        (X(LinRange(143.0, 143.0, 1), Sampled(Ordered(), Regular(2.0), Points()), xmeta),
+         Y(LinRange(-38, -36, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta))
     @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
     v = view(da, Y(Base.OneTo(2)), X(1))
@@ -118,10 +115,9 @@ end
     @test typeof(parent(v)) <: SubArray{Int,1}
     @test typeof(dims(v)) <: Tuple{<:Y}
     @test dims(v) == 
-        (Y(LinRange(-38.0, -36.0, 2),
-           Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "Y")),)
+        (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
     @test refdims(v) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), Dict(:meta => "X")),)
+        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
     @test bounds(v) == ((-38.0, -36.0),)
 end
 
@@ -356,9 +352,10 @@ end
 @testset "fill constructor" begin
     da = fill(5.0, X(4), Y(40.0:10.0:80.0))
     @test parent(da) == fill(5.0, (4, 5))
-    @test dims(da) == 
-        (X(Base.OneTo(4), NoIndex(), nothing), 
-         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
+    @test dims(da) == (
+         X(Base.OneTo(4), NoIndex(), NoMetadata()), 
+         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata())
+    )
     @test_throws ErrorException fill(5.0, (X(:e), Y(8)))
 end
 

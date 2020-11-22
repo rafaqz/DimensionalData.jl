@@ -52,7 +52,7 @@ export AbstractDimTable, DimTable
 export AbstractDimDataset, DimDataset
 
 export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata, 
-       ArrayMetadata, DimMetadata, StackMetadata 
+       ArrayMetadata, DimMetadata, StackMetadata, NoMetadata
 
 export AbstractName, Name, NoName 
 

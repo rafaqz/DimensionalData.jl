@@ -9,12 +9,14 @@ same file type with identical metadata.
 """
 abstract type Metadata{T} end
 
+# NamedTuple constructor
+(::Type{T})(; kwargs...) where T <: Metadata = T((; kwargs...))
+
 struct NoMetadata <: Metadata{NamedTuple{(),Tuple{}}} end
 Base.keys(::NoMetadata) = ()
 Base.length(::NoMetadata) = 0
 # TODO: what else is needed here
 
-(::Type{T})() where T <: Metadata = T(Dict())
 
 val(metadata::Metadata) = metadata.val
 
@@ -26,7 +28,7 @@ Base.iterate(metadata::Metadata, args...) = iterate(val(metadata), args...)
 Base.IteratorSize(::Metadata) = Base.IteratorSize(m)
 Base.IteratorEltype(m::Metadata) = Base.IteratorEltype(m)
 Base.eltype(m::Metadata) = eltype(m)
-Base.length(metadata::Metadata) = length(val(metadata))
+Base.length(m::Metadata) = length(val(m))
 
 
 """
@@ -45,14 +47,17 @@ Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoStack`.
 abstract type AbstractStackMetadata{T} <: Metadata{T} end
 
 
-struct DimMetadata{T} <: Metadata{T}
+struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T}
     val::T
 end
+DimMetadata(p::Pair, ps::Pair...) = DimMetadata(Dict(p, ps...))
 
-struct ArrayMetadata{T} <: Metadata{T} 
+struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
     val::T
 end
+ArrayMetadata(p::Pair, ps::Pair...) = ArrayMetadata(Dict(p, ps...))
 
-struct StackMetadata{T} <: Metadata{T} 
+struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
     val::T
 end
+StackMetadata(p::Pair, ps::Pair...) = StackMetadata(Dict(p, ps...))

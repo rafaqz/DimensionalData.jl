@@ -227,11 +227,6 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     name::Na
     metadata::Me
 end
-# Warn string conversion for compatibility
-DimArray(A::AbstractArray, dims, refdims, name::String, metadata) = begin
-    @warn "The AbstractDimArray name field is now a Symbol"
-    DimArray(A, dims, refdims, Symbol(name), metadata)
-end
 # 2 or 3 arg version
 DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
