@@ -185,48 +185,46 @@ order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup) =
 order(ot::Type{<:SubOrder}, dim::Dimension) = order(ot, mode(dim)) 
 
 
-
 # Base methods
+const ArrayOrVal = Union{AbstractArray,Val}
 
-Base.eltype(dim::Type{<:Dimension{T}}) where T = T
-Base.eltype(dim::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
+Base.eltype(d::Type{<:Dimension{T}}) where T = T
+Base.eltype(d::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 # TODO Use a vector wrapper instead of Val
-Base.eltype(dim::Type{<:Dimension{<:Val{Index}}}) where Index = typeof(first(Index))
-Base.size(dim::Dimension) = size(val(dim))
-Base.size(dim::Dimension{<:Val}) = (length(unwrap(val(dim))),)
-Base.axes(dim::Dimension) = axes(val(dim))
-Base.axes(dim::Dimension{<:Val}) = (Base.OneTo(length(dim)),)
-Base.axes(dim::Dimension, i) = axes(val(dim), i)
-Base.eachindex(dim::Dimension) = eachindex(val(dim))
-Base.length(dim::Dimension{<:Union{AbstractArray,Number}}) = length(val(dim))
-Base.length(dim::Dimension{<:Val}) = length(unwrap(val(dim)))
-Base.ndims(dim::Dimension) = 0
-Base.ndims(dim::Dimension{<:AbstractArray}) = ndims(val(dim))
-Base.ndims(dim::Dimension{<:Val}) = 1
-Base.getindex(dim::Dimension{<:Number}) = val(dim)
-Base.getindex(dim::Dimension{<:AbstractArray}, i1, I...) = getindex(val(dim), i1, I...)
-Base.getindex(dim::Dimension{<:Val}, i) = Val(getindex(unwrap(val(dim)), i))
-Base.iterate(dim::Dimension{<:AbstractArray}, args...) = iterate(val(dim), args...)
-Base.first(dim::Dimension) = val(dim)
-Base.first(dim::Dimension{<:AbstractArray}) = first(val(dim))
-Base.first(dim::Dimension{<:Val}) = first(unwrap(val(dim)))
-Base.last(dim::Dimension) = val(dim)
-Base.last(dim::Dimension{<:AbstractArray}) = last(val(dim))
-Base.last(dim::Dimension{<:Val}) = last(unwrap(val(dim)))
-Base.firstindex(dim::Dimension) = 1
-Base.lastindex(dim::Dimension) = 1
-Base.firstindex(dim::Dimension{<:AbstractArray}) = firstindex(val(dim))
-Base.lastindex(dim::Dimension{<:AbstractArray}) = lastindex(val(dim))
-Base.lastindex(dim::Dimension{<:Val}) = lastindex(unwrap(val(dim)))
-Base.step(dim::Dimension) = step(mode(dim))
-Base.Array(dim::Dimension{<:AbstractArray}) = Array(val(dim))
-Base.Array(dim::Dimension{<:Val}) = [unwrap(val(dim))...]
-Base.:(==)(dim1::Dimension, dim2::Dimension) =
-    typeof(dim1) == typeof(dim2) &&
-    val(dim1) == val(dim2) &&
-    mode(dim1) == mode(dim2) &&
-    metadata(dim1) == metadata(dim2)
-
+Base.eltype(d::Type{<:Dimension{<:Val{Index}}}) where Index = typeof(first(Index))
+Base.size(d::Dimension) = size(val(d))
+Base.size(d::Dimension{<:Val}) = (length(index(d)),)
+Base.axes(d::Dimension{<:AbstractArray}) = axes(index(d))
+Base.axes(d::Dimension{<:Val}) = (Base.OneTo(length(d)),)
+Base.axes(d::Dimension, i) = axes(index(d), i)
+Base.eachindex(d::Dimension{<:Number}) = eachindex(val(d))
+Base.eachindex(d::Dimension{<:ArrayOrVal}) = eachindex(index(d))
+Base.length(d::Dimension{<:Number}) = length(val(d))
+Base.length(d::Dimension{<:ArrayOrVal}) = length(index(d))
+Base.ndims(d::Dimension) = 0
+Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
+Base.ndims(d::Dimension{<:Val}) = 1
+@inline Base.getindex(d::Dimension{<:Number}) = val(d)
+@propagate_inbounds Base.getindex(d::Dimension{<:AbstractArray}, i) = 
+    getindex(index(d), sel2indices(d, i))
+@propagate_inbounds Base.getindex(d::Dimension{<:Val{Index}}, i) where Index =
+    Val(getindex(Index, sel2indices(d, i)))
+Base.iterate(d::Dimension{<:ArrayOrVal}, args...) = iterate(index(d), args...)
+Base.first(d::Dimension) = val(d)
+Base.first(d::Dimension{<:ArrayOrVal}) = first(index(d))
+Base.last(d::Dimension) = val(d)
+Base.last(d::Dimension{<:ArrayOrVal}) = last(index(d))
+Base.firstindex(d::Dimension) = 1
+Base.lastindex(d::Dimension) = 1
+Base.firstindex(d::Dimension{<:ArrayOrVal}) = firstindex(index(d))
+Base.lastindex(d::Dimension{<:ArrayOrVal}) = lastindex(index(d))
+Base.step(d::Dimension) = step(mode(d))
+Base.Array(d::Dimension{<:ArrayOrVal}) = collect(index(d))
+Base.:(==)(d1::Dimension, d2::Dimension) =
+    typeof(d1) == typeof(d2) &&
+    val(d1) == val(d2) &&
+    mode(d1) == mode(d2) &&
+    metadata(d1) == metadata(d2)
 
 """
 Supertype for Dimensions with user-set type paremeters
