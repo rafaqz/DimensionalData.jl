@@ -155,7 +155,7 @@ if they exist, and anything else that should be shown on a plot.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function label end
-label(x) = string(name(x), (units(x) === nothing ? "" : string(" ", units(x))))
+label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
 
 
 """

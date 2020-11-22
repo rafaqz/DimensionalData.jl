@@ -1,11 +1,10 @@
 
 """
-Supertype for all metadata wrappers.
+Abstract supertype for all metadata wrappers.
 
-These allow tracking the contents and origin of metadata. 
-This can facilitate conversion between metadata types (for saving 
-a file to a differenet format) or simply saving data back to the 
-same file type with identical metadata.
+These allow tracking the contents and origin of metadata. This can facilitate 
+conversion between metadata types (for saving a file to a differenet format) 
+or simply saving data back to the same file type with identical metadata.
 """
 abstract type Metadata{T} end
 
@@ -47,16 +46,25 @@ Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoStack`.
 abstract type AbstractStackMetadata{T} <: Metadata{T} end
 
 
+"""
+[`Metadata`](@ref) for a [`Dimension`](@ref).
+"""
 struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T}
     val::T
 end
 DimMetadata(p::Pair, ps::Pair...) = DimMetadata(Dict(p, ps...))
 
+"""
+[`Metadata`](@ref) for a [`DimArray`](@ref).
+"""
 struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
     val::T
 end
 ArrayMetadata(p::Pair, ps::Pair...) = ArrayMetadata(Dict(p, ps...))
 
+"""
+[`Metadata`](@ref)for a [`DimStack`](@ref).
+"""
 struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
     val::T
 end

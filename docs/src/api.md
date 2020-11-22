@@ -13,8 +13,8 @@ DimArray
 ## Multi-array datasets
 
 ```@docs
-AbstractDimDataset
-DimDataset
+AbstractDimStack
+DimStack
 ```
 
 ## Core types
@@ -39,6 +39,7 @@ AnonDim
 @dim
 ```
 
+
 ## Selectors
 
 ```@docs
@@ -48,6 +49,25 @@ Near
 Between
 Contains
 Where
+```
+
+## Name
+
+```@docs
+Name
+NoName
+```
+
+## Metadata
+
+```@docs
+Metadata
+AbstractDimMetadata
+DimMetadata
+AbstractArrayMetadata
+ArrayMetadata
+AbstractStackMetadata
+StackMetadata
 ```
 
 ## Modes
@@ -192,4 +212,6 @@ DimensionalData.identify
 DimensionalData.basetypeof
 DimensionalData.setdims
 DimensionalData.flip
+DimensionalData.dimsmatch
+DimensionalData.dimstride
 ```

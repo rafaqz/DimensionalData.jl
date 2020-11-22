@@ -32,7 +32,6 @@ data(A::AbstractDimArray) = A.data
 name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
 
-
 """
     rebuild(A::AbstractDimArray, data, dims=dims(A), refdims=refdims(A),
             name=name(A), metadata=metadata(A)) => AbstractDimArray
