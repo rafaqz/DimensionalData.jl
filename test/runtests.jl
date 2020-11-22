@@ -26,11 +26,3 @@ if Sys.islinux()
     # Maybe ram use of all the plots on the small CI machine? idk
     include("plotrecipes.jl")
 end
-if VERSION >= v"1.5.0"
-    docsetup = quote
-        using DimensionalData, Random
-        Random.seed!(1234)
-    end
-    DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-    doctest(DimensionalData)
-end
