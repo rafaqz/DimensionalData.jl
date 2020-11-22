@@ -9,5 +9,5 @@ Base.string(::Name{X}) where X = string(X)
 
 struct NoName <: AbstractName end
 
-Base.string(::NoName) = ""
 Base.Symbol(::NoName) = Symbol("")
+Base.string(::NoName) = ""

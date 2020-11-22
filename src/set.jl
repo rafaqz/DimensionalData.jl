@@ -53,7 +53,7 @@ set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 """
 function set end
 
-const DimArrayOrDataset = Union{AbstractDimArray,AbstractDimDataset}
+const DimArrayOrDataset = Union{AbstractDimArray,AbstractDimStack}
 
 set(A::DimArrayOrDataset, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
 set(A, x) = _cantseterror(A, x)
@@ -65,7 +65,7 @@ _set(A, x) = _cantseterror(A, x)
     set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
 
 Set the dimensions or any properties of the dimensions for `AbstractDimArray`
-or `AbstractDimDataset`.
+or `AbstractDimStack`.
 
 Set can be passed Keyword arguments or arguments of Pairs using dimension names,
 tuples of values wrapped in the intended dimensions. Or fully or partially
@@ -107,25 +107,25 @@ set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=nam
 # Dataset
 
 """
-    set(ds::AbstractDimDataset, data::NamedTuple) => AbstractDimDataset
+    set(s::AbstractDimStack, data::NamedTuple) => AbstractDimStack
 
 `NamedTuple`s are always data, and update the `data` field of the dataset.
 The values must be `AbstractArray of the same size as the original data, to
 match the `Dimension`s in the dims field.
 """
-set(ds::AbstractDimDataset, newdata::NamedTuple) = begin
-    map(data(ds)) do l
-        axes(l) == axes(first(data(ds))) || _axiserr(first(data(ds)), l)
+set(s::AbstractDimStack, newdata::NamedTuple) = begin
+    map(data(s)) do l
+        axes(l) == axes(first(data(s))) || _axiserr(first(data(s)), l)
     end
-    rebuild(ds; data=newdata)
+    rebuild(s; data=newdata)
 end
 """
-    set(ds::AbstractDimDataset, metadata::Union{StackMetadata,NoMetadata}) => AbstractDimDataset
+    set(s::AbstractDimStack, metadata::Union{StackMetadata,NoMetadata}) => AbstractDimStack
 
 StackMetadata update the `metadata` field of the dataset.
 """
-set(ds::AbstractDimDataset, metadata::Union{StackMetadata,NoMetadata}) = 
-    rebuild(ds; metadata=metadata)
+set(s::AbstractDimStack, metadata::Union{StackMetadata,NoMetadata}) = 
+    rebuild(s; metadata=metadata)
 
 
 const InDims = Union{DimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}

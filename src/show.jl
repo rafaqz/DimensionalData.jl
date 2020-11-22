@@ -28,9 +28,9 @@ end
 Base.show(io::IO, ::MIME"text/plain", A::AbstractDimArray) = show(io, A)
 # Full printing version for dimensions
 Base.show(io::IO, ::MIME"text/plain", dim::Dimension) = begin
-    print(io, "dimension ")
+    print(io, "Dimension ")
     printstyled(io, name(dim); color=:red)
-    if name(dim) ≠ string(nameof(typeof(dim)))
+    if name(dim) != nameof(typeof(dim))
         print(io, " (type ")
         printstyled(io, nameof(typeof(dim)); color=:red)
         print(io, ")")
@@ -62,8 +62,10 @@ Base.show(io::IO, dim::Dim) = begin
 end
 
 printdimproperties(io, dim) = begin
-    print(io, ": ")
-    _printdimval(io, val(dim))
+    if !(mode(dim) isa NoIndex)
+        print(io, ": ")
+        _printdimval(io, val(dim))
+    end
     print(io, " (", mode(dim), ")")
 end
 

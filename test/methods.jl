@@ -109,6 +109,7 @@ end
     @test all(da) === false
     @test all(da; dims=Y) == reshape([false, false], 2, 1)
     @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
+
 end
 
 @testset "dimension dropping methods" begin

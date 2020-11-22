@@ -35,10 +35,10 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-DimArray (named NoName()) with dimensions:
+DimArray with dimensions:
  Y (type Y): Char[a, b, c] (Categorical: Unordered)
  X (type X): 2:2:10 (Sampled: Ordered Regular Points)
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
+ Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and data: 3×5×12 Array{Float64,3}
 [:, :, 1]
  0.0  0.0  0.0  0.0  0.0
@@ -55,8 +55,8 @@ x = A[X(2), Y(3)]
 
 # output
 
-DimArray (named NoName()) with dimensions:
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
+DimArray with dimensions:
+ Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
  Y (type Y): c (Categorical: Unordered)
  X (type X): 4 (Sampled: Ordered Regular Points)
@@ -71,9 +71,9 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-DimArray (named NoName()) with dimensions:
+DimArray with dimensions:
  X (type X): 4:2:4 (Sampled: Ordered Regular Points)
- Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
+ Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
  Y (type Y): b (Categorical: Unordered)
 and data: 1×12 Array{Float64,2}
@@ -251,7 +251,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-dimension custom (type Dim):
+Dimension custom (type Dim):
 val: Char[a, b, c]
 mode: AutoMode
 metadata: NoMetadata()

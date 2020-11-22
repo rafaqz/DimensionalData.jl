@@ -7,7 +7,7 @@ da = DimArray(ones(3, 2, 3), dimz, :data)
 da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
 
 @testset "DimArray Tables interface" begin
-    ds = DimDataset(da)
+    ds = DimStack(da)
     t = Tables.columns(ds)
     @test t isa DimTable
     @test dims(t) == dims(da)
@@ -66,7 +66,7 @@ end
 end
 
 @testset "DataFrame conversion" begin
-    ds = DimDataset(da, da2)
+    ds = DimStack(da, da2)
     @time t = DimTable(ds)
     @time df = DataFrame(t; copycols=true)
     @test names(df) == ["X", "Y", "test", "data", "data2"]
@@ -87,7 +87,7 @@ end
 end
 
 @testset "dim methods" begin
-    t = DimDataset(da)
-    @test dims(t) == dims(da)
-    @test mode(t) == mode(dims(da))
+    ds = DimStack(da)
+    @test dims(ds) == dims(da)
+    @test mode(ds) == mode(dims(da))
 end

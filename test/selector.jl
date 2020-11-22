@@ -456,8 +456,7 @@ end
 
 
 @testset "Selectors on Sampled" begin
-    da = DimArray(a, (Y((10, 30); mode=Sampled()),
-                              Ti((1:4)u"s"; mode=Sampled())))
+    da = DimArray(a, (Y((10, 30); mode=Sampled()), Ti((1:4)u"s"; mode=Sampled())))
 
     @test At(10.0) == At(10.0, nothing, nothing)
     @test At(10.0; atol=0.0, rtol=Base.rtoldefault(Float64)) ==
@@ -545,12 +544,13 @@ end
             4:-2:1,
         ]
         for idx in indices
+            idx = 3
             from2d = view(da, idx)
             @test from2d == view(parent(da), idx)
             @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(parent(da)[1, :], idx)
-            @test from1d isa AbstractDimArray
+            @test from1d isa SubArray
         end
     end
 
@@ -757,7 +757,7 @@ end
 end
 
 @testset "errors" begin
-    @test_throws ArgumentError sel2indices(Points(), Sampled(), X(), Contains(1))
+    @test_throws ArgumentError DimensionalData._sel2indices(Points(), Sampled(), X(), Contains(1))
 end
 
 

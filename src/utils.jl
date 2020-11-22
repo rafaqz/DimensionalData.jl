@@ -8,7 +8,7 @@ Reverse the array order, and update the dim to match.
 Base.reverse(A::AbstractDimArray; dims=1) =
     reverse(IndexOrder, reverse(ArrayOrder, A, dims), dims)
 
-Base.reverse(ds::AbstractDimDataset; dims=1) = reverse(ArrayOrder, ds, dims)
+Base.reverse(s::AbstractDimStack; dims=1) = reverse(ArrayOrder, s, dims)
 Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
 Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
 Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
@@ -18,8 +18,8 @@ Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
 end
 
 _reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
-_reversedata(ds::AbstractDimDataset, dimnum) =
-    map(a -> reverse(parent(a); dims=dimnum), data(ds))
+_reversedata(s::AbstractDimStack, dimnum) =
+    map(a -> reverse(parent(a); dims=dimnum), data(s))
 
 # Dimension
 Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
@@ -133,7 +133,7 @@ _reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray
-    modify(f, ds::AbstractDimDataset) => AbstractDimDataset
+    modify(f, s::AbstractDimStack) => AbstractDimStack
     modify(f, dim::Dimension) => Dimension
     modify(f, x, lookupdim::Dimension) => typeof(x)
 
@@ -152,14 +152,14 @@ A = DimArray(rand(100, 100), (X, Y))
 modify(CuArray, A)
 ```
 
-This also works for all the data layers in a `DimDataset`.
+This also works for all the data layers in a `DimStack`.
 """
 modify(f, A::AbstractDimArray) = begin
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
     rebuild(A, newdata)
 end
-modify(f, ds::AbstractDimDataset) = map(f, ds)
+modify(f, s::AbstractDimStack) = map(f, s)
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
 modify(f, dim::Dimension) = begin
     newindex = f(index(dim))

@@ -22,8 +22,9 @@ can be used in `order`.
     _sortdims(_maybeconstruct(Tuple(tosort)), Tuple(order))
 end
 
-@generated _sortdims(tosort::Tuple{Vararg{<:Dimension}}, 
-                      order::Tuple{Vararg{<:Dimension}}) = begin
+@generated function _sortdims(
+    tosort::Tuple{Vararg{<:Dimension}}, order::Tuple{Vararg{<:Dimension}}
+)
     indexexps = []
     ts = (tosort.parameters...,)
     allreadyfound = Int[]
@@ -70,8 +71,7 @@ end
 @inline _maybeconstruct(dim::Dimension) = dim
 # @inline _maybeconstruct(dimtype::UnionAll) = 
     # isabstracttype(dimtype) ? dimtype : dimtype()
-@inline _maybeconstruct(dimtype::DimType) = 
-    isabstracttype(dimtype) ? dimtype : dimtype()
+@inline _maybeconstruct(dimtype::DimType) = isabstracttype(dimtype) ? dimtype : dimtype()
 
 """
     commondims(x, lookup) => Tuple{Vararg{<:Dimension}}
@@ -86,10 +86,10 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-(X (type X): Base.OneTo(10) (NoIndex),)
+(X (type X) (NoIndex),)
 
 julia> commondims(A, (X, Z))
-(X (type X): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
+(X (type X) (NoIndex), Z (type Z) (NoIndex))
 
 julia> commondims(A, Ti)
 ()
@@ -126,77 +126,6 @@ are at least rotations/transformations of the same type.
     basetypeof(dim) <: basetypeof(dims(modetype(match))) ||
     basetypeof(dims(modetype(dim))) <: basetypeof(match)
 
-"""
-    dims2indices(dim::Dimension, lookup, [emptyval=Colon()]) => NTuple{Union{Colon,AbstractArray,Int}}
-
-Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or Colon.
-"""
-@inline dims2indices(dim::Dimension, lookup, emptyval=Colon()) =
-    _dims2indices(dim, lookup, emptyval)
-@inline dims2indices(dim::Dimension, lookup::StandardIndices, emptyval=Colon()) = lookup
-@inline dims2indices(x, lookup, emptyval=Colon()) =
-    dims2indices(dims(x), lookup, emptyval)
-@inline dims2indices(::Nothing, lookup, emptyval=Colon()) = _dimsnotdefinederror()
-
-@inline dims2indices(dims::DimTuple, lookup, emptyval=Colon()) =
-    dims2indices(dims, (lookup,), emptyval)
-# Standard array indices are simply returned
-@inline dims2indices(dims::DimTuple, lookup::Tuple{Vararg{<:StandardIndices}}, 
-                     emptyval=Colon()) = lookup
-# Otherwise attempt to convert dims to indices
-@inline dims2indices(dims::DimTuple, lookup::Tuple, emptyval=Colon()) =
-    _dims2indices(map(mode, dims), dims, sortdims(lookup, dims), emptyval)
-
-# Handle tuples with @generated
-@inline _dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}, emptyval) = ()
-@generated _dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple, emptyval) =
-    _dims2indices_inner(modes, dims, lookup, emptyval)
-
-_dims2indices_inner(modes::Type, dims::Type, lookup::Type, emptyval) = begin
-    unalligned = Expr(:tuple) 
-    ualookups = Expr(:tuple)
-    alligned = Expr(:tuple)
-    dimmerge = Expr(:tuple)
-    a_count = ua_count = 0
-    for (i, mp) in enumerate(modes.parameters)
-        if mp <: Unaligned
-            ua_count += 1
-            push!(unalligned.args, :(dims[$i]))
-            push!(ualookups.args, :(lookup[$i]))
-            push!(dimmerge.args, :(uadims[$ua_count])) 
-        else
-            a_count += 1
-            push!(alligned.args, :(_dims2indices(dims[$i], lookup[$i], emptyval)))
-            # Update  the merged tuple
-            push!(dimmerge.args, :(adims[$a_count])) 
-        end
-    end
-
-    if length(unalligned.args) > 1
-        # Output the dimmerge, that will combine uadims and adims in the right order 
-        quote 
-             adims = $alligned 
-             # Unaligned dims have to be run together as a set
-             uadims = unalligned2indices($unalligned, $ualookups)
-             $dimmerge
-        end
-    else
-        alligned
-    end
-end
-
-# Single dim methods
-
-# A Dimension type always means Colon(), as if it was constructed with the default value.
-@inline _dims2indices(dim::Dimension, lookup::Type{<:Dimension}, emptyval) = Colon()
-# Nothing means nothing was passed for this dimension, return the emptyval
-@inline _dims2indices(dim::Dimension, lookup::Nothing, emptyval) = emptyval
-# Simply unwrap dimensions
-@inline _dims2indices(dim::Dimension, lookup::Dimension, emptyval) = val(lookup)
-# Pass `Selector`s to sel2indices
-@inline _dims2indices(dim::Dimension, lookup::Dimension{<:Selector}, emptyval) =
-    sel2indices(dim, val(lookup))
-
 
 """
     slicedims(x, I) => Tuple{Tuple,Tuple}
@@ -223,6 +152,8 @@ function slicedims end
     newdims, newrefdims = slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
 end
+@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) = 
+    slicedims(dims, refdims, Tuple(I)) 
 @inline slicedims(dims::Tuple{}, I::Tuple) = (), ()
 @inline slicedims(dims::DimTuple, I::Tuple) = begin
     d = slicedims(dims[1], I[1])
@@ -351,13 +282,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y (type Y): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
+(Y (type Y) (NoIndex), Z (type Z) (NoIndex))
 
 julia> otherdims(A, (Y, Z))
-(X (type X): Base.OneTo(10) (NoIndex),)
+(X (type X) (NoIndex),)
 
 julia> otherdims(A, Ti)
-(X (type X): Base.OneTo(10) (NoIndex), Y (type Y): Base.OneTo(10) (NoIndex), Z (type Z): Base.OneTo(10) (NoIndex))
+(X (type X) (NoIndex), Y (type Y) (NoIndex), Z (type Z) (NoIndex))
 ```
 """
 @inline otherdims(x, lookup) = otherdims(dims(x), lookup)
@@ -490,7 +421,6 @@ end
     mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
     rebuild(dim, _reducedims(locus(mode), dim), mode)
 end
-
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
 @inline _reducedims(locus::Start, dim::Dimension) = [first(index(dim))]
