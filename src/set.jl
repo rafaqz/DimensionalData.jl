@@ -5,19 +5,19 @@ Set the field matching the supertypes of values in xs and return a new object.
 As DimensionalData is so strongly typed you do not need to specify what field
 to `set` - there is no ambiguity.
 
-To set fields of dimensions you need to specify the dimension. This can be done using 
-`Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments, 
+To set fields of dimensions you need to specify the dimension. This can be done using
+`Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments,
 or a `NamedTuple`.
 
-When dimensions or IndexModes are passed to `set` to replace the existing ones, 
+When dimensions or IndexModes are passed to `set` to replace the existing ones,
 fields that are not set will keep their original values.
 
 ## Notes:
 
-Changing the dimension index range will set the `Sampled` mode 
-component `Regular` with a new step size, and set the dimension order. 
+Changing the dimension index range will set the `Sampled` mode
+component `Regular` with a new step size, and set the dimension order.
 
-Setting [`Order`](@ref) will *not* reverse the array or dimension to match. Use 
+Setting [`Order`](@ref) will *not* reverse the array or dimension to match. Use
 [`reverse`](@ref) and [`reorder`](@ref) to do this.
 
 
@@ -53,40 +53,37 @@ set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 """
 function set end
 
+const DimArrayOrDataset = Union{AbstractDimArray,AbstractDimDataset}
 
-@noinline set(A::Union{AbstractDimArray,AbstractDimDataset}, name::T) where {T<:Union{Mode,ModeComponent}} =  
-    throw(ArgumentError("Can only set $(typeof(T)) for a dimension. Specify which dimension you want to set it for"))
-@noinline set(A, x) = _cantset(A, x)
-@noinline _set(A, x) = _cantset(A, x)
-
-_cantset(a, b) = throw(ArgumentError("Can not set any fields of $a to $b"))
-
-@noinline _axiserr(a, b) = 
-    throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
+set(A::DimArrayOrDataset, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
+set(A, x) = _cantseterror(A, x)
+_set(A, x) = _cantseterror(A, x)
 
 """
     set(x, args::Pairs...) => x with updated field/s
-    set(x, args...; kwargs...) => x with updated field/s
-    set(x, args::Tuple{Vararg{<:Dimension}}; kwargs...) => x with updated field/s
+    set(x, args...; kw...) => x with updated field/s
+    set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
 
-Set the dimensions or any properties of the dimensions for `AbstractDimArray` 
+Set the dimensions or any properties of the dimensions for `AbstractDimArray`
 or `AbstractDimDataset`.
 
-Set can be passed Keyword arguments or arguments of Pairs using dimension names, 
+Set can be passed Keyword arguments or arguments of Pairs using dimension names,
 tuples of values wrapped in the intended dimensions. Or fully or partially
-constructed dimensions with val, mode or metadata fields set to intended 
+constructed dimensions with val, mode or metadata fields set to intended
 values. Dimension fields not assigned a value will be ignored, and the orginals kept.
 """
-set(A::Union{AbstractDimArray,AbstractDimDataset}, args::Union{Dimension,DimTuple,Pair}...; kwargs...) =
-    rebuild(A, data(A), _set(dims(A), args...; kwargs...))
+set(A::DimArrayOrDataset, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+    rebuild(A, data(A), _set(dims(A), args...; kw...))
+
+_set(dim::DimArrayOrDataset, ::Type{T}) where T = _set(dim, T())
 
 # Array
 
 """
-    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+    set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
 
 `AbstractArray` is always data, and update the `data` field of the array.
-This is what is returned by `parent(A)`. It must be the same size as the 
+This is what is returned by `parent(A)`. It must be the same size as the
 original value to match the `Dimension`s in the dims field.
 """
 set(A::AbstractDimArray, newdata::AbstractArray) = begin
@@ -94,17 +91,18 @@ set(A::AbstractDimArray, newdata::AbstractArray) = begin
     rebuild(A; data=newdata)
 end
 """
-    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+    set(A::AbstractDimArray, metadata::ArrayMetadata) => AbstractDimArray
 
-AbstractDicts are always metadata, and update the `metadata` field of the array.
+Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::AbstractDict) = rebuild(A; metadata=metadata)
+set(A::AbstractDimArray, metadata::Union{ArrayMetadata,NoMetadata}) = 
+    rebuild(A; metadata=metadata)
 """
-    set(A::AbstractDimArray, metadata::AbstractDict) => AbstractDimArray
+    set(A::AbstractDimArray, metadata::DimMetadata) => AbstractDimArray
 
 Symbols are always names, and update the `name` field of the array.
 """
-set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
+set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=name)
 
 # Dataset
 
@@ -112,7 +110,7 @@ set(A::AbstractDimArray, name::Symbol) = rebuild(A; name=name)
     set(ds::AbstractDimDataset, data::NamedTuple) => AbstractDimDataset
 
 `NamedTuple`s are always data, and update the `data` field of the dataset.
-The values must be `AbstractArray of the same size as the original data, to 
+The values must be `AbstractArray of the same size as the original data, to
 match the `Dimension`s in the dims field.
 """
 set(ds::AbstractDimDataset, newdata::NamedTuple) = begin
@@ -122,27 +120,29 @@ set(ds::AbstractDimDataset, newdata::NamedTuple) = begin
     rebuild(ds; data=newdata)
 end
 """
-    set(ds::AbstractDimDataset, metadata::AbstractDict) => AbstractDimDataset
+    set(ds::AbstractDimDataset, metadata::Union{StackMetadata,NoMetadata}) => AbstractDimDataset
 
-AbstractDicts are always metadata, and update the `metadata` field of the dataset.
+StackMetadata update the `metadata` field of the dataset.
 """
-set(ds::AbstractDimDataset, metadata::AbstractDict) = rebuild(ds; metadata=metadata)
+set(ds::AbstractDimDataset, metadata::Union{StackMetadata,NoMetadata}) = 
+    rebuild(ds; metadata=metadata)
+
+
+const InDims = Union{DimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
 
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
     set(dim::Dimension, mode::Mode) => Dimension
     set(dim::Dimension, modecomponent::ModeComponent) => Dimension
-    set(dim::Dimension, metadata::AbstractDict) => Dimension
+    set(dim::Dimension, metadata::DimMetadata) => Dimension
 
 Set fields of the dimension
 """
-set(dim::Dimension, x::Union{AbstractArray,Val,Mode,ModeComponent,AbstractDict}) = 
-    _set(dim, x)
+set(dim::Dimension, x::InDims) = _set(dim, x)
 
 
 # Convert args/kwargs to dims and set
-_set(dims_::DimTuple, args::Dimension...; kwargs...) =
-    _set(dims_, (args..., _kwargdims(kwargs)...))
+_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., _kwargdims(kw)...))
 # Convert pairs to wrapped dims and set
 _set(dims_::DimTuple, p::Pair, ps::Vararg{<:Pair}) = _set(dims_, (p, ps...))
 _set(dims_::DimTuple, ps::Tuple{Vararg{<:Pair}}) = _set(dims_, _pairdims(ps...))
@@ -150,21 +150,18 @@ _set(dims_::DimTuple, ps::Tuple{Vararg{<:Pair}}) = _set(dims_, _pairdims(ps...))
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin
     # Check the dimension types match
-    map(wrappers) do w 
+    map(wrappers) do w
         hasdim(dims, w) || _wrongdimserr(dims, w)
     end
     # Missing dims return `nothing` from sortdims
     newdims = map(_set, dims, sortdims(wrappers, dims))
-    # Swaps existing dims with non-nothing new dims 
+    # Swaps existing dims with non-nothing new dims
     swapdims(dims, newdims)
 end
 
-@noinline _wrongdimserr(dims, w) = 
-    throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
 
 # Set things wrapped in dims
-_set(dim::Dimension, wrapper::Dimension{<:Union{AbstractDict,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}}) = 
-    _set(dim::Dimension, val(wrapper))
+_set(dim::Dimension, wrapper::Dimension{<:InDims}) = _set(dim::Dimension, val(wrapper))
 
 # Set the index
 _set(dim::Dimension, index::Val) = rebuild(dim; val=index)
@@ -178,7 +175,7 @@ _set(dim::Dimension, index::Colon) = dim
 
 _set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
 # Update the Sampling mode of Sampled dims - it must match the range.
-_set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) = 
+_set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) =
     rebuild(dim; val=index, mode=_set(mode, Regular(step(index))))
 
 # Set the dim, checking the mode
@@ -226,13 +223,13 @@ _set(mode::IndexMode, newmode::NoIndex) = newmode
 
 
 # Order
-_set(mode::IndexMode, neworder::Order) =
-    rebuild(mode; order=_set(order(mode), neworder))
+_set(mode::IndexMode, neworder::Order) = rebuild(mode; order=_set(order(mode), neworder))
+_set(mode::NoIndex, neworder::Order) = mode
 
 _set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
-    index = _set(indexorder(order), indexorder(neworder)) 
-    array = _set(arrayorder(order), arrayorder(neworder)) 
-    rel = _set(relation(order), relation(neworder)) 
+    index = _set(indexorder(order), indexorder(neworder))
+    array = _set(arrayorder(order), arrayorder(neworder))
+    rel = _set(relation(order), relation(neworder))
     Ordered(index, array, rel)
 end
 _set(order::Union{Ordered,Unordered}, neworder::Unordered) =
@@ -279,17 +276,21 @@ _set(sampling::Sampling, newsampling::AutoSampling) = sampling
 _set(mode::AbstractSampled, locus::Locus) =
     rebuild(mode; sampling=_set(sampling(mode), locus))
 _set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
-@noinline _set(sampling::Points, locus::Locus) =
-    throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
+_set(sampling::Points, locus::Locus) = _locuserror()
 _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 
-# Metadata: TODO: implement metadata types
-_set(dim::Dimension, newmetadata::AbstractDict) = 
-    rebuild(dim, val(dim), mode(dim), _set(metadata(dim), newmetadata))
-_set(metadata::AbstractDict, newmetadata::AbstractDict) = newmetadata
+_set(dim::Dimension, newmetadata::Union{DimMetadata,NoMetadata}) =
+    rebuild(dim, val(dim), mode(dim), newmetadata)
 
 _set(x, ::Nothing) = x
 _set(::Nothing, x) = x
 _set(::Nothing, ::Nothing) = nothing
+
+
+@noinline _locuserror() = throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
+@noinline _cantseterror(a, b) = throw(ArgumentError("Can not set any fields of $a to $b"))
+@noinline _onlydimerror(T) = throw(ArgumentError("Can only set $(typeof(T)) for a dimension. Specify which dimension you want to set it for"))
+@noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
+@noinline _wrongdimserr(dims, w) = throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))

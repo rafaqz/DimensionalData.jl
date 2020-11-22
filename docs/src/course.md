@@ -71,8 +71,7 @@ with the simple `Ti(range)` syntax like so:
 A[X(1:3:11), Ti(1:2:11)]
 ```
 
-Of course, wh
-specifying only one dimension, all elements of the other
+Of course, when specifying only one dimension, all elements of the other
 dimensions are assumed to be included:
 
 ```@example main

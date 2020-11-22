@@ -23,8 +23,6 @@ const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
 const StandardIndices = Union{AbstractVector{<:Integer},Colon,Integer}
 
-
-
 # DimensionalData.jl interface methods ############################################################
 
 # Standard fields
@@ -222,23 +220,18 @@ julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
 ```
 """
-struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na<:Symbol,Me} <: AbstractDimArray{T,N,D,A}
+struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
     name::Na
     metadata::Me
 end
-# Warn string conversion for compatibility
-DimArray(A::AbstractArray, dims, refdims, name::String, metadata) = begin
-    @warn "The AbstractDimArray name field is now a Symbol"
-    DimArray(A, dims, refdims, Symbol(name), metadata)
-end
 # 2 or 3 arg version
-DimArray(data::AbstractArray, dims, name=Symbol(""); refdims=(), metadata=nothing) =
+DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 # All kwargs version
-DimArray(; data, dims, refdims=(), name=Symbol(""), metadata=nothing) =
+DimArray(; data, dims, refdims=(), name=NoName(), metadata=nothing) =
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 # Construct from another AbstractDimArray
 DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A), 
@@ -253,7 +246,7 @@ Rebuild a `DimArray` with new fields. Handling partial field
 update is dealth with in `rebuild` for `AbstractDimArray`.
 """
 @inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
-                refdims::Tuple, name::Symbol, metadata) =
+                refdims::Tuple, name, metadata) =
     DimArray(data, dims, refdims, name, metadata)
 
 """

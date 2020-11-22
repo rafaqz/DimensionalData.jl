@@ -4,8 +4,8 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype
 @dim TestDim "Testname"
 
 @testset "dims creation macro" begin
-    @test TestDim(1:10, Sampled()) == TestDim(1:10, Sampled(), nothing)
-    @test TestDim(1:10; mode=Categorical()) == TestDim(1:10, Categorical(), nothing)
+    @test TestDim(1:10, Sampled(), NoMetadata()) == TestDim(1:10, Sampled(), NoMetadata())
+    @test TestDim(1:10; mode=Categorical()) == TestDim(1:10, Categorical(), NoMetadata())
     @test DimensionalData.name(TestDim) == :Testname
     @test label(TestDim) == "Testname"
     @test val(TestDim(:testval)) == :testval
@@ -36,26 +36,26 @@ end
 
 @testset "formatdims" begin
     A = [1 2 3; 4 5 6]
-    @test formatdims(A, (X, Y)) == (X(Base.OneTo(2), NoIndex(), nothing),
-                                    Y(Base.OneTo(3), NoIndex(), nothing))
-    @test formatdims(zeros(3), Ti) == (Ti(Base.OneTo(3), NoIndex(), nothing),)
-    @test formatdims(A, (:a, :b)) == (Dim{:a}(Base.OneTo(2), NoIndex(), nothing),
-                                      Dim{:b}(Base.OneTo(3), NoIndex(), nothing))
-    @test formatdims(51:100, :c) == (Dim{:c}(Base.OneTo(50), NoIndex(), nothing),)
+    @test formatdims(A, (X, Y)) == (X(Base.OneTo(2), NoIndex(), NoMetadata()),
+                                    Y(Base.OneTo(3), NoIndex(), NoMetadata()))
+    @test formatdims(zeros(3), Ti) == (Ti(Base.OneTo(3), NoIndex(), NoMetadata()),)
+    @test formatdims(A, (:a, :b)) == (Dim{:a}(Base.OneTo(2), NoIndex(), NoMetadata()),
+                                      Dim{:b}(Base.OneTo(3), NoIndex(), NoMetadata()))
+    @test formatdims(51:100, :c) == (Dim{:c}(Base.OneTo(50), NoIndex(), NoMetadata()),)
     @test formatdims(A, (a=[:A, :B], b=(10.0:10.0:30.0))) ==
-        (Dim{:a}([:A, :B], Categorical(Unordered()), nothing),
-         Dim{:b}(10.0:10:30.0, Sampled(Ordered(), Regular(10.0), Points()), nothing))
+    (Dim{:a}([:A, :B], Categorical(Unordered()), NoMetadata()),
+     Dim{:b}(10.0:10:30.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata()))
     @test formatdims(A, (X([:A, :B]; metadata=5),
-                   Y(10.0:10.0:30.0, Categorical(Ordered()), Dict("metadata"=>1)))) ==
+           Y(10.0:10.0:30.0, Categorical(Ordered()), Dict("metadata"=>1)))) ==
           (X([:A, :B], Categorical(Unordered()), 5),
-          Y(10.0:10:30.0, Categorical(Ordered()), Dict("metadata"=>1)))
+           Y(10.0:10:30.0, Categorical(Ordered()), Dict("metadata"=>1)))
     @test formatdims(zeros(3, 4), 
-       (Dim{:row}(Val((:A, :B, :C))), 
-        Dim{:column}(Val((-20, -10, 0, 10)), Sampled(), nothing))) ==
-       (Dim{:row}(Val((:A, :B, :C)), Categorical(), nothing), 
-        Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Irregular(),Points()), nothing))
+        (Dim{:row}(Val((:A, :B, :C))), 
+         Dim{:column}(Val((-20, -10, 0, 10)), Sampled(), NoMetadata()))) ==
+        (Dim{:row}(Val((:A, :B, :C)), Categorical(), NoMetadata()), 
+         Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Irregular(),Points()), NoMetadata()))
     @test formatdims(A, (X(:, Sampled(Ordered(), Regular(), Points())), Y)) == 
-        (X(Base.OneTo(2), Sampled(Ordered(), Regular(1), Points()), nothing), Y(Base.OneTo(3), NoIndex(), nothing))
+        (X(Base.OneTo(2), Sampled(Ordered(), Regular(1), Points()), NoMetadata()), Y(Base.OneTo(3), NoIndex(), NoMetadata()))
 end
 
 @testset "Basic dim and array initialisation and methods" begin
@@ -96,7 +96,7 @@ end
 @testset "arbitrary dim names and Val index" begin
     dimz = formatdims(zeros(3, 4),
            (Dim{:row}(Val((:A, :B, :C))), 
-            Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Regular(10),Points()), nothing))
+            Dim{:column}(Val((-20, -10, 0, 10)), Sampled(Ordered(),Regular(10),Points()), NoMetadata()))
     )
     @test name(dimz) == (:row, :column)
     @test label(dimz) == ("row", "column")

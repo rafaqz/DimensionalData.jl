@@ -1,8 +1,8 @@
 using DimensionalData, Test
 
 a = [1 2; 3 4]
-dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "X")),
-        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Dict(:meta => "Y")))
+dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=DimMetadata(Dict(:meta => "X"))),
+        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=DimMetadata(Dict(:meta => "Y"))))
 da = DimArray(a, dimz, :test)
 
 a2 = [1 2 3 4
@@ -16,7 +16,9 @@ ds = DimDataset(da2, DimArray(2a2, dimz2, :test3))
 
 @testset " Array fields" begin
     @test name(set(da2, :newname)) == :newname
-    @test metadata(set(da2, Dict(:testa => "test"))) == Dict(:testa => "test")
+    @test name(set(da2, Name(:newname))) == Name{:newname}()
+    @test name(set(da2, NoName())) == NoName()
+    @test metadata(set(da2, ArrayMetadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
     @test_throws ArgumentError parent( set(da2, [9 9; 9 9])) == [9 9; 9 9]
@@ -26,7 +28,7 @@ end
     ds2 = set(ds, (x=a2, y=3a2))
     @test keys(ds2) == (:x, :y)
     @test values(ds2) == (a2, 3a2)
-    @test metadata(set(ds, Dict(:testa => "test"))) == Dict(:testa => "test")
+    @test metadata(set(ds, StackMetadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
 end
 
 @testset "DimDataset Dimension" begin
@@ -94,27 +96,26 @@ end
 
 
 @testset "metadata" begin
-    @test metadata(set(X(), Dict(:a=>1, :b=>2))) == Dict(:a=>1, :b=>2)
-    dax = set(da, X(Dict(:a=>1, :b=>2)))
-    @test metadata(dims(dax), X) == Dict(:a=>1, :b=>2)
-    @test metadata(dims(dax), Y) == Dict(:meta => "Y") 
-    dax = set(da, X(; metadata=Dict(:a=>1, :b=>2)))
-    @test metadata(dims(dax, X)) == Dict(:a=>1, :b=>2)
-
-    dax = set(da2, row=Dict(:a=>1, :b=>2))
-    @test metadata(dims(dax, :row)) == Dict(:a=>1, :b=>2)
-    dax = set(da2, column=Dict(:a=>1, :b=>2))
-    @test metadata(dims(dax, :column)) == Dict(:a=>1, :b=>2)
+    @test metadata(set(X(), DimMetadata(Dict(:a=>1, :b=>2)))).val == Dict(:a=>1, :b=>2)
+    dax = set(da, X(DimMetadata(Dict(:a=>1, :b=>2))))
+    @test metadata(dims(dax), X).val == Dict(:a=>1, :b=>2)
+    @test metadata(dims(dax), Y).val == Dict(:meta => "Y") 
+    dax = set(da, X(; metadata=DimMetadata(Dict(:a=>1, :b=>2))))
+    @test metadata(dims(dax, X)).val == Dict(:a=>1, :b=>2)
+    dax = set(da2, row=DimMetadata(Dict(:a=>1, :b=>2)))
+    @test metadata(dims(dax, :row)).val == Dict(:a=>1, :b=>2)
+    dax = set(da2, column=DimMetadata(Dict(:a=>1, :b=>2)))
+    @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
 end
 
 @testset "all dim fields" begin
-    dax = set(da, X(20:-10:10; mode=Sampled(), metadata=Dict(:a=>1, :b=>2)))
+    dax = set(da, X(20:-10:10; mode=Sampled(), metadata=DimMetadata(Dict(:a=>1, :b=>2))))
     x = dims(dax, X)
     @test val(x) == 20:-10:10
     @test order(x) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
     @test span(x) == Regular(-10)
     @test mode(x) == Sampled(Ordered(ReverseIndex(), ForwardArray(), ForwardRelation()), Regular(-10), Points())
-    @test metadata(x) == Dict(:a=>1, :b=>2) 
+    @test metadata(x).val == Dict(:a=>1, :b=>2) 
 end
 
 @testset "errors with set" begin

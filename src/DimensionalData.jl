@@ -51,6 +51,11 @@ export AbstractDimTable, DimTable
 
 export AbstractDimDataset, DimDataset
 
+export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata, 
+       ArrayMetadata, DimMetadata, StackMetadata, NoMetadata
+
+export AbstractName, Name, NoName 
+
 export data, dims, refdims, mode, metadata, name, label, units,
        val, index, order, sampling, span, bounds, locus, <|
 
@@ -65,6 +70,8 @@ const DD = DimensionalData
 
 include("interface.jl")
 include("mode.jl")
+include("metadata.jl")
+include("name.jl")
 include("identify.jl")
 include("dimension.jl")
 include("array.jl")

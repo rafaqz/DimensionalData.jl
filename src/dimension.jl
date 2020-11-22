@@ -35,7 +35,7 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-DimArray with dimensions:
+DimArray (named NoName()) with dimensions:
  Y (type Y): Char[a, b, c] (Categorical: Unordered)
  X (type X): 2:2:10 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
@@ -55,7 +55,7 @@ x = A[X(2), Y(3)]
 
 # output
 
-DimArray with dimensions:
+DimArray (named NoName()) with dimensions:
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
  Y (type Y): c (Categorical: Unordered)
@@ -71,7 +71,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-DimArray with dimensions:
+DimArray (named NoName()) with dimensions:
  X (type X): 4:2:4 (Sampled: Ordered Regular Points)
  Time (type Ti): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
 and referenced dimensions:
@@ -152,7 +152,7 @@ index(dim::Dimension{<:Val}) = unwrap(val(dim))
 
 name(dim::Dimension) = name(typeof(dim))
 units(dim::Dimension) =
-    metadata(dim) == nothing ? nothing : get(metadata(dim), :units, nothing)
+    metadata(dim) isa NoMetadata ? nothing : get(metadata(dim), :units, nothing)
 
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 
@@ -235,8 +235,8 @@ abstract type ParametricDimension{X,T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
     Dim{S}()
-    Dim{S}(val=:; mode=AutoMode(), metadata=nothing)
-    Dim{S}(val, mode, metadata=nothing)
+    Dim{S}(val=:; mode=AutoMode(), metadata=NoMetadata())
+    Dim{S}(val, mode, metadata=NoMetadata())
 
 A generic dimension. For use when custom dims are required when loading
 data from a file. Can be used as keyword arguments for indexing.
@@ -254,18 +254,18 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 dimension custom (type Dim):
 val: Char[a, b, c]
 mode: AutoMode
-metadata: nothing
-type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},Nothing}
+metadata: NoMetadata()
+type: Dim{:custom,Array{Char,1},AutoMode{AutoOrder},NoMetadata}
 ```
 """
 struct Dim{S,T,Mo<:Mode,Me} <: ParametricDimension{S,T,Mo,Me}
     val::T
     mode::Mo
     metadata::Me
-    Dim{S}(val::T, mode::Mo, metadata::Me=nothing) where {S,T,Mo<:Mode,Me} =
+    Dim{S}(val::T, mode::Mo, metadata::Me=NoMetadata()) where {S,T,Mo<:Mode,Me} =
         new{S,T,Mo,Me}(val, mode, metadata)
 end
-Dim{S}(val=:; mode::Mode=AutoMode(), metadata=nothing) where S =
+Dim{S}(val=:; mode::Mode=AutoMode(), metadata=NoMetadata()) where S =
     Dim{S}(val, mode, metadata)
 
 name(::Type{<:Dim{S}}) where S = S
@@ -279,18 +279,18 @@ dim2key(::Type{D}) where D<:Dim{S} where S = S
 Anonymous dimension. Used when extra dimensions are created, 
 such as during transpose of a vector.
 """
-struct AnonDim{T} <: Dimension{T,NoIndex,Nothing} 
+struct AnonDim{T} <: Dimension{T,NoIndex,NoMetadata} 
     val::T
 end
 AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
 mode(::AnonDim) = NoIndex()
-metadata(::AnonDim) = nothing
+metadata(::AnonDim) = NoMetadata()
 name(::AnonDim) = :Anon
 
 """
-    @dim typ [supertype=Dimension] [name::String=typ]
+    @dim typ [supertype=Dimension] [name::String=string(typ)]
 
 Macro to easily define new dimensions. The supertype will be inserted
 into the type of the dim. The default is simply `YourDim <: Dimension`. Making
@@ -314,20 +314,26 @@ macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
 
-dimmacro(typ, supertype, name::String=string(typ)) =
-    esc(quote
+function dimmacro(typ, supertype, name::String=string(typ))
+    quote
         Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me} <: $supertype{T,Mo,Me}
             val::T
             mode::Mo
             metadata::Me
         end
-        $typ(val=:; mode::DimensionalData.Mode=DimensionalData.AutoMode(), metadata=nothing) =
+        function $typ(
+             val=:; mode::DimensionalData.Mode=DimensionalData.AutoMode(), 
+             metadata=DimensionalData.NoMetadata()
+        ) 
             $typ(val, mode, metadata)
-        $typ(val::V, mode::Mo) where {V,Mo<:DimensionalData.Mode} =
-            $typ{V,Mo,Nothing}(val, mode, nothing)
+        end
+        function $typ(val::V, mode::Mo) where {V,Mo<:DimensionalData.Mode}
+            $typ{V,Mo,NoMetadata}(val, mode, DimensionalData.NoMetadata())
+        end
         DimensionalData.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
         DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
-    end)
+    end |> esc
+end
 
 # Define some common dimensions.
 
@@ -424,7 +430,7 @@ formatdims(A::AbstractArray, dims::NamedTuple) = begin
 end
 formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,N}}) where N =
     formatdims(axes(A), dims)
-formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,M}}) where {N,M} =
+@noinline formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,M}}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M"))
 formatdims(axes::Tuple, dims::Tuple) = _formatdims(axes, dims)
                                                                                
@@ -432,9 +438,8 @@ formatdims(axes::Tuple, dims::Tuple) = _formatdims(axes, dims)
 _formatdims(axes::Tuple{Vararg{<:AbstractRange}}, dims::Tuple) =
     map(_formatdims, axes, dims)
 _formatdims(axis::AbstractRange, dimname::Symbol) =
-    Dim{dimname}(axis, NoIndex(), nothing)
-_formatdims(axis::AbstractRange, dimtype::Type{<:Dimension}) =
-    dimtype(axis, NoIndex(), nothing)
+    Dim{dimname}(axis, NoIndex(), NoMetadata())
+_formatdims(axis::AbstractRange, T::Type{<:Dimension}) = T(axis, NoIndex(), NoMetadata())
 _formatdims(axis::AbstractRange, dim::Dimension) = begin
     checkaxis(dim, axis)
     rebuild(dim, val(dim), identify(mode(dim), basetypeof(dim), val(dim)))
@@ -445,8 +450,7 @@ _formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
     _formatdims(axis, rebuild(dim, range))
 end
 # Dimensions holding colon dispatch on mode
-_formatdims(axis::AbstractRange, dim::Dimension{Colon}) =
-    _formatdims(mode(dim), axis, dim)
+_formatdims(axis::AbstractRange, dim::Dimension{Colon}) = _formatdims(mode(dim), axis, dim)
 
 # Dimensions holding colon has the array axis inserted as the index
 _formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
