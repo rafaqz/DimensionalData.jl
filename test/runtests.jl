@@ -19,7 +19,7 @@ include("methods.jl")
 include("utils.jl")
 include("matmul.jl")
 include("tables.jl")
-include("prettyprinting.jl")
+include("show.jl")
 
 if Sys.islinux()
     # Unfortunately this can hang on other platforms.

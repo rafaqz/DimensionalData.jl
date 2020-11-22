@@ -85,7 +85,7 @@ include("matmul.jl")
 include("set.jl")
 include("utils.jl")
 include("plotrecipes.jl")
-include("prettyprint.jl")
+include("show.jl")
 
 # For compat with old versions
 const AbstractDimensionalArray = AbstractDimArray
