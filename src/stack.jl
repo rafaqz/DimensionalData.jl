@@ -63,7 +63,22 @@ julia> s[:b, 10.0]
 (one = 4.0, two = 8.0, three = 12.0)
 
 julia> s[X(:a)]
-DimStack{NamedTuple{(:one, :two, :three),Tuple{Array{Float64,1},Array{Float64,1},Array{Float64,1}}},1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},NoMetadata}},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = [1.0, 2.0, 3.0], two = [2.0, 4.0, 6.0], three = [3.0, 6.0, 9.0]), (Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X (type X): a (Categorical: Unordered),), (one = nothing, two = nothing, three = nothing))
+DimStack{NamedTuple{(:one, :two, :three),Tuple{DimArray{Float64,1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},NoMetadata}},Array{Float64,1},Symbol,Nothing},DimArray{Float64,1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},NoMetadata}},Array{Float64,1},Symbol,Nothing},DimArray{Float64,1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},NoMetadata}},Array{Float64,1},Symbol,Nothing}}},1,Tuple{Y{StepRangeLen{Float64,Base.TwicePrecision{Float64},Base.TwicePrecision{Float64}},Sampled{Ordered{ForwardIndex,ForwardArray,ForwardRelation},Regular{Float64},Points},NoMetadata}},Tuple{X{Symbol,Categorical{Unordered{ForwardRelation}},NoMetadata}},NamedTuple{(:one, :two, :three),Tuple{Nothing,Nothing,Nothing}}}((one = DimArray (named one) with dimensions:
+ Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
+and referenced dimensions:
+ X (type X): a (Categorical: Unordered)
+and data: 3-element Array{Float64,1}
+[1.0, 2.0, 3.0], two = DimArray (named two) with dimensions:
+ Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
+and referenced dimensions:
+ X (type X): a (Categorical: Unordered)
+and data: 3-element Array{Float64,1}
+[2.0, 4.0, 6.0], three = DimArray (named three) with dimensions:
+ Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
+and referenced dimensions:
+ X (type X): a (Categorical: Unordered)
+and data: 3-element Array{Float64,1}
+[3.0, 6.0, 9.0]), (Y (type Y): 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X (type X): a (Categorical: Unordered),), (one = nothing, two = nothing, three = nothing))
 ```
 
 """
