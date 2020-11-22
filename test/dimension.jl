@@ -32,6 +32,8 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype
     @test ndims(TestDim(1)) == 0
     @test Array(TestDim(10:15)) == [10, 11, 12, 13, 14, 15]
     @test iterate(TestDim(10:20)) == iterate(10:20)
+    @test TestDim(5.0:7.0)[2] == 6.0
+    @test TestDim(5.0:7.0, Sampled(Ordered(), Regular(1.0), Points()))[At(6.0)] == 6.0
 end
 
 @testset "formatdims" begin
