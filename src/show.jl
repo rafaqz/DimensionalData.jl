@@ -67,6 +67,7 @@ printdimproperties(io, dim) = begin
         _printdimval(io, val(dim))
     end
     print(io, " (", mode(dim), ")")
+    print(io, " (length ", length(dim), ")")
 end
 
 _printdimval(io, A::AbstractArray) = printlimited(io, A)
