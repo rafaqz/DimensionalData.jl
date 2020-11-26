@@ -1,34 +1,34 @@
-
 """
 Abstract supertype for all metadata wrappers.
 
-These allow tracking the contents and origin of metadata. This can facilitate 
-conversion between metadata types (for saving a file to a differenet format) 
+These allow tracking the contents and origin of metadata. This can facilitate
+conversion between metadata types (for saving a file to a differenet format)
 or simply saving data back to the same file type with identical metadata.
 """
 abstract type Metadata{T} end
 
-# NamedTuple constructor
-(::Type{T})(; kwargs...) where T <: Metadata = T((; kwargs...))
+# NamedTuple/Dict constructor
+# We have to combine these because the no-arg method is overwritten by empty kw.
+function (::Type{T})(ps::Pair...; kw...) where T <: Metadata
+    if length(ps) > 0 && length(kw) > 0
+        throw(ArgumentError("Metadata can be constructed with args of Pair to make a Dict, or kw for a NamedTuple. But not both."))
+    end
+    length(kw) > 0 ? T((; kw...)) : T(Dict(ps...))
+end
 
-struct NoMetadata <: Metadata{NamedTuple{(),Tuple{}}} end
-Base.keys(::NoMetadata) = ()
-Base.length(::NoMetadata) = 0
-# TODO: what else is needed here
+val(m::Metadata) = m.val
 
-
-val(metadata::Metadata) = metadata.val
-
-Base.get(metadata::Metadata, args...) = get(val(metadata), args...)
-Base.getindex(metadata::Metadata, args...) = getindex(val(metadata), args...)
-Base.setindex!(metadata::Metadata, args...) = setindex!(val(metadata), args...)
-Base.keys(metadata::Metadata) = keys(val(metadata))
-Base.iterate(metadata::Metadata, args...) = iterate(val(metadata), args...)
+Base.get(m::Metadata, args...) = get(val(m), args...)
+Base.getindex(m::Metadata, key) = getindex(val(m), Symbol(key))
+Base.setindex!(m::Metadata, x, key) = setindex!(val(m), x, Symbol(key))
+Base.haskey(m::Metadata, key) = haskey(val(m), Symbol(key))
+Base.keys(m::Metadata) = keys(val(m))
+Base.iterate(m::Metadata, args...) = iterate(val(m), args...)
 Base.IteratorSize(::Metadata) = Base.IteratorSize(m)
 Base.IteratorEltype(m::Metadata) = Base.IteratorEltype(m)
 Base.eltype(m::Metadata) = eltype(m)
 Base.length(m::Metadata) = length(val(m))
-
+Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 
 """
 Abstract supertype for `Metadata` wrappers to be attached to `Dimension`s.
@@ -47,25 +47,60 @@ abstract type AbstractStackMetadata{T} <: Metadata{T} end
 
 
 """
+    DimMetadata(val::Union{Dict,NamedTuple})
+    DimMetadata(pairs::Pair...) => DimMetadata{Dict}
+    DimMetadata(; kw...) => DimMetadata{NamedTuple}
+
 [`Metadata`](@ref) for a [`Dimension`](@ref).
 """
-struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T}
+struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractDimMetadata{T}
     val::T
 end
-DimMetadata(p::Pair, ps::Pair...) = DimMetadata(Dict(p, ps...))
 
 """
+    ArrayMetadata(val::Union{Dict,NamedTuple})
+    ArrayMetadata(pairs::Pair...) => ArrayMetadata{Dict}
+    ArrayMetadata(; kw...) => ArrayMetadata{NamedTuple}
+
 [`Metadata`](@ref) for a [`DimArray`](@ref).
 """
-struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
+struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractArrayMetadata{T}
     val::T
 end
-ArrayMetadata(p::Pair, ps::Pair...) = ArrayMetadata(Dict(p, ps...))
 
 """
+    StackMetadata(val::Union{Dict,NamedTuple})
+    StackMetadata(pairs::Pair...) => StackMetadata{Dict}
+    StackMetadata(; kw...) => StackMetadata{NamedTuple}
+
 [`Metadata`](@ref)for a [`DimStack`](@ref).
 """
-struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: Metadata{T} 
+struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractStackMetadata{T}
     val::T
 end
-StackMetadata(p::Pair, ps::Pair...) = StackMetadata(Dict(p, ps...))
+
+"""
+    NoMetadata()
+
+Indicates an object has no metadata. Can be used in `set`
+to remove any existing metadata.
+"""
+struct NoMetadata <: Metadata{NamedTuple{(),Tuple{}}} end
+
+val(m::NoMetadata) = NamedTuple()
+
+Base.keys(::NoMetadata) = ()
+Base.haskey(::NoMetadata, args...) = false
+Base.get(::NoMetadata, key, fallback) = fallback
+Base.length(::NoMetadata) = 0
+
+
+# Metadata utils
+
+function metadatadict(dict)
+    symboldict = Dict{Symbol,Any}()
+    for (k, v) in dict
+        symboldict[Symbol(k)] = v
+    end
+    symboldict
+end
