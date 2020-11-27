@@ -1,7 +1,14 @@
 using DimensionalData, Documenter, Aqua
 
 if VERSION >= v"1.5.0"
-    Aqua.test_all(DimensionalData)
+    # This is catching some unambiguous constructors for T<:Metadata.
+    # Aqua.test_ambiguities([DimensionalData, Base, Core])
+    Aqua.test_unbound_args(DimensionalData)
+    Aqua.test_undefined_exports(DimensionalData)
+    Aqua.test_project_extras(DimensionalData)
+    Aqua.test_stale_deps(DimensionalData)
+    Aqua.test_deps_compat(DimensionalData)
+    Aqua.test_project_toml_formatting(DimensionalData)
     Aqua.test_project_extras(DimensionalData)
     Aqua.test_stale_deps(DimensionalData)
 end

@@ -91,11 +91,11 @@ set(A::AbstractDimArray, newdata::AbstractArray) = begin
     rebuild(A; data=newdata)
 end
 """
-    set(A::AbstractDimArray, metadata::ArrayMetadata) => AbstractDimArray
+    set(A::AbstractDimArray, metadata::AbstractArrayMetadata) => AbstractDimArray
 
 Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::Union{ArrayMetadata,NoMetadata}) = 
+set(A::AbstractDimArray, metadata::Union{AbstractArrayMetadata,NoMetadata}) = 
     rebuild(A; metadata=metadata)
 """
     set(A::AbstractDimArray, metadata::DimMetadata) => AbstractDimArray
@@ -124,17 +124,17 @@ end
 
 StackMetadata update the `metadata` field of the dataset.
 """
-set(s::AbstractDimStack, metadata::Union{StackMetadata,NoMetadata}) = 
+set(s::AbstractDimStack, metadata::Union{AbstractStackMetadata,NoMetadata}) = 
     rebuild(s; metadata=metadata)
 
 
-const InDims = Union{DimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
+const InDims = Union{AbstractDimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
 
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
     set(dim::Dimension, mode::Mode) => Dimension
     set(dim::Dimension, modecomponent::ModeComponent) => Dimension
-    set(dim::Dimension, metadata::DimMetadata) => Dimension
+    set(dim::Dimension, metadata::AbstractDimMetadata) => Dimension
 
 Set fields of the dimension
 """
@@ -281,7 +281,7 @@ _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 
-_set(dim::Dimension, newmetadata::Union{DimMetadata,NoMetadata}) =
+_set(dim::Dimension, newmetadata::Union{AbstractDimMetadata,NoMetadata}) =
     rebuild(dim, val(dim), mode(dim), newmetadata)
 
 _set(x, ::Nothing) = x
