@@ -16,6 +16,7 @@ end
 include("dimension.jl")
 include("interface.jl")
 include("primitives.jl")
+include("indexing.jl")
 include("array.jl")
 include("stack.jl")
 include("broadcast.jl")

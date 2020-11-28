@@ -146,6 +146,7 @@ end
 
 dims(dim::Union{Dimension,DimType}) = dim
 dims(dims::DimTuple) = dims
+dims(dims::Val{D}) where D <: Dimension = dims
 
 val(dim::Dimension) = dim.val
 mode(dim::Dimension) = dim.mode
@@ -156,6 +157,7 @@ index(dim::Dimension{<:AbstractArray}) = val(dim)
 index(dim::Dimension{<:Val}) = unwrap(val(dim))
 
 name(dim::Dimension) = name(typeof(dim))
+name(dim::Val{D}) where D = name(D)
 
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 

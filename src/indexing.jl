@@ -87,6 +87,7 @@ end
 
 Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or Colon.
 """
+@inline dims2indices(dim::Dimension, l1, ls...) = dims2indices(dim, (l1, ls...))
 @inline dims2indices(dim::Dimension, lookup) = _dims2indices(dim, lookup)
 @inline dims2indices(dim::Dimension, lookup::StandardIndices) = lookup
 
@@ -99,8 +100,11 @@ Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or C
 @inline dims2indices(dims::DimTuple, lookup::Tuple) = sel2indices(dims, lookup)
 @inline dims2indices(dims::DimTuple, lookup::Tuple{}) = ()
 # Otherwise attempt to convert dims to indices
-@inline dims2indices(dims::DimTuple, lookup::DimTuple) =
+@inline function dims2indices(dims::DimTuple, lookup::DimTuple)
+    extradims = otherdims(lookup, dims)
+    length(extradims) > 0 && _warnextradims(extradims)
     _dims2indices(map(mode, dims), dims, sortdims(lookup, dims))
+end
 
 # Handle tuples with @generated
 @inline _dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()

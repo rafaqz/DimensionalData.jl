@@ -196,6 +196,7 @@ val(sel::Where) = sel.f
 
 # Converts Selectors to regular indices
 
+@inline sel2indices(x, l1, ls...) = sel2indices(dims(x), (l1, ls...))
 @inline sel2indices(x, lookup) = sel2indices(dims(x), lookup)
 @inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
 @inline sel2indices(dims::Tuple, lookup::Tuple) =

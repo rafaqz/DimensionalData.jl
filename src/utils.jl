@@ -229,7 +229,6 @@ function dimwise_generators(dims::Tuple)
     end
 end
 
-
 """
     basetypeof(x) => Type
 
@@ -241,7 +240,7 @@ defined for types with free type parameters.
 In DimensionalData this is primariliy used for comparing `Dimension`s,
 where `Dim{:x}` is different from `Dim{:y}`.
 """
-basetypeof(x) = basetypeof(typeof(x))
+@inline basetypeof(x::T) where T = basetypeof(T)
 @generated function basetypeof(::Type{T}) where T
     if T isa Union
         T
