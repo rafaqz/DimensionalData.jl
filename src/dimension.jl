@@ -220,7 +220,7 @@ Base.firstindex(d::Dimension) = 1
 Base.lastindex(d::Dimension) = 1
 Base.firstindex(d::Dimension{<:ArrayOrVal}) = firstindex(index(d))
 Base.lastindex(d::Dimension{<:ArrayOrVal}) = lastindex(index(d))
-Base.step(d::Dimension) = step(mode(d))
+Base.step(d::Dimension) = step(mode(d), d)
 Base.Array(d::Dimension{<:ArrayOrVal}) = collect(index(d))
 Base.:(==)(d1::Dimension, d2::Dimension) =
     typeof(d1) == typeof(d2) &&

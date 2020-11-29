@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: slicedims, basetypeof, formatdims, modetype
+using DimensionalData: slicedims, basetypeof, formatdims, modetype, name
 
 @dim TestDim "Testname"
 
@@ -16,7 +16,8 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype
     @test eltype(TestDim([1, 2, 3])) <: Int
     @test length(TestDim(1)) == 1
     @test length(TestDim([1, 2, 3])) == 3
-    @test_throws ErrorException step(TestDim(1:2:3)) == 2
+    @test step(TestDim(1:2:3)) == 2
+    @test step(TestDim(Base.OneTo(10), mode=NoIndex())) == 1
     @test step(TestDim(1:2:3; mode=Sampled(span=Regular(2)))) == 2
     @test first(TestDim(5)) == 5
     @test last(TestDim(5)) == 5
