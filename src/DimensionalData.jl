@@ -10,7 +10,8 @@ end DimensionalData
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, 
       Unknown
 
-using ConstructionBase, 
+using Adapt,
+      ConstructionBase, 
       Dates,
       LinearAlgebra, 
       RecipesBase, 
