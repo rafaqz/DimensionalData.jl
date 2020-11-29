@@ -126,6 +126,8 @@ rebuild(s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s), metadata=me
 rebuildsliced(s::AbstractDimStack, data, I) =
     rebuild(s, data, slicedims(s, I)...)
 
+Adapt.adapt_structure(to, s::AbstractDimStack) = map(A -> adapt(to, A), s)
+
 # Dipatch on Tuple of Dimension, and map
 for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
