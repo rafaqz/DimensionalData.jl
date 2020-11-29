@@ -322,6 +322,8 @@ abstract type IndexMode <: Mode end
 
 order(ot::Type{<:SubOrder}, mode::IndexMode) = order(ot, order(mode))
 
+Base.step(mode::IndexMode, dim) = Base.step(mode)
+
 """
     AutoMode()
 
@@ -334,6 +336,8 @@ end
 AutoMode() = AutoMode(AutoOrder())
 
 order(mode::AutoMode) = mode.order
+
+Base.step(mode::AutoMode, dim) = Base.step(index(dim))
 
 const Auto = AutoMode
 
@@ -402,6 +406,8 @@ struct NoIndex <: Aligned{Ordered{ForwardIndex,ForwardArray,ForwardRelation}} en
 
 order(mode::NoIndex) = Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
 
+Base.step(mode::NoIndex) = 1
+
 """
 Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array,
 and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
@@ -422,7 +428,6 @@ sampling(mode::IndexMode) = Points()
 locus(mode::AbstractSampled) = locus(sampling(mode))
 
 Base.step(mode::AbstractSampled) = step(span(mode))
-
 
 # bounds
 bounds(mode::AbstractSampled, dim) =
