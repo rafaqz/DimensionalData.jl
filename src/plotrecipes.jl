@@ -11,10 +11,10 @@ struct DimensionalPlot end
 end
 
 @recipe function f(::DimensionalPlot, A::AbstractArray)
-    Afwd = forwardorder(A)
+    Afwd = _forwardorder(A)
     sertype = get(plotattributes, :seriestype, :none)
     if !(sertype in [:marginalhist])
-        :title --> refdims_title(Afwd)
+        :title --> _refdims_title(Afwd)
     end
     if sertype in [:heatmap, :contour, :volume, :marginalhist, 
                    :surface, :contour3d, :wireframe, :scatter3d]
@@ -44,7 +44,7 @@ end
     index(dim), parent(A)
 end
 @recipe function f(::SeriesLike, A::AbstractArray{T,2}) where T
-    A = maybe_permute(A, (IndependentDim, DependentDim))
+    A = _maybe_permute(A, (IndependentDim, DependentDim))
     ind, dep = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
@@ -59,7 +59,7 @@ end
     index(dim), parent(A)
 end
 @recipe function f(::HistogramLike, A::AbstractArray{T,2}) where T
-    A = maybe_permute(A, (IndependentDim, DependentDim))
+    A = _maybe_permute(A, (IndependentDim, DependentDim))
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
@@ -73,7 +73,7 @@ end
     parent(A)
 end
 @recipe function f(::ViolinLike, A::AbstractArray{T,2}) where T
-    A = maybe_permute(A, (IndependentDim, DependentDim))
+    A = _maybe_permute(A, (IndependentDim, DependentDim))
     ind, dep = dims(A)
     :xguide --> label(dep)
     :yguide --> label(A)
@@ -90,7 +90,7 @@ end
 end
 
 @recipe function f(::HeatMapLike, A::AbstractArray{T,2}) where T
-    A = maybe_permute(A, (YDim, XDim))
+    A = _maybe_permute(A, (YDim, XDim))
     y, x = dims(A)
     :xguide --> label(x)
     :yguide --> label(y)
@@ -99,15 +99,15 @@ end
     reverse(map(index, dims(A)))..., parent(A)
 end
 
-maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
+_maybe_permute(A, dims) = all(hasdim(A, dims)) ? permutedims(A, dims) : A
 
-forwardorder(A::AbstractArray) =
+_forwardorder(A::AbstractArray) =
     reorder(A, ForwardIndex) |> a -> reorder(a, ForwardRelation)
 
-refdims_title(A::AbstractArray) = join(map(refdims_title, refdims(A)), ", ")
-refdims_title(refdim::Dimension) = 
-    string(name(refdim), ": ", refdims_title(mode(refdim), refdim))
-refdims_title(mode::AbstractSampled, refdim::Dimension) = begin
+function _refdims_title(refdim::Dimension) 
+    string(name(refdim), ": ", _refdims_title(mode(refdim), refdim))
+end
+function _refdims_title(mode::AbstractSampled, refdim::Dimension)
     start, stop = map(string, bounds(refdim))
     if start == stop
         start
@@ -115,5 +115,6 @@ refdims_title(mode::AbstractSampled, refdim::Dimension) = begin
          "$start to $stop"
     end
 end
-refdims_title(mode::IndexMode, refdim::Dimension) = string(val(refdim))
+_refdims_title(A::AbstractArray) = join(map(_refdims_title, refdims(A)), ", ")
+_refdims_title(mode::IndexMode, refdim::Dimension) = string(val(refdim))
 

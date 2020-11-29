@@ -7,7 +7,6 @@ Reverse the array order, and update the dim to match.
 """
 Base.reverse(A::AbstractDimArray; dims=1) =
     reverse(IndexOrder, reverse(ArrayOrder, A, dims), dims)
-
 Base.reverse(s::AbstractDimStack; dims=1) = reverse(ArrayOrder, s, dims)
 Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
 Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
@@ -16,11 +15,6 @@ Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
     newdata = _reversedata(x, dimnum(x, lookup))
     setdims(rebuild(x, newdata), newdims)
 end
-
-_reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
-_reversedata(s::AbstractDimStack, dimnum) =
-    map(a -> reverse(parent(a); dims=dimnum), data(s))
-
 # Dimension
 Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
 Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, reverse(ot, order(dim)))
@@ -30,20 +24,17 @@ Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) =
 Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension{<:Val{Keys}}) where Keys =
     rebuild(dim, Val(reverse(Keys)), reverse(ot, mode(dim)))
 Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
-
 # Mode
 Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
     rebuild(mode; order=reverse(ot, order(mode)))
 Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) =
     rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
-
 # Order
 Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
     Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
 Base.reverse(::Type{<:Union{ArrayOrder,Relation}}, o::Ordered) =
     Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
 Base.reverse(::Type{<:SubOrder}, o::Unordered) = Unordered(reverse(relation(o)))
-
 # SubOrder
 Base.reverse(::ReverseIndex) = ForwardIndex()
 Base.reverse(::ForwardIndex) = ReverseIndex()
@@ -51,11 +42,14 @@ Base.reverse(::ReverseArray) = ForwardArray()
 Base.reverse(::ForwardArray) = ReverseArray()
 Base.reverse(::ReverseRelation) = ForwardRelation()
 Base.reverse(::ForwardRelation) = ReverseRelation()
-
 # Span
 Base.reverse(::Type{<:IndexOrder}, span::Regular) = reverse(span)
 Base.reverse(::Type{<:SubOrder}, span::Span) = span
 Base.reverse(span::Regular) = Regular(-step(span))
+
+_reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
+_reversedata(s::AbstractDimStack, dimnum) =
+    map(a -> reverse(parent(a); dims=dimnum), data(s))
 
 """
     fliparray(Order, A, dims) => AbstractDimArray
@@ -72,18 +66,18 @@ flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
 flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
 flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 
+Base.diff(A::AbstractDimVector) = diff(A; dims=1)
+Base.diff(A::AbstractDimArray; dims) = _diff(A; dims=dimnum(A, dims))
+
 function _diff(a::AbstractArray{T,N}; dims::Integer) where {T,N}
     Base.require_one_based_indexing(a)
     1 <= dims <= N || throw(ArgumentError("dimension $dims out of range (1:$N)"))
-
     r = axes(a)
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
     r1 = ntuple(i -> i == dims ? UnitRange(2, last(r[i])) : UnitRange(r[i]), N)
 
     return view(a, r1...) .- view(a, r0...)
 end
-Base.diff(A::AbstractDimArray; dims) = _diff(A; dims=dimnum(A, dims))
-Base.diff(A::AbstractDimVector) = diff(A; dims=1)
 
 """
     reorder(::order, A::AbstractDimArray) => AbstractDimArray
@@ -100,9 +94,8 @@ or a `Tuple` of `Dimension`.
 """
 function reorder end
 
-reorder(x, args...; kwargs...) =
-    reorder(x, (args..., _kwargdims(kwargs)...))
-reorder(x, nt::NamedTuple) = reorder(x, _kwargdims(nt))
+reorder(x, args...; kw...) = reorder(x, (args..., _kwdims(kw)...))
+reorder(x, nt::NamedTuple) = reorder(x, _kwdims(nt))
 reorder(x, p::Pair, ps::Vararg{<:Pair}) = reorder(x, (p, ps...))
 reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, _pairdims(ps...))
 # Reorder specific dims.
@@ -114,15 +107,12 @@ reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}, dims_) =
     _reorder(x, map(d -> basetypeof(d)(ot), dims(x, dims_)))
 
 # Recursive reordering. x may be reversed here
-_reorder(x, dims::DimTuple) =
-    _reorder(reorder(x, dims[1]), tail(dims))
+_reorder(x, dims::DimTuple) = _reorder(reorder(x, dims[1]), tail(dims))
 _reorder(x, dims::Tuple{}) = x
 
-reorder(x, orderdim::Dimension) =
-    _reorder(val(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
 
-_reorder(neworder::SubOrder, x, dim::DimOrDimType) =
-    _reorder(basetypeof(neworder), x, dim)
+_reorder(neworder::SubOrder, x, dim::DimOrDimType) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
 _reorder(ot::Type{<:IndexOrder}, x, dim::DimOrDimType) =
     ot == basetypeof(order(ot, dim)) ? x : set(x, reverse(ot, dim))
@@ -154,19 +144,19 @@ modify(CuArray, A)
 
 This also works for all the data layers in a `DimStack`.
 """
-modify(f, A::AbstractDimArray) = begin
+modify(f, s::AbstractDimStack) = map(f, s)
+function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
     rebuild(A, newdata)
 end
-modify(f, s::AbstractDimStack) = map(f, s)
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
-modify(f, dim::Dimension) = begin
+function modify(f, dim::Dimension)
     newindex = f(index(dim))
     size(newindex) == size(dim) || error("$f returns a vector with a different size")
     rebuild(dim, newindex)
 end
-modify(f, dim::Dimension{<:Val{Index}}) where Index = begin
+function modify(f, dim::Dimension{<:Val{Index}}) where Index
     newindex = f(Index)
     length(newindex) == length(dim) || error("$f returns a Tuple with a different size")
     rebuild(dim, Val(newindex))
@@ -186,8 +176,9 @@ Dimension-wise application of function `f` to `A` and `B`.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-dimwise(f, A::AbstractDimArray, B::AbstractDimArray) =
+function dimwise(f, A::AbstractDimArray, B::AbstractDimArray)
     dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
+end
 
 """
     dimwise!(f, dest::AbstractDimArray{T1,N}, A::AbstractDimArray{T2,N}, B::AbstractDimArray) => dest
@@ -203,8 +194,9 @@ Dimension-wise application of function `f`.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`, and storing the value in `dest`.
 """
-dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractDimArray{TB,NB}
-        ) where {T,TA,TB,N,NB} = begin
+function dimwise!(
+    f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractDimArray{TB,NB}
+) where {T,TA,TB,N,NB}
     N >= NB || error("B-array cannot have more dimensions than A array")
     comparedims(dest, a)
     common = commondims(a, dims(b))
@@ -221,11 +213,11 @@ dimwise!(f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractD
 end
 
 # Single dimension generator
-dimwise_generators(dims::Tuple{<:Dimension}) =
+function dimwise_generators(dims::Tuple{<:Dimension})
     ((basetypeof(dims[1])(i),) for i in axes(dims[1], 1))
-
+end
 # Multi dimensional generators
-dimwise_generators(dims::Tuple) = begin
+function dimwise_generators(dims::Tuple)
     dim_constructors = map(basetypeof, dims)
     # Get the axes of the dims to iterate over
     dimaxes = map(d -> axes(d, 1), dims)
@@ -264,12 +256,13 @@ unwrap(x) = x
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
-uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}}) =
+function uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}})
     uniquekeys(Symbol.(map(name, das)))
-uniquekeys(keys::Tuple{String,Vararg{<:String}}) = uniquekeys(map(Symbol, keys))
-uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}}) = begin
+end
+function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
     ids = ntuple(x -> x, length(keys))
     map(keys, ids) do k, id
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
+uniquekeys(keys::Tuple{String,Vararg{<:String}}) = uniquekeys(map(Symbol, keys))

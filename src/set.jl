@@ -1,3 +1,6 @@
+const InDims = Union{AbstractDimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
+const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
+
 """
 
 Set the field matching the supertypes of values in xs and return a new object.
@@ -52,13 +55,8 @@ set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 ```
 """
 function set end
-
-const DimArrayOrDataset = Union{AbstractDimArray,AbstractDimStack}
-
-set(A::DimArrayOrDataset, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
+set(A::DimArrayOrStack, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
 set(A, x) = _cantseterror(A, x)
-_set(A, x) = _cantseterror(A, x)
-
 """
     set(x, args::Pairs...) => x with updated field/s
     set(x, args...; kw...) => x with updated field/s
@@ -72,13 +70,8 @@ tuples of values wrapped in the intended dimensions. Or fully or partially
 constructed dimensions with val, mode or metadata fields set to intended
 values. Dimension fields not assigned a value will be ignored, and the orginals kept.
 """
-set(A::DimArrayOrDataset, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     rebuild(A, data(A), _set(dims(A), args...; kw...))
-
-_set(dim::DimArrayOrDataset, ::Type{T}) where T = _set(dim, T())
-
-# Array
-
 """
     set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
 
@@ -103,9 +96,6 @@ set(A::AbstractDimArray, metadata::Union{AbstractArrayMetadata,NoMetadata}) =
 Symbols are always names, and update the `name` field of the array.
 """
 set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=name)
-
-# Dataset
-
 """
     set(s::AbstractDimStack, data::NamedTuple) => AbstractDimStack
 
@@ -126,10 +116,6 @@ StackMetadata update the `metadata` field of the dataset.
 """
 set(s::AbstractDimStack, metadata::Union{AbstractStackMetadata,NoMetadata}) = 
     rebuild(s; metadata=metadata)
-
-
-const InDims = Union{AbstractDimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
-
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
     set(dim::Dimension, mode::Mode) => Dimension
@@ -140,13 +126,16 @@ Set fields of the dimension
 """
 set(dim::Dimension, x::InDims) = _set(dim, x)
 
+# Array or Stack
+_set(x::DimArrayOrStack, ::Type{T}) where T = _set(x, T())
+_set(A, x) = _cantseterror(A, x)
 
-# Convert args/kwargs to dims and set
-_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., _kwargdims(kw)...))
+# Dimension
+# Convert args/kw to dims and set
+_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., _kwdims(kw)...))
 # Convert pairs to wrapped dims and set
 _set(dims_::DimTuple, p::Pair, ps::Vararg{<:Pair}) = _set(dims_, (p, ps...))
 _set(dims_::DimTuple, ps::Tuple{Vararg{<:Pair}}) = _set(dims_, _pairdims(ps...))
-
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin
     # Check the dimension types match
@@ -158,11 +147,8 @@ _set(dims::DimTuple, wrappers::DimTuple) = begin
     # Swaps existing dims with non-nothing new dims
     swapdims(dims, newdims)
 end
-
-
 # Set things wrapped in dims
 _set(dim::Dimension, wrapper::Dimension{<:InDims}) = _set(dim::Dimension, val(wrapper))
-
 # Set the index
 _set(dim::Dimension, index::Val) = rebuild(dim; val=index)
 _set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
@@ -172,12 +158,9 @@ _set(dim::Dimension, index::AbstractRange) = begin
     _set(mode(dim), dim, index)
 end
 _set(dim::Dimension, index::Colon) = dim
-
-_set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
 # Update the Sampling mode of Sampled dims - it must match the range.
 _set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) =
     rebuild(dim; val=index, mode=_set(mode, Regular(step(index))))
-
 # Set the dim, checking the mode
 _set(dim::Dimension, newdim::Dimension) = begin
     # Get new metadata and val
@@ -187,28 +170,19 @@ _set(dim::Dimension, newdim::Dimension) = begin
     # then wrap the updated dim in the new type
     basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
 end
-
 # Construct types
 _set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
-
 _set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
 _set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim), mode(dim), metadata(dim))
-
 # Set the mode
 _set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=_set(mode(dim), newmode))
-
 # Otherwise pass this on to set fields on the mode
 _set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=_set(mode(dim), x))
 
-
 # IndexMode
-
-# AutoMode
 _set(mode::IndexMode, newmode::AutoMode) = mode
-# Categorical
 _set(mode::IndexMode, newmode::Categorical) =
     rebuild(newmode; order=_set(order(mode), order(newmode)))
-# Sampled
 _set(mode::IndexMode, newmode::AbstractSampled) = begin
     # Update each field separately. The old mode may not have these fields, or may have
     # a subset with the rest being traits. The new mode may have some auto fields.
@@ -218,14 +192,11 @@ _set(mode::IndexMode, newmode::AbstractSampled) = begin
     # Rebuild the new mode with the merged fields
     rebuild(newmode; order=o, span=sp, sampling=sa)
 end
-# NoIndex
 _set(mode::IndexMode, newmode::NoIndex) = newmode
-
 
 # Order
 _set(mode::IndexMode, neworder::Order) = rebuild(mode; order=_set(order(mode), neworder))
 _set(mode::NoIndex, neworder::Order) = mode
-
 _set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
     index = _set(indexorder(order), indexorder(neworder))
     array = _set(arrayorder(order), arrayorder(neworder))
@@ -234,28 +205,22 @@ _set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
 end
 _set(order::Union{Ordered,Unordered}, neworder::Unordered) =
     Unordered(_set(relation(order), relation(neworder)))
-
-
 # AutoOrder
 _set(order::Order, neworder::AutoOrder) = order
 _set(order::AutoOrder, neworder::Order) = order
 _set(order::AutoOrder, neworder::AutoOrder) = AutoOrder()
-
 # SubOrder
 _set(order::Unordered, suborder::Relation) =
     rebuild(order; relation=_set(relation(order), suborder))
-
 _set(order::Ordered, suborder::IndexOrder) =
     rebuild(order; index=_set(indexorder(order), suborder))
 _set(order::Ordered, suborder::ArrayOrder) =
     rebuild(order; array=_set(arrayorder(order), suborder))
 _set(order::Ordered, suborder::Relation) =
     rebuild(order; relation=_set(relation(order), suborder))
-
 _set(suborder::ArrayOrder, newsuborder::ArrayOrder) = newsuborder
 _set(suborder::IndexOrder, newsuborder::IndexOrder) = newsuborder
 _set(suborder::Relation, newsuborder::Relation) = newsuborder
-
 
 # Span
 _set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
@@ -263,14 +228,12 @@ _set(mode::AbstractSampled, span::AutoSpan) = mode
 _set(span::Span, newspan::Span) = newspan
 _set(span::Span, newspan::AutoSpan) = span
 
-
 # Sampling
 _set(mode::AbstractSampled, newsampling::Sampling) =
     rebuild(mode; sampling=_set(sampling(mode), newsampling))
 _set(mode::AbstractSampled, sampling::AutoSampling) = mode
 _set(sampling::Sampling, newsampling::Sampling) = newsampling
 _set(sampling::Sampling, newsampling::AutoSampling) = sampling
-
 
 # Locus
 _set(mode::AbstractSampled, locus::Locus) =
@@ -280,7 +243,7 @@ _set(sampling::Points, locus::Locus) = _locuserror()
 _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
-
+# Metadata
 _set(dim::Dimension, newmetadata::Union{AbstractDimMetadata,NoMetadata}) =
     rebuild(dim, val(dim), mode(dim), newmetadata)
 

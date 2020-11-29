@@ -2,7 +2,7 @@ using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 
 using LinearAlgebra: Transpose
 
-using DimensionalData: Rot90, Rot180, Rot270, Rot360, rotdims, rottype
+using DimensionalData: _Rot90, _Rot180, _Rot270, _Rot360, _rottype
 
 @testset "map" begin
     a = [1 2; 3 4]
@@ -197,17 +197,17 @@ end
 
 
 @testset "dimension rotating methods" begin
-    @test rottype(-100) == Rot360()
-    @test rottype(-4) == Rot360()
-    @test rottype(-3) == Rot90()
-    @test rottype(-2) == Rot180()
-    @test rottype(-1) == Rot270()
-    @test rottype(0) == Rot360()
-    @test rottype(1) == Rot90()
-    @test rottype(2) == Rot180()
-    @test rottype(3) == Rot270()
-    @test rottype(4) == Rot360()
-    @test rottype(101) == Rot90()
+    @test _rottype(-100) == _Rot360()
+    @test _rottype(-4) == _Rot360()
+    @test _rottype(-3) == _Rot90()
+    @test _rottype(-2) == _Rot180()
+    @test _rottype(-1) == _Rot270()
+    @test _rottype(0) == _Rot360()
+    @test _rottype(1) == _Rot90()
+    @test _rottype(2) == _Rot180()
+    @test _rottype(3) == _Rot270()
+    @test _rottype(4) == _Rot360()
+    @test _rottype(101) == _Rot90()
 
     da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
 

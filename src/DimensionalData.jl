@@ -7,22 +7,22 @@ module DimensionalData
     read(path, String)
 end DimensionalData
 
-using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle, 
+using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
 
 using Adapt,
-      ConstructionBase, 
+      ConstructionBase,
       Dates,
-      LinearAlgebra, 
-      RecipesBase, 
-      Statistics, 
+      LinearAlgebra,
+      RecipesBase,
+      Statistics,
       SparseArrays,
       Tables
 
 using Base: tail, OneTo, @propagate_inbounds
 
 
-export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim, 
+export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
        X, Y, Z, Ti, ParametricDimension, Dim, AnonDim
 
 export Selector, At, Between, Contains, Near, Where
@@ -41,8 +41,7 @@ export Span, Regular, Irregular, AutoSpan
 
 export Mode, IndexMode, Auto, AutoMode, NoIndex
 
-export Aligned, AbstractSampled, Sampled,
-       AbstractCategorical, Categorical
+export Aligned, AbstractSampled, Sampled, AbstractCategorical, Categorical
 
 export Unaligned, Transformed
 
@@ -52,15 +51,15 @@ export AbstractDimTable, DimTable
 
 export AbstractDimStack, DimStack
 
-export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata, 
+export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata,
        ArrayMetadata, DimMetadata, StackMetadata, NoMetadata
 
-export AbstractName, Name, NoName 
+export AbstractName, Name, NoName
 
 export data, dims, refdims, mode, metadata, name, label, units,
        val, index, order, sampling, span, bounds, locus, <|
 
-export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims, 
+export dimnum, hasdim, otherdims, commondims, setdims, swapdims, sortdims,
        set, rebuild, reorder, modify, dimwise, dimwise!
 
 export order, indexorder, arrayorder, relation

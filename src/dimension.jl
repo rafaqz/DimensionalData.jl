@@ -1,25 +1,25 @@
 """
 Supertype of all dimension types.
 
-Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref), 
+Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
-`Dimension`s label the axes of an [`AbstractDimArray`](@ref), 
+`Dimension`s label the axes of an [`AbstractDimArray`](@ref),
 or other dimensional objects, and are used to index into the array.
 
 They may also provide an alternate index to lookup for each array axis.
 This may be any `AbstractVector` matching the array axis length, or a `Val`
 holding a tuple for compile-time index lookups.
 
-`Dimension`s also have `mode` and `metadata` fields. 
+`Dimension`s also have `mode` and `metadata` fields.
 
-`mode` gives more details about the dimension, such as that it is 
-[`Categorical`](@ref) or [`Sampled`](@ref) as [`Points`](@ref) or 
+`mode` gives more details about the dimension, such as that it is
+[`Categorical`](@ref) or [`Sampled`](@ref) as [`Points`](@ref) or
 [`Intervals`](@ref) along some transect. DimensionalData will
 attempt to guess the mode from the passed-in index value.
 
-`metadata` can hold any metadata object adding more information about 
-the array axis - useful for extending DimensionalData for specific 
+`metadata` can hold any metadata object adding more information about
+the array axis - useful for extending DimensionalData for specific
 contexts, like geospatial data in GeoData.jl. By default it is `nothing`.
 
 Example:
@@ -47,7 +47,7 @@ and data: 3×5×12 Array{Float64,3}
 [and 11 more slices...]
 ```
 
-For simplicity, the same `Dimension` types are also used as wrappers 
+For simplicity, the same `Dimension` types are also used as wrappers
 in `getindex`, like:
 
 ```jldoctest Dimension
@@ -96,7 +96,7 @@ Supertype for Dependent dimensions. These will plot on the Y axis.
 abstract type DependentDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
-Supertype for all X dimensions. 
+Supertype for all X dimensions.
 """
 abstract type XDim{T,Mo,Me} <: IndependentDim{T,Mo,Me} end
 
@@ -113,14 +113,14 @@ abstract type ZDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 """
 Supertype for all time dimensions.
 
-In a `TimeDime` with `Interval` sampling the locus will automatically 
-be set to `Start()`. Dates and times generally refer to the start of a 
+In a `TimeDime` with `Interval` sampling the locus will automatically
+be set to `Start()`. Dates and times generally refer to the start of a
 month, hour, second etc., not the central point as is more common with spatial data.
 `"""
 abstract type TimeDim{T,Mo,Me} <: IndependentDim{T,Mo,Me} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
-Adapt.adapt_structure(to, dim::Dimension) = 
+Adapt.adapt_structure(to, dim::Dimension) =
     rebuild(dim, adapt(to, val(dim)), adapt(to, mode(dim)), adapt(to, metadata(dim)))
 
 const DimType = Type{<:Dimension}
@@ -138,8 +138,11 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
 Rebuild dim with fields from `dim`, and new fields passed in.
 """
-rebuild(dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)
-       ) where D <: Dimension = constructorof(D)(val, mode, metadata)
+function rebuild(
+    dim::D, val, mode::IndexMode=mode(dim), metadata=metadata(dim)
+) where D <: Dimension
+    constructorof(D)(val, mode, metadata)
+end
 
 dims(dim::Union{Dimension,DimType}) = dim
 dims(dims::DimTuple) = dims
@@ -168,23 +171,23 @@ for func in (:order, :span, :sampling, :locus)
 end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
-for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus, 
+for f in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
              :name, :label, :units)
     @eval begin
-        ($func)(dims::DimTuple) = map($func, dims)
-        ($func)(dims::Tuple{}) = ()
-        ($func)(dims::DimTuple, lookup...) = ($func)(dims, lookup)
-        ($func)(dims::DimTuple, lookup) = ($func)(DD.dims(dims, key2dim(lookup)))
+        $f(dims::DimTuple) = map($f, dims)
+        $f(dims::Tuple{}) = ()
+        $f(dims::DimTuple, lookup...) = $f(dims, lookup)
+        $f(dims::DimTuple, lookup) = $f(DD.dims(dims, key2dim(lookup)))
     end
 end
 
 order(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> order(ot, d), dims)
 order(ot::Type{<:SubOrder}, dims::Tuple{}) = ()
-order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup::Tuple) = 
+order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup::Tuple) =
     map(d -> order(ot, d), dims(dims_, key2dim(lookup)))
-order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup) = 
+order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup) =
     order(ot, dims(dims_, key2dim(lookup)))
-order(ot::Type{<:SubOrder}, dim::Dimension) = order(ot, mode(dim)) 
+order(ot::Type{<:SubOrder}, dim::Dimension) = order(ot, mode(dim))
 
 
 # Base methods
@@ -207,7 +210,7 @@ Base.ndims(d::Dimension) = 0
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
 Base.ndims(d::Dimension{<:Val}) = 1
 @inline Base.getindex(d::Dimension{<:Number}) = val(d)
-@propagate_inbounds Base.getindex(d::Dimension{<:AbstractArray}, i) = 
+@propagate_inbounds Base.getindex(d::Dimension{<:AbstractArray}, i) =
     getindex(index(d), sel2indices(d, i))
 @propagate_inbounds Base.getindex(d::Dimension{<:Val{Index}}, i) where Index =
     Val(getindex(Index, sel2indices(d, i)))
@@ -222,11 +225,12 @@ Base.firstindex(d::Dimension{<:ArrayOrVal}) = firstindex(index(d))
 Base.lastindex(d::Dimension{<:ArrayOrVal}) = lastindex(index(d))
 Base.step(d::Dimension) = step(mode(d), d)
 Base.Array(d::Dimension{<:ArrayOrVal}) = collect(index(d))
-Base.:(==)(d1::Dimension, d2::Dimension) =
+function Base.:(==)(d1::Dimension, d2::Dimension)
     typeof(d1) == typeof(d2) &&
     val(d1) == val(d2) &&
     mode(d1) == mode(d2) &&
     metadata(d1) == metadata(d2)
+end
 
 """
 Supertype for Dimensions with user-set type paremeters
@@ -241,7 +245,7 @@ abstract type ParametricDimension{X,T,Mo,Me} <: Dimension{T,Mo,Me} end
 A generic dimension. For use when custom dims are required when loading
 data from a file. Can be used as keyword arguments for indexing.
 
-Dimension types take precedence over same named `Dim` types when indexing 
+Dimension types take precedence over same named `Dim` types when indexing
 with symbols, or e.g. creating Tables.jl keys.
 
 ```jldoctest
@@ -276,10 +280,10 @@ dim2key(::Type{D}) where D<:Dim{S} where S = S
 """
     AnonDim()
 
-Anonymous dimension. Used when extra dimensions are created, 
+Anonymous dimension. Used when extra dimensions are created,
 such as during transpose of a vector.
 """
-struct AnonDim{T} <: Dimension{T,NoIndex,NoMetadata} 
+struct AnonDim{T} <: Dimension{T,NoIndex,NoMetadata}
     val::T
 end
 AnonDim() = AnonDim(Colon())
@@ -294,7 +298,7 @@ name(::AnonDim) = :Anon
 
 Macro to easily define new dimensions. The supertype will be inserted
 into the type of the dim. The default is simply `YourDim <: Dimension`. Making
-a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect 
+a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
@@ -305,11 +309,9 @@ Example:
 ```
 """
 macro dim end
-
 macro dim(typ::Symbol, args...)
     dimmacro(typ::Symbol, :(DimensionalData.Dimension), args...)
 end
-
 macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
@@ -322,9 +324,9 @@ function dimmacro(typ, supertype, name::String=string(typ))
             metadata::Me
         end
         function $typ(
-             val=:; mode::DimensionalData.Mode=DimensionalData.AutoMode(), 
+             val=:; mode::DimensionalData.Mode=DimensionalData.AutoMode(),
              metadata=DimensionalData.NoMetadata()
-        ) 
+        )
             $typ(val, mode, metadata)
         end
         function $typ(val::V, mode::Mo) where {V,Mo<:DimensionalData.Mode}
@@ -390,7 +392,7 @@ mean(A; dims=Z)
 
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
 
-`Time` is already used by Dates, and `T` is a common type parameter, 
+`Time` is already used by Dates, and `T` is a common type parameter,
 We use `Ti` to avoid clashes.
 
 ## Example:
@@ -433,7 +435,6 @@ formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,N}}) where N =
 @noinline formatdims(A::AbstractArray{<:Any,N}, dims::Tuple{Vararg{<:Any,M}}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M"))
 formatdims(axes::Tuple, dims::Tuple) = _formatdims(axes, dims)
-                                                                               
 
 _formatdims(axes::Tuple{Vararg{<:AbstractRange}}, dims::Tuple) =
     map(_formatdims, axes, dims)
@@ -451,7 +452,6 @@ _formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
 end
 # Dimensions holding colon dispatch on mode
 _formatdims(axis::AbstractRange, dim::Dimension{Colon}) = _formatdims(mode(dim), axis, dim)
-
 # Dimensions holding colon has the array axis inserted as the index
 _formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, NoIndex())
@@ -459,7 +459,10 @@ _formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
 _formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, identify(mode, basetypeof(dim), axis))
 
-checkaxis(dim, axis) =
-    first(axes(dim)) == axis ||
+function checkaxis(dim, axis)
+    if !(first(axes(dim)) == axis)
         throw(DimensionMismatch(
-            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"))
+            "axes of $(basetypeof(dim)) of $(first(axes(dim))) do not match array axis of $axis"
+        ))
+    end
+end

@@ -94,7 +94,6 @@ Base.haskey(::NoMetadata, args...) = false
 Base.get(::NoMetadata, key, fallback) = fallback
 Base.length(::NoMetadata) = 0
 
-
 # Metadata utils
 
 function metadatadict(dict)

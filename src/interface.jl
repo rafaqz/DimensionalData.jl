@@ -2,11 +2,11 @@
 
 """
     rebuild(x, args...)
-    rebuild(x; kwargs...)
+    rebuild(x; kw...)
 
-Rebuild an object struct with updated field values. 
+Rebuild an object struct with updated field values.
 
-This is an abstraction that alows inbuilt and custom types to be rebuilt 
+This is an abstraction that alows inbuilt and custom types to be rebuilt
 functionally to update them, as most objects in DimensionalData are immutable.
 
 `x` can be a `AbstractDimArray`, a `Dimension`, `IndexMode` or other custom types.
@@ -14,14 +14,14 @@ functionally to update them, as most objects in DimensionalData are immutable.
 The arguments reuired are defined for the abstract type that has a `rebuild` method.
 """
 function rebuild end
-rebuild(x; kwargs...) = ConstructionBase.setproperties(x, (;kwargs...))
+rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 
 """
     dims(x) => Tuple{Vararg{<:Dimension}}
     dims(x, dims::Tuple) => Tuple{Vararg{<:Dimension}}
     dims(x, dim) => Dimension
 
-Return a tuple of `Dimension`s for an object, in the order that matches 
+Return a tuple of `Dimension`s for an object, in the order that matches
 the axes or columns etc. of the underlying data.
 
 `dims` can be `Dimension`, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
@@ -40,7 +40,7 @@ array with more dimensions.
 
 `slicedims(a, dims)` returns a tuple containing the current new dimensions
 and the new reference dimensions. Refdims can be stored in a field or disgarded,
-as it is mostly to give context to plots. Ignoring refdims will simply leave some 
+as it is mostly to give context to plots. Ignoring refdims will simply leave some
 captions empty.
 
 The default is to return an empty `Tuple` `()`.
@@ -65,9 +65,9 @@ function val end
     index(dim::Dimension{<:AbstractArray}) => AbstractArray
     index(dims::NTuple{N}) => Tuple{Vararg{Union{AbstractArray,Tuple},N}}
 
-Return the contained index of a `Dimension`. 
+Return the contained index of a `Dimension`.
 
-Only valid when a `Dimension` contains an `AbstractArray` 
+Only valid when a `Dimension` contains an `AbstractArray`
 or a Val tuple like `Val{(:a, :b)}()`. The `Val` is unwrapped
 to return just the `Tuple`
 
@@ -76,12 +76,12 @@ to return just the `Tuple`
 function index end
 
 """
-    mode(dim:Dimension) => IndexMode 
+    mode(dim:Dimension) => IndexMode
     mode(dims::Tuple) => Tuple{Vararg{<:IndexMode,N}}
     mode(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
 Returns the [`IndexMode`](@ref) of a dimension. This dictates
-properties of the dimension such as array axis and index order, 
+properties of the dimension such as array axis and index order,
 and sampling properties.
 
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
@@ -95,7 +95,7 @@ function mode end
     metadata(A::AbstractDimArray) => (Array metadata)
 
 Returns the metadata for an array or the specified dimension(s).
-`dims` can be a `Symbol` (with `Dim{X}`, a `Dimension`, a `Dimension` type, 
+`dims` can be a `Symbol` (with `Dim{X}`, a `Dimension`, a `Dimension` type,
 or a mixed tuple.
 
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
@@ -136,7 +136,7 @@ name(x::Type) = ""
 Get the units of an array or `Dimension`, or a tuple of of either.
 
 Units do not have a set field, and may or may not be included in `metadata`.
-This method is to facilitate use in labels and plots when units are available, 
+This method is to facilitate use in labels and plots when units are available,
 not a guarantee that they will be. If not available, `nothing` is returned.
 
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
@@ -159,7 +159,7 @@ label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", unit
 
 
 """
-    order(dim:Dimension) => Order 
+    order(dim:Dimension) => Order
     order(dims::Tuple) => Tuple{Vararg{<:Order,N}}
     order(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
@@ -170,7 +170,7 @@ Return the [`Order`](@ref) for each dimension.
 function order end
 
 """
-    sampling(dim:Dimension) => Sampling 
+    sampling(dim:Dimension) => Sampling
     sampling(dims::Tuple) => Tuple{Vararg{<:Sampling,N}}
     sampling(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
@@ -181,7 +181,7 @@ Return the [`Sampling`](@ref) for each dimension.
 function sampling end
 
 """
-    span(dim:Dimension) => Span 
+    span(dim:Dimension) => Span
     span(dims::Tuple) => Tuple{Vararg{<:Span,N}}
     span(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
@@ -192,7 +192,7 @@ Return the [`Span`](@ref) for each dimension.
 function span end
 
 """
-    locus(dim:Dimension) => Locus 
+    locus(dim:Dimension) => Locus
     locus(dims::Tuple) => Tuple{Vararg{<:Locus,N}}
     locus(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
@@ -207,7 +207,7 @@ function locus end
     arrayorder(dims::Tuple) => Tuple{Vararg{<:Union{Forward,Reverse},N}}
     arrayorder(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
-Return the [`Order`](@ref) (`Forward` or `Reverse`) of the array, 
+Return the [`Order`](@ref) (`Forward` or `Reverse`) of the array,
 for each dimension.
 
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
@@ -220,7 +220,7 @@ arrayorder(args...) = order(ArrayOrder, args...)
     indexorder(dims::Tuple) => Tuple{Vararg{<:Union{Forward,Reverse},N}}
     indexorder(A::AbstractDimArray, [dims::Tuple]) => Tuple
 
-Return the [`Order`](@ref) (`Forward` or `Reverse`) of the dimension index, 
+Return the [`Order`](@ref) (`Forward` or `Reverse`) of the dimension index,
 for each dimension.
 
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.

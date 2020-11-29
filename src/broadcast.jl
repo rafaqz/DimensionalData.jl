@@ -13,7 +13,7 @@ struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
 DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
 DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
 DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
-DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle) = begin
+function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
     inner_style = BroadcastStyle(a, b)
     # if the inner style is Unknown then so is the outer style
     if inner_style isa Unknown
@@ -23,7 +23,7 @@ DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle) = begin
     end
 end
 
-BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = begin
+function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
     inner_style = typeof(BroadcastStyle(A))
     return DimensionalStyle{inner_style}()
 end
@@ -59,7 +59,6 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
         rebuild(A, parent(dest), _dims, refdims(A))
     end
 end
-
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
     _dims = comparedims(dims(dest), _broadcasted_dims(bc))
     copyto!(parent(dest), _unwrap_broadcasted(bc))
@@ -71,7 +70,7 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
     end
 end
 
-Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T} = begin
+function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
     rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
@@ -79,7 +78,7 @@ end
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimArray`s with the wrapped array,
 # and `DimensionalStyle` with the wrapped `BroadcastStyle`.
-_unwrap_broadcasted(bc::Broadcasted{DimensionalStyle{S}}) where S = begin
+function _unwrap_broadcasted(bc::Broadcasted{DimensionalStyle{S}}) where S
     innerargs = map(_unwrap_broadcasted, bc.args)
     return Broadcasted{S}(bc.f, innerargs)
 end
@@ -90,7 +89,7 @@ _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
 _fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
-_firstdimarray(x::Tuple{<:Broadcasted,Vararg}) = begin
+function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
     found = _firstdimarray(x[1])
     if found isa Nothing
         _firstdimarray(tail(x))
@@ -98,7 +97,6 @@ _firstdimarray(x::Tuple{<:Broadcasted,Vararg}) = begin
         found
     end
 end
-
 _firstdimarray(x::Tuple) = _firstdimarray(tail(x))
 _firstdimarray(x::Tuple{}) = nothing
 
