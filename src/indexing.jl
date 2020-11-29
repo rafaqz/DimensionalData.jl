@@ -9,14 +9,12 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 # No indices. These just prevent stack overflows
 @propagate_inbounds Base.getindex(A::AbstractDimArray) = Base.getindex(parent(A))
 @propagate_inbounds Base.view(A::AbstractDimArray) = rebuild(A, Base.view(parent(A)), ())
-
 #### Stack getindex ####
 # Symbol key
 @propagate_inbounds Base.getindex(s::AbstractDimStack, key::Symbol) =
     DimArray(data(s)[key], dims(s), refdims(s), key, nothing)
 @propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
     map(A -> Base.getindex(A, i, I...), data(s))
-
 
 for f in (:getindex, :view)
     @eval begin
@@ -35,7 +33,7 @@ for f in (:getindex, :view)
             rebuildsliced(A, Base.$f(parent(A), i), (i,))
         # Dimension indexing. Allows indexing with A[somedim=25.0] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
-            Base.$f(A, dims2indices(A, (args..., _kwargdims(kw.data)...))...)
+            Base.$f(A, dims2indices(A, (args..., _kwdims(kw.data)...))...)
         # Standard indices
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
             rebuildsliced(A, $f(parent(A), i1, i2, I...), (i1, i2, I...))
@@ -62,14 +60,13 @@ end
     A
 end
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
-    setindex!(A, x, dims2indices(A, (args..., _kwargdims(kw.data)...))...)
+    setindex!(A, x, dims2indices(A, (args..., _kwdims(kw.data)...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, maybeselector(i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     (setindex!(parent(A), x, i1, I...); A)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
     (setindex!(parent(A), x, I); A)
-
 #### Stack setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
     (map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs); s)
@@ -80,8 +77,6 @@ end
     map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs)
     return s
 end
-
-@noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))
 
 
 #### dims2indices ####
@@ -108,10 +103,7 @@ Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or C
 
 # Handle tuples with @generated
 @inline _dims2indices(modes::Tuple{}, dims::Tuple{}, lookup::Tuple{}) = ()
-@generated _dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple) =
-    _dims2indices_inner(modes, dims, lookup)
-
-function _dims2indices_inner(modes::Type, dims::Type, lookup::Type)
+@generated function _dims2indices(modes::Tuple, dims::Tuple, lookup::Tuple)
     unalligned = Expr(:tuple)
     ualookups = Expr(:tuple)
     alligned = Expr(:tuple)
@@ -143,12 +135,13 @@ function _dims2indices_inner(modes::Type, dims::Type, lookup::Type)
         alligned
     end
 end
-
 # Single dim methods
-
 # A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(dim::Dimension, lookup::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, lookup::Nothing) = Colon()
 # Simply unwrap dimensions
 @inline _dims2indices(dim::Dimension, lookup::Dimension) = sel2indices(dim, val(lookup))
+
+
+@noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))

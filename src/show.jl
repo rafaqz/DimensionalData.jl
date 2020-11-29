@@ -1,5 +1,5 @@
 # Full printing for DimArray
-Base.show(io::IO, A::AbstractDimArray) = begin
+function Base.show(io::IO, A::AbstractDimArray)
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
     if label(A) != ""
@@ -27,7 +27,7 @@ end
 # Short printing for DimArray
 Base.show(io::IO, ::MIME"text/plain", A::AbstractDimArray) = show(io, A)
 # Full printing version for dimensions
-Base.show(io::IO, ::MIME"text/plain", dim::Dimension) = begin
+function Base.show(io::IO, ::MIME"text/plain", dim::Dimension)
     print(io, "Dimension ")
     printstyled(io, name(dim); color=:red)
     if name(dim) != nameof(typeof(dim))
@@ -47,7 +47,7 @@ Base.show(io::IO, ::MIME"text/plain", dim::Dimension) = begin
     show(io, typeof(dim))
 end
 # short printing version for dimensions
-Base.show(io::IO, dim::Dimension) = begin
+function Base.show(io::IO, dim::Dimension)
     printstyled(io, name(dim); color=:red)
     if name(dim) ≠ string(nameof(typeof(dim)))
         print(io, " (type ")
@@ -56,12 +56,12 @@ Base.show(io::IO, dim::Dimension) = begin
     end
     printdimproperties(io, dim)
 end
-Base.show(io::IO, dim::Dim) = begin
+function Base.show(io::IO, dim::Dim)
     printstyled(io, name(dim); color=:red)
     printdimproperties(io, dim)
 end
 
-printdimproperties(io, dim) = begin
+function printdimproperties(io, dim)
     if !(mode(dim) isa NoIndex)
         print(io, ": ")
         _printdimval(io, val(dim))
@@ -84,13 +84,13 @@ function printlimited(io, v::AbstractVector)
 end
 
 Base.show(io::IO, mode::IndexMode) = _printmode(io, mode)
-Base.show(io::IO, mode::AbstractSampled) = begin
+function Base.show(io::IO, mode::AbstractSampled)
     _printmode(io, mode)
     _printorder(io, mode)
     print(io, " ", nameof(typeof(span(mode))))
     print(io, " ", nameof(typeof(sampling(mode))))
 end
-Base.show(io::IO, mode::AbstractCategorical) = begin
+function Base.show(io::IO, mode::AbstractCategorical)
     _printmode(io, mode)
     _printorder(io, mode)
 end
@@ -100,13 +100,16 @@ _printmode(io, mode) = printstyled(io, nameof(typeof(mode)); color=:green)
 _printorder(io, mode) = print(io, ": ", nameof(typeof(order(mode))))
 
 # Thanks to Michael Abbott for the following function
-custom_show(io::IO, A::AbstractArray{T,0}) where T =
+function custom_show(io::IO, A::AbstractArray{T,0}) where T
     Base.show(IOContext(io, :compact => true, :limit => true), A)
-custom_show(io::IO, A::AbstractArray{T,1}) where T =
+end
+function custom_show(io::IO, A::AbstractArray{T,1}) where T
     Base.show(IOContext(io, :compact => true, :limit => true), A)
-custom_show(io::IO, A::AbstractArray{T,2}) where T =
+end
+function custom_show(io::IO, A::AbstractArray{T,2}) where T
     Base.print_matrix(IOContext(io, :compact => true, :limit => true), A)
-custom_show(io::IO, A::AbstractArray{T,N}) where {T,N} = begin
+end
+function custom_show(io::IO, A::AbstractArray{T,N}) where {T,N}
     o = ones(Int, N-2)
     frame = A[:, :, o...]
     onestring = join(o, ", ")

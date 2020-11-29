@@ -151,7 +151,6 @@ indexorder(order::Unordered) = UnorderedIndex()
 arrayorder(order::Unordered) = ForwardArray()
 relation(order::Unordered) = order.relation
 
-
 # Get the order specifying type
 order(ot::Type{<:IndexOrder}, order::Union{Ordered,Unordered}) = indexorder(order)
 order(ot::Type{<:ArrayOrder}, order::Union{Ordered,Unordered}) = arrayorder(order)
@@ -302,7 +301,6 @@ Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 
 bounds(span::Irregular) = span.bounds
 
-
 """
 Supertype for all `Dimension` modes.
 Defines or modifies dimension behaviour.
@@ -341,7 +339,6 @@ Base.step(mode::AutoMode, dim) = Base.step(index(dim))
 
 const Auto = AutoMode
 
-
 bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::ForwardIndex, ::IndexMode, dim) = first(dim), last(dim)
 bounds(::ReverseIndex, ::IndexMode, dim) = last(dim), first(dim)
@@ -355,11 +352,10 @@ indexorder(mode::IndexMode) = indexorder(order(mode))
 relation(mode::IndexMode) = relation(order(mode))
 locus(mode::IndexMode) = Center()
 
-Base.step(mode::T) where T <: IndexMode =
+@noinline Base.step(mode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `Sampled` with `Regular`")
 
 slicemode(mode::IndexMode, index, I) = mode
-
 
 
 """
@@ -430,30 +426,19 @@ locus(mode::AbstractSampled) = locus(sampling(mode))
 Base.step(mode::AbstractSampled) = step(span(mode))
 
 # bounds
-bounds(mode::AbstractSampled, dim) =
-    bounds(sampling(mode), span(mode), mode, dim)
-
-bounds(::Points, span, mode::AbstractSampled, dim) =
-    bounds(indexorder(mode), mode, dim)
-
-bounds(::Intervals, span::Irregular, mode::AbstractSampled, dim) =
-    bounds(span)
-
+bounds(mode::AbstractSampled, dim) = bounds(sampling(mode), span(mode), mode, dim)
+bounds(::Points, span, mode::AbstractSampled, dim) = bounds(indexorder(mode), mode, dim)
+bounds(::Intervals, span::Irregular, mode::AbstractSampled, dim) = bounds(span)
 bounds(::Intervals, span::Regular, mode::AbstractSampled, dim) =
     bounds(locus(mode), indexorder(mode), span, mode, dim)
-
-bounds(::Start, ::ForwardIndex, span, mode, dim) =
-    first(dim), last(dim) + step(span)
-bounds(::Start, ::ReverseIndex, span, mode, dim) =
-    last(dim), first(dim) - step(span)
+bounds(::Start, ::ForwardIndex, span, mode, dim) = first(dim), last(dim) + step(span)
+bounds(::Start, ::ReverseIndex, span, mode, dim) = last(dim), first(dim) - step(span)
 bounds(::Center, ::ForwardIndex, span, mode, dim) =
     first(dim) - step(span) / 2, last(dim) + step(span) / 2
 bounds(::Center, ::ReverseIndex, span, mode, dim) =
     last(dim) + step(span) / 2, first(dim) - step(span) / 2
-bounds(::End, ::ForwardIndex, span, mode, dim) =
-    first(dim) - step(span), last(dim)
-bounds(::End, ::ReverseIndex, span, mode, dim) =
-    last(dim) + step(span), first(dim)
+bounds(::End, ::ForwardIndex, span, mode, dim) = first(dim) - step(span), last(dim)
+bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(dim)
 
 # Bounds are always in ascending order
 sortbounds(mode::IndexMode, bounds) = sortbounds(indexorder(mode), bounds)
@@ -470,7 +455,7 @@ slicemode(::Intervals, ::Irregular, mode::AbstractSampled, index, I) = begin
 end
 
 slicebounds(m::IndexMode, index, I) =
-    slicebounds(locus(m), bounds(span(m)), index, maybeflip(indexorder(m), index, I))
+    slicebounds(locus(m), bounds(span(m)), index, _maybeflip(indexorder(m), index, I))
 slicebounds(locus::Start, bounds, index, I) =
     index[first(I)], last(I) >= lastindex(index) ? bounds[2] : index[last(I) + 1]
 slicebounds(locus::End, bounds, index, I) =

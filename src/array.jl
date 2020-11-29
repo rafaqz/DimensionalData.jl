@@ -25,7 +25,6 @@ const StandardIndices = Union{AbstractVector{<:Integer},Colon,Integer}
 # DimensionalData.jl interface methods ####################################################
 
 # Standard fields
-
 dims(A::AbstractDimArray) = A.dims
 refdims(A::AbstractDimArray) = A.refdims
 data(A::AbstractDimArray) = A.data
@@ -44,9 +43,11 @@ They can discard arguments like `refdims`, `name` and `metadata`.
 
 This method can also be used with keyword arguments in place of regular arguments.
 """
-@inline rebuild(A::AbstractDimArray, data, dims::Tuple=dims(A), refdims=refdims(A),
-                name=name(A)) =
+@inline function rebuild(
+    A::AbstractDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A)
+)
     rebuild(A, data, dims, refdims, name, metadata(A))
+end
 
 @inline rebuildsliced(A, data, I, name=name(A)) = rebuild(A, data, slicedims(A, I)..., name)
 
@@ -55,9 +56,7 @@ for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, 
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
 
-order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) =
-    order(ot, dims(A), args...)
-
+order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) = order(ot, dims(A), args...)
 
 # Array interface methods ######################################################
 
@@ -67,17 +66,13 @@ Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
-
 @inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
 @inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
-
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
 
 # Methods that create copies of an AbstractDimArray #######################################
-
-# Similar
 
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(A::AbstractDimArray) =
@@ -89,9 +84,6 @@ Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T 
     similar(parent(A), T, I)
 Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
     similar(parent(A), T, i, I...)
-
-
-# Copy
 
 for func in (:copy, :one, :oneunit, :zero)
     @eval begin
@@ -163,16 +155,20 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     name::Na
     metadata::Me
 end
-# 2 or 3 arg version
-DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing) =
+# 2 or 3 argument version
+function DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing)
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
-# All kwargs version
-DimArray(; data, dims, refdims=(), name=NoName(), metadata=nothing) =
+end
+# All keyword argument version
+function DimArray(; data, dims, refdims=(), name=NoName(), metadata=nothing)
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
+end
 # Construct from another AbstractDimArray
-DimArray(A::AbstractDimArray; dims=dims(A), refdims=refdims(A),
-         name=name(A), metadata=metadata(A)) =
+function DimArray(A::AbstractDimArray; 
+    dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+)
     DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
+end
 """
     DimArray(f::Function, dim::Dimension [, name])
 
@@ -180,8 +176,9 @@ Apply function `f` across the values of the dimension `dim`
 (using `broadcast`), and return the result as a dimensional array with
 the given dimension. Optionally provide a name for the result.
 """
-DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")")) =
+function DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,), name)
+end
 
 """
     rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
@@ -190,9 +187,11 @@ DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")"
 Rebuild a `DimArray` with new fields. Handling partial field
 update is dealth with in `rebuild` for `AbstractDimArray`.
 """
-@inline rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
-                refdims::Tuple, name, metadata) =
+@inline function rebuild(
+    A::DimArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
+)
     DimArray(data, dims, refdims, name, metadata)
+end
 
 
 """
