@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, Combinatorics
+using DimensionalData, Test, Unitful, Combinatorics, Dates
 using DimensionalData: between, at, near, contains, sel2indices
 
 a = [1 2  3  4
@@ -645,6 +645,16 @@ end
         @test c[1:3, 2] == [200, 201, 202]
     end
 
+    @testset "DateTime on Sampled" begin
+        timedim = Ti(DateTime(2001):Month(1):DateTime(2001, 12); 
+            mode=Sampled(span=Regular(Month(1)), sampling=Intervals(Start()))
+        )
+        da = DimArray(1:12, timedim)
+        @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+        @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
+        @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
+    end
+
 end
 
 @testset "Selectors on Sampled and Intervals" begin
@@ -672,7 +682,6 @@ end
     end
 
 end
-
 
 @testset "Selectors on NoIndex" begin
     dimz = Ti(), Y()
