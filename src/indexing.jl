@@ -16,7 +16,7 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 @propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
     map(A -> Base.getindex(A, i, I...), data(s))
 
-for f in (:getindex, :view)
+for f in (:getindex, :view, :dotview)
     @eval begin
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
@@ -36,13 +36,12 @@ for f in (:getindex, :view)
             Base.$f(A, dims2indices(A, (args..., _kwdims(kw.data)...))...)
         # Standard indices
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-            rebuildsliced(A, $f(parent(A), i1, i2, I...), (i1, i2, I...))
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = $f(parent(A), I)
+            rebuildsliced(A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
+        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
 
-        #### Stack getindex/view ###
-        # No indices. These just prevent stack overflows
+        #### Stack ###
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
-            vals = map(A -> $f(A, I...; kw...), dimarrays(s))
+            vals = map(A -> Base.$f(A, I...; kw...), dimarrays(s))
             if all(map(v -> v isa AbstractDimArray, vals))
                 rebuildsliced(s, vals, (dims2indices(first(s), I)))
             else
