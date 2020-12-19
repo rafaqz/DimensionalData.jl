@@ -325,9 +325,11 @@ end
 
 @noinline _nearunorderederror() = throw(ArgumentError("`Near` has no meaning in an `Unordered` index"))
 
-_locus_adjust(locus::Start, v, dim) = v - abs(step(dim)) / 2
 _locus_adjust(locus::Center, v, dim) = v
+_locus_adjust(locus::Start, v, dim) = v - abs(step(dim)) / 2
 _locus_adjust(locus::End, v, dim) = v + abs(step(dim)) / 2
+_locus_adjust(locus::Start, v::DateTime, dim) = v - (v - (v - abs(step(dim)))) / 2
+_locus_adjust(locus::End, v::DateTime, dim) = v + (v + abs(step(dim)) - v) / 2
 
 
 # contains ================================================================================
