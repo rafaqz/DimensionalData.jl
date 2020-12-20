@@ -91,7 +91,7 @@ end
 
 Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::Union{AbstractArrayMetadata,NoMetadata}) = 
+set(A::AbstractDimArray, metadata::Union{AbstractArrayMetadata,NoMetadata}) =
     rebuild(A; metadata=metadata)
 """
     set(A::AbstractDimArray, metadata::DimMetadata) => AbstractDimArray
@@ -117,7 +117,7 @@ end
 
 StackMetadata update the `metadata` field of the dataset.
 """
-set(s::AbstractDimStack, metadata::Union{AbstractStackMetadata,NoMetadata}) = 
+set(s::AbstractDimStack, metadata::Union{AbstractStackMetadata,NoMetadata}) =
     rebuild(s; metadata=metadata)
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
@@ -180,7 +180,9 @@ _set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim), mode(dim), metadata
 # Set the mode
 _set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=_set(mode(dim), newmode))
 # Otherwise pass this on to set fields on the mode
-_set(dim::Dimension, x::ModeComponent) = rebuild(dim; mode=_set(mode(dim), x))
+_set(dim::Dimension, x::ModeComponent) = _set(mode(dim), dim, x)
+# Fallback dispatch without the dimension
+_set(mode::IndexMode, dim::Dimension, x::ModeComponent) = rebuild(dim; mode=_set(mode, x))
 
 # IndexMode
 _set(mode::IndexMode, newmode::AutoMode) = mode
@@ -227,6 +229,16 @@ _set(suborder::IndexOrder, newsuborder::IndexOrder) = newsuborder
 _set(suborder::Relation, newsuborder::Relation) = newsuborder
 
 # Span
+_set(mode::AbstractSampled, dim::Dimension, ::Irregular{AutoBounds}) =
+    _set(dim, Irregular(bounds(dim)))
+_set(mode::AbstractSampled, dim::Dimension, ::Explicit{AutoBounds}) = begin
+    bnds = dim2boundsmatrix(locus(mode), span(mode), dim)
+    rebuild(dim; mode=rebuild(mode; span=Explicit(bnds), sampling=Intervals(locus(mode))))
+end
+_set(span::Regular, dim::Dimension, ::Regular{AutoStep}) = dim
+_set(span::Irregular, dim::Dimension, ::Irregular{AutoBounds}) = dim
+_set(span::Explicit, dim::Dimension, ::Explicit{AutoBounds}) = dim
+
 _set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
 _set(mode::AbstractSampled, span::AutoSpan) = mode
 _set(span::Span, newspan::Span) = newspan

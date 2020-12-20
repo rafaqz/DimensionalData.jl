@@ -371,14 +371,13 @@ end
 @inline _slicedims(d::Dimension, i) = _slicedims(mode(d), d, i)
 @inline _slicedims(::IndexMode, d::Dimension, i::Colon) = (d,), ()
 @inline _slicedims(::IndexMode, d::Dimension, i::Integer) =
-    (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
+    (), (rebuild(d, d[relate(d, i)], _slicemode(mode(d), val(d), i)),)
 @inline _slicedims(::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
-
 # TODO deal with unordered arrays trashing the index order
 @inline _slicedims(::IndexMode, d::Dimension{<:Val{Index}}, i::AbstractArray) where Index =
-    (rebuild(d, Val{Index[relate(d, i)]}(), slicemode(mode(d), val(d), i)),), ()
+    (rebuild(d, Val{Index[relate(d, i)]}(), _slicemode(mode(d), val(d), i)),), ()
 @inline _slicedims(::IndexMode, d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
+    (rebuild(d, d[relate(d, i)], _slicemode(mode(d), val(d), i)),), ()
 @inline _slicedims(::NoIndex, d::Dimension{<:AbstractArray}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)]),), ()
 # Should never happen, just for ambiguity
@@ -435,6 +434,12 @@ end
 @inline _reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
     mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
     rebuild(dim, _reducedims(locus(mode), dim), mode)
+end
+@inline _reducedims(span::Explicit, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
+    index = _reducedims(Center(mode), dim)
+    bnds = val(span)
+    mode = rebuild(mode; order=Ordered(), span=Explicit([bnds[1, 1], bnds[2, end]]))
+    rebuild(dim, index, mode)
 end
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.

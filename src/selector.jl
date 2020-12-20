@@ -373,6 +373,15 @@ function contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel:
     end
     i
 end
+# Explicit Intervals ---------------------------
+function contains(span::Explicit, ::Intervals, order, locus, dim::Dimension, sel::Contains)
+    x = val(sel)
+    i = searchsortedlast(view(val(span), 1, :), x; rev=isrev(order))
+    if i <= 0 || val(span)[2, i] < x 
+        _notcontainederror(x)
+    end
+    i
+end
 # Irregular Intervals -------------------------
 function contains(span::Irregular, ::Intervals, order::IndexOrder, locus::Locus, dim::Dimension, sel::Contains)
     _locus_checkbounds(locus, bounds(span), val(sel))
@@ -432,6 +441,14 @@ end
 function between(span::Regular, ::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between)
     b1, b2 = _maybeflip(o, _sorttuple(sel) .+ _locus_adjust(mode))
     _inbounds((_searchfirst(o, dim, b1), _searchlast(o, dim, b2)), dim)
+end
+# Explicit Intervals -------------------------
+function between(span::Explicit, ::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between)
+    _inbounds(
+        (searchsortedfirst(view(val(span), 1, :), first(val(sel)); rev=isrev(o), lt=<),
+         searchsortedlast(view(val(span), 2, :), last(val(sel)); rev=isrev(o), lt=<)),
+        dim
+    )
 end
 # Irregular Intervals -----------------------
 function between(span::Irregular, ::Intervals, o::IndexOrder, mode::IndexMode, d::Dimension, sel::Between)

@@ -325,6 +325,7 @@ Span will be guessed and replaced by a constructor.
 struct AutoSpan <: Span end
 
 struct AutoStep end
+struct AutoBounds end
 
 """
     Regular <: Span
@@ -353,13 +354,28 @@ Irregular have irrigular size. To enable bounds tracking and accuract
 selectors, the starting bounds must be provided as a 2 tuple,
 or 2 arguments.
 """
-struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},Nothing}} <: Span
+struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},AutoBounds}} <: Span
     bounds::B
 end
-Irregular() = Irregular(nothing, nothing)
+Irregular() = Irregular(AutoBounds())
 Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 
 bounds(span::Irregular) = span.bounds
+val(span::Irregular) = span.bounds
+
+"""
+    Explicit(bounds::AbstractMatix)
+
+Explicit span is explicitly listed for every interval. This uses a matrix where
+with length 2 columns for each index value - holding the lower and upper bounds
+for that specific index. 
+"""
+struct Explicit{B} <: Span
+    val::B
+end
+Explicit() = Explicit(AutoBounds())
+
+val(span::Explicit) = span.val
 
 """
     Mode 
@@ -372,7 +388,7 @@ abstract type Mode end
 """
     IndexMode <: Mode
 
-Types defining the behaviour of a dimension index, how it is plotted 
+Types defining the behaviour of a dimension index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
 An `IndexMode` may be a simple type like [`NoIndex`](@ref) indicating that the index is
@@ -416,15 +432,15 @@ Base.step(mode::AutoMode, dim) = Base.step(index(dim))
 
 const Auto = AutoMode
 
-bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
-bounds(::ForwardIndex, ::IndexMode, dim) = first(dim), last(dim)
-bounds(::ReverseIndex, ::IndexMode, dim) = last(dim), first(dim)
-bounds(::UnorderedIndex, ::IndexMode, dim) = (nothing, nothing)
+_bounds(mode::IndexMode, dim) = _bounds(indexorder(mode), mode, dim)
+_bounds(::ForwardIndex, ::IndexMode, dim) = first(dim), last(dim)
+_bounds(::ReverseIndex, ::IndexMode, dim) = last(dim), first(dim)
+_bounds(::UnorderedIndex, ::IndexMode, dim) = (nothing, nothing)
 
 @noinline Base.step(mode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `Sampled` with `Regular`")
 
-slicemode(mode::IndexMode, index, I) = mode
+_slicemode(mode::IndexMode, index, I) = mode
 
 
 """
@@ -474,6 +490,7 @@ map(mode, dims(A))
 struct NoIndex <: Aligned{Ordered{ForwardIndex,ForwardArray,ForwardRelation}} end
 
 order(mode::NoIndex) = Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
+span(mode::NoIndex) = Regular(1)
 
 Base.step(mode::NoIndex) = 1
 
@@ -490,46 +507,61 @@ or a `rebuild` method that accpts them as keyword arguments.
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
 span(mode::AbstractSampled) = mode.span
+@noinline span(mode::T) where T<:IndexMode =
+    error("$T has no span. Pass a `span` field manually.")
+
 sampling(mode::AbstractSampled) = mode.sampling
 locus(mode::AbstractSampled) = locus(sampling(mode))
 
 Base.step(mode::AbstractSampled) = step(span(mode))
 
 # bounds
-bounds(mode::AbstractSampled, dim) = bounds(sampling(mode), span(mode), mode, dim)
-bounds(::Points, span, mode::AbstractSampled, dim) = bounds(indexorder(mode), mode, dim)
-bounds(::Intervals, span::Irregular, mode::AbstractSampled, dim) = bounds(span)
-bounds(::Intervals, span::Regular, mode::AbstractSampled, dim) =
-    bounds(locus(mode), indexorder(mode), span, mode, dim)
-bounds(::Start, ::ForwardIndex, span, mode, dim) = first(dim), last(dim) + step(span)
-bounds(::Start, ::ReverseIndex, span, mode, dim) = last(dim), first(dim) - step(span)
-bounds(::Center, ::ForwardIndex, span, mode, dim) =
+_bounds(mode::AbstractSampled, dim) = _bounds(sampling(mode), span(mode), mode, dim)
+
+_bounds(::Points, span, mode::AbstractSampled, dim) = _bounds(indexorder(mode), mode, dim)
+_bounds(::Intervals, span::Irregular, mode::AbstractSampled, dim) = bounds(span)
+_bounds(sampling::Intervals, span::Explicit, mode::AbstractSampled, dim) = 
+    _bounds(indexorder(dim), sampling, span, mode, dim)
+_bounds(::ForwardIndex, ::Intervals, span::Explicit, mode::AbstractSampled, dim) = 
+    (val(span)[1, 1], val(span)[2, end])
+_bounds(::ReverseIndex, ::Intervals, span::Explicit, mode::AbstractSampled, dim) = 
+    (val(span)[1, end], val(span)[2, 1])
+_bounds(::Intervals, span::Regular, mode::AbstractSampled, dim) =
+    _bounds(locus(mode), indexorder(mode), span, mode, dim)
+_bounds(::Start, ::ForwardIndex, span, mode, dim) = first(dim), last(dim) + step(span)
+_bounds(::Start, ::ReverseIndex, span, mode, dim) = last(dim), first(dim) - step(span)
+_bounds(::Center, ::ForwardIndex, span, mode, dim) =
     first(dim) - step(span) / 2, last(dim) + step(span) / 2
-bounds(::Center, ::ReverseIndex, span, mode, dim) =
+_bounds(::Center, ::ReverseIndex, span, mode, dim) =
     last(dim) + step(span) / 2, first(dim) - step(span) / 2
-bounds(::End, ::ForwardIndex, span, mode, dim) = first(dim) - step(span), last(dim)
-bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(dim)
+_bounds(::End, ::ForwardIndex, span, mode, dim) = first(dim) - step(span), last(dim)
+_bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(dim)
 
 # TODO: deal with unordered AbstractArray indexing
-slicemode(mode::AbstractSampled, index, i) =
+_slicemode(mode::AbstractSampled, index, i) =
     slicemode(sampling(mode), span(mode), mode, index, i)
-slicemode(::Any, ::Any, mode::AbstractSampled, index, i) = mode
-slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::UnitRange) = mode
-slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::AbstractRange) =
+_slicemode(::Any, ::Any, mode::AbstractSampled, index, i) = mode
+_slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::UnitRange) = mode
+_slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::AbstractRange) =
     rebuild(mode; span=Regular(step(mode) * step(i)))
-slicemode(::Intervals, ::Irregular, mode::AbstractSampled, index, i) =
-    rebuild(mode; span=Irregular(slicebounds(mode, index, i)))
+_slicemode(::Intervals, ::Union{Irregular,Explicit}, mode::AbstractSampled, index, i) = begin
+    span = _slicespan(mode, index, i)
+    rebuild(mode; order=order(mode), span=span, sampling=sampling(mode))
+end
 
-slicebounds(m::IndexMode, index, I) =
-    slicebounds(locus(m), bounds(span(m)), index, _maybeflip(indexorder(m), index, I))
-slicebounds(locus::Start, bounds, index, I) =
-    index[first(I)], last(I) >= lastindex(index) ? bounds[2] : index[last(I) + 1]
-slicebounds(locus::End, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : index[first(I) - 1], index[last(I)]
-slicebounds(locus::Center, bounds, index, I) =
-    first(I) <= firstindex(index) ? bounds[1] : (index[first(I) - 1] + index[first(I)]) / 2,
-    last(I)  >= lastindex(index)  ? bounds[2] : (index[last(I) + 1]  + index[last(I)]) / 2
-
+_slicespan(m::IndexMode, index, i) =
+    _slicespan(span(m), m, index, _maybeflip(indexorder(m), index, i))
+_slicespan(span::Explicit, m::IndexMode, index, i::Int) = Explicit(val(span)[:, i])
+_slicespan(span::Explicit, m::IndexMode, index, i::AbstractArray) = Explicit(val(span)[:, i])
+_slicespan(span::Irregular, m::IndexMode, index, i) =
+    Irregular(_slicespan(locus(m), span, index, i))
+_slicespan(locus::Start, span::Irregular, index, i) =
+    index[first(i)], last(i) >= lastindex(index) ? bounds(span)[2] : index[last(i) + 1]
+_slicespan(locus::End, span::Irregular, index, i) =
+    first(i) <= firstindex(index) ? bounds(span)[1] : index[first(i) - 1], index[last(i)]
+_slicespan(locus::Center, span::Irregular, index, i) =
+    first(i) <= firstindex(index) ? bounds(span)[1] : (index[first(i) - 1] + index[first(i)]) / 2,
+    last(i)  >= lastindex(index)  ? bounds(span)[2] : (index[last(i) + 1]  + index[last(i)]) / 2
 
 """
     Sampled <: AbstractSampled

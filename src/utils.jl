@@ -47,9 +47,11 @@ Base.reverse(::ForwardArray) = ReverseArray()
 Base.reverse(::ReverseRelation) = ForwardRelation()
 Base.reverse(::ForwardRelation) = ReverseRelation()
 # Span
-Base.reverse(::Type{<:IndexOrder}, span::Regular) = reverse(span)
 Base.reverse(::Type{<:SubOrder}, span::Span) = span
+Base.reverse(::Type{<:IndexOrder}, span::Irregular) = span
+Base.reverse(::Type{<:IndexOrder}, span::Span) = reverse(span)
 Base.reverse(span::Regular) = Regular(-step(span))
+Base.reverse(span::Explicit) = Explicit(reverse(val(span), dims=2))
 
 _reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
 _reversedata(s::AbstractDimStack, dimnum) =
@@ -271,3 +273,17 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
+
+
+dim2boundsmatrix(dim::Dimension) = dim2boundsmatrix(locus(dim), span(dim), dim) 
+dim2boundsmatrix(::Start, span::Regular, dim) = 
+    vcat(permutedims(index(dim)), permutedims(index(dim) .+ step(span)))
+dim2boundsmatrix(::End, span::Regular, dim) =
+    vcat(permutedims(index(dim) .- step(span))), permutedims(index(dim))
+dim2boundsmatrix(::Center, span::Regular, dim) =
+    vcat(permutedims(index(dim) .- step(span) / 2), permutedims(index(dim) .+ step(span) / 2))
+dim2boundsmatrix(::Start, span::Explicit, dim) = val(span)
+@noinline dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, dim) =
+    error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
+@noinline dim2boundsmatrix(::Start, span::Irregular, dim) = 
+    error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
