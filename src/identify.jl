@@ -39,7 +39,7 @@ identify(mode::AbstractSampled, dimtype::Type, index) =
     )
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
-# Spant
+# Span
 identify(span::AutoSpan, dimtype::Type, index::Union{AbstractArray,Val}) = Irregular()
 identify(span::AutoSpan, dimtype::Type, index::AbstractRange) = Regular(step(index))
 identify(span::Regular{AutoStep}, dimtype::Type, index::Union{AbstractArray,Val}) = _arraynosteperror()
@@ -49,7 +49,9 @@ identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
     step(span) isa Number && !(step(span) ≈ step(index)) && _steperror(index, span)
     span
 end
+identify(span::Irregular{AutoBounds}, dimtype, index) = Irregular(nothing, nothing)
 identify(span::Irregular{<:Tuple}, dimtype, index) = span
+identify(span::Explicit, dimtype, index) = span
 # Sampling
 identify(sampling::AutoSampling, dimtype::Type, index) = Points()
 identify(sampling::Points, dimtype::Type, index) = sampling

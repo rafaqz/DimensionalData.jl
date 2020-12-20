@@ -309,7 +309,7 @@ end
             irp_dim = vcat(X([1, 3, 4], Sampled(Ordered(), Irregular(1, 5), Points())), 
                           X([7, 8], Sampled(Ordered(), Irregular(7, 9), Points())))
             @test span(irp_dim) == Irregular(nothing, nothing)
-            @test mode(irp_dim) == Sampled(Ordered(), Irregular(), Points())
+            @test mode(irp_dim) == Sampled(Ordered(), Irregular(nothing, nothing), Points())
             @test index(irp_dim) == [1, 3, 4, 7, 8]
             @test bounds(irp_dim) == (1, 8)
         end

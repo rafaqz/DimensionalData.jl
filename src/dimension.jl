@@ -176,7 +176,7 @@ index(dim::Dimension{<:Val}) = unwrap(val(dim))
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 
-bounds(dim::Dimension) = bounds(mode(dim), dim)
+bounds(dim::Dimension) = _bounds(mode(dim), dim)
 
 modetype(dim::Dimension) = typeof(mode(dim))
 modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo

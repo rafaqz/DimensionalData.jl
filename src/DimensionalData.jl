@@ -37,7 +37,7 @@ export IndexOrder, ArrayOrder, Relation,
 
 export Sampling, Points, Intervals
 
-export Span, Regular, Irregular, AutoSpan
+export Span, Regular, Irregular, Explicit, AutoSpan
 
 export Mode, IndexMode, Auto, AutoMode, NoIndex
 

@@ -228,7 +228,8 @@ function _vcat_modes(::Intervals, ::Irregular, modes...)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
     rebuild(modes[1]; span=Irregular(newbounds))
 end
-_vcat_modes(::Points, ::Irregular, modes...) = rebuild(first(modes); span=Irregular())
+_vcat_modes(::Points, ::Irregular, modes...) = 
+    rebuild(first(modes); span=Irregular(nothing, nothing))
 
 # Index vcat depends on mode: NoIndex is always Colon()
 _vcat_index(mode::NoIndex, A...) = OneTo(sum(map(length, A)))
