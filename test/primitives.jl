@@ -3,7 +3,6 @@ using DimensionalData, Test
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode,
       @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride
 
-
 @testset "sortdims" begin
     dimz = (X(), Y(), Z(), Ti())
     @test @inferred sortdims((Y(1:2), X(1)), dimz) == (X(1), Y(1:2), nothing, nothing)
@@ -179,11 +178,16 @@ end
     # Dims are always in the base order
     @test commondims(da, (X, Y)) == dims(da, (X, Y))
     @test commondims(da, (Y, X)) == dims(da, (X, Y))
-    @test basetypeof(commondims(da, DimArray(zeros(5), Y))[1]) <: Y
+    @test basetypeof(commondims(da, DimArray(zeros(5), Y()))[1]) <: Y
 
     @testset "with Dim{X} and symbols" begin
-        @test commondims((Dim{:a}(), Dim{:b}()), (:a, :c)) == (Dim{:a}(),)
-        @test commondims((Dim{:a}(), Y(), Dim{:b}()), (Y, :b, :z)) == (Y(), Dim{:b}())
+        @test @inferred commondims((Dim{:a}(), Dim{:b}()), (:a, :c)) == (Dim{:a}(),)
+        @test @inferred commondims((Dim{:a}(), Y(), Dim{:b}()), (Y, :b, :z)) == (Y(), Dim{:b}())
+    end
+
+    @testset "with abstract types" begin
+        @test @inferred commondims((Z(), Y(), Ti()), (ZDim, Dimension)) == (Z(), Y())
+        @test @inferred commondims((TimeDim, YDim), (Z(), Ti(), Dim{:a}); op=(>:)) == (TimeDim,)
     end
 end
 

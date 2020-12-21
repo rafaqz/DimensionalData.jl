@@ -13,16 +13,16 @@ in `order` but missing from `tosort` are replaced with `nothing`.
 or dimension type. Abstract supertypes like [`TimeDim`](@ref)
 can be used in `order`.
 """
-@inline sortdims(tosort, order) = sortdims(Tuple(tosort), Tuple(order))
-@inline sortdims(tosort::Tuple, order::Tuple{<:Integer,Vararg}) =
+@inline sortdims(tosort, order; op=<:) = sortdims(Tuple(tosort), Tuple(order); op=op)
+@inline sortdims(tosort::Tuple, order::Tuple{<:Integer,Vararg}; op=<:) =
     map(p -> tosort[p], Tuple(order))
-@inline sortdims(tosort::Tuple, order::Tuple) = begin
-    extradims = otherdims(tosort, order)
+@inline sortdims(tosort::Tuple, order::Tuple; op=<:) = begin
+    extradims = otherdims(tosort, order; op=op)
     length(extradims) > 0 && _warnextradims(extradims)
-    _sortdims(_maybeconstruct(Tuple(tosort)), Tuple(order))
+    _sortdims(_maybeconstruct(Tuple(tosort)), Tuple(order), op)
 end
 
-@generated _sortdims(tosort::Tuple{Vararg{<:Dimension}}, order::Tuple{Vararg{<:Dimension}}) = begin
+@generated _sortdims(tosort::Tuple{Vararg{<:Dimension}}, order::Tuple{Vararg{<:Dimension}}, op) = begin
     indexexps = []
     ts = (tosort.parameters...,)
     allreadyfound = Int[]
@@ -30,7 +30,7 @@ end
         # Make sure we don't find the same dim twice
         found = 0
         while true
-            found = findnext(sd -> dimsmatch(sd, od), ts, found + 1)
+            found = findnext(sd -> dimsmatch(sd, od; op=_opasfunc(op)), ts, found + 1)
             if found == nothing
                 push!(indexexps, :(nothing))
                 break
@@ -45,21 +45,21 @@ end
 end
 # Fallback for Unionall reuired for plotting by abstract
 # Dimension type
-@inline _sortdims(tosort::Tuple, order::Tuple) = _sortdims(tosort, order, ())
-@inline _sortdims(tosort::Tuple, order::Tuple, rejected) =
+@inline _sortdims(tosort::Tuple, order::Tuple, op) = _sortdims(tosort, order, (), op)
+@inline _sortdims(tosort::Tuple, order::Tuple, rejected, op) =
     # Match dims to the order, and also check if the mode has a
     # transformed dimension that matches
-    if dimsmatch(tosort[1], order[1])
-        (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), ())...)
+    if dimsmatch(tosort[1], order[1]; op=op)
+        (tosort[1], _sortdims((rejected..., tail(tosort)...), tail(order), (), op)...)
     else
-        _sortdims(tail(tosort), order, (rejected..., tosort[1]))
+        _sortdims(tail(tosort), order, (rejected..., tosort[1]), op)
     end
 # Return nothing and start on a new dim
-@inline _sortdims(tosort::Tuple{}, order::Tuple, rejected) =
-    (nothing, _sortdims(rejected, tail(order), ())...)
+@inline _sortdims(tosort::Tuple{}, order::Tuple, rejected, op) =
+    (nothing, _sortdims(rejected, tail(order), (), op)...)
 # Return an empty tuple if we run out of dims to sort
-@inline _sortdims(tosort::Tuple, order::Tuple{}, rejected) = ()
-@inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected) = ()
+@inline _sortdims(tosort::Tuple, order::Tuple{}, rejected, op) = ()
+@inline _sortdims(tosort::Tuple{}, order::Tuple{}, rejected, op) = ()
 
 # @inline _maybeconstruct(dims::Array) = _maybeconstruct((dims...,)) 
 @inline _maybeconstruct(dims::Tuple) = 
@@ -68,6 +68,9 @@ end
 @inline _maybeconstruct(dim::Dimension) = dim
 @inline _maybeconstruct(dimtype::DimType) = isabstracttype(dimtype) ? dimtype : dimtype()
 
+_opasfunc(::Type{typeof(<:)}) = <:
+_opasfunc(::Type{typeof(>:)}) = >:
+
 """
     commondims(x, lookup) => Tuple{Vararg{<:Dimension}}
 
@@ -75,6 +78,8 @@ This is basically `dims(x, lookup)` where the order of the original is kept,
 unlike [`dims`](@ref) where the lookup tuple determines the order
 
 Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
+No errors are thrown if dims are absent from either `x` or `lookup`.
+
 ```jldoctest
 julia> using DimensionalData
 
@@ -90,36 +95,45 @@ julia> commondims(A, Ti)
 ()
 ```
 """
-@inline commondims(A::AbstractArray, B::AbstractArray) = commondims(dims(A), dims(B))
-@inline commondims(A::AbstractArray, lookup) = commondims(dims(A), lookup)
-@inline commondims(dims::Tuple, lookup) = commondims(dims, (lookup,))
-@inline commondims(dims::Tuple, lookup::Tuple) = _commondims(key2dim(dims), key2dim(lookup))
-@inline _commondims(dims::Tuple, lookup::Tuple) = 
-    if hasdim(lookup, dims[1])
-        (dims[1], commondims(tail(dims), lookup)...)
+@inline commondims(A::AbstractArray, B::AbstractArray; op=<:) = 
+    commondims(dims(A), dims(B); op=op)
+@inline commondims(A::AbstractArray, lookup; op=<:) = commondims(dims(A), lookup; op=op)
+@inline commondims(dims::Tuple, lookup; op=<:) = commondims(dims, (lookup,); op=op)
+@inline commondims(dims::Tuple, lookup::Tuple; op=<:) = 
+    _commondims(key2dim(dims), key2dim(lookup), (), op)
+
+@inline _commondims(dims::Tuple, lookup::Tuple, rejected, op) =
+    if dimsmatch(dims[1], lookup[1]; op=op)
+        # Remove found lookup so it isn't found again
+        (dims[1], _commondims(tail(dims), (rejected..., tail(lookup)...), (), op)...)
     else
-        commondims(tail(dims), lookup) 
+        _commondims(dims, tail(lookup), (rejected..., lookup[1]), op)
     end
-@inline _commondims(dims::Tuple{}, lookup::Tuple) = ()
+# Return an empty tuple when we run out of dims or lookups
+@inline _commondims(dims::Tuple, lookup::Tuple{}, rejected, op) = 
+    _commondims(tail(dims), rejected, (), op)
+@inline _commondims(dims::Tuple{}, lookup::Tuple, rejected, op) = ()
+@inline _commondims(dims::Tuple{}, lookup::Tuple{}, rejected, op) = ()
 
 
 """
-    dimsmatch(dim::DimOrDimType, match::DimOrDimType) => Bool
+    dimsmatch(dim::DimOrDimType, match::DimOrDimType; op=<:) => Bool
 
 Compare 2 dimensions are of the same base type, or 
 are at least rotations/transformations of the same type.
 """
-@inline dimsmatch(dims::Tuple, lookups::Tuple) = all(map(dimsmatch, dims, lookups))
-@inline dimsmatch(dim::Dimension, match::Dimension) = dimsmatch(typeof(dim), typeof(match))
-@inline dimsmatch(dim::Type, match::Dimension) = dimsmatch(dim, typeof(match))
-@inline dimsmatch(dim::Dimension, match::Type) = dimsmatch(typeof(dim), match)
-@inline dimsmatch(dim::DimOrDimType, match::Nothing) = false
-@inline dimsmatch(dim::Nothing, match::DimOrDimType) = false
-@inline dimsmatch(dim::Nothing, match::Nothing) = false
-@inline dimsmatch(dim::Type, match::Type) =
-    basetypeof(dim) <: basetypeof(match) || 
-    basetypeof(dim) <: basetypeof(dims(modetype(match))) ||
-    basetypeof(dims(modetype(dim))) <: basetypeof(match)
+@inline dimsmatch(dims::Tuple, lookups::Tuple; op=<:) = 
+    all(map((d, l) ->dimsmatch(d, l; op=op), dims, lookups))
+@inline dimsmatch(dim::Dimension, lookup::Dimension; op=<:) = dimsmatch(typeof(dim), typeof(lookup); op=op)
+@inline dimsmatch(dim::Type, lookup::Dimension; op=<:) = dimsmatch(dim, typeof(lookup); op=op)
+@inline dimsmatch(dim::Dimension, lookup::Type; op=<:) = dimsmatch(typeof(dim), lookup; op=op)
+@inline dimsmatch(dim::DimOrDimType, lookup::Nothing; op=<:) = false
+@inline dimsmatch(dim::Nothing, lookup::DimOrDimType; op=<:) = false
+@inline dimsmatch(dim::Nothing, lookup::Nothing; op=<:) = false
+@inline dimsmatch(dim::Type, lookup::Type; op=<:) =
+    op(basetypeof(dim), basetypeof(lookup)) || 
+    op(basetypeof(dim), basetypeof(dims(modetype(lookup)))) ||
+    op(basetypeof(dims(modetype(dim))), basetypeof(lookup))
 
 
 """
@@ -247,17 +261,17 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(x, lookup) = hasdim(dims(x), lookup)
-@inline hasdim(x::Nothing, lookup) = _dimsnotdefinederror()
-@inline hasdim(d::Tuple, lookup::Tuple) = map(l -> hasdim(d, l), lookup)
-@inline hasdim(d::Tuple, lookup::Symbol) = hasdim(d, key2dim(lookup))
-@inline hasdim(d::Tuple, lookup::DimOrDimType) =
-    if dimsmatch(d[1], lookup)
+@inline hasdim(x, lookup; op=<:) = hasdim(dims(x), lookup; op=op)
+@inline hasdim(x::Nothing, lookup; op=<:) = _dimsnotdefinederror()
+@inline hasdim(d::Tuple, lookup::Tuple; op=<:) = map(l -> hasdim(d, l; op=op), lookup)
+@inline hasdim(d::Tuple, lookup::Symbol; op=<:) = hasdim(d, key2dim(lookup); op=op)
+@inline hasdim(d::Tuple, lookup::DimOrDimType; op=<:) =
+    if dimsmatch(d[1], lookup; op=op)
         true
     else
-        hasdim(tail(d), lookup)
+        hasdim(tail(d), lookup; op=op)
     end
-@inline hasdim(::Tuple{}, ::DimOrDimType) = false
+@inline hasdim(::Tuple{}, ::DimOrDimType; op=<:) = false
 
 """
     otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
@@ -284,18 +298,19 @@ julia> otherdims(A, Ti)
 (X (type X) (NoIndex), Y (type Y) (NoIndex), Z (type Z) (NoIndex))
 ```
 """
-@inline otherdims(x, lookup) = otherdims(dims(x), lookup)
-@inline otherdims(::Nothing, lookup) = _dimsnotdefinederror()
-@inline otherdims(dims::Tuple, lookup::DimOrDimType) = otherdims(dims, (lookup,))
-@inline otherdims(dims::Tuple, lookup::Tuple) =
-    _otherdims(dims, _sortdims(key2dim(lookup), key2dim(dims)))
+@inline otherdims(x, lookup; op=<:) = otherdims(dims(x), lookup; op=op)
+@inline otherdims(::Nothing, lookup; op=<:) = _dimsnotdefinederror()
+@inline otherdims(dims::DimOrDimType, lookup; op=<:) = otherdims((dims,), lookup; op=op)
+@inline otherdims(dims::Tuple, lookup::DimOrDimType; op=<:) = otherdims(dims, (lookup,); op=op)
+@inline otherdims(dims::Tuple, lookup::Tuple; op=<:) =
+    _otherdims(dims, _sortdims(key2dim(lookup), key2dim(dims), op), op)
 
 #= Work with a sorted lookup where the missing dims are `nothing`.
 Then we can compare with `dimsmatch`, and splat away the matches. =#
-@inline _otherdims(dims::Tuple, sortedlookup::Tuple) =
-    (_otherdims(dims[1], sortedlookup[1])..., _otherdims(tail(dims), tail(sortedlookup))...)
-@inline _otherdims(dims::Tuple{}, ::Tuple{}) = ()
-@inline _otherdims(dim::DimOrDimType, lookupdim) = dimsmatch(dim, lookupdim) ? () : (dim,)
+@inline _otherdims(dims::Tuple, sortedlookup::Tuple, op) =
+    (_otherdims(dims[1], sortedlookup[1], op)..., _otherdims(tail(dims), tail(sortedlookup), op)...)
+@inline _otherdims(dims::Tuple{}, ::Tuple{}, op) = ()
+@inline _otherdims(dim::DimOrDimType, lookup, op) = dimsmatch(dim, lookup; op=op) ? () : (dim,)
 
 """
     setdims(A::AbstractArray, newdims) => AbstractArray
@@ -557,6 +572,11 @@ although it will be for `Array`.
 _kwdims(dims::Tuple{}, vals::Tuple{}) = ()
 
 @inline _pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+
+_remove_nothing(xs::Tuple) = _remove_nothing(xs...)
+_remove_nothing(x, xs...) = (x, _remove_nothing(xs...)...)
+_remove_nothing(::Nothing, xs...) = _remove_nothing(xs...)
+_remove_nothing() = ()
 
 # Error methods. @noinline to avoid allocations.
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
