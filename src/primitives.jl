@@ -4,7 +4,7 @@
 const UnionAllTupleOrVector = Union{Vector{UnionAll},Tuple{UnionAll,Vararg}}
 
 """
-    sortdims(tosort, order) => Tuple
+    sortdims(tosort, order; op=(<:)) => Tuple
 
 Sort dimensions `tosort` by `order`. Dimensions
 in `order` but missing from `tosort` are replaced with `nothing`.
@@ -12,6 +12,8 @@ in `order` but missing from `tosort` are replaced with `nothing`.
 `tosort` and `order` can be `Tuple`s or `Vector`s or Dimension
 or dimension type. Abstract supertypes like [`TimeDim`](@ref)
 can be used in `order`.
+
+`op` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 """
 @inline sortdims(tosort, order; op=<:) = sortdims(Tuple(tosort), Tuple(order); op=op)
 @inline sortdims(tosort::Tuple, order::Tuple{<:Integer,Vararg}; op=<:) =
@@ -72,13 +74,15 @@ _opasfunc(::Type{typeof(<:)}) = <:
 _opasfunc(::Type{typeof(>:)}) = >:
 
 """
-    commondims(x, lookup) => Tuple{Vararg{<:Dimension}}
+    commondims(x, lookup; op=<:) => Tuple{Vararg{<:Dimension}}
 
 This is basically `dims(x, lookup)` where the order of the original is kept, 
 unlike [`dims`](@ref) where the lookup tuple determines the order
 
 Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
 No errors are thrown if dims are absent from either `x` or `lookup`.
+
+`op` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 
 ```jldoctest
 julia> using DimensionalData
@@ -121,9 +125,11 @@ julia> commondims(A, Ti)
 
 Compare 2 dimensions are of the same base type, or 
 are at least rotations/transformations of the same type.
+
+`op` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
 @inline dimsmatch(dims::Tuple, lookups::Tuple; op=<:) = 
-    all(map((d, l) ->dimsmatch(d, l; op=op), dims, lookups))
+    all(map((d, l) -> dimsmatch(d, l; op=op), dims, lookups))
 @inline dimsmatch(dim::Dimension, lookup::Dimension; op=<:) = dimsmatch(typeof(dim), typeof(lookup); op=op)
 @inline dimsmatch(dim::Type, lookup::Dimension; op=<:) = dimsmatch(dim, typeof(lookup); op=op)
 @inline dimsmatch(dim::Dimension, lookup::Type; op=<:) = dimsmatch(typeof(dim), lookup; op=op)
@@ -242,6 +248,7 @@ julia> dimnum(A, Y)
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `lookup`: Tuple or single `Dimension` or dimension `Type`.
+- `op`: `<:` by default, but can be `>:` to match abstract types to concrete types.
 
 Check if an object or tuple contains an `Dimension`, or a tuple of dimensions.
 
@@ -279,6 +286,7 @@ false
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension`.
 - `lookup`: Tuple or single `Dimension` or dimension `Type`.
+- `op`: `<:` by default, but can be `>:` to match abstract types to concrete types.
 
 A tuple holding the unmatched dimensions is always returned.
 
