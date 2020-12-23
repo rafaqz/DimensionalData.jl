@@ -113,7 +113,7 @@ end
 
 """
     DimArray(data, dims, refdims, name)
-    DimArray(data, dims::Tuple [, name::Symbol]; refdims=(), metadata=nothing)
+    DimArray(data, dims::Tuple [, name::Symbol]; refdims=(), metadata=NoMetadata())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -128,7 +128,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
   slices and reductions of dimension for labelling and reconstruction.
-- `metadata`: Array metadata, or `nothing`
+- `metadata`: Array metadata, or `NoMetadata()`
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. Indexing AbstractDimArray with non-range `AbstractArray`
@@ -156,11 +156,11 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     metadata::Me
 end
 # 2 or 3 argument version
-function DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=nothing)
+function DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
 # All keyword argument version
-function DimArray(; data, dims, refdims=(), name=NoName(), metadata=nothing)
+function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
 # Construct from another AbstractDimArray
