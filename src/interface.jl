@@ -142,7 +142,7 @@ not a guarantee that they will be. If not available, `nothing` is returned.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function units end
-units(x) = nothing
+units(x) = metadata(x) isa NoMetadata ? nothing : get(metadata(x), :units, nothing)
 
 """
     label(x) => String

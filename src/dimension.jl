@@ -156,8 +156,6 @@ index(dim::Dimension{<:AbstractArray}) = val(dim)
 index(dim::Dimension{<:Val}) = unwrap(val(dim))
 
 name(dim::Dimension) = name(typeof(dim))
-units(dim::Dimension) =
-    metadata(dim) isa NoMetadata ? nothing : get(metadata(dim), :units, nothing)
 
 bounds(dim::Dimension) = bounds(mode(dim), dim)
 
