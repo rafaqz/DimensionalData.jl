@@ -270,15 +270,21 @@ false
 """
 @inline hasdim(x, lookup; op=<:) = hasdim(dims(x), lookup; op=op)
 @inline hasdim(x::Nothing, lookup; op=<:) = _dimsnotdefinederror()
-@inline hasdim(d::Tuple, lookup::Tuple; op=<:) = map(l -> hasdim(d, l; op=op), lookup)
-@inline hasdim(d::Tuple, lookup::Symbol; op=<:) = hasdim(d, key2dim(lookup); op=op)
-@inline hasdim(d::Tuple, lookup::DimOrDimType; op=<:) =
-    if dimsmatch(d[1], lookup; op=op)
-        true
+@inline hasdim(d::Tuple, lookup::DimOrDimType; op=<:) = hasdim(d, (lookup,); op=op)[1]
+@inline hasdim(d::Tuple, lookup::Tuple; op=<:) = _hasdim(d, key2dim(lookup), (), op)
+@inline _hasdim(d::Tuple, lookup::Tuple, rejected, op) =
+    if dimsmatch(d[1], lookup[1]; op=op)
+        # Remove both found dim and lookup so they aren't found again
+        (true, _hasdim((rejected..., tail(d)...), tail(lookup), (), op)...)
     else
-        hasdim(tail(d), lookup; op=op)
+        _hasdim(tail(d), lookup, (rejected..., d[1]), op)
     end
-@inline hasdim(::Tuple{}, ::DimOrDimType; op=<:) = false
+# Return an empty tuple when we run out of dims or lookups
+@inline _hasdim(d::Tuple{}, lookup::Tuple, rejected, op) =
+    (false, _hasdim(rejected, tail(lookup), (), op)...)
+@inline _hasdim(d::Tuple, lookup::Tuple{}, rejected, op) = () 
+@inline _hasdim(d::Tuple{}, lookup::Tuple{}, rejected, op) = ()
+
 
 """
     otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
