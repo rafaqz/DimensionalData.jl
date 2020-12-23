@@ -3,8 +3,10 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 # getindex/view/setindex! ======================================================
 
 #### Array getindex/view ####
-# Integer returns a single value
+# Integer returns a single value, but not for view
 @propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
+    Base.getindex(parent(A), i1, i2, I...)
+@propagate_inbounds Base.dotview(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
     Base.getindex(parent(A), i1, i2, I...)
 # No indices. These just prevent stack overflows
 @propagate_inbounds Base.getindex(A::AbstractDimArray) = Base.getindex(parent(A))
