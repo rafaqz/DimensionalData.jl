@@ -101,6 +101,7 @@ or a mixed tuple.
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
 """
 function metadata end
+metadata(x) = NoMetadata()
 
 """
     bounds(dim::Dimension) => Tuple{T,T}}
