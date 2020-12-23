@@ -200,9 +200,7 @@ end
 
     @testset "hasdim for Abstract types" begin
         @test hasdim(dims(da), (XDim, YDim)) == (true, true)
-        # TODO : should this actually be (true, false) ?
-        # Do we remove the second one for hasdim as well?
-        @test hasdim(dims(da), (XDim, XDim)) == (true, true)
+        @test hasdim(dims(da), (XDim, XDim)) == (true, false)
         @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
         @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
     end
