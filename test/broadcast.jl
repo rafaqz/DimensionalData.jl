@@ -108,6 +108,13 @@ using DimensionalData, Test
             (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))
     end
 
+    @testset "assign using named indexing and dotview" begin
+        A = DimArray(zeros(3,2), (X, Y))
+        A[X=1:2] .= [1, 2]
+        A[X=3] .= 7
+        @test A == [1.0 1.0; 2.0 2.0; 7.0 7.0]
+    end
+
 end
 
 # TODO make this work
