@@ -163,7 +163,7 @@ bounds(dim::Dimension) = bounds(mode(dim), dim)
 
 modetype(dim::Dimension) = typeof(mode(dim))
 modetype(::Type{<:Dimension{<:Any,Mo}}) where Mo = Mo
-modetype(::UnionAll) = NoIndex
+modetype(x) = NoIndex
 
 
 for func in (:order, :span, :sampling, :locus)

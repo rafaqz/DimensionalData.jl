@@ -243,7 +243,11 @@ where `Dim{:x}` is different from `Dim{:y}`.
 """
 basetypeof(x) = basetypeof(typeof(x))
 @generated function basetypeof(::Type{T}) where T
-    getfield(parentmodule(T), nameof(T))
+    if T isa Union
+        T
+    else
+        getfield(parentmodule(T), nameof(T))
+    end
 end
 
 # Left pipe operator for cleaning up brackets
