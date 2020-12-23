@@ -2,9 +2,9 @@
 function Base.show(io::IO, A::AbstractDimArray)
     l = nameof(typeof(A))
     printstyled(io, nameof(typeof(A)); color=:blue)
-    if label(A) != ""
+    if name(A) != Symbol("")
         print(io, " (named ")
-        printstyled(io, label(A); color=:blue)
+        printstyled(io, string(name(A)); color=:blue)
         print(io, ")")
     end
 
