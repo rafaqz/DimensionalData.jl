@@ -11,11 +11,11 @@ using DimensionalData: val, basetypeof, slicedims, dims2indices, mode, dimsmatch
     @test (@inferred dimsmatch(Y, ZDim)) == false
     @test (@inferred dimsmatch(ZDim, Dimension)) == true
     @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
-    @test (@belapsed dimsmatch(ZDim, Dimension)) < 1e-10
+    # @test (@belapsed dimsmatch(ZDim, Dimension)) < 1e-9
     @test (@inferred dimsmatch((Z(), ZDim), (ZDim, Dimension))) == true
     @test (@inferred dimsmatch((Z(), ZDim), (ZDim, XDim))) == false
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
-    @test (@belapsed dimsmatch((Z(), ZDim), (ZDim, XDim))) < 1e-10
+    # @test (@belapsed dimsmatch((Z(), ZDim), (ZDim, XDim))) < 1e-9
 end
 
 @dim Tst
@@ -75,7 +75,7 @@ end
         f1 = t -> _run((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
         @inferred f1(AlwaysTuple())
         @test (@ballocated $f1(AlwaysTuple())) == 0
-        @test (@belapsed $f1(AlwaysTuple())) < 1e-10
+        # @test (@belapsed $f1(AlwaysTuple())) < 1e-9
     end
 end
 
@@ -87,20 +87,20 @@ end
     @test (@inferred sortdims(dimz, (Y(), Z()))) == (Y(), Z())
     @test (@inferred sortdims((Y(), X(), Z(), Ti()), dimz)) == (X(), Y(), Z(), Ti())
     @test (@ballocated sortdims((Y(), X(), Z(), Ti()), $dimz)) == 0
-    @test (@belapsed sortdims((Y(), X(), Z(), Ti()), $dimz)) < 1e-10
+    # @test (@belapsed sortdims((Y(), X(), Z(), Ti()), $dimz)) < 1e-9
     f1 = (dimz) -> sortdims((Y, X, Z, Ti), dimz)
     @test (@inferred f1(dimz)) == (X, Y, Z, Ti)
     @ballocated $f1($dimz)
     @test (@ballocated $f1($dimz)) == 0
-    @test_broken (@belapsed $f1($dimz)) < 1e-10
-    @test (@belapsed $f1($dimz)) < 1e-8
+    # @test_broken (@belapsed $f1($dimz)) < 1e-9
+    # @test (@belapsed $f1($dimz)) < 1e-7
     f2 = (dimz) -> sortdims(dimz, (Y, X, Z, Ti))
     @test (@inferred f2(dimz)) == (Y(), X(), Z(), Ti())
     @test (@ballocated $f2($dimz)) == 0
-    @test (@belapsed $f2($dimz)) < 1e-10
+    # @test (@belapsed $f2($dimz)) < 1e-9
     # Val
     @inferred sortdims(dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))
-    @test (@belapsed sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) < 1e-10
+    # @test (@belapsed sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) < 1e-9
     @test (@ballocated sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) == 0
     # Transformed
     @test (@inferred sortdims((Y(1:2; mode=Transformed(identity, Z())), X(1)), (X(), Z()))) == 
@@ -135,7 +135,7 @@ dimz = dims(da)
     # @descend dims(da, XDim, YDim)
     @test (@inferred dims(da, XDim, YDim)) isa Tuple{<:X,<:Y}
     @test (@ballocated dims($da, XDim, YDim)) == 0
-    @test (@belapsed dims($da, XDim, YDim)) < 1e-10
+    # @test (@belapsed dims($da, XDim, YDim)) < 1e-9
     @test dims(da, ()) == ()
     @test dims(dimz, 1) isa X
     @test dims(dimz, (2, 1)) isa Tuple{<:Y,<:X}
@@ -169,10 +169,10 @@ end
     f1 = (da) -> commondims(da, (X, Y))
     @test (@inferred f1(da)) == dims(da, (X, Y))
     @test (@ballocated $f1($da)) == 0
-    @test (@belapsed $f1($da)) < 1e-10
+    # @test (@belapsed $f1($da)) < 1e-9
     @test (@inferred commondims(da, X, Y)) == dims(da, (X, Y))
     @test (@ballocated commondims($da, X, Y)) == 0
-    @test (@belapsed commondims($da, X, Y)) < 1e-10
+    # @test (@belapsed commondims($da, X, Y)) < 1e-9
     @test basetypeof(commondims(da, DimArray(zeros(5), Y()))[1]) <: Y
 
     @testset "with Dim{X} and symbols" begin
@@ -180,17 +180,17 @@ end
         f1 = (dimz) -> commondims((Dim{:a}(), Dim{:b}()), (:a, :c))
         @test f1(dimz) == (Dim{:a}(),)
         @test (@ballocated $f1(dimz)) == 0 
-        @test (@belapsed $f1(dimz)) < 1e-10
+        # @test (@belapsed $f1(dimz)) < 1e-9
         f2 = (dimz) -> commondims(dimz, (Y, Dim{:b}))
         @test f2(dimz) == (Y(), Dim{:b}())
         f3 = (dimz) -> commondims(dimz, Y, :b) 
         @test (@inferred f3(dimz)) == (Y(), Dim{:b}())
         @test (@ballocated $f3($dimz)) == 0
-        @test (@belapsed $f3($dimz)) < 1e-10
+        # @test (@belapsed $f3($dimz)) < 1e-9
         f4 = (dimz) -> commondims(dimz, Y, Z, Dim{:b}) 
         @test (@inferred f4(dimz)) == (Y(), Dim{:b}())
         @test (@ballocated $f4($dimz)) == 0
-        @test (@belapsed $f4($dimz)) < 1e-10
+        # @test (@belapsed $f4($dimz)) < 1e-9
     end
 
     @testset "with abstract types" begin
@@ -202,12 +202,12 @@ end
 @testset "dimnum" begin
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
     @test (@ballocated dimnum($da, Y())) == 0
-    @test (@belapsed dimnum($da, Y())) < 1e-10
-    @test (@belapsed dimnum($da, Y())) < 1e-8
+    # @test (@belapsed dimnum($da, Y())) < 1e-9
+    # @test (@belapsed dimnum($da, Y())) < 1e-7
     @test dimnum(da, X) == 1
     @test (@ballocated dimnum($da, X)) == 0
-    @test (@belapsed dimnum($da, X)) < 1e-10
-    @test (@belapsed dimnum($da, X)) < 1e-8
+    # @test (@belapsed dimnum($da, X)) < 1e-9
+    # @test (@belapsed dimnum($da, X)) < 1e-7
     @test dimnum(da, (Y(), X())) == (2, 1)
     @ballocated dimnum($da, (Y(), X()))
     @test (@ballocated dimnum($da, (Y(), X()))) == 0
@@ -215,22 +215,22 @@ end
     @test (@inferred f1(da)) == (2, 1)
     @ballocated $f1($da)
     @test (@ballocated $f1($da)) == 0
-    @test (@belapsed $f1($da)) < 1e-10
-    @test (@belapsed $f1($da)) < 1e-8
+    # @test (@belapsed $f1($da)) < 1e-9
+    # @test (@belapsed $f1($da)) < 1e-7
     @test dimnum(da, Y, X) == (2, 1)
     @ballocated dimnum($da, Y, X)
     @test (@ballocated dimnum($da, Y, X)) == 0
-    @test (@belapsed dimnum($da, Y, X)) < 1e-10
-    @test (@belapsed dimnum($da, Y, X)) < 1e-8
+    # @test (@belapsed dimnum($da, Y, X)) < 1e-9
+    # @test (@belapsed dimnum($da, Y, X)) < 1e-7
     # @test_throws ArgumentError dimnum(da, Ti) == (2, 1)
     @testset "with Dim{X} and symbols" begin
         @test dimnum((Dim{:a}(), Dim{:b}()), :a) == 1
         @test dimnum((Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y)) == (3, 1, 2)
         dimz = (Dim{:a}(), Y(), Dim{:b}())
         @test (@ballocated dimnum($dimz, :b, :a, Y)) == 0
-        @test_broken (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-10
-        @test (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-8
-        @test (@belapsed dimnum($dimz, Dim{:b}, Dim{:a})) < 10e-10
+        # @test_broken (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-9
+        # @test (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-7
+        # @test (@belapsed dimnum($dimz, Dim{:b}, Dim{:a})) < 10e-10
     end
 end
 
@@ -242,15 +242,15 @@ end
     @test hasdim(dims(da), Y) == true
     @ballocated hasdim(dims($da), Y)
     @test (@ballocated hasdim(dims($da), Y)) == 0
-    @test (@belapsed hasdim(dims($da), Y)) < 1e-10
+    # @test (@belapsed hasdim(dims($da), Y)) < 1e-9
     @test hasdim(dims(da), (X, Y)) == (true, true)
     f1 = (da) -> hasdim(dims(da), (X, Ti, Y, Z))
     @test @inferred f1(da) == (true, false, true, false)
     @test (@ballocated $f1($da)) == 0
-    @test (@belapsed $f1($da)) < 1e-10
+    # @test (@belapsed $f1($da)) < 1e-9
     f2 = (da) -> hasdim(dims(da), X, Ti, Y, Z)
     @test (@ballocated $f2($da)) == 0
-    @test (@belapsed $f2($da)) < 1e-10
+    # @test (@belapsed $f2($da)) < 1e-9
 
     @testset "hasdim for Abstract types" begin
         @test hasdim(dims(da), (XDim, YDim)) == (true, true)
@@ -258,11 +258,11 @@ end
         @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
         @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
         @test (@ballocated hasdim($da, YDim)) == 0
-        @test (@belapsed hasdim($da, YDim)) < 1e-10
+        # @test (@belapsed hasdim($da, YDim)) < 1e-9
         @test (@ballocated hasdim($da, (ZDim, YDim))) == 0
-        @test (@belapsed hasdim($da, (ZDim, YDim))) < 1e-10
+        # @test (@belapsed hasdim($da, (ZDim, YDim))) < 1e-9
         @test (@ballocated hasdim($da, ZDim, YDim)) == 0
-        @test (@belapsed hasdim($da, ZDim, YDim)) < 1e-10
+        # @test (@belapsed hasdim($da, ZDim, YDim)) < 1e-9
     end
 
     @testset "with Dim{X} and symbols" begin
@@ -271,7 +271,7 @@ end
         @test hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e)) == (true, true, false, false, false)
         @ballocated hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))
         @test (@ballocated hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))) == 0
-        @test (@belapsed hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))) < 1e-10
+        # @test (@belapsed hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))) < 1e-9
     end
     @test_throws ArgumentError hasdim(nothing, X)
 end
@@ -286,19 +286,19 @@ end
     f1 = A -> otherdims(A, (X, Z))
     @ballocated $f1($A)
     @test (@ballocated $f1($A)) == 0
-    @test (@belapsed $f1($A)) < 1e-10
-    @test (@belapsed $f1($A)) < 1e-8
+    # @test (@belapsed $f1($A)) < 1e-9
+    # @test (@belapsed $f1($A)) < 1e-7
     f2 = (A) -> otherdims(A, Ti)
     @test f2(A) == dims(A, (X, Y, Z))
     @test (@ballocated $f2($A)) == 0
-    @test_broken (@belapsed $f2($A)) < 1e-10
-    @test (@belapsed $f2($A)) < 1e-8
+    # @test_broken (@belapsed $f2($A)) < 1e-9
+    # @test (@belapsed $f2($A)) < 1e-7
     @testset "with Dim{X} and symbols" begin
         dimz = (Z(), Dim{:a}(), Y(), Dim{:b}())
         f3 = (dimz) -> otherdims(dimz, (:b, :a, Y))
         @test (@inferred f3(dimz)) == (Z(),)
         @test (@ballocated $f3($dimz)) == 0
-        @test (@belapsed $f3($dimz)) < 1e-10
+        # @test (@belapsed $f3($dimz)) < 1e-9
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
     @test_throws ArgumentError otherdims(nothing, X)
