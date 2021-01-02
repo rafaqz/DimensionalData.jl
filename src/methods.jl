@@ -40,7 +40,7 @@ for (m, f) in ((:Statistics, :std), (:Statistics, :var))
             rebuild(A, $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims)), reducedims(A, dims))
         # - Returns a scalar
         $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
-            $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims))
+            $m.$f(parent(A); corrected=corrected, mean=mean, dims=:)
     end
 end
 for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
@@ -52,7 +52,7 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
         $_f(A::AbstractDimArray, dims) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, dims)), reducedims(A, dims))
         # - Returns a scalar
-        $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=dimnum(A, dims))
+        $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
     end
 end
 
@@ -111,8 +111,8 @@ for fname in (:cor, :cov)
         newdata = Statistics.$fname(parent(A); dims=dimnum(A, dims), kw...)
         removed_idx = dimnum(A, dims)
         newrefdims = $dims(A)[removed_idx]
-        newdims = $dims(A)[3 - removed_idx]
-        rebuild(A, newdata, (newdims, newdims), (newrefdims,))
+        newdim = $dims(A)[3 - removed_idx]
+        rebuild(A, newdata, (newdim, newdim), (newrefdims,))
     end
 end
 
@@ -167,7 +167,7 @@ end
 for fname in [:permutedims, :PermutedDimsArray]
     @eval begin
         @inline function Base.$fname(A::AbstractDimArray, perm)
-            rebuild(A, $fname(parent(A), dimnum(A, perm)), sortdims(dims(A), perm))
+            rebuild(A, $fname(parent(A), dimnum(A, Tuple(perm))), sortdims(dims(A), Tuple(perm)))
         end
     end
 end
@@ -247,5 +247,9 @@ Base.inv(A::AbstractDimArray{T,2}) where T =
 # TODO: change the index and traits of the reduced dimension
 # and return a DimArray.
 Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Colon}=:) =
-    unique(parent(A); dims=dimnum(A, dims))
+    _unique(A, dims)
 Base.unique(A::AbstractDimArray{<:Any,1}) = unique(parent(A))
+
+_unique(A::AbstractDimArray, dims::DimOrDimType) =
+    unique(parent(A); dims=dimnum(A, dims))
+_unique(A::AbstractDimArray, dims::Colon) = unique(parent(A); dims=:)
