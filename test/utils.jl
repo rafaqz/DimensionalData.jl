@@ -103,7 +103,7 @@ end
         A = DimArray(data, (y, ti))
         @test diff(A; dims=1) == diff(A; dims=Y) == diff(A; dims=:Y) == diff(A; dims=y) == DimArray([111 93 -169 142; 98 -55 110 -131], (Y(['b', 'c']), ti))
         @test diff(A; dims=2) == diff(A; dims=Ti) == diff(A; dims=:Ti) == diff(A; dims=ti) == DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 2):Month(1):DateTime(2021, 4))))
-        @test_throws MethodError diff(A; dims='X')
+        @test_throws ErrorException diff(A; dims='X')
         @test_throws ArgumentError diff(A; dims=Z)
         @test_throws ArgumentError diff(A; dims=3)
     end

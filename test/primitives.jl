@@ -200,7 +200,7 @@ end
 end
 
 @testset "dimnum" begin
-    @test dimnum(da, Y()) == 2
+    @test dimnum(da, Y()) == dimnum(da, 2) == 2
     @test (@ballocated dimnum($da, Y())) == 0
     @test (@belapsed dimnum($da, Y())) < 1e-10
     @test (@belapsed dimnum($da, Y())) < 1e-8

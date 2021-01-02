@@ -174,8 +174,14 @@ julia> dimnum(A, Y)
 2
 ```
 """
-@inline dimnum(args...) = _run(_dimnum, MaybeFirst(), args...)
+@inline function dimnum(args...) 
+    all(hasdim(args...)) || _errorextradims()
+    _run(_dimnum, MaybeFirst(), args...)
+end
 
+@inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple{Vararg{Int}})
+    lookups
+end
 @inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
         basetypeof(d)(i)
@@ -215,6 +221,8 @@ false
 
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
+@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) = 
+    map(l -> l in 1:length(dims), lookup)
 
 """
     otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
@@ -547,3 +555,4 @@ struct AlwaysTuple end
 @noinline _nolookuperror(lookup) = throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
+@noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))
