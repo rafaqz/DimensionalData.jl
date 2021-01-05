@@ -329,10 +329,11 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 """
     slicedims(x, I) => Tuple{Tuple,Tuple}
+    slicedims(f, x, I) => Tuple{Tuple,Tuple}
 
-Slice the dimensions to match the axis values of the new array
+Slice the dimensions to match the axis values of the new array.
 
-All methods returns a tuple conatining two tuples: the new dimensions,
+All methods return a tuple conatining two tuples: the new dimensions,
 and the reference dimensions. The ref dimensions are no longer used in
 the new struct but are useful to give context to plots.
 
@@ -341,6 +342,8 @@ previous reference dims attached to the array.
 
 # Arguments
 
+- `f`: a function `getindex`,  `view` or `dotview`. This will be used for slicing
+    `getindex` is the default if `f` is not included.
 - `x`: An `AbstractDimArray`, `Tuple` of `Dimension`, or `Dimension`
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
@@ -353,7 +356,7 @@ function slicedims end
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
-    slicedims(dims, refdims, Tuple(I))
+    slicedims(f, dims, refdims, Tuple(I))
 
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = _slicedims(f, dims, I)
@@ -482,7 +485,6 @@ function comparedims end
 @inline comparedims(a::DimTuple, ::Nothing) = a
 @inline comparedims(::Nothing, b::DimTuple) = b
 @inline comparedims(::Nothing, ::Nothing) = nothing
-
 # Cant use `map` here, tuples may not be the same length
 @inline comparedims(a::DimTuple, b::DimTuple) =
     (comparedims(first(a), first(b)), comparedims(tail(a), tail(b))...)
@@ -493,9 +495,24 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim) = a
 @inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin
+    length(a) == length(b) || _dimsizeerror(a, b)
     basetypeof(a) == basetypeof(b) || _dimsmismatcherror(a, b)
     # TODO compare the mode, and maybe the index.
     return a
+end
+
+function combinedims end
+# @inline combinedims(xs::Tuple) = combinedims(xs...)
+@inline combinedims(xs...) = combinedims(map(dims, xs)...)
+@inline combinedims(dt1::DimTuple) = dt1
+@inline combinedims(dt1::DimTuple, dt2::DimTuple, dimtuples::DimTuple...) =
+    reduce((dt2, dimtuples...); init=dt1) do dims1, dims2
+        _combinedims(dims1, dims2)
+    end
+# Cant use `map` here, tuples may not be the same length
+@inline _combinedims(a::DimTuple, b::DimTuple) = begin
+    comparedims(commondims(a, b), commondims(b, a))
+    (a..., otherdims(b, a)...)
 end
 
 """
@@ -503,7 +520,7 @@ end
 
 Will get the stride of the dimension relative to the other dimensions.
 
-This may or may not be eual to the stride of the related array,
+This may or may not be equal to the stride of the related array,
 although it will be for `Array`.
 
 ## Arguments
@@ -515,6 +532,13 @@ although it will be for `Array`.
 @inline dimstride(::Nothing, n) = _dimsnotdefinederror()
 @inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d))
 @inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
+
+
+@inline basedims(x) = basedims(dims(x))
+@inline basedims(ds::Tuple) = map(basedims, ds)
+@inline basedims(d::Dimension) = basetypeof(d)()
+@inline basedims(d::Symbol) = key2dim(d)
+@inline basedims(T::Type{<:Dimension}) = basetypeof(T)()
 
 
 # Utils
@@ -576,5 +600,6 @@ struct AlwaysTuple end
 
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
+@noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(lengt(b)) for $(basetypeof(a))"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))

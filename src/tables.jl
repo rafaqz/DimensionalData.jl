@@ -44,15 +44,15 @@ This object will be returned as a column of [`DimTable`](@ref).
 """
 struct DimColumn{T,D<:Dimension} <: AbstractVector{T}
     dim::D
-    length::Int
     dimstride::Int
+    length::Int
 end
-function DimColumn(dim::D, dims::DimTuple) where D<:Dimension
+function DimColumn(dim::D, alldims::DimTuple) where D<:Dimension
     # This is the apparent stride for indexing purposes,
     # it is not always the real array stride
-    stride = dimstride(dims, dim)
-    len = prod(map(length, dims))
-    DimColumn{eltype(dim),D}(dim, len, stride)
+    stride = dimstride(alldims, dim)
+    len = prod(map(length, alldims))
+    DimColumn{eltype(dim),D}(dim, stride, len)
 end
 
 dim(c::DimColumn) = getfield(c, :dim)
@@ -71,6 +71,43 @@ Base.size(c::DimColumn) = (length(c),)
 Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
+
+struct DimArrayColumn{T,A<:AbstractDimArray{T},DS,DL,L} <: AbstractVector{T}
+    data::A
+    dimstrides::DS
+    dimlengths::DL
+    length::L
+end
+function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTuple) where T
+    # This is the apparent stride for indexing purposes,
+    # it is not always the real array stride
+    dimstrides = map(d -> dimstride(alldims, d), dims(A))
+    dimlengths = map(length, dims(A))
+    len = prod(map(length, alldims))
+    DimArrayColumn(A, dimstrides, dimlengths, len)
+end
+
+data(c::DimArrayColumn) = getfield(c, :data)
+dimstrides(c::DimArrayColumn) = getfield(c, :dimstrides)
+dimlengths(c::DimArrayColumn) = getfield(c, :dimlengths)
+
+# Simple Array interface
+
+Base.length(c::DimArrayColumn) = getfield(c, :length)
+@inline function Base.getindex(c::DimArrayColumn, i::Int)
+    Base.@boundscheck checkbounds(c, i)
+    I = map((s, l) -> _strideind(s, l, i), dimstrides(c), dimlengths(c))
+    data(c)[I...]
+end
+
+_strideind(stride, len, i) = mod((i - 1) ÷ stride, len) + 1
+
+Base.getindex(c::DimArrayColumn, ::Colon) = vec(c)
+Base.getindex(c::DimArrayColumn, A::AbstractArray) = [c[i] for i in A]
+Base.size(c::DimArrayColumn) = (length(c),)
+Base.axes(c::DimArrayColumn) = (Base.OneTo(length(c)),)
+Base.vec(c::DimArrayColumn{T}) where T = [c[i] for i in eachindex(c)]
+Base.Array(c::DimArrayColumn) = vec(c)
 
 """
     AbstractDimTable <: Tables.AbstractColumns
@@ -97,10 +134,13 @@ column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
-struct DimTable{Keys,DS,C} <: AbstractDimTable
-    dataset::DS
-    dimcolumns::C
+struct DimTable{Keys,S,DC,DAC} <: AbstractDimTable
+    stack::S
+    dimcolumns::DC
+    dimarraycolumns::DAC
 end
+DimTable{K}(stack::S, dimcolumns::DC, strides::SD) where {K,S,DC,SD} = 
+    DimTable{K,S,DC,SD}(stack, dimcolumns, strides)
 DimTable(A::AbstractDimArray, As::AbstractDimArray...) = DimTable((A, As...))
 function DimTable(As::Tuple{<:AbstractDimArray,Vararg{<:AbstractDimArray}}...)
     DimTable(DimStack(As...))
@@ -108,16 +148,20 @@ end
 function DimTable(s::AbstractDimStack)
     dims_ = dims(s)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
+    dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
     keys = _colnames(s)
-    DimTable{keys,typeof(s),typeof(dimcolumns)}(s, dimcolumns)
+    DimTable{keys}(s, dimcolumns, dimarraycolumns)
 end
 
-dataset(t::DimTable) = getfield(t, :dataset)
+stack(t::DimTable) = getfield(t, :stack)
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
+dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
+dims(t::DimTable) = dims(stack(t))
 
 for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
              :name, :label, :units, :arrayorder, :indexorder, :relation)
     @eval $func(t::DimTable, args...) = $func(dataset(t), args...)
+
 end
 
 # Tables interface
@@ -127,27 +171,27 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
 function Tables.schema(t::DimTable{Keys}) where Keys
-    s = dataset(t)
+    s = stack(t)
     Tables.Schema(Keys, (map(eltype, dims(s))..., map(eltype, data(s))...))
 end
 
 @inline function Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys
     nkeys = length(Keys)
-    if i > length(t) || i < 1
-        throw(ArgumentError("There is no column $i"))
-    elseif i > length(dims(t))
-        vec(values(data(dataset(t)))[i - length(dims(t))])
-    elseif i < nkeys
+    if i > length(dims(t))
+        dimarraycolumns(t)[i - length(dims(t))]
+    elseif i > 0 && i < nkeys
         dimcolumns(t)[i]
+    else
+        throw(ArgumentError("There is no table column $i"))
     end
 end
 @inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)
-    Tables.getcolumn(t, dimnum(t, dim))
+    dimcolumns(t)[dimnum(t, dim)]
 end
 # Retrieve a column by name
 @inline function Tables.getcolumn(t::DimTable{Keys}, key::Symbol) where Keys
-    if key in keys(dataset(t))
-        vec(dataset(t)[key])
+    if key in keys(dimarraycolumns(t))
+        dimarraycolumns(t)[key]
     else
         dimcolumns(t)[dimnum(dims(t), key)]
     end

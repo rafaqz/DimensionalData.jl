@@ -12,7 +12,7 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 #### Stack getindex ####
 # Symbol key
 @propagate_inbounds Base.getindex(s::AbstractDimStack, key::Symbol) =
-    DimArray(data(s)[key], dims(s), refdims(s), key, nothing)
+    DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
 @propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
     map(A -> Base.getindex(A, i, I...), data(s))
 
@@ -42,7 +42,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
             vals = map(A -> Base.$f(A, I...; kw...), dimarrays(s))
             if all(map(v -> v isa AbstractDimArray, vals))
-                rebuildsliced(Base.$f, s, vals, (dims2indices(first(s), I)))
+                rebuildsliced(Base.$f, s, vals, (dims2indices(dims(s), I)))
             else
                 vals
             end

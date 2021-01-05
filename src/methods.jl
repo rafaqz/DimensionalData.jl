@@ -19,9 +19,9 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # Local dispatch methods
         # - Return a reduced DimArray
         $_f(A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
         $_f(f, A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
         # - Return a scalar
         $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); kw...)
         $_f(f, A::AbstractDimArray, dims::Colon; kw...) =
@@ -37,7 +37,7 @@ for (m, f) in ((:Statistics, :std), (:Statistics, :var))
             $_f(A, corrected, mean, dims)
         # Local dispatch methods - Returns a reduced array
         $_f(A::AbstractDimArray, corrected, mean, dims) =
-            rebuild(A, $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, dims)), reducedims(A, dims))
+            rebuild(A, $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
         $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
             $m.$f(parent(A); corrected=corrected, mean=mean, dims=:)
@@ -50,7 +50,7 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
         $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
         # Local dispatch methods - Returns a reduced array
         $_f(A::AbstractDimArray, dims) =
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, dims)), reducedims(A, dims))
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
         $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
     end
@@ -58,7 +58,7 @@ end
 
 # These are not exported but it makes a lot of things easier using them
 function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
 end
 function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
     Base._mapreduce_dim(f, op, nt, parent(A), dims)
@@ -97,7 +97,7 @@ end
 @inline Base.map(f, A::AbstractDimArray) = rebuild(A, map(f, parent(A)))
 
 function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
-    dimnums = dimnum(A, dims)
+    dimnums = dimnum(A, _astuple(dims))
     _data = mapslices(f, parent(A); dims=dimnums, kw...)
     rebuild(A, _data, reducedims(A, DimensionalData.dims(A, dimnums)))
 end

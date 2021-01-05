@@ -197,6 +197,7 @@ reorder
 reverse
 fill
 map
+Base.copy!
 ```
 
 ## Non-exported methods for developers
