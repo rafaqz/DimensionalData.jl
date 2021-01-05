@@ -1,8 +1,11 @@
 using DimensionalData, Tables, Test, DataFrames
 
-using DimensionalData: key2dim, dim2key, DimTable, DimColumn, dimstride
+using DimensionalData: key2dim, dim2key, DimTable, DimColumn, DimArrayColumn, dimstride
 
-dimz = (X([:a, :b, :c]), Y([10.0, 20.0]), Dim{:test}(1.0:1.0:3.0))
+x = X([:a, :b, :c])
+y = Y([10.0, 20.0])
+d = Dim{:test}(1.0:1.0:3.0)
+dimz = x, y, d
 da = DimArray(ones(3, 2, 3), dimz, :data)
 da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
 
@@ -14,7 +17,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
 
     @test Tables.columns(t) === t
     @test t[:X] isa DimColumn
-    @test t[:data] isa Array
+    @test t[:data] isa DimArrayColumn
     @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
 
     @test Tables.istable(t) == Tables.istable(da) == Tables.istable(ds) == true
@@ -49,7 +52,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
           Tables.getcolumn(ds, Float64, 2, :Y) == 
           Tables.getcolumn(ds, Float64, 2, :Y)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
     @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
-    @test_throws ArgumentError Tables.getcolumn(t, 5)
+    @test_throws BoundsError Tables.getcolumn(t, 5)
 end
 
 @testset "DimColumn" begin
@@ -90,6 +93,27 @@ end
         ones(3 * 2 * 3)
     @test Tables.getcolumn(t, 5) == Tables.getcolumn(t, :data2) ==
         fill(2, 3 * 2 * 3)
+end
+
+@testset "Mixed size" begin
+    da1 = DimArray(reshape(11:28, (3, 2, 3)), (x, y, d), :data1)
+    da2 = DimArray(reshape(1.0:6.0, (2, 3)), (y, d), :data2)
+    ds = DimStack(da1, da2)
+    @time t = DimTable(ds)
+    @time df = DataFrame(t; copycols=true)
+    @test names(df) == ["X", "Y", "test", "data1", "data2"]
+    @test Tables.columntype(df, :X) == Symbol
+    @test Tables.columntype(df, :data1) == Int
+    @test Tables.columntype(df, :data2) == Float64
+
+    @test Tables.getcolumn(df, 1)[:] == Tables.getcolumn(df, :X)[1:18] ==
+        repeat([:a, :b, :c], 6)
+    @test Tables.getcolumn(t, 2) == Tables.getcolumn(df, :Y) ==
+        repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
+    @test Tables.getcolumn(df, 3) == Tables.getcolumn(df, :test) ==
+        vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
+    @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :data1) == 11:28
+    @test Tables.getcolumn(t, 5) == Tables.getcolumn(t, :data2) == vcat(([x, x, x] for x in 1.0:6.0)...)
 end
 
 @testset "dim methods" begin

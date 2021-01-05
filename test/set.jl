@@ -25,8 +25,10 @@ s = DimStack(da2, DimArray(2a2, dimz2, :test3))
 end
 
 @testset "DimStack fields" begin
-    s2 = set(s, (x=a2, y=3a2))
-    @test keys(s2) == (:x, :y)
+    @test_throws ArgumentError set(s, (x=a2, y=3a2))
+    @test_throws ArgumentError set(s, (test2=a2, test3=hcat(a2, a2)))
+    s2 = set(s, (test2=a2, test3=3a2))
+    @test keys(s2) == (:test2, :test3)
     @test values(s2) == (a2, 3a2)
     @test metadata(set(s, Metadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
 end

@@ -106,8 +106,10 @@ The values must be `AbstractArray of the same size as the original data, to
 match the `Dimension`s in the dims field.
 """
 set(s::AbstractDimStack, newdata::NamedTuple) = begin
-    map(data(s)) do l
-        axes(l) == axes(first(data(s))) || _axiserr(first(data(s)), l)
+    dat = data(s)
+    keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
+    map(dat, newdata) do d, nd
+        axes(d) == axes(nd) || _axiserr(d, nd)
     end
     rebuild(s; data=newdata)
 end
@@ -271,3 +273,4 @@ _set(::Nothing, ::Nothing) = nothing
 @noinline _onlydimerror(T) = throw(ArgumentError("Can only set $(typeof(T)) for a dimension. Specify which dimension you want to set it for"))
 @noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
 @noinline _wrongdimserr(dims, w) = throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
+@noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))

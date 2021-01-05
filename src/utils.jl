@@ -136,7 +136,8 @@ modify(CuArray, A)
 
 This also works for all the data layers in a `DimStack`.
 """
-modify(f, s::AbstractDimStack) = map(f, s)
+function modify end
+modify(f, s::AbstractDimStack) = map(a -> modify(f, a), s)
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
@@ -314,3 +315,6 @@ maybeshiftlocus(locus::Locus, dim::Dimension) = _maybeshiftlocus(locus, sampling
 
 _maybeshiftlocus(locus::Locus, sampling::Intervals, dim::Dimension) = shiftlocus(locus, dim)
 _maybeshiftlocus(locus::Locus, sampling::Sampling, dim::Dimension) = dim
+
+_astuple(t::Tuple) = t
+_astuple(x) = (x,)
