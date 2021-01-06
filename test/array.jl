@@ -73,6 +73,15 @@ end
 
 end
 
+@testset "logical indexing" begin
+    A = DimArray(zeros(40, 50), (X, Y));
+    I = rand(40, 50) .< 0.5
+    @test all(A[I] .== 0.0)
+    A[I] .= 3
+    @test all(A[I] .== 3.0)
+    @test all(view(A, I .== 3.0))
+end
+
 @testset "view returns DimensionArray containing views" begin
     v = view(da, Y(1), X(1))
     @test v[] == 1
