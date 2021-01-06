@@ -30,6 +30,8 @@ for f in (:getindex, :view, :dotview)
         # Linear indexing returns parent type
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
+            Base.$f(parent(A), i)
         # Except 1D DimArrays
         @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
             rebuildsliced(A, Base.$f(parent(A), i), (i,))
