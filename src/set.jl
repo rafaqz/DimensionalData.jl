@@ -151,16 +151,17 @@ end
 _set(dim::Dimension, wrapper::Dimension{<:InDims}) = _set(dim::Dimension, val(wrapper))
 # Set the index
 _set(dim::Dimension, index::Val) = rebuild(dim; val=index)
+_set(dim::Dimension, index::Colon) = dim
 _set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
 _set(dim::Dimension, index::AbstractRange) = begin
     dim = _set(dim, _orderof(index))
     # We might need to update the index mode
     _set(mode(dim), dim, index)
 end
-_set(dim::Dimension, index::Colon) = dim
 # Update the Sampling mode of Sampled dims - it must match the range.
 _set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) =
     rebuild(dim; val=index, mode=_set(mode, Regular(step(index))))
+_set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
 # Set the dim, checking the mode
 _set(dim::Dimension, newdim::Dimension) = begin
     # Get new metadata and val

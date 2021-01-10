@@ -438,8 +438,7 @@ formatdims(axes::Tuple, dims::Tuple) = _formatdims(axes, dims)
 
 _formatdims(axes::Tuple{Vararg{<:AbstractRange}}, dims::Tuple) =
     map(_formatdims, axes, dims)
-_formatdims(axis::AbstractRange, dimname::Symbol) =
-    Dim{dimname}(axis, NoIndex(), NoMetadata())
+_formatdims(axis::AbstractRange, dimname::Symbol) = Dim{dimname}(axis, NoIndex(), NoMetadata())
 _formatdims(axis::AbstractRange, T::Type{<:Dimension}) = T(axis, NoIndex(), NoMetadata())
 _formatdims(axis::AbstractRange, dim::Dimension) = begin
     checkaxis(dim, axis)
@@ -452,10 +451,8 @@ _formatdims(axis::AbstractRange, dim::Dimension{<:NTuple{2}}) = begin
 end
 # Dimensions holding colon dispatch on mode
 _formatdims(axis::AbstractRange, dim::Dimension{Colon}) = _formatdims(mode(dim), axis, dim)
-# Dimensions holding colon has the array axis inserted as the index
-_formatdims(mode::AutoMode, axis::AbstractRange, dim::Dimension{Colon}) =
+_formatdims(mode::Union{AutoMode,NoIndex}, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, NoIndex())
-# Dimensions holding colon has the array axis inserted as the index
 _formatdims(mode::IndexMode, axis::AbstractRange, dim::Dimension{Colon}) =
     rebuild(dim, axis, identify(mode, basetypeof(dim), axis))
 

@@ -344,26 +344,31 @@ previous reference dims attached to the array.
 function slicedims end
 @inline slicedims(A, i1, I...) = slicedims(dims(A), (i1, I)...)
 @inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
-@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
+@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) =
+    slicedims(dims, refdims, Tuple(I))
 @inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
 end
-@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) =
-    slicedims(dims, refdims, Tuple(I))
-@inline slicedims(dims::Tuple{}, I::Tuple) = (), ()
+@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline slicedims(dims::DimTuple, I::Tuple) = begin
     d = slicedims(first(dims), first(I))
     ds = slicedims(tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
+@inline slicedims(dims::Tuple{}, I::Tuple) = (), ()
 @inline slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
-@inline slicedims(d::Dimension, i::Colon) = (d,), ()
-@inline slicedims(d::Dimension, i::Integer) =
+
+@inline slicedims(d::Dimension, i) = slicedims(mode(d), d, i)
+@inline slicedims(::IndexMode, d::Dimension, i::Colon) = (d,), ()
+@inline slicedims(::IndexMode, d::Dimension, i::Integer) =
     (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
+@inline slicedims(::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
 # TODO deal with unordered arrays trashing the index order
-@inline slicedims(d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
+@inline slicedims(::IndexMode, d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
+@inline slicedims(::NoIndex, d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
+    (rebuild(d, d[relate(d, i)]),), ()
 
 @inline relate(d::Dimension, i) = _maybeflip(relation(d), d, i)
 
@@ -400,8 +405,9 @@ cell step, sampling type and order.
 # NoIndex. Defaults to Start locus.
 @inline _reducedims(mode::NoIndex, dim::Dimension) =
     rebuild(dim, first(index(dim)), NoIndex())
-# Categories are combined.
+# TODO what should this do?
 @inline _reducedims(mode::Unaligned, dim::Dimension) = rebuild(dim, [nothing], NoIndex)
+# Categories are combined.
 @inline _reducedims(mode::Categorical, dim::Dimension{Vector{String}}) =
     rebuild(dim, ["combined"], Categorical())
 @inline _reducedims(mode::Categorical, dim::Dimension) =
