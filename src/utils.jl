@@ -19,10 +19,15 @@ end
 Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
 Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, reverse(ot, order(dim)))
 # Reverse the index
-Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) =
-    rebuild(dim, reverse(index(dim)), reverse(ot, mode(dim)))
-Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension{<:Val{Keys}}) where Keys =
-    rebuild(dim, Val(reverse(Keys)), reverse(ot, mode(dim)))
+Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) = reverse(ot, mode(dim), dim)
+Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension) = dim
+Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension{<:Val{I}}) where I = dim
+Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex, dim::Dimension) = dim
+Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex, dim::Dimension{<:Val{I}}) where I = dim
+Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension) =
+    rebuild(dim, reverse(index(dim)), reverse(ot, mode))
+Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension{<:Val{I}}) where I =
+    rebuild(dim, Val(reverse(I)), reverse(ot, mode))
 Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
 # Mode
 Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
@@ -64,6 +69,7 @@ flip(ot::Type{<:SubOrder}, x, lookupdims) = set(x, flip(ot, dims(x, lookupdims))
 flip(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> flip(ot, d), dims)
 flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
 flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
+flip(ot::Type{<:SubOrder}, mode::NoIndex) = mode
 flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 
 Base.diff(A::AbstractDimVector) = diff(A; dims=1)

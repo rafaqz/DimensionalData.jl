@@ -225,16 +225,14 @@ function _vcat_modes(::Any, ::Regular, modes...)
 end
 function _vcat_modes(::Intervals, ::Irregular, modes...)
     allbounds = map(bounds ∘ span, modes)
-    @show allbounds
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
-    @show newbounds
     rebuild(modes[1]; span=Irregular(newbounds))
 end
 _vcat_modes(::Points, ::Irregular, modes...) = first(modes)
 
-# Index vcat depends on mode: NoIndex is always just Base.OneTo(length)
+# Index vcat depends on mode: NoIndex is always Colon()
+_vcat_index(mode::NoIndex, A...) = OneTo(sum(map(length, A)))
 # TODO: handle vcat OffsetArrays?
-_vcat_index(mode::NoIndex, A...) = Base.OneTo(sum(map(length, A)))
 # Otherwise just vcat. TODO: handle order breaking vcat?
 _vcat_index(mode::IndexMode, A...) = vcat(A...)
 

@@ -207,15 +207,15 @@ of the Array axis, and set the dimension mode to [`NoIndex`](@ref).
 """
 Base.fill(x, dim1::Dimension, dims::Dimension...) = fill(x, (dim1, dims...))
 function Base.fill(x, dims::Tuple{<:Dimension,Vararg{<:Dimension}})
-    dims = map(_intdim2rangedim, dims)
-    DimArray(fill(x, map(length, dims)), dims)
+    lengths = map(_filldimlen, dims)
+    dims = map(_filldim, dims)
+    DimArray(fill(x, lengths), dims)
 end
 
-_intdim2rangedim(dim::Dimension{<:AbstractArray}) = dim
-function _intdim2rangedim(dim::Dimension{<:Integer})
-    mode_ = mode(dim) isa AutoMode ? NoIndex() : mode(dim)
-    basetypeof(dim)(Base.OneTo(val(dim)), mode_, metadata(dim))
-end
-@noinline function _intdim2rangedim(dim::Dimension)
+_filldimlen(dim::Dimension{<:AbstractArray}) = length(dim)
+_filldimlen(dim::Dimension{<:Integer}) = val(dim)
+@noinline _filldimlen(dim::Dimension) =
     error("dim $(basetypeof(dim)) must hold an Integer or an AbstractArray. Has $(val(dim))")
-end
+
+_filldim(dim::Dimension{<:AbstractArray}) = dim
+_filldim(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))
