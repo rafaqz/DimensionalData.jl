@@ -107,11 +107,10 @@ end
 
 dataset(t::DimTable) = getfield(t, :dataset)
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
-dims(t::DimTable) = dims(dataset(t))
 
 for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
              :name, :label, :units, :arrayorder, :indexorder, :relation)
-    @eval ($func)(t::DimTable, args...) = ($func)(dataset(t), args...)
+    @eval $func(t::DimTable, args...) = $func(dataset(t), args...)
 end
 
 # Tables interface
