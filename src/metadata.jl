@@ -9,7 +9,7 @@ abstract type Metadata{T} end
 
 # NamedTuple/Dict constructor
 # We have to combine these because the no-arg method is overwritten by empty kw.
-function (::Type{T})(ps::Pair...; kw...) where T <: Metadata
+function (::Type{T})(ps...; kw...) where T <: Metadata
     if length(ps) > 0 && length(kw) > 0
         throw(ArgumentError("Metadata can be constructed with args of Pair to make a Dict, or kw for a NamedTuple. But not both."))
     end
@@ -24,9 +24,9 @@ Base.setindex!(m::Metadata, x, key) = setindex!(val(m), x, Symbol(key))
 Base.haskey(m::Metadata, key) = haskey(val(m), Symbol(key))
 Base.keys(m::Metadata) = keys(val(m))
 Base.iterate(m::Metadata, args...) = iterate(val(m), args...)
-Base.IteratorSize(::Metadata) = Base.IteratorSize(m)
-Base.IteratorEltype(m::Metadata) = Base.IteratorEltype(m)
-Base.eltype(m::Metadata) = eltype(m)
+Base.IteratorSize(m::Metadata) = Base.IteratorSize(val(m))
+Base.IteratorEltype(m::Metadata) = Base.IteratorEltype(val(m))
+Base.eltype(m::Metadata) = eltype(val(m))
 Base.length(m::Metadata) = length(val(m))
 Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 
