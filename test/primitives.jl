@@ -317,41 +317,46 @@ end
 
 @testset "slicedims" begin
     @testset "Regular" begin
-        @test slicedims(dimz, 1:2, 3) == 
+        @test slicedims(dimz, (1:2, 3)) == slicedims(dimz, 1:2, 3) == slicedims(dimz, (), (1:2, 3)) == 
             ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),),
              (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata()),))
-        @test slicedims(dimz, 2:2, :) == 
+        @test slicedims(dimz, (Z(),), (1:2, 3)) == slicedims(dimz, (Z(),), 1:2, 3) == 
+            ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),),
+             (Z(), Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata()),))
+        @test slicedims(dimz, 2:2, :) == slicedims(dimz, (), 2:2, :) == 
             ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()), 
               Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())), ())
-        @test slicedims((), (1:2, 3)) == ((), ())
-            ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()), 
-              Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())), ())
+        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == 
+              slicedims((), 1:2, 3) == slicedims((), (), 1:2, 3) == ((), ())
         @test slicedims(dimz, CartesianIndex(2, 3)) == 
             ((), (X(145.0, Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
                          Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())),)
     end
+
     @testset "Irregular" begin
         irreg = DimArray(a, (X([140.0, 142.0]; mode=Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start()))), 
                              Y([10.0, 20.0, 40.0]; mode=Sampled(Ordered(), Irregular(0.0, 60.0), Intervals(Center()))), ))
         irreg_dimz = dims(irreg)
-        @test slicedims(irreg, (1:2, 3)) == 
+        @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) == 
             ((X([140.0, 142.0], Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start())), NoMetadata()),),
                     (Y(40.0, Sampled(Ordered(), Irregular(30.0, 60.0), Intervals(Center())), NoMetadata()),))
-        @test slicedims(irreg, (2:2, 1:2)) == 
+        @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) == 
             ((X([142.0], Sampled(Ordered(), Irregular(142.0, 144.0), Intervals(Start())), NoMetadata()), 
               Y([10.0, 20.0], Sampled(Ordered(), Irregular(0.0, 30.0), Intervals(Center())), NoMetadata())), ())
-        @test slicedims((), (1:2, 3)) == ((), ())
+        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
     end
+
     @testset "Val index" begin
         da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
         dimz = dims(da)
-        @test slicedims(dimz, (1:2, 3)) == 
+        @test slicedims(dimz, (1:2, 3)) == slicedims(dimz, (), (1:2, 3)) == 
             ((X(Val((143,145)), Categorical(), NoMetadata()),),
              (Y(:z, Categorical(), NoMetadata()),))
         @test slicedims(dimz, (2:2, :)) == 
             ((X(Val((145,)), Categorical(), NoMetadata()), 
               Y(Val((:x, :y, :z)), Categorical(), NoMetadata())), ())
     end
+
     @testset "NoIndex" begin
         da = DimArray(a, (X(), Y()))
         dimz = dims(da)

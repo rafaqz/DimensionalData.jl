@@ -345,12 +345,15 @@ previous reference dims attached to the array.
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
 function slicedims end
-@inline slicedims(x, i1, I...) = slicedims(x, (i1, I...))
+@inline slicedims(x, i1, i2, I...) = slicedims(x, (i1, i2, I...))
 @inline slicedims(x, I::CartesianIndex) = slicedims(x, Tuple(I))
 @inline slicedims(x, I::Tuple) = _slicedims(dims(x), refdims(x), I)
 @inline slicedims(dims::Tuple, I::Tuple) = _slicedims(dims, I)
-@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) =
-    _slicedims(dims, refdims, Tuple(I))
+@inline slicedims(dims::Tuple, refdims::Tuple, i1, I...) = slicedims(dims, refdims, (i1, I...))
+@inline slicedims(dims::Tuple, refdims::Tuple, I) = _slicedims(dims, refdims, I)
+@inline slicedims(dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
+    slicedims(dims, refdims, Tuple(I))
+
 @inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
     newdims, newrefdims = _slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
