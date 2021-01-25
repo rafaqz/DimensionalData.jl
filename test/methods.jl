@@ -33,6 +33,7 @@ end
     @test maximum(x -> 2x, da; dims=(X(), Y())) == [8]'
 
     @test minimum(da; dims=1) == [1 2]
+    @test minimum(da; dims=:) == 1
     @test minimum(da; dims=Y()) == [1 3]'
     @test dims(minimum(da; dims=X())) ==
         (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()),
@@ -71,6 +72,7 @@ end
     @test mapreduce(x -> x > 3, +, da; dims=(X, Y)) == [1]'
     @test mapreduce(x -> x > 3, +, da; dims=(:X, :Y)) == [1]'
     @test mapreduce(x -> x > 3, +, da; dims=(1, 2)) == [1]'
+    @test mapreduce(x -> x > 3, +, da; dims=:) == 1
     @test dims(mapreduce(x-> x > 3, +, da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()))
@@ -276,29 +278,48 @@ end
     da = DimArray(a, (X(1:2), Y(1:3)))
     b = [7 8 9; 10 11 12]
     db = DimArray(b, (X(3:4), Y(1:3)))
-    @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
-    testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
-                Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
-    @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
-          cat(da, db; dims=1) == cat(da, db; dims=(1,))
-    @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
-    @test val(cat(da, db; dims=X())) == val(testdims)
-    @test mode(cat(da, db; dims=X())) == mode(testdims)
-    @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
-    @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
-    @test cat(da, db; dims=(Z(1:1), Ti(1:2))) == cat(a, b; dims=4)
-    @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=3)
-    dx = cat(da, db; dims=(X(), Ti(1:2)))
-    @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Ti(1:2)))
 
-    ni_dim = vcat(X(Base.OneTo(10), NoIndex()), X(Base.OneTo(10), NoIndex()))
-    @test mode(ni_dim) == NoIndex()
-    @test index(ni_dim) == Base.OneTo(20)
-    ir_dim = vcat(X([1, 3, 4], Sampled(Ordered(), Irregular(1, 5), Intervals())), 
-                  X([7, 8], Sampled(Ordered(), Irregular(7, 9), Intervals())))
-    @test span(ir_dim) == Irregular(1, 9)
-    @test mode(ir_dim) == Sampled(Ordered(), Irregular(1, 9), Intervals())
-    @test index(ir_dim) == [1, 3, 4, 7, 8]
+    @testset "Regular Sampled" begin
+        @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
+        testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
+                    Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
+        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
+              cat(da, db; dims=1) == cat(da, db; dims=(1,))
+        @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
+        @test val(cat(da, db; dims=X())) == val(testdims)
+        @test mode(cat(da, db; dims=X())) == mode(testdims)
+        @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
+        @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
+        @test cat(da, db; dims=(Z(1:1), Ti(1:2))) == cat(a, b; dims=4)
+        @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=3)
+        dx = cat(da, db; dims=(X(), Ti(1:2)))
+        @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Ti(1:2)))
+    end
+
+    @testset "Irregular Sampled" begin
+        @testset "Intervals" begin
+            iri_dim = vcat(X([1, 3, 4], Sampled(Ordered(), Irregular(1, 5), Intervals())), 
+                          X([7, 8], Sampled(Ordered(), Irregular(7, 9), Intervals())))
+            @test span(iri_dim) == Irregular(1, 9)
+            @test mode(iri_dim) == Sampled(Ordered(), Irregular(1, 9), Intervals())
+            @test index(iri_dim) == [1, 3, 4, 7, 8]
+            @test bounds(iri_dim) == (1, 9)
+        end
+        @testset "Points" begin
+            irp_dim = vcat(X([1, 3, 4], Sampled(Ordered(), Irregular(1, 5), Points())), 
+                          X([7, 8], Sampled(Ordered(), Irregular(7, 9), Points())))
+            @test span(irp_dim) == Irregular(nothing, nothing)
+            @test mode(irp_dim) == Sampled(Ordered(), Irregular(), Points())
+            @test index(irp_dim) == [1, 3, 4, 7, 8]
+            @test bounds(irp_dim) == (1, 8)
+        end
+    end
+
+    @testset "NoIndex" begin
+        ni_dim = vcat(X(Base.OneTo(10), NoIndex()), X(Base.OneTo(10), NoIndex()))
+        @test mode(ni_dim) == NoIndex()
+        @test index(ni_dim) == Base.OneTo(20)
+    end
 end
 
 @testset "unique" begin
@@ -306,5 +327,6 @@ end
     da = DimArray(a, (X(1:2), Y(1:3)))
     @test unique(da; dims=X()) == [1 1 6]
     @test unique(da; dims=Y) == [1 6; 1 6]
-    @test unique(da) == [1, 6]
+    @test unique(da; dims=:) == [1, 6]
+    @test unique(da[X(1)]) == [1, 6]
 end

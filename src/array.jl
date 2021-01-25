@@ -103,10 +103,13 @@ Base.copy!(dst::AbstractArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(
 Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(parent(dst), parent(src))
 
 function Adapt.adapt_structure(to, A::AbstractDimArray) 
-    fields = map((parent(A), dims(A), refdims(A), mode(A))) do x
-        adapt(to, x) 
-    end
-    rebuild(A, fields..., Name(name(A)), NoMetadata()) 
+    rebuild(A, 
+        data=adapt(to, parent(A)),
+        dims=adapt(to, dims(A)),
+        refdims=adapt(to, refdims(A)),
+        name=Name(name(A)),
+        metadata=adapt(to, metadata(A)),
+    )
 end
 
 # Concrete implementation ######################################################

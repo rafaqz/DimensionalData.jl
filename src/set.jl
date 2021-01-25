@@ -56,6 +56,7 @@ set(da, custom=Ordered(array=Reverse()), Z=Unordered())
 """
 function set end
 set(A::DimArrayOrStack, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
+set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 set(A, x) = _cantseterror(A, x)
 """
     set(x, args::Pairs...) => x with updated field/s
@@ -127,7 +128,6 @@ Set fields of the dimension
 set(dim::Dimension, x::InDims) = _set(dim, x)
 
 # Array or Stack
-_set(x::DimArrayOrStack, ::Type{T}) where T = _set(x, T())
 _set(A, x) = _cantseterror(A, x)
 
 # Dimension
@@ -208,7 +208,8 @@ _set(order::Union{Ordered,Unordered}, neworder::Unordered) =
     Unordered(_set(relation(order), relation(neworder)))
 # AutoOrder
 _set(order::Order, neworder::AutoOrder) = order
-_set(order::AutoOrder, neworder::Order) = order
+_set(order::AutoOrder, neworder::Order) = neworder
+# Just for resolving ambiguity
 _set(order::AutoOrder, neworder::AutoOrder) = AutoOrder()
 # SubOrder
 _set(order::Unordered, suborder::Relation) =

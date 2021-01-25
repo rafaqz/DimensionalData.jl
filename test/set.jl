@@ -1,4 +1,5 @@
-using DimensionalData, Test
+using DimensionalData, Test 
+using DimensionalData: _set, AutoSampling
 
 a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=DimMetadata(Dict(:meta => "X"))),
@@ -13,7 +14,6 @@ da2 = DimArray(a2, dimz2, :test2)
 
 s = DimStack(da2, DimArray(2a2, dimz2, :test3))
 
-
 @testset " Array fields" begin
     @test name(set(da2, :newname)) == :newname
     @test name(set(da2, Name(:newname))) == Name{:newname}()
@@ -21,7 +21,7 @@ s = DimStack(da2, DimArray(2a2, dimz2, :test3))
     @test metadata(set(da2, ArrayMetadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
-    @test_throws ArgumentError parent( set(da2, [9 9; 9 9])) == [9 9; 9 9]
+    @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
 end
 
 @testset "DimStack fields" begin
@@ -63,35 +63,66 @@ end
 end
 
 @testset "dim mode" begin
+    interval_da = set(da, X=Intervals(), Y=Intervals())
     @test mode(set(da2, :column => NoIndex(), :row => Sampled(sampling=Intervals(Center())))) == 
         (Sampled(Ordered(), Regular(10.0), Intervals(Center())), NoIndex())
     @test mode(set(da2, column=NoIndex())) == 
         (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
-    @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
-        (Irregular(10, 12), Regular(9.9))
-    @test_throws ArgumentError set(da2, (End(), Center()))
     @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
         (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
+    @test mode(set(da, X=NoIndex(), Y=Categorical())) == (NoIndex(), Categorical()) 
 
-    interval_da = set(da, X=Intervals(), Y=Intervals())
-    @test sampling(interval_da) == (Intervals(), Intervals())
-    @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
-    @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
-    @test locus(set(interval_da, X=End, Y=Center)) == (End(), Center())
-    @test locus(set(da, Y=Center())) == (Center(), Center())
+    @testset "span" begin
+        # TODO: should this error? the span step doesn't match the index step
+        @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
+            (Irregular(10, 12), Regular(9.9))
+        @test _set(Sampled(), AutoSpan()) == Sampled()
+        @test _set(Sampled(), Irregular()) == Sampled(AutoOrder(), Irregular(), AutoSampling())
+    end
 
-    @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
-        (Intervals(End()), Intervals(Start()))
-    @test mode(set(da, X=NoIndex(), Y=Categorical())) == 
-        (NoIndex(), Categorical())
-    uda = set(da, Y(Unordered()))
-    @test order(uda) == (Ordered(), Unordered(ForwardRelation()))
-    @test order(set(uda, Y=ReverseRelation())) == (Ordered(), Unordered(ReverseRelation()))
-end
+    @testset "locus" begin
+        @test_throws ArgumentError set(da2, (End(), Center()))
+        @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
+        @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
+        @test locus(set(interval_da, X=End, Y=Center)) == (End(), Center())
+        @test locus(set(da, Y=Center())) == (Center(), Center())
+        @test _set(Intervals(Center()), Start()) == Intervals(Start())
+        @test _set(Intervals(Center()), AutoLocus()) == Intervals(Center())
+        @test _set(Points(), Center()) == Points()
+        @test_throws ArgumentError _set(Points(), Start())
+        @test_throws ArgumentError _set(Points(), End())
+    end
 
-@testset "order" begin
-    @test order(ArrayOrder, set(da, X=ReverseArray)) == (ReverseArray(), ForwardArray())
-    @test relation(set(da, Y(ReverseRelation())), Y) == ReverseRelation()
+    @testset "sampling" begin
+        @test sampling(interval_da) == (Intervals(), Intervals())
+        @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
+            (Intervals(End()), Intervals(Start())) 
+        @test _set(Sampled(), AutoSampling()) == Sampled()
+        @test _set(Sampled(), Intervals()) == Sampled(AutoOrder(), AutoSpan(), Intervals())
+        @test _set(Points(), AutoSampling()) == Points()
+        @test _set(AutoSampling(), Intervals()) == Intervals()
+        @test _set(AutoSampling(), AutoSampling()) == AutoSampling()
+    end
+
+    @testset "order" begin
+        uda = set(da, Y(Unordered()))
+        @test order(uda) == (Ordered(), Unordered(ForwardRelation()))
+        @test order(set(uda, Y=ReverseRelation())) == (Ordered(), Unordered(ReverseRelation()))
+        @test order(ArrayOrder, set(da, X=ReverseArray)) == (ReverseArray(), ForwardArray())
+        @test relation(set(da, Y(ReverseRelation())), Y) == ReverseRelation()
+        @test order(set(X(), AutoOrder())) == AutoOrder()
+        @test indexorder(set(X(; mode=Sampled(order=Ordered())), ReverseIndex())) == ReverseIndex()
+        @test arrayorder(set(X(; mode=Sampled(order=Ordered())), ReverseArray())) == ReverseArray()
+        @test arrayorder(set(X(; mode=Sampled(order=Ordered())), ReverseArray())) == ReverseArray()
+        @test indexorder(_set(Ordered(), ReverseIndex())) == ReverseIndex()
+        @test arrayorder(_set(Ordered(), ReverseArray())) == ReverseArray()
+        @test relation(_set(Ordered(), ReverseRelation())) == ReverseRelation()
+        @test relation(_set(Unordered(), ReverseRelation())) == ReverseRelation()
+        @test_throws ArgumentError _set(Unordered(), ReverseIndex())
+        @test_throws ArgumentError _set(Unordered(), ReverseArray())
+        @test _set(Sampled(), Ordered()) == Sampled(Ordered(), AutoSpan(), AutoSampling()) 
+        @test _set(Sampled(; order=Unordered()), AutoOrder()) == Sampled(Unordered(), AutoSpan(), AutoSampling()) 
+    end
 end
 
 
@@ -106,6 +137,8 @@ end
     @test metadata(dims(dax, :row)).val == Dict(:a=>1, :b=>2)
     dax = set(da2, column=DimMetadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
+    @test metadata(set(da, NoMetadata())) == NoMetadata()
+    @test metadata(set(da, NoMetadata)) == NoMetadata()
 end
 
 @testset "all dim fields" begin
@@ -121,5 +154,12 @@ end
 @testset "errors with set" begin
     @test_throws ArgumentError set(da, Sampled())
     @test_throws ArgumentError set(da, X=7)
-    @test_throws ArgumentError DimensionalData._set(dims(da, X), X(7))
+    @test_throws ArgumentError _set(dims(da, X), X(7))
+    @test_throws ArgumentError set(da, notadimname=Sampled())
+end
+
+@testset "_set nothing" begin
+    @test _set(nothing, nothing) == nothing
+    @test _set(1, nothing) == 1
+    @test _set(nothing, 2) == 2
 end

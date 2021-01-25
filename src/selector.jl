@@ -196,9 +196,8 @@ val(sel::Where) = sel.f
 
 # Converts Selectors to regular indices
 
-@inline sel2indices(x, l1, ls...) = sel2indices(dims(x), (l1, ls...))
-@inline sel2indices(x, lookup) = sel2indices(dims(x), lookup)
-@inline sel2indices(dims::Tuple, lookup) = sel2indices(dims, (lookup,))
+@inline sel2indices(x, ls...) = sel2indices(dims(x), ls...)
+@inline sel2indices(dims::Tuple, l1, ls...) = sel2indices(dims, (l1, ls...))
 @inline sel2indices(dims::Tuple, lookup::Tuple) =
     map((d, l) -> sel2indices(d, l), dims, lookup)
 @inline sel2indices(dims::Tuple, lookup::Tuple{}) = ()
@@ -240,18 +239,18 @@ val(sel::Where) = sel.f
 @inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::At) =
     at(sampling, mode, dim, sel)
 @inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Near) = begin
-    span(mode) isa Irregular && locus(mode) isa Union{Start,End} && _nearerror()
+    span(mode) isa Irregular && locus(mode) isa Union{Start,End} && _nearirregularerror()
     near(sampling, mode, dim, sel)
 end
-@noinline _sel2indices(sampling::Points, mode::IndexMode, dim::Dimension, sel::Contains) = 
-    _pointnearserror()
+@inline _sel2indices(sampling::Points, mode::IndexMode, dim::Dimension, sel::Contains) = 
+    _containspointserror()
 @inline _sel2indices(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Contains) =
     contains(sampling, mode, dim, sel)
 @inline _sel2indices(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Between{<:Tuple}) =
     between(sampling, mode, dim, sel)
 
-@noinline _nearerror() = throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
-@noinline _pointnearserror() = throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
+@noinline _nearirregularerror() = throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
+@noinline _containspointserror() = throw(ArgumentError("`Contains` has no meaning with `Points`. Use `Near`"))
 
 
 # Unaligned IndexMode ------------------------------------------
@@ -266,11 +265,11 @@ end
 @inline unalligned2indices(dims::DimTuple, sel::Tuple{<:Selector,Vararg{<:Selector}}) = begin
     coords = [map(val, sel)...]
     transformed = transformfunc(mode(dims[1]))(coords)
-    map(_to_int, sel, transformed)
+    map(_transform2int, sel, transformed)
 end
 
-_to_int(::At, x) = convert(Int, x)
-_to_int(::Near, x) = round(Int, x)
+_transform2int(::At, x) = convert(Int, x)
+_transform2int(::Near, x) = round(Int, x)
 
 
 # Selector methods
@@ -292,7 +291,7 @@ end
     return i
 end
 @inline function at(dim::Dimension, selval, atol::Nothing, rtol::Nothing)
-    i = findfirst(x -> x == selval, index(dim))
+    i = findfirst(x -> x == unwrap(selval), index(dim))
     i == nothing && _selvalnotfound(dim, selval)
     return i
 end
@@ -311,7 +310,7 @@ function near(::Sampling, mode::IndexMode, dim::Dimension, sel::Near)
     order isa UnorderedIndex && _nearunorderederror()
     locus = DD.locus(dim)
 
-    v = _locus_adjust(locus, val(sel), dim)
+    v = _locus_adjust(locus, unwrap(val(sel)), dim)
     i = _inbounds(_searchorder(order)(order, dim, v), dim)
     i = if (order isa ForwardIndex ? (<=) : (>=))(i, _dimlower(order, dim))
         _dimlower(order, dim)
@@ -452,7 +451,7 @@ _endshift(::_Upper) = 1
 _ordscalar(::ForwardIndex) = 1
 _ordscalar(::ReverseIndex) = -1
 
-_search(x, order, dim, v) = _inbounds(_searchorder(order)(order, dim, v; lt=_lt(x)), dim)
+_search(x, order, dim, v) = _inbounds(_searchorder(order)(order, dim, v, _lt(x)), dim)
 
 _lt(::_Lower) = (<)
 _lt(::_Upper) = (<=)
@@ -460,15 +459,18 @@ _lt(::_Upper) = (<=)
 
 # Shared utils ============================================================================
 
-_searchlast(o::IndexOrder, dim::Dimension, v; kw...) =
-    searchsortedlast(val(dim), v; rev=isrev(o), kw...)
-_searchlast(o::IndexOrder, dim::Dimension{<:Val{Index}}, v; kw...) where Index =
-    searchsortedlast(Index, v; rev=isrev(o), kw...)
+_searchlast(o::IndexOrder, dim::Dimension, v, lt=<) =
+    searchsortedlast(index(dim), unwrap(v); rev=isrev(o), lt=lt)
+_searchlast(o::IndexOrder, dim::Dimension{<:Val{Index}}, v, lt=<) where Index =
+    searchsortedlast(Index, unwrap(v); rev=isrev(o), lt=lt)
 
-_searchfirst(o::IndexOrder, dim::Dimension, v; kw...) =
-    searchsortedfirst(val(dim), v; rev=isrev(o), kw...)
-_searchfirst(o::IndexOrder, dim::Dimension{<:Val{Index}}, v; kw...) where Index =
-    searchsortedfirst(Index, v; rev=isrev(o), kw...)
+_searchfirst(o::IndexOrder, dim::Dimension, v, lt=<) =
+    searchsortedfirst(index(dim), unwrap(v); rev=isrev(o), lt=lt)
+_searchfirst(o::IndexOrder, dim::Dimension{<:Val{Index}}, v, lt=<) where Index =
+    searchsortedfirst(Index, unwrap(v); rev=isrev(o), lt=lt)
+
+_asfunc(::Type{typeof(<)}) = <
+_asfunc(::Type{typeof(<=)}) = <=
 
 # Return an inbounds index
 _inbounds(is::Tuple, dim::Dimension) = map(i -> _inbounds(i, dim), is)

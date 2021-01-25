@@ -22,28 +22,34 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
     @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
     @test Tables.columnnames(t) == Tables.columnnames(da) == Tables.columnnames(ds) == (:X, :Y, :test, :data)
 
-    sa, sds, st = Tables.schema.((da, ds, t))
+    sa = Tables.schema(da)
+    sds = Tables.schema(ds)
+    st = Tables.schema(t)
     @test sa.names == sds.names == st.names == (:X, :Y, :test, :data)
     @test sa.types == sds.types == st.types == (Symbol, Float64, Float64, Float64)
 
     @test Tables.getcolumn(t, 1) == Tables.getcolumn(t, :X) == Tables.getcolumn(t, X) ==
           Tables.getcolumn(ds, 1) == Tables.getcolumn(ds, :X) == Tables.getcolumn(ds, X) ==
           Tables.getcolumn(da, 1) == Tables.getcolumn(da, :X) == Tables.getcolumn(da, X) ==
-        repeat([:a, :b, :c], 6)
+          Tables.getcolumn(da, 1)[:] == repeat([:a, :b, :c], 6)
     @test Tables.getcolumn(t, 2) == Tables.getcolumn(t, :Y) ==
           Tables.getcolumn(da, 2) == Tables.getcolumn(da, :Y) ==
           Tables.getcolumn(ds, 2) == Tables.getcolumn(ds, :Y) ==
-        repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
+          Tables.getcolumn(ds, 2)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
     @test Tables.getcolumn(t, 3) == Tables.getcolumn(t, :test) ==
           Tables.getcolumn(da, 3) == Tables.getcolumn(da, :test) ==
           Tables.getcolumn(ds, 3) == Tables.getcolumn(ds, :test) ==
-        vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
+          Tables.getcolumn(ds, 3)[:] == vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
     @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :data) ==
           Tables.getcolumn(da, 4) == Tables.getcolumn(da, :data) ==
-          Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) == ones(3 * 2 * 3)
+          Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) == 
+          Tables.getcolumn(ds, 4)[:] == ones(3 * 2 * 3)
     @test Tables.getcolumn(t, Float64, 4, :data) == ones(3 * 2 * 3)
     @test Tables.getcolumn(t, Float64, 2, :Y) == Tables.getcolumn(da, Float64, 2, :Y) ==
-          Tables.getcolumn(ds, Float64, 2, :Y) == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
+          Tables.getcolumn(ds, Float64, 2, :Y) == 
+          Tables.getcolumn(ds, Float64, 2, :Y)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
+    @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
+    @test_throws ArgumentError Tables.getcolumn(t, 5)
 end
 
 @testset "DimColumn" begin

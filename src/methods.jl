@@ -228,7 +228,7 @@ function _vcat_modes(::Intervals, ::Irregular, modes...)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
     rebuild(modes[1]; span=Irregular(newbounds))
 end
-_vcat_modes(::Points, ::Irregular, modes...) = first(modes)
+_vcat_modes(::Points, ::Irregular, modes...) = rebuild(first(modes); span=Irregular())
 
 # Index vcat depends on mode: NoIndex is always Colon()
 _vcat_index(mode::NoIndex, A...) = OneTo(sum(map(length, A)))
@@ -242,10 +242,8 @@ Base.inv(A::AbstractDimArray{T,2}) where T =
 
 # Index breaking
 
-# TODO: change the index and traits of the reduced dimension
-# and return a DimArray.
-Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Colon}=:) =
-    _unique(A, dims)
+# TODO: change the index and traits of the reduced dimension and return a DimArray.
+Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Colon}=:) = _unique(A, dims)
 Base.unique(A::AbstractDimArray{<:Any,1}) = unique(parent(A))
 
 _unique(A::AbstractDimArray, dims::DimOrDimType) =

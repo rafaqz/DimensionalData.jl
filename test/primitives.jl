@@ -2,20 +2,29 @@ using DimensionalData, Test, BenchmarkTools
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode, dimsmatch,
       @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride, 
-      _run, AlwaysTuple, MaybeFirst, _wraparg
+      _call, AlwaysTuple, MaybeFirst, _wraparg, _reducedims
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
     @test (@inferred dimsmatch(X(), Y())) == false
+    @test (@inferred dimsmatch(Y(), Y)) == true
+    @test (@inferred dimsmatch(X(), Y)) == false
+    @test (@inferred dimsmatch(Y, Y())) == true
+    @test (@inferred dimsmatch(X, Y())) == false
     @test (@inferred dimsmatch(X, XDim)) == true
     @test (@inferred dimsmatch(Y, ZDim)) == false
     @test (@inferred dimsmatch(ZDim, Dimension)) == true
-    @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
-    # @test (@belapsed dimsmatch(ZDim, Dimension)) < 1e-9
     @test (@inferred dimsmatch((Z(), ZDim), (ZDim, Dimension))) == true
     @test (@inferred dimsmatch((Z(), ZDim), (ZDim, XDim))) == false
+
+    @test (@inferred dimsmatch(XDim, nothing)) == false
+    @test (@inferred dimsmatch(X(), nothing)) == false
+    @test (@inferred dimsmatch(nothing, ZDim)) == false
+    @test (@inferred dimsmatch(nothing, Z())) == false
+    @test (@inferred dimsmatch(nothing, nothing)) == false
+
+    @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
-    # @test (@belapsed dimsmatch((Z(), ZDim), (ZDim, XDim))) < 1e-9
 end
 
 @dim Tst
@@ -55,6 +64,7 @@ end
     f6 = () -> _wraparg((:x, :y, :z), :x, :y)
     f7 = () -> _wraparg((:x, :y), :x, :y, :z)
     f8 = () -> _wraparg((:x, :y, :z, :a, :b), :x, :y, :z, :a, :b)
+    f9 = () -> _wraparg((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h), :x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)
     @inferred f1()
     @inferred f2()
     @inferred f3()
@@ -63,19 +73,20 @@ end
     @inferred f6()
     @inferred f7()
     @inferred f8()
+    @test (@inferred f9()) == (DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h))),
+                        DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
 end
 
-@testset "_run" begin
-    @test _run((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
-          _run((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
+@testset "_call" begin
+    @test _call((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
+          _call((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
           ((Val(Z), Dim{:a}(), Dim{:b}()), (Val(Ti), Val(XDim), Dim{:x}()))
-    @test _run((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
+    @test _call((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
         (Val(Z), Dim{:a}(), Dim{:b}())
-    @testset "_run" begin
-        f1 = t -> _run((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
+    @testset "_call" begin
+        f1 = t -> _call((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
         @inferred f1(AlwaysTuple())
         @test (@ballocated $f1(AlwaysTuple())) == 0
-        # @test (@belapsed $f1(AlwaysTuple())) < 1e-9
     end
 end
 
@@ -87,20 +98,15 @@ end
     @test (@inferred sortdims(dimz, (Y(), Z()))) == (Y(), Z())
     @test (@inferred sortdims((Y(), X(), Z(), Ti()), dimz)) == (X(), Y(), Z(), Ti())
     @test (@ballocated sortdims((Y(), X(), Z(), Ti()), $dimz)) == 0
-    # @test (@belapsed sortdims((Y(), X(), Z(), Ti()), $dimz)) < 1e-9
     f1 = (dimz) -> sortdims((Y, X, Z, Ti), dimz)
     @test (@inferred f1(dimz)) == (X, Y, Z, Ti)
     @ballocated $f1($dimz)
     @test (@ballocated $f1($dimz)) == 0
-    # @test_broken (@belapsed $f1($dimz)) < 1e-9
-    # @test (@belapsed $f1($dimz)) < 1e-7
     f2 = (dimz) -> sortdims(dimz, (Y, X, Z, Ti))
     @test (@inferred f2(dimz)) == (Y(), X(), Z(), Ti())
     @test (@ballocated $f2($dimz)) == 0
-    # @test (@belapsed $f2($dimz)) < 1e-9
     # Val
     @inferred sortdims(dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))
-    # @test (@belapsed sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) < 1e-9
     @test (@ballocated sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) == 0
     # Transformed
     @test (@inferred sortdims((Y(1:2; mode=Transformed(identity, Z())), X(1)), (X(), Z()))) == 
@@ -131,14 +137,12 @@ dimz = dims(da)
     @test (@ballocated $f1($dimz)) == 0
 
     @test dims(da, X()) isa X
-    # using Cthulhu
-    # @descend dims(da, XDim, YDim)
     @test (@inferred dims(da, XDim, YDim)) isa Tuple{<:X,<:Y}
     @test (@ballocated dims($da, XDim, YDim)) == 0
-    # @test (@belapsed dims($da, XDim, YDim)) < 1e-9
     @test dims(da, ()) == ()
     @test dims(dimz, 1) isa X
     @test dims(dimz, (2, 1)) isa Tuple{<:Y,<:X}
+    # Mixed Int/dim indexing is no longer supported
     @test_broken dims(dimz, (2, Y)) isa Tuple{<:Y,<:Y}
 
     @testset "with Dim{X} and symbols" begin
@@ -169,10 +173,8 @@ end
     f1 = (da) -> commondims(da, (X, Y))
     @test (@inferred f1(da)) == dims(da, (X, Y))
     @test (@ballocated $f1($da)) == 0
-    # @test (@belapsed $f1($da)) < 1e-9
     @test (@inferred commondims(da, X, Y)) == dims(da, (X, Y))
     @test (@ballocated commondims($da, X, Y)) == 0
-    # @test (@belapsed commondims($da, X, Y)) < 1e-9
     @test basetypeof(commondims(da, DimArray(zeros(5), Y()))[1]) <: Y
 
     @testset "with Dim{X} and symbols" begin
@@ -180,17 +182,14 @@ end
         f1 = (dimz) -> commondims((Dim{:a}(), Dim{:b}()), (:a, :c))
         @test f1(dimz) == (Dim{:a}(),)
         @test (@ballocated $f1(dimz)) == 0 
-        # @test (@belapsed $f1(dimz)) < 1e-9
         f2 = (dimz) -> commondims(dimz, (Y, Dim{:b}))
         @test f2(dimz) == (Y(), Dim{:b}())
         f3 = (dimz) -> commondims(dimz, Y, :b) 
         @test (@inferred f3(dimz)) == (Y(), Dim{:b}())
         @test (@ballocated $f3($dimz)) == 0
-        # @test (@belapsed $f3($dimz)) < 1e-9
         f4 = (dimz) -> commondims(dimz, Y, Z, Dim{:b}) 
         @test (@inferred f4(dimz)) == (Y(), Dim{:b}())
         @test (@ballocated $f4($dimz)) == 0
-        # @test (@belapsed $f4($dimz)) < 1e-9
     end
 
     @testset "with abstract types" begin
@@ -202,12 +201,8 @@ end
 @testset "dimnum" begin
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
     @test (@ballocated dimnum($da, Y())) == 0
-    # @test (@belapsed dimnum($da, Y())) < 1e-9
-    # @test (@belapsed dimnum($da, Y())) < 1e-7
     @test dimnum(da, X) == 1
     @test (@ballocated dimnum($da, X)) == 0
-    # @test (@belapsed dimnum($da, X)) < 1e-9
-    # @test (@belapsed dimnum($da, X)) < 1e-7
     @test dimnum(da, (Y(), X())) == (2, 1)
     @ballocated dimnum($da, (Y(), X()))
     @test (@ballocated dimnum($da, (Y(), X()))) == 0
@@ -215,22 +210,14 @@ end
     @test (@inferred f1(da)) == (2, 1)
     @ballocated $f1($da)
     @test (@ballocated $f1($da)) == 0
-    # @test (@belapsed $f1($da)) < 1e-9
-    # @test (@belapsed $f1($da)) < 1e-7
     @test dimnum(da, Y, X) == (2, 1)
     @ballocated dimnum($da, Y, X)
     @test (@ballocated dimnum($da, Y, X)) == 0
-    # @test (@belapsed dimnum($da, Y, X)) < 1e-9
-    # @test (@belapsed dimnum($da, Y, X)) < 1e-7
-    # @test_throws ArgumentError dimnum(da, Ti) == (2, 1)
     @testset "with Dim{X} and symbols" begin
         @test dimnum((Dim{:a}(), Dim{:b}()), :a) == 1
         @test dimnum((Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y)) == (3, 1, 2)
         dimz = (Dim{:a}(), Y(), Dim{:b}())
         @test (@ballocated dimnum($dimz, :b, :a, Y)) == 0
-        # @test_broken (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-9
-        # @test (@belapsed dimnum($dimz, :b, :a, Y)) < 1e-7
-        # @test (@belapsed dimnum($dimz, Dim{:b}, Dim{:a})) < 10e-10
     end
 end
 
@@ -242,15 +229,12 @@ end
     @test hasdim(dims(da), Y) == true
     @ballocated hasdim(dims($da), Y)
     @test (@ballocated hasdim(dims($da), Y)) == 0
-    # @test (@belapsed hasdim(dims($da), Y)) < 1e-9
     @test hasdim(dims(da), (X, Y)) == (true, true)
     f1 = (da) -> hasdim(dims(da), (X, Ti, Y, Z))
     @test @inferred f1(da) == (true, false, true, false)
     @test (@ballocated $f1($da)) == 0
-    # @test (@belapsed $f1($da)) < 1e-9
     f2 = (da) -> hasdim(dims(da), X, Ti, Y, Z)
     @test (@ballocated $f2($da)) == 0
-    # @test (@belapsed $f2($da)) < 1e-9
 
     @testset "hasdim for Abstract types" begin
         @test hasdim(dims(da), (XDim, YDim)) == (true, true)
@@ -258,11 +242,8 @@ end
         @test hasdim(dims(da), (ZDim, YDim)) == (false, true)
         @test hasdim(dims(da), (ZDim, ZDim)) == (false, false)
         @test (@ballocated hasdim($da, YDim)) == 0
-        # @test (@belapsed hasdim($da, YDim)) < 1e-9
         @test (@ballocated hasdim($da, (ZDim, YDim))) == 0
-        # @test (@belapsed hasdim($da, (ZDim, YDim))) < 1e-9
         @test (@ballocated hasdim($da, ZDim, YDim)) == 0
-        # @test (@belapsed hasdim($da, ZDim, YDim)) < 1e-9
     end
 
     @testset "with Dim{X} and symbols" begin
@@ -271,7 +252,6 @@ end
         @test hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e)) == (true, true, false, false, false)
         @ballocated hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))
         @test (@ballocated hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))) == 0
-        # @test (@belapsed hasdim((Dim{:a}(), Dim{:b}()), (:b, :a, :c, :d, :e))) < 1e-9
     end
     @test_throws ArgumentError hasdim(nothing, X)
 end
@@ -286,19 +266,14 @@ end
     f1 = A -> otherdims(A, (X, Z))
     @ballocated $f1($A)
     @test (@ballocated $f1($A)) == 0
-    # @test (@belapsed $f1($A)) < 1e-9
-    # @test (@belapsed $f1($A)) < 1e-7
     f2 = (A) -> otherdims(A, Ti)
     @test f2(A) == dims(A, (X, Y, Z))
     @test (@ballocated $f2($A)) == 0
-    # @test_broken (@belapsed $f2($A)) < 1e-9
-    # @test (@belapsed $f2($A)) < 1e-7
     @testset "with Dim{X} and symbols" begin
         dimz = (Z(), Dim{:a}(), Y(), Dim{:b}())
         f3 = (dimz) -> otherdims(dimz, (:b, :a, Y))
         @test (@inferred f3(dimz)) == (Z(),)
         @test (@ballocated $f3($dimz)) == 0
-        # @test (@belapsed $f3($dimz)) < 1e-9
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
     @test_throws ArgumentError otherdims(nothing, X)
@@ -306,7 +281,10 @@ end
 
 @testset "setdims" begin
     A = setdims(da, X(LinRange(150,152,2)))
-    @test val(dims(dims(A), X())) == LinRange(150,152,2)
+    @test index(dims(dims(A), X())) == LinRange(150,152,2)
+    @test dims(dims(A)) isa Tuple{<:X,<:Y}
+    A = setdims(da, Y(10:12), X(LinRange(150,152,2)))
+    @test index(dims(dims(A), Y())) == 10:12
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
 end
 
@@ -318,7 +296,7 @@ end
         @test map(mode, dims(A)) == map(mode, dims(da))
     end
     @testset "swap whole dim instances" begin
-        A = swapdims(da, (Z(2:2:4), Dim{:test2}(3:5)))
+        A = swapdims(da, Z(2:2:4), Dim{:test2}(3:5))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
         @test map(val, dims(A)) == (2:2:4, 3:5)
         @test map(mode, dims(A)) == 
@@ -339,13 +317,18 @@ end
 
 @testset "slicedims" begin
     @testset "Regular" begin
-        @test slicedims(dimz, (1:2, 3)) == 
+        @test slicedims(dimz, 1:2, 3) == 
             ((X(LinRange(143,145,2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),),
              (Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata()),))
-        @test slicedims(dimz, (2:2, :)) == 
+        @test slicedims(dimz, 2:2, :) == 
             ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()), 
               Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())), ())
         @test slicedims((), (1:2, 3)) == ((), ())
+            ((X(LinRange(145,145,1), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()), 
+              Y(LinRange(-38.0,-36.0, 3), Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())), ())
+        @test slicedims(dimz, CartesianIndex(2, 3)) == 
+            ((), (X(145.0, Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
+                         Y(-36.0, Sampled(Ordered(), Regular(1.0), Points()), NoMetadata())),)
     end
     @testset "Irregular" begin
         irreg = DimArray(a, (X([140.0, 142.0]; mode=Sampled(Ordered(), Irregular(140.0, 144.0), Intervals(Start()))), 
@@ -364,61 +347,60 @@ end
         dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == 
             ((X(Val((143,145)), Categorical(), NoMetadata()),),
-             (Y(Val(:z), Categorical(), NoMetadata()),))
+             (Y(:z, Categorical(), NoMetadata()),))
         @test slicedims(dimz, (2:2, :)) == 
             ((X(Val((145,)), Categorical(), NoMetadata()), 
               Y(Val((:x, :y, :z)), Categorical(), NoMetadata())), ())
     end
     @testset "NoIndex" begin
-        da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
+        da = DimArray(a, (X(), Y()))
         dimz = dims(da)
-        @test slicedims(dimz, (1:2, 3)) == 
-            ((X(Val((143,145)), Categorical(), NoMetadata()),),
-             (Y(Val(:z), Categorical(), NoMetadata()),))
-        @test slicedims(dimz, (2:2, :)) == 
-            ((X(Val((145,)), Categorical(), NoMetadata()), 
-              Y(Val((:x, :y, :z)), Categorical(), NoMetadata())), ())
+        @test slicedims(dimz, (1:2, 3)) == ((X(1:2, NoIndex()),), (Y(3, NoIndex()),))
+        @test slicedims(dimz, (2:2, :)) == ((X(2:2, NoIndex()), Y(Base.OneTo(3), NoIndex())), ())
     end
     @testset "No slicing" begin
-        da = DimArray(a, (X(Val((143, 145))), Y(Val((:x, :y, :z)))))
+        da = DimArray(a, (X([143, 145]), Y([:x, :y, :z])))
         dimz = dims(da)
-        @test slicedims(dimz, (Ti(),), ()) == (dimz, (Ti(),))
+        @test slicedims(dimz, ()) == (dimz, ())
     end
 end
 
 @testset "reducedims" begin
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Points()))), (X, Y)) == 
                      (X([4], Sampled(Ordered(), Regular(2), Points()), NoMetadata()), 
                       Y([3], Sampled(Ordered(), Regular(5), Points()), NoMetadata()))
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start()))), 
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start()))), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Intervals(End())))), (X, Y)) ==
         (X([3], Sampled(Ordered(), Regular(2), Intervals(Start())), NoMetadata()), 
          Y([5], Sampled(Ordered(), Regular(5), Intervals(End())), NoMetadata()))
 
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center()))),
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center()))),
                       Y(1:5; mode=Sampled(Ordered(), Irregular(0.5, 5.5), Intervals(Center())))), (X, Y))[1] ==
                      (X([4], Sampled(Ordered(), Irregular(2.5, 4.5), Intervals(Center())), NoMetadata()),
                       Y([3], Sampled(Ordered(), Irregular(0.5, 5.5), Intervals(Center())), NoMetadata()))[1]
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(3, 5), Intervals(Start()))),
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(3, 5), Intervals(Start()))),
                       Y(1:5; mode=Sampled(Ordered(), Irregular(0, 5), Intervals(End()  )))), (X, Y))[1] ==
                      (X([3], Sampled(Ordered(), Irregular(3, 5), Intervals(Start())), NoMetadata()),
                       Y([5], Sampled(Ordered(), Irregular(0, 5), Intervals(End()  )), NoMetadata()))[1]
 
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(), Points())), 
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Irregular(), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Irregular(), Points()))), (X, Y)) ==
         (X([4], Sampled(Ordered(), Irregular(), Points()), NoMetadata()), 
          Y([3], Sampled(Ordered(), Irregular(), Points()), NoMetadata()))
-    @test reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
+    @test _reducedims((X(3:4; mode=Sampled(Ordered(), Regular(1), Points())), 
                       Y(1:5; mode=Sampled(Ordered(), Regular(1), Points()))), (X, Y)) ==
                      (X([4], Sampled(Ordered(), Regular(2), Points()), NoMetadata()), 
                       Y([3], Sampled(Ordered(), Regular(5), Points()), NoMetadata()))
 
-    @test reducedims((X([:a,:b]; mode=Categorical()), 
+    @test _reducedims((X([:a,:b]; mode=Categorical()), 
                       Y(["1","2","3","4","5"]; mode=Categorical())), (X, Y)) ==
                      (X([:combined]; mode=Categorical()), 
                       Y(["combined"]; mode=Categorical()))
 
+    @test _reducedims((X(Base.OneTo(10); mode=NoIndex()), 
+                       Y(Base.OneTo(10); mode=NoIndex())), (X(), Y())) == 
+        (X(Base.OneTo(1); mode=NoIndex()), Y(Base.OneTo(1); mode=NoIndex()))
 end
 
 @testset "dimstride" begin

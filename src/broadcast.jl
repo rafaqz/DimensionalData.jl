@@ -56,7 +56,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     if A isa Nothing || _dims isa Nothing
         dest
     else
-        rebuild(A, parent(dest), _dims, refdims(A))
+        rebuild(A, dest, _dims, refdims(A))
     end
 end
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S

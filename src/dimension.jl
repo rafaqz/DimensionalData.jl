@@ -144,13 +144,16 @@ function rebuild(
     constructorof(D)(val, mode, metadata)
 end
 
-dims(dim::Union{Dimension,DimType}) = dim
+dims(dim::Union{Dimension,DimType,Val{<:Dimension}}) = dim
 dims(dims::DimTuple) = dims
-dims(dims::Val{D}) where D <: Dimension = dims
+dims(x) = nothing
+dims(::Nothing) = error("No dims found")
+
+refdims(x) = ()
 
 val(dim::Dimension) = dim.val
 mode(dim::Dimension) = dim.mode
-mode(dim::DimType) = NoIndex()
+mode(dim::Union{DimType,Val{<:Dimension}}) = NoIndex()
 metadata(dim::Dimension) = dim.metadata
 
 index(dim::Dimension{<:AbstractArray}) = val(dim)
@@ -176,13 +179,15 @@ for f in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :lo
     @eval begin
         $f(dims::DimTuple) = map($f, dims)
         $f(dims::Tuple{}) = ()
-        $f(dims::DimTuple, lookup...) = $f(dims, lookup)
+        $f(dims::DimTuple, l1, lookup...) = $f(dims, (l1, lookup...))
         $f(dims::DimTuple, lookup) = $f(DD.dims(dims, key2dim(lookup)))
     end
 end
 
 order(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> order(ot, d), dims)
 order(ot::Type{<:SubOrder}, dims::Tuple{}) = ()
+order(ot::Type{<:SubOrder}, dims_::DimTuple, l1, l2, ls...) = 
+    order(ot, dims_, (l1, l2, ls...))
 order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup::Tuple) =
     map(d -> order(ot, d), dims(dims_, key2dim(lookup)))
 order(ot::Type{<:SubOrder}, dims_::DimTuple, lookup) =
@@ -213,7 +218,7 @@ Base.ndims(d::Dimension{<:Val}) = 1
 @propagate_inbounds Base.getindex(d::Dimension{<:AbstractArray}, i) =
     getindex(index(d), sel2indices(d, i))
 @propagate_inbounds Base.getindex(d::Dimension{<:Val{Index}}, i) where Index =
-    Val(getindex(Index, sel2indices(d, i)))
+    getindex(Index, sel2indices(d, i))
 Base.iterate(d::Dimension{<:ArrayOrVal}, args...) = iterate(index(d), args...)
 Base.first(d::Dimension) = val(d)
 Base.first(d::Dimension{<:ArrayOrVal}) = first(index(d))
@@ -296,6 +301,7 @@ name(::AnonDim) = :Anon
 """
     @dim typ [supertype=Dimension] [name::String=string(typ)]
 
+m
 Macro to easily define new dimensions. The supertype will be inserted
 into the type of the dim. The default is simply `YourDim <: Dimension`. Making
 a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect

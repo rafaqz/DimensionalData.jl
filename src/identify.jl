@@ -17,12 +17,18 @@ correct `searchsorted` method for it.
 function identify end
 # No more identification required for some types
 identify(mode::IndexMode, dimtype::Type, index) = mode
-# Auto
-identify(mode::Auto, dimtype::Type, index::AbstractArray) =
-    identify(Sampled(), dimtype, index)
-identify(mode::Auto, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
+# AutoMode
+identify(mode::AutoMode, dimtype::Type, index::AbstractArray{T}) where T = begin
+    # A mixed type index is Categorical
+    if isconcretetype(T)
+        identify(Sampled(), dimtype, index)
+    else
+        identify(Categorical(), dimtype, index)
+    end
+end
+identify(mode::AutoMode, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
-identify(mode::Auto, dimtype::Type, index::Val) =
+identify(mode::AutoMode, dimtype::Type, index::Val) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
 # Sampled
 identify(mode::AbstractSampled, dimtype::Type, index) =
@@ -43,14 +49,6 @@ identify(span::Regular, dimtype::Type, index::AbstractRange) = begin
     step(span) isa Number && !(step(span) ≈ step(index)) && _steperror(index, span)
     span
 end
-identify(span::Irregular{Nothing}, dimtype, index) =
-    if length(index) > 1
-        bound1 = index[1] - (index[2] - index[1]) / 2
-        bound2 = index[end] + (index[end] - index[end-1]) / 2
-        Irregular(sortbounds(bound1, bound2))
-    else
-        Irregular(nothing, nothing)
-    end
 identify(span::Irregular{<:Tuple}, dimtype, index) = span
 # Sampling
 identify(sampling::AutoSampling, dimtype::Type, index) = Points()

@@ -49,7 +49,7 @@ end
 # short printing version for dimensions
 function Base.show(io::IO, dim::Dimension)
     printstyled(io, name(dim); color=:red)
-    if name(dim) ≠ string(nameof(typeof(dim)))
+    if name(dim) ≠ nameof(typeof(dim))
         print(io, " (type ")
         printstyled(io, nameof(typeof(dim)); color=:red)
         print(io, ")")

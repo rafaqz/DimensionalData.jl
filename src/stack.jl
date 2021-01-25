@@ -9,7 +9,7 @@ abstract type AbstractDimStack{L,N,D} end
     DimStack(data::AbstractDimArray...)
     DimStack(data::Tuple{Vararg{<:AbstractDimArray}})
     DimStack(data::NamedTuple{Keys,Vararg{<:AbstractDimArray}})
-    DimStack(data::NamedTuple, dims::DimTuple; metadata=nothing)
+    DimStack(data::NamedTuple, dims::DimTuple; metadata=NoMetadata())
 
 DimStack holds multiple objects with the same dimensions, in a `NamedTuple`.
 Indexing operates as for [`AbstractDimArray`](@ref), except it occurs for all
@@ -103,7 +103,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}})
     refdims = () # das might have different refdims
     DimStack(data, dims, refdims, meta)
 end
-function DimStack(data::NamedTuple, dims::DimTuple; refdims=(), metadata=nothing)
+function DimStack(data::NamedTuple, dims::Tuple; refdims=(), metadata=NoMetadata())
     DimStack(data, formatdims(first(data), dims), refdims, metadata)
 end
 data(s::AbstractDimStack) = s.data
@@ -124,7 +124,7 @@ rebuildsliced(s::AbstractDimStack, data, I) = rebuild(s, data, slicedims(s, I)..
 
 function dimarrays(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(Keys, values(data(s))) do k, A
-        DimArray(A, dims(s), refdims(s), k, nothing)
+         DimArray(A, dims(s), refdims(s), k, NoMetadata())
     end)
 end
 

@@ -6,8 +6,6 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 # Integer returns a single value, but not for view
 @propagate_inbounds Base.getindex(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
     Base.getindex(parent(A), i1, i2, I...)
-@propagate_inbounds Base.dotview(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
-    Base.getindex(parent(A), i1, i2, I...)
 # No indices. These just prevent stack overflows
 @propagate_inbounds Base.getindex(A::AbstractDimArray) = Base.getindex(parent(A))
 @propagate_inbounds Base.view(A::AbstractDimArray) = rebuild(A, Base.view(parent(A)), ())
@@ -57,28 +55,22 @@ end
 
 #### Array setindex ####
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
-@propagate_inbounds function Base.setindex!(A::AbstractDimArray, x, I...)
-    I1 = dims2indices(A, I)
-    Base.setindex(parent(A), x, I1...)
-    A
-end
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
     setindex!(A, x, dims2indices(A, (args..., _kwdims(kw.data)...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, maybeselector(i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
-    (setindex!(parent(A), x, i1, I...); A)
+    setindex!(parent(A), x, i1, I...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
-    (setindex!(parent(A), x, I); A)
+    setindex!(parent(A), x, I)
 #### Stack setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
-    (map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs); s)
+    map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs)
 @propagate_inbounds function Base.setindex!(
     s::AbstractDimStack{<:NamedTuple{K1}}, xs::NamedTuple{K2}, I...; kw...
 ) where {K1,K2}
     K1 == K2 || _keysmismatch(K1, K2)
     map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs)
-    return s
 end
 
 
@@ -89,9 +81,8 @@ end
 
 Convert a `Dimension` or `Selector` lookup to indices of Int, AbstractArray or Colon.
 """
-@inline dims2indices(dim::Dimension, l1, ls...) = dims2indices(dim, (l1, ls...))
-@inline dims2indices(dim::Dimension, lookup) = _dims2indices(dim, lookup)
 @inline dims2indices(dim::Dimension, lookup::StandardIndices) = lookup
+@inline dims2indices(dim::Dimension, lookup) = _dims2indices(dim, lookup)
 
 @inline dims2indices(x, lookup) = dims2indices(dims(x), lookup)
 @inline dims2indices(::Nothing, lookup) = _dimsnotdefinederror()

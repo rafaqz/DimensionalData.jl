@@ -1,15 +1,20 @@
 using DimensionalData, Test, Dates
 using DimensionalData: flip
 
-@testset "reversing methods" begin
-    revdima = reverse(ArrayOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
-    @test val(revdima) == 10:10:20
-    @test order(revdima) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-    @test span(revdima) == Regular(10)
-    revdimi = reverse(IndexOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
-    @test val(revdimi) == 20:-10:10
-    @test order(revdimi) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-    @test span(revdimi) == Regular(-10)
+@testset "reverse" begin
+    @testset "dimension" begin
+        revdima = reverse(ArrayOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
+        @test val(revdima) == 10:10:20
+        @test order(revdima) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
+        @test span(revdima) == Regular(10)
+        revdimi = reverse(IndexOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
+        @test val(revdimi) == 20:-10:10
+        @test order(revdimi) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
+        @test span(revdimi) == Regular(-10)
+        # reverse for Dimension means IndexOrder
+        revdimi2 = reverse(X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
+        @test revdimi2 == revdimi
+    end
 
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
@@ -43,6 +48,42 @@ using DimensionalData: flip
     @test val(dims(revis, Y)) == 100:100:300
     @test order(dims(revis, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
 
+    @testset "Val index" begin
+        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
+                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
+        revdav = reverse(IndexOrder, dav; dims=(X, Y))
+        @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
+    end
+    @testset "NoIndex dim index is not reversed" begin
+        da = DimArray(A, (X(), Y()))
+        revda = reverse(da)
+        @test index(revda) == axes(da)
+        revda2 = reverse(IndexOrder, da; dims=1)
+        @test index(revda2) == axes(da)
+        revda3 = reverse(ArrayOrder, da; dims=1)
+        @test index(revda3) == axes(da)
+        revda4 = reverse(Relation, dims(da, X))
+        @test index(revda4) == axes(da, X)
+    end
+
+    @testset "stack" begin
+        dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
+        da1 = DimArray(A, dimz, :one)
+        da2 = DimArray(Float32.(2A), dimz, :two)
+        da3 = DimArray(Int.(3A), dimz, :three)
+
+        s = DimStack((da1, da2, da3))
+        rev_s = reverse(s; dims=X) 
+        @test rev_s[:one] == [4 5 6; 1 2 3]
+        @test rev_s[:three] == [12 15 18; 3 6 9]
+    end
+end
+
+
+@testset "reorder" begin
+    A = [1 2 3; 4 5 6]
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
+    s = DimStack(da)
 
     reoa = reorder(da, ReverseArray())
     @test reoa == [6 5 4; 3 2 1]
@@ -51,14 +92,14 @@ using DimensionalData: flip
     @test order(dims(reoa, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
     @test order(dims(reoa, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
-    reoi = reorder(da, ReverseIndex, (X(), Y()))
+    reoi = reorder(da, (X=ReverseIndex, Y=ReverseIndex))
     @test reoi == A 
     @test val(dims(reoi, X)) == 20:-10:10
     @test val(dims(reoi, Y)) == 300:-100:100
     @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
     @test order(dims(reoi, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
 
-    reoi = reorder(da, (Y=ForwardIndex, X=ReverseIndex))
+    reoi = reorder(da, Y(ForwardIndex); X=ReverseIndex)
     @test reoi == A
     @test val(dims(reoi, X)) == 20:-10:10
     @test val(dims(reoi, Y)) == 100:100:300
@@ -75,13 +116,6 @@ using DimensionalData: flip
     revallis = reverse(IndexOrder, da; dims=(X, Y))
     @test index(revallis) == (20:-10:10, 100:100:300)
     @test indexorder(revallis) == (ReverseIndex(), ForwardIndex())
-
-    @testset "Val index" begin
-        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
-                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
-        revdav = reverse(IndexOrder, dav; dims=(X, Y))
-        @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
-    end
 end
 
 @testset "flip" begin
@@ -91,6 +125,7 @@ end
     @test indexorder(fda) == (ReverseIndex(), ForwardIndex())
     fda = flip(Relation, da, Y)
     @test relation(fda, Y) == ReverseRelation()
+    @test flip(Relation, NoIndex()) == NoIndex()
 end
 
 @testset "diff" begin
