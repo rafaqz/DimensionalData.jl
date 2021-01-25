@@ -8,6 +8,9 @@ using DimensionalData: slicebounds, slicemode, isrev
     @test indexorder(Unordered()) == UnorderedIndex()
     @test arrayorder(Unordered()) == ForwardArray()
     @test relation(Unordered()) == ForwardRelation()
+    @test indexorder(Sampled(; order=Ordered())) == ForwardIndex()
+    @test arrayorder(Sampled(; order=Ordered())) == ForwardArray()
+    @test relation(Sampled(; order=Ordered())) == ForwardRelation()
 end
 
 
@@ -161,11 +164,24 @@ end
     @testset "Categorical" begin
         ind = [:a, :b, :c, :d]
         dim = X(ind; mode=Categorical(; order=Ordered()))
+        @test order(dim) == Ordered()
+        @test arrayorder(dim) == ForwardArray()
+        @test indexorder(dim) == ForwardIndex()
+        @test relation(dim) == ForwardRelation()
+        @test_throws ErrorException step(dim)
+        @test_throws ErrorException span(dim)
+        @test_throws ErrorException sampling(dim)
+        @test dims(mode(dim)) === nothing
+        @test locus(dim) == Center()
         @test bounds(dim) == (:a, :d)
-        dim = X(ind; mode=Categorical(; order=Ordered(;index=ReverseIndex())))
+        dim = X(ind; mode=Categorical(; order=Ordered(; index=ReverseIndex())))
         @test bounds(dim) == (:d, :a)
+        @test arrayorder(dim) == ForwardArray()
+        @test indexorder(dim) == ReverseIndex()
+        @test relation(dim) == ForwardRelation()
         dim = X(ind; mode=Categorical(; order=Unordered()))
         @test bounds(dim) == (nothing, nothing)
+        @test order(dim) == Unordered()
     end
 
 end

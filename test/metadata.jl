@@ -1,32 +1,47 @@
 using DimensionalData, Test
 
 @testset "Metadata" begin
-    nt = (a="test1", b="test2")
-    d = (:a=>"test1", :b=>"test2")
+    nt = (a="test1", units="km")
+    d = (:a=>"test1", :units=>"km")
     @test val(DimMetadata(nt)) isa NamedTuple
     @test val(DimMetadata(d)) isa Dict
     @test val(DimMetadata()) isa Dict
     @test DimMetadata(nt) == DimMetadata(; nt...)
     @test DimMetadata(d) == DimMetadata(d...) == DimMetadata(Dict(d))
+    dm = DimMetadata(d)
+    dm[:c] = "added metadata"
+    @test dm[:c] == "added metadata"
+    @test units(nothing) === nothing
+    @test units(NoMetadata()) === nothing
 
     for md in (DimMetadata(; nt...), ArrayMetadata(; nt...), StackMetadata(; nt...),
                DimMetadata(d...), ArrayMetadata(d...), StackMetadata(d...))
+        @test units(md) == "km"
         @test length(md) == 2
         @test haskey(md, :a)
         @test haskey(md, :c) == false 
         @test get(md, :a, nothing) == "test1" 
         @test md[:a] == "test1" 
-        @test md[:b] == "test2" 
+        @test md[:units] == "km" 
         if val(md) isa Dict
-            @test [x for x in md] == [:a=>"test1", :b=>"test2"]
-            @test all(keys(md) .== [:a, :b])
+            @test [x for x in md] == [:a=>"test1", :units=>"km"]
+            @test all(keys(md) .== [:a, :units])
             @test eltype(md) == Pair{Symbol,String}
+            @test iterate(md) == (:a => "test1", 2)
+            @test iterate(md, 2) == (:units => "km", 3)
         else
-            @test [x for x in md] == ["test1", "test2"]
-            @test keys(md) == (:a, :b)
+            @test [x for x in md] == ["test1", "km"]
+            @test keys(md) == (:a, :units)
             @test eltype(md) == String
+            @test iterate(md) == ("test1", 2)
+            @test iterate(md, 2) == ("km", 3)
         end
+        @test iterate(md, 3) == nothing
+        @test Base.IteratorSize(md) == Base.HasLength()
+        @test Base.IteratorEltype(md) == Base.HasEltype()
     end
+
+    @test_throws ArgumentError DimMetadata(:a => "1"; units="km")
 end
 
 @testset "NoMetadata" begin

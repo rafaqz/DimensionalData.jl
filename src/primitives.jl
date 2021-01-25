@@ -2,10 +2,11 @@
 # They are all type-stable recusive methods for performance and extensibility.
 
 """
-    dimsmatch([f], dim::DimOrDimType, match::DimOrDimType) => Bool
+    dimsmatch([f], dim, lookup) => Bool
+    dimsmatch([f], dims::Tuple, lookups::Tuple) => Bool
 
-Compare 2 dimensions are of the same base type, or
-are at least rotations/transformations of the same type.
+Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type, 
+or are at least rotations/transformations of the same type.
 
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
@@ -15,6 +16,8 @@ are at least rotations/transformations of the same type.
 @inline dimsmatch(f::Function, dim, lookup) = dimsmatch(f, typeof(dim), typeof(lookup))
 @inline dimsmatch(f::Function, dim::Type, lookup) = dimsmatch(f, dim, typeof(lookup))
 @inline dimsmatch(f::Function, dim, lookup::Type) = dimsmatch(f, typeof(dim), lookup)
+@inline dimsmatch(f::Function, dim::Nothing, lookup::Type) = false
+@inline dimsmatch(f::Function, dim::Type, ::Nothing) = false
 @inline dimsmatch(f::Function, dim, lookup::Nothing) = false
 @inline dimsmatch(f::Function, dim::Nothing, lookup) = false
 @inline dimsmatch(f::Function, dim::Nothing, lookup::Nothing) = false
@@ -50,7 +53,7 @@ All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 """
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
 @inline dim2key(dim::Val{D}) where D <: Dimension = dim2key(D)
-@inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.typename(dt))
+@inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.nameof(dt))
 
 """
     sortdims([f], tosort, order) => Tuple
@@ -64,7 +67,7 @@ can be used in `order`.
 
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 """
-@inline sortdims(args...) = _run(_sortdims, MaybeFirst(), args...)
+@inline sortdims(args...) = _call(_sortdims, MaybeFirst(), args...)
 
 @inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) = map(p -> tosort[p], order)
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
@@ -113,7 +116,7 @@ julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 ```
 """
-@inline dims(args...) = _run(_dims, MaybeFirst(), args...)
+@inline dims(args...) = _call(_dims, MaybeFirst(), args...)
 
 @inline _dims(f, dims, lookup) = _remove_nothing(_sortdims(f, dims, lookup))
 
@@ -143,7 +146,7 @@ julia> commondims(A, Ti)
 ()
 ```
 """
-@inline commondims(args...) = _run(_commondims, AlwaysTuple(), args...)
+@inline commondims(args...) = _call(_commondims, AlwaysTuple(), args...)
 
 _commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds)) 
 
@@ -176,7 +179,7 @@ julia> dimnum(A, Y)
 """
 @inline function dimnum(args...) 
     all(hasdim(args...)) || _errorextradims()
-    _run(_dimnum, MaybeFirst(), args...)
+    _call(_dimnum, MaybeFirst(), args...)
 end
 
 @inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple{Vararg{Int}})
@@ -217,7 +220,7 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(args...) = _run(_hasdim, MaybeFirst(), args...)
+@inline hasdim(args...) = _call(_hasdim, MaybeFirst(), args...)
 
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
@@ -250,7 +253,7 @@ julia> otherdims(A, Ti)
 (X (type X) (NoIndex), Y (type Y) (NoIndex), Z (type Z) (NoIndex))
 ```
 """
-@inline otherdims(args...) = _run(_otherdims_presort, AlwaysTuple(), args...)
+@inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)
 
 @inline _otherdims_presort(f, ds, lookup) = _otherdims(f, ds, _sortdims(f, lookup, ds))
 # Work with a sorted lookup where the missing dims are `nothing`
@@ -342,32 +345,41 @@ previous reference dims attached to the array.
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
 function slicedims end
-@inline slicedims(A, i1, I...) = slicedims(dims(A), (i1, I)...)
-@inline slicedims(A, I::Tuple) = slicedims(dims(A), refdims(A), I)
-@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) =
-    slicedims(dims, refdims, Tuple(I))
-@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
-    newdims, newrefdims = slicedims(dims, I)
+@inline slicedims(x, i1, I...) = slicedims(x, (i1, I...))
+@inline slicedims(x, I::CartesianIndex) = slicedims(x, Tuple(I))
+@inline slicedims(x, I::Tuple) = _slicedims(dims(x), refdims(x), I)
+@inline slicedims(dims::Tuple, I::Tuple) = _slicedims(dims, I)
+@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple{<:CartesianIndex}) =
+    _slicedims(dims, refdims, Tuple(I))
+@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
+    newdims, newrefdims = _slicedims(dims, I)
     newdims, (refdims..., newrefdims...)
 end
-@inline slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
-@inline slicedims(dims::DimTuple, I::Tuple) = begin
-    d = slicedims(first(dims), first(I))
-    ds = slicedims(tail(dims), tail(I))
+@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
+@inline _slicedims(dims::DimTuple, I::Tuple{}) = dims, ()
+@inline _slicedims(dims::DimTuple, I::Tuple) = begin
+    d = _slicedims(first(dims), first(I))
+    ds = _slicedims(tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
-@inline slicedims(dims::Tuple{}, I::Tuple) = (), ()
-@inline slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
+@inline _slicedims(dims::Tuple{}, I::Tuple) = (), ()
+@inline _slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
 
-@inline slicedims(d::Dimension, i) = slicedims(mode(d), d, i)
-@inline slicedims(::IndexMode, d::Dimension, i::Colon) = (d,), ()
-@inline slicedims(::IndexMode, d::Dimension, i::Integer) =
+@inline _slicedims(d::Dimension, i) = _slicedims(mode(d), d, i)
+@inline _slicedims(::IndexMode, d::Dimension, i::Colon) = (d,), ()
+@inline _slicedims(::IndexMode, d::Dimension, i::Integer) =
     (), (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),)
-@inline slicedims(::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
+@inline _slicedims(::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
+
 # TODO deal with unordered arrays trashing the index order
-@inline slicedims(::IndexMode, d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
+@inline _slicedims(::IndexMode, d::Dimension{<:Val{Index}}, i::AbstractArray) where Index =
+    (rebuild(d, Val{Index[relate(d, i)]}(), slicemode(mode(d), val(d), i)),), ()
+@inline _slicedims(::IndexMode, d::Dimension{<:AbstractArray}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)], slicemode(mode(d), val(d), i)),), ()
-@inline slicedims(::NoIndex, d::Dimension{<:Union{AbstractArray,Val}}, i::AbstractArray) =
+@inline _slicedims(::NoIndex, d::Dimension{<:AbstractArray}, i::AbstractArray) =
+    (rebuild(d, d[relate(d, i)]),), ()
+# Should never happen, just for ambiguity
+@inline _slicedims(::NoIndex, d::Dimension{<:Val}, i::AbstractArray) =
     (rebuild(d, d[relate(d, i)]),), ()
 
 @inline relate(d::Dimension, i) = _maybeflip(relation(d), d, i)
@@ -401,10 +413,7 @@ cell step, sampling type and order.
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline _reducedims(dim::Dimension, ::Nothing) = dim
 @inline _reducedims(dim::Dimension, ::DimOrDimType) = _reducedims(mode(dim), dim)
-# Now reduce specialising on mode type
-# NoIndex. Defaults to Start locus.
-@inline _reducedims(mode::NoIndex, dim::Dimension) =
-    rebuild(dim, first(index(dim)), NoIndex())
+@inline _reducedims(mode::NoIndex, dim::Dimension) = rebuild(dim, Base.OneTo(1), NoIndex())
 # TODO what should this do?
 @inline _reducedims(mode::Unaligned, dim::Dimension) = rebuild(dim, [nothing], NoIndex)
 # Categories are combined.
@@ -437,7 +446,6 @@ end
         [index[len ÷ 2 + 1]]
     end
 end
-@inline _reducedims(locus::Locus, dim::Dimension) = _reducedims(Center(), dim)
 
 # Need to specialise for more types
 @inline _centerval(index::AbstractArray{<:AbstractFloat}, len) =
@@ -504,19 +512,19 @@ although it will be for `Array`.
 struct MaybeFirst end
 struct AlwaysTuple end
 
-# Run the function f with stardardised args
-@inline _run(f::Function, t, args...) = _run1(f, t, <:, _wraparg(args...)...)
-@inline _run(f::Function, t, op::Function, args...) = _run1(f, t, op, _wraparg(args...)...)
+# Call the function f with stardardised args
+@inline _call(f::Function, t, args...) = _call(f, t, <:, _wraparg(args...)...)
+@inline _call(f::Function, t, op::Function, args...) = _call1(f, t, op, _wraparg(args...)...)
 
-@inline _run1(f, t, op::Function, x, l1, l2, ls...) = _run1(f, t, op, x, (l1, l2, ls...))
-@inline _run1(f, t, op::Function, x, lookup) = _run1(f, t, op, dims(x), lookup)
-@inline _run1(f, t, op::Function, x::Nothing, lookup) = _dimsnotdefinederror()
-@inline _run1(f, t, op::Function, d::Tuple, lookup) = _run1(f, t, op, d, dims(lookup))
-@inline _run1(f, t::AlwaysTuple, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
-    _run1(f, t, op, d, (lookup,))
-@inline _run1(f, t::MaybeFirst, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
-    _run1(f, t, op, d, (lookup,))[1]
-@inline _run1(f, t, op::Function, d::Tuple, lookup::Tuple) = map(unwrap, f(op, d, lookup))
+@inline _call1(f, t, op::Function, x, l1, l2, ls...) = _call1(f, t, op, x, (l1, l2, ls...))
+@inline _call1(f, t, op::Function, x, lookup) = _call1(f, t, op, dims(x), lookup)
+@inline _call1(f, t, op::Function, x::Nothing, lookup) = _dimsnotdefinederror()
+@inline _call1(f, t, op::Function, d::Tuple, lookup) = _call1(f, t, op, d, dims(lookup))
+@inline _call1(f, t::AlwaysTuple, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
+    _call1(f, t, op, d, (lookup,))
+@inline _call1(f, t::MaybeFirst, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
+    _call1(f, t, op, d, (lookup,))[1]
+@inline _call1(f, t, op::Function, d::Tuple, lookup::Tuple) = map(unwrap, f(op, d, lookup))
 
 @inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(kw.data)
 @inline _kwdims(kw::NamedTuple{Keys}) where Keys = _kwdims(key2dim(Keys), values(kw))
@@ -558,7 +566,6 @@ struct AlwaysTuple end
 # Error methods. @noinline to avoid allocations.
 
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
-@noinline _nolookuperror(lookup) = throw(ArgumentError("No $(basetypeof(lookup[1])) in dims"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))

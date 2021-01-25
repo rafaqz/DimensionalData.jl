@@ -9,5 +9,6 @@ end
 @testset "NoName" begin
     @test Symbol(NoName()) == Symbol("")
     @test string(NoName()) == ""
+    @test Name(NoName()) == NoName()
 end
 

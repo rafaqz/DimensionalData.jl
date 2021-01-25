@@ -1,4 +1,4 @@
-using DimensionalData, Documenter, Aqua
+using DimensionalData, Aqua, SafeTestsets 
 
 if VERSION >= v"1.5.0"
     # This is catching some unambiguous constructors for T<:Metadata.
@@ -13,24 +13,27 @@ if VERSION >= v"1.5.0"
     Aqua.test_stale_deps(DimensionalData)
 end
 
-include("dimension.jl")
-include("interface.jl")
-include("primitives.jl")
-include("indexing.jl")
-include("array.jl")
-include("stack.jl")
-include("broadcast.jl")
-include("mode.jl")
-include("selector.jl")
-include("set.jl")
-include("methods.jl")
-include("utils.jl")
-include("matmul.jl")
-include("tables.jl")
-include("show.jl")
+@time @safetestset "dimension" begin include("dimension.jl") end
+@time @safetestset "interface" begin include("interface.jl") end
+@time @safetestset "primitives" begin include("primitives.jl") end
+@time @safetestset "array" begin include("array.jl") end
+@time @safetestset "stack" begin include("stack.jl") end
+@time @safetestset "indexing" begin include("indexing.jl") end
+@time @safetestset "broadcast" begin include("broadcast.jl") end
+@time @safetestset "mode" begin include("mode.jl") end
+@time @safetestset "selector" begin include("selector.jl") end
+@time @safetestset "set" begin include("set.jl") end
+@time @safetestset "methods" begin include("methods.jl") end
+@time @safetestset "utils" begin include("utils.jl") end
+@time @safetestset "matmul" begin include("matmul.jl") end
+@time @safetestset "tables" begin include("tables.jl") end
+@time @safetestset "name" begin include("name.jl") end
+@time @safetestset "metadata" begin include("metadata.jl") end
+@time @safetestset "adapt" begin include("adapt.jl") end
+@time @safetestset "show" begin include("show.jl") end
 
 if Sys.islinux()
     # Unfortunately this can hang on other platforms.
     # Maybe ram use of all the plots on the small CI machine? idk
-    include("plotrecipes.jl")
+    @time @safetestset "plotrecipes" begin include("plotrecipes.jl") end
 end

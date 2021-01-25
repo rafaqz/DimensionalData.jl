@@ -2,6 +2,10 @@ using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays
 using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
+a2 = [1 2 3 4
+      3 4 5 6
+      4 5 6 7]
+dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 xmeta = DimMetadata(:meta => "X")
 ymeta = DimMetadata(:meta => "Y")
 ameta = ArrayMetadata(:meta => "da")
@@ -9,197 +13,7 @@ dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
 refdimz = (Ti(1:1),)
 da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=ameta)
-
-@testset "getindex for single integers returns values" begin
-    @test da[X(1), Y(2)] == 2
-    @test da[X(2), Y(2)] == 4
-    @test da[1, 2] == 2
-    @test da[2] == 3
-    @inferred getindex(da, X(2), Y(2))
-end
-
-@testset "LinearIndex getindex returns an Array, except Vector" begin
-    @test da[1:2] isa Array
-    @test da[1, :][1:2] isa DimArray
-end
-
-@testset "getindex returns DimensionArray slices with the right dimensions" begin
-    a = da[X(1:2), Y(1)]
-    @test a == [1, 3]
-    @test typeof(a) <: DimArray{Int,1}
-    @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
-    @test refdims(a) == 
-        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
-    @test name(a) == :test
-    @test metadata(a) === ameta
-    @test metadata(a, X) === xmeta
-    @test bounds(a) === ((143.0, 145.0),)
-    @test bounds(a, X) === (143.0, 145.0)
-    @test locus(mode(dims(da, X))) == Center()
-
-    a = da[X(1), Y(1:2)]
-    @test a == [1, 2]
-    @test typeof(a) <: DimArray{Int,1}
-    @test typeof(parent(a)) <: Array{Int,1}
-    @test dims(a) == 
-        (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
-    @test refdims(a) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
-    @test name(a) == :test
-    @test metadata(a) == ameta
-    @test bounds(a) == ((-38.0, -36.0),)
-    @test bounds(a, Y()) == (-38.0, -36.0)
-
-    a = da[X(:), Y(:)]
-    @test a == [1 2; 3 4]
-    @test typeof(a) <: DimArray{Int,2}
-    @test typeof(parent(a)) <: Array{Int,2}
-    @test typeof(dims(a)) <: Tuple{<:X,<:Y}
-    @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-                      Y(LinRange(-38.0, -36.0, 2),
-                        Sampled(Ordered(), Regular(2.0), Points()), ymeta))
-    @test refdims(a) == (Ti(1:1),)
-    @test name(a) == :test
-    @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
-    @test bounds(a, X) == (143.0, 145.0)
-
-    # Indexing with array works
-    a = da[X([2, 1]), Y([2, 1])]
-    @test a == [4 3; 2 1]
-    @test dims(a) == 
-        ((X([145.0, 143.0], mode(da, X), xmeta), Y([-36.0, -38.0], mode(da, Y), ymeta)))
-
-end
-
-@testset "logical indexing" begin
-    A = DimArray(zeros(40, 50), (X, Y));
-    I = rand(40, 50) .< 0.5
-    @test all(A[I] .== 0.0)
-    A[I] .= 3
-    @test all(A[I] .== 3.0)
-    @test all(view(A, I .== 3.0))
-end
-
-@testset "view returns DimensionArray containing views" begin
-    v = view(da, Y(1), X(1))
-    @test v[] == 1
-    @test typeof(v) <: DimArray{Int,0}
-    @test typeof(parent(v)) <:SubArray{Int,0}
-    @test typeof(dims(v)) == Tuple{}
-    @test dims(v) == ()
-    @test refdims(v) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-         Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta))
-    @test name(v) == :test
-    @test metadata(v) == ameta
-    @test bounds(v) == ()
-
-    v = view(da, Y(1), X(1:2))
-    @test v == [1, 3]
-    @test typeof(v) <: DimArray{Int,1}
-    @test typeof(parent(v)) <: SubArray{Int,1}
-    @test typeof(dims(v)) <: Tuple{<:X}
-    @test dims(v) == 
-        (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
-    @test refdims(v) == 
-        (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
-    @test name(v) == :test
-    @test metadata(v) == ameta
-    @test bounds(v) == ((143.0, 145.0),)
-
-    v = view(da, Y(1:2), X(1:1))
-    @test v == [1 2]
-    @test typeof(v) <: DimArray{Int,2}
-    @test typeof(parent(v)) <: SubArray{Int,2}
-    @test typeof(dims(v)) <: Tuple{<:X,<:Y}
-    @test dims(v) == 
-        (X(LinRange(143.0, 143.0, 1), Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-         Y(LinRange(-38, -36, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta))
-    @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
-
-    v = view(da, Y(Base.OneTo(2)), X(1))
-    @test v == [1, 2]
-    @test typeof(parent(v)) <: SubArray{Int,1}
-    @test typeof(dims(v)) <: Tuple{<:Y}
-    @test dims(v) == 
-        (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
-    @test refdims(v) == 
-        (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
-    @test bounds(v) == ((-38.0, -36.0),)
-
-    @test view(da, 1) == fill(1)
-end
-
-@testset "Empty getindedex/view/setindex throws a BoundsError" begin
-    @test_throws BoundsError da[]
-    @test_throws BoundsError view(da)
-    @test_throws BoundsError da[] = 1
-end
-
-@testset "Cartesian indices work as usual" begin
-    @test da[CartesianIndex(2, 2)] == 4 
-    @test view(da, CartesianIndex(2, 2)) == view(parent(da), 2, 2) 
-    da_set = deepcopy(da)
-    da_set[CartesianIndex(2, 2)] = 5
-    @test da_set[2, 2] == 5
-end
-
-a2 = [1 2 3 4
-      3 4 5 6
-      4 5 6 7]
-b2 = [4 4 4 4
-      4 4 4 4
-      4 4 4 4]
-
-@testset "indexing into empty dims is just regular indexing" begin
-    ida = DimArray(a2, (X(), Y()))
-    ida[Y(3:4), X(2:3)] = [5 6; 6 7]
-end
-
-
-dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
-
-@testset "Symbol dimension names also work for indexing" begin
-    @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
-    @test da2[Dim{:column}(4)] == [4, 6, 7]
-    @test da2[column=4] == [4, 6, 7]
-    @test da2[Dim{:column}(1), Dim{:row}(3)] == 4
-    @test da2[column=1, Dim{:row}(3)] == 4
-    @test da2[Dim{:column}(1), row=3] == 4
-    @test da2[column=1, row=3] == 4
-    @test view(da2, column=1, row=3) == fill(4)
-    @test view(da2, column=1, Dim{:row}(1)) == fill(1)
-    da2_set = deepcopy(da2)
-    da2_set[Dim{:column}(1), Dim{:row}(1)] = 99
-    @test da2_set[1, 1] == 99
-    da2_set[column=2, row=2] = 88
-    @test da2_set[2, 2] == 88
-    da2_set[Dim{:row}(3), column=3] = 77
-    @test da2_set[3, 3] == 77
-
-    # We can also construct without using `Dim{X}`
-    @test dims(DimArray(a2, (:a, :b))) == dims(DimArray(a2, (Dim{:a}, Dim{:b})))
-end
-
-@testset "Type inference holds with Symbol dimension names" begin
-    da2_set = deepcopy(da2)
-    # Inrerence
-    @inferred getindex(da2, column=1, row=3)
-    @inferred view(da2, column=1, row=3)
-    @inferred setindex!(da2_set, 77, Dim{:row}(1), column=2)
-    # With a large type
-
-    if VERSION >= v"1.5"
-        da4 = DimArray(zeros(1, 2, 3, 4, 5, 6, 7, 8), (:a, :b, :c, :d, :d, :f, :g, :h))
-        @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5)
-        # Type inference breaks with 6 arguments.
-        # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
-        # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
-    end
-end
 
 @testset "size and axes" begin
     @test size(da2, Dim{:row}) == 3
@@ -207,10 +21,10 @@ end
     @test axes(da2, Dim{:row}()) == 1:3
     @test axes(da2, Dim{:column}) == 1:4
     @inferred axes(da2, Dim{:column})
+    @test IndexStyle(da) == IndexLinear()
 end
 
 @testset "copy and friends" begin
-    rebuild(da2, copy(parent(da2)))
 
     dac = copy(da2)
     @test dac == da2
@@ -236,6 +50,9 @@ end
     z = zero(da)
     @test z == [0 0; 0 0]
     @test dims(z) == dims(da) 
+
+    A = Array(da2)
+    @test A == parent(da2)
 end
 
 @testset "OffsetArray" begin
@@ -272,6 +89,7 @@ end
     @test refdims(da_float) == refdims(da2)
 
     # Changing the axis size removes dims.
+    # TODO we can keep dims, but with NoIndex?
     da_size_float = similar(da2, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
@@ -280,16 +98,14 @@ end
     @test size(da_size_float_splat) == (10, 10)
     @test typeof(da_size_float_splat)  <: Array{Float64,2}
 
-    sda = DimArray(sprand(Float64, 10, 10, .5), (X, Y))
+    sda = DimArray(sprand(Float64, 10, 10, 0.5), (X, Y))
     sparse_size_int = similar(sda, Int64, (5, 5))
     @test eltype(sparse_size_int) == Int64 != eltype(sda)
     @test size(sparse_size_int) == (5, 5)
     @test sparse_size_int isa SparseMatrixCSC
 
-    # TODO what should this actually be?
-    # Some dimensions (i.e. where values are not explicitly enumerated) could be resizable?
-    # @test dims(da_float) == dims(da2)
-    # @test refdims(da_float) == refdims(da2)
+    @test dims(da_float) == dims(da2)
+    @test refdims(da_float) == refdims(da2)
 end
 
 @testset "broadcast" begin
@@ -326,7 +142,8 @@ end
 if VERSION > v"1.1-"
     @testset "copy!" begin
         dimz = dims(da2)
-        A = zero(b2)
+        A = zero(a2)
+        sp = sprand(Int, 4, 0.5)
         db = DimArray(deepcopy(A), dimz)
         dc = DimArray(deepcopy(A), dimz)
 
@@ -336,6 +153,9 @@ if VERSION > v"1.1-"
         @test parent(db) == parent(da2)
         copy!(dc, a2)
         @test parent(db) == a2
+        # Sparse vector has its own method for ambiguity
+        copy!(sp, da2[1, :])
+        @test sp == parent(da2[1, :])
 
         @testset "vector copy! (ambiguity fix)" begin
             v = zeros(3)

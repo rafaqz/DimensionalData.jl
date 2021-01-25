@@ -5,32 +5,31 @@
 
 Reverse the array order, and update the dim to match.
 """
-Base.reverse(A::AbstractDimArray; dims=1) =
-    reverse(IndexOrder, reverse(ArrayOrder, A, dims), dims)
-Base.reverse(s::AbstractDimStack; dims=1) = reverse(ArrayOrder, s, dims)
-Base.reverse(ot::Type{<:SubOrder}, x; dims) = reverse(ot, x, dims)
-Base.reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
-Base.reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
-    newdims = reverse(ot, dims(x, lookup))
+Base.reverse(A::AbstractDimArray; dims=1) = 
+    _reverse(IndexOrder, _reverse(ArrayOrder, A, dims), dims)
+Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+Base.reverse(ot::Type{<:SubOrder}, x; dims) = _reverse(ot, x, dims)
+_reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
+_reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
+    newdims = reverse(ArrayOrder, dims(x, lookup))
     newdata = _reversedata(x, dimnum(x, lookup))
     setdims(rebuild(x, newdata), newdims)
 end
 # Dimension
 Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
-Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, reverse(ot, order(dim)))
+Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = reverse(ot, mode(dim), dim)
+Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode, dim::Dimension) =
+    rebuild(dim; mode=reverse(ot, mode))
 # Reverse the index
-Base.reverse(ot::Type{<:IndexOrder}, dim::Dimension) = reverse(ot, mode(dim), dim)
-Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension) = dim
-Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension{<:Val{I}}) where I = dim
-Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex, dim::Dimension) = dim
-Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex, dim::Dimension{<:Val{I}}) where I = dim
 Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension) =
     rebuild(dim, reverse(index(dim)), reverse(ot, mode))
 Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension{<:Val{I}}) where I =
     rebuild(dim, Val(reverse(I)), reverse(ot, mode))
+Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension) = dim
 Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
 # Mode
-Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
+Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex) = mode
+Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) = 
     rebuild(mode; order=reverse(ot, order(mode)))
 Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) =
     rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
@@ -109,8 +108,6 @@ reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
 reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}) =
     _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
-reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}, dims_) =
-    _reorder(x, map(d -> basetypeof(d)(ot), dims(x, dims_)))
 
 # Recursive reordering. x may be reversed here
 _reorder(x, dims::DimTuple) = _reorder(reorder(x, dims[1]), tail(dims))
@@ -274,4 +271,3 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
-uniquekeys(keys::Tuple{String,Vararg{<:String}}) = uniquekeys(map(Symbol, keys))

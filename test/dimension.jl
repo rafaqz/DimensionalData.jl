@@ -12,10 +12,12 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype, name
     @test metadata(TestDim(1, AutoMode(), "metadata")) == "metadata"
     @test units(TestDim) == nothing
     @test label(TestDim) == "Testname"
-    @test eltype(TestDim(1)) <: Int
+    @test eltype(TestDim(1)) == Int
     @test eltype(TestDim([1, 2, 3])) <: Int
     @test length(TestDim(1)) == 1
     @test length(TestDim([1, 2, 3])) == 3
+    @test eachindex(TestDim(10:10:30)) == Base.OneTo(3)
+    @test eachindex(TestDim(10)) == Base.OneTo(1)
     @test step(TestDim(1:2:3)) == 2
     @test step(TestDim(Base.OneTo(10), mode=NoIndex())) == 1
     @test step(TestDim(1:2:3; mode=Sampled(span=Regular(2)))) == 2
@@ -34,6 +36,7 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype, name
     @test Array(TestDim(10:15)) == [10, 11, 12, 13, 14, 15]
     @test iterate(TestDim(10:20)) == iterate(10:20)
     @test TestDim(5.0:7.0)[2] == 6.0
+    @test TestDim(10)[] == 10
     @test TestDim(5.0:7.0, Sampled(Ordered(), Regular(1.0), Points()))[At(6.0)] == 6.0
 end
 
@@ -61,6 +64,18 @@ end
         (X(Base.OneTo(2), Sampled(Ordered(), Regular(1), Points()), NoMetadata()), Y(Base.OneTo(3), NoIndex(), NoMetadata()))
 end
 
+@testset "Val" begin
+    @test dims(Val{X}()) == Val{X}()
+    @test mode(Val{X}()) == NoIndex()
+end
+
+@testset "AnonDim" begin
+    @test val(AnonDim()) == Colon()
+    @test mode(AnonDim()) == NoIndex()
+    @test metadata(AnonDim()) == NoMetadata()
+    @test name(AnonDim()) == :Anon
+end
+
 @testset "Basic dim and array initialisation and methods" begin
     a = ones(5, 4)
 
@@ -70,21 +85,29 @@ end
     da = DimArray(a, (X(LinRange(140, 148, 5)), Y(LinRange(2, 11, 4))))
     dimz = dims(da)
 
-    @test val(dimz) == index(dimz) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
-    @test name(dimz) == (:X, :Y)
-    @test units(dimz) == (nothing, nothing)
-    @test label(dimz) == ("X", "Y")
-    @test sampling(dimz) == (Points(), Points())
-    @test span(dimz) == (Regular(2.0), Regular(3.0))
-    @test locus(dimz) == (Center(), Center())
-    @test order(dimz) == (Ordered(), Ordered())
-    @test arrayorder(dimz) == order(ArrayOrder, dimz) == (ForwardArray(), ForwardArray())
-    @test indexorder(dimz) == order(IndexOrder, dimz) == (ForwardIndex(), ForwardIndex())
-    @test relation(dimz) == order(Relation, dimz) == (ForwardRelation(), ForwardRelation())
-    @test order(Relation, dimz, X) == ForwardRelation()
-    @test bounds(dimz) == ((140, 148), (2, 11))
-    @test mode(dimz) == (Sampled(Ordered(), Regular(2.0), Points()), 
-                         Sampled(Ordered(), Regular(3.0), Points()))
+    for args in ((dimz,), (dimz, (X(), Y())), (dimz, X(), Y()), 
+                 (dimz, (X, Y)), (dimz, X, Y), 
+                 (dimz, (1, 2)), (dimz, 1, 2))
+        @test val(args...) == index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
+        @test name(args...) == (:X, :Y)
+        @test units(args...) == (nothing, nothing)
+        @test label(args...) == ("X", "Y")
+        @test sampling(args...) == (Points(), Points())
+        @test span(args...) == (Regular(2.0), Regular(3.0))
+        @test locus(args...) == (Center(), Center())
+        @test order(args...) == (Ordered(), Ordered())
+        @test arrayorder(args...) == order(ArrayOrder, args...) == (ForwardArray(), ForwardArray())
+        @test indexorder(args...) == order(IndexOrder, args...) == (ForwardIndex(), ForwardIndex())
+        @test relation(args...) == order(Relation, args...) == (ForwardRelation(), ForwardRelation())
+        @test bounds(args...) == ((140, 148), (2, 11))
+        @test mode(args...) == (Sampled(Ordered(), Regular(2.0), Points()), 
+                             Sampled(Ordered(), Regular(3.0), Points()))
+    end
+
+    @test val(dimz, ()) == index(dimz, ()) == ()
+    @test val(dimz, 1) == val(dimz, X) == val(dimz, X()) == val(dimz[1])
+    @test order(Relation, dimz, 1) == order(Relation, dimz, X) == order(Relation, dimz, X()) == ForwardRelation()
+    @test order(Relation, dimz, ()) == ()
 
     @test dims(dimz, Y) === dimz[2]
     @test slicedims(dimz, (2:4, 3)) ==
@@ -104,9 +127,9 @@ end
     @test name(dimz) == (:row, :column)
     @test label(dimz) == ("row", "column")
     @test basetypeof(dimz[1]) == Dim{:row}
-    @test length.(dimz) == (3, 4)
-    @test size.(dimz) == ((3,), (4,))
-    @test eltype.(dimz) == (Symbol, Int)
+    @test length(dims(dimz, :row)) == 3
+    @test size(dims(dimz, :row)) == (3,)
+    @test eltype(dims(dimz, :row)) == Symbol
     @test firstindex(dimz[1]) == 1
     @test lastindex(dimz[1]) == 3
     @test ndims(dimz[1]) == 1

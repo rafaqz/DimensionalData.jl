@@ -96,6 +96,9 @@ Indicates that the relationship between the index and the array is reversed.
 """
 struct ReverseRelation <: Relation end
 
+arrayorder(args...) = order(ArrayOrder, args...)
+indexorder(args...) = order(IndexOrder, args...)
+relation(args...) = order(Relation, args...)
 
 """
     Ordered(index, array, relation)
@@ -157,12 +160,13 @@ order(ot::Type{<:ArrayOrder}, order::Union{Ordered,Unordered}) = arrayorder(orde
 order(ot::Type{<:Relation}, order::Union{Ordered,Unordered}) = relation(order)
 
 # Sometimes you need order as a Bool, like for serarchsorted
-isrev(::ForwardIndex) = false
-isrev(::ReverseIndex) = true
-isrev(::ForwardArray) = false
-isrev(::ReverseArray) = true
-isrev(::ForwardRelation) = false
-isrev(::ReverseRelation) = true
+isrev(::SO) where SO<:SubOrder = isrev(SO)
+isrev(::Type{ForwardIndex}) = false
+isrev(::Type{ReverseIndex}) = true
+isrev(::Type{ForwardArray}) = false
+isrev(::Type{ReverseArray}) = true
+isrev(::Type{ForwardRelation}) = false
+isrev(::Type{ReverseRelation}) = true
 
 """
 Locii indicate the position of index values in cells.
@@ -318,7 +322,18 @@ sampling along some transect.
 """
 abstract type IndexMode <: Mode end
 
+@noinline span(mode::T) where T<:IndexMode = 
+    error("$T has no span. Pass a `span` field manually.")
+@noinline sampling(mode::T) where T<:IndexMode = 
+    error("$T has no sampling. Pass a `sampling` field manually.")
+
+dims(::IndexMode) = nothing
+dims(::Type{<:IndexMode}) = nothing
 order(ot::Type{<:SubOrder}, mode::IndexMode) = order(ot, order(mode))
+arrayorder(mode::IndexMode) = arrayorder(order(mode))
+indexorder(mode::IndexMode) = indexorder(order(mode))
+relation(mode::IndexMode) = relation(order(mode))
+locus(mode::IndexMode) = Center()
 
 Base.step(mode::IndexMode, dim) = Base.step(mode)
 
@@ -343,14 +358,6 @@ bounds(mode::IndexMode, dim) = bounds(indexorder(mode), mode, dim)
 bounds(::ForwardIndex, ::IndexMode, dim) = first(dim), last(dim)
 bounds(::ReverseIndex, ::IndexMode, dim) = last(dim), first(dim)
 bounds(::UnorderedIndex, ::IndexMode, dim) = (nothing, nothing)
-
-dims(::IndexMode) = nothing
-dims(::Type{<:IndexMode}) = nothing
-order(::IndexMode) = Unordered()
-arrayorder(mode::IndexMode) = arrayorder(order(mode))
-indexorder(mode::IndexMode) = indexorder(order(mode))
-relation(mode::IndexMode) = relation(order(mode))
-locus(mode::IndexMode) = Center()
 
 @noinline Base.step(mode::T) where T <: IndexMode =
     error("No step provided by $T. Use a `Sampled` with `Regular`")
@@ -415,12 +422,7 @@ or a `rebuild` method that accpts them as keyword arguments.
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
 span(mode::AbstractSampled) = mode.span
-@noinline span(mode::T) where T<:IndexMode = 
-    error("$T has no span. Pass a `span` field manually.")
-
 sampling(mode::AbstractSampled) = mode.sampling
-sampling(mode::IndexMode) = Points()
-
 locus(mode::AbstractSampled) = locus(sampling(mode))
 
 Base.step(mode::AbstractSampled) = step(span(mode))
@@ -439,11 +441,6 @@ bounds(::Center, ::ReverseIndex, span, mode, dim) =
     last(dim) + step(span) / 2, first(dim) - step(span) / 2
 bounds(::End, ::ForwardIndex, span, mode, dim) = first(dim) - step(span), last(dim)
 bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(dim)
-
-# Bounds are always in ascending order
-sortbounds(mode::IndexMode, bounds) = sortbounds(indexorder(mode), bounds)
-sortbounds(mode::ForwardIndex, bounds) = bounds
-sortbounds(mode::ReverseIndex, bounds) = bounds[2], bounds[1]
 
 # TODO: deal with unordered AbstractArray indexing
 slicemode(mode::AbstractSampled, index, I) =

@@ -126,12 +126,12 @@ end
 
 @inline function Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys
     nkeys = length(Keys)
-    if i > length(dims(t))
+    if i > length(t) || i < 1
+        throw(ArgumentError("There is no column $i"))
+    elseif i > length(dims(t))
         vec(values(data(dataset(t)))[i - length(dims(t))])
     elseif i < nkeys
         dimcolumns(t)[i]
-    else
-        error("There is no column $i")
     end
 end
 @inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)

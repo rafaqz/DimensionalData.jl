@@ -29,8 +29,6 @@ the axes or columns etc. of the underlying data.
 The default is to return `nothing`.
 """
 function dims end
-dims(x) = nothing
-dims(::Nothing) = error("No dims found")
 
 """
     refdims(x) => Tuple{Vararg{<:Dimension}}
@@ -46,7 +44,6 @@ captions empty.
 The default is to return an empty `Tuple` `()`.
 """
 function refdims end
-refdims(x) = ()
 
 """
     val(x)
@@ -101,7 +98,6 @@ or a mixed tuple.
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
 """
 function metadata end
-metadata(x) = NoMetadata()
 
 """
     bounds(dim::Dimension) => Tuple{T,T}}
@@ -126,8 +122,6 @@ Get the name of an array or Dimension, or a tuple of of either.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function name end
-name(x) = name(typeof(x))
-name(x::Type) = ""
 
 """
     units(x) => Union{Nothing,Any}
@@ -143,11 +137,6 @@ not a guarantee that they will be. If not available, `nothing` is returned.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function units end
-units(x) = if metadata(x) isa Nothing || metadata(x) isa NoMetadata 
-        nothing
-    else
-        get(metadata(x), :units, nothing)
-    end
 
 """
     label(x) => String
@@ -160,7 +149,6 @@ if they exist, and anything else that should be shown on a plot.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function label end
-label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
 
 
 """
@@ -218,7 +206,6 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function arrayorder end
-arrayorder(args...) = order(ArrayOrder, args...)
 
 """
     indexorder(dim:Dimension) => Union{Forward,Reverse}
@@ -231,7 +218,6 @@ for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function indexorder end
-indexorder(args...) = order(IndexOrder, args...)
 
 """
     relation(dim:Dimension) => Union{Forward,Reverse}
@@ -244,4 +230,3 @@ and the array axis, for each dimension.
 `dims` can be `Dimension`s, `Dimension` types, or `Symbols` for `Dim{Symbol}`.
 """
 function relation end
-relation(args...) = order(Relation, args...)

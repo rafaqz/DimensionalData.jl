@@ -64,9 +64,9 @@ using Combinatorics: combinations
 end
 
 @testset "some matmul ambiguity methods" begin
-    special_types = (Adjoint, Diagonal, Symmetric, Tridiagonal, SymTridiagonal, BitArray,)
+    special_types = (Adjoint, Transpose, Diagonal, Symmetric, Tridiagonal, SymTridiagonal, BitArray,)
 
-    @testset "matrix" begin
+    @testset "DimMatrix" begin
         da = DimArray(ones(5,5), (:a, :b))
         @testset "$T" for T in special_types
             x = T(ones(5,5))
@@ -79,7 +79,7 @@ end
         end
     end
 
-    @testset "vector" begin
+    @testset "DimVector" begin
         dv = DimArray(ones(5), :vec)
         @testset "$T" for T in special_types
             x = T(ones(5,5))
@@ -90,6 +90,14 @@ end
             @test parent(dv' * x) == parent(dv)' * x
             @test parent(x * dv) == x * parent(dv) 
         end
+        @testset "$T" for T in (Adjoint, Transpose)
+            x = T(1:5)
+            @test x * dv === 15.0
+            @test typeof(dv * x) <: DimArray
+            @test dims(dv * x) isa Tuple{<:Dim{:vec},AnonDim}
+            @test dv * x == vcat(x, x, x, x, x)
+        end
+
     end
 
 end

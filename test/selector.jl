@@ -444,9 +444,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test near(fwdrev, Near(29.5)) == 1
             @test near(revrev, Near(29.4)) == 25
             @test near(revrev, Near(30.1)) == 26
+            @test_throws ArgumentError near(Ti((5.0:30.0); mode=Sampled(order=Unordered(), sampling=Points())), Near(30.1))
         end
 
-        @testset "near" begin
+        @testset "contains" begin
             @test_throws ArgumentError contains(fwdfwd, Contains(50))
         end
 
@@ -454,8 +455,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
 
 end
 
-
-@testset "Selectors on Sampled" begin
+@testset "Selectors on Sampled Points" begin
     da = DimArray(a, (Y((10, 30); mode=Sampled()), Ti((1:4)u"s"; mode=Sampled())))
 
     @test At(10.0) == At(10.0, nothing, nothing)
@@ -645,23 +645,22 @@ end
         @test c[1:3, 2] == [200, 201, 202]
     end
 
-    @testset "DateTime on Sampled" begin
-        timedim = Ti(DateTime(2001):Month(1):DateTime(2001, 12); 
-            mode=Sampled(span=Regular(Month(1)), sampling=Intervals(Start()))
-        )
-        da = DimArray(1:12, timedim)
-        @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
-        @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
-        @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
+    @testset "Where " begin
+        @test val(Where(identity)) == identity
+        dimz = Ti((1:1:3)u"s"), Y(10:10:40)
+        da = DimArray(a, dimz)
+        wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
+        @test parent(wda) == [7 8; 11 12]
+        @test index(wda) == ([2u"s", 3u"s"], [30, 40])
     end
 
 end
 
-@testset "Selectors on Sampled and Intervals" begin
+@testset "Selectors on Sampled Intervals" begin
     da = DimArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())),
                               Ti((1:4)u"s"; mode=Sampled(sampling=Intervals()))))
 
-    @testset "selectors with dim wrappers" begin
+    @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
         @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
@@ -669,7 +668,7 @@ end
         @test @inferred view(da, Y(Between(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
     end
 
-    @testset "selectors without dim wrappers" begin
+    @testset "without dim wrappers" begin
         @test @inferred da[At(20:10:30), At(1u"s")] == [5, 9]
         @test @inferred view(da, Between(4, 36), Near((3:4)u"s")) == [3 4; 7 8; 11 12]
         @test @inferred view(da, Near(22), At([3.0u"s", 4.0u"s"])) == [7, 8]
@@ -681,14 +680,37 @@ end
         @test @inferred view(da, Between((11, 26)), Between((2u"s", 4u"s"))) == [6 7]
     end
 
-end
+    @testset "with DateTime index" begin
+        @testset "Start locus" begin
+            timedim = Ti(DateTime(2001):Month(1):DateTime(2001, 12); 
+                mode=Sampled(span=Regular(Month(1)), sampling=Intervals(Start()))
+            )
+            da = DimArray(1:12, timedim)
+            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
+            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
+        end
+        @testset "End locus" begin
+            timedim = Ti(DateTime(2001):Month(1):DateTime(2001, 12); 
+                mode=Sampled(span=Regular(Month(1)), sampling=Intervals(End()))
+            )
+            da = DimArray(1:12, timedim)
+            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
+            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [6, 7, 8]
+        end
+    end
 
-@testset "Selectors on NoIndex" begin
-    dimz = Ti(), Y()
-    da = DimArray(a, dimz)
-    @test @inferred da[Ti(At([1, 2])), Y(Contains(2))] == [2, 6]
-    @test @inferred da[Near(2), Between(2, 4)] == [6, 7, 8]
-    @test @inferred da[Contains([1, 3]), Near([2, 3, 4])] == [2 3 4; 10 11 12]
+    @testset "with Val index" begin
+        valdimz = Ti(Val(2.0:2.0:6.0); mode=Sampled()), 
+                  Y(Val(10.0:10.0:40); mode=Sampled())
+        da = DimArray(a, valdimz)
+        @test @inferred da[Ti=Val(4.0), Y=Val(40.0)] == 8
+        @test @inferred da[2.0, 20.0] == 2
+        @test @inferred da[Near(Val{3.2}()), At(Val{20.0}())] == 6
+        @test @inferred da[Near(3.2), At(20.0)] == 6
+    end
+
 end
 
 @testset "Selectors on Categorical" begin
@@ -709,6 +731,12 @@ end
         Y([:a, :b, :c, :d]; mode=Categorical(Unordered()))
     da = DimArray(a, dimz)
     @test_throws ArgumentError da[At(:two), Between(:b, :d)] == [6, 7, 8]
+    # @test_throws MethodError da[Near(:two), Near(:d)]
+
+    unordered_dimz = Ti([:one, :two, :three]; mode=Categorical(Unordered())),
+        Y([:a, :b, :c, :d]; mode=Categorical(Unordered()))
+    unordered_da = DimArray(a, unordered_dimz)
+    unordered_da[Near(:two), Near(:d)]
 
     a = [1 2  3  4
          5 6  7  8
@@ -722,16 +750,15 @@ end
     @test @inferred da[Near(2.5), At(:c)] == 7
 end
 
-@testset "Where " begin
-    @test val(Where(identity)) == identity
-    dimz = Ti((1:1:3)u"s"), Y(10:10:40)
+@testset "Selectors on NoIndex" begin
+    dimz = Ti(), Y()
     da = DimArray(a, dimz)
-    wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
-    @test parent(wda) == [7 8; 11 12]
-    @test index(wda) == ([2u"s", 3u"s"], [30, 40])
+    @test @inferred da[Ti(At([1, 2])), Y(Contains(2))] == [2, 6]
+    @test @inferred da[Near(2), Between(2, 4)] == [6, 7, 8]
+    @test @inferred da[Contains([1, 3]), Near([2, 3, 4])] == [2 3 4; 10 11 12]
 end
 
-@testset "TranformedIndex" begin
+@testset "Selectors on TranformedIndex" begin
     using CoordinateTransformations
 
     m = LinearMap([0.5 0.0; 0.0 0.5])
@@ -763,6 +790,11 @@ end
         # Indexing directly with mode dims also just works, but maybe shouldn't?
         @test @inferred da[X(2), Y(2), Z(1)] == 6
     end
+end
+
+@testset "sel2indices" begin
+    @test sel2indices(A[X(1)], Contains(7)) == (3,)
+    @test sel2indices(dims_, ()) == ()
 end
 
 @testset "errors" begin

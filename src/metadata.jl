@@ -30,6 +30,13 @@ Base.eltype(m::Metadata) = eltype(val(m))
 Base.length(m::Metadata) = length(val(m))
 Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 
+# Metadata nearly always contains strings, which break GPU compat.
+# For now just remove everything, but we could strip all strings
+# and replace Dict with NamedTuple. 
+# This might also be a problem with non-GPU uses of Adapt.jl where keeping
+# the metadata is fine.
+Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
+
 """
 Abstract supertype for `Metadata` wrappers to be attached to `Dimension`s.
 """
@@ -103,3 +110,12 @@ function metadatadict(dict)
     end
     symboldict
 end
+
+metadata(x) = NoMetadata()
+
+units(x) = units(metadata(x))
+units(m::NoMetadata) = nothing
+units(m::Nothing) = nothing
+units(m::Metadata) = get(m, :units, nothing)
+
+label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))

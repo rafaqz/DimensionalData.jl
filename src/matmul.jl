@@ -1,15 +1,5 @@
 using LinearAlgebra: AbstractTriangular, AbstractRotation
 
-Base.:*(A::AbstractDimVector, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::AbstractVector) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimVector, B::AbstractMatrix) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::AbstractMatrix) = _rebuildmul(A, B)
-Base.:*(A::AbstractMatrix, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::AbstractVector, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::AbstractMatrix, B::AbstractDimMatrix) = _rebuildmul(A, B)
-
 # Copied from symmetric.jl
 const AdjTransVec = Union{Transpose{<:Any,<:AbstractVector},Adjoint{<:Any,<:AbstractVector}}
 const RealHermSym{T<:Real,S} = Union{Hermitian{T,S}, Symmetric{T,S}}
@@ -17,40 +7,51 @@ const RealHermSymComplexHerm{T<:Real,S} = Union{Hermitian{T,S}, Symmetric{T,S}, 
 const RealHermSymComplexSym{T<:Real,S} = Union{Hermitian{T,S}, Symmetric{T,S}, Symmetric{Complex{T},S}}
 
 # Ambiguities
-Base.:*(A::AbstractDimMatrix, B::Diagonal) = _rebuildmul(A, B)
+for (a, b) in (
+    (AbstractDimVector, AbstractDimMatrix),
+    (AbstractDimMatrix, AbstractDimVector),
+    (AbstractDimMatrix, AbstractDimMatrix),
+    (AbstractDimMatrix, AbstractVector),
+    (AbstractDimVector, AbstractMatrix),
+    (AbstractDimMatrix, AbstractMatrix),
+    (AbstractMatrix, AbstractDimVector),
+    (AbstractVector, AbstractDimMatrix),
+    (AbstractMatrix, AbstractDimMatrix),
+    (AbstractDimVector, Adjoint{<:Any,<:AbstractMatrix}),
+    (AbstractDimVector, AdjTransVec),
+    (AbstractDimVector, Transpose{<:Any,<:AbstractMatrix}),
+    (AbstractDimMatrix, Diagonal),
+    (AbstractDimMatrix, Adjoint{<:Any,<:RealHermSymComplexHerm}),
+    (AbstractDimMatrix, Adjoint{<:Any,<:AbstractTriangular}),
+    (AbstractDimMatrix, Transpose{<:Any,<:AbstractTriangular}),
+    (AbstractDimMatrix, Transpose{<:Any,<:RealHermSymComplexSym}),
+    (AbstractDimMatrix, AbstractTriangular),
+    (Diagonal, AbstractDimVector),
+    (Diagonal, AbstractDimMatrix),
+    (Transpose{<:Any,<:AbstractTriangular}, AbstractDimVector),
+    (Transpose{<:Any,<:AbstractTriangular}, AbstractDimMatrix),
+    (Transpose{<:Any,<:AbstractVector}, AbstractDimVector),
+    (Transpose{<:Real,<:AbstractVector}, AbstractDimVector),
+    (Transpose{<:Any,<:AbstractVector}, AbstractDimMatrix),
+    (Transpose{<:Any,<:RealHermSymComplexSym}, AbstractDimMatrix),
+    (Transpose{<:Any,<:RealHermSymComplexSym}, AbstractDimVector),
+    (AbstractTriangular, AbstractDimVector),
+    (AbstractTriangular, AbstractDimMatrix),
+    (Adjoint{<:Any,<:AbstractTriangular}, AbstractDimVector),
+    (Adjoint{<:Any,<:AbstractVector}, AbstractDimMatrix),
+    (Adjoint{<:Any,<:RealHermSymComplexHerm}, AbstractDimMatrix),
+    (Adjoint{<:Any,<:AbstractTriangular}, AbstractDimMatrix),
+    (Adjoint{<:Number,<:AbstractVector}, AbstractDimVector{<:Number}),
+    (AdjTransVec, AbstractDimVector),
+    (Adjoint{<:Any,<:RealHermSymComplexHerm}, AbstractDimVector),
+)
+    @eval Base.:*(A::$a, B::$b) = _rebuildmul(A, B)
+end
+
 Base.:*(A::AbstractDimVector, B::Adjoint{T,<:AbstractRotation}) where T = _rebuildmul(A, B)
-Base.:*(A::AbstractDimVector, B::Adjoint{<:Any,<:AbstractMatrix}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimVector, B::AdjTransVec) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimVector, B::Transpose{<:Any,<:AbstractMatrix}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::Adjoint{<:Any,<:RealHermSymComplexHerm}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::Adjoint{<:Any,<:AbstractRotation}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::Adjoint{<:Any,<:AbstractTriangular}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::Transpose{<:Any,<:AbstractTriangular}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::Transpose{<:Any,<:RealHermSymComplexSym}) = _rebuildmul(A, B)
-Base.:*(A::AbstractDimMatrix, B::AbstractTriangular) = _rebuildmul(A, B)
-
-Base.:*(A::Diagonal, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Diagonal, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:AbstractTriangular}, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:AbstractTriangular}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:AbstractVector}, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Real,<:AbstractVector}, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:AbstractVector}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:RealHermSymComplexSym}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Transpose{<:Any,<:RealHermSymComplexSym}, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::AbstractTriangular, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::AbstractTriangular, B::AbstractDimMatrix) = _rebuildmul(A, B)
-
-Base.:*(A::Adjoint{<:Any,<:AbstractTriangular}, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Any,<:AbstractVector}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Any,<:RealHermSymComplexHerm}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Any,<:AbstractTriangular}, B::AbstractDimMatrix) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Number,<:AbstractVector}, B::AbstractDimVector{<:Number}) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
 Base.:*(A::Adjoint{T,<:AbstractRotation}, B::AbstractDimMatrix) where T = _rebuildmul(A, B)
-Base.:*(A::AdjTransVec, B::AbstractDimVector) = _rebuildmul(A, B)
-Base.:*(A::Adjoint{<:Any,<:RealHermSymComplexHerm}, B::AbstractDimVector) = _rebuildmul(A, B)
+Base.:*(A::Transpose{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
+Base.:*(A::Adjoint{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
 
 
 function _rebuildmul(A::AbstractDimVector, B::AbstractDimMatrix)
