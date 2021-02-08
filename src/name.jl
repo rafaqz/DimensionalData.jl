@@ -25,6 +25,7 @@ It's not necessary to use in normal use, a symbol is probably easier.
 struct Name{X} <: AbstractName end
 Name(name::Symbol) = Name{name}()
 Name(name::NoName) = NoName()
+Name(name::Name) = name
 
 Base.Symbol(::Name{X}) where X = X
 Base.string(::Name{X}) where X = string(X)
