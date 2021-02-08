@@ -108,7 +108,7 @@ abstract type YDim{T,Mo,Me} <: DependentDim{T,Mo,Me} end
 """
 Supertype for all Z dimensions.
 """
-abstract type ZDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
+abstract type ZDim{T,Mo,Me} <: DependentDim{T,Mo,Me} end
 
 """
 Supertype for all time dimensions.
