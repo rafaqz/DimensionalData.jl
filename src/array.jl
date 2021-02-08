@@ -168,9 +168,9 @@ function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata()
 end
 # Construct from another AbstractDimArray
 function DimArray(A::AbstractDimArray; 
-    dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+    data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
-    DimArray(A, formatdims(parent(A), dims), refdims, name, metadata)
+    DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
 """
     DimArray(f::Function, dim::Dimension [, name])

@@ -7,8 +7,12 @@ ref = (Ti(1, Sampled(Ordered(), Regular(Day(1)), Points())),)
 da1_regular = DimArray(A1, X(1:50:1000), :Normal; refdims=ref)
 da1_noindex = DimArray(A1, X(), :Normal; refdims=ref)
 da1_categorical = DimArray(A1, X('A':'T'), :Normal; refdims=ref)
+da1_z = DimArray(A1, Z(1:50:1000), :Normal; refdims=ref)
 
-for da in (da1_regular, da1_noindex, da1_categorical)
+# For manual testing
+da1 = da1_z
+
+for da in (da1_regular, da1_noindex, da1_categorical, da1_z)
     for da1 in (da, reverse(da))
         # Plots
         plot(da1)
@@ -43,9 +47,15 @@ da2_noindex = DimArray(A2, (X(), Y()), :Normal)
 da2_ni_r = DimArray(A2, (X(), Y(1:5:100)), :Normal)
 da2_r_ni = DimArray(A2, (X(1:10:400), Y()), :Normal)
 da2_c_c = DimArray(A2, (X('A':'h'), Y('a':'t')), :Normal)
+da2_XY = DimArray(A2, (X(1:10:400), Y(1:5:100)), :Normal)
+da2_YX = DimArray(A2, (Y(1:10:400), X(1:5:100)), :Normal)
+da2_ZY = DimArray(A2, (Z(1:10:400), Y(1:5:100)), :Normal)
 
-for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c)
-    for da2 in (da, reverse(da, dims=X), reverse(da, dims=Y))
+# For manual testing
+da2 = da2_XY
+
+for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY, da2_ZY)
+    for da2 in (da, reverse(da, dims=first(dims(da))), reverse(da, dims=first(dims(da))))
         # Plots
         plot(da2)
         bar(da2)
