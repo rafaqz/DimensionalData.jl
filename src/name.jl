@@ -3,6 +3,8 @@ Abstract supertype for name wrappers.
 """
 abstract type AbstractName end
 
+Base.convert(T::Type{<:AbstractString}, name::AbstractName) = convert(T, string(name))
+
 """
 NoName specifies an array is not named, and is the default `name`
 value for all `DimArray`s. It can be used in `set` to remove the
@@ -30,5 +32,6 @@ Name(name::Name) = name
 Base.Symbol(::Name{X}) where X = X
 Base.string(::Name{X}) where X = string(X)
 
+name(x::Name) = x
 name(x) = name(typeof(x))
 name(x::Type) = ""
