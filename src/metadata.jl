@@ -1,4 +1,6 @@
 """
+    Metadata
+
 Abstract supertype for all metadata wrappers.
 
 These allow tracking the contents and origin of metadata. This can facilitate
@@ -38,22 +40,30 @@ Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
 
 """
+    AbstractDimMetadata <: Metadata
+
 Abstract supertype for `Metadata` wrappers to be attached to `Dimension`s.
 """
 abstract type AbstractDimMetadata{T} <: Metadata{T} end
 
 """
+    AbstractArrayMetadata <: Metadata
+
 Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoArrays`.
 """
 abstract type AbstractArrayMetadata{T} <: Metadata{T} end
 
 """
+    AbstractStackMetadata <: Metadata
+
 Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoStack`.
 """
 abstract type AbstractStackMetadata{T} <: Metadata{T} end
 
 
 """
+    DimMetadata <: AbstractDimMetadata
+
     DimMetadata(val::Union{Dict,NamedTuple})
     DimMetadata(pairs::Pair...) => DimMetadata{Dict}
     DimMetadata(; kw...) => DimMetadata{NamedTuple}
@@ -65,6 +75,8 @@ struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractDimMetadata{T}
 end
 
 """
+    ArrayMetadata <: AbstractArrayMetadata
+
     ArrayMetadata(val::Union{Dict,NamedTuple})
     ArrayMetadata(pairs::Pair...) => ArrayMetadata{Dict}
     ArrayMetadata(; kw...) => ArrayMetadata{NamedTuple}
@@ -76,6 +88,8 @@ struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractArrayMetadata
 end
 
 """
+    StackMetadata <: AbstractStackMetadata
+
     StackMetadata(val::Union{Dict,NamedTuple})
     StackMetadata(pairs::Pair...) => StackMetadata{Dict}
     StackMetadata(; kw...) => StackMetadata{NamedTuple}
@@ -87,6 +101,8 @@ struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractStackMetadata
 end
 
 """
+    NoMetadata <: Metadata
+
     NoMetadata()
 
 Indicates an object has no metadata. Can be used in `set`

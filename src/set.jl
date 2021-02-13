@@ -2,6 +2,7 @@ const InDims = Union{AbstractDimMetadata,Type,UnionAll,Dimension,IndexMode,ModeC
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
+    set(x, val)
 
 Set the field matching the supertypes of values in xs and return a new object.
 
@@ -58,6 +59,7 @@ function set end
 set(A::DimArrayOrStack, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
 set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 set(A, x) = _cantseterror(A, x)
+
 """
     set(x, args::Pairs...) => x with updated field/s
     set(x, args...; kw...) => x with updated field/s

@@ -1,11 +1,15 @@
 """
-Supertype for dimensional stacks.
+    AbstractDimStack
+
+Abstract supertype for dimensional stacks.
 
 These have multiple layers of data, but share dimensions.
 """
 abstract type AbstractDimStack{L,N,D} end
 
 """
+    DimStack <: AbstractDimStack
+
     DimStack(data::AbstractDimArray...)
     DimStack(data::Tuple{Vararg{<:AbstractDimArray}})
     DimStack(data::NamedTuple{Keys,Vararg{<:AbstractDimArray}})

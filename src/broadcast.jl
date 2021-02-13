@@ -1,7 +1,7 @@
 import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
 """
-    DimensionalStyle{S}
+    DimensionalStyle <: AbstractArrayStyle
 
 This is a `BroadcastStyle` for AbstractAbstractDimArray's
 It preserves the dimension names.

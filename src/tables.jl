@@ -72,9 +72,16 @@ Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
 Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
 
+"""
+    AbstractDimTable <: Tables.AbstractColumns
+
+Abstract supertype for dim tables
+"""
 abstract type AbstractDimTable <: Tables.AbstractColumns end
 
 """
+    DimTable <: AbstractDimTable
+
     DimTable(A::AbstractDimArray)
 
 Construct a Tables.jl compatible object out of an `AbstractDimArray`.

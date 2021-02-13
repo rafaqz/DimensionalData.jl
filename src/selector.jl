@@ -1,4 +1,8 @@
 """
+    Selector
+
+Abstract supertype for all selectors.
+
 Selectors are wrappers that indicate that passed values are not the array indices,
 but values to be selected from the dimension index, such as `DateTime` objects for
 a `Ti` dimension.
@@ -27,6 +31,8 @@ rebuild(sel::Selector, val) = basetypeof(sel)(val)
 @inline maybeselector(i) = At(i)
 
 """
+    At <: Selector
+
     At(x, atol, rtol)
     At(x; atol=nothing, rtol=nothing)
 
@@ -65,6 +71,8 @@ atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
 """
+    Near <: Selector
+
     Near(x)
 
 Selector that selects the nearest index to `x`.
@@ -92,6 +100,8 @@ struct Near{T} <: Selector{T}
 end
 
 """
+    Contains <: Selector
+
     Contains(x)
 
 Selector that selects the interval the value is contained by. If the
@@ -119,6 +129,8 @@ struct Contains{T} <: Selector{T}
 end
 
 """
+    Between <: Selector
+
     Between(a, b)
 
 Selector that retreive all indices located between 2 values,
@@ -163,6 +175,8 @@ end
 Between(args...) = Between(args)
 
 """
+    Where <: Selector
+
     Where(f::Function)
 
 Selector that filters a dimension by any function that accepts

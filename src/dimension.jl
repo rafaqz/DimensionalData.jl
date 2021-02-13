@@ -1,5 +1,7 @@
 """
-Supertype of all dimension types.
+    Dimension 
+
+Abstract supertype of all dimension types.
 
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
@@ -86,32 +88,44 @@ to track additional information about the data and the index, and their relation
 abstract type Dimension{T,Mo,Me} end
 
 """
-Supertype for independent dimensions. Thise will plot on the X axis.
+    IndependentDim <: Dimension
+
+Abstract supertype for independent dimensions. Thise will plot on the X axis.
 """
 abstract type IndependentDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
-Supertype for Dependent dimensions. These will plot on the Y axis.
+    DependentDim <: Dimension
+
+Abstract supertype for Dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T,Mo,Me} <: Dimension{T,Mo,Me} end
 
 """
-Supertype for all X dimensions.
+    XDim <: IndependentDim
+
+Abstract supertype for all X dimensions.
 """
 abstract type XDim{T,Mo,Me} <: IndependentDim{T,Mo,Me} end
 
 """
-Supertype for all Y dimensions.
+    YDim <: DependentDim
+
+Abstract supertype for all Y dimensions.
 """
 abstract type YDim{T,Mo,Me} <: DependentDim{T,Mo,Me} end
 
 """
-Supertype for all Z dimensions.
+    ZDim <: DependentDim
+
+Abstract supertype for all Z dimensions.
 """
 abstract type ZDim{T,Mo,Me} <: DependentDim{T,Mo,Me} end
 
 """
-Supertype for all time dimensions.
+    TimeDim <: IndependentDim
+
+Abstract supertype for all time dimensions.
 
 In a `TimeDime` with `Interval` sampling the locus will automatically
 be set to `Start()`. Dates and times generally refer to the start of a
@@ -134,7 +148,7 @@ const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
 
 """
     rebuild(dim::Dimension, val, mode=mode(dim), metadata=metadata(dim)) => Dimension
-    rebuild(dim::Dimension, val=val(dim), mode=mode(dim), metadata=metadata(dim)) => Dimension
+    rebuild(dim::Dimension; val=val(dim), mode=mode(dim), metadata=metadata(dim)) => Dimension
 
 Rebuild dim with fields from `dim`, and new fields passed in.
 """
@@ -238,7 +252,7 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
 end
 
 """
-Supertype for Dimensions with user-set type paremeters
+Abstract supertype for Dimensions with user-set type paremeters
 """
 abstract type ParametricDimension{X,T,Mo,Me} <: Dimension{T,Mo,Me} end
 
@@ -283,6 +297,8 @@ key2dim(s::Val{S}) where S = Dim{S}()
 dim2key(::Type{D}) where D<:Dim{S} where S = S
 
 """
+    AnonDim <: Dimension
+
     AnonDim()
 
 Anonymous dimension. Used when extra dimensions are created,
@@ -301,7 +317,6 @@ name(::AnonDim) = :Anon
 """
     @dim typ [supertype=Dimension] [name::String=string(typ)]
 
-m
 Macro to easily define new dimensions. The supertype will be inserted
 into the type of the dim. The default is simply `YourDim <: Dimension`. Making
 a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
@@ -346,6 +361,8 @@ end
 # Define some common dimensions.
 
 """
+    X <: XDim
+
     X(val=:; mode=AutoMode(), metadata=nothing)
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
@@ -362,6 +379,8 @@ mean(A; dims=X)
 @dim X XDim
 
 """
+    Y <: YDim
+
     Y(val=:; mode=AutoMode(), metadata=nothing)
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
@@ -378,6 +397,8 @@ mean(A; dims=Y)
 @dim Y YDim
 
 """
+    Z <: ZDim
+
     Z(val=:; mode=AutoMode(), metadata=nothing)
 
 Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
@@ -393,7 +414,9 @@ mean(A; dims=Z)
 """
 @dim Z ZDim
 
-"""
+"""m
+    Ti <: TimeDim
+    
     Ti(val=:; mode=AutoMode(), metadata=nothing)
 
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
