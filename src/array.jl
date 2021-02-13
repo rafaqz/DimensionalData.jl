@@ -1,5 +1,7 @@
 """
-Supertype for all "dim" arrays.
+    AbstracDimArray <: AbstractArray
+
+Abstract supertype for all "dim" arrays.
 
 These arrays return a [`Tuple`](@ref) of [`Dimension`](@ref)
 from a [`dims`](@ref) method, and can be rebuilt using [`rebuild`](@ref).
@@ -32,14 +34,14 @@ name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
 
 """
-    rebuild(A::AbstractDimArray, data, dims=dims(A), refdims=refdims(A),
-            name=name(A), metadata=metadata(A)) => AbstractDimArray
+    rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
+    rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
 
 Rebuild and `AbstractDimArray` with some field changes. All types
 that inherit from `AbstractDimArray` must define this method if they
 have any additional fields or alternate field order.
 
-They can discard arguments like `refdims`, `name` and `metadata`.
+Implementations can discard arguments like `refdims`, `name` and `metadata`.
 
 This method can also be used with keyword arguments in place of regular arguments.
 """
@@ -115,6 +117,8 @@ end
 # Concrete implementation ######################################################
 
 """
+    DimArray <: AbstractDimArray
+
     DimArray(data, dims, refdims, name)
     DimArray(data, dims::Tuple [, name::Symbol]; refdims=(), metadata=NoMetadata())
 
@@ -130,7 +134,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
-  slices and reductions of dimension for labelling and reconstruction.
+    slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: Array metadata, or `NoMetadata()`
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s

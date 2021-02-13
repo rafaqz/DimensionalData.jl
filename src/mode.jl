@@ -1,15 +1,21 @@
 
 """
-Supertype of all component objects of [`Mode`](@ref).
+    ModeComponent
+
+Abstract supertype of all component objects of [`Mode`](@ref).
 """
 abstract type ModeComponent end
 
 """
+    Order <: ModeComponent
+
 Traits for the order of the array, index and the relation between them.
 """
 abstract type Order <: ModeComponent end
 
 """
+    AutoOrder <: Order
+
     AutoOrder()
 
 Order will be found automatically where possible.
@@ -19,6 +25,8 @@ This will fail for all dim eltypes without `isless` methods.
 struct AutoOrder <: Order end
 
 """
+    UnknownOrder <: Order
+
     UnknownOrder()
 
 Specifies that Order is not known and can't be determined.
@@ -27,17 +35,23 @@ struct UnknownOrder <: Order end
 
 
 """
-Supertype for sub-components of `Order` types
+    SubOrder <: Order
+
+Abstract supertype for sub-components of `Order` types
 """
 abstract type SubOrder <: Order end
 
 
 """
-Supertype for dim index order
+    IndexOrder <: SubOrder
+
+Abstract supertype for dim index order
 """
 abstract type IndexOrder <: SubOrder end
 
 """
+    ForwardIndex <: IndexOrder
+
     ForwardIndex()
 
 Indicates that the dimension index is in the normal forward order.
@@ -45,6 +59,8 @@ Indicates that the dimension index is in the normal forward order.
 struct ForwardIndex <: IndexOrder end
 
 """
+    ReverseIndex <: IndexOrder
+
     ReverseIndex()
 
 Indicates that the dimension index is in reverse order.
@@ -54,11 +70,15 @@ struct ReverseIndex <: IndexOrder end
 struct UnorderedIndex <: IndexOrder end
 
 """
-Supertype for array ordering
+    ArrayOrder <: IndexOrder
+
+Abstract supertype for array ordering
 """
 abstract type ArrayOrder <: SubOrder end
 
 """
+    ForwardArray <: ArrayOrder
+
     ForwardArray()
 
 Indicates that the array axis is in the normal forward order.
@@ -66,6 +86,8 @@ Indicates that the array axis is in the normal forward order.
 struct ForwardArray <: ArrayOrder end
 
 """
+    ReverseArray <: ArrayOrder
+
     ReverseArray()
 
 Indicates that the array axis is in reverse order.
@@ -77,19 +99,25 @@ struct ReverseArray <: ArrayOrder end
 
 
 """
-Supertype for index/array relationship
+    Relation <: SubOrder
+
+Abstract supertype for index/array relationship
 """
 abstract type Relation <: SubOrder end
 
 """
+    ForwardRelation <: Relation
+
     ForwardRelation()
 
-Indicates that the relationship between the index and the array is
-int the normal forward direction.
+Indicates that the relationship between the index and the array is 
+in the normal forward direction.
 """
 struct ForwardRelation <: Relation end
 
 """
+    ReverseRelation <: Relation
+
     ReverseRelation()
 
 Indicates that the relationship between the index and the array is reversed.
@@ -101,6 +129,8 @@ indexorder(args...) = order(IndexOrder, args...)
 relation(args...) = order(Relation, args...)
 
 """
+    Ordered <: Order 
+
     Ordered(index, array, relation)
     Ordered(; index=ForwardIndex(), array=ForwardArray(), relation=ForwardRelation())
 
@@ -137,6 +167,8 @@ arrayorder(order::Ordered) = order.array
 relation(order::Ordered) = order.relation
 
 """
+    Unordered <: Order 
+
     Unordered(relation=ForwardRelation())
 
 Trait indicating that the array or dimension has no order.
@@ -169,7 +201,9 @@ isrev(::Type{ForwardRelation}) = false
 isrev(::Type{ReverseRelation}) = true
 
 """
-Locii indicate the position of index values in cells.
+   Locus <: ModeComponent
+
+Abstract supertype of types that indicate the position of index values in cells.
 
 These allow for values array cells to align with the [`Start`](@ref),
 [`Center`](@ref), or [`End`](@ref) of values in the dimension index.
@@ -185,6 +219,8 @@ will default to `Start` Locii. All others default to `Center`.
 abstract type Locus <: ModeComponent end
 
 """
+    Center <: Locus
+
     Center()
 
 Indicates a dimension value is for the center of its corresponding array cell,
@@ -193,6 +229,8 @@ in the direction of the dimension index order.
 struct Center <: Locus end
 
 """
+    Start <: Locus
+
     Start()
 
 Indicates a dimension value is for the start of its corresponding array cell,
@@ -201,6 +239,8 @@ in the direction of the dimension index order.
 struct Start <: Locus end
 
 """
+    End <: Locus
+
     End()
 
 Indicates a dimension value is for the end of its corresponding array cell,
@@ -209,6 +249,8 @@ in the direction of the dimension index order.
 struct End <: Locus end
 
 """
+    AutoLocus <: Locus
+
     AutoLocus()
 
 Indicates a dimension where the index position is not yet known.
@@ -218,6 +260,8 @@ struct AutoLocus <: Locus end
 
 
 """
+    Sampling <: ModeComponent
+
 Indicates the sampling method used by the index: [`Points`](@ref)
 or [`Intervals`](@ref).
 """
@@ -226,6 +270,8 @@ abstract type Sampling <: ModeComponent end
 struct AutoSampling <: Sampling end
 
 """
+    Points <: Sampling
+
     Points()
 
 [`Sampling`](@ref) mode where single samples at exact points.
@@ -237,6 +283,8 @@ struct Points <: Sampling end
 locus(sampling::Points) = Center()
 
 """
+    Intervals <: Sampling
+
     Intervals(locus::Locus)
 
 [`Sampling`](@ref) mode where samples are the mean (or similar)
@@ -260,12 +308,16 @@ Rebuild `Intervals` with a new Locus.
 rebuild(::Intervals, locus) = Intervals(locus)
 
 """
+    Span <: ModeComponent
+
 Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
 abstract type Span <: ModeComponent end
 
 """
+    AutoSpan <: Span
+
     AutoSpan()
 
 Span will be guessed and replaced by a constructor.
@@ -275,6 +327,8 @@ struct AutoSpan <: Span end
 struct AutoStep end
 
 """
+    Regular <: Span
+
     Regular(step=AutoStep())
 
 Intervalss have regular size. This is passed to the constructor,
@@ -290,6 +344,8 @@ val(span::Regular) = span.step
 Base.step(span::Regular) = span.step
 
 """
+    Irregular <: Span
+
     Irregular(bounds::Tuple)
     Irregular(lowerbound, upperbound)
 
@@ -306,12 +362,16 @@ Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 bounds(span::Irregular) = span.bounds
 
 """
-Supertype for all `Dimension` modes.
+    Mode 
+
+Abstract supertype for all `Dimension` modes.
 Defines or modifies dimension behaviour.
 """
 abstract type Mode end
 
 """
+    IndexMode <: Mode
+
 Types defining the behaviour of a dimension index, how it is plotted 
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
@@ -338,6 +398,8 @@ locus(mode::IndexMode) = Center()
 Base.step(mode::IndexMode, dim) = Base.step(mode)
 
 """
+    AutoMode <: Mode
+
     AutoMode()
 
 Automatic [`IndexMode`](@ref), the default mode. It will be converted automatically
@@ -366,7 +428,9 @@ slicemode(mode::IndexMode, index, I) = mode
 
 
 """
-Supertype for [`IndexMode`](@ref)s where the index is aligned with the array axes.
+    Aligned <: Mode
+
+Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array axes.
 This is by far the most common case.
 """
 abstract type Aligned{O} <: IndexMode end
@@ -374,6 +438,8 @@ abstract type Aligned{O} <: IndexMode end
 order(mode::Aligned) = mode.order
 
 """
+    NoIndex <: Mode
+
     NoIndex()
 
 An [`IndexMode`](@ref) that is identical to the array axis.
@@ -412,6 +478,8 @@ order(mode::NoIndex) = Ordered(ForwardIndex(), ForwardArray(), ForwardRelation()
 Base.step(mode::NoIndex) = 1
 
 """
+    AbstractSampled <: Aligned
+
 Abstract supertype for [`IndexMode`](@ref)s where the index is aligned with the array,
 and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
 `Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
@@ -463,6 +531,8 @@ slicebounds(locus::Center, bounds, index, I) =
 
 
 """
+    Sampled <: AbstractSampled
+
     Sampled(order::Order, span::Span, sampling::Sampling)
     Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=Points())
 
@@ -478,13 +548,14 @@ not assigned to [`Categorical`](@ref).
 
 ## Fields
 
-- `order` indicating array and index order (in [`Order`](@ref)), detected from the range order.
+- `order` indicating array and index order (in [`Order`](@ref)), detected from the 
+    range order.
 - `span` indicates the size of intervals or distance between points, and will be set to
-  [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
-  unless assigned manually.
-- `sampling` is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref)
-  manually. Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
-  to take account for the full size of the interval, rather than the point alone.
+    [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
+    unless assigned manually.
+- `sampling` is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) manually. 
+    Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
+    to take account for the full size of the interval, rather than the point alone.
 
 ## Example
 
@@ -512,6 +583,8 @@ Sampled(; order=AutoOrder(), span=AutoSpan(), sampling=AutoSampling()) =
     Sampled(order, span, sampling)
 
 """
+    AbstractCategorical <: Aligned
+
 [`IndexMode`](@ref)s for dimensions where the values are categories.
 
 [`Categorical`](@ref) is the provided concrete implementation.
@@ -525,6 +598,8 @@ order(mode::AbstractCategorical) = mode.order
 
 
 """
+    Categorical <: AbstractCategorical
+
     Categorical(o::Order)
     Categorical(; order=Unordered())
 
@@ -564,7 +639,10 @@ Categorical(; order=Unordered()) = Categorical(order)
 
 
 """
-Supertype for [`IndexMode`](@ref) where the `Dimension` index is not aligned to the grid.
+    Unaligned <: IndexMode
+
+Abstract supertype for [`IndexMode`](@ref) where the `Dimension` index is not aligned to 
+the grid.
 
 Indexing with an [`Unaligned`](@ref) dimension with [`Selector`](@ref)s must provide all
 other [`Unaligned`](@ref) dimensions.
@@ -572,6 +650,8 @@ other [`Unaligned`](@ref) dimensions.
 abstract type Unaligned <: IndexMode end
 
 """
+    Transformed <: Unaligned
+
     Transformed(f, dim::Dimension)
 
 [`IndexMode`](@ref) that uses an affine transformation to convert
@@ -584,7 +664,7 @@ from CoordinateTransformations.jl may be useful.
 ## Fields
 - `f`: transformation function
 - `dims`: a tuple containing dimenension types or symbols matching the
-  order needed by the transform function.
+    order needed by the transform function.
 
 ## Example
 
