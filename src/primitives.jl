@@ -137,10 +137,10 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-(X (type X) (NoIndex),)
+(X (NoIndex),)
 
 julia> commondims(A, (X, Z))
-(X (type X) (NoIndex), Z (type Z) (NoIndex))
+(X (NoIndex), Z (NoIndex))
 
 julia> commondims(A, Ti)
 ()
@@ -244,13 +244,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y (type Y) (NoIndex), Z (type Z) (NoIndex))
+(Y (NoIndex), Z (NoIndex))
 
 julia> otherdims(A, (Y, Z))
-(X (type X) (NoIndex),)
+(X (NoIndex),)
 
 julia> otherdims(A, Ti)
-(X (type X) (NoIndex), Y (type Y) (NoIndex), Z (type Z) (NoIndex))
+(X (NoIndex), Y (NoIndex), Z (NoIndex))
 ```
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)

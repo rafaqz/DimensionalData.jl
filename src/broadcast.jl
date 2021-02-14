@@ -1,14 +1,10 @@
 import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
-"""
-    DimensionalStyle <: AbstractArrayStyle
 
-This is a `BroadcastStyle` for AbstractAbstractDimArray's
-It preserves the dimension names.
-`S` should be the `BroadcastStyle` of the wrapped type.
-
-Copied from NamedDims.jl (thanks @oxinabox).
-"""
+# This is a `BroadcastStyle` for AbstractAbstractDimArray's
+# It preserves the dimension names.
+# `S` should be the `BroadcastStyle` of the wrapped type.
+# Copied from NamedDims.jl (thanks @oxinabox).
 struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
 DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
 DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))

@@ -79,7 +79,7 @@ Selector that selects the nearest index to `x`.
 
 With [`Points`](@ref) this is simply the index values nearest to the `x`,
 however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
-This will be offset from the index value for [`Start`](@ref) and
+This will be offset from the index value for `Start` and
 [`End`](@ref) loci.
 
 ## Example
@@ -144,7 +144,7 @@ the values. Different [`Sampling`](@ref) types may give different
 results with the same input - this is the intended behaviour.
 
 `Between` for [`Irregular`](@ref) intervals is a little complicated. The
-interval is the distance between a value and the next (for [`Start`](ref) locus)
+interval is the distance between a value and the next (for `Start` locus)
 or previous (for [`End`](@ref) locus) value.
 
 For [`Center`](@ref), we take the mid point between two index values
@@ -162,9 +162,9 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 
 # output
 
-DimArray with dimensions:
- X (type X): 20:10:20 (Sampled: Ordered Regular Points)
- Y (type Y): 5:6 (Sampled: Ordered Regular Points)
+DimArray (named ) with dimensions:
+ X: 20:10:20 (Sampled: Ordered Regular Points)
+ Y: 5:6 (Sampled: Ordered Regular Points)
 and data: 1×2 Array{Int64,2}
  4  5
 ```
@@ -192,9 +192,9 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 
 # output
 
-DimArray with dimensions:
- X (type X): Int64[20] (Sampled: Ordered Regular Points)
- Y (type Y): Int64[19, 21] (Sampled: Ordered Regular Points)
+DimArray (named ) with dimensions:
+ X: Int64[20] (Sampled: Ordered Regular Points)
+ Y: Int64[19, 21] (Sampled: Ordered Regular Points)
 and data: 1×2 Array{Int64,2}
  4  6
 ```

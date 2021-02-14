@@ -54,6 +54,7 @@ Where
 ## Name
 
 ```@docs
+DimensionalData.AbstractName
 Name
 NoName
 ```
@@ -68,6 +69,7 @@ AbstractArrayMetadata
 ArrayMetadata
 AbstractStackMetadata
 StackMetadata
+NoMetadata
 ```
 
 ## Modes
@@ -89,11 +91,13 @@ AutoMode
 Order of arrays and indices:
 
 ```@docs
+DimensionalData.ModeComponent
 Order
 Unordered
 Ordered
 AutoOrder
 UnknownOrder
+DimensionalData.SubOrder
 IndexOrder
 ForwardIndex
 ReverseIndex
@@ -139,6 +143,7 @@ AutoLocus
 ## Tables.jl interface
 
 ```@docs
+DimensionalData.AbstractDimTable
 DimTable
 DimensionalData.DimColumn
 ```
@@ -194,6 +199,8 @@ dimwise
 dimwise!
 reorder
 reverse
+fill
+map
 ```
 
 ## Non-exported methods for developers

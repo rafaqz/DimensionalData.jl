@@ -23,6 +23,7 @@ makedocs(
         "API" => "api.md",
         "For Developers" => "developer.md"
         ],
+    strict=true,
 )
 
 if CI
