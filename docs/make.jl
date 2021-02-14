@@ -1,7 +1,7 @@
 using Pkg
 Pkg.activate(@__DIR__)
 
-using Documenter, DimensionalData
+using Documenter, DimensionalData, CoordinateTransformations
 
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
