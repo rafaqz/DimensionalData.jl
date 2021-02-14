@@ -205,7 +205,7 @@ isrev(::Type{ReverseRelation}) = true
 
 Abstract supertype of types that indicate the position of index values in cells.
 
-These allow for values array cells to align with the [`Start`](@ref),
+These allow for values array cells to align with the `Start`,
 [`Center`](@ref), or [`End`](@ref) of values in the dimension index.
 
 This means they can be plotted with correct axis markers, and allows automatic

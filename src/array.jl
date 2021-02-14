@@ -3,7 +3,7 @@
 
 Abstract supertype for all "dim" arrays.
 
-These arrays return a [`Tuple`](@ref) of [`Dimension`](@ref)
+These arrays return a `Tuple` of [`Dimension`](@ref)
 from a [`dims`](@ref) method, and can be rebuilt using [`rebuild`](@ref).
 
 `parent` must return the source array.
