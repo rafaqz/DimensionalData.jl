@@ -1,3 +1,6 @@
+
+const _MetadataContents = Union{AbstractDict,NamedTuple}
+
 """
     Metadata
 
@@ -7,16 +10,19 @@ These allow tracking the contents and origin of metadata. This can facilitate
 conversion between metadata types (for saving a file to a differenet format)
 or simply saving data back to the same file type with identical metadata.
 """
-abstract type Metadata{T} end
+abstract type Metadata{X,T} end
 
 # NamedTuple/Dict constructor
 # We have to combine these because the no-arg method is overwritten by empty kw.
-function (::Type{T})(ps...; kw...) where T <: Metadata
+function (::Type{M})(ps...; kw...) where M <: Metadata
     if length(ps) > 0 && length(kw) > 0
         throw(ArgumentError("Metadata can be constructed with args of Pair to make a Dict, or kw for a NamedTuple. But not both."))
     end
-    length(kw) > 0 ? T((; kw...)) : T(Dict(ps...))
+    length(kw) > 0 ? M((; kw...)) : M(Dict(ps...))
 end
+
+ConstructionBase.constructorof(::Type{<:T}) where T <: Metadata{X} where X =
+    basetypeof(T){X}
 
 val(m::Metadata) = m.val
 
@@ -41,24 +47,23 @@ Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
 
 """
     AbstractDimMetadata <: Metadata
-
 Abstract supertype for `Metadata` wrappers to be attached to `Dimension`s.
 """
-abstract type AbstractDimMetadata{T} <: Metadata{T} end
+abstract type AbstractDimMetadata{X,T} <: Metadata{X,T} end
 
 """
     AbstractArrayMetadata <: Metadata
 
 Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoArrays`.
 """
-abstract type AbstractArrayMetadata{T} <: Metadata{T} end
+abstract type AbstractArrayMetadata{X,T} <: Metadata{X,T} end
 
 """
     AbstractStackMetadata <: Metadata
 
 Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoStack`.
 """
-abstract type AbstractStackMetadata{T} <: Metadata{T} end
+abstract type AbstractStackMetadata{X,T} <: Metadata{X,T} end
 
 
 """
@@ -70,9 +75,11 @@ abstract type AbstractStackMetadata{T} <: Metadata{T} end
 
 [`Metadata`](@ref) for a [`Dimension`](@ref).
 """
-struct DimMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractDimMetadata{T}
+struct DimMetadata{X,T<:_MetadataContents} <: AbstractDimMetadata{X,T}
     val::T
 end
+DimMetadata(val::T) where {T<:_MetadataContents} = DimMetadata{Nothing,T}(val)
+DimMetadata{X}(val::T) where {X,T<:_MetadataContents} = DimMetadata{X,T}(val)
 
 """
     ArrayMetadata <: AbstractArrayMetadata
@@ -83,9 +90,11 @@ end
 
 [`Metadata`](@ref) for a [`DimArray`](@ref).
 """
-struct ArrayMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractArrayMetadata{T}
+struct ArrayMetadata{X,T<:_MetadataContents} <: AbstractArrayMetadata{X,T}
     val::T
 end
+ArrayMetadata(val::T) where {T<:_MetadataContents} = ArrayMetadata{Nothing,T}(val)
+ArrayMetadata{X}(val::T) where {X,T<:_MetadataContents} = ArrayMetadata{X,T}(val)
 
 """
     StackMetadata <: AbstractStackMetadata
@@ -96,9 +105,11 @@ end
 
 [`Metadata`](@ref)for a [`DimStack`](@ref).
 """
-struct StackMetadata{T<:Union{AbstractDict,NamedTuple}} <: AbstractStackMetadata{T}
+struct StackMetadata{X,T<:_MetadataContents} <: AbstractStackMetadata{X,T}
     val::T
 end
+StackMetadata(val::T) where {T<:_MetadataContents} = StackMetadata{Nothing,T}(val)
+StackMetadata{X}(val::T) where {X,T<:_MetadataContents} = M{X,T}(val)
 
 """
     NoMetadata <: Metadata
@@ -108,7 +119,7 @@ end
 Indicates an object has no metadata. Can be used in `set`
 to remove any existing metadata.
 """
-struct NoMetadata <: Metadata{NamedTuple{(),Tuple{}}} end
+struct NoMetadata <: Metadata{Nothing,NamedTuple{(),Tuple{}}} end
 
 val(m::NoMetadata) = NamedTuple()
 
