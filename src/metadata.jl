@@ -7,9 +7,12 @@ const _MetadataContents = Union{AbstractDict,NamedTuple}
 
 Abstract supertype for all metadata wrappers.
 
-These allow tracking the contents and origin of metadata. This can facilitate
-conversion between metadata types (for saving a file to a differenet format)
+Metadata wrappers allow tracking the contents and origin of metadata. This can 
+facilitate conversion between metadata types (for saving a file to a differenet format)
 or simply saving data back to the same file type with identical metadata.
+
+Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata 
+objects to [`set`](@ref) without ambiguity about where to put them.
 """
 abstract type AbstractMetadata{X,T} end
 
@@ -20,9 +23,8 @@ abstract type AbstractMetadata{X,T} end
     Metadata{X}(pairs::Pair...) => Metadata{Dict}
     Metadata{X}(; kw...) => Metadata{NamedTuple}
 
-General [`Metadata`](@ref) object. `A` and `B` type parameters
-label and categorise the metadata for dispatch. `A` may be te object type `:Dimension`, `:Array`
-or `:Stack`, `B` may refer to the source of the metadata.
+General [`Metadata`](@ref) object. The `X` type parameter
+categorises the metadata for method dispatch, if required. 
 """
 struct Metadata{X,T<:_MetadataContents} <: AbstractMetadata{X,T}
     val::T
