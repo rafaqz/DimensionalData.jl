@@ -62,13 +62,8 @@ NoName
 ## Metadata
 
 ```@docs
+AbstractMetadata
 Metadata
-AbstractDimMetadata
-DimMetadata
-AbstractArrayMetadata
-ArrayMetadata
-AbstractStackMetadata
-StackMetadata
 NoMetadata
 ```
 
