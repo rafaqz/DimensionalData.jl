@@ -14,7 +14,7 @@ using DimensionalData, Test
     @test units(nothing) === nothing
     @test units(NoMetadata()) === nothing
 
-    for md in (Metadata(; nt...), Metadata{:Test}(; nt...), Metadata{:Test1,:Test2}(; nt...))
+    for md in (Metadata(; nt...), Metadata{:Test}(; nt...))
         @test units(md) == "km"
         @test length(md) == 2
         @test haskey(md, :a)

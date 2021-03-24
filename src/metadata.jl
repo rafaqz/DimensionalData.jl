@@ -16,6 +16,18 @@ objects to [`set`](@ref) without ambiguity about where to put them.
 """
 abstract type AbstractMetadata{X,T} end
 
+Base.get(m::AbstractMetadata, args...) = get(val(m), args...)
+Base.getindex(m::AbstractMetadata, key) = getindex(val(m), Symbol(key))
+Base.setindex!(m::AbstractMetadata, x, key) = setindex!(val(m), x, Symbol(key))
+Base.haskey(m::AbstractMetadata, key) = haskey(val(m), Symbol(key))
+Base.keys(m::AbstractMetadata) = keys(val(m))
+Base.iterate(m::AbstractMetadata, args...) = iterate(val(m), args...)
+Base.IteratorSize(m::AbstractMetadata) = Base.IteratorSize(val(m))
+Base.IteratorEltype(m::AbstractMetadata) = Base.IteratorEltype(val(m))
+Base.eltype(m::AbstractMetadata) = eltype(val(m))
+Base.length(m::AbstractMetadata) = length(val(m))
+Base.:(==)(m1::AbstractMetadata, m2::AbstractMetadata) = m1 isa typeof(m2) && val(m1) == val(m2)
+
 """
     Metadata <: AbstractMetadata
 
@@ -29,8 +41,7 @@ categorises the metadata for method dispatch, if required.
 struct Metadata{X,T<:_MetadataContents} <: AbstractMetadata{X,T}
     val::T
 end
-Metadata(val::T) where {T<:_MetadataContents} = Metadata{Nothing,Nothing,T}(val)
-Metadata{X}(val::T) where {X,T<:_MetadataContents} = Metadata{X,Nothing,T}(val)
+Metadata(val::T) where {T<:_MetadataContents} = Metadata{Nothing,T}(val)
 Metadata{X}(val::T) where {X,T<:_MetadataContents} = Metadata{X,T}(val)
 
 # NamedTuple/Dict constructor
@@ -45,18 +56,6 @@ end
 ConstructionBase.constructorof(::Type{<:Metadata{X}}) where {X} = Metadata{X}
 
 val(m::Metadata) = m.val
-
-Base.get(m::Metadata, args...) = get(val(m), args...)
-Base.getindex(m::Metadata, key) = getindex(val(m), Symbol(key))
-Base.setindex!(m::Metadata, x, key) = setindex!(val(m), x, Symbol(key))
-Base.haskey(m::Metadata, key) = haskey(val(m), Symbol(key))
-Base.keys(m::Metadata) = keys(val(m))
-Base.iterate(m::Metadata, args...) = iterate(val(m), args...)
-Base.IteratorSize(m::Metadata) = Base.IteratorSize(val(m))
-Base.IteratorEltype(m::Metadata) = Base.IteratorEltype(val(m))
-Base.eltype(m::Metadata) = eltype(val(m))
-Base.length(m::Metadata) = length(val(m))
-Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 
 # Metadata nearly always contains strings, which break GPU compat.
 # For now just remove everything, but we could strip all strings

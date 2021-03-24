@@ -12,11 +12,11 @@ Base.getindex(x::CustomArray, y...) = getindex(x.arr, y...)
 Base.count(x::CustomArray) = count(x.arr)
 
 @testset "Metadata" begin
-    @test adapt(CustomArray, DimMetadata(Dict(:a=>"1", :b=>"2"))) == NoMetadata()
+    @test adapt(CustomArray, Metadata(:a=>"1", :b=>"2")) == NoMetadata()
 end
 
 @testset "Dimension" begin
-    d = X([1:10...]; metadata=DimMetadata(Dict(:a=>"1", :b=>"2")))
+    d = X([1:10...]; metadata=Metadata(:a=>"1", :b=>"2"))
     d1 = adapt(CustomArray, d)
     @test val(d1) isa CustomArray
     @test val(d1).arr == [1:10...]

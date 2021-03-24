@@ -6,9 +6,9 @@ a2 = [1 2 3 4
       3 4 5 6
       4 5 6 7]
 dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-xmeta = DimMetadata(:meta => "X")
-ymeta = DimMetadata(:meta => "Y")
-ameta = ArrayMetadata(:meta => "da")
+xmeta = Metadata(:meta => "X")
+ymeta = Metadata(:meta => "Y")
+ameta = Metadata(:meta => "da")
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
 refdimz = (Ti(1:1),)

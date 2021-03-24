@@ -51,8 +51,7 @@ export AbstractDimTable, DimTable
 
 export AbstractDimStack, DimStack
 
-export Metadata, AbstractArrayMetadata, AbstractDimMetadata, AbstractStackMetadata,
-       ArrayMetadata, DimMetadata, StackMetadata, NoMetadata
+export AbstractMetadata, Metadata, NoMetadata
 
 export AbstractName, Name, NoName
 
