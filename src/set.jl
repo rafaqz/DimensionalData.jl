@@ -1,4 +1,4 @@
-const InDims = Union{AbstractDimMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
+const InDims = Union{AbstractMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
@@ -87,14 +87,14 @@ set(A::AbstractDimArray, newdata::AbstractArray) = begin
     rebuild(A; data=newdata)
 end
 """
-    set(A::AbstractDimArray, metadata::AbstractArrayMetadata) => AbstractDimArray
+    set(A::AbstractDimArray, metadata::AbstractMetadata) => AbstractDimArray
 
 Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::Union{AbstractArrayMetadata,NoMetadata}) =
+set(A::AbstractDimArray, metadata::AbstractMetadata) = 
     rebuild(A; metadata=metadata)
 """
-    set(A::AbstractDimArray, metadata::DimMetadata) => AbstractDimArray
+    set(A::AbstractDimArray, name::AbstractName) => AbstractDimArray
 
 Symbols are always names, and update the `name` field of the array.
 """
@@ -113,17 +113,16 @@ set(s::AbstractDimStack, newdata::NamedTuple) = begin
     rebuild(s; data=newdata)
 end
 """
-    set(s::AbstractDimStack, metadata::Union{StackMetadata,NoMetadata}) => AbstractDimStack
+    set(s::AbstractDimStack, metadata::AbstractMetadata) => AbstractDimStack
 
-StackMetadata update the `metadata` field of the dataset.
+Update the `metadata` field of the stack.
 """
-set(s::AbstractDimStack, metadata::Union{AbstractStackMetadata,NoMetadata}) =
-    rebuild(s; metadata=metadata)
+set(s::AbstractDimStack, metadata::AbstractMetadata) = rebuild(s; metadata=metadata)
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
     set(dim::Dimension, mode::Mode) => Dimension
     set(dim::Dimension, modecomponent::ModeComponent) => Dimension
-    set(dim::Dimension, metadata::AbstractDimMetadata) => Dimension
+    set(dim::Dimension, metadata::AbstractMetadata) => Dimension
 
 Set fields of the dimension
 """
@@ -260,7 +259,7 @@ _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 # Metadata
-_set(dim::Dimension, newmetadata::Union{AbstractDimMetadata,NoMetadata}) =
+_set(dim::Dimension, newmetadata::AbstractMetadata) =
     rebuild(dim, val(dim), mode(dim), newmetadata)
 
 _set(x, ::Nothing) = x
