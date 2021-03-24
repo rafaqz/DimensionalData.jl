@@ -1,8 +1,9 @@
 
 const _MetadataContents = Union{AbstractDict,NamedTuple}
 
+
 """
-    Metadata
+    AbstractMetadata{X,T}
 
 Abstract supertype for all metadata wrappers.
 
@@ -10,7 +11,25 @@ These allow tracking the contents and origin of metadata. This can facilitate
 conversion between metadata types (for saving a file to a differenet format)
 or simply saving data back to the same file type with identical metadata.
 """
-abstract type Metadata{X,T} end
+abstract type AbstractMetadata{X,T} end
+
+"""
+    Metadata <: AbstractMetadata
+
+    Metadata{X}(val::Union{Dict,NamedTuple})
+    Metadata{X}(pairs::Pair...) => Metadata{Dict}
+    Metadata{X}(; kw...) => Metadata{NamedTuple}
+
+General [`Metadata`](@ref) object. `A` and `B` type parameters
+label and categorise the metadata for dispatch. `A` may be te object type `:Dimension`, `:Array`
+or `:Stack`, `B` may refer to the source of the metadata.
+"""
+struct Metadata{X,T<:_MetadataContents} <: AbstractMetadata{X,T}
+    val::T
+end
+Metadata(val::T) where {T<:_MetadataContents} = Metadata{Nothing,Nothing,T}(val)
+Metadata{X}(val::T) where {X,T<:_MetadataContents} = Metadata{X,Nothing,T}(val)
+Metadata{X}(val::T) where {X,T<:_MetadataContents} = Metadata{X,T}(val)
 
 # NamedTuple/Dict constructor
 # We have to combine these because the no-arg method is overwritten by empty kw.
@@ -21,8 +40,7 @@ function (::Type{M})(ps...; kw...) where M <: Metadata
     length(kw) > 0 ? M((; kw...)) : M(Dict(ps...))
 end
 
-ConstructionBase.constructorof(::Type{<:T}) where T <: Metadata{X} where X =
-    basetypeof(T){X}
+ConstructionBase.constructorof(::Type{<:Metadata{X}}) where {X} = Metadata{X}
 
 val(m::Metadata) = m.val
 
@@ -46,80 +64,14 @@ Base.:(==)(m1::Metadata, m2::Metadata) = m1 isa typeof(m2) && val(m1) == val(m2)
 Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
 
 """
-    AbstractDimMetadata <: Metadata
-Abstract supertype for `Metadata` wrappers to be attached to `Dimension`s.
-"""
-abstract type AbstractDimMetadata{X,T} <: Metadata{X,T} end
-
-"""
-    AbstractArrayMetadata <: Metadata
-
-Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoArrays`.
-"""
-abstract type AbstractArrayMetadata{X,T} <: Metadata{X,T} end
-
-"""
-    AbstractStackMetadata <: Metadata
-
-Abstract supertype for `Metadata` wrappers to be attached to `AbstractGeoStack`.
-"""
-abstract type AbstractStackMetadata{X,T} <: Metadata{X,T} end
-
-
-"""
-    DimMetadata <: AbstractDimMetadata
-
-    DimMetadata(val::Union{Dict,NamedTuple})
-    DimMetadata(pairs::Pair...) => DimMetadata{Dict}
-    DimMetadata(; kw...) => DimMetadata{NamedTuple}
-
-[`Metadata`](@ref) for a [`Dimension`](@ref).
-"""
-struct DimMetadata{X,T<:_MetadataContents} <: AbstractDimMetadata{X,T}
-    val::T
-end
-DimMetadata(val::T) where {T<:_MetadataContents} = DimMetadata{Nothing,T}(val)
-DimMetadata{X}(val::T) where {X,T<:_MetadataContents} = DimMetadata{X,T}(val)
-
-"""
-    ArrayMetadata <: AbstractArrayMetadata
-
-    ArrayMetadata(val::Union{Dict,NamedTuple})
-    ArrayMetadata(pairs::Pair...) => ArrayMetadata{Dict}
-    ArrayMetadata(; kw...) => ArrayMetadata{NamedTuple}
-
-[`Metadata`](@ref) for a [`DimArray`](@ref).
-"""
-struct ArrayMetadata{X,T<:_MetadataContents} <: AbstractArrayMetadata{X,T}
-    val::T
-end
-ArrayMetadata(val::T) where {T<:_MetadataContents} = ArrayMetadata{Nothing,T}(val)
-ArrayMetadata{X}(val::T) where {X,T<:_MetadataContents} = ArrayMetadata{X,T}(val)
-
-"""
-    StackMetadata <: AbstractStackMetadata
-
-    StackMetadata(val::Union{Dict,NamedTuple})
-    StackMetadata(pairs::Pair...) => StackMetadata{Dict}
-    StackMetadata(; kw...) => StackMetadata{NamedTuple}
-
-[`Metadata`](@ref)for a [`DimStack`](@ref).
-"""
-struct StackMetadata{X,T<:_MetadataContents} <: AbstractStackMetadata{X,T}
-    val::T
-end
-StackMetadata(val::T) where {T<:_MetadataContents} = StackMetadata{Nothing,T}(val)
-StackMetadata{X}(val::T) where {X,T<:_MetadataContents} = M{X,T}(val)
-
-"""
-    NoMetadata <: Metadata
+    NoMetadata <: AbstractMetadata
 
     NoMetadata()
 
 Indicates an object has no metadata. Can be used in `set`
 to remove any existing metadata.
 """
-struct NoMetadata <: Metadata{Nothing,NamedTuple{(),Tuple{}}} end
+struct NoMetadata <: AbstractMetadata{Nothing,NamedTuple{(),Tuple{}}} end
 
 val(m::NoMetadata) = NamedTuple()
 

@@ -3,19 +3,18 @@ using DimensionalData, Test
 @testset "Metadata" begin
     nt = (a="test1", units="km")
     d = (:a=>"test1", :units=>"km")
-    @test val(DimMetadata(nt)) isa NamedTuple
-    @test val(DimMetadata(d)) isa Dict
-    @test val(DimMetadata()) isa Dict
-    @test DimMetadata(nt) == DimMetadata(; nt...)
-    @test DimMetadata(d) == DimMetadata(d...) == DimMetadata(Dict(d))
-    dm = DimMetadata(d)
+    @test val(Metadata(nt)) isa NamedTuple
+    @test val(Metadata(d)) isa Dict
+    @test val(Metadata()) isa Dict
+    @test Metadata(nt) == Metadata(; nt...)
+    @test Metadata(d) == Metadata(d...) == Metadata(Dict(d))
+    dm = Metadata(d)
     dm[:c] = "added metadata"
     @test dm[:c] == "added metadata"
     @test units(nothing) === nothing
     @test units(NoMetadata()) === nothing
 
-    for md in (DimMetadata(; nt...), ArrayMetadata(; nt...), StackMetadata(; nt...),
-               DimMetadata(d...), ArrayMetadata(d...), StackMetadata(d...))
+    for md in (Metadata(; nt...), Metadata{:Test}(; nt...), Metadata{:Test1,:Test2}(; nt...))
         @test units(md) == "km"
         @test length(md) == 2
         @test haskey(md, :a)
@@ -41,7 +40,7 @@ using DimensionalData, Test
         @test Base.IteratorEltype(md) == Base.HasEltype()
     end
 
-    @test_throws ArgumentError DimMetadata(:a => "1"; units="km")
+    @test_throws ArgumentError Metadata{:Test}(:a => "1"; units="km")
 end
 
 @testset "NoMetadata" begin
