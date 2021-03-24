@@ -9,7 +9,7 @@ using DimensionalData: slicedims, basetypeof, formatdims, modetype, name
     @test DimensionalData.name(TestDim) == :Testname
     @test label(TestDim) == "Testname"
     @test val(TestDim(:testval)) == :testval
-    @test metadata(TestDim(1, AutoMode(), "metadata")) == "metadata"
+    @test metadata(TestDim(1, AutoMode(), Metadata(a=1))) == Metadata(a=1)
     @test units(TestDim) == nothing
     @test label(TestDim) == "Testname"
     @test eltype(TestDim(1)) == Int
@@ -51,10 +51,10 @@ end
     @test formatdims(A, (a=[:A, :B], b=(10.0:10.0:30.0))) ==
     (Dim{:a}([:A, :B], Categorical(Unordered()), NoMetadata()),
      Dim{:b}(10.0:10:30.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata()))
-    @test formatdims(A, (X([:A, :B]; metadata=5),
-           Y(10.0:10.0:30.0, Categorical(Ordered()), Dict("metadata"=>1)))) ==
-          (X([:A, :B], Categorical(Unordered()), 5),
-           Y(10.0:10:30.0, Categorical(Ordered()), Dict("metadata"=>1)))
+    @test formatdims(A, (X([:A, :B]; metadata=Metadata(a=5)),
+           Y(10.0:10.0:30.0, Categorical(Ordered()), Metadata("metadata"=>1)))) ==
+          (X([:A, :B], Categorical(Unordered()), Metadata(a=5)),
+           Y(10.0:10:30.0, Categorical(Ordered()), Metadata("metadata"=>1)))
     @test formatdims(zeros(3, 4), 
         (Dim{:row}(Val((:A, :B, :C))), 
          Dim{:column}(Val((-20, -10, 0, 10)), Sampled(), NoMetadata()))) ==
