@@ -209,6 +209,13 @@ end
     dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
     da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
 
+    @testset "mode step is updated when indexed with a range" begin
+        @test step.(mode(da2)) == (10.0, 10.0)
+        @test step.(mode(da2[1:3, 1:4])) == (10.0, 10.0)
+        @test step.(mode(da2[1:2:3, 1:3:4])) == (20.0, 30.0)
+        @test step.(mode(da2[column=1:2:4, row=1:3:3])) == (30.0, 20.0)
+    end
+
     @testset "Symbol dimension names also work for indexing" begin
         @test da2[Dim{:row}(2)] == [3, 4, 5, 6]
         @test da2[Dim{:column}(4)] == [4, 6, 7]

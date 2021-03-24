@@ -511,13 +511,14 @@ bounds(::End, ::ForwardIndex, span, mode, dim) = first(dim) - step(span), last(d
 bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(dim)
 
 # TODO: deal with unordered AbstractArray indexing
-slicemode(mode::AbstractSampled, index, I) =
-    slicemode(sampling(mode), span(mode), mode, index, I)
-slicemode(::Any, ::Any, mode::AbstractSampled, index, I) = mode
-slicemode(::Intervals, ::Irregular, mode::AbstractSampled, index, I) = begin
-    span = Irregular(slicebounds(mode, index, I))
-    rebuild(mode; order=order(mode), span=span, sampling=sampling(mode))
-end
+slicemode(mode::AbstractSampled, index, i) =
+    slicemode(sampling(mode), span(mode), mode, index, i)
+slicemode(::Any, ::Any, mode::AbstractSampled, index, i) = mode
+slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::UnitRange) = mode
+slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::AbstractRange) =
+    rebuild(mode; span=Regular(step(mode) * step(i)))
+slicemode(::Intervals, ::Irregular, mode::AbstractSampled, index, i) =
+    rebuild(mode; span=Irregular(slicebounds(mode, index, i)))
 
 slicebounds(m::IndexMode, index, I) =
     slicebounds(locus(m), bounds(span(m)), index, _maybeflip(indexorder(m), index, I))
