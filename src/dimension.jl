@@ -22,7 +22,7 @@ attempt to guess the mode from the passed-in index value.
 
 `metadata` can hold any metadata object adding more information about
 the array axis - useful for extending DimensionalData for specific
-contexts, like geospatial data in GeoData.jl. By default it is `nothing`.
+contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
 
 Example:
 
@@ -281,7 +281,7 @@ metadata: NoMetadata()
 type: Dim{:custom, Vector{Char}, AutoMode{AutoOrder}, NoMetadata}
 ```
 """
-struct Dim{S,T,Mo<:Mode,Me} <: ParametricDimension{S,T,Mo,Me}
+struct Dim{S,T,Mo<:Mode,Me<:AbstractMetadata} <: ParametricDimension{S,T,Mo,Me}
     val::T
     mode::Mo
     metadata::Me
@@ -339,7 +339,7 @@ end
 
 function dimmacro(typ, supertype, name::String=string(typ))
     quote
-        Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me} <: $supertype{T,Mo,Me}
+        Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me<:DimensionalData.AbstractMetadata} <: $supertype{T,Mo,Me}
             val::T
             mode::Mo
             metadata::Me
@@ -363,7 +363,7 @@ end
 """
     X <: XDim
 
-    X(val=:; mode=AutoMode(), metadata=nothing)
+    X(val=:; mode=AutoMode(), metadata=NoMetadata())
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
@@ -381,7 +381,7 @@ mean(A; dims=X)
 """
     Y <: YDim
 
-    Y(val=:; mode=AutoMode(), metadata=nothing)
+    Y(val=:; mode=AutoMode(), metadata=NoMetadata())
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
@@ -399,7 +399,7 @@ mean(A; dims=Y)
 """
     Z <: ZDim
 
-    Z(val=:; mode=AutoMode(), metadata=nothing)
+    Z(val=:; mode=AutoMode(), metadata=NoMetadata())
 
 Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 
@@ -417,7 +417,7 @@ mean(A; dims=Z)
 """m
     Ti <: TimeDim
     
-    Ti(val=:; mode=AutoMode(), metadata=nothing)
+    Ti(val=:; mode=AutoMode(), metadata=NoMetadata())
 
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
 
