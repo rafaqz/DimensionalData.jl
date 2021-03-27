@@ -146,14 +146,14 @@ end
             ind = 10.0:10.0:50.0
             dim = X(ind; mode=Sampled(Ordered(), Irregular(0.0, 50000.0), Intervals(Start())))
             @test bounds(dim) == (0.0, 50000.0)
-            @test bounds(DimensionalData.slicedims(dim, 2:3)[1][1]) == (20.0, 40.0)
+            @test bounds(DimensionalData._slicedims(dim, 2:3)[1][1]) == (20.0, 40.0)
         end
         @testset "Explicit bounds are is stored in span matrix" begin
             ind = 10.0:10.0:50.0
             bnds = vcat(ind', (ind .+ 10)')
             dim = X(ind; mode=Sampled(Ordered(), Explicit(bnds), Intervals(Start())))
             @test bounds(dim) == (10.0, 60.0)
-            @test bounds(DimensionalData.slicedims(dim, 2:3)[1][1]) == (20.0, 40.0)
+            @test bounds(DimensionalData._slicedims(dim, 2:3)[1][1]) == (20.0, 40.0)
         end
     end
 

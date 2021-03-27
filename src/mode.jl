@@ -507,8 +507,6 @@ or a `rebuild` method that accpts them as keyword arguments.
 abstract type AbstractSampled{O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{O} end
 
 span(mode::AbstractSampled) = mode.span
-@noinline span(mode::T) where T<:IndexMode =
-    error("$T has no span. Pass a `span` field manually.")
 
 sampling(mode::AbstractSampled) = mode.sampling
 locus(mode::AbstractSampled) = locus(sampling(mode))
@@ -539,7 +537,7 @@ _bounds(::End, ::ReverseIndex, span, mode, dim) = last(dim) + step(span), first(
 
 # TODO: deal with unordered AbstractArray indexing
 _slicemode(mode::AbstractSampled, index, i) =
-    slicemode(sampling(mode), span(mode), mode, index, i)
+    _slicemode(sampling(mode), span(mode), mode, index, i)
 _slicemode(::Any, ::Any, mode::AbstractSampled, index, i) = mode
 _slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::UnitRange) = mode
 _slicemode(::Any, ::Regular, mode::AbstractSampled, index, i::AbstractRange) =
