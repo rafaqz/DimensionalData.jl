@@ -117,6 +117,7 @@ Index modes for [`Intervals`](@ref)
 Span
 Regular
 Irregular
+Explicit
 AutoSpan
 ```
 
