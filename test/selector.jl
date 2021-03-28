@@ -713,6 +713,47 @@ end
 
 end
 
+@testset "Selectors on Sampled Explicit Intervals" begin
+    span_y = Explicit(vcat((5.0:10.0:25.0)', (15.0:10.0:35.0)'))
+    span_ti = Explicit(vcat(((0.5:1.0:3.5)u"s")', ((1.5:1.0:4.5)u"s")'))
+    da = DimArray(a, (Y((10, 30); mode=Sampled(span=span_y, sampling=Intervals())),
+                              Ti((1:4)u"s"; mode=Sampled(span=span_ti, sampling=Intervals()))))
+
+    @testset "with dim wrappers" begin
+        @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
+        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
+        @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.4u"s", 3.1u"s"]))) == [5, 7]
+    end
+
+    @testset "without dim wrappers" begin
+        @test @inferred da[At(20:10:30), At(1u"s")] == [5, 9]
+        @test @inferred view(da, Between(4, 36), Contains((3:4)u"s")) == [3 4; 7 8; 11 12]
+        @test @inferred view(da, Contains(22), At([3.0u"s", 4.0u"s"])) == [7, 8]
+        @test @inferred view(da, At(20), At((2:3)u"s")) == [6, 7]
+        @test @inferred view(da, Contains(13), Contains([1.3u"s", 3.3u"s"])) == [1, 3]
+        @test @inferred view(da, Contains([13]), Contains([1.3u"s", 3.3u"s"])) == [1 3]
+        @test @inferred view(da, Between(11, 26), At((2:3)u"s")) == [6 7]
+        # Between also accepts a tuple input
+        @test @inferred view(da, Between((11, 26)), Between((1.4u"s", 4u"s"))) == [6 7]
+    end
+
+    @testset "with DateTime index" begin
+        span_ti = Explicit(vcat(
+            reshape((DateTime(2001, 1):Month(1):DateTime(2001, 12)), 1, 12),
+            reshape((DateTime(2001, 2):Month(1):DateTime(2002, 1)), 1, 12)
+        ))
+        timedim = Ti(DateTime(2001, 1, 15):Month(1):DateTime(2001, 12, 15); 
+            mode=Sampled(span=span_ti, sampling=Intervals(Center()))
+        )
+        da = DimArray(1:12, timedim)
+        @test @inferred da[Ti(At(DateTime(2001, 3, 15)))] == 3
+        @test @inferred da[Contains(DateTime(2001, 4, 7))] == 4
+        @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
+    end
+
+end
+
 @testset "Selectors on Categorical" begin
     a = [1 2  3  4
          5 6  7  8
