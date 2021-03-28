@@ -5,7 +5,7 @@
 
 Reverse the array order, and update the dim to match.
 """
-Base.reverse(A::AbstractDimArray; dims=1) = 
+Base.reverse(A::AbstractDimArray; dims=1) =
     _reverse(IndexOrder, _reverse(ArrayOrder, A, dims), dims)
 Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
 Base.reverse(ot::Type{<:SubOrder}, x; dims) = _reverse(ot, x, dims)
@@ -29,7 +29,7 @@ Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension) = dim
 Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
 # Mode
 Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex) = mode
-Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) = 
+Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
     rebuild(mode; order=reverse(ot, order(mode)))
 Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) =
     rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
@@ -274,16 +274,47 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
     end
 end
 
+# Produce a 2 * length(dim) matrix of interval bounds from a dim
+dim2boundsmatrix(dim::Dimension) = _dim2boundsmatrix(locus(dim), span(dim), dim)
 
-dim2boundsmatrix(dim::Dimension) = dim2boundsmatrix(locus(dim), span(dim), dim) 
-dim2boundsmatrix(::Start, span::Regular, dim) = 
-    vcat(permutedims(index(dim)), permutedims(index(dim) .+ step(span)))
-dim2boundsmatrix(::End, span::Regular, dim) =
-    vcat(permutedims(index(dim) .- step(span))), permutedims(index(dim))
-dim2boundsmatrix(::Center, span::Regular, dim) =
-    vcat(permutedims(index(dim) .- step(span) / 2), permutedims(index(dim) .+ step(span) / 2))
-dim2boundsmatrix(::Start, span::Explicit, dim) = val(span)
-@noinline dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, dim) =
+_dim2boundsmatrix(::Start, span::Regular, dim) =
+    vcat(permutedims(index(dim)), permutedims(_shiftindexloci(End(), dim)))
+_dim2boundsmatrix(::End, span::Regular, dim) =
+    vcat(permutedims(_shiftindexloci(Start(), dim)), permutedims(index(dim)))
+_dim2boundsmatrix(::Center, span::Regular, dim) =
+    vcat(permutedims(_shiftindexloci(Start(), dim)), permutedims(_shiftindexloci(End(), dim)))
+_dim2boundsmatrix(::Locus, span::Explicit, dim) = val(span)
+@noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, dim) =
     error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
-@noinline dim2boundsmatrix(::Start, span::Irregular, dim) = 
+@noinline _dim2boundsmatrix(::Start, span::Irregular, dim) =
     error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
+
+#=
+Shift the index from the current loci to the new loci. We only actually
+shift Regular Intervals, and do this my multiplying the offset of
+-1, -0.5, 0, 0.5 or 1 by the absolute value of the span.
+=#
+shiftloci(locus::Locus, dim::Dimension) = rebuild(dim, _shiftindexloci(locus, dim))
+
+_shiftindexloci(locus::Locus, dim::Dimension) = _shiftindexloci(locus::Locus, mode(dim), dim)
+_shiftindexloci(locus::Locus, mode::IndexMode, dim::Dimension) = index(dim)
+_shiftindexloci(locus::Locus, mode::AbstractSampled, dim::Dimension) =
+    _shiftindexloci(locus, span(mode), sampling(mode), dim)
+_shiftindexloci(locus::Locus, span::Span, sampling::Sampling, dim::Dimension) = index(dim)
+_shiftindexloci(destlocus::Locus, span::Regular, sampling::Intervals, dim::Dimension) =
+    index(dim) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
+_shiftindexloci(::Start, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[1, :]
+_shiftindexloci(::End, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[2, :]
+_shiftindexloci(destlocus::Center, span::Explicit, sampling::Intervals, dim::Dimension) =
+    _shiftindexloci(destlocus, locus(dim), span, sampling, dim)
+_shiftindexloci(::Center, ::Center, span::Explicit, sampling::Intervals, dim::Dimension) = index(dim)
+_shiftindexloci(::Center, ::Locus, span::Explicit, sampling::Intervals, dim::Dimension) =
+    view(val(span), 2, :)  .- view(val(span), 1, :)
+
+_offset(::Start, ::Center) = 0.5
+_offset(::Start, ::End) = 1
+_offset(::Center, ::Start) = -0.5
+_offset(::Center, ::End) = 0.5
+_offset(::End, ::Start) = -1
+_offset(::End, ::Center) = -0.5
+_offset(::T, ::T) where T<:Locus = 0
