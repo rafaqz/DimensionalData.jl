@@ -14,7 +14,7 @@ using DimensionalData, Test
     @test units(nothing) === nothing
     @test units(NoMetadata()) === nothing
 
-    for md in (Metadata(; nt...), Metadata{:Test}(; nt...))
+    for md in (Metadata(; nt...), Metadata{:Test}(; nt...), Dict(pairs(nt)))
         @test units(md) == "km"
         @test length(md) == 2
         @test haskey(md, :a)
@@ -22,7 +22,7 @@ using DimensionalData, Test
         @test get(md, :a, nothing) == "test1" 
         @test md[:a] == "test1" 
         @test md[:units] == "km" 
-        if val(md) isa Dict
+        if md isa Dict || val(md) isa Dict
             @test [x for x in md] == [:a=>"test1", :units=>"km"]
             @test all(keys(md) .== [:a, :units])
             @test eltype(md) == Pair{Symbol,String}
