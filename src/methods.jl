@@ -63,6 +63,17 @@ end
 function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
     Base._mapreduce_dim(f, op, nt, parent(A), dims)
 end
+function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+end
+@static if VERSION >= v"1.6" 
+    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
+        rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+    end
+    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
+        Base._mapreduce_dim(f, op, nt, parent(A), dims)
+    end
+end
 
 # TODO: Unfortunately Base/accumulate.jl kw methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
