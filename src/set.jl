@@ -1,4 +1,4 @@
-const InDims = Union{AbstractMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
+const InDims = Union{AllMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
@@ -87,12 +87,11 @@ set(A::AbstractDimArray, newdata::AbstractArray) = begin
     rebuild(A; data=newdata)
 end
 """
-    set(A::AbstractDimArray, metadata::AbstractMetadata) => AbstractDimArray
+    set(A::AbstractDimArray, metadata::Union{AbstractMetadata,AbstractDict}) => AbstractDimArray
 
 Update the `metadata` field of the array.
 """
-set(A::AbstractDimArray, metadata::AbstractMetadata) = 
-    rebuild(A; metadata=metadata)
+set(A::AbstractDimArray, metadata::AllMetadata) = rebuild(A; metadata=metadata)
 """
     set(A::AbstractDimArray, name::AbstractName) => AbstractDimArray
 
@@ -106,7 +105,7 @@ set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=nam
 The values must be `AbstractArray of the same size as the original data, to
 match the `Dimension`s in the dims field.
 """
-set(s::AbstractDimStack, newdata::NamedTuple) = begin
+set(s::AbstractDimStack, newdata::AllMetadata) = begin
     map(data(s)) do l
         axes(l) == axes(first(data(s))) || _axiserr(first(data(s)), l)
     end
@@ -259,7 +258,7 @@ _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 # Metadata
-_set(dim::Dimension, newmetadata::AbstractMetadata) =
+_set(dim::Dimension, newmetadata::AllMetadata) =
     rebuild(dim, val(dim), mode(dim), newmetadata)
 
 _set(x, ::Nothing) = x

@@ -281,7 +281,7 @@ metadata: NoMetadata()
 type: Dim{:custom, Vector{Char}, AutoMode{AutoOrder}, NoMetadata}
 ```
 """
-struct Dim{S,T,Mo<:Mode,Me<:AbstractMetadata} <: ParametricDimension{S,T,Mo,Me}
+struct Dim{S,T,Mo<:Mode,Me<:AllMetadata} <: ParametricDimension{S,T,Mo,Me}
     val::T
     mode::Mo
     metadata::Me
@@ -339,7 +339,7 @@ end
 
 function dimmacro(typ, supertype, name::String=string(typ))
     quote
-        Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me<:DimensionalData.AbstractMetadata} <: $supertype{T,Mo,Me}
+        Base.@__doc__ struct $typ{T,Mo<:DimensionalData.Mode,Me<:DimensionalData.AllMetadata} <: $supertype{T,Mo,Me}
             val::T
             mode::Mo
             metadata::Me

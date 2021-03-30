@@ -1,7 +1,4 @@
 
-const _MetadataContents = Union{AbstractDict,NamedTuple}
-
-
 """
     AbstractMetadata{X,T}
 
@@ -15,6 +12,9 @@ Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata
 objects to [`set`](@ref) without ambiguity about where to put them.
 """
 abstract type AbstractMetadata{X,T} end
+
+const _MetadataContents =Union{AbstractDict,NamedTuple}
+const AllMetadata = Union{AbstractMetadata,AbstractDict}
 
 Base.get(m::AbstractMetadata, args...) = get(val(m), args...)
 Base.getindex(m::AbstractMetadata, key) = getindex(val(m), Symbol(key))
@@ -97,5 +97,6 @@ units(x) = units(metadata(x))
 units(m::NoMetadata) = nothing
 units(m::Nothing) = nothing
 units(m::Metadata) = get(m, :units, nothing)
+units(m::AbstractDict) = get(m, :units, nothing)
 
 label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
