@@ -95,14 +95,27 @@ end
 
 Base.Array(A::AbstractDimArray) = Array(parent(A))
 
-Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractDimArray{T,N}) where {T,N} = copy!(parent(dst), parent(src))
-Base.copy!(dst::AbstractDimArray{T,N}, src::AbstractArray{T,N}) where {T,N} = copy!(parent(dst), src)
-Base.copy!(dst::AbstractArray{T,N}, src::AbstractDimArray{T,N}) where {T,N}  = copy!(dst, parent(src))
-# For resolving ambiguity errors
+_maybeunwrap(A::AbstractDimArray) = parent(A)
+_maybeunwrap(A::AbstractArray) = A
+
+for (d, s) in ((:AbstractDimArray, :AbstractDimArray), 
+               (:AbstractDimArray, :AbstractArray), 
+               (:AbstractArray, :AbstractDimArray))
+    @eval begin
+        Base.copy!(dst::$d{T,N}, src::$s{T,N}) where {T,N} = copy!(_maybeunwrap(dst), _maybeunwrap(src))
+        Base.copy!(dst::$d{T,1}, src::$s{T,1}) where T = copy!(_maybeunwrap(dst), _maybeunwrap(src))
+        Base.copyto!(dst::$d, src::$s) = copyto!(_maybeunwrap(dst), _maybeunwrap(src))
+        Base.copyto!(dst::$d, dstart::Integer, src::$s) = 
+            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src))
+        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer) = 
+            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart)
+        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer, n::Integer) = 
+            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart, n)
+        Base.copyto!(dst::$d{T1,N}, Rdst::CartesianIndices{N}, src::$s{T2,N}, Rsrc::CartesianIndices{N}) where {T1,T2,N} =
+            copyto!(_maybeunwrap(dst), Rdst, _maybeunwrap(src), Rsrc)        
+    end
+end
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
-Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractArray{T,1}) where T = copy!(parent(dst), src)
-Base.copy!(dst::AbstractArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
-Base.copy!(dst::AbstractDimArray{T,1}, src::AbstractDimArray{T,1}) where T = copy!(parent(dst), parent(src))
 
 function Adapt.adapt_structure(to, A::AbstractDimArray) 
     rebuild(A, 

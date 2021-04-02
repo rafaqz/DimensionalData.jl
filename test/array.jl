@@ -171,6 +171,20 @@ if VERSION > v"1.1-"
     end
 end
 
+@testset "copyto!" begin
+    A = zero(a2)
+    da = DimArray(ones(size(A)), dims(da2))
+    copyto!(A, da)
+    @test all(A .== 1)
+    copyto!(da, 1, zeros(5, 5), 1, 12)
+    @test all(da .== 0)
+    x = reshape(10:10:40, 1, 4)
+    copyto!(da, CartesianIndices(view(da, 1:1, 1:4)), x, CartesianIndices(x))
+    @test da[1, 1:4] == 10:10:40
+    copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x))
+    @test A[1, 1:4] == 10:10:40
+end
+
 @testset "constructor" begin
     da = DimArray(; data=rand(5, 4), dims=(X, Y))
     @test_throws DimensionMismatch DimArray(1:5, X(1:6))
