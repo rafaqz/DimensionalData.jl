@@ -1,5 +1,5 @@
 using DimensionalData, Test, Dates
-using DimensionalData: flip, shiftloci
+using DimensionalData: flip, shiftlocus, maybeshiftlocus
 
 @testset "reverse" begin
     @testset "dimension" begin
@@ -209,19 +209,29 @@ end
 
 end
 
-@testset "shiftindexloci" begin
+@testset "shiftlocus" begin
     dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
-    @test val(shiftloci(Start(), dim)) == 0.5:1.0:2.5
-    @test val(shiftloci(End(), dim)) == 1.5:1.0:3.5
-    @test val(shiftloci(Center(), dim)) == 1.0:1.0:3.0
+    @test val(shiftlocus(Start(), dim)) == 0.5:1.0:2.5
+    @test val(shiftlocus(End(), dim)) == 1.5:1.0:3.5
+    @test val(shiftlocus(Center(), dim)) == 1.0:1.0:3.0
+    @test locus(shiftlocus(Start(), dim)) == Start()
+    @test locus(shiftlocus(End(), dim)) == End()
+    @test locus(shiftlocus(Center(), dim)) == Center()
     dim = X([3, 4, 5]; mode=Sampled(Ordered(), Regular(1), Intervals(Start())))
-    @test val(shiftloci(End(), dim)) == [4, 5, 6]
-    @test val(shiftloci(Center(), dim)) == [3.5, 4.5, 5.5]
-    @test val(shiftloci(Start(), dim)) == [3, 4, 5]
+    @test val(shiftlocus(End(), dim)) == [4, 5, 6]
+    @test val(shiftlocus(Center(), dim)) == [3.5, 4.5, 5.5]
+    @test val(shiftlocus(Start(), dim)) == [3, 4, 5]
     dim = X([3, 4, 5]; mode=Sampled(Ordered(), Regular(1), Intervals(End())))
-    @test val(shiftloci(End(), dim)) == [3, 4, 5]
-    @test val(shiftloci(Center(), dim)) == [2.5, 3.5, 4.5]
-    @test val(shiftloci(Start(), dim)) == [2, 3, 4]
+    @test val(shiftlocus(End(), dim)) == [3, 4, 5]
+    @test val(shiftlocus(Center(), dim)) == [2.5, 3.5, 4.5]
+    @test val(shiftlocus(Start(), dim)) == [2, 3, 4]
+end
+
+@testset "maybeshiftlocus" begin
+    dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
+    @test val(maybeshiftlocus(Start(), dim)) == 0.5:1.0:2.5
+    dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Points()))
+    @test val(maybeshiftlocus(Start(), dim)) == 1.0:3.0
 end
 
 @testset "dim2boundsmatrix" begin

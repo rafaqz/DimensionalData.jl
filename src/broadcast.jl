@@ -31,7 +31,6 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A()
 BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
 BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
-
 # We need to implement copy because if the wrapper array type does not
 # support setindex then the `similar` based default method will not work
 function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
@@ -81,7 +80,7 @@ end
 _unwrap_broadcasted(x) = x
 _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 
-# Get the first dimensional array inthe broadcast
+# Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
 _fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)

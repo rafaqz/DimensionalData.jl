@@ -267,6 +267,7 @@ or [`Intervals`](@ref).
 """
 abstract type Sampling <: ModeComponent end
 
+struct NoSampling <: Sampling end
 struct AutoSampling <: Sampling end
 
 """
@@ -314,6 +315,8 @@ Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
 abstract type Span <: ModeComponent end
+
+struct NoSpan <: Span end
 
 """
     AutoSpan <: Span
@@ -398,10 +401,8 @@ sampling along some transect.
 """
 abstract type IndexMode <: Mode end
 
-@noinline span(mode::T) where T<:IndexMode = 
-    error("$T has no span. Pass a `span` field manually.")
-@noinline sampling(mode::T) where T<:IndexMode = 
-    error("$T has no sampling. Pass a `sampling` field manually.")
+span(mode::IndexMode) = NoSpan() 
+sampling(mode::IndexMode) = NoSampling()
 
 dims(::IndexMode) = nothing
 dims(::Type{<:IndexMode}) = nothing

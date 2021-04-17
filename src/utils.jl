@@ -275,40 +275,44 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
 end
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
-dim2boundsmatrix(dim::Dimension) = _dim2boundsmatrix(locus(dim), span(dim), dim)
+function dim2boundsmatrix(dim::Dimension) 
+    samp = sampling(dim)
+    samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
+    _dim2boundsmatrix(locus(dim), span(dim), dim)
+end
 
-_dim2boundsmatrix(::Start, span::Regular, dim) =
-    vcat(permutedims(index(dim)), permutedims(_shiftindexloci(End(), dim)))
-_dim2boundsmatrix(::End, span::Regular, dim) =
-    vcat(permutedims(_shiftindexloci(Start(), dim)), permutedims(index(dim)))
-_dim2boundsmatrix(::Center, span::Regular, dim) =
-    vcat(permutedims(_shiftindexloci(Start(), dim)), permutedims(_shiftindexloci(End(), dim)))
 _dim2boundsmatrix(::Locus, span::Explicit, dim) = val(span)
+_dim2boundsmatrix(::Locus, span::Regular, dim) =
+    vcat(permutedims(_shiftindexlocus(Start(), dim)), permutedims(_shiftindexlocus(End(), dim)))
 @noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, dim) =
     error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
 @noinline _dim2boundsmatrix(::Start, span::Irregular, dim) =
     error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
 
 #=
-Shift the index from the current loci to the new loci. We only actually
+Shift the index from the current locus to the new locus. We only actually
 shift Regular Intervals, and do this my multiplying the offset of
 -1, -0.5, 0, 0.5 or 1 by the absolute value of the span.
 =#
-shiftloci(locus::Locus, dim::Dimension) = rebuild(dim, _shiftindexloci(locus, dim))
+function shiftlocus(locus::Locus, dim::Dimension)
+    samp = sampling(dim)
+    samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
+    rebuild(dim; val=_shiftindexlocus(locus, dim), mode=DD._set(mode(dim), locus))
+end
 
-_shiftindexloci(locus::Locus, dim::Dimension) = _shiftindexloci(locus::Locus, mode(dim), dim)
-_shiftindexloci(locus::Locus, mode::IndexMode, dim::Dimension) = index(dim)
-_shiftindexloci(locus::Locus, mode::AbstractSampled, dim::Dimension) =
-    _shiftindexloci(locus, span(mode), sampling(mode), dim)
-_shiftindexloci(locus::Locus, span::Span, sampling::Sampling, dim::Dimension) = index(dim)
-_shiftindexloci(destlocus::Locus, span::Regular, sampling::Intervals, dim::Dimension) =
+_shiftindexlocus(locus::Locus, dim::Dimension) = _shiftindexlocus(locus::Locus, mode(dim), dim)
+_shiftindexlocus(locus::Locus, mode::IndexMode, dim::Dimension) = index(dim)
+_shiftindexlocus(locus::Locus, mode::AbstractSampled, dim::Dimension) =
+    _shiftindexlocus(locus, span(mode), sampling(mode), dim)
+_shiftindexlocus(locus::Locus, span::Span, sampling::Sampling, dim::Dimension) = index(dim)
+_shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, dim::Dimension) =
     index(dim) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
-_shiftindexloci(::Start, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[1, :]
-_shiftindexloci(::End, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[2, :]
-_shiftindexloci(destlocus::Center, span::Explicit, sampling::Intervals, dim::Dimension) =
-    _shiftindexloci(destlocus, locus(dim), span, sampling, dim)
-_shiftindexloci(::Center, ::Center, span::Explicit, sampling::Intervals, dim::Dimension) = index(dim)
-_shiftindexloci(::Center, ::Locus, span::Explicit, sampling::Intervals, dim::Dimension) =
+_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[1, :]
+_shiftindexlocus(::End, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[2, :]
+_shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, dim::Dimension) =
+    _shiftindexlocus(destlocus, locus(dim), span, sampling, dim)
+_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, dim::Dimension) = index(dim)
+_shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, dim::Dimension) =
     view(val(span), 2, :)  .- view(val(span), 1, :)
 
 _offset(::Start, ::Center) = 0.5
@@ -318,3 +322,8 @@ _offset(::Center, ::End) = 0.5
 _offset(::End, ::Start) = -1
 _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
+
+maybeshiftlocus(locus::Locus, dim::Dimension) = _maybeshiftlocus(locus, sampling(dim), dim)
+
+_maybeshiftlocus(locus::Locus, sampling::Intervals, dim::Dimension) = shiftlocus(locus, dim)
+_maybeshiftlocus(locus::Locus, sampling::Sampling, dim::Dimension) = dim

@@ -177,8 +177,8 @@ end
         @test indexorder(dim) == ForwardIndex()
         @test relation(dim) == ForwardRelation()
         @test_throws ErrorException step(dim)
-        @test_throws ErrorException span(dim)
-        @test_throws ErrorException sampling(dim)
+        @test span(dim) == DimensionalData.NoSpan()
+        @test sampling(dim) == DimensionalData.NoSampling()
         @test dims(mode(dim)) === nothing
         @test locus(dim) == Center()
         @test bounds(dim) == (:a, :d)
