@@ -6,15 +6,17 @@ using DimensionalData: _Rot90, _Rot180, _Rot270, _Rot360, _rottype
 
 @testset "map" begin
     a = [1 2; 3 4]
-    dimz = (X((143, 145)), Y((-38, -36)))
+    dimz = X(143:2:145), Y(-38:2:-36; mode=Sampled(span=Explicit([-38 -36; -36 -34])))
     da = DimArray(a, dimz)
     @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimArray{Int64,2}
 end
 
 @testset "dimension reducing methods" begin
+
+    # Test some reducing methods with Explicit spans
     a = [1 2; 3 4]
-    dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
+    dimz = X((143, 145); mode=Sampled()), Y(LinRange(-38, -36, 2); mode=Sampled(span=Explicit([-38 -36; -36 -34])))
     da = DimArray(a, dimz)
 
     # Test all dime combinations with maxium
@@ -35,17 +37,23 @@ end
     @test minimum(da; dims=1) == [1 2]
     @test minimum(da; dims=:) == 1
     @test minimum(da; dims=Y()) == [1 3]'
-    @test dims(minimum(da; dims=X())) ==
-        (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()),
-         Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()))
+    ds = (X([144.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()),
+                Y(LinRange(-38, -36, 2), Sampled(Ordered(), Explicit([-38 -36; -36 -34]), Intervals(Center())), NoMetadata()))
+    @test typeof(dims(minimum(da; dims=X()))) == typeof(ds)
+    @test val.(span(minimum(da; dims=X()))) == val.(span(ds))
 
     @test sum(da; dims=X()) == sum(a; dims=1)
-    @test sum(da; dims=Y()) == sum(a; dims=2)
-    @test dims(sum(da; dims=Y())) ==
-        (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
-         Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()))
+    ds = (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
+         Y([-37.0], Sampled(Ordered(), Explicit(reshape([-38, -34], 2, 1)), Intervals(Center())), NoMetadata()))
+    @test typeof(dims(sum(da; dims=Y()))) == typeof(ds)
+    @test index(sum(da; dims=Y())) == index.(ds)
+    @test val.(span(sum(da; dims=Y()))) == val.(span(ds))
     @test sum(da; dims=:) == 10
     @test sum(x -> 2x, da; dims=:) == 20
+
+    a = [1 2; 3 4]
+    dimz = X((143, 145); mode=Sampled()), Y((-38, -36); mode=Sampled())
+    da = DimArray(a, dimz)
 
     @test prod(da; dims=X) == [3 8]
     @test prod(da; dims=2) == [2 12]'
@@ -66,7 +74,6 @@ end
     @test dims(mean(da; dims=Y())) ==
         (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), NoMetadata()),
          Y([-37.0], Sampled(Ordered(), Regular(4.0), Points()), NoMetadata()))
-
 
     @test mapreduce(x -> x > 3, +, da; dims=X) == [0 1]
     @test mapreduce(x -> x > 3, +, da; dims=(X, Y)) == [1]'
