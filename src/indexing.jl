@@ -20,11 +20,8 @@ for f in (:getindex, :view, :dotview)
     @eval begin
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-        @propagate_inbounds function Base.$f(A::AbstractDimArray, I...)
-            I1 = dims2indices(A, I)
-            a = Base.$f(parent(A), I1...)
-            return a isa AbstractArray ? rebuildsliced(A, a, I1) : a
-        end
+        @propagate_inbounds Base.$f(A::AbstractDimArray, I...) =
+            Base.$f(A, dims2indices(A, I)...)
         # Linear indexing returns parent type
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
