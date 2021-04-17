@@ -31,12 +31,12 @@ identify(mode::AutoMode, dimtype::Type, index::AbstractArray{<:CategoricalEltype
 identify(mode::AutoMode, dimtype::Type, index::Val) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
 # Sampled
-identify(mode::AbstractSampled, dimtype::Type, index) =
-    rebuild(mode;
-        order=identify(order(mode), dimtype, index),
-        span=identify(span(mode), dimtype, index),
-        sampling=identify(sampling(mode), dimtype, index)
-    )
+identify(mode::AbstractSampled, dimtype::Type, index) = begin
+    o = identify(order(mode), dimtype, index)
+    sp = identify(span(mode), dimtype, index)
+    sa = identify(sampling(mode), sp, dimtype, index)
+    rebuild(mode; order=o, span=sp, sampling=sa)
+end
 identify(order::Order, dimtype::Type, index) = order
 identify(order::AutoOrder, dimtype::Type, index) = _orderof(index)
 # Span
@@ -53,9 +53,11 @@ identify(span::Irregular{AutoBounds}, dimtype, index) = Irregular(nothing, nothi
 identify(span::Irregular{<:Tuple}, dimtype, index) = span
 identify(span::Explicit, dimtype, index) = span
 # Sampling
-identify(sampling::AutoSampling, dimtype::Type, index) = Points()
-identify(sampling::Points, dimtype::Type, index) = sampling
-identify(sampling::Intervals, dimtype::Type, index) =
+identify(sampling::AutoSampling, span::Span, dimtype::Type, index) = Points()
+identify(sampling::AutoSampling, span::Explicit, dimtype::Type, index) = Intervals(Center())
+identify(sampling::Points, span::Span, dimtype::Type, index) = sampling
+identify(sampling::Points, span::Explicit, dimtype::Type, index) = _explicitpoints_error() 
+identify(sampling::Intervals, span::Span, dimtype::Type, index) =
     rebuild(sampling, identify(locus(sampling), dimtype, index))
 # Locus
 identify(locus::AutoLocus, dimtype::Type, index) = Center()
@@ -83,6 +85,8 @@ end
 
 _indexorder(index) = first(index) <= last(index) ? ForwardIndex() : ReverseIndex()
 
+@noinline _explicitpoints_error() =
+    throw(ArgumentError("Cannot use Explicit span with Points sampling"))
 @noinline _steperror(index, span) =
     throw(ArgumentError("mode step $(step(span)) does not match index step $(step(index))"))
 @noinline _arraynosteperror() =

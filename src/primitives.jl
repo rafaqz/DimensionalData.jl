@@ -436,9 +436,9 @@ end
     rebuild(dim, _reducedims(locus(mode), dim), mode)
 end
 @inline _reducedims(span::Explicit, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    index = _reducedims(Center(mode), dim)
+    index = _reducedims(locus(mode), dim)
     bnds = val(span)
-    mode = rebuild(mode; order=Ordered(), span=Explicit([bnds[1, 1], bnds[2, end]]))
+    mode = rebuild(mode; order=Ordered(), span=Explicit(reshape([bnds[1, 1]; bnds[2, end]], 2, 1)))
     rebuild(dim, index, mode)
 end
 # Get the index value at the reduced locus.
