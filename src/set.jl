@@ -105,7 +105,7 @@ set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=nam
 The values must be `AbstractArray of the same size as the original data, to
 match the `Dimension`s in the dims field.
 """
-set(s::AbstractDimStack, newdata::AllMetadata) = begin
+set(s::AbstractDimStack, newdata::NamedTuple) = begin
     map(data(s)) do l
         axes(l) == axes(first(data(s))) || _axiserr(first(data(s)), l)
     end
