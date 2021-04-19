@@ -233,6 +233,8 @@ Base.ndims(d::Dimension{<:Val}) = 1
     getindex(index(d), sel2indices(d, i))
 @propagate_inbounds Base.getindex(d::Dimension{<:Val{Index}}, i) where Index =
     getindex(Index, sel2indices(d, i))
+
+
 Base.iterate(d::Dimension{<:ArrayOrVal}, args...) = iterate(index(d), args...)
 Base.first(d::Dimension) = val(d)
 Base.first(d::Dimension{<:ArrayOrVal}) = first(index(d))

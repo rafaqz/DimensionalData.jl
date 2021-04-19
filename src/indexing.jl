@@ -29,20 +29,20 @@ for f in (:getindex, :view, :dotview)
             Base.$f(parent(A), i)
         # Except 1D DimArrays
         @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
-            rebuildsliced(A, Base.$f(parent(A), i), (i,))
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
         # Dimension indexing. Allows indexing with A[somedim=25.0] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., _kwdims(kw.data)...))...)
         # Standard indices
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
-            rebuildsliced(A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
 
         #### Stack ###
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
             vals = map(A -> Base.$f(A, I...; kw...), dimarrays(s))
             if all(map(v -> v isa AbstractDimArray, vals))
-                rebuildsliced(s, vals, (dims2indices(first(s), I)))
+                rebuildsliced(Base.$f, s, vals, (dims2indices(first(s), I)))
             else
                 vals
             end
