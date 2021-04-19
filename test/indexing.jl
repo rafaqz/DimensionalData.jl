@@ -133,14 +133,17 @@ end
         @test metadata(v) == ameta
         @test bounds(v) == ((143.0, 145.0),)
 
-        v = view(da, Y(1:2), X(1:1))
+        # Test that dims are actually views using a vector
+        da_vec = rebuild(da; dims=map(d -> rebuild(d, Array(d)), dims(da)))
+        v = view(da_vec, Y(1:2), X(1:1))
         @test v == [1 2]
         @test typeof(v) <: DimArray{Int,2}
         @test typeof(parent(v)) <: SubArray{Int,2}
         @test typeof(dims(v)) <: Tuple{<:X,<:Y}
-        @test dims(v) == 
-            (X(LinRange(143.0, 143.0, 1), Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-             Y(LinRange(-38, -36, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta))
+        testdims = (X((view([143.0, 143.0], 1:1)), Sampled(Ordered(), Regular(2.0), Points()), xmeta),
+             Y(view([-38.0, -36.0], 1:2), Sampled(Ordered(), Regular(2.0), Points()), ymeta))
+        @test typeof(dims(v)) == typeof(testdims)
+        @test dims(v) == testdims
         @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
 
         v = view(da, Y(Base.OneTo(2)), X(1))

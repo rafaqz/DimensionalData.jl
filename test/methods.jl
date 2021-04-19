@@ -337,3 +337,25 @@ end
     @test unique(da; dims=:) == [1, 6]
     @test unique(da[X(1)]) == [1, 6]
 end
+
+@testset "diff" begin
+    @testset "Array 2D" begin
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        data = [-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7]
+        A = DimArray(data, (y, ti))
+        @test diff(A; dims=1) == diff(A; dims=Y) == diff(A; dims=:Y) == diff(A; dims=y) == 
+            DimArray([111 93 -169 142; 98 -55 110 -131], (Y(['a', 'b']), ti))
+        @test diff(A; dims=2) == diff(A; dims=Ti) == diff(A; dims=:Ti) == diff(A; dims=ti) == 
+            DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 1):Month(1):DateTime(2021, 3))))
+        @test_throws ErrorException diff(A; dims='X')
+        @test_throws ArgumentError diff(A; dims=Z)
+        @test_throws ArgumentError diff(A; dims=3)
+    end
+    @testset "Vector" begin
+        x = DimArray([56, -123, -60, -44, -64, 70, 52, -48, -74, 86], X(2:2:20))
+        @test diff(x) == diff(x; dims=1) == diff(x; dims=X) == DimArray([-179, 63, 16, -20, 134, -18, -100, -26, 160], X(2:2:18))
+    end
+end

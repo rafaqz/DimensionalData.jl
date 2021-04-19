@@ -345,44 +345,45 @@ previous reference dims attached to the array.
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
 function slicedims end
-@inline slicedims(x, i1, i2, I...) = slicedims(x, (i1, i2, I...))
-@inline slicedims(x, I::CartesianIndex) = slicedims(x, Tuple(I))
-@inline slicedims(x, I::Tuple) = _slicedims(dims(x), refdims(x), I)
-@inline slicedims(dims::Tuple, I::Tuple) = _slicedims(dims, I)
-@inline slicedims(dims::Tuple, refdims::Tuple, i1, I...) = slicedims(dims, refdims, (i1, I...))
-@inline slicedims(dims::Tuple, refdims::Tuple, I) = _slicedims(dims, refdims, I)
-@inline slicedims(dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
+@inline slicedims(args...) = slicedims(getindex, args...)
+@inline slicedims(f::Function, x, i1, i2, I...) = slicedims(f, x, (i1, i2, I...))
+@inline slicedims(f::Function, x, I::CartesianIndex) = slicedims(f, x, Tuple(I))
+@inline slicedims(f::Function, x, I::Tuple) = _slicedims(f, dims(x), refdims(x), I)
+@inline slicedims(f::Function, dims::Tuple, I::Tuple) = _slicedims(f, dims, I)
+@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
+@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
+@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
     slicedims(dims, refdims, Tuple(I))
 
-@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple) = begin
-    newdims, newrefdims = _slicedims(dims, I)
+@inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple) = begin
+    newdims, newrefdims = _slicedims(f, dims, I)
     newdims, (refdims..., newrefdims...)
 end
-@inline _slicedims(dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
-@inline _slicedims(dims::DimTuple, I::Tuple{}) = dims, ()
-@inline _slicedims(dims::DimTuple, I::Tuple) = begin
-    d = _slicedims(first(dims), first(I))
-    ds = _slicedims(tail(dims), tail(I))
+@inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
+@inline _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
+@inline _slicedims(f, dims::DimTuple, I::Tuple) = begin
+    d = _slicedims(f, first(dims), first(I))
+    ds = _slicedims(f, tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
-@inline _slicedims(dims::Tuple{}, I::Tuple) = (), ()
-@inline _slicedims(dims::Tuple{}, I::Tuple{}) = (), ()
+@inline _slicedims(f, dims::Tuple{}, I::Tuple) = (), ()
+@inline _slicedims(f, dims::Tuple{}, I::Tuple{}) = (), ()
 
-@inline _slicedims(d::Dimension, i) = _slicedims(mode(d), d, i)
-@inline _slicedims(::IndexMode, d::Dimension, i::Colon) = (d,), ()
-@inline _slicedims(::IndexMode, d::Dimension, i::Integer) =
+@inline _slicedims(f, d::Dimension, i) = _slicedims(f, mode(d), d, i)
+@inline _slicedims(f, ::IndexMode, d::Dimension, i::Colon) = (d,), ()
+@inline _slicedims(f, ::IndexMode, d::Dimension, i::Integer) =
     (), (rebuild(d, d[relate(d, i)], _slicemode(mode(d), val(d), i)),)
-@inline _slicedims(::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
+@inline _slicedims(f, ::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
 # TODO deal with unordered arrays trashing the index order
-@inline _slicedims(::IndexMode, d::Dimension{<:Val{Index}}, i::AbstractArray) where Index =
+@inline _slicedims(f, ::IndexMode, d::Dimension{<:Val{Index}}, i::AbstractArray) where Index =
     (rebuild(d, Val{Index[relate(d, i)]}(), _slicemode(mode(d), val(d), i)),), ()
-@inline _slicedims(::IndexMode, d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, d[relate(d, i)], _slicemode(mode(d), val(d), i)),), ()
-@inline _slicedims(::NoIndex, d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, d[relate(d, i)]),), ()
+@inline _slicedims(f, ::IndexMode, d::Dimension{<:AbstractArray}, i::AbstractArray) =
+    (rebuild(d, f(val(d), relate(d, i)), _slicemode(mode(d), val(d), i)),), ()
+@inline _slicedims(f, ::NoIndex, d::Dimension{<:AbstractArray}, i::AbstractArray) =
+    (rebuild(d, f(val(d), relate(d, i))),), ()
 # Should never happen, just for ambiguity
-@inline _slicedims(::NoIndex, d::Dimension{<:Val}, i::AbstractArray) =
-    (rebuild(d, d[relate(d, i)]),), ()
+@inline _slicedims(f, ::NoIndex, d::Dimension{<:Val}, i::AbstractArray) =
+    (rebuild(d, f(val(d), relate(d, i))),), ()
 
 @inline relate(d::Dimension, i) = _maybeflip(relation(d), d, i)
 

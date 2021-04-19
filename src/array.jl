@@ -51,7 +51,8 @@ This method can also be used with keyword arguments in place of regular argument
     rebuild(A, data, dims, refdims, name, metadata(A))
 end
 
-@inline rebuildsliced(A, data, I, name=name(A)) = rebuild(A, data, slicedims(A, I)..., name)
+@inline rebuildsliced(A, data, I, name=name(A)) = rebuildsliced(getindex, A, data, I, name)
+@inline rebuildsliced(f::Function, A, data, I, name=name(A)) = rebuild(A, data, slicedims(f, A, I)..., name)
 
 for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
              :arrayorder, :indexorder, :relation)
