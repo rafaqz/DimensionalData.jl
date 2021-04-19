@@ -22,10 +22,9 @@ Coord(d1::Dimension, dims::Dimension...) = Coord((d1, dims...))
 Coord(val::T=:) where T = Coord{T,AutoMode,NoMetadata}(val, AutoMode(), NoMetadata())
 
 dims(d::Coord) = dims(mode(d))
-bounds(d::Coord) = map((x...,) -> (x...,), extrema(val(d))...)
+bounds(d::Coord) = ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
 # Return a Vector{Bool} for matching coordinates  
-sel2indices(dim::Coord, sel::Colon) = Colon()
 sel2indices(dim::Coord, sel::DimTuple) = sel2indices(dim, sortdims(sel, dims(dim)))
 sel2indices(dim::Coord, sel::Tuple) = [all(map(_matches, sel, x)) for x in val(dim)] 
 sel2indices(dim::Coord, sel::StandardIndices) = sel
