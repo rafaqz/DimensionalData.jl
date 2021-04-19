@@ -50,39 +50,17 @@ julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
 
 julia> da1 = DimArray(1A, dimz, :one);
 
-
-
 julia> da2 = DimArray(2A, dimz, :two);
-
-
 
 julia> da3 = DimArray(3A, dimz, :three);
 
-
-
-julia> s = DimStack(da1, da2, da3)
-DimStack{NamedTuple{(:one, :two, :three), Tuple{Matrix{Float64}, Matrix{Float64}, Matrix{Float64}}}, 2, Tuple{X{Vector{Symbol}, Categorical{Unordered{ForwardRelation}}, NoMetadata}, Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Float64}, Points}, NoMetadata}}, Tuple{}, NamedTuple{(:one, :two, :three), Tuple{NoMetadata, NoMetadata, NoMetadata}}}((one = [1.0 2.0 3.0; 4.0 5.0 6.0], two = [2.0 4.0 6.0; 8.0 10.0 12.0], three = [3.0 6.0 9.0; 12.0 15.0 18.0]), (X: Symbol[a, b] (Categorical: Unordered), Y: 10.0:10.0:30.0 (Sampled: Ordered Regular Points)), (), (one = NoMetadata(), two = NoMetadata(), three = NoMetadata()))
+julia> s = DimStack(da1, da2, da3);
 
 julia> s[:b, 10.0]
 (one = 4.0, two = 8.0, three = 12.0)
 
-julia> s[X(:a)]
-DimStack{NamedTuple{(:one, :two, :three), Tuple{DimArray{Float64, 1, Tuple{Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Float64}, Points}, NoMetadata}}, Tuple{X{Symbol, Categorical{Unordered{ForwardRelation}}, NoMetadata}}, Vector{Float64}, Symbol, NoMetadata}, DimArray{Float64, 1, Tuple{Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Float64}, Points}, NoMetadata}}, Tuple{X{Symbol, Categorical{Unordered{ForwardRelation}}, NoMetadata}}, Vector{Float64}, Symbol, NoMetadata}, DimArray{Float64, 1, Tuple{Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Float64}, Points}, NoMetadata}}, Tuple{X{Symbol, Categorical{Unordered{ForwardRelation}}, NoMetadata}}, Vector{Float64}, Symbol, NoMetadata}}}, 1, Tuple{Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Float64}, Points}, NoMetadata}}, Tuple{X{Symbol, Categorical{Unordered{ForwardRelation}}, NoMetadata}}, NamedTuple{(:one, :two, :three), Tuple{NoMetadata, NoMetadata, NoMetadata}}}((one = DimArray (named one) with dimensions:
- Y: 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
-and referenced dimensions:
- X: a (Categorical: Unordered)
-and data: 3-element Vector{Float64}
-[1.0, 2.0, 3.0], two = DimArray (named two) with dimensions:
- Y: 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
-and referenced dimensions:
- X: a (Categorical: Unordered)
-and data: 3-element Vector{Float64}
-[2.0, 4.0, 6.0], three = DimArray (named three) with dimensions:
- Y: 10.0:10.0:30.0 (Sampled: Ordered Regular Points)
-and referenced dimensions:
- X: a (Categorical: Unordered)
-and data: 3-element Vector{Float64}
-[3.0, 6.0, 9.0]), (Y: 10.0:10.0:30.0 (Sampled: Ordered Regular Points),), (X: a (Categorical: Unordered),), (one = NoMetadata(), two = NoMetadata(), three = NoMetadata()))
+julia> s[X(:a)] isa DimStack
+true
 ```
 
 """
