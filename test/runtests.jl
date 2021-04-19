@@ -13,6 +13,7 @@ if VERSION >= v"1.5.0"
     Aqua.test_stale_deps(DimensionalData)
 end
 
+@time @safetestset "coord" begin include("coord.jl") end
 @time @safetestset "dimension" begin include("dimension.jl") end
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "primitives" begin include("primitives.jl") end
