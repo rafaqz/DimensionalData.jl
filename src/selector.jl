@@ -173,6 +173,9 @@ struct Between{T<:Union{Tuple{Any,Any},Nothing}} <: Selector{T}
 end
 Between(args...) = Between(args)
 
+Base.first(sel::Between) = first(val(sel))
+Base.last(sel::Between) = last(val(sel))
+
 """
     Where <: Selector
 

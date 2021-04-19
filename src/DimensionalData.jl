@@ -23,7 +23,7 @@ using Base: tail, OneTo, @propagate_inbounds
 
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
-       X, Y, Z, Ti, ParametricDimension, Dim, AnonDim
+       X, Y, Z, Ti, ParametricDimension, Dim, AnonDim, Coord
 
 export Selector, At, Between, Contains, Near, Where
 
@@ -82,6 +82,7 @@ include("primitives.jl")
 include("broadcast.jl")
 include("methods.jl")
 include("matmul.jl")
+include("coord.jl")
 include("set.jl")
 include("utils.jl")
 include("plotrecipes.jl")
