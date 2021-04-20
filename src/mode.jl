@@ -474,7 +474,7 @@ map(mode, dims(A))
 
 # output
 
-(NoIndex, NoIndex)
+(NoIndex(), NoIndex())
 ```
 
 Is identical to:
@@ -485,7 +485,7 @@ map(mode, dims(A))
 
 # output
 
-(NoIndex, NoIndex)
+(NoIndex(), NoIndex())
 ```
 """
 struct NoIndex <: Aligned{Ordered{ForwardIndex,ForwardArray,ForwardRelation}} end
@@ -603,7 +603,7 @@ map(mode, dims(A))
 
 # output
 
-(Sampled: Ordered Regular Intervals, Sampled: Ordered Regular Intervals)
+(Sampled{Ordered{ReverseIndex, ForwardArray, ForwardRelation}, Regular{Int64}, Intervals{Center}}(Ordered{ReverseIndex, ForwardArray, ForwardRelation}(ReverseIndex(), ForwardArray(), ForwardRelation()), Regular{Int64}(-10), Intervals{Center}(Center())), Sampled{Ordered{ForwardIndex, ForwardArray, ForwardRelation}, Regular{Int64}, Intervals{Center}}(Ordered{ForwardIndex, ForwardArray, ForwardRelation}(ForwardIndex(), ForwardArray(), ForwardRelation()), Regular{Int64}(2), Intervals{Center}(Center())))
 ```
 """
 struct Sampled{O,Sp,Sa} <: AbstractSampled{O,Sp,Sa}
@@ -659,7 +659,7 @@ map(mode, dims(A))
 
 # output
 
-(Categorical: Unordered, Categorical: Unordered)
+(Categorical{Unordered{ForwardRelation}}(Unordered{ForwardRelation}(ForwardRelation())), Categorical{Unordered{ForwardRelation}}(Unordered{ForwardRelation}(ForwardRelation())))
 ```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}

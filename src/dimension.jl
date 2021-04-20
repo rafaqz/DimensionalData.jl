@@ -37,11 +37,11 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-DimArray (named ) with dimensions:
- Y: Char[a, b, c] (Categorical: Unordered)
- X: 2:2:10 (Sampled: Ordered Regular Points)
- Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
-and data: 3×5×12 Array{Float64, 3}
+DimArray{Float64,3} with dimensions:
+  Y: Char[a, b, c] (Categorical - Unordered)
+  X: 2:2:10 (Sampled - Ordered Regular Points)
+  Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
+and data:
 [:, :, 1]
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
@@ -57,13 +57,24 @@ x = A[X(2), Y(3)]
 
 # output
 
-DimArray (named ) with dimensions:
- Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
+DimArray{Float64,1} with dimensions:
+  Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
 and referenced dimensions:
- Y: c (Categorical: Unordered)
- X: 4 (Sampled: Ordered Regular Points)
-and data: 12-element Vector{Float64}
-[0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+  Y: c (Categorical - Unordered)
+  X: 4 (Sampled - Ordered Regular Points)
+and data:
+12-element Vector{Float64}:
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ ⋮
+ 0.0
+ 0.0
+ 0.0
+ 0.0
+ 0.0
 ```
 
 A `Dimension` can also wrap [`Selector`](@ref).
@@ -73,12 +84,12 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-DimArray (named ) with dimensions:
- X: 4:2:4 (Sampled: Ordered Regular Points)
- Time (type Ti): Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") (Sampled: Ordered Regular Points)
+DimArray{Float64,2} with dimensions:
+  X: 4:2:4 (Sampled - Ordered Regular Points)
+  Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
 and referenced dimensions:
- Y: b (Categorical: Unordered)
-and data: 1×12 Matrix{Float64}
+  Y: b (Categorical - Unordered)
+and data:
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 
@@ -276,11 +287,9 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-Dimension custom (type Dim):
-val: Char[a, b, c]
-mode: AutoMode
-metadata: NoMetadata()
-type: Dim{:custom, Vector{Char}, AutoMode{AutoOrder}, NoMetadata}
+Dim : custom Dimension
+  val: Char[a, b, c]
+Dim{:custom, Vector{Char}, AutoMode{AutoOrder}, NoMetadata}
 ```
 """
 struct Dim{S,T,Mo<:Mode,Me<:AllMetadata} <: ParametricDimension{S,T,Mo,Me}
