@@ -137,10 +137,10 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-(X (NoIndex),)
+(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()),)
 
 julia> commondims(A, (X, Z))
-(X (NoIndex), Z (NoIndex))
+(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
 
 julia> commondims(A, Ti)
 ()
@@ -244,13 +244,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y (NoIndex), Z (NoIndex))
+(Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
 
 julia> otherdims(A, (Y, Z))
-(X (NoIndex),)
+(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()),)
 
 julia> otherdims(A, Ti)
-(X (NoIndex), Y (NoIndex), Z (NoIndex))
+(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
 ```
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)

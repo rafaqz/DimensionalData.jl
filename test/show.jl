@@ -13,18 +13,18 @@ using DimensionalData, Test, Dates
     n = Dim{:n}(Base.OneTo(10); mode=NoIndex())
     z = Z('a':'d')
     d = (x, y, z, t, n)
-
     A = DimArray(rand(length.(d)...), d; refdims=(Dim{:refdim}(1),))
     B = DimArray(rand(length(x)), (x,))
+    C = DimArray(rand(Bool, 100, 100), (X, Y))
 
     for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, ":n"), (Z(), "Z"))
-        s1 = sprint(show, A)
-        s2 = sprint(show, dims(A, Lon()))
-        s3 = sprint(show, MIME("text/plain"), dims(A, Lon))
+        s1 = sprint(show, MIME("text/plain"), A)
+        s2 = sprint(show, MIME("text/plain"), dims(A, d))
+        s3 = sprint(show, MIME("text/plain"), dims(A, d))
         @test occursin("DimArray", s1)
         for s in (s1, s2, s3)
-            @test occursin("Lon", s)
-            @test occursin("Longitude", s)
+            @test occursin(str, s)
+            @test occursin(str, s)
         end
     end
 
@@ -36,47 +36,50 @@ using DimensionalData, Test, Dates
 
     # Does it propagate after indexing?
     F = A[Ti(1:4)]
-    s2 = sprint(show, F)
+    s2 = sprint(show, MIME("text/plain"), F)
     @test occursin("test", s2)
 
     # Does it propagate after e.g. reducing operations?
     G = sum(A; dims = Ti)
-    s3 = sprint(show, G)
+    s3 = sprint(show, MIME("text/plain"), G)
     @test occursin("test", s3)
 
     # It should NOT propagate after binary operations
     B = DimArray(rand(length.(d)...), d, :test2)
     C = A .+ B
-    s4 = sprint(show, C)
+    s4 = sprint(show, MIME("text/plain"), C)
     @test !occursin("test", s4)
 
     # Test that broadcasted setindex! retains name
     D = DimArray(ones(length.(d)...), d, :olo)
     @. D = A + B
-    s5 = sprint(show, D)
+    s5 = sprint(show, MIME("text/plain"), D)
     @test occursin("olo", s5)
 
     # Test zero dim show
     D = DimArray([x for x in 1], (), :zero)
-    sz = sprint(show, D)
+    sz = sprint(show, MIME("text/plain"), D)
     @test occursin("zero", sz)
 
     # Test vector show
     D = DimArray(ones(length(t)), t, :vec)
-    sv = sprint(show, D)
+    sv = sprint(show, MIME("text/plain"), D)
     @test occursin("vec", sv)
 
-    sv = sprint(show, X())
+    sv = sprint(show, MIME("text/plain"), X())
     @test occursin("X", sv)
 
     @testset "show modes" begin
-        sv = sprint(show, Categorical())
+        sv = sprint(show, MIME("text/plain"), Categorical(Unordered()))
         @test occursin("Categorical", sv)
-
-        sv = sprint(show, Sampled())
+        @test occursin("Unordered", sv)
+        sv = sprint(show, MIME("text/plain"), Sampled(Ordered(), Regular(), Points()))
         @test occursin("Sampled", sv)
-
-        sv = sprint(show, NoIndex())
+        @test occursin("Ordered", sv)
+        @test occursin("Regular", sv)
+        @test occursin("Points", sv)
+        sv = sprint(show, MIME("text/plain"), NoIndex())
         @test occursin("NoIndex", sv)
     end
+
 end
