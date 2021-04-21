@@ -288,24 +288,47 @@ _transform2int(::Near, x) = round(Int, x)
 
 # at =============================================================================
 
-@inline at(dim::Dimension, sel::At) = at(sampling(mode(dim)), mode(dim), dim, sel)
-@inline function at(::Sampling, mode::IndexMode, dim::Dimension, sel::At)
-    relate(dim, at(dim, val(sel), atol(sel), rtol(sel)))
+at(dim::Dimension, sel::At) = at(sampling(mode(dim)), mode(dim), dim, sel)
+function at(::Sampling, mode::IndexMode, dim::Dimension, sel::At)
+    relate(dim, at(indexorder(dim), val(dim), dim, val(sel), atol(sel), rtol(sel)))
 end
-@inline function at(dim::Dimension{<:Val{Index}}, selval, atol::Nothing, rtol::Nothing) where Index
-    i = findfirst(x -> x == unwrap(selval), Index)
-    i == nothing && _selvalnotfound(dim, selval)
+# 
+function at(o::IndexOrder, a::AbstractArray{<:Union{Number,Dates.TimeType}}, dim::Dimension, selval, atol, rtol::Nothing)
+    x = unwrap(selval)
+    i = searchsortedlast(a, x; order=_ordering(o))
+    _isat(x, a[i], atol, 1) || _selvalnotfound(dim, selval)
     return i
 end
-@inline function at(dim::Dimension{<:Val{Index}}, selval::Val{X}, atol::Nothing, rtol::Nothing) where {Index,X}
-    i = findfirst(x -> x == X, Index)
-    i == nothing && _selvalnotfound(dim, selval)
-    return i
+# range optimisation - we leave bounds checking to the array, but maybe this is not cool
+function at(o::IndexOrder, a::AbstractRange{<:Number}, dim::Dimension, selval, atol, rtol::Nothing)
+    x = unwrap(selval)
+    f = (x - first(a)) / step(a)
+    i = unsafe_trunc(Int, f)
+    _isat(i, f, atol, step(a)) && checkbounds(Bool, a, i + 1) || _selvalnotfound(dim, selval)
+    return i + 1
 end
-@inline function at(dim::Dimension, selval, atol::Nothing, rtol::Nothing)
+
+@inline _isat(i, f, atol::Nothing, scalar) = i == f
+@inline _isat(i, f, atol, scalar) = abs(i - f) <= atol / scalar
+
+# catch-all for an unordered or non-number index
+function at(
+    ::IndexOrder, a, dim::Dimension, selval, atol, rtol::Nothing
+)
     i = findfirst(x -> x == unwrap(selval), index(dim))
     i == nothing && _selvalnotfound(dim, selval)
     return i
+end
+# compile-time indexing
+@generated function at(
+    ::IndexOrder, ::Val{Index}, dim::Dimension, selval::Val{X}, atol, rtol::Nothing
+) where {Index,X}
+    i = findfirst(x -> x == X, Index)
+    if i == nothing 
+        :(_selvalnotfound(dim, selval))
+    else
+        return i
+    end
 end
 
 @noinline _selvalnotfound(dim, selval) = throw(ArgumentError("$selval not found in $dim"))
@@ -374,7 +397,7 @@ end
 # Explicit Intervals ---------------------------
 function contains(span::Explicit, ::Intervals, order, locus, dim::Dimension, sel::Contains)
     x = val(sel)
-    i = searchsortedlast(view(val(span), 1, :), x; rev=isrev(order))
+    i = searchsortedlast(view(val(span), 1, :), x; order=_ordering(order))
     if i <= 0 || val(span)[2, i] < x 
         _notcontainederror(x)
     end
@@ -443,8 +466,8 @@ end
 # Explicit Intervals -------------------------
 function between(span::Explicit, ::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between)
     _inbounds(
-        (searchsortedfirst(view(val(span), 1, :), first(val(sel)); rev=isrev(o), lt=<),
-         searchsortedlast(view(val(span), 2, :), last(val(sel)); rev=isrev(o), lt=<)),
+        (searchsortedfirst(view(val(span), 1, :), first(val(sel)); order=_ordering(o), lt=<),
+         searchsortedlast(view(val(span), 2, :), last(val(sel)); order=_ordering(o), lt=<)),
         dim
     )
 end
@@ -489,14 +512,14 @@ _lt(::_Upper) = (<=)
 # Shared utils ============================================================================
 
 _searchlast(o::IndexOrder, dim::Dimension, v, lt=<) =
-    searchsortedlast(index(dim), unwrap(v); rev=isrev(o), lt=lt)
+    searchsortedlast(index(dim), unwrap(v); order=_ordering(o), lt=lt)
 _searchlast(o::IndexOrder, dim::Dimension{<:Val{Index}}, v, lt=<) where Index =
-    searchsortedlast(Index, unwrap(v); rev=isrev(o), lt=lt)
+    searchsortedlast(Index, unwrap(v); order=_ordering(o), lt=lt)
 
 _searchfirst(o::IndexOrder, dim::Dimension, v, lt=<) =
-    searchsortedfirst(index(dim), unwrap(v); rev=isrev(o), lt=lt)
+    searchsortedfirst(index(dim), unwrap(v); order=_ordering(o), lt=lt)
 _searchfirst(o::IndexOrder, dim::Dimension{<:Val{Index}}, v, lt=<) where Index =
-    searchsortedfirst(Index, unwrap(v); rev=isrev(o), lt=lt)
+    searchsortedfirst(Index, unwrap(v); order=_ordering(o), lt=lt)
 
 _asfunc(::Type{typeof(<)}) = <
 _asfunc(::Type{typeof(<=)}) = <=
@@ -536,3 +559,6 @@ _dimupper(o::ReverseIndex, d) = firstindex(d)
 
 _searchorder(::ForwardIndex) = _searchfirst
 _searchorder(::ReverseIndex) = _searchlast
+
+_ordering(::ForwardIndex) = Base.Order.ForwardOrdering()
+_ordering(::ReverseIndex) = Base.Order.ReverseOrdering()

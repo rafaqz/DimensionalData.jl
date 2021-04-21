@@ -173,7 +173,7 @@ julia> A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
  ⋮                                       ⋱
  0.522759  0.390414  0.797637  0.686718     0.901123  0.704603  0.0740788
 
-julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
+julia> @btime A[X(Near(35)), Ti(At(DateTime(2001,5)))]
 0.3133109280208961
 ```
 
@@ -198,7 +198,7 @@ For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for
 regular indexing) the `At` selector is assumed, and can be dropped completely:
 
 ```julia
-julia> A = DimArray(rand(3, 3), (X(Val((:a, :b, :c))), Y([25.6, 25.7, 25.8])));
+julia> A = rand(X([:a, :b, :c]), Y([25.6, 25.7, 25.8]));
 
 julia> A[:b, 25.8]
 0.61839141062599
@@ -211,16 +211,21 @@ you can index with named dimensions `At` arbitrary values with no
 runtime cost:
 
 ```julia
-julia> A = DimArray(rand(3, 3), (cat=Val((:a, :b, :c)),
-                                 val=Val((5.0, 6.0, 7.0))));
+julia> A = rand(X(Val((:a, :b, :c))), Y(Val((5.0, 6.0, 7.0))))
+3×3 DimArray{Float64,2} with dimensions:
+  X: Val{(:a, :b, :c)}() (Categorical - Unordered)
+  Y: Val{(5.0, 6.0, 7.0)}() (Categorical - Unordered)
+ 0.5808   0.835037  0.528461
+ 0.8924   0.431394  0.506915
+ 0.66386  0.955305  0.774132
 
-julia> @btime $A[:a, 7.0]
-  2.094 ns (0 allocations: 0 bytes)
-0.25620608873275397
+julia> @btime $A[:c, 6.0]
+  2.777 ns (0 allocations: 0 bytes)
+0.9553052910459472
 
-julia> @btime $A[cat=:a, val=7.0]
-  2.091 ns (0 allocations: 0 bytes)
-0.25620608873275397
+julia> @btime $A[Val(:c), Val(6.0)]
+  1.288 ns (0 allocations: 0 bytes)
+0.9553052910459472
 ```
 
 ## Methods where dims can be used containing indices or Selectors
