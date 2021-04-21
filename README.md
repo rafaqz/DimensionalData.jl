@@ -28,39 +28,70 @@ Custom dimensions can be defined using the `@dim` macro.
 We can use dim wrappers for indexing, so that the dimension order in the underlying array
 does not need to be known:
 
-```julia
+```
 julia> using DimensionalData
 
-julia> A = rand(X(40), Y(50));
+julia> A = rand(X(1:40), Y(50))
+40×50 DimArray{Float64,2} with dimensions:
+  X: 1:40 (Sampled - Ordered Regular Points)
+  Y
+ 0.929006   0.116946  0.750017  …  0.172604  0.678835   0.495294
+ 0.0550038  0.100739  0.427026     0.778067  0.309657   0.831754
+ ⋮                              ⋱
+ 0.647768   0.965682  0.049315     0.220338  0.0326206  0.36705
+ 0.851769   0.164914  0.555637     0.771508  0.964596   0.30265
 
 julia> A[Y(1), X(1:10)]
-DimArray with dimensions:
- X: 1:10 (NoIndex)
-and referenced dimensions:
- Y: 1 (NoIndex)
-and data: 10-element Array{Float64,1}
-[0.515774, 0.575247, 0.429075, 0.234041, 0.4484, 0.302562, 0.911098, 0.541537, 0.267234, 0.370663]
+10-element DimArray{Float64,1} with dimensions:
+  X: 1:10 (Sampled - Ordered Regular Points)
+and reference dimensions: Y(1) 0.929006
+ 0.0550038
+ 0.641773
+ ⋮
+ 0.846251
+ 0.506362
+ 0.0492866
 ```
 
 And this has no runtime cost:
 
 ```julia
-julia> A = rand(40, 50), (X, Y));
+julia> A = ones(X(3), Y(3))
+3×3 DimArray{Float64,2} with dimensions: X, Y
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
 
 julia> @btime $A[X(1), Y(2)]
-  2.092 ns (0 allocations: 0 bytes)
-0.27317596504655417
+  1.077 ns (0 allocations: 0 bytes)
+1.0
 
 julia> @btime parent($A)[1, 2]
-  2.092 ns (0 allocations: 0 bytes)
-0.27317596504655417
+  1.078 ns (0 allocations: 0 bytes)
+1.0
 ```
 
 Dims can be used for indexing and views without knowing dimension order:
 
 ```julia
+julia> A = rand(X(40), Y(50))
+40×50 DimArray{Float64,2} with dimensions: X, Y
+ 0.377696  0.105445  0.543156  …  0.844973  0.163758  0.849367
+ ⋮                             ⋱
+ 0.431454  0.108927  0.137541     0.531587  0.592512  0.598927
 
+julia> A[Y=3]
+40-element DimArray{Float64,1} with dimensions: X
+and reference dimensions: Y(3)
+ 0.543156
+ ⋮
+ 0.137541
 
+julia> view(A, Y(), X(1:5))
+5×50 DimArray{Float64,2} with dimensions: X, Y
+ 0.377696  0.105445  0.543156  …  0.844973  0.163758  0.849367
+ ⋮                             ⋱
+ 0.875279  0.133032  0.925045     0.156768  0.736917  0.444683
 ```
 
 And for indicating dimensions to reduce or permute in julia
@@ -69,52 +100,30 @@ And for indicating dimensions to reduce or permute in julia
 ```julia
 julia> using Statistics
 
-julia> A = DimArray(rand(3, 4, 5), (X, Y, Ti));
+julia> A = rand(X(3), Y(4), Ti(5));
 
-julia> mean(A, dims=Ti)
-DimArray with dimensions:
- X (type X): Base.OneTo(3) (NoIndex)
- Y (type Y): Base.OneTo(4) (NoIndex)
- Time (type Ti): 1 (NoIndex)
-and data: 3×4×1 Array{Float64,3}
+julia> mean(A; dims=Ti)
+3×4×1 DimArray{Float64,3} with dimensions: X, Y, Ti (Time)
 [:, :, 1]
- 0.495295  0.650432  0.787521  0.502066
- 0.576573  0.568132  0.770812  0.504983
- 0.39432   0.5919    0.498638  0.337065
-[and 0 more slices...]
-
-julia> permutedims(A, [Ti, Y, X])
-DimArray with dimensions:
- Time (type Ti): Base.OneTo(5) (NoIndex)
- Y (type Y): Base.OneTo(4) (NoIndex)
- X (type X): Base.OneTo(3) (NoIndex)
-and data: 5×4×3 Array{Float64,3}
-[:, :, 1]
- 0.401374  0.469474  0.999326  0.265688
- 0.439387  0.57274   0.493883  0.88678
- 0.425845  0.617372  0.998552  0.650999
- 0.852777  0.954702  0.928367  0.0045136
- 0.357095  0.637873  0.517476  0.702351
-[and 2 more slices...]
+ 0.168058  0.52353   0.563065  0.347025
+ 0.472786  0.395884  0.307846  0.518926
+ 0.365028  0.381367  0.423553  0.369339
 ```
 
-You can also use symbols to create `Dim{X}` dimensions:
+You can also use symbols to create `Dim{X}` dimensions,
+although we can't use the `rand` method directly with Symbols:
 
 ```julia
 julia> A = DimArray(rand(10, 20, 30), (:a, :b, :c));
 
 julia> A[a=2:5, c=9]
 
-DimArray with dimensions:
- Dim{:a}: 2:5 (NoIndex)
- Dim{:b}: Base.OneTo(20) (NoIndex)
-and referenced dimensions:
- Dim{:c}: 9 (NoIndex)
-and data: 4×20 Array{Float64,2}
- 0.868237   0.528297   0.32389   …  0.89322   0.6776    0.604891
- 0.635544   0.0526766  0.965727     0.50829   0.661853  0.410173
- 0.732377   0.990363   0.728461     0.610426  0.283663  0.00224321
- 0.0849853  0.554705   0.594263     0.217618  0.198165  0.661853
+4×20 DimArray{Float64,2} with dimensions: Dim{:a}, Dim{:b}
+and reference dimensions: Dim{:c}(9)
+ 0.134354  0.581673  0.422615  …  0.410222   0.687915  0.753441
+ 0.573664  0.547341  0.835962     0.0353398  0.794341  0.490831
+ 0.166643  0.133217  0.879084     0.695685   0.956644  0.698638
+ 0.325034  0.147461  0.149673     0.560843   0.889962  0.75733
 ```
 
 ## Selectors
@@ -140,14 +149,6 @@ A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
 
 julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
 0.658404535807791
-
-julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
-DimArray with dimensions:
- X: 20:10:50
-and referenced dimensions:
- Time (type Ti): 2001-05-01T00:00:00
-and data: 4-element Array{Float64,1}
-[0.456175, 0.737336, 0.658405, 0.520152]
 ```
 
 Without dim wrappers selectors must be in the right order:
@@ -155,15 +156,16 @@ Without dim wrappers selectors must be in the right order:
 ```julia
 using Unitful
 
-julia> A = DimArray(rand(10, 20), (X((1:10:100)u"m"), Ti((1:5:100)u"s")))
+julia> A = rand(X((1:10:100)u"m"), Ti((1:5:100)u"s"));
 
 julia> A[Between(10.5u"m", 50.5u"m"), Near(23u"s")]
-DimArray with dimensions:
- X: (11:10:41) m (Sampled: Ordered Regular Points)
-and referenced dimensions:
- Time (type Ti): 21 s (Sampled: Ordered Regular Points)
-and data: 4-element Array{Float64,1}
-[0.819172, 0.418113, 0.461722, 0.379877]
+4-element DimArray{Float64,1} with dimensions:
+  X: (11:10:41) m (Sampled - Ordered Regular Points)
+and reference dimensions:
+  Ti(21 s) (Time): 21 s (Sampled - Ordered Regular Points)
+ 0.584028
+ ⋮
+ 0.716715
 ```
 
 For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for
