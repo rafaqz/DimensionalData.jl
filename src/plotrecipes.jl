@@ -49,7 +49,7 @@ end
     _withaxes(dim, A)
 end
 @recipe function f(s::SeriesLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (IndependentDim, YDim, ZDim, DependentDim, Dimension, Dimension), dims(A)))
+    A = permutedims(A, commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, Dimension, Dimension), dims(A)))
     ind, dep = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
@@ -60,7 +60,7 @@ end
     _withaxes(ind, A)
 end
 @recipe function f(s::SeriesLike, A::AbstractArray{T,3}) where T
-    A = permutedims(A, commondims(>:, (IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension), dims(A)))
+    A = permutedims(A, commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension), dims(A)))
     ind, dep1, dep2 = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
@@ -77,7 +77,7 @@ end
     _withaxes(dim, A)
 end
 @recipe function f(s::HistogramLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, IndependentDim, Dimension, Dimension), dims(A)))
+    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, IndependentDim, XDim, TimeDim, IndependentDim, Dimension, Dimension), dims(A)))
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
@@ -91,7 +91,7 @@ end
     parent(A)
 end
 @recipe function f(s::ViolinLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, IndependentDim, Dimension, Dimension), dims(A)))
+    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, XDim, TimeDim, IndependentDim, Dimension, Dimension), dims(A)))
     dep, ind = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
