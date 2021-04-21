@@ -60,7 +60,8 @@ x = A[X(2), Y(3)]
   Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
 and reference dimensions:
   Y(c): c (Categorical - Unordered)
-  X(4): 4 (Sampled - Ordered Regular Points) 0.0
+  X(4): 4 (Sampled - Ordered Regular Points)
+ 0.0
  0.0
  0.0
  0.0
@@ -85,7 +86,8 @@ x = A[X(Between(3, 4)), Y(At('b'))]
   X: 4:2:4 (Sampled - Ordered Regular Points)
   Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
 and reference dimensions:
-  Y(b): b (Categorical - Unordered) 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+  Y(b): b (Categorical - Unordered)
+ 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 
 `Dimension` objects may have [`mode`](@ref) and [`metadata`](@ref) fields

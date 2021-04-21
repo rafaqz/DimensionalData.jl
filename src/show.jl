@@ -16,6 +16,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     lines += _printdims(io, mime, dims(A))
     !(isempty(dims(A)) || isempty(refdims(A))) && println(io)
     lines += _printrefdims(io, mime, refdims(A))
+    println(io)
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
     _show_array(ioctx, mime, parent(A))
@@ -129,12 +130,12 @@ end
 
 function _printrefdims(io::IO, mime, refdims::Tuple)
     if isempty(refdims) 
-        println(io)
         return 0
     end
     print(io, "and reference dimensions: ")
     ctx = IOContext(io, :is_ref_dim=>true, :show_dim_val=>true)
-    return _layout_dims(ctx, mime, refdims)
+    lines = _layout_dims(ctx, mime, refdims)
+    return lines
 end
 
 function _layout_dims(io, mime, dims::Tuple)
@@ -206,7 +207,8 @@ function _show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
     onestring = join(o, ", ")
     println(io, "[:, :, $(onestring)]")
     Base.print_matrix(_ioctx(io, T), frame)
-    print(io, "\n[and ", prod(size(A,d) for d=3:N) - 1," more slices...]")
+    nremaining = prod(size(A,d) for d=3:N) - 1
+    nremaining > 0 && print(io, "\n[and ", nremaining," more slices...]")
 end
 
 function _ioctx(io, T)
