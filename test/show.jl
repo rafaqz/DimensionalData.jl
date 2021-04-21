@@ -16,10 +16,6 @@ using DimensionalData, Test, Dates
     A = DimArray(rand(length.(d)...), d; refdims=(Dim{:refdim}(1),))
     B = DimArray(rand(length(x)), (x,))
     C = DimArray(rand(Bool, 100, 100), (X, Y))
-    DimArray(fill(1), ())
-    fill(1)
-    rand(300, 400)
-    rand(X(300), Y(400))
 
     for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, ":n"), (Z(), "Z")) s1 = sprint(show, MIME("text/plain"), A)
         s2 = sprint(show, MIME("text/plain"), dims(A, d))
@@ -30,7 +26,6 @@ using DimensionalData, Test, Dates
             @test occursin(str, s)
         end
     end
-
 
     # Test again but now with labelled array A
     A = DimArray(rand(length.(d)...), d, :test)

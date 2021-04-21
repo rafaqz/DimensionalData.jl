@@ -14,6 +14,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     summary(io, A)
     _printname(io, name(A))
     lines += _printdims(io, mime, dims(A))
+    !(isempty(dims(A)) || isempty(refdims(A))) && println(io)
     lines += _printrefdims(io, mime, refdims(A))
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
@@ -127,11 +128,13 @@ function _printdims(io::IO, mime, dims::Tuple)
 end
 
 function _printrefdims(io::IO, mime, refdims::Tuple)
-    isempty(refdims) && return 0
+    if isempty(refdims) 
+        println(io)
+        return 0
+    end
     print(io, "and reference dimensions: ")
     ctx = IOContext(io, :is_ref_dim=>true, :show_dim_val=>true)
-    lines = _layout_dims(ctx, mime, refdims)
-    return lines + 1
+    return _layout_dims(ctx, mime, refdims)
 end
 
 function _layout_dims(io, mime, dims::Tuple)
@@ -142,15 +145,13 @@ function _layout_dims(io, mime, dims::Tuple)
             print(io, ", ")
         end
         show(ctx, mime, dims[end])
-        print(io, " ")
         return 0
     else # Dims get a line each
         lines = 1
-        println(io)
         for d in dims
+            println(io)
             print(io, "  ")
             show(ctx, mime, d)
-            println(io)
             lines += 2 # Often they wrap
         end
         return lines
@@ -194,11 +195,9 @@ function _show_array(io::IO, mime, A::AbstractArray{T,0}) where T
     print(_ioctx(io, T), "\n", A[])
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,1}) where T
-    println(io)
     Base.print_matrix(_ioctx(io, T), A)
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,2}) where T
-    println(io)
     Base.print_matrix(_ioctx(io, T), A)
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
