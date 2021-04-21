@@ -1,12 +1,12 @@
 using Pkg
 Pkg.activate(@__DIR__)
 
-using Documenter, DimensionalData, CoordinateTransformations
+using Documenter, DimensionalData, CoordinateTransformations, Dates
 
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
 docsetup = quote 
-    using DimensionalData, Random 
+    using DimensionalData, Random, Dates
     Random.seed!(1234)
 end
 DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
