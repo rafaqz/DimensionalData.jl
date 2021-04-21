@@ -229,15 +229,15 @@ julia> @btime $A[cat=:a, val=7.0]
 ## Methods where dims, dim types, or `Symbol`s can be used to indicate the array dimension:
 
 - `size`, `axes`, `firstindex`, `lastindex`
-- `cat`
-- `reverse`
-- `dropdims`
+- `cat`, `reverse`, `dropdims`
 - `reduce`, `mapreduce`
 - `sum`, `prod`, `maximum`, `minimum`,
 - `mean`, `median`, `extrema`, `std`, `var`, `cor`, `cov`
 - `permutedims`, `adjoint`, `transpose`, `Transpose`
 - `mapslices`, `eachslice`
-- `fill`
+
+## Methods where dims can be used to construct `DimArray`s:
+- `fill`, `ones`, `zeros`, `rand`
 
 ## Warnings
 
