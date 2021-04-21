@@ -28,7 +28,7 @@ Custom dimensions can be defined using the `@dim` macro.
 We can use dim wrappers for indexing, so that the dimension order in the underlying array
 does not need to be known:
 
-```
+```julia
 julia> using DimensionalData
 
 julia> A = rand(X(1:40), Y(50))
