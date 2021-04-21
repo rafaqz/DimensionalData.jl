@@ -1,11 +1,20 @@
+function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
+    if N == 0  
+        print(io, "0-dimensional ")
+    elseif N == 1
+        print(io, size(A, 1), "-element ")
+    else
+        print(io, join(size(A), "×"), " ")
+    end
+    printstyled(io, string(nameof(typeof(A)), "{$T,$N}"); color=:blue)
+end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
-    lines = 4
-    printstyled(io, string(nameof(typeof(A)), "{$T,$N}"); color=:blue)
+    lines = 0
+    summary(io, A)
     _printname(io, name(A))
     lines += _printdims(io, mime, dims(A))
     lines += _printrefdims(io, mime, refdims(A))
-    println(io)
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
     _show_array(ioctx, mime, parent(A))
@@ -109,7 +118,10 @@ end
 
 # Note GeoData uses these
 function _printdims(io::IO, mime, dims::Tuple)
-    isempty(dims) && return 0
+    if isempty(dims) 
+        print(io, ": ")
+        return 0
+    end
     print(io, " with dimensions: ")
     return _layout_dims(io, mime, dims)
 end
@@ -139,7 +151,7 @@ function _layout_dims(io, mime, dims::Tuple)
             print(io, "  ")
             show(ctx, mime, d)
             println(io)
-            lines += 1
+            lines += 2 # Often they wrap
         end
         return lines
     end
@@ -179,12 +191,14 @@ _printsampling(io, mode) = print(io, nameof(typeof(sampling(mode))))
 
 # Thanks to Michael Abbott for the following function
 function _show_array(io::IO, mime, A::AbstractArray{T,0}) where T
-    Base.show(_ioctx(io, T), mime, A)
+    print(_ioctx(io, T), "\n", A[])
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,1}) where T
-    Base.show(_ioctx(io, T), mime, A)
+    println(io)
+    Base.print_matrix(_ioctx(io, T), A)
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,2}) where T
+    println(io)
     Base.print_matrix(_ioctx(io, T), A)
 end
 function _show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}

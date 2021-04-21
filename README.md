@@ -31,7 +31,7 @@ does not need to be known:
 ```julia
 julia> using DimensionalData
 
-julia> A = DimArray(rand(40, 50), (X, Y));
+julia> A = rand(X(40), Y(50));
 
 julia> A[Y(1), X(1:10)]
 DimArray with dimensions:
@@ -45,7 +45,7 @@ and data: 10-element Array{Float64,1}
 And this has no runtime cost:
 
 ```julia
-julia> A = DimArray(rand(40, 50), (X, Y));
+julia> A = rand(40, 50), (X, Y));
 
 julia> @btime $A[X(1), Y(2)]
   2.092 ns (0 allocations: 0 bytes)
@@ -59,24 +59,8 @@ julia> @btime parent($A)[1, 2]
 Dims can be used for indexing and views without knowing dimension order:
 
 ```julia
-julia> A[X(10)]
-DimArray with dimensions:
- Y (type Y): Base.OneTo(50) (NoIndex)
-and referenced dimensions:
- X (type X): 10 (NoIndex)
-and data: 50-element Array{Float64,1}
-[0.0850249, 0.313408, 0.0762157, 0.549103, 0.297763, 0.309075, 0.854535, 0.659537, 0.392969, 0.89998  …  0.63791, 0.875881, 0.437688, 0.925918, 0.291636, 0.358024, 0.692283, 0.606932, 0.629122, 0.284592]
 
-julia> view(A, Y(30:40), X(1:5))
-DimArray with dimensions:
- X (type X): 1:5 (NoIndex)
- Y (type Y): 30:40 (NoIndex)
-and data: 5×11 view(::Array{Float64,2}, 1:5, 30:40) with eltype Float64
- 0.508793   0.721117  0.558849  …  0.505518   0.532322
- 0.869126   0.754219  0.328315     0.0148934  0.778308
- 0.0596468  0.458492  0.250458     0.980508   0.524938
- 0.446838   0.659638  0.632399     0.33478    0.549402
- 0.292962   0.995038  0.26026      0.526124   0.589176
+
 ```
 
 And for indicating dimensions to reduce or permute in julia
