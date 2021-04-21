@@ -227,16 +227,31 @@ A `Dimension` holding an `Integer` will set the length
 of the Array axis, and set the dimension mode to [`NoIndex`](@ref).
 """
 Base.fill(x, dim1::Dimension, dims::Dimension...) = fill(x, (dim1, dims...))
-function Base.fill(x, dims::Tuple{<:Dimension,Vararg{<:Dimension}})
-    lengths = map(_filldimlen, dims)
-    dims = map(_filldim, dims)
-    DimArray(fill(x, lengths), dims)
+function Base.fill(x, dims::DimTuple)
+    lengths = map(_dimlen, dims)
+    DimArray(fill(x, lengths), map(_indexdim, dims))
 end
 
-_filldimlen(dim::Dimension{<:AbstractArray}) = length(dim)
-_filldimlen(dim::Dimension{<:Integer}) = val(dim)
-@noinline _filldimlen(dim::Dimension) =
-    error("dim $(basetypeof(dim)) must hold an Integer or an AbstractArray. Has $(val(dim))")
+for f in (:zeros, :ones, :rand)
+    @eval begin
+        Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
+        Base.$f(dims::DimTuple) = $f(Float64, dims)
+        Base.$f(::Type{T}, d1::Dimension, dims::Dimension...) where T = $f(T, (d1, dims...))
+        function Base.$f(::Type{T}, dims::DimTuple) where T
+            lengths = map(_dimlen, dims)
+            DimArray($f(T, lengths), map(_indexdim, dims))
+        end
+    end
+end
+function Base.rand(x, d1::Dimension, dims::Dimension...)
+    lengths = map(_dimlen, (d1, dims...))
+    DimArray(rand(x, lengths), map(_indexdim, (d1, dims...)))
+end
 
-_filldim(dim::Dimension{<:AbstractArray}) = dim
-_filldim(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))
+_dimlen(dim::Dimension{<:AbstractArray}) = length(dim)
+_dimlen(dim::Dimension{<:Integer}) = val(dim)
+@noinline _dimlen(dim::Dimension) =
+    throw(ArgumentError("$(basetypeof(dim)) must hold an Integer or an AbstractArray, instead holds: $(val(dim))"))
+
+_indexdim(dim::Dimension{<:AbstractArray}) = dim
+_indexdim(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))

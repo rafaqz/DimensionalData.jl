@@ -1,5 +1,4 @@
 using DimensionalData, Test, Plots, Dates, StatsPlots
-
 import Distributions
 
 A1 = rand(Distributions.Normal(), 20)
@@ -50,9 +49,10 @@ da2_c_c = DimArray(A2, (X('A':'h'), Y('a':'t')), :Normal)
 da2_XY = DimArray(A2, (X(1:10:400), Y(1:5:100)), :Normal)
 da2_YX = DimArray(A2, (Y(1:10:400), X(1:5:100)), :Normal)
 da2_ZY = DimArray(A2, (Z(1:10:400), Y(1:5:100)), :Normal)
+da2_XTi = DimArray(A2, (X(1:10:400), Ti(1:5:100)), :Normal)
 
 # For manual testing
-da2 = da2_XY
+da2 = da2_XTi
 
 for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY, da2_ZY)
     for da2 in (da, reverse(da, dims=first(dims(da))), reverse(da, dims=first(dims(da))))
