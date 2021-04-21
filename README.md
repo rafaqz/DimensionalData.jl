@@ -13,8 +13,14 @@ with a cleaner syntax, and additional functionality found in NamedDims.jl. It ha
 similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
-DimensionalData.jl also implements a Tables.jl interface, multi-layered `DimStack`s that 
-can be indexed together, and comprehensive plot recipes for Plots.jl.
+Broadcasting and most Base methods maintain and sync dimension context.
+
+DimensionalData.jl also implements:
+- comprehensive plot recipes for Plots.jl.
+- a Tables.jl interface with `DimTable`
+- multi-layered `DimStack`s that can be indexed together, 
+    and have base methods applied to all layers.
+- the Adapt.jl interface for use on GPUs, even as GPU kernel arguments.
 
 ## Dimensions
 
