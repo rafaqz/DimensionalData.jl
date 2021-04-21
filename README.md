@@ -44,7 +44,8 @@ julia> A = rand(X(1:40), Y(50))
 julia> A[Y(1), X(1:10)]
 10-element DimArray{Float64,1} with dimensions:
   X: 1:10 (Sampled - Ordered Regular Points)
-and reference dimensions: Y(1) 0.929006
+and reference dimensions: Y(1) 
+ 0.929006
  0.0550038
  0.641773
  ⋮
