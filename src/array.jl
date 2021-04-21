@@ -249,9 +249,11 @@ function Base.rand(x, d1::Dimension, dims::Dimension...)
 end
 
 _dimlen(dim::Dimension{<:AbstractArray}) = length(dim)
+_dimlen(dim::Dimension{<:Val{Keys}}) where Keys = length(Keys)
 _dimlen(dim::Dimension{<:Integer}) = val(dim)
 @noinline _dimlen(dim::Dimension) =
     throw(ArgumentError("$(basetypeof(dim)) must hold an Integer or an AbstractArray, instead holds: $(val(dim))"))
 
 _indexdim(dim::Dimension{<:AbstractArray}) = dim
+_indexdim(dim::Dimension{<:Val}) = dim
 _indexdim(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))
