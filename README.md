@@ -6,27 +6,26 @@
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-
 DimensionalData.jl provides tools and abstractions for working with datasets
-that have named dimensions. It's a pluggable, generalised version of
-[AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
-syntax, and additional functionality found in NamedDims.jl. It has similar
-goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
+that have named dimensions, and optionally a lookup index. It's a pluggable, 
+generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) 
+with a cleaner syntax, and additional functionality found in NamedDims.jl. It has 
+similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
 
+DimensionalData.jl also implements a Tables.jl interface, multi-layered `DimStack`s that 
+can be indexed together, and comprehensive plot recipes for Plots.jl.
 
 ## Dimensions
 
-Dimensions are just wrapper types. They store the dimension index
-and define details about the grid and other metadata, and are also used
-to index into the array, wrapping a value or a `Selector`.
-`X`, `Y`, `Z` and `Ti` are the exported defaults.
+Dimensions are wrapper types. They jold the lookup index, details about the 
+grid, and other metadata. They are also used to index into the array. 
+`X`, `Y`, `Z` and `Ti` are the exported defaults. A generalised `Dim` type is available 
+to use arbitrary symbols to name dimensions. Custom dimension types can also be defined 
+using the `@dim` macro.
 
-A generalised `Dim` type is available to use arbitrary symbols to name dimensions.
-Custom dimensions can be defined using the `@dim` macro.
-
-We can use dim wrappers for indexing, so that the dimension order in the underlying array
-does not need to be known:
+Dimensions can be used to construct arrays in `rand`, `ones`, `zeros` and `fill` with 
+either a range for a lookup index or a number for the dimension length:
 
 ```julia
 julia> using DimensionalData
@@ -40,7 +39,12 @@ julia> A = rand(X(1:40), Y(50))
  ⋮                              ⋱
  0.647768   0.965682  0.049315     0.220338  0.0326206  0.36705
  0.851769   0.164914  0.555637     0.771508  0.964596   0.30265
+```
 
+We can also use dim wrappers for indexing, so that the dimension order in the underlying array
+does not need to be known:
+
+```julia
 julia> A[Y(1), X(1:10)]
 10-element DimArray{Float64,1} with dimensions:
   X: 1:10 (Sampled - Ordered Regular Points)
@@ -95,8 +99,8 @@ julia> view(A, Y(), X(1:5))
  0.875279  0.133032  0.925045     0.156768  0.736917  0.444683
 ```
 
-And for indicating dimensions to reduce or permute in julia
-`Base` and `Statistics` functions that have dims arguments:
+And for specifying dimension number in all `Base` and `Statistics` 
+functions that have a `dims` argument:
 
 ```julia
 julia> using Statistics
@@ -112,7 +116,8 @@ julia> mean(A; dims=Ti)
 ```
 
 You can also use symbols to create `Dim{X}` dimensions,
-although we can't use the `rand` method directly with Symbols:
+although we can't use the `rand` method directly with Symbols,
+and insteadd use the regular `DimArray` constructor:
 
 ```julia
 julia> A = DimArray(rand(10, 20, 30), (:a, :b, :c));
@@ -129,27 +134,40 @@ and reference dimensions: Dim{:c}(9)
 
 ## Selectors
 
-Selectors find indices in the dimension based on values `At`, `Near`, or
-`Between` the index value(s). They can be used in `getindex`, `setindex!` and
+Selectors find indices in the lookup index for each dimension: 
+
+- `At(x)`: get the index exactly matching the passed in value(s)
+- `Near(x)`: get the closest index to the passed in value(s)
+- `Where(f::Function)`: filter the array axis by a function of the 
+    dimension index values.
+- `Between(a, b)`: get all indices between two values, excluding the high value.
+- `Contains(x)`: get indices where the value x falls within the interval, exluding 
+    the upper value. Only used for `Sampled` `Intervals`, for `Points`, use `At`.
+    
+(`Between` and `Contains` exlude the upper boundary so that adjacent selections
+never contain the same index)
+
+Selectors can be used in `getindex`, `setindex!` and
 `view` to select indices matching the passed in value(s)
 
-- `At(x)`: get indices exactly matching the passed in value(s)
-- `Near(x)`: get the closest indices to the passed in value(s)
-- `Where(f::Function)`: filter the array axis by a function of dimension
-  index values.
-- `Between(a, b)`: get all indices between two values (inclusive)
-- `Contains(x)`: get indices where the value x falls in the interval.
-  Only used for `Sampled` `Intervals`, for `Points` us `At`.
-
-We can use selectors with dim wrappers:
+We can use selectors inside dim wrappers:
 
 ```julia
-using Dates, DimensionalData
-timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
-A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+julia> using Dates
+
+julia> timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
+DateTime("2001-01-01T00:00:00"):Month(1):DateTime("2001-12-01T00:00:00")
+
+julia> A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+12×10 DimArray{Float64,2} with dimensions:
+  Ti (Time): DateTime("2001-01-01T00:00:00"):Month(1):DateTime("2001-12-01T00:00:00") (Sampled - Ordered Regular Points)
+  X: 10:10:100 (Sampled - Ordered Regular Points)
+ 0.14106   0.476176  0.311356  0.454908  …  0.464364  0.973193  0.535004
+ ⋮                                       ⋱
+ 0.522759  0.390414  0.797637  0.686718     0.901123  0.704603  0.0740788
 
 julia> A[X(Near(35)), Ti(At(DateTime(2001,5)))]
-0.658404535807791
+0.3133109280208961
 ```
 
 Without dim wrappers selectors must be in the right order:
@@ -198,12 +216,11 @@ julia> @btime $A[cat=:a, val=7.0]
 0.25620608873275397
 ```
 
-
 ## Methods where dims can be used containing indices or Selectors
 
 `getindex`, `setindex!` `view`
 
-## Methods where dims can be used
+## Methods where dims, dim types, or `Symbol`s can be used to indicate the array dimension:
 
 - `size`, `axes`, `firstindex`, `lastindex`
 - `cat`
