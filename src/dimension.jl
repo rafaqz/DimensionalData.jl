@@ -41,7 +41,7 @@ DimArray{Float64,3} with dimensions:
   Y: Char[a, b, c] (Categorical - Unordered)
   X: 2:2:10 (Sampled - Ordered Regular Points)
   Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
-and data:
+
 [:, :, 1]
  0.0  0.0  0.0  0.0  0.0
  0.0  0.0  0.0  0.0  0.0
@@ -59,10 +59,10 @@ x = A[X(2), Y(3)]
 
 DimArray{Float64,1} with dimensions:
   Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
-and referenced dimensions:
-  Y: c (Categorical - Unordered)
-  X: 4 (Sampled - Ordered Regular Points)
-and data:
+and reference dimensions:
+  Y(c): c (Categorical - Unordered)
+  X(4): 4 (Sampled - Ordered Regular Points)
+
 12-element Vector{Float64}:
  0.0
  0.0
@@ -70,7 +70,6 @@ and data:
  0.0
  0.0
  ⋮
- 0.0
  0.0
  0.0
  0.0
@@ -87,9 +86,9 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 DimArray{Float64,2} with dimensions:
   X: 4:2:4 (Sampled - Ordered Regular Points)
   Ti (Time): DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") (Sampled - Ordered Regular Points)
-and referenced dimensions:
-  Y: b (Categorical - Unordered)
-and data:
+and reference dimensions:
+  Y(b): b (Categorical - Unordered)
+
  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
 ```
 
@@ -287,7 +286,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-Dim : custom Dimension
+Dim{:custom}:
   val: Char[a, b, c]
 Dim{:custom, Vector{Char}, AutoMode{AutoOrder}, NoMetadata}
 ```

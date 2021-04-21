@@ -7,7 +7,7 @@ using DimensionalData, Test, Dates
 @testset "prettyprinting" begin
 
     timespan = DateTime(2001):Month(1):DateTime(2001,12)
-    t = Ti(timespan)
+    t = Ti([timespan...])
     x = Lon(Vector(0.5:10.0:359.5))
     y = Lat(Vector{Union{Float32, Missing}}(-89.5:10.0:89.5))
     n = Dim{:n}(Base.OneTo(10); mode=NoIndex())
