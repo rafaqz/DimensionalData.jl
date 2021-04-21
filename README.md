@@ -21,6 +21,7 @@ DimensionalData.jl also implements:
 - multi-layered `DimStack`s that can be indexed together, 
     and have base methods applied to all layers.
 - the Adapt.jl interface for use on GPUs, even as GPU kernel arguments.
+- traits for handling a wide range of spatial data types accurately.
 
 ## Dimensions
 
