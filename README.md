@@ -25,7 +25,7 @@ DimensionalData.jl also implements:
 
 ## Dimensions
 
-Dimensions are wrapper types. They jold the lookup index, details about the 
+Dimensions are wrapper types. They hold the lookup index, details about the 
 grid, and other metadata. They are also used to index into the array. 
 `X`, `Y`, `Z` and `Ti` are the exported defaults. A generalised `Dim` type is available 
 to use arbitrary symbols to name dimensions. Custom dimension types can also be defined 
