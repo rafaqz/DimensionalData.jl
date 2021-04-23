@@ -432,18 +432,27 @@ cell step, sampling type and order.
 @inline _reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
     rebuild(dim, _reducedims(Center(), dim::Dimension), mode)
 @inline _reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode; order=Ordered(), span=span(mode))
-    rebuild(dim, _reducedims(locus(mode), dim), mode)
+    newmode = rebuild(mode; order=Ordered())
+    rebuild(dim, _reducedims(locus(mode), dim), newmode)
 end
-@inline _reducedims(::Regular, ::Any, mode::AbstractSampled, dim::Dimension) = begin
-    mode = rebuild(mode; order=Ordered(), span=Regular(step(mode) * length(dim)))
-    rebuild(dim, _reducedims(locus(mode), dim), mode)
+@inline _reducedims(span::Regular, ::Sampling, mode::AbstractSampled, dim::Dimension) = begin
+    newspan = Regular(step(span) * length(dim))
+    newmode = rebuild(mode; order=Ordered(), span=newspan)
+    rebuild(dim, _reducedims(locus(mode), dim), newmode)
+end
+@inline _reducedims(
+    span::Regular{<:Dates.CompoundPeriod}, ::Sampling, mode::AbstractSampled, dim::Dimension
+) = begin
+    newspan = Regular(Dates.CompoundPeriod(step(span).periods .* length(dim)))
+    newmode = rebuild(mode; order=Ordered(), span=newspan)
+    rebuild(dim, _reducedims(locus(mode), dim), newmode)
 end
 @inline _reducedims(span::Explicit, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
     index = _reducedims(locus(mode), dim)
     bnds = val(span)
-    mode = rebuild(mode; order=Ordered(), span=Explicit(reshape([bnds[1, 1]; bnds[2, end]], 2, 1)))
-    rebuild(dim, index, mode)
+    newspan = Explicit(reshape([bnds[1, 1]; bnds[2, end]], 2, 1))
+    newmode = rebuild(mode; order=Ordered(), span=newspan)
+    rebuild(dim, index, newmode)
 end
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.

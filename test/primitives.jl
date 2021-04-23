@@ -1,4 +1,4 @@
-using DimensionalData, Test, BenchmarkTools
+using DimensionalData, Dates, Test, BenchmarkTools
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode, dimsmatch,
       @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride, 
@@ -406,6 +406,17 @@ end
     @test _reducedims((X(Base.OneTo(10); mode=NoIndex()), 
                        Y(Base.OneTo(10); mode=NoIndex())), (X(), Y())) == 
         (X(Base.OneTo(1); mode=NoIndex()), Y(Base.OneTo(1); mode=NoIndex()))
+
+    @testset "Special case CompoundPeriod" begin
+        step_ = Dates.CompoundPeriod([Month(1), Day(3)])
+        timespan = [DateTime(2001, 1), DateTime(2001, 1, 3)]
+        teststep = Dates.CompoundPeriod([Month(2), Day(6)])
+        testdim = Ti(timespan[2:2], Sampled(Ordered(), Regular(teststep), Points()), NoMetadata())
+        reduceddim = _reducedims((Ti(timespan; mode=Sampled(Ordered(), Regular(step_), Points())),), (Ti,))[1] 
+        @test typeof(testdim) == typeof(reduceddim)
+        @test val(testdim) == val(reduceddim)
+        @test step(testdim) == step(reduceddim)
+    end
 end
 
 @testset "dimstride" begin
