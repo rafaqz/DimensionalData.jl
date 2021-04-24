@@ -82,7 +82,6 @@ end
 # short printing version for dimensions
 function _show_compact(io::IO, dim::Dimension)
     printstyled(io, nameof(typeof(dim)); color=_dimcolor(io))
-    _printdimval(io, dim)
     if name(dim) != nameof(typeof(dim))
         print(io, " (")
         print(io, name(dim))
@@ -95,17 +94,7 @@ function _show_compact(io::IO, dim::Dim)
     printstyled(io, "Dim{"; color=color)
     printstyled(io, string(":", name(dim)); color=:yellow)
     printstyled(io, "}"; color=color)
-    _printdimval(io, dim)
     _printdimproperties(io, dim)
-end
-
-function _printdimval(io, dim::Dimension)
-    if get(io, :show_dim_val, false)
-        color = _dimcolor(io)
-        printstyled(io, "("; color=color)
-        printstyled(io, val(dim); color=:cyan)
-        printstyled(io, ")"; color=color)
-    end
 end
 
 _dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
@@ -171,7 +160,7 @@ function _printdimproperties(io, dim::Dimension)
     return nothing
 end
 
-_printdimindex(io, x) = print(io, x)
+_printdimindex(io, A) = printstyled(io, A; color=:cyan)
 _printdimindex(io, A::AbstractRange) = printstyled(io, A; color=:cyan)
 function _printdimindex(io, v::AbstractVector)
     s = string(eltype(v)) * "["
