@@ -203,3 +203,7 @@ end
 function _ioctx(io, T)
     IOContext(io, :compact=>true, :limit=>true, :typeinfo=>T)
 end
+
+function Base.show(io::IO, mime::MIME"text/plain", dims::Tuple{Vararg{<:Dimension}})
+    _layout_dims(io, mime, dims)
+end
