@@ -5,7 +5,7 @@
     dimsmatch([f], dim, lookup) => Bool
     dimsmatch([f], dims::Tuple, lookups::Tuple) => Bool
 
-Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type, 
+Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type,
 or are at least rotations/transformations of the same type.
 
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
@@ -148,7 +148,7 @@ julia> commondims(A, Ti)
 """
 @inline commondims(args...) = _call(_commondims, AlwaysTuple(), args...)
 
-_commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds)) 
+_commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds))
 
 """
     dimnum(x, lookup::Tuple) => NTuple{Int}
@@ -177,7 +177,7 @@ julia> dimnum(A, Y)
 2
 ```
 """
-@inline function dimnum(args...) 
+@inline function dimnum(args...)
     all(hasdim(args...)) || _errorextradims()
     _call(_dimnum, MaybeFirst(), args...)
 end
@@ -224,7 +224,7 @@ false
 
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
-@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) = 
+@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) =
     map(l -> l in 1:length(dims), lookup)
 
 """
@@ -244,13 +244,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
+Y, Z
 
 julia> otherdims(A, (Y, Z))
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()),)
+X
 
 julia> otherdims(A, Ti)
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
+X, Y, Z
 ```
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)
@@ -355,7 +355,7 @@ function slicedims end
 @inline slicedims(f::Function, dims::Tuple, I::Tuple) = _slicedims(f, dims, I)
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
-@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
+@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) =
     slicedims(f, dims, refdims, Tuple(I))
 
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple) = begin
@@ -581,11 +581,11 @@ struct AlwaysTuple end
 @inline _remove_nothing(::Nothing, xs...) = _remove_nothing(xs...)
 @inline _remove_nothing() = ()
 
-# This looks ridiculous, but gives seven arguments with constant-propagation, 
-# which means type stability using Symbols/types instead of objects. 
-@inline _wraparg(d1, d2, d3, d4, d5, d6, d7, ds...) = 
-    (_w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6), _w(d7), _wraparg(ds...)...) 
-@inline _wraparg(d1, d2, d3, d4, d5, d6) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6) 
+# This looks ridiculous, but gives seven arguments with constant-propagation,
+# which means type stability using Symbols/types instead of objects.
+@inline _wraparg(d1, d2, d3, d4, d5, d6, d7, ds...) =
+    (_w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6), _w(d7), _wraparg(ds...)...)
+@inline _wraparg(d1, d2, d3, d4, d5, d6) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6)
 @inline _wraparg(d1, d2, d3, d4, d5) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5)
 @inline _wraparg(d1, d2, d3, d4) = _w(d1), _w(d2), _w(d3), _w(d4)
 @inline _wraparg(d1, d2, d3) = _w(d1), _w(d2), _w(d3)
