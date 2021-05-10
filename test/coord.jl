@@ -36,3 +36,4 @@ m = mean(da2; dims = Coord)
 @test dims(m, Coord).mode isa DimensionalData.CoordMode
 pure_mean = mean(da2.data; dims = 1)
 @test vec(pure_mean) == vec(m.data)
+@test DimensionalData._tozerovector((1.0, 1.0)) == (0.0, 0.0)
