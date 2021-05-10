@@ -1,4 +1,4 @@
-struct CoordMode{D} <: IndexMode 
+struct CoordMode{D} <: IndexMode
     dims::D
 end
 
@@ -24,13 +24,16 @@ Coord(val::T=:) where T = Coord{T,AutoMode,NoMetadata}(val, AutoMode(), NoMetada
 dims(d::Coord) = dims(mode(d))
 bounds(d::Coord) = ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
-# Return a Vector{Bool} for matching coordinates  
+# Return a Vector{Bool} for matching coordinates
 sel2indices(dim::Coord, sel::DimTuple) = sel2indices(dim, sortdims(sel, dims(dim)))
-sel2indices(dim::Coord, sel::Tuple) = [all(map(_matches, sel, x)) for x in val(dim)] 
+sel2indices(dim::Coord, sel::Tuple) = [all(map(_matches, sel, x)) for x in val(dim)]
 sel2indices(dim::Coord, sel::StandardIndices) = sel
 
-_matches(sel::Dimension, x) = _matches(val(sel), x) 
+_matches(sel::Dimension, x) = _matches(val(sel), x)
 _matches(sel::Between, x) = (x >= first(sel)) & (x < last(sel))
 _matches(sel::At, x) = x == val(sel)
 _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true
+
+# Fix for https://github.com/rafaqz/DimensionalData.jl/issues/263
+@inline _reducedims(mode::CoordMode, dim::Dimension) = rebuild(dim, [zero(eltype(dim.val))], dim.mode)
