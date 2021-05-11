@@ -36,7 +36,6 @@ _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true
 
 # Fix for https://github.com/rafaqz/DimensionalData.jl/issues/263
-_tozerovector(x) = zero(x)
-_tozerovector(x::Tuple) = map(y -> 0*y, x)
+_tozero(xs) = map(x -> zero(x)), xs)
 @inline _reducedims(mode::CoordMode, dim::Dimension) =
-    rebuild(dim, [_tozerovector(dim.val[1])], dim.mode)
+    rebuild(dim, [_tozero(dim.val[1])], dim.mode)
