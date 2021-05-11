@@ -35,7 +35,6 @@ _matches(sel::At, x) = x == val(sel)
 _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true
 
-# Fix for https://github.com/rafaqz/DimensionalData.jl/issues/263
 _tozero(xs) = map(x -> zero(x)), xs)
 @inline _reducedims(mode::CoordMode, dim::Dimension) =
     rebuild(dim, [_tozero(dim.val[1])], dim.mode)
