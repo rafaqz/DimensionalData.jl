@@ -75,6 +75,11 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
 
+# Dummy read methods that do nothing. 
+# Means can actually read subtypes that are not in-memory Arrays
+Base.read(A::AbstractDimArray) = A
+Base.read(f, A::AbstractDimArray) = f(A)
+
 # Methods that create copies of an AbstractDimArray #######################################
 
 # Need to cover a few type signatures to avoid ambiguity with base
