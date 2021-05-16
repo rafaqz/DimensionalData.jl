@@ -2,7 +2,7 @@ using DimensionalData, Dates, Test, BenchmarkTools
 
 using DimensionalData: val, basetypeof, slicedims, dims2indices, mode, dimsmatch,
       @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride, 
-      _call, AlwaysTuple, MaybeFirst, _wraparg, _reducedims
+      _call, AlwaysTuple, MaybeFirst, _wraparg, _reducedims, combinedims
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
@@ -277,6 +277,11 @@ end
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
     @test_throws ArgumentError otherdims(nothing, X)
+end
+
+@testset "combinedims" begin
+    @test combinedims((X(1:10), Y(1:5)), (X(1:10), Z(3:10))) == (X(1:10), Y(1:5), Z(3:10))
+    @test_throws DimensionMismatch combinedims((X(1:2), Y(1:5)), (X(1:10), Z(3:10)))
 end
 
 @testset "setdims" begin
