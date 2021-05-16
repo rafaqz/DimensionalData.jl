@@ -19,7 +19,54 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     println(io)
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
-    _show_array(ioctx, mime, parent(A))
+
+    # Printing the array data is optional, subtypes can 
+    # show other things here instead.
+    show_after(ioctx, mime, A)
+
+    return nothing
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
+    nlayers = length(keys(stack))
+    layers_str = nlayers == 1 ? "layer" : "layers"
+    printstyled(io, nameof(typeof(stack)), color=:blue)
+    print(io, " with $nlayers $layers_str:\n")
+    for var in keys(stack)
+        printstyled(io, "  :$var", color=:yellow)
+
+        field_dims = DD.layerdims(stack, var)
+        n_dims = length(field_dims)
+        dims_str = n_dims == 1 ? "dim" : "dims"
+        print(io, " with $dims_str: ")
+        if n_dims > 0
+            for (d, dim) in enumerate(field_dims)
+                _show_dimname(io, dim)
+                d != length(field_dims) && print(io, ", ")
+            end
+            print(io, " (")
+            for (d, dim) in enumerate(field_dims)
+                print(io, "$(length(dim))")
+                d != length(field_dims) && print(io, '×')
+            end
+            print(io, ')')
+        end
+        print(io, '\n')
+    end
+
+    md = metadata(stack)
+    if !(md isa NoMetadata)
+        n_metadata = length(md)
+        if n_metadata > 0
+            print(io, "\nwith ")
+            show(io, mime, md)
+        end
+    end
+
+    # Show anything else subtypes want to append
+    show_after(io, mime, stack)
+
+    return nothing
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
@@ -79,6 +126,43 @@ function Base.show(io::IO, mime::MIME"text/plain", mode::AbstractCategorical)
     _printorder(io, mode)
 end
 
+# Semi-interface methods for adding addional `show` text
+# for AbstractDimArray/AbstractDimStack subtypes
+# TODO actually document in the interface
+show_after(io, mime, stack::DimStack) = nothing
+show_after(io::IO, mime, A::AbstractDimArray) = show_array(io, mime, parent(A))
+
+# Showing the array is optional for AbstractDimArray
+# `show_array` must be called from `show_after`.
+function show_array(io::IO, mime, A::AbstractArray{T,0}) where T
+    print(_ioctx(io, T), "\n", A[])
+end
+function show_array(io::IO, mime, A::AbstractArray{T,1}) where T
+    Base.print_matrix(_ioctx(io, T), A)
+end
+function _show_array(io::IO, mime, A::AbstractArray{T,2}) where T
+    Base.print_matrix(_ioctx(io, T), A)
+end
+function show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
+    o = ones(Int, N-2)
+    frame = A[:, :, o...]
+    onestring = join(o, ", ")
+    println(io, "[:, :, $(onestring)]")
+    Base.print_matrix(_ioctx(io, T), frame)
+    nremaining = prod(size(A,d) for d=3:N) - 1
+    nremaining > 0 && print(io, "\n[and ", nremaining," more slices...]")
+end
+
+function _show_dimname(io, dim::Dim)
+    color = DD._dimcolor(io)
+    printstyled(io, "Dim{"; color=color)
+    printstyled(io, string(":", name(dim)); color=:yellow)
+    printstyled(io, "}"; color=color)
+end
+function _show_dimname(io, dim::Dimension)
+    printstyled(io, DD.dim2key(dim); color = DD._dimcolor(io))
+end
+
 # short printing version for dimensions
 function _show_compact(io::IO, dim::Dimension)
     printstyled(io, nameof(typeof(dim)); color=_dimcolor(io))
@@ -107,7 +191,6 @@ function _printname(io::IO, name)
     end
 end
 
-# Note GeoData uses these
 function _printdims(io::IO, mime, dims::Tuple)
     if isempty(dims) 
         print(io, ": ")
@@ -179,26 +262,6 @@ _printmode(io, mode) = print(io, nameof(typeof(mode)))
 _printorder(io, mode) = print(io, nameof(typeof(order(mode))))
 _printspan(io, mode) = print(io, nameof(typeof(span(mode))))
 _printsampling(io, mode) = print(io, nameof(typeof(sampling(mode))))
-
-# Thanks to Michael Abbott for the following function
-function _show_array(io::IO, mime, A::AbstractArray{T,0}) where T
-    print(_ioctx(io, T), "\n", A[])
-end
-function _show_array(io::IO, mime, A::AbstractArray{T,1}) where T
-    Base.print_matrix(_ioctx(io, T), A)
-end
-function _show_array(io::IO, mime, A::AbstractArray{T,2}) where T
-    Base.print_matrix(_ioctx(io, T), A)
-end
-function _show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
-    o = ones(Int, N-2)
-    frame = A[:, :, o...]
-    onestring = join(o, ", ")
-    println(io, "[:, :, $(onestring)]")
-    Base.print_matrix(_ioctx(io, T), frame)
-    nremaining = prod(size(A,d) for d=3:N) - 1
-    nremaining > 0 && print(io, "\n[and ", nremaining," more slices...]")
-end
 
 function _ioctx(io, T)
     IOContext(io, :compact=>true, :limit=>true, :typeinfo=>T)
