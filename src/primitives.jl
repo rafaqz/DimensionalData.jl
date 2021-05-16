@@ -504,8 +504,8 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim) = a
 @inline comparedims(a::AnonDim, b::Dimension) = b
 @inline comparedims(a::Dimension, b::Dimension) = begin
-    length(a) == length(b) || _dimsizeerror(a, b)
     basetypeof(a) == basetypeof(b) || _dimsmismatcherror(a, b)
+    length(a) == length(b) || _dimsizeerror(a, b)
     # TODO compare the mode, and maybe the index.
     return a
 end
@@ -520,7 +520,10 @@ function combinedims end
     end
 # Cant use `map` here, tuples may not be the same length
 @inline _combinedims(a::DimTuple, b::DimTuple) = begin
-    comparedims(commondims(a, b), commondims(b, a))
+    # Check the matching dims are the same
+    common = commondims(a, b)
+    comparedims(dims(a, common), dims(b, common))
+    # Take them from a, and add any extras from b
     (a..., otherdims(b, a)...)
 end
 
@@ -608,7 +611,7 @@ struct AlwaysTuple end
 # Error methods. @noinline to avoid allocations.
 
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
-@noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis"))
-@noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(lengt(b)) for $(basetypeof(a))"))
+@noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
+@noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))

@@ -53,6 +53,10 @@ end
 
     A = Array(da2)
     @test A == parent(da2)
+
+    # This should do nothing
+    A = read(da2)
+    @test A === da2
 end
 
 @testset "OffsetArray" begin
