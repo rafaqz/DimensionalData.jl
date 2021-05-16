@@ -5,33 +5,37 @@ Abstract supertype for dimensional stacks.
 
 These have multiple layers of data, but share dimensions.
 """
-abstract type AbstractDimStack{L,D} end
+abstract type AbstractDimStack{L} end
 
 data(s::AbstractDimStack) = s.data
 dims(s::AbstractDimStack) = s.dims
-dims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
 refdims(s::AbstractDimStack) = s.refdims
 layerdims(s::AbstractDimStack) = s.layerdims
-layerdims(s::AbstractDimStack, key::Symbol) = layerdims(s)[key]
+layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
 metadata(s::AbstractDimStack) = s.metadata
 layermetadata(s::AbstractDimStack) = s.layermetadata
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
+metadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
 layerdims(A::AbstractDimArray) = basedims(A)
 
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
-Base.values(s::AbstractDimStack) = values(dimarrays(s))
+Base.haskey(s::AbstractDimStack, k) = k in keys(s)
+Base.values(s::AbstractDimStack) = values(layers(s))
 Base.first(s::AbstractDimStack) = s[first(keys(s))]
 Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
 Base.length(s::AbstractDimStack) = length(data(s))
-Base.iterate(s::AbstractDimStack, args...) = iterate(dimarrays(s), args...)
+Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 
-rebuild(s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s), 
-        layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)) =
+function rebuild(
+    s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s), 
+    layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
+    )
     basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)
+end
 
 function rebuildsliced(f::Function, s::AbstractDimStack, data, I) 
     layerdims = map(basedims, data)
@@ -39,7 +43,7 @@ function rebuildsliced(f::Function, s::AbstractDimStack, data, I)
     rebuild(s; data=map(parent, data), dims=dims, refdims=refdims, layerdims=layerdims)
 end
 
-function dimarrays(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
 
@@ -52,18 +56,19 @@ for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order
 end
 
 """
-    Base.map(f, s::AbstractDimStack)
+    Base.copy!(dst::AbstractArray, src::DiskGeoStack, key::Key)
 
-Apply functrion `f` to each layer of the stack `s`, and rebuild it.
+Copy the stack layer `key` to `dst`, which can be any `AbstractArray`.
 
-If `f` returns `DimArray`s the result will be another `DimStack`.
-Other values will be returned in a `NamedTuple`.
+## Example
+
+Copy the `:humidity` layer from `stack` to `array`.
+
+```julia
+copy!(array, stack, :humidity)
+```
 """
-Base.map(f, s::AbstractDimStack) = maybestack(map(f, dimarrays(s)))
-
-maybestack(As::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}) = DimStack(As)
-maybestack(x::NamedTuple) = x
-
+Base.copy!(dst::AbstractArray, src::AbstractDimStack, key) = copy!(dst, src[key])
 
 """
     Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, [keys=keys(dst)])
@@ -89,6 +94,42 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
     end
 end
 
+"""
+    Base.map(f, s::AbstractDimStack)
+
+Apply functrion `f` to each layer of the stack `s`, and rebuild it.
+
+If `f` returns `DimArray`s the result will be another `DimStack`.
+Other values will be returned in a `NamedTuple`.
+"""
+Base.map(f, s::AbstractDimStack) = maybestack(map(f, layers(s)))
+
+maybestack(As::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}) = DimStack(As)
+maybestack(x::NamedTuple) = x
+
+"""
+    Base.cat(stacks::AbstractGeoStack...; [keys=keys(stacks[1])], dims)
+
+Concatenate all or a subset of layers for all passed in stacks.
+
+# Keywords
+
+- `keys`: `Tuple` of `Symbol` for the stack keys to concatenate.
+- `dims`: Dimension of child array to concatenate on.
+
+# Example
+
+Concatenate the :sea_surface_temp and :humidity layers in the time dimension:
+
+```julia
+cat(stacks...; keys=(:sea_surface_temp, :humidity), dims=Ti)
+```
+"""
+function Base.cat(s1::AbstractDimStack, stacks::AbstractDimStack...; keys=keys(s1), dims)
+    vals = Tuple(cat((s[k] for s in (s1, stacks...))...; dims=dims) for k in keys)
+    DD.basetypeof(s1)(NamedTuple{keys}(vals))
+end
+
 # Array methods
 
 # Methods with no arguments that return a DimStack
@@ -111,7 +152,7 @@ for (mod, fnames) in
      :Statistics => (:cor, :cov, :mean, :median, :std, :var))
     for fname in fnames
         @eval ($mod.$fname)(s::AbstractDimStack; kw...) =
-            maybestack(map(A -> ($mod.$fname)(A; kw...), dimarrays(s)))
+            maybestack(map(A -> ($mod.$fname)(A; kw...), layers(s)))
     end
 end
 
@@ -193,7 +234,7 @@ true
 ```
 
 """
-struct DimStack{L,D<:Tuple,R<:Tuple,LD<:NamedTuple,M,LM<:NamedTuple} <: AbstractDimStack{L,D}
+struct DimStack{L,D<:Tuple,R<:Tuple,LD<:NamedTuple,M,LM<:NamedTuple} <: AbstractDimStack{L}
     data::L
     dims::D
     refdims::R
