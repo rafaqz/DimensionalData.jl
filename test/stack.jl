@@ -164,7 +164,7 @@ end
     end
 
     @testset "dim dropping methods" begin
-        @test DimensionalData.dimarrays(dropdims(s[X([1])]; dims=X)) == 
+        @test DimensionalData.layers(dropdims(s[X([1])]; dims=X)) == 
             (one=DimArray([1.0, 2.0, 3.0], dims(da1, Y)), 
              two=DimArray([2.0, 4.0, 6.0], dims(da1, Y)),
              three=DimArray([3.0, 6.0, 9.0], dims(da1, Y)))

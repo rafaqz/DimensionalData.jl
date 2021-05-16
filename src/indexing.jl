@@ -40,7 +40,7 @@ for f in (:getindex, :view, :dotview)
 
         #### Stack ###
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
-            vals = map(A -> Base.$f(A, I...; kw...), dimarrays(s))
+            vals = map(A -> Base.$f(A, I...; kw...), layers(s))
             if all(map(v -> v isa AbstractDimArray, vals))
                 rebuildsliced(Base.$f, s, vals, (dims2indices(dims(s), I)))
             else
@@ -62,12 +62,12 @@ end
     setindex!(parent(A), x, I)
 #### Stack setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
-    map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs)
+    map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 @propagate_inbounds function Base.setindex!(
     s::AbstractDimStack{<:NamedTuple{K1}}, xs::NamedTuple{K2}, I...; kw...
 ) where {K1,K2}
     K1 == K2 || _keysmismatch(K1, K2)
-    map((A, x) -> setindex!(A, x, I...; kw...), dimarrays(s), xs)
+    map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 end
 
 

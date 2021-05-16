@@ -334,7 +334,7 @@ end
     end
 end
 
-@noinline _selvalnotfound(dim, selval) = throw(ArgumentError("$selval not found in $dim"))
+@noinline _selvalnotfound(dim, selval) = throw(ArgumentError("$selval not found in $(name(dim))"))
 
 
 # near ===========================================================================
