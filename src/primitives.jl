@@ -137,13 +137,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()),)
+X
 
 julia> commondims(A, (X, Z))
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
+X, Z
 
 julia> commondims(A, Ti)
-()
+
 ```
 """
 @inline commondims(args...) = _call(_commondims, AlwaysTuple(), args...)

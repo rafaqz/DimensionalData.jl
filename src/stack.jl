@@ -173,7 +173,9 @@ julia> using DimensionalData
 julia> A = [1.0 2.0 3.0; 4.0 5.0 6.0];
 
 julia> dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
-(X{Vector{Symbol}, AutoMode{AutoOrder}, NoMetadata}([:a, :b], AutoMode{AutoOrder}(AutoOrder()), NoMetadata()), Y{StepRangeLen{Float64, Base.TwicePrecision{Float64}, Base.TwicePrecision{Float64}}, AutoMode{AutoOrder}, NoMetadata}(10.0:10.0:30.0, AutoMode{AutoOrder}(AutoOrder()), NoMetadata()))
+
+  X: Symbol[a, b]
+  Y: 10.0:10.0:30.0
 
 julia> da1 = DimArray(1A, dimz, :one);
 
