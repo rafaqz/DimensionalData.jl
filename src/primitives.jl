@@ -244,13 +244,13 @@ julia> using DimensionalData
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-(Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
+Y, Z
 
 julia> otherdims(A, (Y, Z))
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()),)
+X
 
 julia> otherdims(A, Ti)
-(X{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Y{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()), Z{Base.OneTo{Int64}, NoIndex, NoMetadata}(Base.OneTo(10), NoIndex(), NoMetadata()))
+X, Y, Z
 ```
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)

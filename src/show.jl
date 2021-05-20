@@ -129,7 +129,7 @@ end
 
 function _layout_dims(io, mime, dims::Tuple)
     ctx = IOContext(io, :compact=>true)
-    if all(m -> m isa NoIndex, mode(dims))
+    if length(dims) > 0 && all(m -> m isa NoIndex, mode(dims))
         for d in dims[1:end-1]
             show(ctx, mime, d)
             print(io, ", ")
@@ -202,4 +202,8 @@ end
 
 function _ioctx(io, T)
     IOContext(io, :compact=>true, :limit=>true, :typeinfo=>T)
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", dims::Tuple{Vararg{<:Dimension}})
+    _layout_dims(io, mime, dims)
 end
