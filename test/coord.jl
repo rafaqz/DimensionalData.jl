@@ -28,8 +28,7 @@ end
 
 @test bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
 
-@testset "coord named reduction"
-    # Test for https://github.com/rafaqz/DimensionalData.jl/issues/263
+@testset "coord named reduction" begin
     m = mean(da2; dims = Coord)
     @test size(m) == (1,3)
     @test length(dims(m, Coord)) == 1
@@ -37,5 +36,5 @@ end
     @test dims(m, Coord).mode isa DimensionalData.CoordMode
     pure_mean = mean(da2.data; dims = 1)
     @test vec(pure_mean) == vec(m.data)
-    @test DimensionalData._tozerovector((1.0, 1.0)) == (0.0, 0.0)
+    @test DimensionalData._tozero((1.0, 1.0)) == (0.0, 0.0)
 end
