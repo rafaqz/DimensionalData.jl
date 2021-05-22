@@ -181,10 +181,11 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     name::Na
     metadata::Me
 end
-# 2 or 3 argument version
-function DimArray(data::AbstractArray, dims, name=NoName(); refdims=(), metadata=NoMetadata())
+# 2 arg version
+function DimArray(data::AbstractArray, dims; refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
+@deprecate DimArray(data::AbstractArray, dims, name; kw...) DimArray(data, dims; name=name, kw...)
 # All keyword argument version
 function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
