@@ -224,13 +224,13 @@ function _layout_dims(io, mime, dims::Tuple)
         return 0
     else # Dims get a line each
         lines = 3
+        print(io, "\n  ")
         for d in dims[1:end-1]
-            print(io, "\n  ")
             show(ctx, mime, d)
             print(io, ",")
             lines += 2 # Often they wrap
+            print(io, "\n  ")
         end
-        print(io, "\n  ")
         show(ctx, mime, dims[end])
         return lines
     end
@@ -272,8 +272,6 @@ function _ioctx(io, T)
     IOContext(io, :compact=>true, :limit=>true, :typeinfo=>T)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", dims::Tuple{Vararg{<:Dimension}})
-    print(io, "(")
+function Base.show(io::IO, mime::MIME"text/plain", dims::Tuple{<:Dimension,Vararg{<:Dimension}})
     _layout_dims(io, mime, dims)
-    print(io, "\n)")
 end
