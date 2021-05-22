@@ -28,17 +28,21 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
+    printstyled(io, nameof(typeof(stack)), color=:blue)
+    _printdims(io, mime, dims(stack))
     nlayers = length(keys(stack))
     layers_str = nlayers == 1 ? "layer" : "layers"
-    printstyled(io, nameof(typeof(stack)), color=:blue)
-    print(io, " with $nlayers $layers_str:\n")
-    for var in keys(stack)
-        printstyled(io, "  :$var", color=:yellow)
-
-        field_dims = DD.layerdims(stack, var)
+    printstyled(io, "\nand "; color=:light_black) 
+    print(io, "$nlayers $layers_str:\n")
+    maxlen = reduce(max, map(length ∘ string, keys(stack)))
+    for key in keys(stack)
+        layer = stack[key]
+        pkey = rpad(key, maxlen)
+        printstyled(io, "  :$pkey", color=:yellow)
+        print(io, string(" ", eltype(layer)))
+        field_dims = DD.dims(layer)
         n_dims = length(field_dims)
-        dims_str = n_dims == 1 ? "dim" : "dims"
-        print(io, " with $dims_str: ")
+        printstyled(io, " dims: "; color=:light_black)
         if n_dims > 0
             for (d, dim) in enumerate(field_dims)
                 _show_dimname(io, dim)
@@ -58,7 +62,7 @@ function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
     if !(md isa NoMetadata)
         n_metadata = length(md)
         if n_metadata > 0
-            print(io, "\nwith ")
+            printstyled(io, "\nwith "; color=:light_black)
             show(io, mime, md)
         end
     end
@@ -83,15 +87,15 @@ function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
         end
     end
     print(io, ": ")
-    printstyled(io, "\n  val: ")
+    printstyled(io, "\n  val: "; color=:light_black)
     _printdimindex(io, val(dim))
 
     if !(mode(dim) isa AutoMode)
-        printstyled(io, "\n  mode: ")
+        printstyled(io, "\n  mode: "; color=:light_black)
         show(io, mime, mode(dim))
     end
     if !(metadata(dim) isa NoMetadata)
-        printstyled(io, "\n  metadata: ")
+        printstyled(io, "\n  metadata: "; color=:light_black)
         show(io, mime, metadata(dim))
     end
     println(io)
@@ -105,7 +109,7 @@ function Base.show(io::IO, mime::MIME"text/plain", metadata::Metadata{N}) where 
         show(io, N)
         print(io, "}")
     end
-    print(io, " of ")
+    printstyled(io, " of "; color=:light_black)
     show(io, mime, val(metadata))
 end
 Base.show(io::IO, mime::MIME"text/plain", mode::IndexMode) = _printmode(io, mode)
@@ -140,7 +144,7 @@ end
 function show_array(io::IO, mime, A::AbstractArray{T,1}) where T
     Base.print_matrix(_ioctx(io, T), A)
 end
-function _show_array(io::IO, mime, A::AbstractArray{T,2}) where T
+function show_array(io::IO, mime, A::AbstractArray{T,2}) where T
     Base.print_matrix(_ioctx(io, T), A)
 end
 function show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
@@ -149,7 +153,7 @@ function show_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
     onestring = join(o, ", ")
     println(io, "[:, :, $(onestring)]")
     Base.print_matrix(_ioctx(io, T), frame)
-    nremaining = prod(size(A,d) for d=3:N) - 1
+    nremaining = prod(size(A, d) for d=3:N) - 1
     nremaining > 0 && print(io, "\n[and ", nremaining," more slices...]")
 end
 
@@ -185,9 +189,7 @@ _dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
 
 function _printname(io::IO, name)
     if !(name == Symbol("") || name isa NoName)
-        print(io, " (")
-        printstyled(io, string(name); color=:yellow)
-        print(io, ")")
+        printstyled(io, string(" :", name); color=:yellow)
     end
 end
 
@@ -196,7 +198,7 @@ function _printdims(io::IO, mime, dims::Tuple)
         print(io, ": ")
         return 0
     end
-    print(io, " with dimensions: ")
+    printstyled(io, " with dimensions: "; color=:light_black)
     return _layout_dims(io, mime, dims)
 end
 
@@ -204,15 +206,16 @@ function _printrefdims(io::IO, mime, refdims::Tuple)
     if isempty(refdims) 
         return 0
     end
-    print(io, "and reference dimensions: ")
+    printstyled(io, "and reference dimensions: "; color=:light_black)
     ctx = IOContext(io, :is_ref_dim=>true, :show_dim_val=>true)
     lines = _layout_dims(ctx, mime, refdims)
     return lines
 end
 
 function _layout_dims(io, mime, dims::Tuple)
+    length(dims) > 0 || return 0
     ctx = IOContext(io, :compact=>true)
-    if length(dims) > 0 && all(m -> m isa NoIndex, mode(dims))
+    if all(m -> m isa NoIndex, mode(dims))
         for d in dims[1:end-1]
             show(ctx, mime, d)
             print(io, ", ")
@@ -220,13 +223,15 @@ function _layout_dims(io, mime, dims::Tuple)
         show(ctx, mime, dims[end])
         return 0
     else # Dims get a line each
-        lines = 1
-        for d in dims
-            println(io)
-            print(io, "  ")
+        lines = 3
+        for d in dims[1:end-1]
+            print(io, "\n  ")
             show(ctx, mime, d)
+            print(io, ",")
             lines += 2 # Often they wrap
         end
+        print(io, "\n  ")
+        show(ctx, mime, dims[end])
         return lines
     end
 end
@@ -268,5 +273,7 @@ function _ioctx(io, T)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dims::Tuple{Vararg{<:Dimension}})
+    print(io, "(")
     _layout_dims(io, mime, dims)
+    print(io, "\n)")
 end
