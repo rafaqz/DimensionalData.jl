@@ -243,7 +243,7 @@ where `Dim{:x}` is different from `Dim{:y}`.
 end
 
 # Left pipe operator for cleaning up brackets
-f <| x = f(x)
+@deprecate f <| x f(x)
 
 # Unwrap Val
 unwrap(::Val{X}) where X = X
