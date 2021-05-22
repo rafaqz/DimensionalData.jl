@@ -28,7 +28,7 @@ using DimensionalData, Test, Dates
     end
 
     # Test again but now with labelled array A
-    A = DimArray(rand(length.(d)...), d, :test)
+    A = DimArray(rand(length.(d)...), d; name=:test)
     s1 = sprint(show, MIME("text/plain"), A)
     @test occursin("test", s1)
 
@@ -43,26 +43,33 @@ using DimensionalData, Test, Dates
     @test occursin("test", s3)
 
     # It should NOT propagate after binary operations
-    B = DimArray(rand(length.(d)...), d, :test2)
+    B = DimArray(rand(length.(d)...), d; name=:test2)
     C = A .+ B
     s4 = sprint(show, MIME("text/plain"), C)
     @test !occursin("test", s4)
 
     # Test that broadcasted setindex! retains name
-    D = DimArray(ones(length.(d)...), d, :olo)
+    D = DimArray(ones(length.(d)...), d; name=:olo)
     @. D = A + B
     s5 = sprint(show, MIME("text/plain"), D)
     @test occursin("olo", s5)
 
     # Test zero dim show
-    D = DimArray([x for x in 1], (), :zero)
+    D = DimArray([x for x in 1], (); name=:zero)
     sz = sprint(show, MIME("text/plain"), D)
     @test occursin("zero", sz)
 
     # Test vector show
-    D = DimArray(ones(length(t)), t, :vec)
+    D = DimArray(ones(length(t)), t; name=:vec)
     sv = sprint(show, MIME("text/plain"), D)
+    @test occursin("1", sv)
     @test occursin("vec", sv)
+
+    # Test matrix show
+    D = ones()
+    D = DimArray(ones(X(5), Y(5)); name=:vec)
+    sv = sprint(show, MIME("text/plain"), D)
+    @test occursin("1", sv)
 
     sv = sprint(show, MIME("text/plain"), X())
     @test occursin("X", sv)
