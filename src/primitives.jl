@@ -143,6 +143,7 @@ julia> commondims(A, (X, Z))
 X, Z
 
 julia> commondims(A, Ti)
+()
 
 ```
 """
@@ -512,17 +513,18 @@ end
 
 function combinedims end
 # @inline combinedims(xs::Tuple) = combinedims(xs...)
-@inline combinedims(xs...) = combinedims(map(dims, xs)...)
-@inline combinedims(dt1::DimTuple) = dt1
-@inline combinedims(dt1::DimTuple, dt2::DimTuple, dimtuples::DimTuple...) =
+@inline combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
+@inline combinedims(dt1::DimTuple; kw...) = dt1
+@inline combinedims(dt1::DimTuple, dt2::DimTuple, dimtuples::DimTuple...; kw...) =
     reduce((dt2, dimtuples...); init=dt1) do dims1, dims2
-        _combinedims(dims1, dims2)
+        _combinedims(dims1, dims2; kw...)
     end
 # Cant use `map` here, tuples may not be the same length
-@inline _combinedims(a::DimTuple, b::DimTuple) = begin
-    # Check the matching dims are the same
-    common = commondims(a, b)
-    comparedims(dims(a, common), dims(b, common))
+@inline _combinedims(a::DimTuple, b::DimTuple; check=true) = begin
+    if check # Check the matching dims are the same
+        common = commondims(a, b)
+        comparedims(dims(a, common), dims(b, common))
+    end
     # Take them from a, and add any extras from b
     (a..., otherdims(b, a)...)
 end
