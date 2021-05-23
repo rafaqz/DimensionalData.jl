@@ -198,6 +198,7 @@ reverse
 fill
 map
 Base.copy!
+Base.cat
 ```
 
 ## Non-exported methods for developers
