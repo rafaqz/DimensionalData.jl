@@ -137,6 +137,7 @@ dimz = dims(da)
     @test (@ballocated $f1($dimz)) == 0
 
     @test dims(da, X()) isa X
+    @test dims(da, Z()) isa Nothing
     @test (@inferred dims(da, XDim, YDim)) isa Tuple{<:X,<:Y}
     @test (@ballocated dims($da, XDim, YDim)) == 0
     @test dims(da, ()) == ()
