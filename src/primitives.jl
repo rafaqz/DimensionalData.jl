@@ -570,8 +570,11 @@ struct AlwaysTuple end
 @inline _call1(f, t::AlwaysTuple, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
     _call1(f, t, op, d, (lookup,))
 @inline _call1(f, t::MaybeFirst, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
-    _call1(f, t, op, d, (lookup,))[1]
+    _call1(f, t, op, d, (lookup,)) |> _maybefirst
 @inline _call1(f, t, op::Function, d::Tuple, lookup::Tuple) = map(unwrap, f(op, d, lookup))
+
+_maybefirst(xs::Tuple) = first(xs)
+_maybefirst(::Tuple{}) = nothing
 
 @inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(kw.data)
 @inline _kwdims(kw::NamedTuple{Keys}) where Keys = _kwdims(key2dim(Keys), values(kw))
