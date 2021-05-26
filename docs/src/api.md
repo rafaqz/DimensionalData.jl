@@ -194,9 +194,9 @@ modify
 dimwise
 dimwise!
 reorder
-reverse
-fill
-map
+Base.reverse
+Base.fill
+Base.map
 Base.copy!
 Base.cat
 ```
