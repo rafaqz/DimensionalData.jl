@@ -31,7 +31,8 @@ end
     @test s[1, 1] === (one=1.0, two=2.0f0, three=3)
     @test s[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
     @test s[X=:b, Y=10.0] === (one=4.0, two=8.0f0, three=12)
-    slicedds = s[:a, :]
+    slicedds = s[X=:a]
+    @test refdims(slicedds) isa Tuple{<:X}
     @test slicedds[:one] == [1.0, 2.0, 3.0]
     @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
     @testset "linear indices" begin

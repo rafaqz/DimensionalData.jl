@@ -42,11 +42,12 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
             vals = map(A -> Base.$f(A, I...; kw...), layers(s))
             if all(map(v -> v isa AbstractDimArray, vals))
-                rebuildsliced(Base.$f, s, vals, (dims2indices(dims(s), I)))
+                rebuildsliced(Base.$f, s, vals, (dims2indices(dims(s), (I..., _kwdims(kw.data)...))))
             else
                 vals
             end
         end
+
     end
 end
 

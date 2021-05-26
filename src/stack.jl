@@ -33,13 +33,13 @@ Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 function rebuild(
     s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s), 
     layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
-    )
+)
     basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
 function rebuildsliced(f::Function, s::AbstractDimStack, data, I) 
     layerdims = map(basedims, data)
-    dims, refdims = slicedims(s, I)
+    dims, refdims = slicedims(f, s, I)
     rebuild(s; data=map(parent, data), dims=dims, refdims=refdims, layerdims=layerdims)
 end
 
