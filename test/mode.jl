@@ -47,16 +47,6 @@ end
         Ordered(ReverseIndex(), ReverseArray(), ForwardRelation())
 end
 
-@testset "slicebounds" begin
-    index = [10.0, 20.0, 30.0, 40.0, 50.0]
-    span_ = Irregular(10.0, 60.0)
-    @test _slicespan(Start(), span_, index, 2:3) == (20.0, 40.0)
-    span_ = Irregular(0.0, 50.0)
-    @test _slicespan(End(), span_, index, 2:3) == (10.0, 30.0)
-    span_ = Irregular(0.5, 55.0)
-    @test _slicespan(Center(), span_, index, 2:3) == (15.0, 35.0)
-end
-
 @testset "_slicemode" begin
     ind = [10.0, 20.0, 30.0, 40.0, 50.0]
 
@@ -69,11 +59,13 @@ end
     end
 
     @testset "Irregular reverse" begin
-        mode_ = Sampled(order=Ordered(index=ReverseIndex()), span=Irregular(10.0, 60.0),
+        revind = [50.0, 40.0, 30.0, 20.0, 10.0]
+        mode_ = Sampled(order=Ordered(index=ReverseIndex()), span=Irregular(0.0, 50.0),
                         sampling=Intervals(Start()))
-        mode_ = Sampled(Ordered(index=ReverseIndex()), Irregular(10.0, 60.0), Intervals(Start()))
-        @test _bounds(_slicemode(mode_, ind, 1:5), X(ind)) == (10.0, 60.0)
-        @test _bounds(_slicemode(mode_, ind, 1:3), X(ind)) == (30.0, 60.0)
+        mode_ = Sampled(Ordered(index=ReverseIndex()), Irregular(0.0, 50.0), Intervals(Start()))
+        @test _bounds(_slicemode(mode_, revind, 1:5), X(revind)) == (0.0, 50.0)
+        @test _bounds(_slicemode(mode_, revind, 1:2), X(revind)) == (30.0, 50.0)
+        @test _bounds(_slicemode(mode_, revind, 1:3), X(revind)) == (20.0, 50.0)
     end
 
     @testset "Irregular with no bounds" begin

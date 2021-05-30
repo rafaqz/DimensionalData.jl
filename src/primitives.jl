@@ -389,12 +389,11 @@ end
 @inline _slicedims(f, ::NoIndex, d::Dimension{<:Val}, i::AbstractArray) =
     (rebuild(d, f(val(d), relate(d, i))),), ()
 
-@inline relate(d::Dimension, i) = _maybeflip(relation(d), d, i)
+@inline relate(d::Dimension, i) = _maybeflipindex(relation(d), d, i)
 
-@inline _maybeflip(::Union{ForwardRelation,ForwardIndex}, d, i) = i
-@inline _maybeflip(::Union{ReverseRelation,ReverseIndex}, d, i::Integer) =
-    lastindex(d) - i + 1
-@inline _maybeflip(::Union{ReverseRelation,ReverseIndex}, d, i::AbstractArray) =
+@inline _maybeflipindex(::ForwardRelation, d, i) = i
+@inline _maybeflipindex(::ReverseRelation, d, i::Integer) = lastindex(d) - i + 1
+@inline _maybeflipindex(::ReverseRelation, d, i::AbstractArray) =
     reverse(lastindex(d) .- i .+ 1)
 
 """

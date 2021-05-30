@@ -549,16 +549,16 @@ _slicemode(::Intervals, ::Union{Irregular,Explicit}, mode::AbstractSampled, inde
 end
 
 _slicespan(m::IndexMode, index, i) =
-    _slicespan(span(m), m, index, _maybeflip(indexorder(m), index, i))
+    _slicespan(span(m), m, index, _maybeflipindex(relation(m), index, i))
 _slicespan(span::Explicit, m::IndexMode, index, i::Int) = Explicit(val(span)[:, i])
 _slicespan(span::Explicit, m::IndexMode, index, i::AbstractArray) = Explicit(val(span)[:, i])
 _slicespan(span::Irregular, m::IndexMode, index, i) =
-    Irregular(_slicespan(locus(m), span, index, i))
-_slicespan(locus::Start, span::Irregular, index, i) =
-    index[first(i)], last(i) >= lastindex(index) ? bounds(span)[2] : index[last(i) + 1]
-_slicespan(locus::End, span::Irregular, index, i) =
-    first(i) <= firstindex(index) ? bounds(span)[1] : index[first(i) - 1], index[last(i)]
-_slicespan(locus::Center, span::Irregular, index, i) =
+    Irregular(_maybeflipbounds(m, _slicespan(locus(m), span, m, index, i)))
+_slicespan(locus::Start, span::Irregular, m, index, i) =
+    index[first(i)], last(i) >= lastindex(index) ? _maybeflipbounds(m, bounds(span))[2] : index[last(i) + 1]
+_slicespan(locus::End, span::Irregular, m, index, i) =
+    first(i) <= firstindex(index) ? _maybeflipbounds(m, bounds(span))[1] : index[first(i) - 1], index[last(i)]
+_slicespan(locus::Center, span::Irregular, m, index, i) =
     first(i) <= firstindex(index) ? bounds(span)[1] : (index[first(i) - 1] + index[first(i)]) / 2,
     last(i)  >= lastindex(index)  ? bounds(span)[2] : (index[last(i) + 1]  + index[last(i)]) / 2
 
