@@ -453,8 +453,8 @@ function between(sampling::Sampling, mode::IndexMode, dim::Dimension, sel::Betwe
 end
 # Points ------------------------------------
 function between(sampling::Points, o::IndexOrder, ::IndexMode, dim::Dimension, sel::Between)
-    b1, b2 = _maybeflip(o, _sorttuple(sel))
-    s1, s2 = _maybeflip(o, (_searchfirst, _searchlast))
+    b1, b2 = _maybeflipbounds(o, _sorttuple(sel))
+    s1, s2 = _maybeflipbounds(o, (_searchfirst, _searchlast))
     _inbounds((s1(o, dim, b1), s2(o, dim, b2)), dim)
 end
 # Intervals -------------------------
@@ -463,7 +463,7 @@ function between(sampling::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimen
 end
 # Regular Intervals -------------------------
 function between(span::Regular, ::Intervals, o::IndexOrder, mode::IndexMode, dim::Dimension, sel::Between)
-    b1, b2 = _maybeflip(o, _sorttuple(sel) .+ _locus_adjust(mode))
+    b1, b2 = _maybeflipbounds(o, _sorttuple(sel) .+ _locus_adjust(mode))
     _inbounds((_searchfirst(o, dim, b1), _searchlast(o, dim, b2)), dim)
 end
 # Explicit Intervals -------------------------
@@ -480,7 +480,7 @@ function between(span::Irregular, ::Intervals, o::IndexOrder, mode::IndexMode, d
     bl, bh = bounds(span)
     a = l <= bl ? _dimlower(o, d) : between(_Lower(), locus(mode), o, d, l)
     b = h >= bh ? _dimupper(o, d) : between(_Upper(), locus(mode), o, d, h)
-    _maybeflip(o, (a, b))
+    _maybeflipbounds(o, (a, b))
 end
 function between(x, locus::Union{Start,End}, o::IndexOrder, d::Dimension, v)
     _search(x, o, d, v) - _ordscalar(o) * (_locscalar(locus) + _endshift(x))
@@ -512,6 +512,10 @@ _lt(::_Lower) = (<)
 _lt(::_Upper) = (<=)
 
 
+_maybeflipbounds(m::IndexMode, bounds) = _maybeflipbounds(indexorder(m), bounds) 
+_maybeflipbounds(o::ForwardIndex, (a, b)) = (a, b)
+_maybeflipbounds(o::ReverseIndex, (a, b)) = (b, a)
+
 # Shared utils ============================================================================
 
 _searchlast(o::IndexOrder, dim::Dimension, v, lt=<) =
@@ -540,9 +544,6 @@ _inbounds(i::Int, dim::Dimension) =
 
 _sorttuple(sel::Between) = _sorttuple(val(sel))
 _sorttuple((a, b)) = a < b ? (a, b) : (b, a)
-
-_maybeflip(o::ForwardIndex, (a, b)) = (a, b)
-_maybeflip(o::ReverseIndex, (a, b)) = (b, a)
 
 _lt(::Locus) = (<)
 _lt(::End) = (<=)

@@ -14,8 +14,7 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
     @eval begin
         # Base methods
         $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A::AbstractDimArray, dims; kw...)
-        $m.$f(f, A::AbstractDimArray; dims=:, kw...) =
-            $_f(f, A::AbstractDimArray, dims; kw...)
+        $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A::AbstractDimArray, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
         $_f(A::AbstractDimArray, dims; kw...) =
@@ -23,9 +22,8 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         $_f(f, A::AbstractDimArray, dims; kw...) =
             rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
         # - Return a scalar
-        $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); kw...)
-        $_f(f, A::AbstractDimArray, dims::Colon; kw...) =
-            $m.$f(f, parent(A); dims=dims, kw...)
+        $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
+        $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
     end
 end
 # With no function arg version
