@@ -95,4 +95,10 @@ const DimensionalArray = DimArray
 const AbstractDimDataset = AbstractDimStack
 const DimDataset = DimStack
 
+precompile(DimArray, (Array{Int,1}, typeof(X())))
+precompile(DimArray, (Array{Int,2}, Tuple{typeof(X()), typeof(Y())}))
+precompile(DimArray, (Array{Float64,1}, typeof(X())))
+precompile(DimArray, (Array{Float64,2}, Tuple{typeof(X()), typeof(Y())}))
+precompile(DimArray, (Array{Float64,3}, Tuple{typeof(X()), typeof(Y())}))
+
 end

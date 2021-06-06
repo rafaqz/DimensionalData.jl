@@ -96,8 +96,8 @@ end
 
 function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     dimnums = dimnum(A, _astuple(dims))
-    _data = mapslices(f, parent(A); dims=dimnums, kw...)
-    rebuild(A, _data, reducedims(A, DimensionalData.dims(A, dimnums)))
+    data = mapslices(f, parent(A); dims=dimnums, kw...)
+    rebuild(A, data)
 end
 
 # This is copied from base as we can't efficiently wrap this function

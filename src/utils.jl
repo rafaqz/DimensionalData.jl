@@ -81,10 +81,12 @@ flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 Reorder every dims index/array/relation to `order`, or reorder index for
 the the given dimension(s) to the `Order` they wrap.
 
-Reorderind `Relation` will reverse the array, not the dimension index.
+Reordering `Relation` will reverse the array, not the dimension index.
 
 `order` can be an [`Order`](@ref), a single [`Dimension`](@ref)
 or a `Tuple` of `Dimension`.
+
+If no axis reversal is required the same objects will be returned, without allocation.
 """
 function reorder end
 

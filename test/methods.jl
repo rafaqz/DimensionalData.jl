@@ -256,13 +256,13 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    da = DimArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())), 
-                              Ti(1:4; mode=Sampled(sampling=Intervals()))))
+    da = DimArray(a, (Y(10:10:30; mode=Sampled(sampling=Intervals())), 
+                      Ti(1:4; mode=Sampled(sampling=Intervals()))))
     ms = mapslices(sum, da; dims=Y)
     @test ms == [9 12 15 18]
-    @test typeof(dims(ms)) == 
-    typeof((Y([10.0]; mode=Sampled(Ordered(), Regular(30.0), Intervals(Center()))),
-            Ti(1:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start())))))
+    @test dims(ms) == 
+            (Y(10:10:30; mode=Sampled(Ordered(), Regular(10), Intervals(Center()))),
+             Ti(1:4; mode=Sampled(Ordered(), Regular(1), Intervals(Start()))))
     @test refdims(ms) == ()
     ms = mapslices(sum, da; dims=Ti)
     @test parent(ms) == [10 18 26]'
