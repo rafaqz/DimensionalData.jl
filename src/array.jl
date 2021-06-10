@@ -84,14 +84,20 @@ Base.read(f, A::AbstractDimArray) = f(A)
 
 # Need to cover a few type signatures to avoid ambiguity with base
 Base.similar(A::AbstractDimArray) =
-    rebuild(A, similar(parent(A)), dims(A), refdims(A), Symbol(""))
+    rebuild(A, similar(parent(A)), dims(A), refdims(A), _noname(A))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
-    rebuild(A, similar(parent(A), T), dims(A), refdims(A), Symbol(""))
+    rebuild(A, similar(parent(A), T), dims(A), refdims(A), _noname(A))
 # If the shape changes, use the wrapped array:
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
 Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
     similar(parent(A), T, i, I...)
+
+# Keep the same type in `similar`
+_noname(A::AbstractDimArray) = _noname(name(A)) 
+_noname(::NoName) = NoName()
+_noname(::Symbol) = Symbol("")
+_noname(name::Name) = name # Keep the name so the type doesn't change 
 
 for func in (:copy, :one, :oneunit, :zero)
     @eval begin
