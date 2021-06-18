@@ -213,14 +213,14 @@ function dimwise_generators(dims::Tuple{<:Dimension})
 end
 # Multi dimensional generators
 function dimwise_generators(dims::Tuple)
-    dim_constructors = map(basetypeof, dims)
+    baseds = basedims(dims)
     # Get the axes of the dims to iterate over
     dimaxes = map(d -> axes(d, 1), dims)
     # Make an iterator over all axes
     proditr = Base.Iterators.ProductIterator(dimaxes)
     # Wrap the produced index I in dimensions as it is generated
     Base.Generator(proditr) do I
-        map((D, i) -> D(i), dim_constructors, I)
+        map((D, i) -> rebuild(D, i), baseds, I)
     end
 end
 
