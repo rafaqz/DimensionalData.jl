@@ -15,7 +15,7 @@ end
     A_fwd = _forwardorder(A)
     sertype = get(plotattributes, :seriestype, :none)
     if !(sertype in [:marginalhist])
-        :title --> _refdims_title(A_fwd)
+        :title --> refdims_title(A_fwd)
     end
     if ndims(A) > 2
         parent(A)
@@ -148,10 +148,22 @@ _yticks!(attr, s, ::IndexMode, index) = nothing
 _forwardorder(A::AbstractArray) =
     reorder(A, ForwardIndex) |> a -> reorder(a, ForwardRelation)
 
-function _refdims_title(refdim::Dimension)
-    string(name(refdim), ": ", _refdims_title(mode(refdim), refdim))
+"""
+    refdims_title(A::AbstractDimArray)
+    refdims_title(refdims::Tuple)
+    refdims_title(refdim::Dimension)
+
+Generate a title string based on reference dimension values.
+"""
+function refdims_title end
+refdims_title(A::AbstractArray; kw...) = refdims_title(refdims(A); kw...)
+function refdims_title(refdims::Tuple; kw...)
+    join(map(rd -> refdims_title(rd; kw...), refdims), ", ")
 end
-function _refdims_title(mode::AbstractSampled, refdim::Dimension)
+function refdims_title(refdim::Dimension; kw...)
+    string(name(refdim), ": ", refdims_title(mode(refdim), refdim; kw...))
+end
+function refdims_title(mode::AbstractSampled, refdim::Dimension; kw...)
     start, stop = map(string, bounds(refdim))
     if start == stop
         start
@@ -159,6 +171,5 @@ function _refdims_title(mode::AbstractSampled, refdim::Dimension)
          "$start to $stop"
     end
 end
-_refdims_title(A::AbstractArray) = join(map(_refdims_title, refdims(A)), ", ")
-_refdims_title(mode::IndexMode, refdim::Dimension) = string(val(refdim))
+refdims_title(mode::IndexMode, refdim::Dimension; kw...) = string(val(refdim))
 

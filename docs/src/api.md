@@ -219,4 +219,5 @@ DimensionalData.setdims
 DimensionalData.flip
 DimensionalData.dimsmatch
 DimensionalData.dimstride
+DimensionalData.refdims_title
 ```
