@@ -116,7 +116,7 @@ Base.show(io::IO, mime::MIME"text/plain", mode::IndexMode) = _printmode(io, mode
 
 function Base.show(io::IO, mime::MIME"text/plain", mode::AbstractSampled)
     _printmode(io, mode)
-    print(io, " - ")
+    print(io, ": ")
     _printorder(io, mode)
     print(io, " ")
     _printspan(io, mode)
@@ -126,7 +126,7 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", mode::AbstractCategorical)
     _printmode(io, mode)
-    print(io, " - ")
+    print(io, ": ")
     _printorder(io, mode)
 end
 
@@ -169,20 +169,24 @@ end
 
 # short printing version for dimensions
 function _show_compact(io::IO, dim::Dimension)
-    printstyled(io, nameof(typeof(dim)); color=_dimcolor(io))
-    if name(dim) != nameof(typeof(dim))
+    nm = nameof(typeof(dim))
+    nchars = length(string(nm))
+    printstyled(io, nm; color=_dimcolor(io))
+    if name(dim) != nm
         print(io, " (")
         print(io, name(dim))
         print(io, ")")
+        nchars += length(string(name(dim))) + 3
     end
-    _printdimproperties(io, dim)
+    _printdimproperties(io, dim, nchars)
 end
 function _show_compact(io::IO, dim::Dim)
     color = _dimcolor(io)
     printstyled(io, "Dim{"; color=color)
     printstyled(io, string(":", name(dim)); color=:yellow)
     printstyled(io, "}"; color=color)
-    _printdimproperties(io, dim)
+    nchars = 5 + length(string(name(dim)))
+    _printdimproperties(io, dim, nchars)
 end
 
 _dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
@@ -236,14 +240,23 @@ function _layout_dims(io, mime, dims::Tuple)
     end
 end
 
-function _printdimproperties(io, dim::Dimension)
+function _printdimproperties(io, dim::Dimension, nchars)
     mode(dim) isa NoIndex && return nothing
+    iobuf = IOBuffer()
     print(io, ": ")
-    _printdimindex(io, val(dim))
+    nchars += 1
+    _printdimindex(iobuf, val(dim))
+    dimvalstr = String(take!(iobuf)) 
+    printstyled(io, dimvalstr; color=:cyan)
+    nchars += length(dimvalstr)
     if !(mode(dim) isa AutoMode)
-        print(io, " (")
-        show(io, MIME"text/plain"(), mode(dim))
-        print(io, ")")
+        show(iobuf, MIME"text/plain"(), mode(dim))
+        termwidth = displaysize(stdout)[2]
+        modestr = String(take!(iobuf))
+        if nchars + length(modestr) + 6 > termwidth
+            print(io, "\n   ")
+        end
+        print(io, string(" ", modestr))
     end
     return nothing
 end
