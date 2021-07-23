@@ -508,7 +508,7 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
 @inline function comparedims(a::Dimension, b::Dimension; 
-    type=true, mode=true, val=false, length=false, metadata=false
+    type=true, mode=true, length=true, val=false, metadata=false
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     mode && DD.mode(a) != DD.mode(b) && _modeerror(a, b)
