@@ -490,27 +490,31 @@ Empty tuples and `nothing` dimension values are ignored,
 returning the `Dimension` value if it exists.
 """
 function comparedims end
-@inline comparedims(x...) = comparedims(x)
-@inline comparedims(A::Tuple) = comparedims(map(dims, A)...)
-@inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}) =
-    map(d -> comparedims(first(dims), d), dims) |> first
+@inline comparedims(x...; kw...) = comparedims(x; kw...)
+@inline comparedims(A::Tuple; kw...) = comparedims(map(dims, A)...; kw...)
+@inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}; kw...) =
+    map(d -> comparedims(first(dims), d), dims; kw...) |> first
 
-@inline comparedims(a::DimTuple, ::Nothing) = a
-@inline comparedims(::Nothing, b::DimTuple) = b
-@inline comparedims(::Nothing, ::Nothing) = nothing
+@inline comparedims(a::DimTuple, ::Nothing; kw...) = a
+@inline comparedims(::Nothing, b::DimTuple; kw...) = b
+@inline comparedims(::Nothing, ::Nothing; kw...) = nothing
 # Cant use `map` here, tuples may not be the same length
-@inline comparedims(a::DimTuple, b::DimTuple) =
-    (comparedims(first(a), first(b)), comparedims(tail(a), tail(b))...)
-@inline comparedims(a::DimTuple, b::Tuple{}) = a
-@inline comparedims(a::Tuple{}, b::DimTuple) = b
-@inline comparedims(a::Tuple{}, b::Tuple{}) = ()
-@inline comparedims(a::AnonDim, b::AnonDim) = nothing
-@inline comparedims(a::Dimension, b::AnonDim) = a
-@inline comparedims(a::AnonDim, b::Dimension) = b
-@inline comparedims(a::Dimension, b::Dimension) = begin
-    basetypeof(a) == basetypeof(b) || _dimsmismatcherror(a, b)
-    length(a) == length(b) || _dimsizeerror(a, b)
-    # TODO compare the mode, and maybe the index.
+@inline comparedims(a::DimTuple, b::DimTuple; kw...) =
+    (comparedims(first(a), first(b); kw...), comparedims(tail(a), tail(b); kw...)...)
+@inline comparedims(a::DimTuple, b::Tuple{}; kw...) = a
+@inline comparedims(a::Tuple{}, b::DimTuple; kw...) = b
+@inline comparedims(a::Tuple{}, b::Tuple{}; kw...) = ()
+@inline comparedims(a::AnonDim, b::AnonDim; kw...) = nothing
+@inline comparedims(a::Dimension, b::AnonDim; kw...) = a
+@inline comparedims(a::AnonDim, b::Dimension; kw...) = b
+@inline function comparedims(a::Dimension, b::Dimension; 
+    type=true, mode=true, val=false, length=false, metadata=false
+)
+    type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
+    mode && DD.mode(a) != DD.mode(b) && _modeerror(a, b)
+    length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
+    val && DD.val(a) != DD.val(b) && _valerror(a, b)
+    metadata && DD.metadata(a) != DD.metadata(b) && _metadataerror(a, b)
     return a
 end
 

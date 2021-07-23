@@ -59,11 +59,11 @@ function _rebuildmul(A::AbstractDimVector, B::AbstractDimMatrix)
     rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B)),))
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimVector)
-    comparedims(last(dims(A)), first(dims(B)))
+    comparedims(last(dims(A)), first(dims(B)); val=true)
     rebuild(A, parent(A) * parent(B), (first(dims(A)),))
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimMatrix)
-    comparedims(last(dims(A)), first(dims(B)))
+    comparedims(last(dims(A)), first(dims(B)); val=true)
     rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B))))
 end
 function _rebuildmul(A::AbstractDimVector, B::AbstractMatrix)
