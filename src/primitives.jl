@@ -96,8 +96,8 @@ can be used in `order`.
 end
 
 """
-    dims(x, lookup)
-    dims(x, lookups...)
+    dims(x, lookup) => Tuple{Vararg{<:Dimension}}
+    dims(x, lookup...) => Tuple{Vararg{<:Dimension}}
 
 Get the dimension(s) matching the type(s) of the lookup dimension.
 
@@ -106,7 +106,7 @@ any combination of either.
 
 ## Arguments
 - `x`: any object with a `dims` method, or a `Tuple` of `Dimension`.
-- `lookup`: Tuple or a single `Dimension` or `Type`.
+- `lookup`: Tuple or a single `Dimension` or `Dimension` `Type`.
 
 ## Example
 ```jldoctest
@@ -198,6 +198,8 @@ end
     hasdim([f], x, lookups...) => NTUple{Bool}
     hasdim([f], x, lookup) => Bool
 
+Check if an object `x` has dimensions that match or inherit from the `lookup` dimensions.
+
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
 - `lookup`: Tuple or single `Dimension` or dimension `Type`.
@@ -230,6 +232,8 @@ false
 
 """
     otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
+
+Get the dimensions of an object _not_ in `lookup`.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension`.
@@ -295,7 +299,7 @@ val(dims(B, Y))
 
 """
     swapdims(x::T, newdims) => T
-    swapdims(dims::Tuple, newdims) => Tuple{Dimension}
+    swapdims(dims::Tuple, newdims) => Tuple{Vararg{<:Dimension}}
 
 Swap dimensions for the passed in dimensions, in the
 order passed.
@@ -397,7 +401,7 @@ end
     reverse(lastindex(d) .- i .+ 1)
 
 """
-    reducedims(x, dimstoreduce)
+    reducedims(x, dimstoreduce) => Tuple{Vararg{<:Dimension}}
 
 Replace the specified dimensions with an index of length 1.
 This is usually to match a new array size where an axis has been
@@ -510,6 +514,11 @@ function comparedims end
     return a
 end
 
+"""
+    combinedims(xs; check=true)
+
+Combine the dimensions of each object in `xs`, in the order they are found.
+"""
 function combinedims end
 # @inline combinedims(xs::Tuple) = combinedims(xs...)
 @inline combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
@@ -529,9 +538,9 @@ function combinedims end
 end
 
 """
-    dimstride(x, dim)
+    dimstride(x, dim) => Int 
 
-Will get the stride of the dimension relative to the other dimensions.
+Get the stride of the dimension relative to the other dimensions.
 
 This may or may not be equal to the stride of the related array,
 although it will be for `Array`.
@@ -617,5 +626,8 @@ _maybefirst(::Tuple{}) = nothing
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
+@noinline _modeerror(a, b) = throw(DimensionMismatch("Mode $(mode(a)) and $(mode(b)) do not match"))
+@noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(madata(b)) do not match"))
+@noinline _valerror(a, b) = throw(DimensionMismatch("Dimension index $(val(a)) and $(val(b)) do not match"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))
