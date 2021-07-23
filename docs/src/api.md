@@ -212,6 +212,7 @@ DimensionalData.reducedims
 DimensionalData.swapdims
 DimensionalData.slicedims
 DimensionalData.comparedims
+DimensionalData.combinedims
 DimensionalData.sortdims
 DimensionalData.identify
 DimensionalData.basetypeof
