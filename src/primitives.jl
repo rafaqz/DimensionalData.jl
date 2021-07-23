@@ -508,7 +508,7 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
 @inline function comparedims(a::Dimension, b::Dimension; 
-    type=true, mode=true, length=true, val=false, metadata=false
+    type=true, length=true, mode=false, val=false, metadata=false
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     mode && DD.mode(a) != DD.mode(b) && _modeerror(a, b)
@@ -532,10 +532,10 @@ function combinedims end
         _combinedims(dims1, dims2; kw...)
     end
 # Cant use `map` here, tuples may not be the same length
-@inline _combinedims(a::DimTuple, b::DimTuple; check=true) = begin
+@inline _combinedims(a::DimTuple, b::DimTuple; check=true, kw...) = begin
     if check # Check the matching dims are the same
         common = commondims(a, b)
-        comparedims(dims(a, common), dims(b, common))
+        comparedims(dims(a, common), dims(b, common); kw...)
     end
     # Take them from a, and add any extras from b
     (a..., otherdims(b, a)...)
