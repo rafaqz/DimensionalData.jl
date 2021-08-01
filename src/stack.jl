@@ -43,6 +43,35 @@ function rebuildsliced(f::Function, s::AbstractDimStack, data, I)
     rebuild(s; data=map(parent, data), dims=dims, refdims=refdims, layerdims=layerdims)
 end
 
+"""
+    rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}; kw...) 
+
+Rebuild an `AbstractDimStack` from a `NamedTuple` of `AbstractDimArray` 
+and an existing stack.
+
+# Keywords
+
+Keywords are simply the fields of the stack object:
+
+- `data`
+- `dims`
+- `refdims`
+- `metadata`
+- `layerdims`
+- `layermetadata`
+"""
+function rebuild_from_arrays(
+    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}; 
+    refdims=refdims(s), 
+    metadata=DD.metadata(s), 
+    data=map(parent, das), 
+    dims=DD.combinedims(das...), 
+    layerdims=map(DD.basedims, das),
+    layermetadata=map(DD.metadata, das),
+)
+    rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
+end
+
 function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
@@ -102,10 +131,14 @@ Apply functrion `f` to each layer of the stack `s`, and rebuild it.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-Base.map(f, s::AbstractDimStack) = maybestack(map(f, layers(s)))
+Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, layers(s)))
 
-maybestack(As::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}) = DimStack(As)
-maybestack(x::NamedTuple) = x
+_maybestack(s::AbstractDimStack, x::NamedTuple) = x
+function _maybestack(
+    s::AbstractDimStack, das::NamedTuple{K,<:Tuple{Vararg{<:AbstractDimArray}}}
+) where K
+    rebuild_from_arrays(s, das; refdims=DD.refdims(s), metadata=DD.metadata(s))
+end
 
 """
     Base.cat(stacks::AbstractGeoStack...; [keys=keys(stacks[1])], dims)
@@ -270,11 +303,9 @@ function DimStack(das::Tuple{Vararg{<:AbstractDimArray}}; kwargs...)
     DimStack(NamedTuple{uniquekeys(das)}(das); kwargs...)
 end
 function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}; 
+    data=map(parent, das), dims=combinedims(das...), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
-    data = map(parent, das)
-    dims = combinedims(das...)
-    layerdims = map(basedims, das)
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 # Same sized arrays
