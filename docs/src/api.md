@@ -221,4 +221,5 @@ DimensionalData.flip
 DimensionalData.dimsmatch
 DimensionalData.dimstride
 DimensionalData.refdims_title
+DimensionalData.rebuild_from_arrays
 ```
