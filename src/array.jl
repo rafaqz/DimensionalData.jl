@@ -75,7 +75,7 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
 
-# Dummy read methods that do nothing. 
+# Dummy read methods that do nothing.
 # Means can actually read subtypes that are not in-memory Arrays
 Base.read(A::AbstractDimArray) = A
 Base.read(f, A::AbstractDimArray) = f(A)
@@ -94,10 +94,10 @@ Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) w
     similar(parent(A), T, i, I...)
 
 # Keep the same type in `similar`
-_noname(A::AbstractDimArray) = _noname(name(A)) 
+_noname(A::AbstractDimArray) = _noname(name(A))
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
-_noname(name::Name) = name # Keep the name so the type doesn't change 
+_noname(name::Name) = name # Keep the name so the type doesn't change
 
 for func in (:copy, :one, :oneunit, :zero)
     @eval begin
@@ -110,27 +110,27 @@ Base.Array(A::AbstractDimArray) = Array(parent(A))
 _maybeunwrap(A::AbstractDimArray) = parent(A)
 _maybeunwrap(A::AbstractArray) = A
 
-for (d, s) in ((:AbstractDimArray, :AbstractDimArray), 
-               (:AbstractDimArray, :AbstractArray), 
+for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
+               (:AbstractDimArray, :AbstractArray),
                (:AbstractArray, :AbstractDimArray))
     @eval begin
         Base.copy!(dst::$d{T,N}, src::$s{T,N}) where {T,N} = copy!(_maybeunwrap(dst), _maybeunwrap(src))
         Base.copy!(dst::$d{T,1}, src::$s{T,1}) where T = copy!(_maybeunwrap(dst), _maybeunwrap(src))
         Base.copyto!(dst::$d, src::$s) = copyto!(_maybeunwrap(dst), _maybeunwrap(src))
-        Base.copyto!(dst::$d, dstart::Integer, src::$s) = 
+        Base.copyto!(dst::$d, dstart::Integer, src::$s) =
             copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src))
-        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer) = 
+        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer) =
             copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart)
-        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer, n::Integer) = 
+        Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer, n::Integer) =
             copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart, n)
         Base.copyto!(dst::$d{T1,N}, Rdst::CartesianIndices{N}, src::$s{T2,N}, Rsrc::CartesianIndices{N}) where {T1,T2,N} =
-            copyto!(_maybeunwrap(dst), Rdst, _maybeunwrap(src), Rsrc)        
+            copyto!(_maybeunwrap(dst), Rdst, _maybeunwrap(src), Rsrc)
     end
 end
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
 
-function Adapt.adapt_structure(to, A::AbstractDimArray) 
-    rebuild(A, 
+function Adapt.adapt_structure(to, A::AbstractDimArray)
+    rebuild(A,
         data=adapt(to, parent(A)),
         dims=adapt(to, dims(A)),
         refdims=adapt(to, refdims(A)),
@@ -197,7 +197,7 @@ function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata()
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
 # Construct from another AbstractDimArray
-function DimArray(A::AbstractDimArray; 
+function DimArray(A::AbstractDimArray;
     data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
@@ -228,44 +228,173 @@ end
 
 
 """
-    Base.fill(x::T, dims::Vararg{Dimension,N}}) => DimArray{T,N}
-    Base.fill(x::T, dims::Tuple{Vararg{Dimension,N}}) => DimArray{T,N}
+    Base.fill(x, dims::Dimension...) => DimArray
+    Base.fill(x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
 
-Create a [`DimArray`](@ref) from a fill value `x` and `Dimension`s.
+Create a [`DimArray`](@ref) with a fill value of `x`.
 
-A `Dimension` with an `AbstractVector` value will set the array axis
+There are two kinds of `Dimension` value acepted:
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
+  that `AbstractVector`, and detect the dimension mode.
+- A `Dimension` holding an `Integer` will set the length of the axis,
+  and set the dimension mode to [`NoIndex`](@ref).
 
-A `Dimension` holding an `Integer` will set the length
-of the Array axis, and set the dimension mode to [`NoIndex`](@ref).
+# Example
+```@doctest
+julia> using DimensionalData
+
+julia> rand(Bool, X(2), Y(4))
+2×4 DimArray{Bool,2} with dimensions: X, Y
+ 1  0  0  1
+ 1  0  1  1
+```
 """
-Base.fill(x, dim1::Dimension, dims::Dimension...) = fill(x, (dim1, dims...))
-function Base.fill(x, dims::DimTuple)
-    lengths = map(_dimlen, dims)
-    DimArray(fill(x, lengths), map(_indexdim, dims))
-end
+Base.fill
 
+"""
+    Base.rand(x, dims::Dimension...) => DimArray
+    Base.rand(x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
+    Base.rand(r::AbstractRNG, x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
+    Base.rand(r::AbstractRNG, x, dims::Dimension...) => DimArray
+
+Create a [`DimArray`](@ref) of random values.
+
+There are two kinds of `Dimension` value acepted:
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
+  that `AbstractVector`, and detect the dimension mode.
+- A `Dimension` holding an `Integer` will set the length of the axis,
+  and set the dimension mode to [`NoIndex`](@ref).
+
+# Example
+```julia
+julia> using DimensionalData
+
+julia> rand(Bool, X(2), Y(4))
+2×4 DimArray{Bool,2} with dimensions: X, Y
+ 1  0  0  1
+ 1  0  1  1
+
+julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
+3×3 DimArray{Float64,2} with dimensions:
+  X: Symbol[a, b, c] Categorical: Unordered,
+  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
+ 0.43204   0.835111  0.624231
+ 0.752868  0.471638  0.193652
+ 0.484558  0.846559  0.455256
+```
+"""
+Base.rand
+
+"""
+    Base.zeros(x, dims::Dimension...) => DimArray
+    Base.zeros(x, dims::Tuple{Vararg{Dimension}}) => DimArray
+
+Create a [`DimArray`](@ref) of zeros.
+
+There are two kinds of `Dimension` value acepted:
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
+  that `AbstractVector`, and detect the dimension mode.
+- A `Dimension` holding an `Integer` will set the length of the axis,
+  and set the dimension mode to [`NoIndex`](@ref).
+
+# Example
+```@doctest
+julia> using DimensionalData
+
+julia> zeros(Bool, X(2), Y(4))
+2×4 DimArray{Bool,2} with dimensions: X, Y
+ 0  0  0  0
+ 0  0  0  0
+
+julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
+3×3 DimArray{Float64,2} with dimensions:
+  X: Symbol[a, b, c] Categorical: Unordered,
+  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
+ 0.0  0.0  0.0
+ 0.0  0.0  0.0
+ 0.0  0.0  0.0
+```
+"""
+Base.zeros
+
+"""
+    Base.ones(x, dims::Dimension...) => DimArray
+    Base.ones(x, dims::Tuple{Vararg{Dimension}}) => DimArray
+
+Create a [`DimArray`](@ref) of ones.
+
+There are two kinds of `Dimension` value acepted:
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
+  that `AbstractVector`, and detect the dimension mode.
+- A `Dimension` holding an `Integer` will set the length of the axis,
+  and set the dimension mode to [`NoIndex`](@ref).
+
+# Example
+```@doctest
+julia> using DimensionalData
+
+julia> ones(Bool, X(2), Y(4))
+2×4 DimArray{Bool,2} with dimensions: X, Y
+ 1  1  1  1
+ 1  1  1  1
+
+julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
+3×3 DimArray{Float64,2} with dimensions:
+  X: Symbol[a, b, c] Categorical: Unordered,
+  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+```
+"""
+Base.ones
+
+# Dimension only DimArray creation methods
 for f in (:zeros, :ones, :rand)
     @eval begin
         Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
         Base.$f(dims::DimTuple) = $f(Float64, dims)
+    end
+end
+# Type specific DimArray creation methods
+for f in (:zeros, :ones, :rand)
+    @eval begin
         Base.$f(::Type{T}, d1::Dimension, dims::Dimension...) where T = $f(T, (d1, dims...))
         function Base.$f(::Type{T}, dims::DimTuple) where T
-            lengths = map(_dimlen, dims)
-            DimArray($f(T, lengths), map(_indexdim, dims))
+            DimArray($f(T, _dimlength(dims)), _maybeindex(dims))
         end
     end
 end
-function Base.rand(x, d1::Dimension, dims::Dimension...)
-    lengths = map(_dimlen, (d1, dims...))
-    DimArray(rand(x, lengths), map(_indexdim, (d1, dims...)))
+# Arbitrary object DimArray creation methods
+for f in (:fill, :rand)
+    @eval begin
+        Base.$f(x, d1::Dimension, dims::Dimension...) = $f(x, (d1, dims...))
+        Base.$f(x, dims::DimTuple) = DimArray($f(x, _dimlength(dims)), _maybeindex(dims))
+    end
+end
+# AbstractRNG rand DimArray creation methods
+Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...) = rand(r, x, (d1, dims...))
+function Base.rand(r::AbstractRNG, x, d1::DimTuple)
+    rand(r, x, (d1, dims...))
+end
+function Base.rand(r::AbstractRNG, x, dims::DimTuple)
+    DimArray(rand(r, x, _dimlength(dims)), _maybeindex(dims))
+end
+function Base.rand(r::AbstractRNG, ::Type{X}, d1::Dimension, dims::Dimension...) where X
+    rand(r, X, (d1, dims...))
+end
+function Base.rand(r::AbstractRNG, ::Type{X}, dims::DimTuple) where X
+    DimArray(rand(r, X, _dimlength(dims)), _maybeindex(dims))
 end
 
-_dimlen(dim::Dimension{<:AbstractArray}) = length(dim)
-_dimlen(dim::Dimension{<:Val{Keys}}) where Keys = length(Keys)
-_dimlen(dim::Dimension{<:Integer}) = val(dim)
-@noinline _dimlen(dim::Dimension) =
+_dimlength(dims::Tuple) = map(_dimlength, dims)
+_dimlength(dim::Dimension{<:AbstractArray}) = length(dim)
+_dimlength(dim::Dimension{<:Val{Keys}}) where Keys = length(Keys)
+_dimlength(dim::Dimension{<:Integer}) = val(dim)
+@noinline _dimlength(dim::Dimension) =
     throw(ArgumentError("$(basetypeof(dim)) must hold an Integer or an AbstractArray, instead holds: $(val(dim))"))
 
-_indexdim(dim::Dimension{<:AbstractArray}) = dim
-_indexdim(dim::Dimension{<:Val}) = dim
-_indexdim(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))
+_maybeindex(dims) = map(_maybeindex, dims)
+_maybeindex(dim::Dimension{<:AbstractArray}) = dim
+_maybeindex(dim::Dimension{<:Val}) = dim
+_maybeindex(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))

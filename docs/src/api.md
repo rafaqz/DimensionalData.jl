@@ -196,6 +196,9 @@ dimwise!
 reorder
 Base.reverse
 Base.fill
+Base.rand
+Base.zeros
+Base.ones
 Base.map
 Base.copy!
 Base.cat

@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates
+using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random
 using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
@@ -208,7 +208,7 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
-@testset "ones, zeros, rand constructors" begin
+@testset "ones, zeros constructors" begin
     da = zeros(X(4), Y(40.0:10.0:80.0))
     @test eltype(da) <: Float64
     @test all(==(0), da) 
@@ -222,6 +222,9 @@ end
     @test eltype(da) <: Int32
     @test all(==(1), da) 
     @test dims(da) == (Ti(Date(2001):Year(1):Date(2004), Sampled(Ordered(), Regular(Year(1)), Points()), NoMetadata()),)
+end
+
+@testset "rand constructors" begin
     da = rand(1:10, X(8), Y(11:20))
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
@@ -229,6 +232,15 @@ end
          X(Base.OneTo(8), NoIndex(), NoMetadata()), 
          Y(11:20, Sampled(Ordered(), Regular(1), Points()), NoMetadata())
     )
+    da = rand(X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Float64
+    da = rand(Bool, X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Bool
+    da = rand(MersenneTwister(), Float32, X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Float32
 end
 
 @testset "dims methods" begin
