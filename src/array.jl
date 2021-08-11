@@ -374,9 +374,6 @@ for f in (:fill, :rand)
 end
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...) = rand(r, x, (d1, dims...))
-function Base.rand(r::AbstractRNG, x, d1::DimTuple)
-    rand(r, x, (d1, dims...))
-end
 function Base.rand(r::AbstractRNG, x, dims::DimTuple)
     DimArray(rand(r, x, _dimlength(dims)), _maybeindex(dims))
 end
