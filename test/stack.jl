@@ -31,6 +31,9 @@ end
     @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
     @test dims(map(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
     @test map(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
+    @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
+    @test map(+, s, s, s) == map(a -> a .* 3, s)
+    @test_throws ArgumentError map(+, s, mixed)
 end
 
 @testset "Methods with no arguments" begin

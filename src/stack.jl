@@ -131,7 +131,7 @@ Apply functrion `f` to each layer of the stack `s`, and rebuild it.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, layers(s)))
+Base.map(f, s::AbstractDimStack...) = _maybestack(s[1], map(f, map(layers, s)...))
 
 _maybestack(s::AbstractDimStack, x::NamedTuple) = x
 function _maybestack(
