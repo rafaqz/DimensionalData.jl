@@ -327,6 +327,15 @@ end
         @test mode(ni_dim) == NoIndex()
         @test index(ni_dim) == Base.OneTo(20)
     end
+
+    @testset "rebuild dim index from refdims" begin
+        slices = map(i -> view(da, Y(i)), 1:3)
+        cat_da = cat(slices...; dims=Y)
+        @test all(cat_da .== da)
+        # The range is rebuilt as a Vector during `cat`
+        @test index(cat_da) == (1:2, [1, 2, 3])
+        @test index(cat_da) isa Tuple{UnitRange,Vector{Int}}
+    end
 end
 
 @testset "unique" begin

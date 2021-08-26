@@ -32,6 +32,8 @@ function dims end
 
 """
     refdims(x) => Tuple{Vararg{<:Dimension}}
+    refdims(x, dims::Tuple) => Tuple{Vararg{<:Dimension}}
+    refdims(x, dim) => Dimension
 
 Reference dimensions for an array that is a slice or view of another
 array with more dimensions.
@@ -44,6 +46,7 @@ captions empty.
 The default is to return an empty `Tuple` `()`.
 """
 function refdims end
+refdims(x, lookup) = dims(refdims(x), lookup)
 
 """
     val(x)

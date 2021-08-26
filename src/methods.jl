@@ -185,39 +185,69 @@ end
 function Base._cat(catdims::Union{Int,Base.Dims}, Xin::AbstractDimArray...)
     Base._cat(dims(first(Xin), catdims), Xin...)
 end
-function Base._cat(catdims::AllDims, Xin::AbstractDimArray...)
+function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
     A1 = first(Xin)
-    comparedims(Xin...)
-    if all(hasdim(A1, catdims))
+    comparedims(map(x -> otherdims(x, catdims), Xin)...)
+    if all(x -> all(hasdim(x, catdims)), Xin) 
         # Concatenate an existing dim
         dnum = dimnum(A1, catdims)
         # cat the catdim, ignore others
-        newdims = Tuple(_catifcatdim(catdims, ds) for ds in zip(map(dims, Xin)...))
+        newcatdims = map(catdims) do d
+            reduce(vcat, map(x -> dims(x, d), Xin))
+        end
+        newdims = setdims(dims(A1), newcatdims)
     else
         # Concatenate a new dim
-        add_dims = if (catdims isa Tuple)
-            Tuple(d for d in catdims if !hasdim(A1, d))
-        else
-            (catdims,)
-        end
+        # TODO: handle mixed situations with e.g. one dim already
+        # present and another added.
+        add_dims = Tuple(d for d in catdims if !hasdim(A1, d))
         dnum = ndims(A1) + length(add_dims)
         newdims = (dims(A1)..., add_dims...)
     end
     newA = Base._cat(dnum, map(data, Xin)...)
     rebuild(A1, newA, formatdims(newA, newdims))
 end
-
-function _catifcatdim(catdims::Tuple, dims)
-    anydimsmatch = any(map(d -> basetypeof(d) <: basetypeof(dims[1]), catdims)) 
-    anydimsmatch ? vcat(dims...) : dims[1]
+function Base._cat(catdim::DimType, Xin::AbstractDimArray...)
+    Base._cat(catdim(; mode=NoIndex()), Xin...)
 end
-function _catifcatdim(catdim, dims) 
-    basetypeof(catdim) <: basetypeof(dims[1]) ? vcat(dims...) : dims[1]
+function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
+    A1 = first(Xin)
+    comparedims(map(x -> otherdims(x, catdim), Xin)...)
+    newrefdims = refdims(A1)
+    if all(A -> hasdim(A, catdim), Xin) 
+        # We concatenate an existing dimension
+        if mode(A1, catdim) isa NoIndex
+            # Make new dims for NoIndex
+            dnum = dimnum(A1, catdim)
+            newdims = setdims(dims(A1), catdim)
+        else
+            # Use existing dims
+            dnum = dimnum(A1, catdim)
+            # cat the catdim, ignore others
+            newcatdim = reduce(vcat, map(x -> dims(x, catdim), Xin))
+            newdims = setdims(dims(A1), newcatdim)
+        end
+    else
+        # Concatenate a new dimension
+        if all(map(x -> hasdim(refdims(x), catdim), Xin))
+            # vcat the refdims 
+            newcatdim = reduce(vcat, map(x -> refdims(x, catdim), Xin))
+            newdims = (dims(A1)..., newcatdim)
+            dnum = ndims(A1) + 1
+            newrefdims = otherdims(refdims(A1), catdim)
+        else
+            newdims = (dims(A1)..., catdim)
+            dnum = ndims(A1) + 1
+        end
+    end
+    newA = Base._cat(dnum, map(parent, Xin)...)
+    rebuild(A1; data=newA, dims=formatdims(newA, newdims), refdims=newrefdims)
 end
 
 function Base.vcat(dims::Dimension...)
     newmode = _vcat_modes(mode(dims)...)
-    rebuild(dims[1], _vcat_index(newmode, index(dims)...), newmode)
+    newindex = _vcat_index(newmode, map(val, dims)...)
+    rebuild(dims[1], newindex, newmode)
 end
 
 # IndexModes may need adjustment for `cat`
