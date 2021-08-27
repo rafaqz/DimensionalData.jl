@@ -297,6 +297,7 @@ index(B, Y)
 @inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
 @inline setdims(dims::Tuple, newdim::Dimension) = setdims(dims, (newdim,))
 @inline setdims(dims::Tuple, newdims::Tuple) = swapdims(dims, sortdims(newdims, dims))
+@inline setdims(dims::Tuple, newdims::Tuple{}) = dims 
 
 """
     swapdims(x::T, newdims) => T

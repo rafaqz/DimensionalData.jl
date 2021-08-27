@@ -292,6 +292,10 @@ end
     A = setdims(da, Y(10:12), X(LinRange(150,152,2)))
     @test index(dims(dims(A), Y())) == 10:12
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
+    @testset "set an empty tuple" begin
+        A = setdims(da, ())
+        @test dims(A) === dims(da)
+    end
 end
 
 @testset "swapdims" begin
