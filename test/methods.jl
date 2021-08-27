@@ -282,14 +282,14 @@ end
 
 @testset "cat" begin
     a = [1 2 3; 4 5 6]
-    da = DimArray(a, (X(1:2), Y(1:3)))
+    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
     b = [7 8 9; 10 11 12]
-    db = DimArray(b, (X(3:4), Y(1:3)))
+    db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
 
     @testset "Regular Sampled" begin
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
-        testdims = (X([1, 2, 3, 4]; mode=Sampled(Ordered(), Regular(1), Points())),
-                    Y(1:3; mode=Sampled(Ordered(), Regular(1), Points())))
+        testdims = (X([4.0, 5.0, 6.0, 7.0]; mode=Sampled(Ordered(), Regular(1.0), Points())),
+                    Y(6.0:8.0; mode=Sampled(Ordered(), Regular(1.0), Points())))
         @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
               cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
@@ -297,10 +297,11 @@ end
         @test mode(cat(da, db; dims=X())) == mode(testdims)
         @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
         @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
-        @test cat(da, db; dims=(Z(1:1), Ti(1:2))) == cat(a, b; dims=4)
-        @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=3)
+        @test cat(da, db; dims=(Z(1:2), Ti(1:2))) == cat(a, b; dims=(3, 4))
+        cat(a, b; dims=(3, 4))
+        @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X(), Ti(1:2)))
-        @test dims(dx) == DimensionalData.formatdims(dx, (X(1:2), Y(1:3), Ti(1:2)))
+        @test all(map(==, index(dx), index(DimensionalData.formatdims(dx, (X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2))))))
     end
 
     @testset "Irregular Sampled" begin
@@ -333,8 +334,8 @@ end
         cat_da = cat(slices...; dims=Y)
         @test all(cat_da .== da)
         # The range is rebuilt as a Vector during `cat`
-        @test index(cat_da) == (1:2, [1, 2, 3])
-        @test index(cat_da) isa Tuple{UnitRange,Vector{Int}}
+        @test index(cat_da) == (4.0:5.0, [6.0, 7.0, 8.0])
+        @test index(cat_da) isa Tuple{<:StepRangeLen,<:Vector{Float64}}
     end
 end
 

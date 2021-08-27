@@ -269,7 +269,7 @@ X, Y, Z
 @inline _dimifmatching(f, dim, lookup) = dimsmatch(f, dim, lookup) ? () : (dim,)
 
 """
-    setdims(A::AbstractArray, newdims) => AbstractArray
+    setdims(X, newdims) => AbstractArray
     setdims(::Tuple, newdims) => Tuple{Vararg{<:Dimension,N}}
 
 Replaces the first dim matching `<: basetypeof(newdim)` with newdim,
@@ -277,7 +277,7 @@ and returns a new object or tuple with the dimension updated.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
-- `newdim`: Tuple or single `Dimension` or dimension `Type`.
+- `newdim`: Tuple or single `Dimension`, `Type` or `Symbol`.
 
 # Example
 ```jldoctest
@@ -285,7 +285,7 @@ using DimensionalData
 
 A = DimArray(ones(10, 10), (X, Y(10:10:100)))
 B = setdims(A, Y('a':'j'))
-val(dims(B, Y))
+index(B, Y)
 
 # output
 
@@ -293,9 +293,10 @@ val(dims(B, Y))
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
-@inline setdims(x, newdims) = rebuild(x, data(x), setdims(dims(x), key2dim(newdims)))
-@inline setdims(dims::DimTuple, newdim::Dimension) = setdims(dims, (newdim,))
-@inline setdims(dims::DimTuple, newdims::DimTuple) = swapdims(dims, sortdims(newdims, dims))
+@inline setdims(x, newdims::Dimension) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
+@inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
+@inline setdims(dims::Tuple, newdim::Dimension) = setdims(dims, (newdim,))
+@inline setdims(dims::Tuple, newdims::Tuple) = swapdims(dims, sortdims(newdims, dims))
 
 """
     swapdims(x::T, newdims) => T

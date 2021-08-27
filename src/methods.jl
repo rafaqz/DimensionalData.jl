@@ -188,61 +188,79 @@ end
 function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
     A1 = first(Xin)
     comparedims(map(x -> otherdims(x, catdims), Xin)...)
-    if all(x -> all(hasdim(x, catdims)), Xin) 
-        # Concatenate an existing dim
-        dnum = dimnum(A1, catdims)
-        # cat the catdim, ignore others
-        newcatdims = map(catdims) do d
-            reduce(vcat, map(x -> dims(x, d), Xin))
+    newcatdims = map(catdims) do catdim
+        if all(x -> hasdim(x, catdim), Xin)
+            # We concatenate an existing dimension
+            newcatdim = if mode(A1, catdim) isa NoIndex
+                # Colon will be converted to array axis in `formatdims`
+                rebuild(catdim; val=:)
+            else
+                # vcat the index for the catdim in each of Xin
+                reduce(vcat, map(x -> dims(x, catdim), Xin))
+            end
+        else
+            # Concatenate new dims
+            if all(map(x -> hasdim(refdims(x), catdim), Xin))
+                # vcat the refdims 
+                reduce(vcat, map(x -> refdims(x, catdim), Xin))
+            else
+                # Use the catdim as the new dimension
+                catdim
+            end
         end
-        newdims = setdims(dims(A1), newcatdims)
-    else
-        # Concatenate a new dim
-        # TODO: handle mixed situations with e.g. one dim already
-        # present and another added.
-        add_dims = Tuple(d for d in catdims if !hasdim(A1, d))
-        dnum = ndims(A1) + length(add_dims)
-        newdims = (dims(A1)..., add_dims...)
     end
-    newA = Base._cat(dnum, map(data, Xin)...)
-    rebuild(A1, newA, formatdims(newA, newdims))
+    inserted_dims = dims(newcatdims, dims(A1))
+    appended_dims = otherdims(newcatdims, inserted_dims)
+    updated_dims = setdims(dims(A1), inserted_dims)
+    newdims = (updated_dims..., appended_dims...)
+
+    inserted_dnums = dimnum(A1, inserted_dims)
+    appended_dnums = ntuple(i -> i + length(dims(A1)), length(appended_dims))
+    cat_dnums = (inserted_dnums..., appended_dnums...)
+
+    newrefdims = otherdims(refdims(A1), newcatdims)
+    newA = Base._cat(cat_dnums, map(data, Xin)...)
+    rebuild(A1, newA, formatdims(newA, newdims), newrefdims)
 end
 function Base._cat(catdim::DimType, Xin::AbstractDimArray...)
     Base._cat(catdim(; mode=NoIndex()), Xin...)
 end
 function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
-    A1 = first(Xin)
-    comparedims(map(x -> otherdims(x, catdim), Xin)...)
-    newrefdims = refdims(A1)
-    if all(A -> hasdim(A, catdim), Xin) 
-        # We concatenate an existing dimension
-        if mode(A1, catdim) isa NoIndex
-            # Make new dims for NoIndex
-            dnum = dimnum(A1, catdim)
-            newdims = setdims(dims(A1), catdim)
-        else
-            # Use existing dims
-            dnum = dimnum(A1, catdim)
-            # cat the catdim, ignore others
-            newcatdim = reduce(vcat, map(x -> dims(x, catdim), Xin))
-            newdims = setdims(dims(A1), newcatdim)
-        end
-    else
-        # Concatenate a new dimension
-        if all(map(x -> hasdim(refdims(x), catdim), Xin))
-            # vcat the refdims 
-            newcatdim = reduce(vcat, map(x -> refdims(x, catdim), Xin))
-            newdims = (dims(A1)..., newcatdim)
-            dnum = ndims(A1) + 1
-            newrefdims = otherdims(refdims(A1), catdim)
-        else
-            newdims = (dims(A1)..., catdim)
-            dnum = ndims(A1) + 1
-        end
-    end
-    newA = Base._cat(dnum, map(parent, Xin)...)
-    rebuild(A1; data=newA, dims=formatdims(newA, newdims), refdims=newrefdims)
+    Base._cat((catdim,), Xin...)
 end
+# function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
+#     A1 = first(Xin)
+#     comparedims(map(x -> otherdims(x, catdim), Xin)...)
+#     newrefdims = refdims(A1)
+#     if all(A -> hasdim(A, catdim), Xin) 
+#         # We concatenate an existing dimension
+#         if mode(A1, catdim) isa NoIndex
+#             # Make new dims for NoIndex
+#             dnum = dimnum(A1, catdim)
+#             newdims = setdims(dims(A1), catdim)
+#         else
+#             # Use existing dims
+#             dnum = dimnum(A1, catdim)
+#             # cat the catdim, ignore others
+#             newcatdim = reduce(vcat, map(x -> dims(x, catdim), Xin))
+#             newdims = setdims(dims(A1), newcatdim)
+#         end
+#     else
+#         # Concatenate a new dimension
+#         if all(map(x -> hasdim(refdims(x), catdim), Xin))
+#             # vcat the refdims 
+#             newcatdim = reduce(vcat, map(x -> refdims(x, catdim), Xin))
+#             newdims = (dims(A1)..., newcatdim)
+#             dnum = ndims(A1) + 1
+#             newrefdims = otherdims(refdims(A1), catdim)
+#         else
+#             newdims = (dims(A1)..., catdim)
+#             dnum = ndims(A1) + 1
+#         end
+#     end
+#     newA = Base._cat(dnum, map(parent, Xin)...)
+#     rebuild(A1; data=newA, dims=formatdims(newA, newdims), refdims=newrefdims)
+# end
 
 function Base.vcat(dims::Dimension...)
     newmode = _vcat_modes(mode(dims)...)
