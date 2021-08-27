@@ -7,7 +7,7 @@ dimz = x, y
 da1 = DimArray(A, (x, y), :one)
 da2 = DimArray(Float32.(2A), (x, y), :two)
 da3 = DimArray(Int.(3A), (x, y), :three)
-da4 = DimArray(cat(4A, 5A, 6A; dims=3), (x, y, z), :extradim)
+da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z), :extradim)
 
 s = DimStack((da1, da2, da3))
 mixed = DimStack((da1, da2, da4))
@@ -25,6 +25,14 @@ end
     da1x = s[:one]
     @test parent(da1x) === parent(da1)
     @test dims(da1x) === dims(da1)
+    @test size(da1x) === (2, 3)
+    @test size(mixed) === (2, 3, 4)
+    @test size(da1x, X) === 2
+    @test size(mixed, 3) === 4
+    @test axes(da1x) === (Base.OneTo(2), Base.OneTo(3))
+    @test axes(mixed) === (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
+    @test axes(da1x, X) === Base.OneTo(2)
+    @test axes(mixed, 2) === Base.OneTo(3)
 end
 
 @testset "map" begin
