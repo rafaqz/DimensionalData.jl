@@ -204,30 +204,6 @@ julia> A[:b, 25.8]
 0.61839141062599
 ```
 
-### Compile-time selectors
-
-Using all `Val` indexes (only recommended for small arrays)
-you can index with named dimensions `At` arbitrary values with no
-runtime cost:
-
-```julia
-julia> A = rand(X(Val((:a, :b, :c))), Y(Val((5.0, 6.0, 7.0))))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Val{(:a, :b, :c)}() (Categorical - Unordered)
-  Y: Val{(5.0, 6.0, 7.0)}() (Categorical - Unordered)
- 0.5808   0.835037  0.528461
- 0.8924   0.431394  0.506915
- 0.66386  0.955305  0.774132
-
-julia> @btime $A[:c, 6.0]
-  2.777 ns (0 allocations: 0 bytes)
-0.9553052910459472
-
-julia> @btime $A[Val(:c), Val(6.0)]
-  1.288 ns (0 allocations: 0 bytes)
-0.9553052910459472
-```
-
 ## Methods where dims can be used containing indices or Selectors
 
 `getindex`, `setindex!` `view`
