@@ -83,7 +83,7 @@ julia> @btime parent($A)[1, 2]
 1.0
 ```
 
-Dims can be used for indexing and views without knowing dimension order:
+Dims can be used in `X=val` form:
 
 ```julia
 julia> A = rand(X(40), Y(50))
@@ -98,7 +98,10 @@ and reference dimensions: Y(3)
  0.543156
  ⋮
  0.137541
+```
 
+For views:
+```julia
 julia> view(A, Y(), X(1:5))
 5×50 DimArray{Float64,2} with dimensions: X, Y
  0.377696  0.105445  0.543156  …  0.844973  0.163758  0.849367
@@ -122,9 +125,9 @@ julia> mean(A; dims=Ti)
  0.365028  0.381367  0.423553  0.369339
 ```
 
-You can also use symbols to create `Dim{X}` dimensions,
-although we can't use the `rand` method directly with Symbols,
-and insteadd use the regular `DimArray` constructor:
+You can also use symbols to create `Dim{X}` dimensions.
+We can't use the `rand` method directly with Symbols,
+so insteadd use the regular `DimArray` constructor:
 
 ```julia
 julia> A = DimArray(rand(10, 20, 30), (:a, :b, :c));
@@ -141,7 +144,7 @@ and reference dimensions: Dim{:c}(9)
 
 ## Selectors
 
-Selectors find indices in the lookup index for each dimension: 
+Selectors find indices in the lookup index, for each dimension: 
 
 - `At(x)`: get the index exactly matching the passed in value(s)
 - `Near(x)`: get the closest index to the passed in value(s)
