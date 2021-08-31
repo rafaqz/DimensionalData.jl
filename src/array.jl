@@ -145,7 +145,7 @@ end
     DimArray <: AbstractDimArray
 
     DimArray(data, dims, refdims, name)
-    DimArray(data, dims::Tuple [, name::Symbol]; refdims=(), metadata=NoMetadata())
+    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -191,7 +191,6 @@ end
 function DimArray(data::AbstractArray, dims; refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
 end
-@deprecate DimArray(data::AbstractArray, dims, name; kw...) DimArray(data, dims; name=name, kw...)
 # All keyword argument version
 function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
@@ -209,16 +208,15 @@ Apply function `f` across the values of the dimension `dim`
 (using `broadcast`), and return the result as a dimensional array with
 the given dimension. Optionally provide a name for the result.
 """
-function DimArray(f::Function, dim::Dimension, name=Symbol(nameof(f), "(", name(dim), ")"))
+function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,), name)
 end
 
 """
-    rebuild(A::DimArray, data::AbstractArray, dims::Tuple,
-            refdims::Tuple, name::Symbol, metadata) => DimArray
+    rebuild(A::DimArray, data, dims, refdims, name, metadata) => DimArray
 
 Rebuild a `DimArray` with new fields. Handling partial field
-update is dealth with in `rebuild` for `AbstractDimArray`.
+update is dealt with in `rebuild` for `AbstractDimArray`.
 """
 @inline function rebuild(
     A::DimArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
