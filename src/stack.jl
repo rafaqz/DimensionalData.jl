@@ -288,10 +288,10 @@ julia> da3 = DimArray(3A, dimz; name=:three);
 
 julia> s = DimStack(da1, da2, da3);
 
-julia> s[:b, 10.0]
+julia> s[At(:b), At(10.0)]
 (one = 4.0, two = 8.0, three = 12.0)
 
-julia> s[X(:a)] isa DimStack
+julia> s[X(At(:a))] isa DimStack
 true
 ```
 

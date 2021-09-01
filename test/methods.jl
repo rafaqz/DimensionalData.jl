@@ -229,14 +229,14 @@ end
     r180_3 = rotr90(da, 2)
     r270 = rotl90(da, 3)
     r360 = rotr90(da, 4)
-    da[X(:a), Y(At(2.0))]
-    @test l90[X(:a), Y(At(2.0))] == 2
-    @test r90[X(:a), Y(At(2.0))] == 2
-    @test r180_1[X(:a), Y(At(2.0))] == 2
-    @test r180_2[X(:a), Y(At(2.0))] == 2
-    @test r180_3[X(:a), Y(At(2.0))] == 2
-    @test r270[X(:a), Y(At(2.0))] == 2
-    @test r360[X(:a), Y(At(2.0))] == 2
+    da[X(At(:a)), Y(At(2.0))]
+    @test l90[X(At(:a)), Y(At(2.0))] == 2
+    @test r90[X(At(:a)), Y(At(2.0))] == 2
+    @test r180_1[X(At(:a)), Y(At(2.0))] == 2
+    @test r180_2[X(At(:a)), Y(At(2.0))] == 2
+    @test r180_3[X(At(:a)), Y(At(2.0))] == 2
+    @test r270[X(At(:a)), Y(At(2.0))] == 2
+    @test r360[X(At(:a)), Y(At(2.0))] == 2
 end
 
 

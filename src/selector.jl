@@ -21,15 +21,6 @@ abstract type Selector{T} end
 val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
-@inline maybeselector(I...) = maybeselector(I)
-@inline maybeselector(I::Tuple) = map(maybeselector, I)
-# Int AbstractArray and Colon do normal indexing
-@inline maybeselector(i::StandardIndices) = i
-# Selectors are allready selectors
-@inline maybeselector(i::Selector) = i
-# Anything else becomes `At`
-@inline maybeselector(i) = At(i)
-
 """
     At <: Selector
 
@@ -216,12 +207,17 @@ val(sel::Where) = sel.f
 @inline sel2indices(dims::Tuple, lookup::Tuple) =
     map((d, l) -> sel2indices(d, l), dims, lookup)
 @inline sel2indices(dims::Tuple, lookup::Tuple{}) = ()
-@inline sel2indices(dim::Dimension, sel) = _sel2indices(dim, maybeselector(sel))
+@inline sel2indices(dim::Dimension, sel::Selector) = _sel2indices(dim, sel)
+@inline sel2indices(dim::Dimension, sel::Val) = _sel2indices(dim, At(sel))
+# Standard indices are just returned.
+@inline sel2indices(::Dimension, sel::StandardIndices) = sel
+@inline function sel2indices(::Dimension, sel)
+    selstr = sprint(show, sel)
+    throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
+end
 
 # First filter based on rough selector properties -----------------
 
-# Standard indices are just returned.
-@inline _sel2indices(::Dimension, sel::StandardIndices) = sel
 # Vectors are mapped
 @inline _sel2indices(dim::Dimension, sel::Selector{<:AbstractVector}) =
     [_sel2indices(mode(dim), dim, rebuild(sel, v)) for v in val(sel)]

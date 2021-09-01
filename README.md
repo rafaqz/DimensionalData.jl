@@ -197,16 +197,6 @@ and reference dimensions:
  0.716715
 ```
 
-For values other than `Int`/`AbstractArray`/`Colon` (which are set aside for
-regular indexing) the `At` selector is assumed, and can be dropped completely:
-
-```julia
-julia> A = rand(X([:a, :b, :c]), Y([25.6, 25.7, 25.8]));
-
-julia> A[:b, 25.8]
-0.61839141062599
-```
-
 ## Methods where dims can be used containing indices or Selectors
 
 `getindex`, `setindex!` `view`
