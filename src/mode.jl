@@ -659,7 +659,7 @@ map(mode, dims(A))
 
 # output
 
-(Categorical{Unordered{ForwardRelation}}(Unordered{ForwardRelation}(ForwardRelation())), Categorical{Unordered{ForwardRelation}}(Unordered{ForwardRelation}(ForwardRelation())))
+(Categorical{Unordered{ForwardRelation}}(Unordered{ForwardRelation}(ForwardRelation())), Categorical{Ordered{ForwardIndex, ForwardArray, ForwardRelation}}(Ordered{ForwardIndex, ForwardArray, ForwardRelation}(ForwardIndex(), ForwardArray(), ForwardRelation())))
 ```
 """
 struct Categorical{O<:Order} <: AbstractCategorical{O}

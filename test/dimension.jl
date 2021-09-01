@@ -49,11 +49,11 @@ end
                                       Dim{:b}(Base.OneTo(3), NoIndex(), NoMetadata()))
     @test formatdims(51:100, :c) == (Dim{:c}(Base.OneTo(50), NoIndex(), NoMetadata()),)
     @test formatdims(A, (a=[:A, :B], b=(10.0:10.0:30.0))) ==
-    (Dim{:a}([:A, :B], Categorical(Unordered()), NoMetadata()),
+    (Dim{:a}([:A, :B], Categorical(Ordered()), NoMetadata()),
      Dim{:b}(10.0:10:30.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata()))
     @test formatdims(A, (X([:A, :B]; metadata=Metadata(a=5)),
            Y(10.0:10.0:30.0, Categorical(Ordered()), Metadata("metadata"=>1)))) ==
-          (X([:A, :B], Categorical(Unordered()), Metadata(a=5)),
+          (X([:A, :B], Categorical(Ordered()), Metadata(a=5)),
            Y(10.0:10:30.0, Categorical(Ordered()), Metadata("metadata"=>1)))
     @test formatdims(zeros(3, 4), 
         (Dim{:row}(Val((:A, :B, :C))), 
