@@ -124,7 +124,7 @@ end
         (one=[3.0 6.0;  2.0 5.0;  1.0 4.0],
          two=[6.0f0 12.0f0; 4.0f0 10.0f0; 2.0f0 8.0f0],
        three=[9 18; 6 15; 3 12])
-    @test rot[:one][X(:a), Y(10.0)] == da1[X(:a), Y(10.0)]
+    @test rot[:one][X(At(:a)), Y(At(10.0))] == da1[X(At(:a)), Y(At(10.0))]
     @test rotr90(s, 2) == DimStack(rotr90(da1, 2), rotr90(da2, 2), rotr90(da3, 2))
     @test rot180(s, 1) == DimStack(rot180(da1, 1), rot180(da2, 1), rot180(da3, 1))
 end

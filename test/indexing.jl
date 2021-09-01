@@ -204,7 +204,7 @@ end
           4 4 4 4
           4 4 4 4]
 
-    @testset "indexing into empty dims is just regular indexing" begin
+    @testset "indexing into NoIndex dims is just regular indexing" begin
         ida = DimArray(a2, (X(), Y()))
         ida[Y(3:4), X(2:3)] = [5 6; 6 7]
     end
@@ -272,7 +272,7 @@ end
     @testset "getindex" begin
         @test s[1, 1] === (one=1.0, two=2.0f0, three=3)
         @test s[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
-        @test s[X=:b, Y=10.0] === (one=4.0, two=8.0f0, three=12)
+        @test s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
         slicedds = s[At(:a), :]
         @test slicedds[:one] == [1.0, 2.0, 3.0]
         @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
@@ -292,7 +292,7 @@ end
         @test dims(sv) == ()
         sv = view(s, X(1:2), Y(3:3)) 
         @test sv.data == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
-        slicedds = view(s, X=:a, Y=:)
+        slicedds = view(s, X=At(:a), Y=:)
         @test slicedds[:one] == [1.0, 2.0, 3.0]
         @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
@@ -309,7 +309,7 @@ end
         s_set = deepcopy(s)
         s_set[1, 1] = (one=9, two=10, three=11)
         @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
-        s_set[X=:b, Y=10.0] = (one=7, two=11, three=13)
+        s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)
         @test s_set[2, 1] === (one=7.0, two=11.0f0, three=13) 
     end
 

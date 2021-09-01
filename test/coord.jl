@@ -17,7 +17,7 @@ end
     @test da[Coord(:, :, :)] == [0.1, 0.2, 0.3, 0.4]
     @test da[Coord(Between(1, 5), :, At(4.0))] == [0.3, 0.4]
     @test da[Coord(:, Between(1, 3), :)] == [0.1, 0.2]
-    @test da2[Ti(1s), Coord(:, Between(1, 3), :)] ≈ [0.1, 0.2]
+    @test da2[Ti(At(1s)), Coord(:, Between(1, 3), :)] ≈ [0.1, 0.2]
 end
 
 @testset "coord dimension indexing" begin

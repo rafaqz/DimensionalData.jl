@@ -56,7 +56,7 @@ end
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
     setindex!(A, x, dims2indices(A, (args..., _kwdims(kw.data)...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
-    setindex!(A, x, dims2indices(A, maybeselector(i, I...))...)
+    setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =

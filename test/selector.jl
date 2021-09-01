@@ -658,7 +658,7 @@ end
 
 @testset "Selectors on Sampled Intervals" begin
     da = DimArray(a, (Y((10, 30); mode=Sampled(sampling=Intervals())),
-                              Ti((1:4)u"s"; mode=Sampled(sampling=Intervals()))))
+                      Ti((1:4)u"s"; mode=Sampled(sampling=Intervals()))))
 
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
@@ -706,7 +706,7 @@ end
                   Y(Val(10.0:10.0:40); mode=Sampled())
         da = DimArray(a, valdimz)
         @test @inferred da[Ti=Val(4.0), Y=Val(40.0)] == 8
-        @test @inferred da[2.0, 20.0] == 2
+        @test @inferred da[At(2.0), At(20.0)] == 2
         @test @inferred da[Near(Val{3.2}()), At(Val{20.0}())] == 6
         @test @inferred da[Near(3.2), At(20.0)] == 6
     end
@@ -764,7 +764,7 @@ end
     da = DimArray(a, dimz)
     @test @inferred da[Ti(At([:one, :two])), Y(Contains(:b))] == [2, 6]
     @test @inferred da[At(:two), Between(:b, :d)] == [6, 7, 8]
-    @test @inferred da[:two, :b] == 6
+    @test @inferred da[At(:two), At(:b)] == 6
     # Near and contains are just At
     @test @inferred da[Contains([:one, :three]), Near([:b, :c, :d])] == [2 3 4; 10 11 12]
 
@@ -787,7 +787,7 @@ end
         Y(Val((:a, :b, :c, :d)); mode=Categorical(Ordered()))
     da = DimArray(a, valdimz)
     @test @inferred da[Val(2.5), Val(:c)] == 7
-    @test @inferred da[2.4, :a] == 1
+    @test @inferred da[At(2.4), At(:a)] == 1
     @test @inferred da[Near(2.5), At(:c)] == 7
 end
 
