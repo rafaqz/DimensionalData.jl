@@ -10,6 +10,8 @@ using DimensionalData: _Rot90, _Rot180, _Rot270, _Rot360, _rottype
     da = DimArray(a, dimz)
     @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimArray{Int64,2}
+    @test map(*, da, da) == [1 4; 9 16]
+    @test map(*, da, da) isa DimArray{Int64,2}
 end
 
 @testset "dimension reducing methods" begin
