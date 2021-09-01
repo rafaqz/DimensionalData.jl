@@ -4,15 +4,15 @@ using DimensionalData: _set, AutoSampling
 a = [1 2; 3 4]
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Metadata(Dict(:meta => "X"))),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Metadata(Dict(:meta => "Y"))))
-da = DimArray(a, dimz, :test)
+da = DimArray(a, dimz; name=:test)
 
 a2 = [1 2 3 4
       3 4 5 6
       4 5 6 7]
 dimz2 = (Dim{:row}(10.0:10.0:30.0), Dim{:column}(-2:1.0:1.0))
-da2 = DimArray(a2, dimz2, :test2)
+da2 = DimArray(a2, dimz2; name=:test2)
 
-s = DimStack(da2, DimArray(2a2, dimz2, :test3))
+s = DimStack(da2, DimArray(2a2, dimz2; name=:test3))
 
 @testset " Array fields" begin
     @test name(set(da2, :newname)) == :newname

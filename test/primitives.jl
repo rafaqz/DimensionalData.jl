@@ -431,7 +431,7 @@ end
 
 @testset "dimstride" begin
     dimz = (X(), Y(), Dim{:test}())
-    da = DimArray(ones(3, 2, 3), dimz, :data)
+    da = DimArray(ones(3, 2, 3), dimz; name=:data)
     @test dimstride(da, X()) == 1
     @test dimstride(da, Y()) == 3
     @test dimstride(da, Dim{:test}()) == 6

@@ -17,7 +17,7 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
     end
 
     A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
     reva = reverse(ArrayOrder, da; dims=Y)
@@ -50,7 +50,7 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
 
     @testset "Val index" begin
         dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
-                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))), :test)
+                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))); name=:test)
         revdav = reverse(IndexOrder, dav; dims=(X, Y))
         @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
     end
@@ -68,9 +68,9 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
 
     @testset "stack" begin
         dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
-        da1 = DimArray(A, dimz, :one)
-        da2 = DimArray(Float32.(2A), dimz, :two)
-        da3 = DimArray(Int.(3A), dimz, :three)
+        da1 = DimArray(A, dimz; name=:one)
+        da2 = DimArray(Float32.(2A), dimz; name=:two)
+        da3 = DimArray(Int.(3A), dimz; name=:three)
 
         s = DimStack((da1, da2, da3))
         rev_s = reverse(s; dims=X) 
@@ -82,7 +82,7 @@ end
 
 @testset "reorder" begin
     A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
     reoa = reorder(da, ReverseArray())
@@ -120,7 +120,7 @@ end
 
 @testset "flip" begin
     A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)), :test)
+    da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     fda = flip(IndexOrder, da; dims=(X, Y))
     @test indexorder(fda) == (ReverseIndex(), ForwardIndex())
     fda = flip(Relation, da, Y)
@@ -140,8 +140,8 @@ end
         @test_throws ErrorException modify(A -> A[1, :], da)
     end
     @testset "dataset" begin
-        da1 = DimArray(A, dimz, :da1)
-        da2 = DimArray(2A, dimz, :da2)
+        da1 = DimArray(A, dimz; name=:da1)
+        da2 = DimArray(2A, dimz; name=:da2)
         s = DimStack(da1, da2)
         ms = modify(A -> A .> 3, s)
         @test data(ms) == (da1=[false false false; true true true],
