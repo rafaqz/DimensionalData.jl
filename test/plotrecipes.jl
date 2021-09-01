@@ -3,10 +3,10 @@ import Distributions
 
 A1 = rand(Distributions.Normal(), 20)
 ref = (Ti(1, Sampled(Ordered(), Regular(Day(1)), Points())),)
-da1_regular = DimArray(A1, X(1:50:1000), :Normal; refdims=ref)
-da1_noindex = DimArray(A1, X(), :Normal; refdims=ref)
-da1_categorical = DimArray(A1, X('A':'T'), :Normal; refdims=ref)
-da1_z = DimArray(A1, Z(1:50:1000), :Normal; refdims=ref)
+da1_regular = DimArray(A1, X(1:50:1000); name=:Normal, refdims=ref)
+da1_noindex = DimArray(A1, X(); name=:Normal, refdims=ref)
+da1_categorical = DimArray(A1, X('A':'T'); name=:Normal, refdims=ref)
+da1_z = DimArray(A1, Z(1:50:1000); name=:Normal, refdims=ref)
 
 # For manual testing
 da1 = da1_z
@@ -41,15 +41,15 @@ for da in (da1_regular, da1_noindex, da1_categorical, da1_z)
 end
 
 A2 = rand(Distributions.Normal(), 40, 20)
-da2_regular = DimArray(A2, (X(1:10:400), Y(1:5:100)), :Normal)
-da2_noindex = DimArray(A2, (X(), Y()), :Normal)
-da2_ni_r = DimArray(A2, (X(), Y(1:5:100)), :Normal)
-da2_r_ni = DimArray(A2, (X(1:10:400), Y()), :Normal)
-da2_c_c = DimArray(A2, (X('A':'h'), Y('a':'t')), :Normal)
-da2_XY = DimArray(A2, (X(1:10:400), Y(1:5:100)), :Normal)
-da2_YX = DimArray(A2, (Y(1:10:400), X(1:5:100)), :Normal)
-da2_ZY = DimArray(A2, (Z(1:10:400), Y(1:5:100)), :Normal)
-da2_XTi = DimArray(A2, (X(1:10:400), Ti(1:5:100)), :Normal)
+da2_regular = DimArray(A2, (X(1:10:400), Y(1:5:100)); name=:Normal)
+da2_noindex = DimArray(A2, (X(), Y()); name=:Normal)
+da2_ni_r = DimArray(A2, (X(), Y(1:5:100)); name=:Normal)
+da2_r_ni = DimArray(A2, (X(1:10:400), Y()); name=:Normal)
+da2_c_c = DimArray(A2, (X('A':'h'), Y('a':'t')); name=:Normal)
+da2_XY = DimArray(A2, (X(1:10:400), Y(1:5:100)); name=:Normal)
+da2_YX = DimArray(A2, (Y(1:10:400), X(1:5:100)); name=:Normal)
+da2_ZY = DimArray(A2, (Z(1:10:400), Y(1:5:100)); name=:Normal)
+da2_XTi = DimArray(A2, (X(1:10:400), Ti(1:5:100)); name=:Normal)
 
 # For manual testing
 da2 = da2_XTi

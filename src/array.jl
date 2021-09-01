@@ -209,7 +209,7 @@ Apply function `f` across the values of the dimension `dim`
 the given dimension. Optionally provide a name for the result.
 """
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
-     DimArray(f.(val(dim)), (dim,), name)
+     DimArray(f.(val(dim)), (dim,); name)
 end
 
 """

@@ -4,10 +4,10 @@ A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
 x, y, z = X([:a, :b]), Y(10.0:10.0:30.0), Z()
 dimz = x, y
-da1 = DimArray(A, (x, y), :one)
-da2 = DimArray(Float32.(2A), (x, y), :two)
-da3 = DimArray(Int.(3A), (x, y), :three)
-da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z), :extradim)
+da1 = DimArray(A, (x, y); name=:one)
+da2 = DimArray(Float32.(2A), (x, y); name=:two)
+da3 = DimArray(Int.(3A), (x, y); name=:three)
+da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
 s = DimStack((da1, da2, da3))
 mixed = DimStack((da1, da2, da4))

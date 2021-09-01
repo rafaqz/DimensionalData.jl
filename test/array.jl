@@ -12,8 +12,8 @@ ameta = Metadata(:meta => "da")
 dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
         Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
 refdimz = (Ti(1:1),)
-da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=ameta)
-da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
+da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
+da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
 @testset "size and axes" begin
     @test size(da2, Dim{:row}) == 3

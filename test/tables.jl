@@ -6,8 +6,8 @@ x = X([:a, :b, :c])
 y = Y([10.0, 20.0])
 d = Dim{:test}(1.0:1.0:3.0)
 dimz = x, y, d
-da = DimArray(ones(3, 2, 3), dimz, :data)
-da2 = DimArray(fill(2, (3, 2, 3)), dimz, :data2)
+da = DimArray(ones(3, 2, 3), dimz; name=:data)
+da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
 
 @testset "DimArray Tables interface" begin
     ds = DimStack(da)
@@ -96,8 +96,8 @@ end
 end
 
 @testset "Mixed size" begin
-    da1 = DimArray(reshape(11:28, (3, 2, 3)), (x, y, d), :data1)
-    da2 = DimArray(reshape(1.0:6.0, (2, 3)), (y, d), :data2)
+    da1 = DimArray(reshape(11:28, (3, 2, 3)), (x, y, d); name=:data1)
+    da2 = DimArray(reshape(1.0:6.0, (2, 3)), (y, d); name=:data2)
     ds = DimStack(da1, da2)
     @time t = DimTable(ds)
     @time df = DataFrame(t; copycols=true)

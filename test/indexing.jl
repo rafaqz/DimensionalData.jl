@@ -41,7 +41,7 @@ end
     dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
             Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
     refdimz = (Ti(1:1),)
-    da = @test_nowarn DimArray(a, dimz, :test; refdims=refdimz, metadata=ameta)
+    da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 
     @testset "getindex for single integers returns values" begin
         @test da[X(1), Y(2)] == 2
@@ -210,7 +210,7 @@ end
     end
 
     dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
-    da2 = DimArray(a2, dimz2, :test2; refdims=refdimz)
+    da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
     @testset "mode step is updated when indexed with a range" begin
         @test step.(mode(da2)) == (10.0, 10.0)
@@ -263,9 +263,9 @@ end
     A = [1.0 2.0 3.0;
          4.0 5.0 6.0]
     dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
-    da1 = DimArray(A, dimz, :one)
-    da2 = DimArray(Float32.(2A), dimz, :two)
-    da3 = DimArray(Int.(3A), dimz, :three)
+    da1 = DimArray(A, dimz; name=:one)
+    da2 = DimArray(Float32.(2A), dimz; name=:two)
+    da3 = DimArray(Int.(3A), dimz; name=:three)
 
     s = DimStack((da1, da2, da3))
 
