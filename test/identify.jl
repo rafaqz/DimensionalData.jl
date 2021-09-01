@@ -7,14 +7,16 @@ end
 
 @testset "identify IndexMode" begin
    @testset "identify Categorical from AutoMode" begin
-        @test identify(AutoMode(), X, [:a, :b]) == Categorical(Unordered())
-        @test identify(AutoMode(), X, ["a", "b"]) == Categorical(Unordered())
-        @test identify(AutoMode(), X, ['b', 'a']) == Categorical(Unordered())
-        @test identify(AutoMode(Ordered(index=ReverseIndex())), X, ['b', 'a']) == 
-            Categorical(Ordered(index=ReverseIndex()))
-        # Mixed types are categorical
-        @test identify(AutoMode(Ordered(index=ReverseIndex())), X, ['b', 2]) == 
+        @test identify(AutoMode(), X, [:a, :b]) == Categorical(Ordered())
+        @test identify(AutoMode(), X, [:a, :c, :b]) == Categorical(Unordered())
+        @test identify(AutoMode(), X, ["a", "b"]) == Categorical(Ordered())
+        @test identify(AutoMode(), X, ['b', 'a']) == Categorical(Ordered(; index=ReverseIndex()))
+        @test identify(AutoMode(Ordered(; index=ReverseIndex())), X, ['b', 'a']) == 
+            Categorical(Ordered(; index=ReverseIndex()))
+        # Mixed types are Categorical Unordered
+        @test identify(AutoMode(Ordered(; index=ReverseIndex())), X, ['b', 2]) == 
             Categorical(Unordered())
+        @test identify(AutoMode(), X, ['b', 2]) == Categorical(Unordered())
         @test identify(AutoMode(Ordered(index=ReverseIndex())), X, ['b', 2]) == 
             Categorical(Unordered())
     end
