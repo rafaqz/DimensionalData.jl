@@ -92,7 +92,11 @@ end
 
 # Function application
 
-@inline Base.map(f, A::AbstractDimArray) = rebuild(A, map(f, parent(A)))
+function Base.map(f, As::AbstractDimArray...)
+    comparedims(As...)
+    newdata = map(f, map(parent, As)...)
+    rebuild(first(As); data=newdata)
+end
 
 function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     dimnums = dimnum(A, _astuple(dims))
