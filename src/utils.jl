@@ -183,8 +183,8 @@ Dimension-wise application of function `f`.
 ## Arguments
 
 - `dest`: `AbstractDimArray` to update
-- `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
-- `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
+- `A`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
+- `B`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
 
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`, and storing the value in `dest`.
@@ -195,14 +195,18 @@ function dimwise!(
     N >= NB || error("B-array cannot have more dimensions than A array")
     comparedims(dest, a)
     common = commondims(a, dims(b))
-    generators = dimwise_generators(otherdims(a, common))
+    od = otherdims(a, common)
     # Lazily permute B dims to match the order in A, if required
     if !dimsmatch(common, dims(b))
         b = PermutedDimsArray(b, common)
     end
     # Broadcast over b for each combination of dimensional indices D
-    map(generators) do D
-        dest[D...] .= f.(a[D...], b)
+    if length(od) == 0
+        dest .= f.(a, b)
+    else
+        map(dimwise_generators(od)) do D
+            dest[D...] .= f.(a[D...], b)
+        end
     end
     return dest
 end
