@@ -19,7 +19,7 @@ DimStack
 
 ## Dimension indindices generator
 
-```julia
+```@docs
 DimIndices
 ```
 
