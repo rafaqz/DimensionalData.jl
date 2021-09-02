@@ -52,6 +52,8 @@ export AbstractDimTable, DimTable
 
 export AbstractDimStack, DimStack
 
+export DimIndices
+
 export AbstractMetadata, Metadata, NoMetadata
 
 export AbstractName, Name, NoName
@@ -78,6 +80,7 @@ include("array.jl")
 include("stack.jl")
 include("tables.jl")
 include("selector.jl")
+include("dimindices.jl")
 include("indexing.jl")
 include("primitives.jl")
 include("broadcast.jl")
