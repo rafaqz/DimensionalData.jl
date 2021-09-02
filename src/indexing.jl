@@ -30,7 +30,7 @@ for f in (:getindex, :view, :dotview)
         # Except 1D DimArrays
         @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
-        # Dimension indexing. Allows indexing with A[somedim=25.0] for Dim{:somedim}
+        # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., _kwdims(kw.data)...))...)
         # Standard indices

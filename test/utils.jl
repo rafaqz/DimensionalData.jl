@@ -166,14 +166,18 @@ end
     B1 = [1, 2, 3]
     da2 = DimArray(A2, (X([20, 30]), Y([:a, :b, :c])))
     db1 = DimArray(B1, (Y([:a, :b, :c]),))
+    dc1 = dimwise(+, db1, db1)
+    @test dc1 == [2, 4, 6]
     dc2 = dimwise(+, da2, db1)
     @test dc2 == [2 4 6; 5 7 9]
+    dc4 = dimwise(+, da2, db1)
 
     A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
     da3 = DimArray(A3, (X, Y, Z))
     db2 = DimArray(A2, (X, Y))
     dc3 = dimwise(+, da3, db2)
     @test dc3 == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
+    dc3 = dimwise!(+, da3, da3, db2)
 
     A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
     da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
