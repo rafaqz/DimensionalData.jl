@@ -204,28 +204,11 @@ function dimwise!(
     if length(od) == 0
         dest .= f.(a, b)
     else
-        map(dimwise_generators(od)) do D
+        map(DimIndices(od)) do D
             dest[D...] .= f.(a[D...], b)
         end
     end
     return dest
-end
-
-# Single dimension generator
-function dimwise_generators(dims::Tuple{<:Dimension})
-    ((basetypeof(dims[1])(i),) for i in axes(dims[1], 1))
-end
-# Multi dimensional generators
-function dimwise_generators(dims::Tuple)
-    baseds = basedims(dims)
-    # Get the axes of the dims to iterate over
-    dimaxes = map(d -> axes(d, 1), dims)
-    # Make an iterator over all axes
-    proditr = Base.Iterators.ProductIterator(dimaxes)
-    # Wrap the produced index I in dimensions as it is generated
-    Base.Generator(proditr) do I
-        map((D, i) -> rebuild(D, i), baseds, I)
-    end
 end
 
 """

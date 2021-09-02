@@ -27,8 +27,6 @@ identify(mode::AutoMode, dimtype::Type, index::AbstractArray{T}) where T = begin
     end
 end
 identify(mode::AutoMode, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
-    order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))
-identify(mode::AutoMode, dimtype::Type, index::AbstractArray{<:CategoricalEltypes}) =
     order(mode) isa AutoOrder ? Categorical(_orderof(index)) : Categorical(order(mode))
 identify(mode::AutoMode, dimtype::Type, index::Val) =
     order(mode) isa AutoOrder ? Categorical(Unordered()) : Categorical(order(mode))

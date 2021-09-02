@@ -17,6 +17,12 @@ AbstractDimStack
 DimStack
 ```
 
+## Dimension indindices generator
+
+```julia
+DimIndices
+```
+
 ## Core types
 
 ### Dimensions:
