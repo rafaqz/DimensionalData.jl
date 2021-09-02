@@ -22,6 +22,7 @@ function DimIndices(dims::D) where {D<:Tuple{<:Dimension,Vararg{<:Dimension}}}
     DimIndices{T,N,D}(dims)
 end
 DimIndices(x) = DimIndices(dims(x))
+DimIndices(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
 
 dims(di::DimIndices) = di.dims
 
