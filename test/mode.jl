@@ -51,21 +51,35 @@ end
     ind = [10.0, 20.0, 30.0, 40.0, 50.0]
 
     @testset "Irregular forwards" begin
-        mode_ = Sampled(span=Irregular((10.0, 60.0)), sampling=Intervals(Start()))
-        mode_ = Sampled(Ordered(), Irregular((10.0, 60.0)), Intervals(Start()))
+        mode_ = Sampled(order=Ordered(), span=Irregular((10.0, 60.0)), sampling=Intervals(Start()))
         @test _bounds(_slicemode(mode_, ind, 3), X(ind)) == (30.0, 40.0)
         @test _bounds(_slicemode(mode_, ind, 1:5), X(ind)) == (10.0, 60.0)
         @test _bounds(_slicemode(mode_, ind, 2:3), X(ind)) == (20.0, 40.0)
+        mode_ = Sampled(Ordered(), Irregular((0.0, 50.0)), Intervals(End()))
+        @test _bounds(_slicemode(mode_, ind, 3), X(ind)) == (20.0, 30.0)
+        @test _bounds(_slicemode(mode_, ind, 1:5), X(ind)) == (0.0, 50.0)
+        @test _bounds(_slicemode(mode_, ind, 2:3), X(ind)) == (10.0, 30.0)
+        mode_ = Sampled(Ordered(), Irregular((5.0, 55.0)), Intervals(Center()))
+        @test _bounds(_slicemode(mode_, ind, 3), X(ind)) == (25.0, 35.0)
+        @test _bounds(_slicemode(mode_, ind, 1:5), X(ind)) == (5.0, 55.0)
+        @test _bounds(_slicemode(mode_, ind, 2:3), X(ind)) == (15.0, 35.0)
     end
 
     @testset "Irregular reverse" begin
         revind = [50.0, 40.0, 30.0, 20.0, 10.0]
         mode_ = Sampled(order=Ordered(index=ReverseIndex()), span=Irregular(0.0, 50.0),
                         sampling=Intervals(Start()))
-        mode_ = Sampled(Ordered(index=ReverseIndex()), Irregular(0.0, 50.0), Intervals(Start()))
         @test _bounds(_slicemode(mode_, revind, 1:5), X(revind)) == (0.0, 50.0)
         @test _bounds(_slicemode(mode_, revind, 1:2), X(revind)) == (30.0, 50.0)
-        @test _bounds(_slicemode(mode_, revind, 1:3), X(revind)) == (20.0, 50.0)
+        @test _bounds(_slicemode(mode_, revind, 2:3), X(revind)) == (20.0, 40.0)
+        mode_ = Sampled(Ordered(index=ReverseIndex()), Irregular(10.0, 60.0), Intervals(End()))
+        @test _bounds(_slicemode(mode_, revind, 1:5), X(revind)) == (10.0, 60.0)
+        @test _bounds(_slicemode(mode_, revind, 1:2), X(revind)) == (40.0, 60.0)
+        @test _bounds(_slicemode(mode_, revind, 2:3), X(revind)) == (30.0, 50.0)
+        mode_ = Sampled(Ordered(index=ReverseIndex()), Irregular(0.5, 55.0), Intervals(Center()))
+        @test _bounds(_slicemode(mode_, revind, 1:5), X(revind)) == (0.5, 55.0)
+        @test _bounds(_slicemode(mode_, revind, 1:2), X(revind)) == (35.0, 55.0)
+        @test _bounds(_slicemode(mode_, revind, 2:3), X(revind)) == (25.0, 45.0)
     end
 
     @testset "Irregular with no bounds" begin
@@ -80,7 +94,6 @@ end
         @test _bounds(_slicemode(mode, ind, 3), X()) == (20.0, 30.0)
         @test _bounds(_slicemode(mode, ind, 2:4), X()) == (10.0, 40.0)
         @test _bounds(_slicemode(mode, ind, 1:5), X()) == (nothing, 50.0)
-        mode = Sampled(span=Irregular(nothing, nothing), sampling=Intervals(Center()))
         mode = Sampled(Ordered(), Irregular(nothing, nothing), Intervals(Center()))
         @test _bounds(_slicemode(mode, ind, 3), X()) == (25.0, 35.0)
         @test _bounds(_slicemode(mode, ind, 2:4), X()) == (15.0, 45.0)

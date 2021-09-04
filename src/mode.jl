@@ -559,8 +559,8 @@ _slicespan(locus::Start, span::Irregular, m, index, i) =
 _slicespan(locus::End, span::Irregular, m, index, i) =
     first(i) <= firstindex(index) ? _maybeflipbounds(m, bounds(span))[1] : index[first(i) - 1], index[last(i)]
 _slicespan(locus::Center, span::Irregular, m, index, i) =
-    first(i) <= firstindex(index) ? bounds(span)[1] : (index[first(i) - 1] + index[first(i)]) / 2,
-    last(i)  >= lastindex(index)  ? bounds(span)[2] : (index[last(i) + 1]  + index[last(i)]) / 2
+    first(i) <= firstindex(index) ? _maybeflipbounds(m, bounds(span))[1] : (index[first(i) - 1] + index[first(i)]) / 2,
+    last(i)  >= lastindex(index)  ? _maybeflipbounds(m, bounds(span))[2] : (index[last(i) + 1]  + index[last(i)]) / 2
 
 """
     Sampled <: AbstractSampled
