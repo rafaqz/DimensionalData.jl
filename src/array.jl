@@ -131,11 +131,11 @@ Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
 
 function Adapt.adapt_structure(to, A::AbstractDimArray)
     rebuild(A,
-        data=adapt(to, parent(A)),
-        dims=adapt(to, dims(A)),
-        refdims=adapt(to, refdims(A)),
+        data=Adapt.adapt(to, parent(A)),
+        dims=Adapt.adapt(to, dims(A)),
+        refdims=Adapt.adapt(to, refdims(A)),
         name=Name(name(A)),
-        metadata=adapt(to, metadata(A)),
+        metadata=Adapt.adapt(to, metadata(A)),
     )
 end
 

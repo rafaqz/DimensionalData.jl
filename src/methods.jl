@@ -321,3 +321,17 @@ Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
     rebuildsliced(A, diff(parent(A); dims=dimnum(A, dims)), r0)
 end
+
+# Forward `replace` to parent objects
+function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDimArray, count::Int) 
+    Base._replace!(new, parent(res), parent(A), count) 
+    return res
+end
+function Base._replace!(new::Base.Callable, res::AbstractArray, A::AbstractDimArray, count::Int) 
+    Base._replace!(new, res, parent(A), count) 
+    return res
+end
+function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractArray, count::Int) 
+    Base._replace!(new, parent(res), A, count) 
+    return res
+end

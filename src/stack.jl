@@ -83,7 +83,7 @@ function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
 end
 
 
-Adapt.adapt_structure(to, s::AbstractDimStack) = map(A -> adapt(to, A), s)
+Adapt.adapt_structure(to, s::AbstractDimStack) = map(A -> Adapt.adapt(to, A), s)
 
 # Dipatch on Tuple of Dimension, and map
 for func in (:index, :mode, :metadata, :sampling, :span, :bounds, :locus, :order)

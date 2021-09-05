@@ -7,20 +7,26 @@ module DimensionalData
     read(path, String)
 end DimensionalData
 
+# Standard lib
+using Dates,
+      LinearAlgebra,
+      Random,
+      Statistics,
+      SparseArrays
+
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
 
-using Adapt,
-      ConstructionBase,
-      Dates,
-      LinearAlgebra,
-      Random,
-      RecipesBase,
-      Statistics,
-      SparseArrays,
-      Tables
-
 using Base: tail, OneTo, @propagate_inbounds
+      
+# Ecosystem
+import Adapt, 
+       ConstructionBase, 
+       RecipesBase,
+       Tables
+
+using RecipesBase: @recipe
+
 
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
@@ -99,10 +105,14 @@ const DimensionalArray = DimArray
 const AbstractDimDataset = AbstractDimStack
 const DimDataset = DimStack
 
-precompile(DimArray, (Array{Int,1}, typeof(X())))
-precompile(DimArray, (Array{Int,2}, Tuple{typeof(X()), typeof(Y())}))
-precompile(DimArray, (Array{Float64,1}, typeof(X())))
-precompile(DimArray, (Array{Float64,2}, Tuple{typeof(X()), typeof(Y())}))
-precompile(DimArray, (Array{Float64,3}, Tuple{typeof(X()), typeof(Y())}))
+function _precompile()
+    precompile(DimArray, (Array{Int,1}, typeof(X())))
+    precompile(DimArray, (Array{Int,2}, Tuple{typeof(X()), typeof(Y())}))
+    precompile(DimArray, (Array{Float64,1}, typeof(X())))
+    precompile(DimArray, (Array{Float64,2}, Tuple{typeof(X()), typeof(Y())}))
+    precompile(DimArray, (Array{Float64,3}, Tuple{typeof(X()), typeof(Y()), typeof(Z())}))
+end
+
+_precompile()
 
 end
