@@ -58,7 +58,7 @@ export AbstractDimTable, DimTable
 
 export AbstractDimStack, DimStack
 
-export DimIndices
+export DimIndices, DimKeys
 
 export AbstractMetadata, Metadata, NoMetadata
 
