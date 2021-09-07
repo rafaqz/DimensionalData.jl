@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates
-using DimensionalData: between, at, near, contains, sel2indices
+using DimensionalData: between, at, near, contains, sel2indices, hasselection
 
 a = [1 2  3  4
      5 6  7  8
@@ -20,6 +20,13 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         startfwdrev = Ti(11.0:30.0;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), Regular(1), Intervals(Start())))
         startrevfwd = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(Start())))
         startrevrev = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(Start())))
+
+        cases = (startfwdfwd, startrevfwd, startfwdrev, startrevrev)
+        @test all(map(d -> hasselection(d, At(30.0)), cases))
+        @test all(map(d -> !hasselection(d, At(31.0)), cases))
+        @test all(map(d -> hasselection(d, Contains(12.8)), cases))
+        @test all(map(d -> !hasselection(d, Contains(400.0)), cases))
+        @test all(map(d -> hasselection(d, Near(0.0)), cases))
 
         @testset "Any at" begin
             @test at(startfwdfwd, At(30)) == 20

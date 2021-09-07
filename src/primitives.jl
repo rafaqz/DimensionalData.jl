@@ -513,7 +513,7 @@ function comparedims end
     type=true, length=true, mode=false, val=false, metadata=false
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
-    mode && DD.mode(a) != DD.mode(b) && _modeerror(a, b)
+    mode && typeof(DD.mode(a)) != typeof(DD.mode(b)) && _modeerror(a, b)
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
     val && DD.val(a) != DD.val(b) && _valerror(a, b)
     metadata && DD.metadata(a) != DD.metadata(b) && _metadataerror(a, b)
