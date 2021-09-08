@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random
+using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random, ArrayInterface
 using DimensionalData: Start, formatdims, basetypeof, identify
 
 a = [1 2; 3 4]
@@ -14,6 +14,10 @@ dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
 refdimz = (Ti(1:1),)
 da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
+
+@testset "ArrayInterface" begin
+    @test ArrayInterface.parent_type(da) == Matrix{Int}
+end
 
 @testset "size and axes" begin
     @test size(da2, Dim{:row}) == 3
