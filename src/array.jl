@@ -24,6 +24,7 @@ const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
 const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer}
 
+
 # DimensionalData.jl interface methods ####################################################
 
 # Standard fields
@@ -128,6 +129,8 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
+
+ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
 
 function Adapt.adapt_structure(to, A::AbstractDimArray)
     rebuild(A,
