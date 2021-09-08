@@ -292,12 +292,18 @@ function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
     hasselection(dims(x), selectors)
 end
 hasselection(x::Nothing, selectors::Union{DimTuple,SelTuple,Selector,Dimension}) = false
-hasselection(dims::DimTuple, selector::Union{Selector,Dimension}) = hasselection(dims, (selector,))
-function hasselection(dims::DimTuple, selectors::DimTuple)
-    sorted = DD.dims(selectors, dims)
-    hasselection(dims, map(val, sorted))
+function hasselection(dims::DimTuple, seldims::DimTuple)
+    sorted = DD.dims(seldims, dims)
+    hasselection(DD.dims(dims, sorted), map(val, sorted))
 end
 hasselection(dims::DimTuple, selectors::SelTuple) = all(map(hasselection, dims, selectors))
+function hasselection(dims::DimTuple, selector::Dimension)
+    hasselection(DD.dims(dims, selector), selector)
+end
+function hasselection(dims::DimTuple, selector::Selector)
+    throw(ArgumentError("Cannot select from multiple Dimensions with a single Selector"))
+end
+hasselection(dim::Dimension, seldim::Dimension) = hasselection(dim, val(seldim))
 hasselection(dim::Dimension, sel::At) = at(dim, sel; err=_False()) === nothing ? false : true
 hasselection(dim::Dimension, sel::Contains) = contains(dim, sel; err=_False()) === nothing ? false : true
 # Near an Between only fail on UnorderedIndex
@@ -324,47 +330,27 @@ function at(
 )
     x = unwrap(selval)
     i = searchsortedlast(a, x; order=_ordering(o))
-    if i === 0 || !_is_at(x, a[i], atol, 1)
-        if err isa _True
-            _selvalnotfound(dim, selval)
+    if i === 0 || !_is_at(x, a[i], atol)
+        # Try again with the next index
+        i1 = i + 1
+        if checkbounds(Bool, a, i1) && _is_at(x, a[i1], atol)
+            return relate(dim, i1)
         else
-            return nothing
+            return _selnotfound_or_nothing(err, dim, selval)
         end
     else
         return relate(dim, i)
     end
 end
-# range optimisation - we leave bounds checking to the array, but maybe this is not cool
-function at(
-    o::IndexOrder, a::AbstractRange{<:Number}, dim::Dimension, selval, atol, rtol::Nothing;
-    err=_True()
-)
-    x = unwrap(selval)
-    f = (x - first(a)) / step(a)
-    i = unsafe_trunc(Int, f)
-    if _is_at(i, f, atol, step(a)) && checkbounds(Bool, a, i + 1) 
-        return relate(dim, i + 1)
-    else
-        if err === _False()
-            return nothing
-        else
-            _selvalnotfound(dim, selval)
-        end
-    end
-end
 
-@inline _is_at(i, f, atol::Nothing, scalar) = i == f
-@inline _is_at(i, f, atol, scalar) = abs(i - f) <= atol / scalar
+@inline _is_at(x, y, atol) = x == y
+@inline _is_at(x::Real, y::Real, atol::Real) = abs(x - y) <= atol
 
 # catch-all for an unordered or non-number index
 function at(::IndexOrder, a, dim::Dimension, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> x == unwrap(selval), index(dim))
     if i === nothing 
-        if err === _False()
-            return nothing
-        else
-            _selvalnotfound(dim, selval)
-        end
+        return _selnotfound_or_nothing(err, dim, selval)
     else
         return relate(dim, i)
     end
@@ -376,16 +362,14 @@ end
 ) where {Index,X}
     i = findfirst(x -> x == X, Index)
     if i === nothing 
-        if throw <:  _False
-            :(nothing)
-        else
-            :(_selvalnotfound(dim, selval))
-        end
+        return :(_selnotfound_or_nothing(err, dim, selval))
     else
         return :(relate(dim, $i))
     end
 end
 
+_selnotfound_or_nothing(err::_True, dim, selval) = _selvalnotfound(dim, selval)
+_selnotfound_or_nothing(err::_False, dim, selval) = nothing
 @noinline _selvalnotfound(dim, selval) = throw(ArgumentError("$selval not found in $(name(dim))"))
 
 # near ===========================================================================
@@ -441,26 +425,19 @@ function contains(sampling::Intervals, mode::IndexMode, dim::Dimension, sel::Con
     contains(span(mode), sampling, indexorder(mode), locus(mode), dim, sel; kw...)
 end
 # Regular Intervals ---------------------------
-function contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel::Contains; err=_True())
-    v = val(sel); s = abs(val(span))
-    if !_locus_checkbounds(locus, bounds(dim), v)
-        if err isa _True
-            throw(BoundsError())
-        else
-            return nothing
-        end
-    end
-    i = _whichsearch(locus, order)(order, dim, _maybeaddhalf(locus, s, v))
+function contains(span::Regular, ::Intervals, order, locus, dim::Dimension, sel::Contains; 
+    err=_True()
+)
+    _locus_checkbounds(locus, dim, sel) || return _boundserror_or_nothing(err)
+    v = val(sel)
+    absstep = abs(val(span))
+    i = _whichsearch(locus, order)(order, dim, _maybeaddhalf(locus, absstep, v))
     # Check the value is in this cell. 
     # It is always for AbstractRange but might not be for Val tuple or Vector.
-    if !(val(dim) isa AbstractRange) && lt(locus)(v, dim[i] + s)
-        if err isa _True
-            _notcontainederror(v)
-        else
-            return nothing
-        end
-    else
+    if (val(dim) isa AbstractRange) || _lt(locus)(v, dim[i] + absstep)
         return relate(dim, i)
+    else
+        return _notcontained_or_nothing(err, v)
     end
 end
 # Explicit Intervals ---------------------------
@@ -470,11 +447,7 @@ function contains(span::Explicit, ::Intervals, order, locus, dim::Dimension, sel
     x = val(sel)
     i = searchsortedlast(view(val(span), 1, :), x; order=_ordering(order))
     if i === 0 || val(span)[2, i] < x 
-        if err isa _True
-            _notcontainederror(v)
-        else
-            return nothing
-        end
+        return _notcontained_or_nothing(err, x)
     else
         return relate(dim, i)
     end
@@ -485,31 +458,19 @@ function contains(
     locus::Locus, dim::Dimension, sel::Contains;
     err=_True()
 )
-    if !_locus_checkbounds(locus, bounds(dim), v)
-        if err isa _True
-            throw(BoundsError())
-        else
-            return nothing
-        end
-    else
-        i = _whichsearch(locus, order)(order, dim, val(sel))
-        return relate(dim, i)
-    end
+    _locus_checkbounds(locus, dim, sel) || return _boundserror_or_nothing(err)
+    i = _whichsearch(locus, order)(order, dim, val(sel))
+    return relate(dim, i)
 end
 function contains(
     span::Irregular, ::Intervals, order::IndexOrder,
     locus::Center, dim::Dimension, sel::Contains; 
     err=_True()
 )
+    _locus_checkbounds(locus, dim, sel) || return _boundserror_or_nothing(err)
     v = val(sel)
-    if !_locus_checkbounds(locus, bounds(dim), v)
-        if err isa _True
-            throw(BoundsError())
-        else
-            return nothing
-        end
-    end
-    i = if _searchfirst(order, dim, v) <= firstindex(dim) 
+    i = _searchfirst(order, dim, v)
+    i = if i <= firstindex(dim) 
         firstindex(dim)
     elseif i > lastindex(dim) 
         lastindex(dim)
@@ -521,6 +482,11 @@ function contains(
     return relate(dim, i)
 end 
 
+_boundserror_or_nothing(err::_True) = throw(BoundsError())
+_boundserror_or_nothing(err::_False) = nothing
+
+_notcontained_or_nothing(err::_True, selval) = _notcontainederror(selval)
+_notcontained_or_nothing(err::_False, selval) = nothing
 @noinline _notcontainederror(v) = throw(ArgumentError("No interval contains $(v)"))
 
 _whichsearch(::Locus, ::ForwardIndex) = _searchlast
@@ -648,7 +614,8 @@ _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
 
-_locus_checkbounds(loc, (l, h), v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
+_locus_checkbounds(loc, dim::Dimension, sel::Selector) =  _locus_checkbounds(loc, bounds(dim), val(sel)) 
+_locus_checkbounds(loc, (l, h)::Tuple, v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
 
 _prevind(::ForwardIndex, i) = i - 1
 _prevind(::ReverseIndex, i) = i + 1

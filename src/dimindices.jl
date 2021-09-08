@@ -67,20 +67,43 @@ Like CartesianIndices, but for the key values of Dimensions. Behaves as an
 `Array` of `Tuple` of `Dimension(At(keyvalue))` for all combinations of the 
 axis values of `dims`.
 """
-struct DimKeys{T,N,D<:Tuple{<:Dimension,Vararg{<:Dimension}}} <: AbstractDimIndices{T,N}
+struct DimKeys{T,N,D<:Tuple{<:Dimension,Vararg{<:Dimension}},S} <: AbstractDimIndices{T,N}
     dims::D
+    selectors::S
 end
-DimKeys(dim::Dimension) = DimKeys((dim,))
-function DimKeys(dims::D) where {D<:Tuple{<:Dimension,Vararg{<:Dimension}}}
-    T = typeof(map(d -> basetypeof(d)(At(first(d))), dims))
+DimKeys(dim::Dimension; kw...) = DimKeys((dim,); kw...)
+function DimKeys(dims::D; atol=nothing, selectors=_selectors(dims, atol)) where {D<:Tuple{<:Dimension,Vararg{<:Dimension}}}
+    T = typeof(map((d, s) -> basetypeof(d)(s), dims, selectors))
     N = length(dims)
-    DimKeys{T,N,D}(dims)
+    DimKeys{T,N,D,typeof(selectors)}(dims, selectors)
 end
-DimKeys(x) = DimKeys(dims(x))
-DimKeys(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
+DimKeys(x; kw...) = DimKeys(dims(x); kw...)
+DimKeys(::Nothing; kw...) = throw(ArgumentError("Object has no `dims` method"))
+
+function _selectors(dims, atol)
+    map(dims) do d 
+        atol1 = _atol(eltype(d), atol)
+        At{eltype(d),typeof(atol1),Nothing}(first(d), atol1, nothing)
+    end
+end
+function _selectors(dims, atol::Tuple)
+    map(dims, atol) do d, a 
+        atol1 = _atol(eltype(d), a)
+        At{eltype(d),typeof(atol1),Nothing}(first(d), atol1, nothing)
+    end
+end
+function _selectors(dims, atol::Nothing)
+    map(dims) do d
+        atolx = _atol(eltype(d), nothing)
+        At{eltype(d),typeof(atolx),Nothing}(first(d), atolx, nothing)
+    end
+end
+
+_atol(::Type, atol) = atol
+_atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
 
 function Base.getindex(di::DimKeys, i1::Int, I::Int...)
-    map(dims(di), (i1, I...)) do d, i
-        basetypeof(d)(At(d[i])) # At selector with the value at i
+    map(dims(di), di.selectors, (i1, I...)) do d, s, i
+        basetypeof(d)(rebuild(s; val=d[relate(d, i)])) # At selector with the value at i
     end
 end

@@ -74,7 +74,8 @@ flip(ot::Type{<:SubOrder}, mode::NoIndex) = mode
 flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
 
 """
-    reorder(::order, A::AbstractDimArray) => AbstractDimArray
+    reorder(::Order, A::AbstractDimArray) => AbstractDimArray
+    reorder(::Order, A::Dimension) => AbstractDimArray
     reorder(A::AbstractDimArray, order::Union{Order,Dimension{<:Order},Tuple}) => AbstractDimArray
     reorder(A::AbstractDimArray, order::Pair{<:Dimension,<:SubOrder}...) => AbstractDimArray
 
@@ -99,17 +100,19 @@ reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
 reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}) =
     _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
+reorder(dim::Dimension, ot::Union{SubOrder,Type{<:SubOrder}}) =
+    ot == basetypeof(order(ot, dim)) ? dim : reverse(ot, dim)
 
 # Recursive reordering. x may be reversed here
-_reorder(x, dims::DimTuple) = _reorder(reorder(x, dims[1]), tail(dims))
-_reorder(x, dims::Tuple{}) = x
+_reorder(x, orderdims::DimTuple) = _reorder(reorder(x, orderdims[1]), tail(orderdims))
+_reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
 
-_reorder(neworder::SubOrder, x, dim::DimOrDimType) = _reorder(basetypeof(neworder), x, dim)
+_reorder(neworder::SubOrder, x, orderdim::DimOrDimType) = _reorder(basetypeof(neworder), x, orderdim)
 # Reverse the dimension index
-_reorder(ot::Type{<:IndexOrder}, x, dim::DimOrDimType) =
-    ot == basetypeof(order(ot, dim)) ? x : set(x, reverse(ot, dim))
+_reorder(ot::Type{<:IndexOrder}, x, orderdim::DimOrDimType) =
+    ot == basetypeof(order(ot, orderdim)) ? x : set(x, reverse(ot, orderdim))
 # If either ArrayOrder or Relation are reversed, we reverse the array
 _reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
     ot == basetypeof(order(ot, dim)) ? x : reverse(ArrayOrder, x; dims=dim)
