@@ -21,6 +21,7 @@ DimStack
 
 ```@docs
 DimIndices
+DimKeys
 ```
 
 ## Core types
