@@ -9,7 +9,6 @@ dims_ = X(10:10:20; mode=Sampled(sampling=Intervals())),
         Y(5:7; mode=Sampled(sampling=Intervals()))
 A = DimArray([1 2 3; 4 5 6], dims_)
 
-
 @testset "selector primitives" begin
 
     @testset "Regular Intervals with range" begin
@@ -21,18 +20,19 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         startrevfwd = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(Start())))
         startrevrev = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(Start())))
 
-        cases = (startfwdfwd, startrevfwd, startfwdrev, startrevrev)
-        @test all(map(d -> hasselection(d, At(30.0)), cases))
-        @test all(map(d -> !hasselection(d, At(31.0)), cases))
-        @test all(map(d -> hasselection(d, Contains(12.8)), cases))
-        @test all(map(d -> !hasselection(d, Contains(400.0)), cases))
-        @test all(map(d -> hasselection(d, Near(0.0)), cases))
-
         @testset "Any at" begin
             @test at(startfwdfwd, At(30)) == 20
             @test at(startrevfwd, At(30)) == 1
             @test at(startfwdrev, At(30)) == 1
             @test at(startrevrev, At(30)) == 20
+            @test at(startfwdfwd, At(29.9; atol=0.2)) == 20
+            @test at(startrevfwd, At(29.9; atol=0.2)) == 1
+            @test at(startfwdrev, At(29.9; atol=0.2)) == 1
+            @test at(startrevrev, At(29.9; atol=0.2)) == 20
+            @test at(startfwdfwd, At(30.1; atol=0.2)) == 20
+            @test at(startrevfwd, At(30.1; atol=0.2)) == 1
+            @test at(startfwdrev, At(30.1; atol=0.2)) == 1
+            @test at(startrevrev, At(30.1; atol=0.2)) == 20
         end
 
         @testset "Start between" begin
@@ -850,3 +850,23 @@ end
 end
 
 
+
+@testset "hasselection" begin
+    @test hasselection(A, X(At(20)))
+    @test hasselection(dims(A, X), X(At(20)))
+    @test hasselection(dims(A, X), At(19; atol=2))
+    @test hasselection(A, (Y(At(7)),))
+    @test hasselection(A, (X(At(10)), Y(At(7))))
+
+    startfwdfwd = Ti(11.0:30.0;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ForwardRelation()), Regular(1), Intervals(Start())))
+    startfwdrev = Ti(11.0:30.0;      mode=Sampled(Ordered(ForwardIndex(),ForwardArray(),ReverseRelation()), Regular(1), Intervals(Start())))
+    startrevfwd = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ForwardRelation()), Regular(-1), Intervals(Start())))
+    startrevrev = Ti(30.0:-1.0:11.0; mode=Sampled(Ordered(ReverseIndex(),ForwardArray(),ReverseRelation()), Regular(-1), Intervals(Start())))
+
+    cases = (startfwdfwd, startrevfwd, startfwdrev, startrevrev)
+    @test all(map(d -> hasselection(d, At(30.0)), cases))
+    @test all(map(d -> !hasselection(d, At(31.0)), cases))
+    @test all(map(d -> hasselection(d, Contains(12.8)), cases))
+    @test all(map(d -> !hasselection(d, Contains(400.0)), cases))
+    @test all(map(d -> hasselection(d, Near(0.0)), cases))
+end
