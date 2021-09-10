@@ -158,8 +158,8 @@ dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
 dims(t::DimTable) = dims(stack(t))
 
-for func in (:dims, :val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
-             :name, :label, :units, :arrayorder, :indexorder, :relation)
+for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
+             :locus, :name, :label, :units)
     @eval $func(t::DimTable, args...) = $func(dataset(t), args...)
 
 end

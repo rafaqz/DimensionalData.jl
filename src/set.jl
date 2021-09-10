@@ -1,4 +1,5 @@
-const InDims = Union{AllMetadata,Type,UnionAll,Dimension,IndexMode,ModeComponent,Symbol,Nothing}
+const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing}
+const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
@@ -13,16 +14,16 @@ To set fields of dimensions you need to specify the dimension. This can be done 
 `Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments,
 or a `NamedTuple`.
 
-When dimensions or IndexModes are passed to `set` to replace the existing ones,
+When dimensions or Lookups are passed to `set` to replace the existing ones,
 fields that are not set will keep their original values.
 
 ## Notes:
 
-Changing the dimension index range will set the `Sampled` mode
+Changing the dimension index range will set the `Sampled` lookup
 component `Regular` with a new step size, and set the dimension order.
 
-Setting [`Order`](@ref) will *not* reverse the array or dimension to match. Use
-[`reverse`](@ref) and [`reorder`](@ref) to do this.
+Setting [`Order`](@ref) will *not* reverse the array or dimension to match.
+Use `reverse` and [`reorder`](@ref) to do this.
 
 
 ## Examples
@@ -34,30 +35,31 @@ da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
 set(da, zeros(3, 4))
 
 # Set the array name
-set(da, "newname") # Swap dimension type # Using Pairs set(da, :Z => Ti, :custom => Z) set(da, :custom => X, Z => Y)
-# Using keyword arguments
-set(da, custom = X, Z = :a)
-
-# Using Dimension wrappers
-set(da, Dim{:custom}(X), Z(Dim{:a}))
+set(da, "newname") # Swap dimension type 
+# Using Pairs 
+# set(da, :Z => Ti, :custom => Z) 
+# set(da, :custom => X, Z => Y)
 
 # Set the dimension index
 
-# To an `AbstractArray` set(da, Z => [:a, :b, :c, :d], :custom => Val((4, 5, 6)))
+# To an `AbstractArray` set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 
 # To a `Val` tuple index (compile time indexing)
 set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
 
-# Set dim modes
-set(da, Z=NoIndex(), custom=Sampled())
+# Set dim lookups
+set(da, Z=NoLookup(), custom=Sampled())
 set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
-set(da, (Z=NoIndex(), custom=Sampled()))
-set(da, custom=Ordered(array=Reverse()), Z=Unordered())
+set(da, (Z=NoLookup(), custom=Sampled()))
+set(da, custom=Reverse(), Z=Unordered())
 ```
 """
 function set end
-set(A::DimArrayOrStack, name::T) where {T<:Union{Mode,ModeComponent}} = _onlydimerror(T)
+set(A::DimArrayOrStack, name::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(T)
 set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
+
+set(A::AbstractDimStack, x::Lookup) = _cantseterror(A, x)
+set(A::AbstractDimArray, x::Lookup) = _cantseterror(A, x)
 set(A, x) = _cantseterror(A, x)
 
 """
@@ -70,7 +72,7 @@ or `AbstractDimStack`.
 
 Set can be passed Keyword arguments or arguments of Pairs using dimension names,
 tuples of values wrapped in the intended dimensions. Or fully or partially
-constructed dimensions with val, mode or metadata fields set to intended
+constructed dimensions with val, lookup or metadata fields set to intended
 values. Dimension fields not assigned a value will be ignored, and the orginals kept.
 """
 set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
@@ -121,13 +123,14 @@ Update the `metadata` field of the stack.
 set(s::AbstractDimStack, metadata::AbstractMetadata) = rebuild(s; metadata=metadata)
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
-    set(dim::Dimension, mode::Mode) => Dimension
-    set(dim::Dimension, modecomponent::ModeComponent) => Dimension
+    set(dim::Dimension, lookup::Lookup) => Dimension
+    set(dim::Dimension, lookupcomponent::LookupTrait) => Dimension
     set(dim::Dimension, metadata::AbstractMetadata) => Dimension
 
 Set fields of the dimension
 """
-set(dim::Dimension, x::InDims) = _set(dim, x)
+set(dim::Dimension, x::DimSetters) = _set(dim, x)
+set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
 
 # Array or Stack
 _set(A, x) = _cantseterror(A, x)
@@ -149,120 +152,111 @@ _set(dims::DimTuple, wrappers::DimTuple) = begin
     # Swaps existing dims with non-nothing new dims
     swapdims(dims, newdims)
 end
+
 # Set things wrapped in dims
-_set(dim::Dimension, wrapper::Dimension{<:InDims}) = _set(dim::Dimension, val(wrapper))
-# Set the index
-_set(dim::Dimension, index::Val) = rebuild(dim; val=index)
-_set(dim::Dimension, index::Colon) = dim
-_set(dim::Dimension, index::AbstractArray) = rebuild(dim; val=index)
-_set(dim::Dimension, index::AbstractRange) = begin
-    dim = _set(dim, _orderof(index))
-    # We might need to update the index mode
-    _set(mode(dim), dim, index)
-end
-# Update the Sampling mode of Sampled dims - it must match the range.
-_set(mode::AbstractSampled, dim::Dimension, index::AbstractRange) =
-    rebuild(dim; val=index, mode=_set(mode, Regular(step(index))))
-_set(mode::IndexMode, dim::Dimension, index::AbstractRange) = rebuild(dim; val=index)
-# Set the dim, checking the mode
-_set(dim::Dimension, newdim::Dimension) = begin
-    # Get new metadata and val
-    dim = _set(dim, val(newdim))
-    dim = _set(dim, metadata(newdim))
-    dim = _set(dim, mode(newdim))
-    # then wrap the updated dim in the new type
-    basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
-end
+_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) = _set(dim::Dimension, val(wrapper))
+# Set the dim, checking the lookup
+_set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim)))
 # Construct types
 _set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
 _set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
-_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim), mode(dim), metadata(dim))
-# Set the mode
-_set(dim::Dimension, newmode::IndexMode) = rebuild(dim; mode=_set(mode(dim), newmode))
-# Otherwise pass this on to set fields on the mode
-_set(dim::Dimension, x::ModeComponent) = _set(mode(dim), dim, x)
-# Fallback dispatch without the dimension
-_set(mode::IndexMode, dim::Dimension, x::ModeComponent) = rebuild(dim; mode=_set(mode, x))
+_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
+_set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
+# Set the lookup
+# Otherwise pass this on to set fields on the lookup
+_set(dim::Dimension, x::LookupTrait) = rebuild(dim, _set(lookup(dim), x))
 
-# IndexMode
-_set(mode::IndexMode, newmode::AutoMode) = mode
-_set(mode::IndexMode, newmode::Categorical) =
-    rebuild(newmode; order=_set(order(mode), order(newmode)))
-_set(mode::IndexMode, newmode::AbstractSampled) = begin
-    # Update each field separately. The old mode may not have these fields, or may have
-    # a subset with the rest being traits. The new mode may have some auto fields.
-    o = _set(order(mode), order(newmode))
-    sp = _set(span(mode), span(newmode))
-    sa = _set(sampling(mode), sampling(newmode))
-    # Rebuild the new mode with the merged fields
-    rebuild(newmode; order=o, span=sp, sampling=sa)
+# Lookup
+
+# _set(lookup::Lookup, newlookup::Lookup) = lookup
+_set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
+    lookup = _set(lookup, parent(newlookup))
+    o = _set(order(lookup), order(newlookup))
+    md = _set(metadata(lookup), metadata(newlookup))
+    rebuild(lookup; order=o, metadata=md)
 end
-_set(mode::IndexMode, newmode::NoIndex) = newmode
+_set(lookup::Lookup, newlookup::AbstractCategorical) = begin
+    lookup = _set(lookup, parent(newlookup))
+    o = _set(order(lookup), order(newlookup))
+    md = _set(metadata(lookup), metadata(newlookup))
+    rebuild(newlookup; data=parent(lookup), order=o, metadata=md)
+end
+_set(lookup::AbstractSampled, newlookup::AutoLookup) = begin
+    # Update index
+    lookup = _set(lookup, parent(newlookup))
+    o = _set(order(lookup), order(newlookup))
+    sa = _set(sampling(lookup), sampling(newlookup))
+    sp = _set(span(lookup), span(newlookup))
+    md = _set(metadata(lookup), metadata(newlookup))
+    rebuild(lookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
+end
+_set(lookup::Lookup, newlookup::AbstractSampled) = begin
+    # Update each field separately. The old lookup may not have these fields, or may have
+    # a subset with the rest being traits. The new lookup may have some auto fields.
+    lookup = _set(lookup, parent(newlookup))
+    o = _set(order(lookup), order(newlookup))
+    sp = _set(span(lookup), span(newlookup))
+    sa = _set(sampling(lookup), sampling(newlookup))
+    md = _set(metadata(lookup), metadata(newlookup))
+    # Rebuild the new lookup with the merged fields
+    rebuild(newlookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
+end
+_set(lookup::Lookup, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
+_set(lookup::Lookup, newlookup::NoLookup) = newlookup
+
+# Set the index
+_set(lookup::Lookup, index::Val) = rebuild(lookup; data=index)
+_set(lookup::Lookup, index::Colon) = lookup
+_set(lookup::Lookup, index::AbstractArray) = rebuild(lookup; data=index)
+_set(lookup::Lookup, index::AutoIndex) = lookup
+_set(lookup::Lookup, index::AbstractRange) =
+    rebuild(lookup; data=_set(parent(lookup), index), order=_orderof(index))
+# Update the Sampling lookup of Sampled dims - it must match the range.
+_set(lookup::AbstractSampled, index::AbstractRange) = begin
+    i = _set(parent(lookup), index)
+    o = _orderof(index)
+    sp = Regular(step(index))
+    rebuild(lookup; data=i, span=sp, order=o)
+end
+
+_set(index::AbstractArray, newindex::AbstractArray) = newindex
+_set(index::AbstractArray, newindex::AutoLookup) = index
+_set(index::Colon, newindex::AbstractArray) = newindex
 
 # Order
-_set(mode::IndexMode, neworder::Order) = rebuild(mode; order=_set(order(mode), neworder))
-_set(mode::NoIndex, neworder::Order) = mode
-_set(order::Union{Ordered,Unordered}, neworder::Ordered) = begin
-    index = _set(indexorder(order), indexorder(neworder))
-    array = _set(arrayorder(order), arrayorder(neworder))
-    rel = _set(relation(order), relation(neworder))
-    Ordered(index, array, rel)
-end
-_set(order::Union{Ordered,Unordered}, neworder::Unordered) =
-    Unordered(_set(relation(order), relation(neworder)))
-# AutoOrder
+_set(lookup::Lookup, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
+_set(lookup::NoLookup, neworder::Order) = lookup
+_set(order::Order, neworder::Order) = neworder 
 _set(order::Order, neworder::AutoOrder) = order
-_set(order::AutoOrder, neworder::Order) = neworder
-# Just for resolving ambiguity
-_set(order::AutoOrder, neworder::AutoOrder) = AutoOrder()
-# SubOrder
-_set(order::Unordered, suborder::Relation) =
-    rebuild(order; relation=_set(relation(order), suborder))
-_set(order::Ordered, suborder::IndexOrder) =
-    rebuild(order; index=_set(indexorder(order), suborder))
-_set(order::Ordered, suborder::ArrayOrder) =
-    rebuild(order; array=_set(arrayorder(order), suborder))
-_set(order::Ordered, suborder::Relation) =
-    rebuild(order; relation=_set(relation(order), suborder))
-_set(suborder::ArrayOrder, newsuborder::ArrayOrder) = newsuborder
-_set(suborder::IndexOrder, newsuborder::IndexOrder) = newsuborder
-_set(suborder::Relation, newsuborder::Relation) = newsuborder
 
 # Span
-_set(mode::AbstractSampled, dim::Dimension, ::Irregular{AutoBounds}) =
-    _set(dim, Irregular(bounds(dim)))
-_set(mode::AbstractSampled, dim::Dimension, ::Explicit{AutoBounds}) = begin
-    bnds = dim2boundsmatrix(locus(mode), span(mode), dim)
-    rebuild(dim; mode=rebuild(mode; span=Explicit(bnds), sampling=Intervals(locus(mode))))
-end
-_set(span::Regular, dim::Dimension, ::Regular{AutoStep}) = dim
-_set(span::Irregular, dim::Dimension, ::Irregular{AutoBounds}) = dim
-_set(span::Explicit, dim::Dimension, ::Explicit{AutoBounds}) = dim
-
-_set(mode::AbstractSampled, span::Span) = rebuild(mode; span=span)
-_set(mode::AbstractSampled, span::AutoSpan) = mode
+_set(lookup::AbstractSampled, span::Span) = rebuild(lookup; span=span)
+_set(lookup::AbstractSampled, span::AutoSpan) = lookup
 _set(span::Span, newspan::Span) = newspan
 _set(span::Span, newspan::AutoSpan) = span
 
 # Sampling
-_set(mode::AbstractSampled, newsampling::Sampling) =
-    rebuild(mode; sampling=_set(sampling(mode), newsampling))
-_set(mode::AbstractSampled, sampling::AutoSampling) = mode
+_set(lookup::AbstractSampled, newsampling::Sampling) =
+    rebuild(lookup; sampling=_set(sampling(lookup), newsampling))
+_set(lookup::AbstractSampled, sampling::AutoSampling) = lookup
 _set(sampling::Sampling, newsampling::Sampling) = newsampling
 _set(sampling::Sampling, newsampling::AutoSampling) = sampling
 
 # Locus
-_set(mode::AbstractSampled, locus::Locus) =
-    rebuild(mode; sampling=_set(sampling(mode), locus))
+_set(lookup::AbstractSampled, locus::Locus) =
+    rebuild(lookup; sampling=_set(sampling(lookup), locus))
 _set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
 _set(sampling::Points, locus::Locus) = _locuserror()
 _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 # Metadata
-_set(dim::Dimension, newmetadata::AllMetadata) =
-    rebuild(dim, val(dim), mode(dim), newmetadata)
+_set(dim::Dimension, newmetadata::AllMetadata) = rebuild(dim, _set(lookup(dim), newmetadata))
+_set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
+_set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
+_set(x::Dimension, ::Nothing) = x
+_set(::Nothing, x::Dimension) = x
 _set(x, ::Nothing) = x
 _set(::Nothing, x) = x
 _set(::Nothing, ::Nothing) = nothing

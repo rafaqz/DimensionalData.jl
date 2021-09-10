@@ -11,8 +11,9 @@ or are at least rotations/transformations of the same type.
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
 @inline dimsmatch(dims, lookups) = dimsmatch(<:, dims, lookups)
-@inline dimsmatch(f::Function, dims::Tuple, lookups::Tuple) =
+@inline function dimsmatch(f::Function, dims::Tuple, lookups::Tuple)
     all(map((d, l) -> dimsmatch(f, d, l), dims, lookups))
+end
 @inline dimsmatch(f::Function, dim, lookup) = dimsmatch(f, typeof(dim), typeof(lookup))
 @inline dimsmatch(f::Function, dim::Type, lookup) = dimsmatch(f, dim, typeof(lookup))
 @inline dimsmatch(f::Function, dim, lookup::Type) = dimsmatch(f, typeof(dim), lookup)
@@ -21,10 +22,13 @@ or are at least rotations/transformations of the same type.
 @inline dimsmatch(f::Function, dim, lookup::Nothing) = false
 @inline dimsmatch(f::Function, dim::Nothing, lookup) = false
 @inline dimsmatch(f::Function, dim::Nothing, lookup::Nothing) = false
-@inline dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M} =
+@inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
+    # Compare regular dimension types
     f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) ||
-    f(basetypeof(unwrap(D)), basetypeof(dims(modetype(unwrap(M))))) ||
-    f(basetypeof(dims(modetype(unwrap(D)))), basetypeof(unwrap(M)))
+    # Compare the transformed dimensions, if they exist
+    f(basetypeof(unwrap(D)), basetypeof(transformdim(lookuptype(unwrap(M))))) ||
+    f(basetypeof(transformdim(lookuptype(unwrap(D)))), basetypeof(unwrap(M)))
+end
 
 """
     key2dim(s::Symbol) => Dimension
@@ -92,7 +96,7 @@ can be used in `order`.
             end
         end
     end
-    expr
+    return expr
 end
 
 """
@@ -112,7 +116,15 @@ any combination of either.
 ```jldoctest
 julia> using DimensionalData
 
-julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
+julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
+2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z
+[:, :, 1]
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+[and 1 more slices...]
+
+julia> dims(A, (X, Y))
+X, Y
 
 ```
 """
@@ -135,6 +147,7 @@ No errors are thrown if dims are absent from either `x` or `lookup`.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
+
 
 julia> commondims(A, X)
 X
@@ -170,6 +183,7 @@ depending on wether `lookup` is a `Tuple` or single `Dimension`.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
+
 
 julia> dimnum(A, (Z, X, Y))
 (3, 1, 2)
@@ -213,6 +227,7 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
+
 julia> hasdim(A, X)
 true
 
@@ -248,6 +263,7 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
+
 julia> otherdims(A, X)
 Y, Z
 
@@ -282,14 +298,14 @@ and returns a new object or tuple with the dimension updated.
 # Example
 ```jldoctest
 using DimensionalData
-
 A = DimArray(ones(10, 10), (X, Y(10:10:100)))
-B = setdims(A, Y('a':'j'))
+B = setdims(A, Y(Categorical('a':'j'; order=Ordered())))
 index(B, Y)
-
 # output
-
-'a':1:'j'
+ERROR: MethodError: no constructors have been defined for Ordered
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
@@ -316,21 +332,26 @@ dimension as-is.
 - `newdim`: Tuple of `Dimension` or dimension `Type`.
 
 # Example
+
 ```jldoctest
-julia> using DimensionalData
-
-julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
-
+using DimensionalData
+A = ones(X(2), Y(4), Z(2))
+swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
+# output
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a} NoLookup, Dim{:b} NoLookup, Dim{:c} NoLookup
+[:, :, 1]
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+[and 1 more slices...]
 ```
 """
 @inline swapdims(x, d1, d2, ds...) = swapdims(x, (d1, d2, ds...))
 @inline swapdims(x, newdims::Tuple) =
-    rebuild(x; dims=formatdims(x, swapdims(dims(x), newdims)))
+    rebuild(x; dims=format(swapdims(dims(x), newdims), x))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
     map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
-@inline _swapdims(dim::Dimension, newdim::DimType) =
-    basetypeof(newdim)(val(dim), mode(dim), metadata(dim))
+@inline _swapdims(dim::Dimension, newdim::DimType) = basetypeof(newdim)(val(dim))
 @inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
 @inline _swapdims(dim::Dimension, newdim::Nothing) = dim
 
@@ -378,29 +399,9 @@ end
 end
 @inline _slicedims(f, dims::Tuple{}, I::Tuple) = (), ()
 @inline _slicedims(f, dims::Tuple{}, I::Tuple{}) = (), ()
-
-@inline _slicedims(f, d::Dimension, i) = _slicedims(f, mode(d), d, i)
-@inline _slicedims(f, ::IndexMode, d::Dimension, i::Colon) = (d,), ()
-@inline _slicedims(f, ::IndexMode, d::Dimension, i::Integer) =
-    (), (rebuild(d, d[relate(d, i)], _slicemode(mode(d), val(d), i)),)
-@inline _slicedims(f, ::NoIndex, d::Dimension, i::Integer) = (), (rebuild(d, i),)
-# TODO deal with unordered arrays trashing the index order
-@inline _slicedims(f, ::IndexMode, d::Dimension{<:Val{Index}}, i::AbstractArray) where Index =
-    (rebuild(d, Val{Index[relate(d, i)]}(), _slicemode(mode(d), val(d), i)),), ()
-@inline _slicedims(f, ::IndexMode, d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, f(val(d), relate(d, i)), _slicemode(mode(d), val(d), i)),), ()
-@inline _slicedims(f, ::NoIndex, d::Dimension{<:AbstractArray}, i::AbstractArray) =
-    (rebuild(d, f(val(d), relate(d, i))),), ()
-# Should never happen, just for ambiguity
-@inline _slicedims(f, ::NoIndex, d::Dimension{<:Val}, i::AbstractArray) =
-    (rebuild(d, f(val(d), relate(d, i))),), ()
-
-@inline relate(d::Dimension, i) = _maybeflipindex(relation(d), d, i)
-
-@inline _maybeflipindex(::ForwardRelation, d, i) = i
-@inline _maybeflipindex(::ReverseRelation, d, i::Integer) = lastindex(d) - i + 1
-@inline _maybeflipindex(::ReverseRelation, d, i::AbstractArray) =
-    reverse(lastindex(d) .- i .+ 1)
+@inline _slicedims(f, d::Dimension, i::Colon) = (d,), ()
+@inline _slicedims(f, d::Dimension, i::Integer) = (), (f(d, i:i),)
+@inline _slicedims(f, d::Dimension, i) = (f(d, i),), ()
 
 """
     reducedims(x, dimstoreduce) => Tuple{Vararg{<:Dimension}}
@@ -410,7 +411,7 @@ This is usually to match a new array size where an axis has been
 reduced with a method like `mean` or `reduce` to a length of 1,
 but the number of dimensions has not changed.
 
-`IndexMode` traits are also updated to correspond to the change in
+`Lookup` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
 @inline reducedims(x, dimstoreduce) = _reducedims(x, key2dim(dimstoreduce))
@@ -424,60 +425,7 @@ cell step, sampling type and order.
     map(_reducedims, dims, sortdims(map(i -> dims[i], dimstoreduce), dims))
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
 @inline _reducedims(dim::Dimension, ::Nothing) = dim
-@inline _reducedims(dim::Dimension, ::DimOrDimType) = _reducedims(mode(dim), dim)
-@inline _reducedims(mode::NoIndex, dim::Dimension) = rebuild(dim, Base.OneTo(1), NoIndex())
-# TODO what should this do?
-@inline _reducedims(mode::Unaligned, dim::Dimension) = rebuild(dim, [nothing], NoIndex)
-# Categories are combined.
-@inline _reducedims(mode::Categorical, dim::Dimension{Vector{String}}) =
-    rebuild(dim, ["combined"], Categorical())
-@inline _reducedims(mode::Categorical, dim::Dimension) =
-    rebuild(dim, [:combined], Categorical())
-@inline _reducedims(mode::AbstractSampled, dim::Dimension) =
-    _reducedims(span(mode), sampling(mode), mode, dim)
-@inline _reducedims(::Irregular, ::Points, mode::AbstractSampled, dim::Dimension) =
-    rebuild(dim, _reducedims(Center(), dim::Dimension), mode)
-@inline _reducedims(::Irregular, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    newmode = rebuild(mode; order=Ordered())
-    rebuild(dim, _reducedims(locus(mode), dim), newmode)
-end
-@inline _reducedims(span::Regular, ::Sampling, mode::AbstractSampled, dim::Dimension) = begin
-    newspan = Regular(step(span) * length(dim))
-    newmode = rebuild(mode; order=Ordered(), span=newspan)
-    rebuild(dim, _reducedims(locus(mode), dim), newmode)
-end
-@inline _reducedims(
-    span::Regular{<:Dates.CompoundPeriod}, ::Sampling, mode::AbstractSampled, dim::Dimension
-) = begin
-    newspan = Regular(Dates.CompoundPeriod(step(span).periods .* length(dim)))
-    newmode = rebuild(mode; order=Ordered(), span=newspan)
-    rebuild(dim, _reducedims(locus(mode), dim), newmode)
-end
-@inline _reducedims(span::Explicit, ::Intervals, mode::AbstractSampled, dim::Dimension) = begin
-    index = _reducedims(locus(mode), dim)
-    bnds = val(span)
-    newspan = Explicit(reshape([bnds[1, 1]; bnds[2, end]], 2, 1))
-    newmode = rebuild(mode; order=Ordered(), span=newspan)
-    rebuild(dim, index, newmode)
-end
-# Get the index value at the reduced locus.
-# This is the start, center or end point of the whole index.
-@inline _reducedims(locus::Start, dim::Dimension) = [first(index(dim))]
-@inline _reducedims(locus::End, dim::Dimension) = [last(index(dim))]
-@inline _reducedims(locus::Center, dim::Dimension) = begin
-    index = val(dim)
-    len = length(index)
-    if iseven(len)
-        _centerval(index, len)
-    else
-        [index[len ÷ 2 + 1]]
-    end
-end
-
-# Need to specialise for more types
-@inline _centerval(index::AbstractArray{<:AbstractFloat}, len) =
-    [(index[len ÷ 2] + index[len ÷ 2 + 1]) / 2]
-@inline _centerval(index::AbstractArray, len) = [index[len ÷ 2 + 1]]
+@inline _reducedims(dim::Dimension, ::DimOrDimType) = rebuild(dim, reducelookup(lookup(dim)))
 
 """
     comparedims(A::AbstractDimArray...)
@@ -509,11 +457,11 @@ function comparedims end
 @inline comparedims(a::AnonDim, b::AnonDim; kw...) = nothing
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
-@inline function comparedims(a::Dimension, b::Dimension;
-    type=true, length=true, mode=false, val=false, metadata=false
+@inline function comparedims(a::Dimension, b::Dimension; 
+    type=true, length=true, lookup=false, val=false, metadata=false
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
-    mode && typeof(DD.mode(a)) != typeof(DD.mode(b)) && _modeerror(a, b)
+    lookup && typeof(DD.lookup(a)) != typeof(DD.lookup(b)) && _lookuperror(a, b)
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
     val && DD.val(a) != DD.val(b) && _valerror(a, b)
     metadata && DD.metadata(a) != DD.metadata(b) && _metadataerror(a, b)
@@ -574,6 +522,9 @@ struct MaybeFirst end
 struct AlwaysTuple end
 
 # Call the function f with stardardised args
+# This looks like HELL, but it removes this complexity
+# from every other method and makes sure they all behave
+# the same way.
 @inline _call(f::Function, t, args...) = _call(f, t, <:, _wraparg(args...)...)
 @inline _call(f::Function, t, op::Function, args...) = _call1(f, t, op, _wraparg(args...)...)
 
@@ -587,10 +538,12 @@ struct AlwaysTuple end
     _call1(f, t, op, d, (lookup,)) |> _maybefirst
 @inline _call1(f, t, op::Function, d::Tuple, lookup::Tuple) = map(unwrap, f(op, d, lookup))
 
+
 _maybefirst(xs::Tuple) = first(xs)
 _maybefirst(::Tuple{}) = nothing
 
 @inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(values(kw))
+# Convert `Symbol` keyword arguments to a `Tuple` of `Dimension`
 @inline _kwdims(kw::NamedTuple{Keys}) where Keys = _kwdims(key2dim(Keys), values(kw))
 @inline _kwdims(dims::Tuple, vals::Tuple) =
     (rebuild(first(dims), first(vals)), _kwdims(tail(dims), tail(vals))...)
@@ -598,6 +551,7 @@ _maybefirst(::Tuple{}) = nothing
 
 @inline _pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
 
+# Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)
 @inline _remove_nothing(x, xs...) = (x, _remove_nothing(xs...)...)
 @inline _remove_nothing(::Nothing, xs...) = _remove_nothing(xs...)
@@ -632,7 +586,7 @@ _maybefirst(::Tuple{}) = nothing
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
-@noinline _modeerror(a, b) = throw(DimensionMismatch("Mode $(mode(a)) and $(mode(b)) do not match"))
+@noinline _lookuperror(a, b) = throw(DimensionMismatch("Mode $(lookup(a)) and $(lookup(b)) do not match"))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(madata(b)) do not match"))
 @noinline _valerror(a, b) = throw(DimensionMismatch("Dimension index $(val(a)) and $(val(b)) do not match"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"

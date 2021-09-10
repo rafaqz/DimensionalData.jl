@@ -1,9 +1,12 @@
-struct CoordMode{D} <: IndexMode
+struct CoordLookup{T,A<:AbstractVector{T},D,Me} <: Lookup{T,1}
+    data::A
     dims::D
+    metadata::Me
 end
+CoordLookup(data, dims; metadata=NoMetadata()) = CoordLookup(data, dims, metadata)
 
-dims(m::CoordMode) = m.dims
-order(m::CoordMode) = Unordered()
+dims(m::CoordLookup) = m.dims
+order(m::CoordLookup) = Unordered()
 
 """
     Coord <: Dimension
@@ -21,16 +24,16 @@ julia> dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)],
 Coord ::
   val: Tuple{Float64, Float64, Float64}[(1.0, 1.0, 1.0), (1.0, 2.0, 2.0), (3.0, 4.0, 4.0), (1.0, 3.0,
 4.0)]
-  mode: CoordMode
-Coord{Vector{Tuple{Float64, Float64, Float64}}, DimensionalData.CoordMode{Tuple{X{Colon, AutoMode{Auto
-Order}, NoMetadata}, Y{Colon, AutoMode{AutoOrder}, NoMetadata}, Z{Colon, AutoMode{AutoOrder}, NoMetada
+  lookup: CoordLookup
+Coord{Vector{Tuple{Float64, Float64, Float64}}, DimensionalData.CoordLookup{Tuple{X{Colon, AutoLookup{Auto
+Order}, NoMetadata}, Y{Colon, AutoLookup{AutoOrder}, NoMetadata}, Z{Colon, AutoLookup{AutoOrder}, NoMetada
 ta}}}, NoMetadata}
 
 julia> da = DimArray(0.1:0.1:0.4, dim)
 4-element DimArray{Float64,1} with dimensions:
   Coord (): Tuple{Float64, Float64, Float64}[(1.0, 1.0, 1.0), (1.0, 2.0, 2.0), (3.0, 4.0, 4.0), (1.0,
 3.0, 4.0)]
-    CoordMode
+    CoordLookup
  0.1
  0.2
  0.3
@@ -38,7 +41,7 @@ julia> da = DimArray(0.1:0.1:0.4, dim)
 
 julia> da[Coord(Z(At(1.0)), Y(Between(1, 3)))]
 1-element DimArray{Float64,1} with dimensions:
-  Coord (): Tuple{Float64, Float64, Float64}[(1.0, 1.0, 1.0)] CoordMode
+  Coord (): Tuple{Float64, Float64, Float64}[(1.0, 1.0, 1.0)] CoordLookup
  0.1
 
 julia> da[Coord(4)] == 0.4
@@ -46,34 +49,32 @@ true
 
 julia> da[Coord(Between(1, 5), :, At(4.0))]
 2-element DimArray{Float64,1} with dimensions:
-  Coord (): Tuple{Float64, Float64, Float64}[(3.0, 4.0, 4.0), (1.0, 3.0, 4.0)] CoordMode
+  Coord (): Tuple{Float64, Float64, Float64}[(3.0, 4.0, 4.0), (1.0, 3.0, 4.0)] CoordLookup
  0.3
  0.4
 ```
 """
-struct Coord{T,Mo<:IndexMode,Me<:AllMetadata} <: Dimension{T,Mo,Me}
+struct Coord{T} <: Dimension{T}
     val::T
-    mode::Mo
-    metadata::Me
 end
-function Coord(val::T, dims::Tuple, metadata::Me=NoMetadata()) where {T<:AbstractVector,Me<:AllMetadata}
-    length(dims) = length(first(val))
-    mode = CoordMode(key2dim(dims))
-    Coord{T,typeof(mode),Me}(val, mode, metadata)
+function Coord(val::T, dims::Tuple) where {T<:AbstractVector}
+    length(dims) == length(first(val)) || throw(ArgumentError("Number of dims must match number of points"))
+    lookup = CoordLookup(val, key2dim(dims))
+    Coord(lookup)
 end
 const SelOrStandard = Union{Selector,StandardIndices}
 Coord(s1::SelOrStandard, s2::SelOrStandard, sels::SelOrStandard...) = Coord((s1, s2, sels...))
 Coord(sel::Selector) = Coord((sel,))
 Coord(d1::Dimension, dims::Dimension...) = Coord((d1, dims...))
-Coord(val::T=:) where T = Coord{T,AutoMode,NoMetadata}(val, AutoMode(), NoMetadata())
+Coord() = Coord(:)
 
-dims(d::Coord) = dims(mode(d))
+dims(d::Coord) = dims(val(d))
 bounds(d::Coord) = ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
 # Return a Vector{Bool} for matching coordinates
-sel2indices(dim::Coord, sel::DimTuple) = sel2indices(dim, sortdims(sel, dims(dim)))
-sel2indices(dim::Coord, sel::Tuple) = [all(map(_matches, sel, x)) for x in val(dim)]
-sel2indices(dim::Coord, sel::StandardIndices) = sel
+selectindices(lookup::CoordLookup, sel::DimTuple) = selectindices(lookup, sortdims(sel, dims(lookup)))
+selectindices(lookup::CoordLookup, sel::Tuple) = [all(map(_matches, sel, x)) for x in lookup]
+selectindices(lookup::CoordLookup, sel::StandardIndices) = sel
 
 _matches(sel::Dimension, x) = _matches(val(sel), x)
 _matches(sel::Between, x) = (x >= first(sel)) & (x < last(sel))
@@ -81,6 +82,13 @@ _matches(sel::At, x) = x == val(sel)
 _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true
 
+function _format(dim::Coord, axis::AbstractRange)
+    checkaxis(dim, axis)
+    return dim
+end
+
+@inline reducelookup(l::CoordLookup) = NoLookup(OneTo(1))
+
 _tozero(xs) = map(x -> zero(x), xs)
-@inline _reducedims(mode::CoordMode, dim::Dimension) =
-    rebuild(dim, [_tozero(dim.val[1])], dim.mode)
+@inline _reducedims(lookup::CoordLookup, dim::Dimension) =
+    rebuild(dim, [_tozero(dim.val[1])], dim.lookup)

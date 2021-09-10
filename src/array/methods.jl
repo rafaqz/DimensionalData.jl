@@ -131,40 +131,30 @@ end
 
 # Rotations
 
-struct _Rot90 end
-struct _Rot180 end
-struct _Rot270 end
-struct _Rot360 end
+Base.rotl90(A::AbstractDimMatrix) = rebuild(A, rotl90(parent(A)), _rotdims_90(dims(A)))
+function Base.rotl90(A::AbstractDimMatrix, k::Integer)
+    rebuild(A, rotl90(parent(A), k), _rotdims_k(dims(A), k))
+end
 
-Base.rotl90(A::AbstractDimMatrix) = rebuild(A, rotl90(parent(A)), _rot(_Rot90(), dims(A)))
-Base.rotl90(A::AbstractDimMatrix, k::Integer) =
-    rebuild(A, rotl90(parent(A), k), _rot(_rottype(k), dims(A)))
+Base.rotr90(A::AbstractDimMatrix) = rebuild(A, rotr90(parent(A)), _rotdims_270(dims(A)))
+function Base.rotr90(A::AbstractDimMatrix, k::Integer)
+    rebuild(A, rotr90(parent(A), k), _rotdims_k(dims(A), -k))
+end
 
-Base.rotr90(A::AbstractDimMatrix) = rebuild(A, rotr90(parent(A)), _rot(_Rot270(), dims(A)))
-Base.rotr90(A::AbstractDimMatrix, k::Integer) =
-    rebuild(A, rotr90(parent(A), k), _rot(_rottype(-k), dims(A)))
-
-Base.rot180(A::AbstractDimMatrix) = rebuild(A, rot180(parent(A)), _rot(_Rot180(), dims(A)))
+Base.rot180(A::AbstractDimMatrix) = rebuild(A, rot180(parent(A)), _rotdims_180(dims(A)))
 
 # Not type stable - but we have to lose type stability somewhere when
 # dims are being swapped, by an Int value, so it may as well be here
-function _rottype(k)
+function _rotdims_k(dims, k)
     k = mod(k, 4)
-    if k == 1
-        _Rot90()
-    elseif k == 2
-        _Rot180()
-    elseif k == 3
-        _Rot270()
-    else
-        _Rot360()
-    end
+    k == 1 ? _rotdims_90(dims) :
+    k == 2 ? _rotdims_180(dims) :
+    k == 3 ? _rotdims_270(dims) : dims
 end
 
-_rot(::_Rot90, (dima, dimb)) = (flip(Relation, dimb), dima)
-_rot(::_Rot180, dims) = map(d -> flip(Relation, d), dims)
-_rot(::_Rot270, (dima, dimb)) = (dimb, flip(Relation, dima))
-_rot(::_Rot360, dims) = dims
+_rotdims_90((dim_a, dim_b)) = reverse(dim_b), dim_a
+_rotdims_180((dim_a, dim_b)) = reverse(dim_a), reverse(dim_b)
+_rotdims_270((dim_a, dim_b)) = dim_b, reverse(dim_a)
 
 # Dimension reordering
 
@@ -195,8 +185,8 @@ function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
     newcatdims = map(catdims) do catdim
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
-            newcatdim = if mode(A1, catdim) isa NoIndex
-                # Colon will be converted to array axis in `formatdims`
+            newcatdim = if lookup(A1, catdim) isa NoLookup
+                # Colon will be converted to array axis in `format`
                 rebuild(catdim; val=:)
             else
                 # vcat the index for the catdim in each of Xin
@@ -224,83 +214,57 @@ function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
 
     newrefdims = otherdims(refdims(A1), newcatdims)
     newA = Base._cat(cat_dnums, map(data, Xin)...)
-    rebuild(A1, newA, formatdims(newA, newdims), newrefdims)
+    rebuild(A1, newA, format(newdims, newA), newrefdims)
 end
 function Base._cat(catdim::DimType, Xin::AbstractDimArray...)
-    Base._cat(catdim(; mode=NoIndex()), Xin...)
+    Base._cat(catdim(NoLookup()), Xin...)
 end
 function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
     Base._cat((catdim,), Xin...)
 end
-# function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
-#     A1 = first(Xin)
-#     comparedims(map(x -> otherdims(x, catdim), Xin)...)
-#     newrefdims = refdims(A1)
-#     if all(A -> hasdim(A, catdim), Xin) 
-#         # We concatenate an existing dimension
-#         if mode(A1, catdim) isa NoIndex
-#             # Make new dims for NoIndex
-#             dnum = dimnum(A1, catdim)
-#             newdims = setdims(dims(A1), catdim)
-#         else
-#             # Use existing dims
-#             dnum = dimnum(A1, catdim)
-#             # cat the catdim, ignore others
-#             newcatdim = reduce(vcat, map(x -> dims(x, catdim), Xin))
-#             newdims = setdims(dims(A1), newcatdim)
-#         end
-#     else
-#         # Concatenate a new dimension
-#         if all(map(x -> hasdim(refdims(x), catdim), Xin))
-#             # vcat the refdims 
-#             newcatdim = reduce(vcat, map(x -> refdims(x, catdim), Xin))
-#             newdims = (dims(A1)..., newcatdim)
-#             dnum = ndims(A1) + 1
-#             newrefdims = otherdims(refdims(A1), catdim)
-#         else
-#             newdims = (dims(A1)..., catdim)
-#             dnum = ndims(A1) + 1
-#         end
-#     end
-#     newA = Base._cat(dnum, map(parent, Xin)...)
-#     rebuild(A1; data=newA, dims=formatdims(newA, newdims), refdims=newrefdims)
-# end
 
 function Base.vcat(dims::Dimension...)
-    newmode = _vcat_modes(mode(dims)...)
-    newindex = _vcat_index(newmode, map(val, dims)...)
-    rebuild(dims[1], newindex, newmode)
+    newlookup = _vcat_lookups(lookup(dims)...)
+    rebuild(dims[1], newlookup)
 end
 
-# IndexModes may need adjustment for `cat`
-_vcat_modes(modes::IndexMode...) = first(modes)
-function _vcat_modes(modes::AbstractSampled...)
-    _vcat_modes(sampling(first(modes)), span(first(modes)), modes...)
+# Lookups may need adjustment for `cat`
+function _vcat_lookups(lookups::Lookup...)
+    newindex = _vcat_index(lookups[1], map(parent, lookups)...)
+    return rebuild(lookups[1]; data=newindex)
 end
-function _vcat_modes(::Any, ::Regular, modes...)
-    _step = step(first(modes))
-    map(modes) do mode
-        step(span(mode)) == _step || error("Step sizes $(step(span(mode))) and $_step do not match ")
+function _vcat_lookups(lookups::AbstractSampled...)
+    newindex = _vcat_index(lookups[1], map(parent, lookups)...)
+    newlookup = _vcat_lookups(sampling(first(lookups)), span(first(lookups)), lookups...)
+    return rebuild(newlookup; data=newindex)
+end
+function _vcat_lookups(::Any, ::Regular, lookups...)
+    _step = step(first(lookups))
+    map(lookups) do lookup
+        step(span(lookup)) == _step || error("Step sizes $(step(span(lookup))) and $_step do not match ")
     end
-    first(modes)
+    first(lookups)
 end
-function _vcat_modes(::Intervals, ::Irregular, modes...)
-    allbounds = map(bounds ∘ span, modes)
+function _vcat_lookups(::Intervals, ::Irregular, lookups...)
+    allbounds = map(bounds ∘ span, lookups)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
-    rebuild(modes[1]; span=Irregular(newbounds))
+    rebuild(lookups[1]; span=Irregular(newbounds))
 end
-_vcat_modes(::Points, ::Irregular, modes...) = 
-    rebuild(first(modes); span=Irregular(nothing, nothing))
+_vcat_lookups(::Points, ::Irregular, lookups...) = 
+    rebuild(first(lookups); span=Irregular(nothing, nothing))
 
-# Index vcat depends on mode: NoIndex is always Colon()
-_vcat_index(mode::NoIndex, A...) = OneTo(sum(map(length, A)))
+# Index vcat depends on lookup: NoLookup is always Colon()
+_vcat_index(lookup::NoLookup, A...) = OneTo(sum(map(length, A)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-_vcat_index(mode::IndexMode, A...) = vcat(A...)
+_vcat_index(lookup::Lookup, A...) = vcat(A...)
 
 
-Base.inv(A::AbstractDimArray{T,2}) where T =
-    rebuild(A, inv(parent(A)), reverse(map(d -> flip(IndexOrder, d), dims(A))))
+function Base.inv(A::AbstractDimArray{T,2}) where T
+    newdata = inv(parent(A))
+    newdims = reverse(dims(A))
+    rebuild(A, newdata, newdims)
+end
 
 # Index breaking
 
@@ -327,11 +291,16 @@ function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDi
     Base._replace!(new, parent(res), parent(A), count) 
     return res
 end
-function Base._replace!(new::Base.Callable, res::AbstractArray, A::AbstractDimArray, count::Int) 
-    Base._replace!(new, res, parent(A), count) 
-    return res
+
+function Base.reverse(A::AbstractDimArray; dims=1)
+    newdims = _reverse(DD.dims(A, dims))
+    newdata = reverse(parent(A); dims=dimnum(A, dims))
+    # Use setdims here because newdims is not all the dims
+    setdims(rebuild(A, newdata), newdims)
 end
-function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractArray, count::Int) 
-    Base._replace!(new, parent(res), A, count) 
-    return res
-end
+
+_reverse(dims::Tuple) = map(d -> reverse(d), dims)
+_reverse(dim::Dimension) = reverse(dim)
+
+# Dimension
+Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))

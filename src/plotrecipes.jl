@@ -12,7 +12,7 @@ struct DimensionalPlot end
 end
 
 @recipe function f(::DimensionalPlot, A::AbstractArray)
-    A_fwd = _forwardorder(A)
+    A_fwd = reorder(A, ForwardOrdered())
     sertype = get(plotattributes, :seriestype, :none)
     if !(sertype in [:marginalhist])
         :title --> refdims_title(A_fwd)
@@ -122,31 +122,27 @@ end
 end
 
 _withaxes(dim::Dimension, A::AbstractDimArray) =
-    _withaxes(mode(dim), index(dim), parent(A))
-_withaxes(::NoIndex, index, A::AbstractArray) = A
-_withaxes(::IndexMode, index, A::AbstractArray) = index, A
+    _withaxes(lookup(dim), index(dim), parent(A))
+_withaxes(::NoLookup, index, A::AbstractArray) = A
+_withaxes(::Lookup, index, A::AbstractArray) = index, A
 _withaxes(::Categorical, index, A::AbstractArray) = eachindex(index), A
 
 _withaxes(dx::Dimension, dy::Dimension, A::AbstractDimArray) =
-    _withaxes(mode(dx), mode(dy), index(dx), index(dy), parent(A))
-_withaxes(::IndexMode, ::IndexMode, ix, iy, A) = ix, iy, A
-_withaxes(::NoIndex, ::IndexMode, ix, iy, A) = axes(A, 2), iy, A
-_withaxes(::IndexMode, ::NoIndex, ix, iy, A) = ix, axes(A, 1), A
-_withaxes(::NoIndex, ::NoIndex, ix, iy, A) = axes(A, 2), axes(A, 1), A
+    _withaxes(lookup(dx), lookup(dy), index(dx), index(dy), parent(A))
+_withaxes(::Lookup, ::Lookup, ix, iy, A) = ix, iy, A
+_withaxes(::NoLookup, ::Lookup, ix, iy, A) = axes(A, 2), iy, A
+_withaxes(::Lookup, ::NoLookup, ix, iy, A) = ix, axes(A, 1), A
+_withaxes(::NoLookup, ::NoLookup, ix, iy, A) = axes(A, 2), axes(A, 1), A
 
-_xticks!(attr, s, d::Dimension) = _xticks!(attr, s, mode(d), index(d))
+_xticks!(attr, s, d::Dimension) = _xticks!(attr, s, lookup(d), index(d))
 _xticks!(attr, s, ::Categorical, index) =
     RecipesBase.is_explicit(attr, :xticks) || (attr[:xticks] = (eachindex(index), index))
-_xticks!(attr, s, ::IndexMode, index) = nothing
+_xticks!(attr, s, ::Lookup, index) = nothing
 
-_yticks!(attr, s, d::Dimension) = _yticks!(attr, s, mode(d), index(d))
+_yticks!(attr, s, d::Dimension) = _yticks!(attr, s, lookup(d), index(d))
 _yticks!(attr, s, ::Categorical, index) =
     RecipesBase.is_explicit(attr, :yticks) || (attr[:yticks] = (eachindex(index), index))
-_yticks!(attr, s, ::IndexMode, index) = nothing
-
-
-_forwardorder(A::AbstractArray) =
-    reorder(A, ForwardIndex) |> a -> reorder(a, ForwardRelation)
+_yticks!(attr, s, ::Lookup, index) = nothing
 
 """
     refdims_title(A::AbstractDimArray)
@@ -161,9 +157,9 @@ function refdims_title(refdims::Tuple; kw...)
     join(map(rd -> refdims_title(rd; kw...), refdims), ", ")
 end
 function refdims_title(refdim::Dimension; kw...)
-    string(name(refdim), ": ", refdims_title(mode(refdim), refdim; kw...))
+    string(name(refdim), ": ", refdims_title(lookup(refdim), refdim; kw...))
 end
-function refdims_title(mode::AbstractSampled, refdim::Dimension; kw...)
+function refdims_title(lookup::AbstractSampled, refdim::Dimension; kw...)
     start, stop = map(string, bounds(refdim))
     if start == stop
         start
@@ -171,5 +167,5 @@ function refdims_title(mode::AbstractSampled, refdim::Dimension; kw...)
          "$start to $stop"
     end
 end
-refdims_title(mode::IndexMode, refdim::Dimension; kw...) = string(val(refdim))
+refdims_title(lookup::Lookup, refdim::Dimension; kw...) = string(val(refdim))
 

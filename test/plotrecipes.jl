@@ -1,8 +1,10 @@
 using DimensionalData, Test, Plots, Dates, StatsPlots
 import Distributions
 
+using DimensionalData: ForwardOrdered
+
 A1 = rand(Distributions.Normal(), 20)
-ref = (Ti(1, Sampled(Ordered(), Regular(Day(1)), Points())),)
+ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Points())),)
 da1_regular = DimArray(A1, X(1:50:1000); name=:Normal, refdims=ref)
 da1_noindex = DimArray(A1, X(); name=:Normal, refdims=ref)
 da1_categorical = DimArray(A1, X('A':'T'); name=:Normal, refdims=ref)

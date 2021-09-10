@@ -119,5 +119,5 @@ end
 @testset "dim methods" begin
     ds = DimStack(da)
     @test dims(ds) == dims(da)
-    @test mode(ds) == mode(dims(da))
+    @test lookup(ds) == lookup(dims(da))
 end

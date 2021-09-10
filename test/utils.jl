@@ -1,69 +1,30 @@
 using DimensionalData, Test, Dates
-using DimensionalData: flip, shiftlocus, maybeshiftlocus
+using DimensionalData: shiftlocus, maybeshiftlocus, order, ForwardOrdered, ReverseOrdered
 
 @testset "reverse" begin
     @testset "dimension" begin
-        revdima = reverse(ArrayOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
-        @test val(revdima) == 10:10:20
-        @test order(revdima) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-        @test span(revdima) == Regular(10)
-        revdimi = reverse(IndexOrder, X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
-        @test val(revdimi) == 20:-10:10
-        @test order(revdimi) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-        @test span(revdimi) == Regular(-10)
-        # reverse for Dimension means IndexOrder
-        revdimi2 = reverse(X(10:10:20; mode=Sampled(order=Ordered(), span=Regular(10))))
-        @test revdimi2 == revdimi
+        revdima = reverse(X(Sampled(10:10:20; order=ForwardOrdered(), span=Regular(10))))
+        @test index(revdima) == 20:-10:10
+        @test order(revdima) === ReverseOrdered()
+        @test span(revdima) === Regular(-10)
     end
 
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
-    reva = reverse(ArrayOrder, da; dims=Y)
-    @test reva == [3 2 1; 6 5 4]
-    @test val(dims(reva, X)) == 10:10:20
-    @test val(dims(reva, Y)) == 300:-100:100
-    @test order(dims(reva, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(reva, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    rev = reverse(da; dims=Y)
+    @test rev == [3 2 1; 6 5 4]
+    @test index(rev, X) == 10:10:20
+    @test index(rev, Y) == 100:100:300
+    @test span(rev, Y) == Regular(100)
+    @test order(rev, Y) == ForwardOrdered()
+    @test order(rev, X) == ForwardOrdered()
 
-    revi = reverse(IndexOrder, da; dims=Y)
-    @test revi == A
-    @test val(dims(revi, X)) == 10:10:20
-    @test val(dims(revi, Y)) == 100:100:300
-    @test order(dims(revi, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-
-    revas = reverse(ArrayOrder, s; dims=Y)
-    @test reva == [3 2 1; 6 5 4]
-    @test val(dims(revas, X)) == 10:10:20
-    @test val(dims(revas, Y)) == 300:-100:100
-    @test order(dims(revas, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-    @test order(dims(revas, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
-
-    revis = reverse(IndexOrder, s; dims=Y)
-    span(reverse(IndexOrder, mode(dims(revis, X))))
-    span(dims(revis, X))
-    @test revis[:test] == A
-    @test val(dims(revis, X)) == 10:10:20
-    @test val(dims(revis, Y)) == 100:100:300
-    @test order(dims(revis, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
-
-    @testset "Val index" begin
-        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())),
-                           Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))); name=:test)
-        revdav = reverse(IndexOrder, dav; dims=(X, Y))
-        @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
-    end
-    @testset "NoIndex dim index is not reversed" begin
+    @testset "NoLookup dim index is not reversed" begin
         da = DimArray(A, (X(), Y()))
-        revda = reverse(da)
-        @test index(revda) == axes(da)
-        revda2 = reverse(IndexOrder, da; dims=1)
-        @test index(revda2) == axes(da)
-        revda3 = reverse(ArrayOrder, da; dims=1)
-        @test index(revda3) == axes(da)
-        revda4 = reverse(Relation, dims(da, X))
-        @test index(revda4) == axes(da, X)
+        revd = reverse(da)
+        @test index(revd) == axes(da)
     end
 
     @testset "stack" begin
@@ -79,53 +40,39 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
     end
 end
 
-
 @testset "reorder" begin
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
-    reoa = reorder(da, ReverseArray())
-    @test reoa == [6 5 4; 3 2 1]
-    @test val(dims(reoa, X)) == 10:10:20
-    @test val(dims(reoa, Y)) == 300:-100:100
-    @test order(dims(reoa, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-    @test order(dims(reoa, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
+    reo = reorder(da, ReverseOrdered())
+    @test reo == [4 5 6; 1 2 3]
+    @test index(reo, X) == 20:-10:10
+    @test index(reo, Y) == 300:-100:100
+    @test order(reo, X) == ReverseOrdered()
+    @test order(reo, Y) == ReverseOrdered()
 
-    reoi = reorder(da, (X=ReverseIndex, Y=ReverseIndex))
-    @test reoi == A
-    @test val(dims(reoi, X)) == 20:-10:10
-    @test val(dims(reoi, Y)) == 300:-100:100
-    @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-    @test order(dims(reoi, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
+    reo = reorder(da, X=>ForwardOrdered(), Y=>ReverseOrdered())
+    @test reo == A
+    @test index(reo, X) == 10:10:20
+    @test index(reo, Y) == 300:-100:100
+    @test order(reo, X) == ForwardOrdered()
+    @test order(reo, Y) == ReverseOrdered()
 
-    reoi = reorder(da, Y(ForwardIndex); X=ReverseIndex)
-    @test reoi == A
-    @test val(dims(reoi, X)) == 20:-10:10
-    @test val(dims(reoi, Y)) == 100:100:300
-    @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
-    @test order(dims(reoi, Y)) == Ordered(ForwardIndex(), ForwardArray(), ReverseRelation())
+    reo = reorder(da, X=>ReverseOrdered(), Y=>ForwardOrdered())
+    @test reo == [6 5 4; 3 2 1]
+    @test index(reo, X) == 20:-10:10
+    @test index(reo, Y) == 100:100:300
+    @test order(reo, X) == ReverseOrdered()
+    @test order(reo, Y) == ForwardOrdered()
 
-    reor = reorder(da, X => ReverseRelation, Y => ForwardRelation)
-    @test reor == [4 5 6; 1 2 3]
-    @test val(dims(reor, X)) == 10:10:20
-    @test val(dims(reor, Y)) == 300:-100:100
-    @test order(dims(reor, X)) == Ordered(ForwardIndex(), ReverseArray(), ReverseRelation())
-    @test order(dims(reor, Y)) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
-
-    revallis = reverse(IndexOrder, da; dims=(X, Y))
+    revallis = reverse(da; dims=(X, Y))
     @test index(revallis) == (20:-10:10, 100:100:300)
-    @test indexorder(revallis) == (ReverseIndex(), ForwardIndex())
-end
+    @test order(revallis) == (ReverseOrdered(), ForwardOrdered())
 
-@testset "flip" begin
-    A = [1 2 3; 4 5 6]
-    da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
-    fda = flip(IndexOrder, da; dims=(X, Y))
-    @test indexorder(fda) == (ReverseIndex(), ForwardIndex())
-    fda = flip(Relation, da, Y)
-    @test relation(fda, Y) == ReverseRelation()
-    @test flip(Relation, NoIndex()) == NoIndex()
+    d = reorder(dims(da, Y), ForwardOrdered()) 
+    @test order(d) isa ForwardOrdered
+    @test index(d) == 100:100:300
 end
 
 @testset "modify" begin
@@ -149,12 +96,9 @@ end
         @test typeof(parent(ms[:da2])) == BitArray{2}
     end
     @testset "dimension" begin
-        dim = X(10:10:20)
+        dim = X(Sampled(10:10:20))
         mdim = modify(x -> 3 .* x, dim)
         @test index(mdim) == 30:30:60 # in Julia 1.6: typeof(30:30:60)==StepRange ; in Julia 1.7 typeof(30:30:60)==StepRangeLen
-        dim = Y(Val((1,2,3,4,5)))
-        mdim = modify(xs -> 2 .* xs, dim)
-        @test index(mdim) === (2, 4, 6, 8, 10)
         da = DimArray(A, dimz)
         mda = modify(y -> vec(4 .* y), da, Y)
         @test index(mda, Y) == [1200.0, 800.0, 400.0]
@@ -194,51 +138,66 @@ end
 end
 
 @testset "shiftlocus" begin
-    dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
-    @test val(shiftlocus(Start(), dim)) == 0.5:1.0:2.5
-    @test val(shiftlocus(End(), dim)) == 1.5:1.0:3.5
-    @test val(shiftlocus(Center(), dim)) == 1.0:1.0:3.0
-    @test locus(shiftlocus(Start(), dim)) == Start()
-    @test locus(shiftlocus(End(), dim)) == End()
-    @test locus(shiftlocus(Center(), dim)) == Center()
-    dim = X([3, 4, 5]; mode=Sampled(Ordered(), Regular(1), Intervals(Start())))
+    dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
+    @test index(shiftlocus(Start(), dim)) === 0.5:1.0:2.5
+    @test index(shiftlocus(End(), dim)) === 1.5:1.0:3.5
+    @test index(shiftlocus(Center(), dim)) === 1.0:1.0:3.0
+    @test locus(shiftlocus(Start(), dim)) === Start()
+    @test locus(shiftlocus(End(), dim)) === End()
+    @test locus(shiftlocus(Center(), dim)) === Center()
+    dim = X(Sampled([3, 4, 5], ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata()))
     @test val(shiftlocus(End(), dim)) == [4, 5, 6]
     @test val(shiftlocus(Center(), dim)) == [3.5, 4.5, 5.5]
     @test val(shiftlocus(Start(), dim)) == [3, 4, 5]
-    dim = X([3, 4, 5]; mode=Sampled(Ordered(), Regular(1), Intervals(End())))
+    dim = X(Sampled([3, 4, 5], ForwardOrdered(), Regular(1), Intervals(End()), NoMetadata()))
     @test val(shiftlocus(End(), dim)) == [3, 4, 5]
     @test val(shiftlocus(Center(), dim)) == [2.5, 3.5, 4.5]
     @test val(shiftlocus(Start(), dim)) == [2, 3, 4]
+
     dates = DateTime(2000):Month(1):DateTime(2000, 12)
-    ti = Ti(dates; mode=Sampled(Ordered(), Regular(Month(1)), Intervals(Start())))
-    @test index(shiftlocus(Center(), ti)) == dates .+ (dates .+ Month(1) .- dates) ./ 2
+    ti = Ti(Sampled(dates, ForwardOrdered(), Regular(Month(1)), Intervals(Start()), NoMetadata()))
+    @test 
+    index(shiftlocus(Center(), ti))
+    == dates .+ (dates .+ Month(1) .- dates) ./ 2
+
+    bnds = vcat((0.5:2.5)', (1.5:3.5)')
+    dim = X(Sampled(1.0:3.0, ForwardOrdered(), Explicit(bnds), Intervals(Center()), NoMetadata()))
+    start_dim = shiftlocus(Start(), dim)
+    @test index(start_dim) == [0.5, 1.5, 2.5]
+    @test locus(start_dim) == Start()
+    end_dim = shiftlocus(End(), start_dim)
+    @test index(end_dim) == [1.5, 2.5, 3.5]
+    @test locus(end_dim) == End()
+    center_dim = shiftlocus(Center(), end_dim)
+    @test index(center_dim) == index(dim)
+    @test locus(center_dim) == Center()
 end
 
 @testset "maybeshiftlocus" begin
-    dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
+    dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
     @test val(maybeshiftlocus(Start(), dim)) == 0.5:1.0:2.5
-    dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Points()))
+    dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
     @test val(maybeshiftlocus(Start(), dim)) == 1.0:3.0
 end
 
 @testset "dim2boundsmatrix" begin
     @testset "Regular span" begin
-        dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
+        dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [0.5 1.5 2.5
                                                         1.5 2.5 3.5]
-        dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Start())))
+        dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Start()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [1.0 2.0 3.0
                                                         2.0 3.0 4.0]
-        dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(End())))
+        dim = X(Sampled(1.0:3.0, ReverseOrdered(), Regular(1.0), Intervals(End()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
-        dim = X(3.0:-1:1.0; mode=Sampled(Ordered(index=ReverseIndex()), Regular(1.0), Intervals(Center())))
+        dim = X(Sampled(3.0:-1:1.0, ReverseOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [2.5 1.5 0.5
                                                         3.5 2.5 1.5]
     end
     @testset "Explicit span" begin
-        dim = X(1.0:3.0; mode=Sampled(Ordered(), Explicit([0.0 1.0 2.0
-                                                           1.0 2.0 3.0]), Intervals(End())))
+        dim = X(Sampled(1.0:3.0, ForwardOrdered(), Explicit([0.0 1.0 2.0
+                                                           1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
     end

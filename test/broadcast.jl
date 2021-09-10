@@ -88,7 +88,7 @@ end
     ab = DimArray(rand(2,2), (X, Y))
     ba = DimArray(rand(2,2), (Y, X))
     ac = DimArray(rand(2,2), (X, Z))
-    a_ = DimArray(rand(2,2), (X(), AnonDim()))
+    a_ = DimArray(rand(2,2), (X(), DimensionalData.AnonDim()))
     z = zeros(2,2)
 
     @test_throws DimensionMismatch z .= ab .+ ba
@@ -102,9 +102,9 @@ end
     @test z == (ab.data .+ ba.data')
 
     @test dims(z .= ab .+ a_) == 
-        (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))
+        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
     @test dims(a_ .= ba' .+ ab) == 
-        (X(Base.OneTo(2); mode=NoIndex()), Y(Base.OneTo(2); mode=NoIndex()))
+        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
 
 @testset "assign using named indexing and dotview" begin

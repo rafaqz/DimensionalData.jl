@@ -1,10 +1,10 @@
 using DimensionalData, Test, Unitful
-using Unitful: s
 using Statistics: mean
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))
 da = DimArray(0.1:0.1:0.4, dim)
-da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1s:1s:3s)))
+da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")))
+Coord()
 
 @testset "regular indexing" begin
     @test da[Coord()] === da[Coord(:)] === da
@@ -17,7 +17,7 @@ end
     @test da[Coord(:, :, :)] == [0.1, 0.2, 0.3, 0.4]
     @test da[Coord(Between(1, 5), :, At(4.0))] == [0.3, 0.4]
     @test da[Coord(:, Between(1, 3), :)] == [0.1, 0.2]
-    @test da2[Ti(At(1s)), Coord(:, Between(1, 3), :)] ≈ [0.1, 0.2]
+    @test da2[Ti(At(1u"s")), Coord(:, Between(1, 3), :)] ≈ [0.1, 0.2]
 end
 
 @testset "coord dimension indexing" begin
@@ -32,8 +32,7 @@ end
     m = mean(da2; dims = Coord)
     @test size(m) == (1,3)
     @test length(dims(m, Coord)) == 1
-    @test dims(m, Coord).val[1] == (0.0, 0.0, 0.0)
-    @test dims(m, Coord).mode isa DimensionalData.CoordMode
+    @test dims(m, Coord).val == DimensionalData.NoLookup(Base.OneTo(1))
     pure_mean = mean(da2.data; dims = 1)
     @test vec(pure_mean) == vec(m.data)
     @test DimensionalData._tozero((1.0, 1.0)) == (0.0, 0.0)
