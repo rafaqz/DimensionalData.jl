@@ -1,9 +1,9 @@
 using DimensionalData, Test 
-using DimensionalData: _set, AutoSampling
+using DimensionalData: _set, AutoSampling, ForwardOrdered, ReverseOrdered
 
 a = [1 2; 3 4]
-dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=Metadata(Dict(:meta => "X"))),
-        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=Metadata(Dict(:meta => "Y"))))
+dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),
+        Y(-38.0:2.0:-36.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "Y"))))
 da = DimArray(a, dimz; name=:test)
 
 a2 = [1 2 3 4
@@ -58,30 +58,32 @@ end
 @testset "Dimension index" begin
     @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
         (4:6, [:a, :b, :c, :d])
-    @test index(set(da2, column=Val((:a, :b, :c, :d)), row=Val((4:6...,)))) == 
-        ((4:6...,), (:a, :b, :c, :d))
     @test index(set(s, :column => 10:5:20, :row => 4:6)) == (4:6, 10:5:20)
     @test step.(span(set(da2, :column => 10:5:20, :row => 4:6))) == (1, 5)
 end
 
-@testset "dim mode" begin
-    interval_da = set(da, X=Intervals(), Y=Intervals())
-    @test mode(set(da2, :column => NoIndex(), :row => Sampled(sampling=Intervals(Center())))) == 
-        (Sampled(Ordered(), Regular(10.0), Intervals(Center())), NoIndex())
-    @test mode(set(da2, column=NoIndex())) == 
-        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
-    @test mode(set(da2, :column => NoIndex(), :row => Sampled())) == 
-        (Sampled(Ordered(), Regular(10.0), Points()), NoIndex())
-    @test mode(set(da, X=NoIndex(), Y=Categorical())) == (NoIndex(), Categorical()) 
-
+@testset "dim lookup" begin
+    @test lookup(set(da2, :column => NoLookup(), :row => Sampled(sampling=Intervals(Center())))) == 
+        (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()), NoLookup(Base.OneTo(4)))
+    @test lookup(set(da2, column=NoLookup())) == 
+        (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
+    @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
+        (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
+    cat_da = set(da, X=NoLookup(), Y=Categorical())
+    @test index(cat_da) == 
+        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
+    cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoIndex(); metadata=Dict()))
+    @test metadata(cat_da_m) == Dict()
+ 
     @testset "span" begin
         # TODO: should this error? the span step doesn't match the index step
         @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
             (Irregular(10, 12), Regular(9.9))
         @test _set(Sampled(), AutoSpan()) == Sampled()
-        @test _set(Sampled(), Irregular()) == Sampled(AutoOrder(), Irregular(), AutoSampling())
+        @test _set(Sampled(), Irregular()) == Sampled(; span= Irregular())
     end
 
+    interval_da = set(da, X=Intervals(), Y=Intervals())
     @testset "locus" begin
         @test_throws ArgumentError set(da2, (End(), Center()))
         @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
@@ -100,7 +102,7 @@ end
         @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
             (Intervals(End()), Intervals(Start())) 
         @test _set(Sampled(), AutoSampling()) == Sampled()
-        @test _set(Sampled(), Intervals()) == Sampled(AutoOrder(), AutoSpan(), Intervals())
+        @test _set(Sampled(), Intervals()) == Sampled(; sampling=Intervals())
         @test _set(Points(), AutoSampling()) == Points()
         @test _set(AutoSampling(), Intervals()) == Intervals()
         @test _set(AutoSampling(), AutoSampling()) == AutoSampling()
@@ -108,32 +110,18 @@ end
 
     @testset "order" begin
         uda = set(da, Y(Unordered()))
-        @test order(uda) == (Ordered(), Unordered(ForwardRelation()))
-        @test order(set(uda, Y=ReverseRelation())) == (Ordered(), Unordered(ReverseRelation()))
-        @test order(ArrayOrder, set(da, X=ReverseArray)) == (ReverseArray(), ForwardArray())
-        @test relation(set(da, Y(ReverseRelation())), Y) == ReverseRelation()
-        @test order(set(X(), AutoOrder())) == AutoOrder()
-        @test indexorder(set(X(; mode=Sampled(order=Ordered())), ReverseIndex())) == ReverseIndex()
-        @test arrayorder(set(X(; mode=Sampled(order=Ordered())), ReverseArray())) == ReverseArray()
-        @test arrayorder(set(X(; mode=Sampled(order=Ordered())), ReverseArray())) == ReverseArray()
-        @test indexorder(_set(Ordered(), ReverseIndex())) == ReverseIndex()
-        @test arrayorder(_set(Ordered(), ReverseArray())) == ReverseArray()
-        @test relation(_set(Ordered(), ReverseRelation())) == ReverseRelation()
-        @test relation(_set(Unordered(), ReverseRelation())) == ReverseRelation()
-        @test_throws ArgumentError _set(Unordered(), ReverseIndex())
-        @test_throws ArgumentError _set(Unordered(), ReverseArray())
-        @test _set(Sampled(), Ordered()) == Sampled(Ordered(), AutoSpan(), AutoSampling()) 
-        @test _set(Sampled(; order=Unordered()), AutoOrder()) == Sampled(Unordered(), AutoSpan(), AutoSampling()) 
+        @test order(uda) == (ForwardOrdered(), Unordered())
+        @test order(set(uda, X=ReverseOrdered())) == (ReverseOrdered(), Unordered())
     end
+
 end
 
-
 @testset "metadata" begin
-    @test metadata(set(X(), Metadata(Dict(:a=>1, :b=>2)))).val == Dict(:a=>1, :b=>2)
-    dax = set(da, X(Metadata(Dict(:a=>1, :b=>2))))
+    @test metadata(set(Sampled(), Metadata(Dict(:a=>1, :b=>2)))).val == Dict(:a=>1, :b=>2)
+    dax = set(da, X => Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax), X).val == Dict(:a=>1, :b=>2)
     @test metadata(dims(dax), Y).val == Dict(:meta => "Y") 
-    dax = set(da, X(; metadata=Metadata(Dict(:a=>1, :b=>2))))
+    dax = set(da, X => Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, X)).val == Dict(:a=>1, :b=>2)
     dax = set(da2, row=Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, :row)).val == Dict(:a=>1, :b=>2)
@@ -144,17 +132,20 @@ end
 end
 
 @testset "all dim fields" begin
-    dax = set(da, X(20:-10:10; mode=Sampled(), metadata=Metadata(Dict(:a=>1, :b=>2))))
+    md = Metadata(Dict(:a=>1, :b=>2))
+    dax = set(da, X(20:-10:10; metadata=md))
     x = dims(dax, X)
-    @test val(x) == 20:-10:10
-    @test order(x) == Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())
-    @test span(x) == Regular(-10)
-    @test mode(x) == Sampled(Ordered(ReverseIndex(), ForwardArray(), ForwardRelation()), Regular(-10), Points())
+    @test index(x) === 20:-10:10
+    @test order(x) === ReverseOrdered()
+    @test span(x) === Regular(-10)
+    @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
     @test metadata(x).val == Dict(:a=>1, :b=>2) 
 end
 
 @testset "errors with set" begin
     @test_throws ArgumentError set(da, Sampled())
+    @test_throws ArgumentError set(s, Categorical())
+    @test_throws ArgumentError set(da, Irregular())
     @test_throws ArgumentError set(da, X=7)
     @test_throws ArgumentError _set(dims(da, X), X(7))
     @test_throws ArgumentError set(da, notadimname=Sampled())

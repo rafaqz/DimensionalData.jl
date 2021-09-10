@@ -1,107 +1,26 @@
 
 """
-    reverse(A; dims) => AbstractDimArray
-    reverse(dim::Dimension) => Dimension
+    reorder(A::AbstractDimArray, order::Pair) => AbstractDimArray
+    reorder(A::Dimension, order::Order) => AbstractDimArray
 
-Reverse the array order, and update the dim to match.
-"""
-Base.reverse(A::AbstractDimArray; dims=1) =
-    _reverse(IndexOrder, _reverse(ArrayOrder, A, dims), dims)
-Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
-Base.reverse(ot::Type{<:SubOrder}, x; dims) = _reverse(ot, x, dims)
-_reverse(ot::Type{<:SubOrder}, x, lookup) = set(x, reverse(ot, dims(x, lookup)))
-_reverse(ot::Type{<:ArrayOrder}, x, lookup) = begin
-    newdims = reverse(ArrayOrder, dims(x, lookup))
-    newdata = _reversedata(x, dimnum(x, lookup))
-    setdims(rebuild(x, newdata), newdims)
-end
-# Dimension
-Base.reverse(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> reverse(ot, d), dims)
-Base.reverse(ot::Type{<:SubOrder}, dim::Dimension) = reverse(ot, mode(dim), dim)
-Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode, dim::Dimension) =
-    rebuild(dim; mode=reverse(ot, mode))
-# Reverse the index
-Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension) =
-    rebuild(dim, reverse(index(dim)), reverse(ot, mode))
-Base.reverse(ot::Type{<:IndexOrder}, mode::IndexMode, dim::Dimension{<:Val{I}}) where I =
-    rebuild(dim, Val(reverse(I)), reverse(ot, mode))
-Base.reverse(ot::Type{<:IndexOrder}, mode::NoIndex, dim::Dimension) = dim
-Base.reverse(dim::Dimension) = reverse(IndexOrder, dim)
-# Mode
-Base.reverse(ot::Type{<:SubOrder}, mode::NoIndex) = mode
-Base.reverse(ot::Type{<:SubOrder}, mode::IndexMode) =
-    rebuild(mode; order=reverse(ot, order(mode)))
-Base.reverse(ot::Type{<:SubOrder}, mode::AbstractSampled) =
-    rebuild(mode; order=reverse(ot, order(mode)), span=reverse(ot, span(mode)))
-# Order
-Base.reverse(::Type{<:IndexOrder}, o::Ordered) =
-    Ordered(reverse(indexorder(o)), arrayorder(o), reverse(relation(o)))
-Base.reverse(::Type{<:Union{ArrayOrder,Relation}}, o::Ordered) =
-    Ordered(indexorder(o), reverse(arrayorder(o)), reverse(relation(o)))
-Base.reverse(::Type{<:SubOrder}, o::Unordered) = Unordered(reverse(relation(o)))
-# SubOrder
-Base.reverse(::ReverseIndex) = ForwardIndex()
-Base.reverse(::ForwardIndex) = ReverseIndex()
-Base.reverse(::ReverseArray) = ForwardArray()
-Base.reverse(::ForwardArray) = ReverseArray()
-Base.reverse(::ReverseRelation) = ForwardRelation()
-Base.reverse(::ForwardRelation) = ReverseRelation()
-# Span
-Base.reverse(::Type{<:SubOrder}, span::Span) = span
-Base.reverse(::Type{<:IndexOrder}, span::Irregular) = span
-Base.reverse(::Type{<:IndexOrder}, span::Span) = reverse(span)
-Base.reverse(span::Regular) = Regular(-step(span))
-Base.reverse(span::Explicit) = Explicit(reverse(val(span), dims=2))
-
-_reversedata(A::AbstractDimArray, dimnum) = reverse(parent(A); dims=dimnum)
-_reversedata(s::AbstractDimStack, dimnum) =
-    map(a -> reverse(parent(a); dims=dimnum), data(s))
-
-"""
-    fliparray(Order, A, dims) => AbstractDimArray
-    fliparray(dim::Dimension) => Dimension
-
-`Flip` the array order without changing any data.
-"""
-function flip end
-
-flip(ot::Type{<:SubOrder}, x; dims) = flip(ot, x, dims)
-flip(ot::Type{<:SubOrder}, x, lookupdims) = set(x, flip(ot, dims(x, lookupdims)))
-flip(ot::Type{<:SubOrder}, dims::DimTuple) = map(d -> flip(ot, d), dims)
-flip(ot::Type{<:SubOrder}, dim::Dimension) = _set(dim, flip(ot, mode(dim)))
-flip(ot::Type{<:SubOrder}, mode::IndexMode) = _set(mode, flip(ot, order(mode)))
-flip(ot::Type{<:SubOrder}, mode::NoIndex) = mode
-flip(ot::Type{<:SubOrder}, o::Order) = _set(o, reverse(ot, o))
-
-"""
-    reorder(::Order, A::AbstractDimArray) => AbstractDimArray
-    reorder(::Order, A::Dimension) => AbstractDimArray
-    reorder(A::AbstractDimArray, order::Union{Order,Dimension{<:Order},Tuple}) => AbstractDimArray
-    reorder(A::AbstractDimArray, order::Pair{<:Dimension,<:SubOrder}...) => AbstractDimArray
-
-Reorder every dims index/array/relation to `order`, or reorder index for
+Reorder every dims index/array to `order`, or reorder index for
 the the given dimension(s) to the `Order` they wrap.
 
-Reordering `Relation` will reverse the array, not the dimension index.
-
-`order` can be an [`Order`](@ref), a single [`Dimension`](@ref)
-or a `Tuple` of `Dimension`.
+`order` can be an [`Order`](@ref), or `Dimeension => Order` pairs.
 
 If no axis reversal is required the same objects will be returned, without allocation.
 """
 function reorder end
 
-reorder(x, args...; kw...) = reorder(x, (args..., _kwdims(kw)...))
-reorder(x, nt::NamedTuple) = reorder(x, _kwdims(nt))
 reorder(x, p::Pair, ps::Vararg{<:Pair}) = reorder(x, (p, ps...))
 reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, _pairdims(ps...))
 # Reorder specific dims.
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
-reorder(x, ot::Union{SubOrder,Type{<:SubOrder}}) =
-    _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
-reorder(dim::Dimension, ot::Union{SubOrder,Type{<:SubOrder}}) =
-    ot == basetypeof(order(ot, dim)) ? dim : reverse(ot, dim)
+reorder(x, ot::Order) = reorder(x, typeof(ot))
+reorder(x, ot::Type{<:Order}) = _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
+reorder(dim::Dimension, ot::Type{<:Order}) =
+    ot <: basetypeof(order(dim)) ? dim : reverse(dim)
 
 # Recursive reordering. x may be reversed here
 _reorder(x, orderdims::DimTuple) = _reorder(reorder(x, orderdims[1]), tail(orderdims))
@@ -109,14 +28,11 @@ _reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
 
-_reorder(neworder::SubOrder, x, orderdim::DimOrDimType) = _reorder(basetypeof(neworder), x, orderdim)
+_reorder(neworder::Order, x, dim::DimOrDimType) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
-_reorder(ot::Type{<:IndexOrder}, x, orderdim::DimOrDimType) =
-    ot == basetypeof(order(ot, orderdim)) ? x : set(x, reverse(ot, orderdim))
-# If either ArrayOrder or Relation are reversed, we reverse the array
-_reorder(ot::Type{<:Union{ArrayOrder,Relation}}, x, dim::DimOrDimType) =
-    ot == basetypeof(order(ot, dim)) ? x : reverse(ArrayOrder, x; dims=dim)
-
+_reorder(::Type{O}, x, dim::DimOrDimType) where O<:Ordered =
+    order(dim) isa O ? x : reverse(x; dims=dim)
+_reorder(ot::Type{Unordered}, x, dim::DimOrDimType) = x
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray
@@ -149,17 +65,16 @@ function modify(f, A::AbstractDimArray)
     rebuild(A, newdata)
 end
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
-function modify(f, dim::Dimension)
-    newindex = f(index(dim))
-    size(newindex) == size(dim) || error("$f returns a vector with a different size")
-    rebuild(dim, newindex)
+modify(f, dim::Dimension) = rebuild(dim, modify(f, val(dim)))
+function modify(f, lookup::Lookup)
+    newindex = modify(f, parent(lookup))
+    rebuild(lookup; data=newindex)
 end
-function modify(f, dim::Dimension{<:Val{Index}}) where Index
-    newindex = f(Index)
-    length(newindex) == length(dim) || error("$f returns a Tuple with a different size")
-    rebuild(dim, Val(newindex))
+function modify(f, index::AbstractArray)
+    newindex = f(index)
+    size(newindex) == size(index) || error("$f returns a vector with a different size")
+    newindex
 end
-
 
 """
     dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
@@ -255,48 +170,64 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
 end
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
-function dim2boundsmatrix(dim::Dimension) 
-    samp = sampling(dim)
+dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
+function dim2boundsmatrix(lookup::Lookup)
+    samp = sampling(lookup)
     samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
-    _dim2boundsmatrix(locus(dim), span(dim), dim)
+    _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
 end
 
-_dim2boundsmatrix(::Locus, span::Explicit, dim) = val(span)
-_dim2boundsmatrix(::Locus, span::Regular, dim) =
-    vcat(permutedims(_shiftindexlocus(Start(), dim)), permutedims(_shiftindexlocus(End(), dim)))
-@noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, dim) =
+_dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
+_dim2boundsmatrix(::Locus, span::Regular, lookup) =
+    vcat(permutedims(_shiftindexlocus(Start(), lookup)), permutedims(_shiftindexlocus(End(), lookup)))
+@noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, lookupj) =
     error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
-@noinline _dim2boundsmatrix(::Start, span::Irregular, dim) =
+@noinline _dim2boundsmatrix(::Start, span::Irregular, lookupj) =
     error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
 
-#=
-Shift the index from the current locus to the new locus. We only actually
-shift Regular Intervals, and do this my multiplying the offset of
--1, -0.5, 0, 0.5 or 1 by the absolute value of the span.
-=#
-function shiftlocus(locus::Locus, dim::Dimension)
-    samp = sampling(dim)
+
+"""
+    shiftlocus(locus::Locus, x)
+
+Shift the index of `x` from the current locus to the new locus.
+
+We only shift `Samped`, `Regular` or `Explicit`, `Intervals`. 
+"""
+shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
+function shiftlocus(locus::Locus, lookup::Lookup)
+    samp = sampling(lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
-    rebuild(dim; val=_shiftindexlocus(locus, dim), mode=DD._set(mode(dim), locus))
+    newindex = _shiftindexlocus(locus, lookup)
+    newlookup = rebuild(lookup; data=newindex)
+    return set(newlookup, locus)
 end
 
-_shiftindexlocus(locus::Locus, dim::Dimension) = _shiftindexlocus(locus::Locus, mode(dim), dim)
-_shiftindexlocus(locus::Locus, mode::IndexMode, dim::Dimension) = index(dim)
-_shiftindexlocus(locus::Locus, mode::AbstractSampled, dim::Dimension) =
-    _shiftindexlocus(locus, span(mode), sampling(mode), dim)
-_shiftindexlocus(locus::Locus, span::Span, sampling::Sampling, dim::Dimension) = index(dim)
-_shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Dimension) =
+# Fallback - no shifting
+_shiftindexlocus(locus::Locus, lookup::Lookup) = index(lookup)
+# Sampled
+function _shiftindexlocus(locus::Locus, lookup::AbstractSampled)
+    _shiftindexlocus(locus, span(lookup), sampling(lookup), lookup)
+end
+# TODO:
+_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::Lookup) = index(lookup)
+# Sampled Regular
+function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Lookup)
     index(dim) .+ ((index(dim) .+ abs(step(span))) .- index(dim)) * _offset(locus(sampling), destlocus)
-_shiftindexlocus(destlocus::Union{Start,End}, span::Regular, sampling::Intervals, dim::Dimension) =
-    index(dim) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
-
-_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[1, :]
-_shiftindexlocus(::End, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[2, :]
-_shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, dim::Dimension) =
-    _shiftindexlocus(destlocus, locus(dim), span, sampling, dim)
-_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, dim::Dimension) = index(dim)
-_shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, dim::Dimension) =
+end
+function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::Lookup)
+    index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
+end
+# Sampled Explicit
+_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[1, :]
+_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[2, :]
+function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::Lookup)
+    _shiftindexlocus(destlocus, locus(lookup), span, sampling, lookup)
+end
+_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::Lookup) = index(lookup)
+function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::Lookup)
+    # A little complicated so that DateTime works
     (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
+end
 
 _offset(::Start, ::Center) = 0.5
 _offset(::Start, ::End) = 1
@@ -306,10 +237,11 @@ _offset(::End, ::Start) = -1
 _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
 
-maybeshiftlocus(locus::Locus, dim::Dimension) = _maybeshiftlocus(locus, sampling(dim), dim)
+maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
+maybeshiftlocus(locus::Locus, l::Lookup) = _maybeshiftlocus(locus, sampling(l), l)
 
-_maybeshiftlocus(locus::Locus, sampling::Intervals, dim::Dimension) = shiftlocus(locus, dim)
-_maybeshiftlocus(locus::Locus, sampling::Sampling, dim::Dimension) = dim
+_maybeshiftlocus(locus::Locus, sampling::Intervals, l::Lookup) = shiftlocus(locus, l)
+_maybeshiftlocus(locus::Locus, sampling::Sampling, l::Lookup) = l
 
 _astuple(t::Tuple) = t
 _astuple(x) = (x,)

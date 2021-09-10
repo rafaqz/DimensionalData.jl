@@ -1,9 +1,9 @@
 using DimensionalData, Test, BenchmarkTools
-using DimensionalData: dims2indices
+using DimensionalData: dims2indices, Regular, Irregular, Points, Intervals, ForwardOrdered
 
 @testset "dims2indices" begin
     a = [1 2 3; 4 5 6]
-    da = DimArray(a, (X((143.0, 145.0)), Y((-38.0, -36.0))))
+    da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0)))
     dimz = dims(da)
 
     @test DimensionalData._dims2indices(dimz[1], Y) == Colon()
@@ -22,14 +22,6 @@ using DimensionalData: dims2indices
     @test dims2indices(dimz, CartesianIndex(1, 1)) == (CartesianIndex(1, 1),)
     @test dims2indices(dimz[1], 1) == 1
     @test dims2indices(dimz[1], X(2)) == 2
-
-    @testset "dims2indices with Transformed" begin
-        tdimz = Dim{:trans1}(mode=Transformed(identity, X())), 
-                Dim{:trans2}(mode=Transformed(identity, Y())), 
-                Z(1:1, NoIndex(), NoMetadata())
-        @test dims2indices(tdimz, (X(1), Y(2), Z())) == (1, 2, Colon())
-        @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Z())) == (1, 2, Colon())
-    end
 end
 
 
@@ -38,8 +30,8 @@ end
     xmeta = Metadata(:meta => "X")
     ymeta = Metadata(:meta => "Y")
     ameta = Metadata(:meta => "da")
-    dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
-            Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
+    dimz = (X(Sampled(143.0:2:145.0; order=ForwardOrdered(), metadata=xmeta)),
+            Y(Sampled(-38.0:2:-36.0; order=ForwardOrdered(), metadata=ymeta)))
     refdimz = (Ti(1:1),)
     da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 
@@ -51,34 +43,33 @@ end
         @inferred getindex(da, X(2), Y(2))
     end
 
+
     @testset "LinearIndex getindex returns an Array, except Vector" begin
         @test da[1:2] isa Array
-        @test da[1, :][1:2] isa DimArray
+        @test x = da[1, :][1:2] isa DimArray
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
         a = da[X(1:2), Y(1)]
         @test a == [1, 3]
         @test typeof(a) <: DimArray{Int,1}
-        @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                            Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
+        @test dims(a) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test refdims(a) == 
-            (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
+            (Ti(1:1), Y(Sampled(-38.0:2.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test name(a) == :test
         @test metadata(a) === ameta
         @test metadata(a, X) === xmeta
         @test bounds(a) === ((143.0, 145.0),)
         @test bounds(a, X) === (143.0, 145.0)
-        @test locus(mode(dims(da, X))) == Center()
+        @test locus(lookup(da, X)) == Center()
 
         a = da[X(1), Y(1:2)]
         @test a == [1, 2]
         @test typeof(a) <: DimArray{Int,1}
         @test typeof(parent(a)) <: Array{Int,1}
-        @test dims(a) == 
-            (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
+        @test dims(a) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test refdims(a) == 
-            (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
+            (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test name(a) == :test
         @test metadata(a) == ameta
         @test bounds(a) == ((-38.0, -36.0),)
@@ -89,10 +80,10 @@ end
         @test typeof(a) <: DimArray{Int,2}
         @test typeof(parent(a)) <: Array{Int,2}
         @test typeof(dims(a)) <: Tuple{<:X,<:Y}
-        @test dims(a) == (X(LinRange(143.0, 145.0, 2),
-                            Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-                          Y(LinRange(-38.0, -36.0, 2),
-                            Sampled(Ordered(), Regular(2.0), Points()), ymeta))
+        @test dims(a) == (X(Sampled(143.0:2.0:145.0,
+                            ForwardOrdered(), Regular(2.0), Points(), xmeta)),
+                          Y(Sampled(-38.0:2.0:-36.0,
+                            ForwardOrdered(), Regular(2.0), Points(), ymeta)))
         @test refdims(a) == (Ti(1:1),)
         @test name(a) == :test
         @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
@@ -101,9 +92,6 @@ end
         # Indexing with array works
         a = da[X([2, 1]), Y([2, 1])]
         @test a == [4 3; 2 1]
-        @test dims(a) == 
-            ((X([145.0, 143.0], mode(da, X), xmeta), Y([-36.0, -38.0], mode(da, Y), ymeta)))
-
     end
 
     @testset "view DimensionArray containing views" begin
@@ -114,8 +102,8 @@ end
         @test typeof(dims(v)) == Tuple{}
         @test dims(v) == ()
         @test refdims(v) == 
-            (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-             Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta))
+            (Ti(1:1), X(Sampled(143.0:2.0:143, ForwardOrdered(), Regular(2.0), Points(), xmeta)),
+             Y(Sampled(-38.0:2.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)))
         @test name(v) == :test
         @test metadata(v) == ameta
         @test bounds(v) == ()
@@ -125,23 +113,22 @@ end
         @test typeof(v) <: DimArray{Int,1}
         @test typeof(parent(v)) <: SubArray{Int,1}
         @test typeof(dims(v)) <: Tuple{<:X}
-        @test dims(v) == 
-            (X(LinRange(143.0, 145.0, 2), Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
+        @test dims(v) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test refdims(v) == 
-            (Ti(1:1), Y(-38.0, Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
+            (Ti(1:1), Y(Sampled(-38.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test name(v) == :test
         @test metadata(v) == ameta
         @test bounds(v) == ((143.0, 145.0),)
 
         # Test that dims are actually views using a vector
-        da_vec = rebuild(da; dims=map(d -> rebuild(d, Array(d)), dims(da)))
+        da_vec = rebuild(da; dims=map(d -> rebuild(d, rebuild(lookup(d); data=Array(d))), dims(da)))
         v = view(da_vec, Y(1:2), X(1:1))
         @test v == [1 2]
         @test typeof(v) <: DimArray{Int,2}
         @test typeof(parent(v)) <: SubArray{Int,2}
         @test typeof(dims(v)) <: Tuple{<:X,<:Y}
-        testdims = (X((view([143.0, 143.0], 1:1)), Sampled(Ordered(), Regular(2.0), Points()), xmeta),
-             Y(view([-38.0, -36.0], 1:2), Sampled(Ordered(), Regular(2.0), Points()), ymeta))
+        testdims = (X(Sampled(view([143.0, 143.0], 1:1), ForwardOrdered(), Regular(2.0), Points(), xmeta)),
+             Y(Sampled(view([-38.0, -36.0], 1:2), ForwardOrdered(), Regular(2.0), Points(), ymeta)))
         @test typeof(dims(v)) == typeof(testdims)
         @test dims(v) == testdims
         @test bounds(v) == ((143.0, 143.0), (-38.0, -36.0))
@@ -150,10 +137,9 @@ end
         @test v == [1, 2]
         @test typeof(parent(v)) <: SubArray{Int,1}
         @test typeof(dims(v)) <: Tuple{<:Y}
-        @test dims(v) == 
-            (Y(LinRange(-38.0, -36.0, 2), Sampled(Ordered(), Regular(2.0), Points()), ymeta),)
+        @test dims(v) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test refdims(v) == 
-            (Ti(1:1), X(143.0, Sampled(Ordered(), Regular(2.0), Points()), xmeta),)
+            (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test bounds(v) == ((-38.0, -36.0),)
 
         @test view(da, 1) == fill(1)
@@ -204,19 +190,19 @@ end
           4 4 4 4
           4 4 4 4]
 
-    @testset "indexing into NoIndex dims is just regular indexing" begin
+    @testset "indexing into NoLookup dims is just regular indexing" begin
         ida = DimArray(a2, (X(), Y()))
         ida[Y(3:4), X(2:3)] = [5 6; 6 7]
     end
 
-    dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
+    dimz2 = (Dim{:row}(10:10:30), Dim{:column}(-20:10:10))
     da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
-    @testset "mode step is updated when indexed with a range" begin
-        @test step.(mode(da2)) == (10.0, 10.0)
-        @test step.(mode(da2[1:3, 1:4])) == (10.0, 10.0)
-        @test step.(mode(da2[1:2:3, 1:3:4])) == (20.0, 30.0)
-        @test step.(mode(da2[column=1:2:4, row=1:3:3])) == (30.0, 20.0)
+    @testset "lookup step is updated when indexed with a range" begin
+        @test step.(lookup(da2)) == (10.0, 10.0)
+        @test step.(lookup(da2[1:3, 1:4])) == (10.0, 10.0)
+        @test step.(lookup(da2[1:2:3, 1:3:4])) == (20.0, 30.0)
+        @test step.(lookup(da2[column=1:2:4, row=1:3:3])) == (30.0, 20.0)
     end
 
     @testset "Symbol dimension names also work for indexing" begin
@@ -275,14 +261,14 @@ end
         @test s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
         slicedds = s[At(:a), :]
         @test slicedds[:one] == [1.0, 2.0, 3.0]
-        @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+        @test slicedds.data == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = s[1:2]
             @test linear2d isa NamedTuple
             @test linear2d == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
             linear1d = s[Y(1)][1:2]
             @test linear1d isa DimStack
-            @test data(linear1d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+            @test linear1d.data == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
         end
     end
 
@@ -294,14 +280,15 @@ end
         @test sv.data == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
         slicedds = view(s, X=At(:a), Y=:)
         @test slicedds[:one] == [1.0, 2.0, 3.0]
-        @test data(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+        @test slicedds.data == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = view(s, 1)
             @test linear2d isa NamedTuple
             @test linear2d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear1d = view(s[X(1)], 1)
+            @test linear1d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            # Its not clear if this should work or not
             @test_broken linear1d isa DimStack
-            @test_broken data(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         end
     end
 
@@ -321,7 +308,7 @@ end
 
     @testset "Cartesian indices work as usual" begin
         @test s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), data(s))
+        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s.data)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
         @test s_set[2, 2] === (one=5.0, two=6.0f0, three=7)

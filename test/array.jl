@@ -1,35 +1,52 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random, ArrayInterface
-using DimensionalData: Start, formatdims, basetypeof, identify
+using DimensionalData: ForwardOrdered, Regular, Points, NoLookup, Center, Start, End, order, layerdims
 
 a = [1 2; 3 4]
 a2 = [1 2 3 4
       3 4 5 6
       4 5 6 7]
-dimz2 = (Dim{:row}((10, 30)), Dim{:column}((-20, 10)))
 xmeta = Metadata(:meta => "X")
 ymeta = Metadata(:meta => "Y")
 ameta = Metadata(:meta => "da")
-dimz = (X((143.0, 145.0); mode=Sampled(order=Ordered()), metadata=xmeta),
-        Y((-38.0, -36.0); mode=Sampled(order=Ordered()), metadata=ymeta))
+dimz = (X(Sampled(143.0:2.0:145.0; order=ForwardOrdered(), metadata=xmeta)),
+        Y(Sampled(-38.0:2.0:-36.0; order=ForwardOrdered(), metadata=ymeta)))
+dimz2 = (Dim{:row}(10:10:30), Dim{:column}(-20:10:10))
 refdimz = (Ti(1:1),)
 da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
+val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
-@testset "ArrayInterface" begin
-    @test ArrayInterface.parent_type(da) == Matrix{Int}
-end
 
 @testset "size and axes" begin
+    @test size(da2) == (3, 4)
     @test size(da2, Dim{:row}) == 3
     @test size(da2, Dim{:column}()) == 4
+    @test axes(da2) == (1:3, 1:4)
     @test axes(da2, Dim{:row}()) == 1:3
     @test axes(da2, Dim{:column}) == 1:4
     @inferred axes(da2, Dim{:column})
     @test IndexStyle(da) == IndexLinear()
 end
 
-@testset "copy and friends" begin
+@testset "interface methods" begin
+    lx = Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta) 
+    ly = Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)
+    @test dims(da) == (X(lx), Y(ly))
+    @test dims(da, X) == X(lx)
+    @test refdims(da) == refdimz
+    @test name(da) == :test
+    @test metadata(da) == ameta
+    @test lookup(da) == (lx, ly)
+    @test order(da) == (ForwardOrdered(), ForwardOrdered())
+    @test sampling(da) == (Points(), Points())
+    @test span(da) == (Regular(2.0), Regular(2.0))
+    @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
+    @test locus(da) == (Center(), Center())
+    @test layerdims(da) == (X(), Y())
+    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+end
 
+@testset "copy and friends" begin
     dac = copy(da2)
     @test dac == da2
     @test dims(dac) == dims(da2)
@@ -55,32 +72,16 @@ end
     @test z == [0 0; 0 0]
     @test dims(z) == dims(da) 
 
-    A = Array(da2)
-    @test A == parent(da2)
+    @test Array(da) == [1 2; 3 4]
+    @test Array(da) isa Array{Int,2}
+    @test collect(da) == [1 2; 3 4]
+    @test collect(da) isa Array{Int,2}
+    @test vec(da) == [1, 3, 2, 4]
+    @test vec(da) isa Array{Int,1}
 
     # This should do nothing
     A = read(da2)
     @test A === da2
-end
-
-@testset "OffsetArray" begin
-    oa = OffsetArray(a2, -1:1, 5:8)
-    @testset "Regular dimensions don't work: axes must match" begin
-        dimz = (X(100:100:300), Y([:a, :b, :c, :d]))
-        @test_throws DimensionMismatch DimArray(oa, dimz)
-    end
-    odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
-    oda = DimArray(oa, odimz)
-    @testset "Indexing and selectors work with offsets" begin
-        @test axes(oda) == (-1:1, 5:8)
-        @test oda[-1, 5] == oa[-1, 5] == 1
-        @test oda[Near(105), At(:a)] == oa[-1, 5] == 1
-        @test oda[Between(100, 250), At(:a)] == oa[-1:0, 5] == [1, 3]
-    end
-    @testset "Subsetting reverts to a regular array and dims" begin
-        @test axes(oda[0:1, 7:8]) == (1:2, 1:2)
-        @test axes.(dims(oda[0:1, 7:8])) == ((1:2,), (1:2,))
-    end
 end
 
 @testset "similar" begin
@@ -97,7 +98,7 @@ end
     @test refdims(da_float) == refdims(da2)
 
     # Changing the axis size removes dims.
-    # TODO we can keep dims, but with NoIndex?
+    # TODO we can keep dims, but with NoLookup?
     da_size_float = similar(da2, Float64, (10, 10))
     @test eltype(da_size_float) == Float64
     @test size(da_size_float) == (10, 10)
@@ -116,20 +117,28 @@ end
     @test refdims(da_float) == refdims(da2)
 end
 
+@testset "replace" begin
+    dar = replace(da, 1 => 99) 
+    dar isa DimArray
+    @test dar == [99 2; 3 4]
+
+    dar = copy(da)
+    replace!(dar, 4 => 99)
+    @test dar == [1 2; 3 99]
+end
+
 @testset "broadcast" begin
-    da = DimArray(ones(Int, 5, 2, 4), (Y((10, 20)), Ti(10:11), X(1:4)))
+    da = DimArray(ones(Int, 5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
     dab = da .* 2.0
     @test dab == fill(2.0, 5, 2, 4)
     @test eltype(dab) <: Float64
     @test dims(dab) ==
-        (Y(LinRange(10, 20, 5); mode=Sampled(Ordered(), Regular(2.5), Points())),
-         Ti(10:11; mode=Sampled(Ordered(), Regular(1), Points())),
-         X(1:4; mode=Sampled(Ordered(), Regular(1), Points())))
+        (Y(Sampled(10:2:18, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+         Ti(Sampled(10:11, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
+         X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())))
     dab = da .+ fill(10, 5, 2, 4)
     @test dab == fill(11, 5, 2, 4)
     @test eltype(dab) <: Int
-
-    # TODO permute dims to match in broadcast?
 end
 
 @testset "eachindex" begin
@@ -206,8 +215,8 @@ end
     da = fill(5.0, X(4), Y(40.0:10.0:80.0))
     @test parent(da) == fill(5.0, (4, 5))
     @test dims(da) == (
-         X(Base.OneTo(4), NoIndex(), NoMetadata()), 
-         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata())
+         X(NoLookup(Base.OneTo(4))), 
+         Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
     )
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
@@ -218,14 +227,14 @@ end
     @test all(==(0), da) 
     @test size(da) == (4, 5)
     @test dims(da) == (
-         X(Base.OneTo(4), NoIndex(), NoMetadata()), 
-         Y(40.0:10.0:80.0, Sampled(Ordered(), Regular(10.0), Points()), NoMetadata())
+         X(NoLookup(Base.OneTo(4))), 
+         Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
     )
     da = ones(Int32, (Ti(Date(2001):Year(1):Date(2004))))
     @test size(da) == (4,)
     @test eltype(da) <: Int32
     @test all(==(1), da) 
-    @test dims(da) == (Ti(Date(2001):Year(1):Date(2004), Sampled(Ordered(), Regular(Year(1)), Points()), NoMetadata()),)
+    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 end
 
 @testset "rand constructors" begin
@@ -233,8 +242,8 @@ end
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
     @test dims(da) == (
-         X(Base.OneTo(8), NoIndex(), NoMetadata()), 
-         Y(11:20, Sampled(Ordered(), Regular(1), Points()), NoMetadata())
+         X(NoLookup(Base.OneTo(8))), 
+         Y(Sampled(11:20, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
     )
     da = rand(X([:a, :b]), Y(3))
     @test size(da) == (2, 3)
@@ -247,19 +256,26 @@ end
     @test eltype(da) <: Float32
 end
 
-@testset "dims methods" begin
-    @test index(da) == val(da) == (LinRange(143.0, 145.0, 2), LinRange(-38.0, -36.0, 2))
-    @test mode(da) == (Sampled(Ordered(), Regular(2.0), Points()), 
-                       Sampled(Ordered(), Regular(2.0), Points()))
-    @test order(da) == (Ordered(), Ordered())
-    @test sampling(da) == (Points(), Points())
-    @test span(da) == (Regular(2.0), Regular(2.0))
-    @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
-    @test locus(da) == (Center(), Center())
-    @test indexorder(da) == (ForwardIndex(), ForwardIndex())
-    @test arrayorder(da) == (ForwardArray(), ForwardArray())
-    @test relation(da) == (ForwardRelation(), ForwardRelation())
-    # Dim args work too
-    @test relation(da, X) == ForwardRelation()
-    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+@testset "OffsetArray" begin
+    oa = OffsetArray(a2, -1:1, 5:8)
+    @testset "Regular dimensions don't work: axes must match" begin
+        dimz = (X(100:100:300), Y([:a, :b, :c, :d]))
+        @test_throws DimensionMismatch DimArray(oa, dimz)
+    end
+    odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
+    oda = DimArray(oa, odimz)
+    @testset "Indexing and selectors work with offsets" begin
+        @test axes(oda) == (-1:1, 5:8)
+        @test oda[-1, 5] == oa[-1, 5] == 1
+        @test oda[Near(105), At(:a)] == oa[-1, 5] == 1
+        @test oda[Between(100, 250), At(:a)] == oa[-1:0, 5] == [1, 3]
+    end
+    @testset "Subsetting reverts to a regular array and dims" begin
+        @test axes(oda[0:1, 7:8]) == (1:2, 1:2)
+        @test axes.(dims(oda[0:1, 7:8])) == ((1:2,), (1:2,))
+    end
+end
+
+@testset "ArrayInterface" begin
+    @test ArrayInterface.parent_type(da) == Matrix{Int}
 end

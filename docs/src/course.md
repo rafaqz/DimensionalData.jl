@@ -19,7 +19,7 @@ A `DimArray` with labelled dimensions is constructed by:
 
 ```@example main
 using DimensionalData
-A = DimArray(rand(5, 5), (X, Y))
+A = rand(X(5), Y(5))
 A[Y(1), X(2)]
 ```
 
@@ -165,27 +165,29 @@ was selected from. These can be use for plot labelling, and tracking array
 changes.
 
 
-## IndexMode
+## Lookups
 
 DimensionalData provides types for specifying details about the dimension index.
 This enables optimisations with `Selector`s, and modified behaviours such as
 selection of intervals or points, which will give slightly different results for
 selectors like [`Between`](@ref) for [`Points`](@ref) and [`Intervals`](@ref).
 
-It also allows plots to always be the right way up when either the index or the 
-array is backwards - reverseing the data lazily when required for plotting if
-reqiured, not when loaded.
+This also allows reverse order index to still work with `seartsorted`, and for
+plots to always be the right way up when either the index or the 
+array is backwards - reversing the data lazily when required, not when loaded.
 
-The major categories of [`IndexMode`](@ref) are [`Categorical`](@ref),
-[`Sampled`](@ref) and [`NoIndex`](@ref), which are all subtypes of
+The major categories of [`Lookup`](@ref) are [`Categorical`](@ref),
+[`Sampled`](@ref) and [`NoLookup`](@ref), which are all subtypes of
 [`Aligned`](@ref). [`Unaligned`](@ref) also exists to handle dimensions with an
 index that is rotated or otherwise transformed in relation to the underlying
-array, such as [`Transformed`](@ref). These are a work in progress.
+array, such as [`Transformed`](@ref).
 
-[`Aligned`](@ref) types will be detected automatically if not specified. A
-Dimension containing and index of `String`, `Char` or `Symbol` will be given the
-[`Categorical`](@ref) mode. A range will be [`Sampled`](@ref), defaulting to
-[`Points`](@ref) and [`Regular`](@ref), with the [`Order`](@ref) detected
-automatically. 
+## Lookup detection
 
-See the api docs for specifics about these [`IndexMode`](@ref)s.
+[`Aligned`](@ref) types will be detected automatically if not specified - mostly
+specifying them isn't required. A `Dimension` containing and index of `String`,
+`Char` or `Symbol` will be given the [`Categorical`](@ref) mode. A range will be
+[`Sampled`](@ref), defaulting to [`Points`](@ref) and [`Regular`](@ref), with
+the [`Order`](@ref) detected automatically. 
+
+See the api docs for specifics about these [`Lookup`](@ref)s.

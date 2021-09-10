@@ -17,7 +17,7 @@ AbstractDimStack
 DimStack
 ```
 
-## Dimension indindices generator
+## Dimension indices generator
 
 ```@docs
 DimIndices
@@ -75,11 +75,10 @@ Metadata
 NoMetadata
 ```
 
-## Modes
+## Lookups
 
 ```@docs
-Mode
-IndexMode
+Lookup
 Aligned
 AbstractSampled
 Sampled
@@ -87,32 +86,27 @@ AbstractCategorical
 Categorical
 Unaligned
 Transformed
-NoIndex
-AutoMode
+NoLookup
+AutoLookup
+DimensionalData.AutoIndex
 ```
 
-Order of arrays and indices:
+## Lookup traits
 
 ```@docs
-DimensionalData.ModeComponent
+DimensionalData.LookupTrait
+```
+
+### Order
+
+```@docs
 Order
 Unordered
 Ordered
 AutoOrder
-UnknownOrder
-DimensionalData.SubOrder
-IndexOrder
-ForwardIndex
-ReverseIndex
-ArrayOrder
-ForwardArray
-ReverseArray
-Relation
-ForwardRelation
-ReverseRelation
+DimensionalData.ForwardOrdered
+DimensionalData.ReverseOrdered
 ```
-
-Index modes for [`Intervals`](@ref)
 
 ### Span
 
@@ -133,8 +127,6 @@ Intervals
 ```
 
 ### Loci
-
-Sampling positions for [`Intervals`](@ref)
 
 ```@docs
 Locus
@@ -168,26 +160,24 @@ units
 label
 ```
 
-Dimesion and mode properties:
+Dimesion and lookup properties:
 
 ```@docs
 val
 index
-mode
+lookup
 bounds
 sampling
 locus
 span
 order
-indexorder
-arrayorder
-relation
 ```
 
 Dimension querying
 
 ```@docs
 hasdim
+hasselection
 dimnum
 otherdims
 commondims
@@ -202,7 +192,6 @@ modify
 dimwise
 dimwise!
 reorder
-Base.reverse
 Base.fill
 Base.rand
 Base.zeros
@@ -218,19 +207,19 @@ Base.cat
 DimensionalData.dim2key
 DimensionalData.key2dim
 DimensionalData.dims2indices
-DimensionalData.formatdims
+DimensionalData.selectindices
+DimensionalData.format
 DimensionalData.reducedims
 DimensionalData.swapdims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.combinedims
 DimensionalData.sortdims
-DimensionalData.identify
 DimensionalData.basetypeof
 DimensionalData.setdims
-DimensionalData.flip
 DimensionalData.dimsmatch
 DimensionalData.dimstride
 DimensionalData.refdims_title
 DimensionalData.rebuild_from_arrays
+DimensionalData.shiftlocus
 ```

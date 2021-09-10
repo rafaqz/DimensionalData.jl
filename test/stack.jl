@@ -1,38 +1,91 @@
 using DimensionalData, Test, LinearAlgebra, Statistics
 
+using DimensionalData: ForwardOrdered
+
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
-x, y, z = X([:a, :b]), Y(10.0:10.0:30.0), Z()
+x, y, z = X([:a, :b]), Y(10.0:10.0:30.0; metadata=Dict()), Z()
 dimz = x, y
-da1 = DimArray(A, (x, y); name=:one)
+da1 = DimArray(A, (x, y); name=:one, metadata=Metadata())
 da2 = DimArray(Float32.(2A), (x, y); name=:two)
 da3 = DimArray(Int.(3A), (x, y); name=:three)
 da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
 s = DimStack((da1, da2, da3))
-mixed = DimStack((da1, da2, da4))
+mixed = DimStack(da1, da2, da4)
 
-@testset "Constructors" begin
+@testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) == s
     @test DimStack(da1, da2, da3) == s
     @test DimStack((one=da1, two=da2, three=da3), dimz) == s
 end
 
-@testset "Properties" begin
-    @test DimensionalData.dims(s) == dims(da1)
-    @test keys(data(s)) == (:one, :two, :three)
-    @test keys(data(mixed)) == (:one, :two, :extradim)
+@testset "interface methods" begin
+    @test dims(s) == dims(da1)
+    @test dims(s, X) == x
+    @test refdims(s) === ()
+    @test metadata(mixed) == NoMetadata()
+    @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
+end
+
+@testset "symbol key indexing" begin
     da1x = s[:one]
     @test parent(da1x) === parent(da1)
-    @test dims(da1x) === dims(da1)
-    @test size(da1x) === (2, 3)
-    @test size(mixed) === (2, 3, 4)
-    @test size(da1x, X) === 2
+    @test typeof(da1x) === typeof(da1)
+end
+
+@testset "low level base methods" begin
+    @test keys(data(s)) == (:one, :two, :three)
+    @test keys(data(mixed)) == (:one, :two, :extradim)
+    @test haskey(s, :one) == true
+    @test haskey(s, :zero) == false
+    @test length(s) == 3 # length is as for NamedTuple
+    @test size(mixed) === (2, 3, 4) # size is as for Array
+    @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
-    @test axes(da1x) === (Base.OneTo(2), Base.OneTo(3))
     @test axes(mixed) === (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
-    @test axes(da1x, X) === Base.OneTo(2)
+    @test axes(mixed, X) === Base.OneTo(2)
     @test axes(mixed, 2) === Base.OneTo(3)
+    @test first(s) == da1
+    @test last(s) == da3
+end
+
+@testset "copy and friends" begin
+    sc = copy(s)
+    @test sc == s
+    @test dims(sc) == dims(s)
+    @test metadata(sc) == metadata(s)
+    sdc = deepcopy(s)
+    @test sdc == s
+    @test dims(sdc) == dims(s)
+    @test metadata(sdc) == metadata(s)
+    s2 = zero(s)
+    @test s2[:one] == [0.0 0.0 0.0; 0.0 0.0 0.0]
+    # This should do nothing
+    sr = read(s)
+    @test sr === s
+end
+
+@testset "copy!" begin
+    dest_A = zero(da1)
+    @test dest_A !== da1
+    copy!(dest_A, s[:one])
+    @test dest_A == s[:one]
+    dest_s = zero(s)
+    @test dest_s !== s
+    copy!(dest_s, s)
+    @test dest_s == s
+end
+
+@testset "cat" begin
+    x2 = X([:c, :d])
+    da1 = DimArray(A, (x2, y); name=:one, metadata=Metadata())
+    da2 = DimArray(Float32.(2A), (x2, y); name=:two)
+    da3 = DimArray(Int.(3A), (x2, y); name=:three)
+    s2 = DimStack((da1, da2, da3))
+
+    s_cat = cat(s, s2; dims=X())
+    @test s_cat[:one] == cat(parent(s[:one]), parent(s2[:one]); dims=1)
 end
 
 @testset "map" begin
@@ -44,7 +97,7 @@ end
     @test_throws ArgumentError map(+, s, mixed)
 end
 
-@testset "Methods with no arguments" begin
+@testset "methods with no arguments" begin
     @testset "permuting methods" begin
         @test data(permutedims(s)) == 
             (one=[1.0 4.0; 2.0 5.0; 3.0 6.0],
@@ -80,11 +133,11 @@ end
     end
 end
 
-@testset "Methods with a dims keyword argument" begin
+@testset "methods with a dims keyword argument" begin
     @testset "reducing methods" begin
         sum_ = sum(s; dims=X)
         @test sum_  == DimStack(sum(da1; dims=X), sum(da2; dims=X), sum(da3; dims=X))
-        @test dims(sum_) == (X([:combined], Categorical()), dims(da1, Y))
+        @test dims(sum_) == (X(Categorical([:combined]; order=ForwardOrdered())), dims(da1, Y))
         @test prod(s; dims=X) == DimStack(prod(da1; dims=X), prod(da2; dims=X), prod(da3; dims=X))
         @test dims(maximum(s; dims=X)) == 
             dims(DimStack(maximum(da1; dims=X), maximum(da2; dims=X), maximum(da3; dims=X)))
@@ -93,9 +146,9 @@ end
         @test std(s; dims=X) == DimStack(std(da1; dims=X), std(da2; dims=X), std(da3; dims=X))
         @test var(s; dims=X) == DimStack(var(da1; dims=X), var(da2; dims=X), var(da3; dims=X))
         @test median(s; dims=X) == DimStack(median(da1; dims=X), median(da2; dims=X), median(da3; dims=X))
-        mean(mixed; dims=X)
-        mean(mixed; dims=Y)
-        @test_broken mean(mixed; dims=Z)
+        @test mean(mixed; dims=X) == DimStack((mean(da1; dims=X), mean(da2; dims=X), mean(da4; dims=X)))
+        @test mean(mixed; dims=Y) == DimStack((mean(da1; dims=Y), mean(da2; dims=Y), mean(da4; dims=Y)))
+        @test mean(mixed; dims=Z) == DimStack((da1, da2, mean(da4; dims=Z)))
     end
 
     @testset "dim duplicating methods" begin

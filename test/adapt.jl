@@ -16,10 +16,10 @@ Base.count(x::CustomArray) = count(x.arr)
 end
 
 @testset "Dimension" begin
-    d = X([1:10...]; metadata=Metadata(:a=>"1", :b=>"2"))
-    d1 = adapt(CustomArray, d)
-    @test val(d1) isa CustomArray
-    @test val(d1).arr == [1:10...]
+    d = X(Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2")))
+    d1 = Adapt.adapt(CustomArray, d)
+    @test parent(val(d1)) isa CustomArray
+    @test parent(val(d1)).arr == [1:10...]
     @test metadata(d1) == NoMetadata()
 end
 

@@ -14,15 +14,13 @@ methods, although these are optional.
 A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 `data`, `dims`, `refdims`, `name`, `metadata` arguments.
 
-Indexing AbstractDimArray with non-range `AbstractArray` has undefined effects
+Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
 abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
-
-const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer}
 
 
 # DimensionalData.jl interface methods ####################################################
@@ -33,6 +31,8 @@ refdims(A::AbstractDimArray) = A.refdims
 data(A::AbstractDimArray) = A.data
 name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
+
+layerdims(A::AbstractDimArray) = basedims(A)
 
 """
     rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
@@ -55,12 +55,9 @@ end
 @inline rebuildsliced(args...) = rebuildsliced(getindex, args...)
 @inline rebuildsliced(f::Function, A, data, I, name=name(A)) = rebuild(A, data, slicedims(f, A, I)..., name)
 
-for func in (:val, :index, :mode, :metadata, :order, :sampling, :span, :bounds, :locus,
-             :arrayorder, :indexorder, :relation)
+for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
-
-order(ot::Type{<:SubOrder}, A::AbstractDimArray, args...) = order(ot, dims(A), args...)
 
 # Array interface methods ######################################################
 
@@ -79,7 +76,6 @@ Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
 # Dummy read methods that do nothing.
 # Means can actually read subtypes that are not in-memory Arrays
 Base.read(A::AbstractDimArray) = A
-Base.read(f, A::AbstractDimArray) = f(A)
 
 # Methods that create copies of an AbstractDimArray #######################################
 
@@ -148,7 +144,7 @@ end
 """
     DimArray <: AbstractDimArray
 
-    DimArray(data, dims, refdims, name)
+    DimArray(data, dims, refdims, name, metadata)
     DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
@@ -157,18 +153,20 @@ The main concrete subtype of [`AbstractDimArray`](@ref).
 moves dimensions to reference dimension `refdims` after reducing operations
 (like e.g. `mean`).
 
-## Arguments/Fields
+## Arguments
 
 - `data`: An `AbstractArray`.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
-- `metadata`: Array metadata, or `NoMetadata()`
+- `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
-and/or [`Selector`](@ref)s. Indexing AbstractDimArray with non-range `AbstractArray`
-has undefined effects on the `Dimension` index. Use forward-ordered arrays only"
+and/or [`Selector`](@ref)s. 
+
+Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
+on the `Dimension` index. Use forward-ordered arrays only"
 
 Example:
 
@@ -192,18 +190,19 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     metadata::Me
 end
 # 2 arg version
-function DimArray(data::AbstractArray, dims; refdims=(), name=NoName(), metadata=NoMetadata())
-    DimArray(data, formatdims(data, dims), refdims, name, metadata)
+DimArray(data::AbstractArray, dims; kw...) = DimArray(data, (dims,); kw...)
+function DimArray(data::AbstractArray, dims::Union{Tuple,NamedTuple}; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(data, format(dims, data), refdims, name, metadata)
 end
 # All keyword argument version
 function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata())
-    DimArray(data, formatdims(data, dims), refdims, name, metadata)
+    DimArray(data, dims; refdims, name, metadata)
 end
 # Construct from another AbstractDimArray
 function DimArray(A::AbstractDimArray;
     data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
-    DimArray(data, formatdims(data, dims), refdims, name, metadata)
+    DimArray(data, dims; refdims, name, metadata)
 end
 """
     DimArray(f::Function, dim::Dimension [, name])
@@ -218,6 +217,7 @@ end
 
 """
     rebuild(A::DimArray, data, dims, refdims, name, metadata) => DimArray
+    rebuild(A::DimArray; kw...) => DimArray
 
 Rebuild a `DimArray` with new fields. Handling partial field
 update is dealt with in `rebuild` for `AbstractDimArray`.
@@ -237,9 +237,9 @@ Create a [`DimArray`](@ref) with a fill value of `x`.
 
 There are two kinds of `Dimension` value acepted:
 - A `Dimension` holding an `AbstractVector` will set the dimension index to 
-  that `AbstractVector`, and detect the dimension mode.
+  that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
-  and set the dimension mode to [`NoIndex`](@ref).
+  and set the dimension lookup to [`NoLookup`](@ref).
 
 # Example
 ```@doctest
@@ -263,9 +263,9 @@ Create a [`DimArray`](@ref) of random values.
 
 There are two kinds of `Dimension` value acepted:
 - A `Dimension` holding an `AbstractVector` will set the dimension index to 
-  that `AbstractVector`, and detect the dimension mode.
+  that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
-  and set the dimension mode to [`NoIndex`](@ref).
+  and set the dimension lookup to [`NoLookup`](@ref).
 
 # Example
 ```julia
@@ -295,9 +295,9 @@ Create a [`DimArray`](@ref) of zeros.
 
 There are two kinds of `Dimension` value acepted:
 - A `Dimension` holding an `AbstractVector` will set the dimension index to 
-  that `AbstractVector`, and detect the dimension mode.
+  that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
-  and set the dimension mode to [`NoIndex`](@ref).
+  and set the dimension lookup to [`NoLookup`](@ref).
 
 # Example
 ```@doctest
@@ -327,9 +327,9 @@ Create a [`DimArray`](@ref) of ones.
 
 There are two kinds of `Dimension` value acepted:
 - A `Dimension` holding an `AbstractVector` will set the dimension index to 
-  that `AbstractVector`, and detect the dimension mode.
+  that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
-  and set the dimension mode to [`NoIndex`](@ref).
+  and set the dimension lookup to [`NoLookup`](@ref).
 
 # Example
 ```@doctest
@@ -363,7 +363,7 @@ for f in (:zeros, :ones, :rand)
     @eval begin
         Base.$f(::Type{T}, d1::Dimension, dims::Dimension...) where T = $f(T, (d1, dims...))
         function Base.$f(::Type{T}, dims::DimTuple) where T
-            DimArray($f(T, _dimlength(dims)), _maybeindex(dims))
+            DimArray($f(T, _dimlength(dims)), _maybestripval(dims))
         end
     end
 end
@@ -371,19 +371,22 @@ end
 for f in (:fill, :rand)
     @eval begin
         Base.$f(x, d1::Dimension, dims::Dimension...) = $f(x, (d1, dims...))
-        Base.$f(x, dims::DimTuple) = DimArray($f(x, _dimlength(dims)), _maybeindex(dims))
+        function Base.$f(x, dims::DimTuple)
+            A = $f(x, _dimlength(dims))
+            DimArray(A, _maybestripval(dims))
+        end
     end
 end
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...) = rand(r, x, (d1, dims...))
 function Base.rand(r::AbstractRNG, x, dims::DimTuple)
-    DimArray(rand(r, x, _dimlength(dims)), _maybeindex(dims))
+    DimArray(rand(r, x, _dimlength(dims)), _maybestripval(dims))
 end
 function Base.rand(r::AbstractRNG, ::Type{X}, d1::Dimension, dims::Dimension...) where X
     rand(r, X, (d1, dims...))
 end
 function Base.rand(r::AbstractRNG, ::Type{X}, dims::DimTuple) where X
-    DimArray(rand(r, X, _dimlength(dims)), _maybeindex(dims))
+    DimArray(rand(r, X, _dimlength(dims)), _maybestripval(dims))
 end
 
 _dimlength(dims::Tuple) = map(_dimlength, dims)
@@ -393,7 +396,8 @@ _dimlength(dim::Dimension{<:Integer}) = val(dim)
 @noinline _dimlength(dim::Dimension) =
     throw(ArgumentError("$(basetypeof(dim)) must hold an Integer or an AbstractArray, instead holds: $(val(dim))"))
 
-_maybeindex(dims) = map(_maybeindex, dims)
-_maybeindex(dim::Dimension{<:AbstractArray}) = dim
-_maybeindex(dim::Dimension{<:Val}) = dim
-_maybeindex(dim::Dimension{<:Integer}) = basetypeof(dim)(:, NoIndex(), metadata(dim))
+function _maybestripval(dims)
+    dims = map(dims) do d
+        val(d) isa AbstractArray ? d : basetypeof(d)()
+    end
+end
