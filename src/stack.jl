@@ -27,7 +27,7 @@ Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
-Base.length(s::AbstractDimStack) = length(data(s))
+Base.length(s::AbstractDimStack) = length(keys(s))
 Base.size(s::AbstractDimStack) = map(length, dims(s))
 Base.size(A::AbstractDimStack, dims::DimOrDimType) = size(A, dimnum(A, dims))
 Base.size(A::AbstractDimStack, dims::Integer) = size(A)[dims]
