@@ -107,6 +107,7 @@ for func in (:copy, :one, :oneunit, :zero)
 end
 
 Base.Array(A::AbstractDimArray) = Array(parent(A))
+Base.collect(A::AbstractDimArray) = collect(parent(A))
 
 _maybeunwrap(A::AbstractDimArray) = parent(A)
 _maybeunwrap(A::AbstractArray) = A
