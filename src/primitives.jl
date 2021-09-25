@@ -5,7 +5,7 @@
     dimsmatch([f], dim, lookup) => Bool
     dimsmatch([f], dims::Tuple, lookups::Tuple) => Bool
 
-Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type, 
+Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type,
 or are at least rotations/transformations of the same type.
 
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
@@ -149,7 +149,7 @@ julia> commondims(A, Ti)
 """
 @inline commondims(args...) = _call(_commondims, AlwaysTuple(), args...)
 
-_commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds)) 
+_commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds))
 
 """
     dimnum(x, lookup::Tuple) => NTuple{Int}
@@ -178,7 +178,7 @@ julia> dimnum(A, Y)
 2
 ```
 """
-@inline function dimnum(args...) 
+@inline function dimnum(args...)
     all(hasdim(args...)) || _errorextradims()
     _call(_dimnum, MaybeFirst(), args...)
 end
@@ -227,7 +227,7 @@ false
 
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
-@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) = 
+@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) =
     map(l -> l in 1:length(dims), lookup)
 
 """
@@ -297,7 +297,7 @@ index(B, Y)
 @inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
 @inline setdims(dims::Tuple, newdim::Dimension) = setdims(dims, (newdim,))
 @inline setdims(dims::Tuple, newdims::Tuple) = swapdims(dims, sortdims(newdims, dims))
-@inline setdims(dims::Tuple, newdims::Tuple{}) = dims 
+@inline setdims(dims::Tuple, newdims::Tuple{}) = dims
 
 """
     swapdims(x::T, newdims) => T
@@ -362,7 +362,7 @@ function slicedims end
 @inline slicedims(f::Function, dims::Tuple, I::Tuple) = _slicedims(f, dims, I)
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
-@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) = 
+@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) =
     slicedims(f, dims, refdims, Tuple(I))
 
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple) = begin
@@ -509,7 +509,7 @@ function comparedims end
 @inline comparedims(a::AnonDim, b::AnonDim; kw...) = nothing
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
-@inline function comparedims(a::Dimension, b::Dimension; 
+@inline function comparedims(a::Dimension, b::Dimension;
     type=true, length=true, mode=false, val=false, metadata=false
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
@@ -544,7 +544,7 @@ function combinedims end
 end
 
 """
-    dimstride(x, dim) => Int 
+    dimstride(x, dim) => Int
 
 Get the stride of the dimension relative to the other dimensions.
 
@@ -590,7 +590,7 @@ struct AlwaysTuple end
 _maybefirst(xs::Tuple) = first(xs)
 _maybefirst(::Tuple{}) = nothing
 
-@inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(kw.data)
+@inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(values(kw))
 @inline _kwdims(kw::NamedTuple{Keys}) where Keys = _kwdims(key2dim(Keys), values(kw))
 @inline _kwdims(dims::Tuple, vals::Tuple) =
     (rebuild(first(dims), first(vals)), _kwdims(tail(dims), tail(vals))...)
@@ -603,11 +603,11 @@ _maybefirst(::Tuple{}) = nothing
 @inline _remove_nothing(::Nothing, xs...) = _remove_nothing(xs...)
 @inline _remove_nothing() = ()
 
-# This looks ridiculous, but gives seven arguments with constant-propagation, 
-# which means type stability using Symbols/types instead of objects. 
-@inline _wraparg(d1, d2, d3, d4, d5, d6, d7, ds...) = 
-    (_w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6), _w(d7), _wraparg(ds...)...) 
-@inline _wraparg(d1, d2, d3, d4, d5, d6) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6) 
+# This looks ridiculous, but gives seven arguments with constant-propagation,
+# which means type stability using Symbols/types instead of objects.
+@inline _wraparg(d1, d2, d3, d4, d5, d6, d7, ds...) =
+    (_w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6), _w(d7), _wraparg(ds...)...)
+@inline _wraparg(d1, d2, d3, d4, d5, d6) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5), _w(d6)
 @inline _wraparg(d1, d2, d3, d4, d5) = _w(d1), _w(d2), _w(d3), _w(d4), _w(d5)
 @inline _wraparg(d1, d2, d3, d4) = _w(d1), _w(d2), _w(d3), _w(d4)
 @inline _wraparg(d1, d2, d3) = _w(d1), _w(d2), _w(d3)
