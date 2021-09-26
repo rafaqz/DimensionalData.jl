@@ -49,7 +49,7 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
     @test order(dims(revis, X)) == Ordered(ForwardIndex(), ForwardArray(), ForwardRelation())
 
     @testset "Val index" begin
-        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())), 
+        dav = DimArray(A, (X(Val((10, 20)); mode=Sampled(order=Ordered())),
                            Y(Val((300, 200, 100)); mode=Sampled(order=Ordered(ReverseIndex(), ForwardArray(), ForwardRelation())))); name=:test)
         revdav = reverse(IndexOrder, dav; dims=(X, Y))
         @test val(revdav) == (Val((20, 10)), Val((100, 200, 300)))
@@ -73,7 +73,7 @@ using DimensionalData: flip, shiftlocus, maybeshiftlocus
         da3 = DimArray(Int.(3A), dimz; name=:three)
 
         s = DimStack((da1, da2, da3))
-        rev_s = reverse(s; dims=X) 
+        rev_s = reverse(s; dims=X)
         @test rev_s[:one] == [4 5 6; 1 2 3]
         @test rev_s[:three] == [12 15 18; 3 6 9]
     end
@@ -93,7 +93,7 @@ end
     @test order(dims(reoa, Y)) == Ordered(ReverseIndex(), ReverseArray(), ReverseRelation())
 
     reoi = reorder(da, (X=ReverseIndex, Y=ReverseIndex))
-    @test reoi == A 
+    @test reoi == A
     @test val(dims(reoi, X)) == 20:-10:10
     @test val(dims(reoi, Y)) == 300:-100:100
     @test order(dims(reoi, X)) == Ordered(ReverseIndex(), ForwardArray(), ReverseRelation())
@@ -151,7 +151,7 @@ end
     @testset "dimension" begin
         dim = X(10:10:20)
         mdim = modify(x -> 3 .* x, dim)
-        @test index(mdim) === 30:30:60
+        @test index(mdim) == 30:30:60 # in Julia 1.6: typeof(30:30:60)==StepRange ; in Julia 1.7 typeof(30:30:60)==StepRangeLen
         dim = Y(Val((1,2,3,4,5)))
         mdim = modify(xs -> 2 .* xs, dim)
         @test index(mdim) === (2, 4, 6, 8, 10)
@@ -221,22 +221,22 @@ end
 @testset "dim2boundsmatrix" begin
     @testset "Regular span" begin
         dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Center())))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.5 1.5 2.5 
+        @test DimensionalData.dim2boundsmatrix(dim) == [0.5 1.5 2.5
                                                         1.5 2.5 3.5]
         dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(Start())))
-        @test DimensionalData.dim2boundsmatrix(dim) == [1.0 2.0 3.0 
+        @test DimensionalData.dim2boundsmatrix(dim) == [1.0 2.0 3.0
                                                         2.0 3.0 4.0]
         dim = X(1.0:3.0; mode=Sampled(Ordered(), Regular(1.0), Intervals(End())))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0 
+        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
         dim = X(3.0:-1:1.0; mode=Sampled(Ordered(index=ReverseIndex()), Regular(1.0), Intervals(Center())))
-        @test DimensionalData.dim2boundsmatrix(dim) == [2.5 1.5 0.5 
+        @test DimensionalData.dim2boundsmatrix(dim) == [2.5 1.5 0.5
                                                         3.5 2.5 1.5]
     end
     @testset "Explicit span" begin
-        dim = X(1.0:3.0; mode=Sampled(Ordered(), Explicit([0.0 1.0 2.0 
+        dim = X(1.0:3.0; mode=Sampled(Ordered(), Explicit([0.0 1.0 2.0
                                                            1.0 2.0 3.0]), Intervals(End())))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0 
+        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
     end
 end

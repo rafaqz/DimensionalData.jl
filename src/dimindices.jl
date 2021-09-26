@@ -10,7 +10,7 @@ for f in (:getindex, :view, :dotview)
     @eval begin
         @propagate_inbounds Base.$f(A::AbstractDimIndices, I::Union{Val,Selector}...) = Base.$f(A, dims2indices(A, I)...)
         @propagate_inbounds function Base.$f(A::AbstractDimIndices, I::Dimension...; kw...)
-            Base.$f(A, dims2indices(A, I..., _kwdims(kw.data)...)...)
+            Base.$f(A, dims2indices(A, I..., _kwdims(values(kw))...)...)
         end
     end
 end
@@ -63,8 +63,8 @@ end
     DimKeys(dims::Tuple)
     DimKeys(dims::Dimension)
 
-Like CartesianIndices, but for the key values of Dimensions. Behaves as an 
-`Array` of `Tuple` of `Dimension(At(keyvalue))` for all combinations of the 
+Like CartesianIndices, but for the key values of Dimensions. Behaves as an
+`Array` of `Tuple` of `Dimension(At(keyvalue))` for all combinations of the
 axis values of `dims`.
 """
 struct DimKeys{T,N,D<:Tuple{<:Dimension,Vararg{<:Dimension}},S} <: AbstractDimIndices{T,N}
@@ -81,13 +81,13 @@ DimKeys(x; kw...) = DimKeys(dims(x); kw...)
 DimKeys(::Nothing; kw...) = throw(ArgumentError("Object has no `dims` method"))
 
 function _selectors(dims, atol)
-    map(dims) do d 
+    map(dims) do d
         atol1 = _atol(eltype(d), atol)
         At{eltype(d),typeof(atol1),Nothing}(first(d), atol1, nothing)
     end
 end
 function _selectors(dims, atol::Tuple)
-    map(dims, atol) do d, a 
+    map(dims, atol) do d, a
         atol1 = _atol(eltype(d), a)
         At{eltype(d),typeof(atol1),Nothing}(first(d), atol1, nothing)
     end
