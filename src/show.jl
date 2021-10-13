@@ -6,7 +6,7 @@ function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
     else
         print(io, join(size(A), "×"), " ")
     end
-    printstyled(io, string(nameof(typeof(A)), "{$T,$N}"); color=:blue)
+    print(io, string(nameof(typeof(A)), "{$T,$N}"))
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
