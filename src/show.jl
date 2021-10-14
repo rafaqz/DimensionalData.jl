@@ -28,7 +28,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    printstyled(io, nameof(typeof(stack)), color=:blue)
+    print(io, nameof(typeof(stack)))
     _printdims(io, mime, dims(stack))
     nlayers = length(keys(stack))
     layers_str = nlayers == 1 ? "layer" : "layers"
