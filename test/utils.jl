@@ -209,6 +209,9 @@ end
     @test val(shiftlocus(End(), dim)) == [3, 4, 5]
     @test val(shiftlocus(Center(), dim)) == [2.5, 3.5, 4.5]
     @test val(shiftlocus(Start(), dim)) == [2, 3, 4]
+    dates = DateTime(2000):Month(1):DateTime(2000, 12)
+    ti = Ti(dates; mode=Sampled(Ordered(), Regular(Month(1)), Intervals(Start())))
+    @test index(shiftlocus(Center(), ti)) == dates .+ (dates .+ Month(1) .- dates) ./ 2
 end
 
 @testset "maybeshiftlocus" begin

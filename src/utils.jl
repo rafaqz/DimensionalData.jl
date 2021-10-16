@@ -285,15 +285,18 @@ _shiftindexlocus(locus::Locus, mode::IndexMode, dim::Dimension) = index(dim)
 _shiftindexlocus(locus::Locus, mode::AbstractSampled, dim::Dimension) =
     _shiftindexlocus(locus, span(mode), sampling(mode), dim)
 _shiftindexlocus(locus::Locus, span::Span, sampling::Sampling, dim::Dimension) = index(dim)
-_shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, dim::Dimension) =
+_shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Dimension) =
+    index(dim) .+ ((index(dim) .+ abs(step(span))) .- index(dim)) * _offset(locus(sampling), destlocus)
+_shiftindexlocus(destlocus::Union{Start,End}, span::Regular, sampling::Intervals, dim::Dimension) =
     index(dim) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
+
 _shiftindexlocus(::Start, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[1, :]
 _shiftindexlocus(::End, span::Explicit, sampling::Intervals, dim::Dimension) = val(span)[2, :]
 _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, dim::Dimension) =
     _shiftindexlocus(destlocus, locus(dim), span, sampling, dim)
 _shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, dim::Dimension) = index(dim)
 _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, dim::Dimension) =
-    view(val(span), 2, :)  .- view(val(span), 1, :)
+    (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
 
 _offset(::Start, ::Center) = 0.5
 _offset(::Start, ::End) = 1
