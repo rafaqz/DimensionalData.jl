@@ -150,6 +150,7 @@ end
 
     DimArray(data, dims, refdims, name)
     DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(data; refdims=(), name=NoName(), metadata=NoMetadata(), dims...)
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -160,7 +161,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 ## Arguments/Fields
 
 - `data`: An `AbstractArray`.
-- `dims`: A `Tuple` of `Dimension`
+- `dims`: A `Tuple` or `NamedTuple` of `Dimension`s or a NamedTuple`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
@@ -198,6 +199,13 @@ end
 # All keyword argument version
 function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata())
     DimArray(data, formatdims(data, dims), refdims, name, metadata)
+end
+# Constructors using keywords to specify dimension names
+function DimArray(data; refdims=(), name=NoName(), metadata=NoMetadata(), dims...)
+    DimArray(data, formatdims(data, NamedTuple(dims)), refdims, name, metadata)
+end
+function DimArray(; data, refdims=(), name=NoName(), metadata=NoMetadata(), dims...)
+    DimArray(data, formatdims(data, NamedTuple(dims)), refdims, name, metadata)
 end
 # Construct from another AbstractDimArray
 function DimArray(A::AbstractDimArray;
