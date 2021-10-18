@@ -1,5 +1,5 @@
 """
-    AbstracDimArray <: AbstractArray
+    AbstractDimArray <: AbstractArray
 
 Abstract supertype for all "dim" arrays.
 
