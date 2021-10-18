@@ -1,5 +1,5 @@
 """
-    AbstracDimArray <: AbstractArray
+    AbstractDimArray <: AbstractArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -38,7 +38,7 @@ metadata(A::AbstractDimArray) = A.metadata
     rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
     rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
 
-Rebuild and `AbstractDimArray` with some field changes. All types
+Rebuild an `AbstractDimArray` with some field changes. All types
 that inherit from `AbstractDimArray` must define this method if they
 have any additional fields or alternate field order.
 
@@ -161,7 +161,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 ## Arguments/Fields
 
 - `data`: An `AbstractArray`.
-- `dims`: A `Tuple` or `NamedTuple` of `Dimension`s or a NamedTuple`
+- `dims`: A `Tuple` or `NamedTuple` of `Dimension` objects or indices for each dimension.
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
