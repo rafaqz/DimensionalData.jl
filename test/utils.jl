@@ -156,9 +156,7 @@ end
 
     dates = DateTime(2000):Month(1):DateTime(2000, 12)
     ti = Ti(Sampled(dates, ForwardOrdered(), Regular(Month(1)), Intervals(Start()), NoMetadata()))
-    @test 
-    index(shiftlocus(Center(), ti))
-    == dates .+ (dates .+ Month(1) .- dates) ./ 2
+    @test index(shiftlocus(Center(), ti)) == dates .+ (dates .+ Month(1) .- dates) ./ 2
 
     bnds = vcat((0.5:2.5)', (1.5:3.5)')
     dim = X(Sampled(1.0:3.0, ForwardOrdered(), Explicit(bnds), Intervals(Center()), NoMetadata()))
@@ -196,8 +194,8 @@ end
                                                         3.5 2.5 1.5]
     end
     @testset "Explicit span" begin
-        dim = X(Sampled(1.0:3.0, ForwardOrdered(), Explicit([0.0 1.0 2.0
-                                                           1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
+        dim = X(Sampled(1.0:3.0, ForwardOrdered(), 
+                Explicit([0.0 1.0 2.0; 1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
         @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
     end
