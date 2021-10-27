@@ -81,6 +81,17 @@ Base.haskey(::NoMetadata, args...) = false
 Base.get(::NoMetadata, key, fallback) = fallback
 Base.length(::NoMetadata) = 0
 
+function Base.show(io::IO, mime::MIME"text/plain", metadata::Metadata{N}) where N
+    print(io, "Metadata")
+    if N !== Nothing
+        print(io, "{")
+        show(io, N)
+        print(io, "}")
+    end
+    printstyled(io, " of "; color=:light_black)
+    show(io, mime, val(metadata))
+end
+
 # Metadata utils
 
 function metadatadict(dict)

@@ -9,7 +9,7 @@ struct Unsortable
     val::Int
 end
 
-@testset "format Lookup" begin
+@testset "format LookupArray" begin
    @testset "format Categorical from AutoLookup" begin
         A = [:a, :b]
         @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, ForwardOrdered(), NoMetadata())

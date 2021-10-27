@@ -66,7 +66,7 @@ function modify(f, A::AbstractDimArray)
 end
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
 modify(f, dim::Dimension) = rebuild(dim, modify(f, val(dim)))
-function modify(f, lookup::Lookup)
+function modify(f, lookup::LookupArray)
     newindex = modify(f, parent(lookup))
     rebuild(lookup; data=newindex)
 end
@@ -171,7 +171,7 @@ end
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
-function dim2boundsmatrix(lookup::Lookup)
+function dim2boundsmatrix(lookup::LookupArray)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
     _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
@@ -194,7 +194,7 @@ Shift the index of `x` from the current locus to the new locus.
 We only shift `Samped`, `Regular` or `Explicit`, `Intervals`. 
 """
 shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
-function shiftlocus(locus::Locus, lookup::Lookup)
+function shiftlocus(locus::Locus, lookup::LookupArray)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
     newindex = _shiftindexlocus(locus, lookup)
@@ -203,28 +203,28 @@ function shiftlocus(locus::Locus, lookup::Lookup)
 end
 
 # Fallback - no shifting
-_shiftindexlocus(locus::Locus, lookup::Lookup) = index(lookup)
+_shiftindexlocus(locus::Locus, lookup::LookupArray) = index(lookup)
 # Sampled
 function _shiftindexlocus(locus::Locus, lookup::AbstractSampled)
     _shiftindexlocus(locus, span(lookup), sampling(lookup), lookup)
 end
 # TODO:
-_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::Lookup) = index(lookup)
+_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::LookupArray) = index(lookup)
 # Sampled Regular
-function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Lookup)
+function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::LookupArray)
     index(dim) .+ ((index(dim) .+ abs(step(span))) .- index(dim)) * _offset(locus(sampling), destlocus)
 end
-function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::Lookup)
+function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::LookupArray)
     index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
 end
 # Sampled Explicit
-_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[1, :]
-_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[2, :]
-function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::Lookup)
+_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[1, :]
+_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[2, :]
+function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::LookupArray)
     _shiftindexlocus(destlocus, locus(lookup), span, sampling, lookup)
 end
-_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::Lookup) = index(lookup)
-function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::Lookup)
+_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::LookupArray) = index(lookup)
+function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::LookupArray)
     # A little complicated so that DateTime works
     (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
 end
@@ -238,10 +238,10 @@ _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
 
 maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
-maybeshiftlocus(locus::Locus, l::Lookup) = _maybeshiftlocus(locus, sampling(l), l)
+maybeshiftlocus(locus::Locus, l::LookupArray) = _maybeshiftlocus(locus, sampling(l), l)
 
-_maybeshiftlocus(locus::Locus, sampling::Intervals, l::Lookup) = shiftlocus(locus, l)
-_maybeshiftlocus(locus::Locus, sampling::Sampling, l::Lookup) = l
+_maybeshiftlocus(locus::Locus, sampling::Intervals, l::LookupArray) = shiftlocus(locus, l)
+_maybeshiftlocus(locus::Locus, sampling::Sampling, l::LookupArray) = l
 
 _astuple(t::Tuple) = t
 _astuple(x) = (x,)

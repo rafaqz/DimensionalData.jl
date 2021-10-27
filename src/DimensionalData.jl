@@ -42,7 +42,7 @@ export Sampling, Points, Intervals
 
 export Span, Regular, Irregular, Explicit, AutoSpan
 
-export Lookup, Auto, AutoLookup, NoLookup
+export LookupArray, AutoLookup, NoLookup
 
 export Aligned, AbstractSampled, Sampled, AbstractCategorical, Categorical
 
@@ -76,27 +76,31 @@ const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer}
 include("interface.jl")
 include("name.jl")
 include("metadata.jl")
-# Lookups
+# LookupArrays
 include("lookup/lookup_traits.jl")
 include("lookup/lookup.jl")
 include("lookup/selector.jl")
 include("lookup/methods.jl")
+include("lookup/show.jl")
 # Dimensions
 include("dimension/dimension.jl")
 include("dimension/primitives.jl")
 include("dimension/format.jl")
 include("dimension/indexing.jl")
 include("dimension/coord.jl")
+include("dimension/show.jl")
 # Arrays
 include("array/array.jl")
 include("array/indexing.jl")
 include("array/methods.jl")
 include("array/matmul.jl")
 include("array/broadcast.jl")
+include("array/show.jl")
 # Stacks
 include("stack/stack.jl")
 include("stack/indexing.jl")
 include("stack/methods.jl")
+include("stack/show.jl")
 # Other
 include("dimindices.jl")
 include("tables.jl")
@@ -104,7 +108,6 @@ include("tables.jl")
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
-include("show.jl")
 
 function _precompile()
     precompile(DimArray, (Array{Int,1}, typeof(X())))
