@@ -1,61 +1,61 @@
 
 """
-    Lookup
+    LookupArray
 
 Types defining the behaviour of a lookup index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
-A `Lookup` may be a simple type like [`NoLookup`](@ref) indicating that the index is
+A `LookupArray` may be a simple type like [`NoLookup`](@ref) indicating that the index is
 just the underlying array axis. It could also be a [`Categorical`](@ref) index indicating
 the index is ordered or unordered categories, or a [`Sampled`](@ref) index indicating
 sampling.
 """
-abstract type Lookup{T,N} <: AbstractArray{T,N} end
+abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
-const LookupTuple = Tuple{<:Lookup,Vararg{<:Lookup}}
+const LookupArrayTuple = Tuple{<:LookupArray,Vararg{<:LookupArray}}
 
-span(lookup::Lookup) = NoSpan() 
-sampling(lookup::Lookup) = NoSampling()
+span(lookup::LookupArray) = NoSpan() 
+sampling(lookup::LookupArray) = NoSampling()
 
-dims(::Lookup) = nothing
-index(lookup::Lookup) = parent(lookup)
-locus(lookup::Lookup) = Center()
+dims(::LookupArray) = nothing
+index(lookup::LookupArray) = parent(lookup)
+locus(lookup::LookupArray) = Center()
 
-Base.parent(l::Lookup) = l.data
-Base.size(l::Lookup) = size(parent(l))
-Base.axes(l::Lookup) = axes(parent(l))
-Base.first(l::Lookup) = first(parent(l))
-Base.last(l::Lookup) = last(parent(l))
-Base.firstindex(l::Lookup) = firstindex(parent(l))
-Base.lastindex(l::Lookup) = lastindex(parent(l))
+Base.parent(l::LookupArray) = l.data
+Base.size(l::LookupArray) = size(parent(l))
+Base.axes(l::LookupArray) = axes(parent(l))
+Base.first(l::LookupArray) = first(parent(l))
+Base.last(l::LookupArray) = last(parent(l))
+Base.firstindex(l::LookupArray) = firstindex(parent(l))
+Base.lastindex(l::LookupArray) = lastindex(parent(l))
 
-function Base.searchsortedfirst(lookup::Lookup, val; lt=<)
+function Base.searchsortedfirst(lookup::LookupArray, val; lt=<)
     searchsortedfirst(parent(lookup), unwrap(val); order=_ordering(order(lookup)), lt=lt)
 end
-function Base.searchsortedlast(lookup::Lookup, val; lt=<)
+function Base.searchsortedlast(lookup::LookupArray, val; lt=<)
     searchsortedlast(parent(lookup), unwrap(val); order=_ordering(order(lookup)), lt=lt)
 end
 
-function Base.:(==)(l1::Lookup, l2::Lookup)
+function Base.:(==)(l1::LookupArray, l2::LookupArray)
     typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
 end
 
-function Adapt.adapt_structure(to, l::Lookup)
+function Adapt.adapt_structure(to, l::LookupArray)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
 end
 
 """
-    AutoLookup <: Lookup
+    AutoLookup <: LookupArray
 
     AutoLookup()
     AutoLookup(index=AutoIndex(); kw...)
 
-Automatic [`Lookup`](@ref), the default lookup. It will be converted automatically
-to another [`Lookup`](@ref) when it is possible to detect it from the index.
+Automatic [`LookupArray`](@ref), the default lookup. It will be converted automatically
+to another [`LookupArray`](@ref) when it is possible to detect it from the index.
 
-Keywords will be used in the detected `Lookup` constructor.
+Keywords will be used in the detected `LookupArray` constructor.
 """
-struct AutoLookup{T,A<:AbstractVector{T},K} <: Lookup{T,1}
+struct AutoLookup{T,A<:AbstractVector{T},K} <: LookupArray{T,1}
     data::A
     kw::K
 end
@@ -68,34 +68,32 @@ metadata(lookup::AutoLookup) = hasproperty(lookup.kw, :metadata) ? lookup.kw.met
 
 Base.step(lookup::AutoLookup) = Base.step(parent(lookup))
 
-const Auto = AutoLookup
+bounds(lookup::LookupArray) = _bounds(order(lookup), lookup)
 
-bounds(lookup::Lookup) = _bounds(order(lookup), lookup)
+_bounds(::ForwardOrdered, l::LookupArray) = first(l), last(l)
+_bounds(::ReverseOrdered, l::LookupArray) = last(l), first(l)
+_bounds(::Unordered, l::LookupArray) = (nothing, nothing)
 
-_bounds(::ForwardOrdered, l::Lookup) = first(l), last(l)
-_bounds(::ReverseOrdered, l::Lookup) = last(l), first(l)
-_bounds(::Unordered, l::Lookup) = (nothing, nothing)
-
-@noinline Base.step(lookup::T) where T <: Lookup =
+@noinline Base.step(lookup::T) where T <: LookupArray =
     error("No step provided by $T. Use a `Sampled` with `Regular`")
 
 """
-    Aligned <: Lookup
+    Aligned <: LookupArray
 
-Abstract supertype for [`Lookup`](@ref)s where the index is aligned with the array axes.
+Abstract supertype for [`LookupArray`](@ref)s where the index is aligned with the array axes.
 
-This is by far the most common supertype for `Lookup`.
+This is by far the most common supertype for `LookupArray`.
 """
-abstract type Aligned{T,O} <: Lookup{T,1} end
+abstract type Aligned{T,O} <: LookupArray{T,1} end
 
 order(lookup::Aligned) = lookup.order
 
 """
-    NoLookup <: Lookup
+    NoLookup <: LookupArray
 
     NoLookup()
 
-A [`Lookup`](@ref) that is identical to the array axis. 
+A [`LookupArray`](@ref) that is identical to the array axis. 
 [`Selector`](@ref)s can't be used on this lookup.
 
 ## Example
@@ -141,7 +139,7 @@ rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 """
     AbstractSampled <: Aligned
 
-Abstract supertype for [`Lookup`](@ref)s where the index is aligned with the array,
+Abstract supertype for [`LookupArray`](@ref)s where the index is aligned with the array,
 and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
 `Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
 
@@ -185,7 +183,7 @@ _bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), firs
     Sampled(data::AbstractVector, order::Order, span::Span, sampling::Sampling, metadata)
     Sampled(; data=AutoIndex(), order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
 
-A concrete implementation of the [`Lookup`](@ref) [`AbstractSampled`](@ref).
+A concrete implementation of the [`LookupArray`](@ref) [`AbstractSampled`](@ref).
 It can be used to represent [`Points`](@ref) or [`Intervals`](@ref).
 
 `Sampled` is capable of representing gridded data from a wide range of sources, allowing
@@ -258,7 +256,7 @@ end
 """
     AbstractCategorical <: Aligned
 
-[`Lookup`](@ref)s where the values are categories.
+[`LookupArray`](@ref)s where the values are categories.
 
 [`Categorical`](@ref) is the provided concrete implementation. 
 but this can easily be extended - all methods are defined for `AbstractCategorical`.
@@ -279,7 +277,7 @@ const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
     Categorical(o::Order)
     Categorical(; order=Unordered())
 
-An Lookup where the values are categories.
+An LookupArray where the values are categories.
 
 This will be automatically assigned if the index contains `AbstractString`,
 `Symbol` or `Char`. Otherwise it can be assigned manually.
@@ -332,21 +330,21 @@ end
 
 
 """
-    Unaligned <: Lookup
+    Unaligned <: LookupArray
 
-Abstract supertype for [`Lookup`](@ref) where the index is not aligned to the grid.
+Abstract supertype for [`LookupArray`](@ref) where the index is not aligned to the grid.
 
 Indexing an [`Unaligned`](@ref) with [`Selector`](@ref)s must provide all
 other [`Unaligned`](@ref) dimensions.
 """
-abstract type Unaligned{T,N} <: Lookup{T,N} end
+abstract type Unaligned{T,N} <: LookupArray{T,N} end
 
 """
     Transformed <: Unaligned
 
     Transformed(f, dim::Dimension; metadata=NoMetadata())
 
-[`Lookup`](@ref) that uses an affine transformation to convert
+[`LookupArray`](@ref) that uses an affine transformation to convert
 dimensions from `dims(lookup)` to `dims(array)`. This can be useful
 when the dimensions are e.g. rotated from a more commonly used axis.
 
@@ -414,39 +412,39 @@ Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1)
 # TODO deal with unordered arrays trashing the index order
 for f in (:getindex, :view, :dotview)
     @eval begin
-        @propagate_inbounds Base.$f(l::Lookup, i::AbstractArray) = 
+        @propagate_inbounds Base.$f(l::LookupArray, i::AbstractArray) = 
             rebuild(l; data=Base.$f(parent(l), i))
-        @propagate_inbounds Base.$f(l::Lookup, i::Int) = Base.$f(parent(l), i)
+        @propagate_inbounds Base.$f(l::LookupArray, i::Int) = Base.$f(parent(l), i)
         @propagate_inbounds Base.$f(l::AbstractSampled, i::AbstractRange) = 
             rebuild(l; data=Base.$f(parent(l), i), span=slicespan(l, i))
         @propagate_inbounds Base.$f(l::NoLookup, i::Int) = i
     end
 end
 
-slicespan(l::Lookup, i::Colon) = span(l)
-slicespan(l::Lookup, i) = _slicespan(span(l), l, i)
+slicespan(l::LookupArray, i::Colon) = span(l)
+slicespan(l::LookupArray, i) = _slicespan(span(l), l, i)
 
-_slicespan(span::Regular, l::Lookup, i::Int) = span
-_slicespan(span::Regular, l::Lookup, i::AbstractRange) = Regular(step(l) * step(i))
-_slicespan(span::Regular, l::Lookup, i::AbstractArray) = _slicespan(Irregular(bounds(l)), l, i) 
-_slicespan(span::Explicit, l::Lookup, i::Int) = Explicit(val(span)[:, i])
-_slicespan(span::Explicit, l::Lookup, i::AbstractArray) = Explicit(val(span)[:, i])
+_slicespan(span::Regular, l::LookupArray, i::Int) = span
+_slicespan(span::Regular, l::LookupArray, i::AbstractRange) = Regular(step(l) * step(i))
+_slicespan(span::Regular, l::LookupArray, i::AbstractArray) = _slicespan(Irregular(bounds(l)), l, i) 
+_slicespan(span::Explicit, l::LookupArray, i::Int) = Explicit(val(span)[:, i])
+_slicespan(span::Explicit, l::LookupArray, i::AbstractArray) = Explicit(val(span)[:, i])
 
-function _slicespan(span::Irregular, l::Lookup, i::StandardIndices)
+function _slicespan(span::Irregular, l::LookupArray, i::StandardIndices)
     Irregular(_maybeflipbounds(l, _slicespan(locus(l), span, l, i)))
 end
-function _slicespan(locus::Start, span::Irregular, l::Lookup, i::StandardIndices)
+function _slicespan(locus::Start, span::Irregular, l::LookupArray, i::StandardIndices)
     l[first(i)], last(i) >= lastindex(l) ? _maybeflipbounds(l, bounds(span))[2] : l[last(i) + 1]
 end
-function _slicespan(locus::End, span::Irregular, l::Lookup, i::StandardIndices)
+function _slicespan(locus::End, span::Irregular, l::LookupArray, i::StandardIndices)
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : l[first(i) - 1], l[last(i)]
 end
-function _slicespan(locus::Center, span::Irregular, l::Lookup, i::StandardIndices)
+function _slicespan(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2,
     last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
 end
 # Have to special-case date/time so we work with seconds and add to the original
-function _slicespan(locus::Center, span::Irregular, l::Lookup{<:Dates.AbstractTime}, i::StandardIndices)
+function _slicespan(locus::Center, span::Irregular, l::LookupArray{<:Dates.AbstractTime}, i::StandardIndices)
     frst = if first(i) <= firstindex(l)
         _maybeflipbounds(l, bounds(span))[1]
     else
@@ -512,10 +510,10 @@ end
 end
 # Get the index value at the reduced locus.
 # This is the start, center or end point of the whole index.
-@inline _reduceindex(lookup::Lookup, step=nothing) = _reduceindex(locus(lookup), lookup, step)
-@inline _reduceindex(locus::Start, lookup::Lookup, step) = _mayberange(first(lookup), step)
-@inline _reduceindex(locus::End, lookup::Lookup, step) = _mayberange(last(lookup), step)
-@inline _reduceindex(locus::Center, lookup::Lookup, step) = begin
+@inline _reduceindex(lookup::LookupArray, step=nothing) = _reduceindex(locus(lookup), lookup, step)
+@inline _reduceindex(locus::Start, lookup::LookupArray, step) = _mayberange(first(lookup), step)
+@inline _reduceindex(locus::End, lookup::LookupArray, step) = _mayberange(last(lookup), step)
+@inline _reduceindex(locus::Center, lookup::LookupArray, step) = begin
     index = parent(lookup)
     len = length(index)
     newval = centerval(index, len)

@@ -64,14 +64,14 @@ rtol(sel::At) = sel.rtol
 struct _True end
 struct _False end
 
-(sel::At)(lookup::Lookup; kw...) = at(lookup, sel; kw...)
+(sel::At)(lookup::LookupArray; kw...) = at(lookup, sel; kw...)
 
 at(lookup::NoLookup, sel::At; kw...) = val(sel)
-function at(lookup::Lookup, sel::At; kw...)
+function at(lookup::LookupArray, sel::At; kw...)
     at(order(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
 function at(
-    ::Ordered, lookup::Lookup{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing; 
+    ::Ordered, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing; 
     err=_True()
 )
     x = unwrap(selval)
@@ -97,7 +97,7 @@ function at(
     end
 end
 # catch-all for an unordered or non-number index
-function at(order, lookup::Lookup, selval, atol, rtol::Nothing; err=_True())
+function at(order, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing 
         return _selnotfound_or_nothing(err, lookup, selval)
@@ -141,16 +141,16 @@ struct Near{T} <: Selector{T}
     val::T
 end
 
-(sel::Near)(lookup::Lookup) = near(lookup, sel)
+(sel::Near)(lookup::LookupArray) = near(lookup, sel)
 
 near(lookup::NoLookup, sel::Near) = val(sel)
-function near(lookup::Lookup, sel::Near)
+function near(lookup::LookupArray, sel::Near)
     span(lookup) isa Irregular && locus(lookup) isa Union{Start,End} &&
         throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
     near(order(lookup), sampling(lookup), lookup, sel)
 end
-near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
-function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
+near(order::Order, ::NoSampling, lookup::LookupArray, sel::Near) = at(lookup, At(val(sel)))
+function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
     # Unwrap the selector value and adjust it for
     # inderval locus if neccessary
     v = unwrap(val(sel))
@@ -180,7 +180,7 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
 
     return closest_i
 end
-function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
+function near(::Unordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
     throw(ArgumentError("`Near` has no meaning in an `Unordered` `Sampled` index"))
 end
 
@@ -218,28 +218,28 @@ struct Contains{T} <: Selector{T}
 end
 
 # Filter based on sampling and selector -----------------
-(sel::Contains)(l::Lookup; kw...) = contains(l, sel)
+(sel::Contains)(l::LookupArray; kw...) = contains(l, sel)
 
 contains(l::NoLookup, sel::Contains; kw...) = val(sel)
-contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
+contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
-function contains(::NoSampling, lookup::Lookup, sel::Contains; kw...)
+function contains(::NoSampling, lookup::LookupArray, sel::Contains; kw...)
     at(lookup, At(val(sel)); kw...)
 end
 # Points --------------------------------------
-function contains(::Points, lookup::Lookup, sel::Contains; err=_True())
+function contains(::Points, lookup::LookupArray, sel::Contains; err=_True())
     if err isa _True
-        throw(ArgumentError("Points Lookup cannot use `Contains`, use `Near` or `At` for Points."))
+        throw(ArgumentError("Points LookupArray cannot use `Contains`, use `Near` or `At` for Points."))
     else
         nothing
     end
 end
 # Intervals -----------------------------------
-function contains(sampling::Intervals, lookup::Lookup, sel::Contains; kw...)
+function contains(sampling::Intervals, lookup::LookupArray, sel::Contains; kw...)
     contains(span(lookup), sampling, order(lookup), locus(lookup), lookup, sel; kw...)
 end
 # Regular Intervals ---------------------------
-function contains(span::Regular, ::Intervals, order, locus, lookup::Lookup, sel::Contains; 
+function contains(span::Regular, ::Intervals, order, locus, lookup::LookupArray, sel::Contains; 
     err=_True()
 )
     _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
@@ -258,7 +258,7 @@ function contains(span::Regular, ::Intervals, order, locus, lookup::Lookup, sel:
 end
 # Explicit Intervals ---------------------------
 function contains(
-    span::Explicit, ::Intervals, order,locus, lookup::Lookup, sel::Contains;
+    span::Explicit, ::Intervals, order,locus, lookup::LookupArray, sel::Contains;
     err=_True()
 )
     x = val(sel)
@@ -272,7 +272,7 @@ end
 # Irregular Intervals -------------------------
 function contains(
     span::Irregular, ::Intervals, order::Order,
-    locus::Locus,lookup::Lookup, sel::Contains;
+    locus::Locus,lookup::LookupArray, sel::Contains;
     err=_True()
 )
     _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
@@ -282,7 +282,7 @@ function contains(
 end
 function contains(
     span::Irregular, ::Intervals, order::Order,
-    locus::Center, lookup::Lookup, sel::Contains; 
+    locus::Center, lookup::LookupArray, sel::Contains; 
     err=_True()
 )
     _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
@@ -369,23 +369,23 @@ Base.last(sel::Between) = last(val(sel))
 struct _Upper end
 struct _Lower end
 
-(sel::Between)(lookup::Lookup) = between(lookup, sel)
+(sel::Between)(lookup::LookupArray) = between(lookup, sel)
 
 between(lookup::NoLookup, sel::Between) = val(sel)[1]:val(sel)[2]
-between(lookup::Lookup, sel::Between) = between(sampling(lookup), lookup, sel)
+between(lookup::LookupArray, sel::Between) = between(sampling(lookup), lookup, sel)
 # This is the main method called above
-function between(sampling::Sampling, lookup::Lookup, sel::Between)
+function between(sampling::Sampling, lookup::LookupArray, sel::Between)
     o = order(lookup)
     o isa Unordered && throw(ArgumentError("Cannot use `Between` with Unordered"))
     a, b = between(sampling, o, lookup, sel)
     return a:b
 end
 
-function between(sampling::NoSampling, o::Order, lookup::Lookup, sel::Between)
+function between(sampling::NoSampling, o::Order, lookup::LookupArray, sel::Between)
     between(Points(), o, lookup, sel)
 end
 # Points ------------------------------------
-function between(sampling::Points, o::Order, lookup::Lookup, sel::Between)
+function between(sampling::Points, o::Order, lookup::LookupArray, sel::Between)
     b1, b2 = _maybeflipbounds(o, _sorttuple(sel))
     s1, s2 = _maybeflipbounds(o, (searchsortedfirst, searchsortedlast))
     low_i = s1(lookup, b1)
@@ -393,18 +393,18 @@ function between(sampling::Points, o::Order, lookup::Lookup, sel::Between)
     return _inbounds((low_i, high_i), lookup)
 end
 # Intervals -------------------------
-function between(sampling::Intervals, o::Order, lookup::Lookup, sel::Between)
+function between(sampling::Intervals, o::Order, lookup::LookupArray, sel::Between)
     between(span(lookup), sampling, o, lookup, sel)
 end
 # Regular Intervals -------------------------
-function between(span::Regular, ::Intervals, o::Order, lookup::Lookup, sel::Between)
+function between(span::Regular, ::Intervals, o::Order, lookup::LookupArray, sel::Between)
     lowval, highval = _maybeflipbounds(o, _sorttuple(sel) .+ _locus_adjust(lookup))
     low_i = searchsortedfirst(lookup, lowval)
     high_i = searchsortedlast(lookup, highval)
     return _inbounds((low_i, high_i), lookup)
 end
 # Explicit Intervals -------------------------
-function between(span::Explicit, ::Intervals, o::Order, lookup::Lookup, sel::Between)
+function between(span::Explicit, ::Intervals, o::Order, lookup::LookupArray, sel::Between)
     lower_bounds = view(val(span), 1, :)
     upper_bounds = view(val(span), 2, :)
     low_i = searchsortedfirst(lower_bounds, first(val(sel)); lt=<)
@@ -412,7 +412,7 @@ function between(span::Explicit, ::Intervals, o::Order, lookup::Lookup, sel::Bet
     return _inbounds((low_i, high_i), lookup)
 end
 # Irregular Intervals -----------------------
-function between(span::Irregular, ::Intervals, o::Order, l::Lookup, sel::Between)
+function between(span::Irregular, ::Intervals, o::Order, l::LookupArray, sel::Between)
     lowval, highval = _sorttuple(sel) 
     lowerbound, upperbound = bounds(span)
 
@@ -428,10 +428,10 @@ function between(span::Irregular, ::Intervals, o::Order, l::Lookup, sel::Between
     end
     return _maybeflipbounds(o, (a, b))
 end
-function _irregbetween(side, locus::Union{Start,End}, o::Order, m::Lookup, v)
+function _irregbetween(side, locus::Union{Start,End}, o::Order, m::LookupArray, v)
     _search(side, m, v) - _ordscalar(o) * (_locscalar(locus) + _endshift(side))
 end
-function _irregbetween(side, locus::Center, o::Order, l::Lookup, v)
+function _irregbetween(side, locus::Center, o::Order, l::LookupArray, v)
     r = _ordscalar(o) 
     sh = _endshift(side)
     i = _search(side, l, v)
@@ -467,7 +467,7 @@ _ordscalar(::ReverseOrdered) = -1
 _lt(::_Lower) = (<)
 _lt(::_Upper) = (<=)
 
-_maybeflipbounds(m::Lookup, bounds) = _maybeflipbounds(order(m), bounds) 
+_maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds) 
 _maybeflipbounds(o::ForwardOrdered, (a, b)) = (a, b)
 _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
 
@@ -502,7 +502,7 @@ end
 val(sel::Where) = sel.f
 
 # Yes this is everything. `Where` doesn't need lookup specialisation  
-@inline function (sel::Where)(lookup::Lookup)
+@inline function (sel::Where)(lookup::LookupArray)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
 
@@ -516,32 +516,32 @@ end
 Converts [`Selector`](@ref) to regular indices.
 """
 function selectindices end
-@inline selectindices(lookups::LookupTuple, s1, ss...) = selectindices(lookups, (s1, ss...))
-@inline selectindices(lookups::LookupTuple, selectors::Tuple) =
+@inline selectindices(lookups::LookupArrayTuple, s1, ss...) = selectindices(lookups, (s1, ss...))
+@inline selectindices(lookups::LookupArrayTuple, selectors::Tuple) =
     map((l, s) -> selectindices(l, s), lookups, selectors)
-@inline selectindices(lookups::LookupTuple, selectors::Tuple{}) = ()
-# @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
+@inline selectindices(lookups::LookupArrayTuple, selectors::Tuple{}) = ()
+# @inline selectindices(dim::LookupArray, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.
-@inline selectindices(::Lookup, sel::StandardIndices) = sel
-@inline function selectindices(l::Lookup, sel)
+@inline selectindices(::LookupArray, sel::StandardIndices) = sel
+@inline function selectindices(l::LookupArray, sel)
     selstr = sprint(show, sel)
     throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
 end
 # Vectors are mapped
-@inline selectindices(lookup::Lookup, sel::Selector{<:AbstractVector}) =
+@inline selectindices(lookup::LookupArray, sel::Selector{<:AbstractVector}) =
     [selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
 
 # Otherwise apply the selector
-@inline selectindices(lookup::Lookup, sel::Selector) = sel(lookup)
+@inline selectindices(lookup::LookupArray, sel::Selector) = sel(lookup)
 
 
-# Unaligned Lookup ------------------------------------------
+# Unaligned LookupArray ------------------------------------------
 
 # select_unalligned_indices is callled directly from dims2indices
 
 # We use the transformation from the first Transformed dim.
 # In practice the others could be empty.
-@inline function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
+@inline function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
     coords = [map(val, sel)...]
     transformed = transformfunc(lookups[1])(coords)
     map(_transform2int, sel, transformed)
@@ -561,8 +561,8 @@ end
 # Shared utils ============================================================================
 
 # Return an inbounds index
-_inbounds(is::Tuple, lookup::Lookup) = map(i -> _inbounds(i, lookup), is)
-function _inbounds(i::Int, lookup::Lookup)
+_inbounds(is::Tuple, lookup::LookupArray) = map(i -> _inbounds(i, lookup), is)
+function _inbounds(i::Int, lookup::LookupArray)
     if i > lastindex(lookup)
         lastindex(lookup)
     elseif i <= firstindex(lookup)
@@ -580,15 +580,15 @@ _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
 
-_locus_checkbounds(loc, lookup::Lookup, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel)) 
+_locus_checkbounds(loc, lookup::LookupArray, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel)) 
 _locus_checkbounds(loc, (l, h)::Tuple, v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
 
 _searchfunc(::ForwardOrdered) = searchsortedfirst
 _searchfunc(::ReverseOrdered) = searchsortedlast
 
-hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
-hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
+hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
+hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
 # Otherwise Near returns the nearest index, and Between and empty range
-hasselection(lookup::Lookup, selnear::Near) = order(lookup) isa Unordered ? false : true
-hasselection(lookup::Lookup, selnear::Between) = order(lookup) isa Unordered ? false : true
+hasselection(lookup::LookupArray, selnear::Near) = order(lookup) isa Unordered ? false : true
+hasselection(lookup::LookupArray, selnear::Between) = order(lookup) isa Unordered ? false : true

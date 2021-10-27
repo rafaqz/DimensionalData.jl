@@ -1,5 +1,5 @@
-const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing}
-const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
+const LookupArraySetters = Union{AllMetadata,LookupArray,LookupArrayTrait,Nothing}
+const DimSetters = Union{LookupArraySetters,Type,UnionAll,Dimension,Symbol}
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
@@ -14,7 +14,7 @@ To set fields of dimensions you need to specify the dimension. This can be done 
 `Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments,
 or a `NamedTuple`.
 
-When dimensions or Lookups are passed to `set` to replace the existing ones,
+When dimensions or LookupArrays are passed to `set` to replace the existing ones,
 fields that are not set will keep their original values.
 
 ## Notes:
@@ -55,11 +55,11 @@ set(da, custom=Reverse(), Z=Unordered())
 ```
 """
 function set end
-set(A::DimArrayOrStack, name::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(T)
+set(A::DimArrayOrStack, name::T) where {T<:Union{LookupArray,LookupArrayTrait}} = _onlydimerror(T)
 set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
-set(A::AbstractDimStack, x::Lookup) = _cantseterror(A, x)
-set(A::AbstractDimArray, x::Lookup) = _cantseterror(A, x)
+set(A::AbstractDimStack, x::LookupArray) = _cantseterror(A, x)
+set(A::AbstractDimArray, x::LookupArray) = _cantseterror(A, x)
 set(A, x) = _cantseterror(A, x)
 
 """
@@ -123,14 +123,14 @@ Update the `metadata` field of the stack.
 set(s::AbstractDimStack, metadata::AbstractMetadata) = rebuild(s; metadata=metadata)
 """
     set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
-    set(dim::Dimension, lookup::Lookup) => Dimension
-    set(dim::Dimension, lookupcomponent::LookupTrait) => Dimension
+    set(dim::Dimension, lookup::LookupArray) => Dimension
+    set(dim::Dimension, lookupcomponent::LookupArrayTrait) => Dimension
     set(dim::Dimension, metadata::AbstractMetadata) => Dimension
 
 Set fields of the dimension
 """
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
-set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
+set(lookup::LookupArray, x::LookupArraySetters) = _set(lookup, x)
 
 # Array or Stack
 _set(A, x) = _cantseterror(A, x)
@@ -164,18 +164,18 @@ _set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
 _set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
 # Set the lookup
 # Otherwise pass this on to set fields on the lookup
-_set(dim::Dimension, x::LookupTrait) = rebuild(dim, _set(lookup(dim), x))
+_set(dim::Dimension, x::LookupArrayTrait) = rebuild(dim, _set(lookup(dim), x))
 
-# Lookup
+# LookupArray
 
-# _set(lookup::Lookup, newlookup::Lookup) = lookup
+# _set(lookup::LookupArray, newlookup::LookupArray) = lookup
 _set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
     lookup = _set(lookup, parent(newlookup))
     o = _set(order(lookup), order(newlookup))
     md = _set(metadata(lookup), metadata(newlookup))
     rebuild(lookup; order=o, metadata=md)
 end
-_set(lookup::Lookup, newlookup::AbstractCategorical) = begin
+_set(lookup::LookupArray, newlookup::AbstractCategorical) = begin
     lookup = _set(lookup, parent(newlookup))
     o = _set(order(lookup), order(newlookup))
     md = _set(metadata(lookup), metadata(newlookup))
@@ -190,7 +190,7 @@ _set(lookup::AbstractSampled, newlookup::AutoLookup) = begin
     md = _set(metadata(lookup), metadata(newlookup))
     rebuild(lookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
-_set(lookup::Lookup, newlookup::AbstractSampled) = begin
+_set(lookup::LookupArray, newlookup::AbstractSampled) = begin
     # Update each field separately. The old lookup may not have these fields, or may have
     # a subset with the rest being traits. The new lookup may have some auto fields.
     lookup = _set(lookup, parent(newlookup))
@@ -201,15 +201,15 @@ _set(lookup::Lookup, newlookup::AbstractSampled) = begin
     # Rebuild the new lookup with the merged fields
     rebuild(newlookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
-_set(lookup::Lookup, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
-_set(lookup::Lookup, newlookup::NoLookup) = newlookup
+_set(lookup::LookupArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
+_set(lookup::LookupArray, newlookup::NoLookup) = newlookup
 
 # Set the index
-_set(lookup::Lookup, index::Val) = rebuild(lookup; data=index)
-_set(lookup::Lookup, index::Colon) = lookup
-_set(lookup::Lookup, index::AbstractArray) = rebuild(lookup; data=index)
-_set(lookup::Lookup, index::AutoIndex) = lookup
-_set(lookup::Lookup, index::AbstractRange) =
+_set(lookup::LookupArray, index::Val) = rebuild(lookup; data=index)
+_set(lookup::LookupArray, index::Colon) = lookup
+_set(lookup::LookupArray, index::AbstractArray) = rebuild(lookup; data=index)
+_set(lookup::LookupArray, index::AutoIndex) = lookup
+_set(lookup::LookupArray, index::AbstractRange) =
     rebuild(lookup; data=_set(parent(lookup), index), order=_orderof(index))
 # Update the Sampling lookup of Sampled dims - it must match the range.
 _set(lookup::AbstractSampled, index::AbstractRange) = begin
@@ -224,7 +224,7 @@ _set(index::AbstractArray, newindex::AutoLookup) = index
 _set(index::Colon, newindex::AbstractArray) = newindex
 
 # Order
-_set(lookup::Lookup, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
+_set(lookup::LookupArray, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
 _set(lookup::NoLookup, neworder::Order) = lookup
 _set(order::Order, neworder::Order) = neworder 
 _set(order::Order, neworder::AutoOrder) = order
@@ -252,7 +252,7 @@ _set(sampling::Intervals, locus::AutoLocus) = sampling
 
 # Metadata
 _set(dim::Dimension, newmetadata::AllMetadata) = rebuild(dim, _set(lookup(dim), newmetadata))
-_set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
+_set(lookup::LookupArray, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
 _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
 _set(x::Dimension, ::Nothing) = x

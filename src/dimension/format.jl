@@ -12,7 +12,7 @@ Format the passed-in dimension(s) `dims` to match the object `x`.
 This means converting indexes of `Tuple` to `LinRange`, and running
 `format`. Errors are also thrown if dims don't match the array dims or size.
 
-If a [`Lookup`](@ref) hasn't been specified, an lookup is chosen
+If a [`LookupArray`](@ref) hasn't been specified, an lookup is chosen
 based on the type and element type of the index:
 """
 format(dims, A::AbstractArray) = format((dims,), A)
@@ -36,9 +36,9 @@ function _format(dim::Dimension, axis::AbstractRange)
 end
 
 format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), D, val, axis)
-format(m::Lookup, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
+format(m::LookupArray, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
 
-# Format Lookups
+# Format LookupArrays
 # No more identification required for NoLookup
 format(m::NoLookup, D::Type, index, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, index::AutoIndex, axis::AbstractRange) = NoLookup(axis)

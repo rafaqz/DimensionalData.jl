@@ -165,7 +165,7 @@ was selected from. These can be use for plot labelling, and tracking array
 changes.
 
 
-## Lookups
+## LookupArrays
 
 DimensionalData provides types for specifying details about the dimension index.
 This enables optimisations with `Selector`s, and modified behaviours such as
@@ -176,13 +176,13 @@ This also allows reverse order index to still work with `seartsorted`, and for
 plots to always be the right way up when either the index or the 
 array is backwards - reversing the data lazily when required, not when loaded.
 
-The major categories of [`Lookup`](@ref) are [`Categorical`](@ref),
+The major categories of [`LookupArray`](@ref) are [`Categorical`](@ref),
 [`Sampled`](@ref) and [`NoLookup`](@ref), which are all subtypes of
 [`Aligned`](@ref). [`Unaligned`](@ref) also exists to handle dimensions with an
 index that is rotated or otherwise transformed in relation to the underlying
 array, such as [`Transformed`](@ref).
 
-## Lookup detection
+## LookupArray detection
 
 [`Aligned`](@ref) types will be detected automatically if not specified - mostly
 specifying them isn't required. A `Dimension` containing and index of `String`,
@@ -190,4 +190,4 @@ specifying them isn't required. A `Dimension` containing and index of `String`,
 [`Sampled`](@ref), defaulting to [`Points`](@ref) and [`Regular`](@ref), with
 the [`Order`](@ref) detected automatically. 
 
-See the api docs for specifics about these [`Lookup`](@ref)s.
+See the api docs for specifics about these [`LookupArray`](@ref)s.

@@ -105,7 +105,7 @@ end
 
 Get the dimension(s) matching the type(s) of the lookup dimension.
 
-Lookup can be an Int or an Dimension, or a tuple containing
+LookupArray can be an Int or an Dimension, or a tuple containing
 any combination of either.
 
 ## Arguments
@@ -299,7 +299,7 @@ and returns a new object or tuple with the dimension updated.
 ```jldoctest
 using DimensionalData
 A = DimArray(ones(10, 10), (X, Y(10:10:100)))
-B = setdims(A, Y(Categorical('a':'j'; order=Ordered())))
+B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
 index(B, Y)
 # output
 ERROR: MethodError: no constructors have been defined for Ordered
@@ -411,7 +411,7 @@ This is usually to match a new array size where an axis has been
 reduced with a method like `mean` or `reduce` to a length of 1,
 but the number of dimensions has not changed.
 
-`Lookup` traits are also updated to correspond to the change in
+`LookupArray` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
 @inline reducedims(x, dimstoreduce) = _reducedims(x, key2dim(dimstoreduce))

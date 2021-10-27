@@ -32,7 +32,7 @@ end
     @test occursin("Points", sv)
     sv = sprint(show, MIME("text/plain"), NoLookup())
     @test occursin("NoLookup", sv)
-    # Lookup tuple
+    # LookupArray tuple
     ls = map(lookup, ds)
     sv = sprint(show, MIME("text/plain"), ls)
     @test occursin("Categorical", sv)

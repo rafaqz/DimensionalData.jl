@@ -75,10 +75,10 @@ Metadata
 NoMetadata
 ```
 
-## Lookups
+## LookupArrays
 
 ```@docs
-Lookup
+LookupArray
 Aligned
 AbstractSampled
 Sampled
@@ -91,10 +91,10 @@ AutoLookup
 DimensionalData.AutoIndex
 ```
 
-## Lookup traits
+## LookupArray traits
 
 ```@docs
-DimensionalData.LookupTrait
+DimensionalData.LookupArrayTrait
 ```
 
 ### Order

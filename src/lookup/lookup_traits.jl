@@ -1,26 +1,26 @@
 
 
 """
-    LookupTrait
+    LookupArrayTrait
 
-Abstract supertype of all traits of a [`Lookup`](@ref).
+Abstract supertype of all traits of a [`LookupArray`](@ref).
 
 These modify the behaviour of the lookup index.
 """
-abstract type LookupTrait end
+abstract type LookupArrayTrait end
 
 """
-    Order <: LookupTrait
+    Order <: LookupArrayTrait
 
-Traits for the order of a [`Lookup`](@ref). These determine how
+Traits for the order of a [`LookupArray`](@ref). These determine how
 `searchsorted` finds values in the index, and how objects are plotted.
 """
-abstract type Order <: LookupTrait end
+abstract type Order <: LookupArrayTrait end
 
 """
     Ordered <: Order
 
-Supertype for the order of an ordered [`Lookup`](@ref),
+Supertype for the order of an ordered [`LookupArray`](@ref),
 like [`ForwardOrdered`](@ref) and [`ReverseOrdered`](@ref).
 """
 abstract type Ordered <: Order end
@@ -30,7 +30,7 @@ abstract type Ordered <: Order end
 
     AutoOrder()
 
-Specifies that the `Order` of a `Lookup` will be found automatically
+Specifies that the `Order` of a `LookupArray` will be found automatically
 where possible.
 """
 struct AutoOrder <: Order end
@@ -40,7 +40,7 @@ struct AutoOrder <: Order end
 
     ForwardOrdered()
 
-Indicates that the `Lookup` index is in the normal forward order.
+Indicates that the `LookupArray` index is in the normal forward order.
 """
 struct ForwardOrdered <: Ordered end
 
@@ -49,7 +49,7 @@ struct ForwardOrdered <: Ordered end
 
     ReverseOrdered()
 
-Indicates that the `Lookup` index is in the reverse order.
+Indicates that the `LookupArray` index is in the reverse order.
 """
 struct ReverseOrdered <: Ordered end
 
@@ -69,7 +69,7 @@ isrev(::Type{<:ForwardOrdered}) = false
 isrev(::Type{<:ReverseOrdered}) = true
 
 """
-   Locus <: LookupTrait
+   Locus <: LookupArrayTrait
 
 Abstract supertype of types that indicate the position of index values in cells.
 
@@ -79,7 +79,7 @@ These allow for values array cells to align with the `Start`,
 This means they can be plotted with correct axis markers, and allows automatic
 converrsions to between formats with different standards (such as NetCDF and GeoTiff).
 """
-abstract type Locus <: LookupTrait end
+abstract type Locus <: LookupArrayTrait end
 
 """
     Center <: Locus
@@ -123,12 +123,12 @@ struct AutoLocus <: Locus end
 
 
 """
-    Sampling <: LookupTrait
+    Sampling <: LookupArrayTrait
 
 Indicates the sampling method used by the index: [`Points`](@ref)
 or [`Intervals`](@ref).
 """
-abstract type Sampling <: LookupTrait end
+abstract type Sampling <: LookupArrayTrait end
 
 struct NoSampling <: Sampling end
 struct AutoSampling <: Sampling end
@@ -174,12 +174,12 @@ Rebuild `Intervals` with a new Locus.
 rebuild(::Intervals, locus) = Intervals(locus)
 
 """
-    Span <: LookupTrait
+    Span <: LookupArrayTrait
 
 Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
-abstract type Span <: LookupTrait end
+abstract type Span <: LookupArrayTrait end
 
 struct NoSpan <: Span end
 
@@ -249,9 +249,9 @@ val(span::Explicit) = span.val
 """
     AutoIndex
 
-Detect a `Lookup` index from the context. This is used in `NoLookup` to simply
+Detect a `LookupArray` index from the context. This is used in `NoLookup` to simply
 use the array axis as the index when the array is constructed, and in `set` to
-change the `Lookup` type without changing the index values.
+change the `LookupArray` type without changing the index values.
 """
 struct AutoIndex <: AbstractVector{Int} end
 

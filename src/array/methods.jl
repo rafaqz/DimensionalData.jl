@@ -228,8 +228,8 @@ function Base.vcat(dims::Dimension...)
     rebuild(dims[1], newlookup)
 end
 
-# Lookups may need adjustment for `cat`
-function _vcat_lookups(lookups::Lookup...)
+# LookupArrays may need adjustment for `cat`
+function _vcat_lookups(lookups::LookupArray...)
     newindex = _vcat_index(lookups[1], map(parent, lookups)...)
     return rebuild(lookups[1]; data=newindex)
 end
@@ -257,7 +257,7 @@ _vcat_lookups(::Points, ::Irregular, lookups...) =
 _vcat_index(lookup::NoLookup, A...) = OneTo(sum(map(length, A)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-_vcat_index(lookup::Lookup, A...) = vcat(A...)
+_vcat_index(lookup::LookupArray, A...) = vcat(A...)
 
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
