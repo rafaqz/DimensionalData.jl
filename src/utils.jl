@@ -18,7 +18,7 @@ reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, _pairdims(ps...))
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
 reorder(x, ot::Order) = reorder(x, typeof(ot))
-reorder(x, ot::Type{<:Order}) = _reorder(x, map(d -> basetypeof(d)(ot), dims(x)))
+reorder(x, ot::Type{<:Order}) = _reorder(x, map(d -> rebuild(d, ot), dims(x)))
 reorder(dim::Dimension, ot::Type{<:Order}) =
     ot <: basetypeof(order(dim)) ? dim : reverse(dim)
 

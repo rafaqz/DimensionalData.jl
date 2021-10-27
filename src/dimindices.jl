@@ -35,7 +35,7 @@ struct DimIndices{T,N,D<:Tuple{Vararg{<:Dimension}}} <: AbstractDimIndices{T,N}
 end
 DimIndices(dim::Dimension) = DimIndices((dim,))
 function DimIndices(dims::D) where {D<:Tuple{Vararg{<:Dimension}}}
-    T = typeof(map(d -> basetypeof(d)(1), dims))
+    T = typeof(map(d -> rebuil(d, 1), dims))
     N = length(dims)
     ax = map(d -> axes(val(d), 1), dims)
     if length(dims) > 0
@@ -48,7 +48,7 @@ DimIndices(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
 
 function Base.getindex(di::DimIndices, i1::Int, I::Int...)
     map(dims(di), (i1, I...)) do d, i
-        basetypeof(d)(axes(d, 1)[i])
+        rebuild(d, axes(d, 1)[i])
     end
 end
 
@@ -72,7 +72,7 @@ function DimKeys(dims::DimTuple; atol=nothing, selectors=_selectors(dims, atol))
     DimKeys(dims, selectors)
 end
 function DimKeys(dims::DimTuple, selectors)
-    T = typeof(map((d, s) -> basetypeof(d)(s), dims, selectors))
+    T = typeof(map(rebuild, dims, selectors))
     N = length(dims)
     ax = map(d -> axes(val(d), 1), dims)
     dims = format(dims, ax)

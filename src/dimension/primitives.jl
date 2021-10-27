@@ -202,7 +202,7 @@ end
 end
 @inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
-        basetypeof(d)(i)
+        rebuild(d, i)
     end
     map(val, _dims(f, numbered, lookups))
 end
@@ -351,7 +351,7 @@ swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
     map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
-@inline _swapdims(dim::Dimension, newdim::DimType) = basetypeof(newdim)(val(dim))
+@inline _swapdims(dim::Dimension, newdim::DimType) = rebuild(newdim, val(dim))
 @inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
 @inline _swapdims(dim::Dimension, newdim::Nothing) = dim
 
@@ -549,7 +549,7 @@ _maybefirst(::Tuple{}) = nothing
     (rebuild(first(dims), first(vals)), _kwdims(tail(dims), tail(vals))...)
 @inline _kwdims(dims::Tuple{}, vals::Tuple{}) = ()
 
-@inline _pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+@inline _pairdims(pairs::Pair...) = map(p -> rebuild(key2dim(first(p)), last(p)), pairs)
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)
