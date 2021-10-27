@@ -160,7 +160,7 @@ _set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim
 # Construct types
 _set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
 _set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
-_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
+_set(dim::Dimension, dt::DimType) = rebuild(dt, val(dim))
 _set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
 # Set the lookup
 # Otherwise pass this on to set fields on the lookup

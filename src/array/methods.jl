@@ -86,8 +86,8 @@ function Base.dropdims(A::AbstractDimArray; dims)
     rebuildsliced(A, data, _dropinds(A, dims))
 end
 
-@inline _dropinds(A, dims::DimTuple) = dims2indices(A, map(d -> basetypeof(d)(1), dims))
-@inline _dropinds(A, dim::Dimension) = dims2indices(A, basetypeof(dim)(1))
+@inline _dropinds(A, dims::DimTuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
+@inline _dropinds(A, dim::Dimension) = dims2indices(A, rebuild(dim, 1))
 
 
 # Function application

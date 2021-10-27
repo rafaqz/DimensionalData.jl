@@ -5,10 +5,9 @@
 Types defining the behaviour of a lookup index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
-A `LookupArray` may be a simple type like [`NoLookup`](@ref) indicating that the index is
-just the underlying array axis. It could also be a [`Categorical`](@ref) index indicating
-the index is ordered or unordered categories, or a [`Sampled`](@ref) index indicating
-sampling.
+A `LookupArray` may be [`NoLookup`](@ref) indicating that the index is just the
+underlying array axis, [`Categorical`](@ref) for ordered or unordered categories, 
+or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
@@ -215,7 +214,7 @@ On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups
 Create an array with [`Interval`] sampling, and `Regular` span for a vector with known spacing.
 
 We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying that the index 
-values are for the point at the start of the interval.
+values are for the positions at the start of each interval.
 
 ```jldoctest Sampled
 using DimensionalData
