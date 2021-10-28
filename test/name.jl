@@ -1,5 +1,7 @@
 using DimensionalData, Test
 
+using DimensionalData: Name, NoName
+
 @testset "Name" begin
     @test Name(:x) === Name{:x}()
     @test Symbol(Name(:x)) === :x

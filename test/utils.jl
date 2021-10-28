@@ -1,5 +1,10 @@
 using DimensionalData, Test, Dates
-using DimensionalData: shiftlocus, maybeshiftlocus, order, ForwardOrdered, ReverseOrdered
+using DimensionalData: shiftlocus, maybeshiftlocus, order, Metadata, NoMetadata
+
+using DimensionalData: index, locus, data
+using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
+    Sampled, Categorical, NoLookup, Transformed,
+    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 @testset "reverse" begin
     @testset "dimension" begin

@@ -1,5 +1,6 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates, LinearAlgebra
 
+using DimensionalData: AnonDim
 using Combinatorics: combinations
 
 @testset "*" begin

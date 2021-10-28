@@ -8,51 +8,92 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
     set(x, args...; kw...) => x with updated field/s
     set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
 
-Set object dimensions or properties of wrapped `LookupArray`. 
+    set(dim::Dimension, index::AbstractArray) => Dimension
+    set(dim::Dimension, lookup::LookupArray) => Dimension
+    set(dim::Dimension, lookupcomponent::LookupArrayTrait) => Dimension
+    set(dim::Dimension, metadata::AbstractMetadata) => Dimension
+
+Set the properties of an object, its internal data or the traits of its dimensions
+and lookup index.
 
 As DimensionalData is so strongly typed you do not need to specify what field
 of a [`LookupArray`](@ref) to `set` - there is no ambiguity.
 
-To set fields of dimensions you need to specify the dimension. This can be done using
-`X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
+To set fields of a `LookupArray` you need to specify the dimension. This can be done
+using `X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
 
 When a `Dimension` or `LookupArray` is passed to `set` to replace the
 existing ones, fields that are not set will keep their original values.
 
 ## Notes:
 
-Changing the dimension index will also set the step size, and order where applicable.
+Changing a lookup index range/vector will also update the step size and order where applicable.
 
-Setting [`ForwardOrder`](@ref) will *not* reverse the array or dimension to match.
-Use `reverse` and [`reorder`](@ref) to do this.
-
+Setting the [`Order`](@ref) like `ForwardOrdered` will *not* reverse the array or
+dimension to match. Use `reverse` and [`reorder`](@ref) to do this.
 
 ## Examples
 
-```julia
-da = DimArray(rand(3, 4), (Dim{:custom}(10.0:010.0:30.0), Z(-20:010.0:10.0)))
+```jldoctest set
+julia> using DimensionalData
 
-# Set the array values
-set(da, zeros(3, 4))
+julia> da = DimArray(zeros(3, 4), (custom=10.0:010.0:30.0, Z=-20:010.0:10.0));
 
-# Set the array name
-set(da, "newname") # Swap dimension type 
-# Using Pairs 
-# set(da, :Z => Ti, :custom => Z) 
-# set(da, :custom => X, Z => Y)
+julia> set(da, ones(3, 4))
+3×4 DimArray{Float64,2} with dimensions:
+  Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
+  Z Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0 
+```
 
-# Set the dimension index
+Change the `Dimension` wrapper type:
 
-# To an `AbstractArray` set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
+```jldoctest set
+julia> set(da, :Z => Ti, :custom => Z)
+3×4 DimArray{Float64,2} with dimensions:
+  Z Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
+  Ti Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0 
+```
 
-# To a `Val` tuple index (compile time indexing)
-set(da, Z(Val((:a, :b, :c, :d))), custom = 4:6)
+Change the lookup `Vector`:
 
-# Set dim lookups
-set(da, Z=NoLookup(), custom=Sampled())
-set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
-set(da, (Z=NoLookup(), custom=Sampled()))
-set(da, custom=Reverse(), Z=Unordered())
+```jldoctest set
+julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
+3×4 DimArray{Float64,2} with dimensions:
+  Dim{:custom} Sampled Int64[4, 5, 6] ForwardOrdered Regular Points,
+  Z Sampled Symbol[a, b, c, d] ForwardOrdered Regular Points
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+```
+
+Change the `LookupArray` type:
+
+```jldoctest set
+julia> set(da, Z=NoLookup(), custom=Sampled())
+3×4 DimArray{Float64,2} with dimensions:
+  Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
+  Z
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+```
+
+Change the `Sampling` trait:
+
+```jldoctest set
+julia> set(da, :custom => Irregular(10, 12), Z => Regular(9.9))
+3×4 DimArray{Float64,2} with dimensions:
+  Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Irregular Points,
+  Z Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
+ 0.0  0.0  0.0  0.0
 ```
 """
 function set end
@@ -76,20 +117,7 @@ set(s::AbstractDimStack, newdata::NamedTuple) = begin
     end
     rebuild(s; data=newdata)
 end
-"""
-    set(s::AbstractDimStack, metadata::AbstractMetadata) => AbstractDimStack
 
-Update the `metadata` field of the stack.
-"""
-set(s::AbstractDimStack, metadata::AbstractMetadata) = rebuild(s; metadata=metadata)
-"""
-    set(dim::Dimension, index::Unioon{AbstractArray,Val}) => Dimension
-    set(dim::Dimension, lookup::LookupArray) => Dimension
-    set(dim::Dimension, lookupcomponent::LookupArrayTrait) => Dimension
-    set(dim::Dimension, metadata::AbstractMetadata) => Dimension
-
-Set fields of the dimension
-"""
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
 set(lookup::LookupArray, x::LookupArraySetters) = _set(lookup, x)
 

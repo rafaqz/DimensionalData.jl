@@ -1,5 +1,7 @@
 using DimensionalData, Test
 
+using DimensionalData: NoLookup
+
 # Tests taken from NamedDims. Thanks @oxinabox
 
 da = DimArray(ones(3), X)

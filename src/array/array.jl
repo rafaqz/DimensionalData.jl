@@ -191,7 +191,9 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
 end
 # 2 arg version
 DimArray(data::AbstractArray, dims; kw...) = DimArray(data, (dims,); kw...)
-function DimArray(data::AbstractArray, dims::Union{Tuple,NamedTuple}; refdims=(), name=NoName(), metadata=NoMetadata())
+function DimArray(data::AbstractArray, dims::Union{Tuple,NamedTuple}; 
+    refdims=(), name=NoName(), metadata=NoMetadata()
+)
     DimArray(data, format(dims, data), refdims, name, metadata)
 end
 # All keyword argument version

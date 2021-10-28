@@ -1,7 +1,9 @@
 using DimensionalData, Test, Plots, Dates, StatsPlots
 import Distributions
 
-using DimensionalData: ForwardOrdered
+using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
+    Sampled, Categorical, NoLookup, Transformed,
+    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 A1 = rand(Distributions.Normal(), 20)
 ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Points())),)

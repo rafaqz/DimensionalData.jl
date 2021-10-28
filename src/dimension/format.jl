@@ -17,7 +17,9 @@ based on the type and element type of the index:
 """
 format(dims, A::AbstractArray) = format((dims,), A)
 function format(dims::NamedTuple, A::AbstractArray)
-    dims = map((k, v) -> Dim{k}(v), keys(dims), values(dims))
+    dims = map(keys(dims), values(dims)) do k, v
+        rebuild(key2dim(k), v)
+    end
     return format(dims, axes(A))
 end
 format(dims::Tuple{Vararg{<:Any,N}}, A::AbstractArray{<:Any,N}) where N =

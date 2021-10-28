@@ -1,9 +1,10 @@
 using DimensionalData, Dates, Test, BenchmarkTools
 
-using DimensionalData: val, basetypeof, slicedims, dims2indices, lookup, dimsmatch,
-      @dim, reducedims, XDim, YDim, ZDim, commondims, dim2key, key2dim, dimstride,
-      _call, AlwaysTuple, MaybeFirst, _wraparg, _reducedims, combinedims,
-      ForwardOrdered, ReverseOrdered
+using DimensionalData: basetypeof, slicedims, sortdims, commondims, setdims, swapdims, dims2indices, dim2key, key2dim, dimstride,
+      _call, _wraparg, _reducedims, combinedims, dimsmatch, index, lookup
+using DimensionalData: Dimension, XDim, YDim, ZDim, TimeDim, AlwaysTuple, MaybeFirst,
+    Sampled, Categorical, NoLookup, Transformed, Regular, Irregular, Points, Intervals,
+    Start, Center, End, Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
@@ -416,6 +417,7 @@ end
         @test val(testdim) == val(reduceddim)
         @test step(testdim) == step(reduceddim)
     end
+
 end
 
 @testset "dimstride" begin

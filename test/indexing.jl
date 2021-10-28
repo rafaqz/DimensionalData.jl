@@ -1,5 +1,8 @@
 using DimensionalData, Test, BenchmarkTools
-using DimensionalData: dims2indices, Regular, Irregular, Points, Intervals, ForwardOrdered
+using DimensionalData: dims2indices, locus
+using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
+    Regular, Irregular, Points, Intervals, Start, Center, End,
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
 
 @testset "dims2indices" begin
     a = [1 2 3; 4 5 6]

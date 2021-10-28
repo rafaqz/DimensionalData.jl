@@ -3,6 +3,8 @@ Pkg.activate(@__DIR__)
 
 using Documenter, DimensionalData, CoordinateTransformations, Dates
 
+using DimensionalData: LookupArray, Aligned, Order, Selector, Unaligned
+
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 
 docsetup = quote 

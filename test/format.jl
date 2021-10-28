@@ -1,9 +1,10 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: format, AutoLookup, 
-      Regular, Irregular, Intervals, Points, _format,
-      ForwardOrdered, ReverseOrdered, Unordered, 
-      Start, Center, End
+using DimensionalData: format, _format
 using Base: OneTo
+
+using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
+    Regular, Irregular, Points, Intervals, Start, Center, End,
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
 
 struct Unsortable
     val::Int

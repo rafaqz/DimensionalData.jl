@@ -1,6 +1,8 @@
 using DimensionalData, Test, Dates
 
-using DimensionalData: ForwardOrdered
+using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
+    Sampled, Categorical, NoLookup, Transformed,
+    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 # define dims with both long name and Type name
 @dim Lon "Longitude"

@@ -1,7 +1,8 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: _slicespan, isrev, _bounds,
-    ForwardOrdered, ReverseOrdered, Unordered,
-    Regular, Irregular, Explicit, Transformed, dims2indices
+using DimensionalData: _slicespan, isrev, _bounds, dims2indices, locus
+using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
+    Sampled, Categorical, NoLookup, Transformed,
+    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 @testset "isrev" begin
     @test isrev(ForwardOrdered()) == false
