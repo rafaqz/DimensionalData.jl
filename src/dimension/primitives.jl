@@ -298,14 +298,11 @@ and returns a new object or tuple with the dimension updated.
 # Example
 ```jldoctest
 using DimensionalData
-A = DimArray(ones(10, 10), (X, Y(10:10:100)))
-B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
+A = ones(X(10), Y(10:10:100))
+B = setdims(A, Y(Categorical('a':'j'; order=DimensionalData.ForwardOrdered())))
 index(B, Y)
 # output
-ERROR: MethodError: no constructors have been defined for Ordered
-Stacktrace:
- [1] top-level scope
-   @ none:1
+'a':1:'j'
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
@@ -338,7 +335,7 @@ using DimensionalData
 A = ones(X(2), Y(4), Z(2))
 swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 # output
-2×4×2 DimArray{Float64,3} with dimensions: Dim{:a} NoLookup, Dim{:b} NoLookup, Dim{:c} NoLookup
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}
 [:, :, 1]
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
@@ -347,11 +344,11 @@ swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 """
 @inline swapdims(x, d1, d2, ds...) = swapdims(x, (d1, d2, ds...))
 @inline swapdims(x, newdims::Tuple) =
-    rebuild(x; dims=format(swapdims(dims(x), newdims), x))
+rebuild(x; dims=format(swapdims(dims(x), newdims), x))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
-    map((d, nd) -> _swapdims(d, nd), dims, newdims)
+map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
-@inline _swapdims(dim::Dimension, newdim::DimType) = rebuild(newdim, val(dim))
+@inline _swapdims(dim::Dimension, newdim::DimType) = basetypeof(newdim)(val(dim))
 @inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
 @inline _swapdims(dim::Dimension, newdim::Nothing) = dim
 
@@ -549,7 +546,7 @@ _maybefirst(::Tuple{}) = nothing
     (rebuild(first(dims), first(vals)), _kwdims(tail(dims), tail(vals))...)
 @inline _kwdims(dims::Tuple{}, vals::Tuple{}) = ()
 
-@inline _pairdims(pairs::Pair...) = map(p -> rebuild(key2dim(first(p)), last(p)), pairs)
+@inline _pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)

@@ -4,25 +4,26 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
     set(x, val)
+    set(x, args::Pairs...) => x with updated field/s
+    set(x, args...; kw...) => x with updated field/s
+    set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
 
-Set the field matching the supertypes of values in xs and return a new object.
+Set object dimensions or properties of wrapped `LookupArray`. 
 
 As DimensionalData is so strongly typed you do not need to specify what field
-to `set` - there is no ambiguity.
+of a [`LookupArray`](@ref) to `set` - there is no ambiguity.
 
 To set fields of dimensions you need to specify the dimension. This can be done using
-`Dimension => x` pairs, `X = x` keyword arguments, `Dimension` wrapped arguments,
-or a `NamedTuple`.
+`X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
 
-When dimensions or LookupArrays are passed to `set` to replace the existing ones,
-fields that are not set will keep their original values.
+When a `Dimension` or `LookupArray` is passed to `set` to replace the
+existing ones, fields that are not set will keep their original values.
 
 ## Notes:
 
-Changing the dimension index range will set the `Sampled` lookup
-component `Regular` with a new step size, and set the dimension order.
+Changing the dimension index will also set the step size, and order where applicable.
 
-Setting [`Order`](@ref) will *not* reverse the array or dimension to match.
+Setting [`ForwardOrder`](@ref) will *not* reverse the array or dimension to match.
 Use `reverse` and [`reorder`](@ref) to do this.
 
 
@@ -55,58 +56,18 @@ set(da, custom=Reverse(), Z=Unordered())
 ```
 """
 function set end
-set(A::DimArrayOrStack, name::T) where {T<:Union{LookupArray,LookupArrayTrait}} = _onlydimerror(T)
+set(A::DimArrayOrStack, x::T) where {T<:Union{LookupArray,LookupArrayTrait}} = _onlydimerror(x)
 set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
 set(A::AbstractDimStack, x::LookupArray) = _cantseterror(A, x)
 set(A::AbstractDimArray, x::LookupArray) = _cantseterror(A, x)
 set(A, x) = _cantseterror(A, x)
-
-"""
-    set(x, args::Pairs...) => x with updated field/s
-    set(x, args...; kw...) => x with updated field/s
-    set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
-
-Set the dimensions or any properties of the dimensions for `AbstractDimArray`
-or `AbstractDimStack`.
-
-Set can be passed Keyword arguments or arguments of Pairs using dimension names,
-tuples of values wrapped in the intended dimensions. Or fully or partially
-constructed dimensions with val, lookup or metadata fields set to intended
-values. Dimension fields not assigned a value will be ignored, and the orginals kept.
-"""
 set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     rebuild(A, data(A), _set(dims(A), args...; kw...))
-"""
-    set(A::AbstractDimArray, data::AbstractArray) => AbstractDimArray
-
-`AbstractArray` is always data, and update the `data` field of the array.
-This is what is returned by `parent(A)`. It must be the same size as the
-original value to match the `Dimension`s in the dims field.
-"""
 set(A::AbstractDimArray, newdata::AbstractArray) = begin
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
 end
-"""
-    set(A::AbstractDimArray, metadata::Union{AbstractMetadata,AbstractDict}) => AbstractDimArray
-
-Update the `metadata` field of the array.
-"""
-set(A::AbstractDimArray, metadata::AllMetadata) = rebuild(A; metadata=metadata)
-"""
-    set(A::AbstractDimArray, name::AbstractName) => AbstractDimArray
-
-Symbols are always names, and update the `name` field of the array.
-"""
-set(A::AbstractDimArray, name::Union{Symbol,AbstractName}) = rebuild(A; name=name)
-"""
-    set(s::AbstractDimStack, data::NamedTuple) => AbstractDimStack
-
-`NamedTuple`s are always data, and update the `data` field of the dataset.
-The values must be `AbstractArray of the same size as the original data, to
-match the `Dimension`s in the dims field.
-"""
 set(s::AbstractDimStack, newdata::NamedTuple) = begin
     dat = data(s)
     keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
@@ -160,7 +121,7 @@ _set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim
 # Construct types
 _set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
 _set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
-_set(dim::Dimension, dt::DimType) = rebuild(dt, val(dim))
+_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
 _set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
 # Set the lookup
 # Otherwise pass this on to set fields on the lookup
@@ -264,7 +225,7 @@ _set(::Nothing, ::Nothing) = nothing
 
 @noinline _locuserror() = throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
 @noinline _cantseterror(a, b) = throw(ArgumentError("Can not set any fields of $(typeof(a)) to $(typeof(b))"))
-@noinline _onlydimerror(T) = throw(ArgumentError("Can only set $(typeof(T)) for a dimension. Specify which dimension you want to set it for"))
+@noinline _onlydimerror(x) = throw(ArgumentError("Can only set $(typeof(x)) for a dimension. Specify which dimension you mean with `X => property`"))
 @noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
 @noinline _wrongdimserr(dims, w) = throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))

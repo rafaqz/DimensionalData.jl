@@ -17,7 +17,7 @@ value for all `DimArray`s. It can be used in `set` to remove the
 array name:
 
 ```julia
-A = set(A, NoName())
+A = rebuild(A; name=NoName())
 ```
 """
 struct NoName <: AbstractName end
