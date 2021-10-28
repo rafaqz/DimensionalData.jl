@@ -1,13 +1,4 @@
 
-function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
-    get(io, :compact, false) && return show_compact(io::IO, mime, dim)
-    # printstyled(io, nameof(typeof(dim)); color=_dimcolor(io))
-    print_dimname(io, dim)
-    print_dimval(io, mime, val(dim))
-end
-function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension{Colon})
-    print_dimname(io, dim)
-end
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
     ctx = IOContext(io, :compact=>true)
     if all(map(d -> !(val(d) isa AbstractArray) || (val(d) isa NoLookup), dims))
@@ -33,20 +24,30 @@ function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
         return lines
     end
 end
+function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
+    get(io, :compact, false) && return show_compact(io::IO, mime, dim)
+    # printstyled(io, nameof(typeof(dim)); color=_dimcolor(io))
+    print_dimname(io, dim)
+    print_dimval(io, mime, val(dim))
+end
+function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension{Colon})
+    print_dimname(io, dim)
+end
 
 # compact version for dimensions and lookups
 show_compact(io::IO, mime, dim::Dimension{Colon}) = print_dimname(io, dim)
 function show_compact(io::IO, mime, dim::Dimension)
-    nm = nameof(typeof(dim))
-    nchars = length(string(nm))
+    # Print to a buffer and count lengths
+    buf = IOBuffer()
+    print_dimname(buf, dim)
+    nchars = length(String(take!(buf)))
+    print_dimval(buf, mime, val(dim), nchars)
+    nvalchars = length(String(take!(buf)))
+    # Actually print to IO
     print_dimname(io, dim)
-    print_dimval(io, mime, val(dim), nchars)
-end
-function show_compact(io::IO, mime, dim::Dim)
-    color = dimcolor(io)
-    print_dimname(io, dim)
-    nchars = 5 + length(string(name(dim)))
-    print_dimval(io, mime, val(dim), nchars)
+    if nvalchars > 0
+        print_dimval(io, mime, val(dim), nchars)
+    end
 end
 
 dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
@@ -92,6 +93,7 @@ end
 print_dimval(io, mime, lookup::NoLookup, nchars=0) = nothing
 print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, " ")
 function print_dimval(io, mime, lookup::LookupArray, nchars=0)
+    print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)
     show(ctx, mime, lookup)
 end

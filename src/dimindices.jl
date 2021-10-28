@@ -35,7 +35,7 @@ struct DimIndices{T,N,D<:Tuple{Vararg{<:Dimension}}} <: AbstractDimIndices{T,N}
 end
 DimIndices(dim::Dimension) = DimIndices((dim,))
 function DimIndices(dims::D) where {D<:Tuple{Vararg{<:Dimension}}}
-    T = typeof(map(d -> rebuil(d, 1), dims))
+    T = typeof(map(d -> rebuild(d, 1), dims))
     N = length(dims)
     ax = map(d -> axes(val(d), 1), dims)
     if length(dims) > 0

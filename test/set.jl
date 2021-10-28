@@ -14,11 +14,7 @@ da2 = DimArray(a2, dimz2; name=:test2)
 
 s = DimStack(da2, DimArray(2a2, dimz2; name=:test3))
 
-@testset " Array fields" begin
-    @test name(set(da2, :newname)) == :newname
-    @test name(set(da2, Name(:newname))) == Name{:newname}()
-    @test name(set(da2, NoName())) == NoName()
-    @test metadata(set(da2, Metadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
+@testset "Array fields" begin
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
     @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
@@ -30,7 +26,6 @@ end
     s2 = set(s, (test2=a2, test3=3a2))
     @test keys(s2) == (:test2, :test3)
     @test values(s2) == (a2, 3a2)
-    @test metadata(set(s, Metadata(Dict(:testa => "test")))).val == Dict(:testa => "test")
 end
 
 @testset "DimStack Dimension" begin
@@ -127,8 +122,6 @@ end
     @test metadata(dims(dax, :row)).val == Dict(:a=>1, :b=>2)
     dax = set(da2, column=Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
-    @test metadata(set(da, NoMetadata())) == NoMetadata()
-    @test metadata(set(da, NoMetadata)) == NoMetadata()
 end
 
 @testset "all dim fields" begin
