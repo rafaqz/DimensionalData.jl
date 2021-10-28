@@ -13,12 +13,7 @@ Base.convert(T::Type{<:AbstractString}, name::AbstractName) = convert(T, string(
     NoName()
 
 NoName specifies an array is not named, and is the default `name`
-value for all `DimArray`s. It can be used in `set` to remove the
-array name:
-
-```julia
-A = rebuild(A; name=NoName())
-```
+value for all `AAbstractDimArray`s.
 """
 struct NoName <: AbstractName end
 
@@ -31,7 +26,7 @@ Base.string(::NoName) = ""
     Name(name::Union{Symbol,Name) => Name
     Name(name::NoName) => NoName
 
-Name wrapper. This lets arrays keep symbol names when the array wrapp neeeds
+Name wrapper. This lets arrays keep symbol names when the array wrapper neeeds
 to be `isbits, like for use on GPUs. It makes the name a property of the type.
 It's not necessary to use in normal use, a symbol is probably easier.
 """

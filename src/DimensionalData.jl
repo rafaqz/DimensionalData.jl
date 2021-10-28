@@ -28,43 +28,28 @@ import Adapt,
 
 using RecipesBase: @recipe
 
+# Dimension
+export X, Y, Z, Ti, Dim, Coord
 
-export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
-       X, Y, Z, Ti, ParametricDimension, Dim, AnonDim, Coord
-
-export Selector, At, Between, Contains, Near, Where
-
-export Locus, Center, Start, End, AutoLocus
-
-export Order, Ordered, Unordered, AutoOrder
-
-export Sampling, Points, Intervals
-
-export Span, Regular, Irregular, Explicit, AutoSpan
-
-export LookupArray, AutoLookup, NoLookup
-
-export Aligned, AbstractSampled, Sampled, AbstractCategorical, Categorical
-
-export Unaligned, Transformed
+# Selector
+export At, Between, Contains, Near, Where
 
 export AbstractDimArray, DimArray
 
-export AbstractDimTable, DimTable
-
 export AbstractDimStack, DimStack
+
+export AbstractDimTable, DimTable
 
 export DimIndices, DimKeys
 
-export AbstractMetadata, Metadata, NoMetadata
+# getter methods
+export dims, refdims, lookup, metadata, name, val, order, sampling, span, bounds
 
-export AbstractName, Name, NoName
+# Dimension/Lookup primitives
+export dimnum, hasdim, hasselection, otherdims
 
-export data, dims, refdims, lookup, metadata, name, label, units,
-       val, index, order, sampling, span, bounds, locus, <|
-
-export dimnum, hasdim, hasselection, otherdims, commondims, setdims, swapdims, sortdims,
-       set, rebuild, reorder, modify, dimwise, dimwise!
+# utils
+export set, rebuild, reorder, modify, dimwise, dimwise!
 
 export @dim
 

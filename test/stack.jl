@@ -1,6 +1,9 @@
 using DimensionalData, Test, LinearAlgebra, Statistics
 
-using DimensionalData: ForwardOrdered
+using DimensionalData: data
+using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
+    Regular, Irregular, Points, Intervals, Start, Center, End,
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]

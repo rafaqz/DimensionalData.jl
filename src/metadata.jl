@@ -69,8 +69,10 @@ Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
 
     NoMetadata()
 
-Indicates an object has no metadata. Can be used in `set`
-to remove any existing metadata.
+Indicates an object has no metadata. But unlike using `nothing`, 
+`get`, `keys` and `haskey` will still work on it, `get` always
+returning the fallback argument. `keys` returns `()` while `haskey`
+always returns `false`.
 """
 struct NoMetadata <: AbstractMetadata{Nothing,NamedTuple{(),Tuple{}}} end
 

@@ -1,7 +1,8 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates
-using DimensionalData: between, at, near, contains, selectindices, hasselection,
-    Points, Intervals, Regular, Irregular, Explicit,
-    Unordered, ForwardOrdered, ReverseOrdered, Start, Center, End
+using DimensionalData: between, at, near, contains, selectindices, hasselection, lookup, index
+using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
+    Sampled, Categorical, NoLookup, Transformed,
+    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 a = [1 2  3  4
      5 6  7  8

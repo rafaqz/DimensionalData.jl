@@ -17,6 +17,7 @@ span(lookup::LookupArray) = NoSpan()
 sampling(lookup::LookupArray) = NoSampling()
 
 dims(::LookupArray) = nothing
+val(l::LookupArray) = parent(lookup)
 index(lookup::LookupArray) = parent(lookup)
 locus(lookup::LookupArray) = Center()
 
@@ -79,7 +80,8 @@ _bounds(::Unordered, l::LookupArray) = (nothing, nothing)
 """
     Aligned <: LookupArray
 
-Abstract supertype for [`LookupArray`](@ref)s where the index is aligned with the array axes.
+Abstract supertype for [`LookupArray`](@ref)s
+where the index is aligned with the array axes.
 
 This is by far the most common supertype for `LookupArray`.
 """
@@ -138,9 +140,10 @@ rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 """
     AbstractSampled <: Aligned
 
-Abstract supertype for [`LookupArray`](@ref)s where the index is aligned with the array,
-and is independent of other dimensions. [`Sampled`](@ref) is provided by this package,
-`Projected` in GeoData.jl also extends [`AbstractSampled`](@ref), adding crs projections.
+Abstract supertype for [`LookupArray`](@ref)s where the index is
+aligned with the array, and is independent of other dimensions. [`Sampled`](@ref)
+is provided by this package, `Projected` in GeoData.jl also extends
+[`AbstractSampled`](@ref), adding crs projections.
 
 `AbstractSampled` must have  `order`, `span` and `sampling` fields,
 or a `rebuild` method that accpts them as keyword arguments.
@@ -182,12 +185,13 @@ _bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), firs
     Sampled(data::AbstractVector, order::Order, span::Span, sampling::Sampling, metadata)
     Sampled(; data=AutoIndex(), order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
 
-A concrete implementation of the [`LookupArray`](@ref) [`AbstractSampled`](@ref).
-It can be used to represent [`Points`](@ref) or [`Intervals`](@ref).
+A concrete implementation of the [`LookupArray`](@ref)
+[`AbstractSampled`](@ref). It can be used to represent
+[`Points`](@ref) or [`Intervals`](@ref).
 
 `Sampled` is capable of representing gridded data from a wide range of sources, allowing
-correct `bounds` and [`Selector`](@ref)s for points or intervals of regular, irregular,
-forward and reverse indexes.
+correct `bounds` and [`Selector`](@ref)s for points or intervals of regular,
+irregular, forward and reverse indexes.
 
 On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of 
 `AbstractRange` not assigned to [`Categorical`](@ref).
@@ -196,9 +200,10 @@ On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups
 
 - `data`: An `AbstractVector` of index values, matching the length of the curresponding
     array axis. 
-- `order`: [`Order`](@ref)) indicating the order of the index, [`AutoOrder`](@ref) by
-    default, detected from the order of `data` to be `ForwardOrdered`, `ReverseOrdered`
-    or `Unordered`. Can be provided if this is known and performance is important.
+- `order`: [`Order`](@ref)) indicating the order of the index,
+    [`AutoOrder`](@ref) by default, detected from the order of `data`
+    to be [`ForwardOrdered`](@ref), [`ReverseOrdered`](@ref) or [`Unordered`](@ref).
+    These can be provided explicitly if they are known and performance is important.
 - `span`: indicates the size of intervals or distance between points, and will be set to
     [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
     unless assigned manually.
@@ -213,22 +218,25 @@ On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups
 
 Create an array with [`Interval`] sampling, and `Regular` span for a vector with known spacing.
 
-We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying that the index 
-values are for the positions at the start of each interval.
+We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying
+that the index values are for the positions at the start of each interval.
 
 ```jldoctest Sampled
 using DimensionalData
 
-x = X(Sampled(100:-10:10; sampling=Intervals(Start()))),
+x = X(Sampled(100:-20:10; sampling=Intervals(Start())))
 y = Y(Sampled([1, 4, 7, 10]; span=Regular(3), sampling=Intervals(Start())))
-A = rand(x, y)
-lookup(A)
+A = ones(x, y)
 
 # output
-ERROR: syntax: "Sampled(100:-10:10,; sampling = Intervals(Start()))" is not a valid function argument name
-Stacktrace:
- [1] top-level scope
-   @ none:1
+5×4 DimArray{Float64,2} with dimensions:
+  X Sampled 100:-20:20 ReverseOrdered Regular Intervals,
+  Y Sampled Int64[1, 4, 7, 10] ForwardOrdered Regular Intervals
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
 ```
 """
 struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
@@ -281,16 +289,16 @@ An LookupArray where the values are categories.
 This will be automatically assigned if the index contains `AbstractString`,
 `Symbol` or `Char`. Otherwise it can be assigned manually.
 
-[`Order`](@ref) will not be determined automatically for [`Categorical`](@ref),
-it instead defaults to [`Unordered`].
+[`Order`](@ref) will be determined automatically where possible.
 
 ## Arguments
 
 - `data`: An `AbstractVector` of index values, matching the length of the curresponding
     array axis. 
-- `order`: [`Order`](@ref)) indicating the order of the index, [`AutoOrder`](@ref) by
-    default, detected from the order of `data` to be `ForwardOrdered`, `ReverseOrdered`
-    or `Unordered`. Can be provided if this is known and performance is important.
+- `order`: [`Order`](@ref)) indicating the order of the index,
+    [`AutoOrder`](@ref) by default, detected from the order of `data`
+    to be `ForwardOrdered`, `ReverseOrdered` or `Unordered`.
+    Can be provided if this is known and performance is important.
 - `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
     information about the array axis - useful for extending DimensionalData for specific
     contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
@@ -353,8 +361,7 @@ from CoordinateTransformations.jl may be useful.
 ## Arguments
 
 - `f`: transformation function
-- `dims`: a tuple containing dimenension types or symbols matching the
-    order needed by the transform function.
+- `dim`: a dimension to transform to.
 
 ## Keyword Arguments
 

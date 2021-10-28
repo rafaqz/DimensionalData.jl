@@ -1,5 +1,7 @@
 using DimensionalData, Test, Unitful, Adapt
 
+using DimensionalData: Metadata, NoMetadata, Sampled
+
 struct CustomArray{T,N} <: AbstractArray{T,N}
     arr::Array
 end

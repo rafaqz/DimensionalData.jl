@@ -46,6 +46,8 @@ All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 @inline key2dim(d::Val{<:Dimension}) = d
 @inline key2dim(d) = d
 
+# key2dim is defined for concrete instances in dimensions.jl
+
 """
     dim2key(dim::Dimension) => Symbol
     dim2key(dims::Type{<:Dimension}) => Symbol
@@ -58,6 +60,8 @@ All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
 @inline dim2key(dim::Val{D}) where D <: Dimension = dim2key(D)
 @inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.nameof(dt))
+
+# dim2key is defined for concrete instances in dimensions.jl
 
 """
     sortdims([f], tosort, order) => Tuple

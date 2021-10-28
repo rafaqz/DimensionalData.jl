@@ -1,5 +1,8 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: slicedims, basetypeof, format, lookuptype, name, AnonDim, ForwardOrdered
+using DimensionalData: slicedims, sortdims, basetypeof, format,
+    lookuptype, label, units, index, lookup, locus,
+    AnonDim, Metadata, NoMetadata, ForwardOrdered, 
+    Sampled, Categorical, NoLookup, Regular, Points, Start, Center, End
 
 @dim TestDim "Testname"
 

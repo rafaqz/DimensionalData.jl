@@ -5,6 +5,18 @@ Abstract supertype for dimensional stacks.
 
 These have multiple layers of data, but share dimensions.
 
+Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
+
+- indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
+- iteration amd `map` are apply over array layers, as indexed with a `Symbol`.
+- `getindex` and many base methods are applied as for `DimArray` - to avoid the need 
+    to allways use `map`.
+
+This design gives very succinct code when working with many-layered, mixed-dimension objects. 
+But it may be jarring initially - the most surprising outcome is that `dimstack[1]` will return
+a `NamedTuple` of values for the first index in all layers, while `first(dimstack)` will return
+the first value of the iterator - the `DimArray` for the first layer.
+
 See [`DimStack`](@ref) for the concrete implementation.
 Most methods are defined on the abstract type.
 
@@ -108,22 +120,40 @@ end
     DimStack(data::NamedTuple, dims::DimTuple; metadata=NoMetadata())
 
 DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
-Indexing operates as for [`AbstractDimArray`](@ref), except it occurs for all
-data layers of the stack simulataneously. Layer objects can hold values of any type.
 
-DimStack can be constructed from multiple `AbstractDimArray` or a `NamedTuple`
-of `AbstractArray` and a matching `dims` `Tuple`. If `AbstractDimArray`s have
-the same name they will be given the name `:layer1`, substitiuting the
-layer number for `1`.
+Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 
-`getindex` with `Int` or `Dimension`s or `Selector`s that resolve to `Int` will
-return a `NamedTuple` of values from each layer in the stack. This has very good
-performace, and usually takes less time than the sum of indexing each array
-separately.
+- indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
+- iteration amd `map` are apply over array layers, as indexed with a `Symbol`.
+- `getindex` or `view` with `Int`, `Dimension`s or `Selector`s that resolve to `Int` will
+    return a `NamedTuple` of values from each layer in the stack.
+    This has very good performace, and avoids the need to always use `map`.
+- `getindex` or `view` with a `Vector` or `Colon` will return another `DimStack` where
+    all data layers have been sliced.  
+- `setindex!` must pass a `Tuple` or `NamedTuple` maching the layers.
+- many base and `Statistics` methods (`sum`, `mean` etc) will work as for a `DimArray`
+    again removing the need to use `map`.
 
-Indexing with a `Vector` or `Colon` will return another `DimStack` where
-all data layers have been sliced.  `setindex!` must pass a `Tuple` or `NamedTuple` maching
-the layers.
+For example, here we take the mean over the time dimension for all layers :
+
+```julia
+mean(mydimstack; dims=Ti)
+```
+
+And this equivalent to:
+
+```julia
+map(A -> mean(A; dims=Ti), mydimstack)
+```
+
+This design gives succinct code when working with many-layered, mixed-dimension objects. 
+
+But it may be jarring initially - the most surprising outcome is that `dimstack[1]` will return
+a `NamedTuple` of values for the first index in all layers, while `first(dimstack)` will return
+the first value of the iterator - the `DimArray` for the first layer.
+
+`DimStack` can be constructed from multiple `AbstractDimArray` or a `NamedTuple`
+of `AbstractArray` and a matching `dims` tuple.
 
 Most `Base` and `Statistics` methods that apply to `AbstractArray` can be used on
 all layers of the stack simulataneously. The result is a `DimStack`, or

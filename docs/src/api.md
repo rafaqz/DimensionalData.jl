@@ -29,21 +29,21 @@ DimKeys
 ### Dimensions:
 
 ```@docs
-Dimension
-DependentDim
-IndependentDim
-XDim
-YDim
-ZDim
-TimeDim
+DimensionalData.Dimension
+DimensionalData.DependentDim
+DimensionalData.IndependentDim
+DimensionalData.XDim
+DimensionalData.YDim
+DimensionalData.ZDim
+DimensionalData.TimeDim
 X
 Y
 Z
 Ti
-ParametricDimension
+DimensionalData.ParametricDimension
 Dim
 Coord
-AnonDim
+DimensionalData.AnonDim
 @dim
 ```
 
@@ -51,7 +51,7 @@ AnonDim
 ## Selectors
 
 ```@docs
-Selector
+DimensionalData.Selector
 At
 Near
 Between
@@ -63,31 +63,31 @@ Where
 
 ```@docs
 DimensionalData.AbstractName
-Name
-NoName
+DimensionalData.Name
+DimensionalData.NoName
 ```
 
 ## Metadata
 
 ```@docs
-AbstractMetadata
-Metadata
-NoMetadata
+DimensionalData.AbstractMetadata
+DimensionalData.Metadata
+DimensionalData.NoMetadata
 ```
 
 ## LookupArrays
 
 ```@docs
-LookupArray
-Aligned
-AbstractSampled
+DimensionalData.LookupArray
+DimensionalData.Aligned
+DimensionalData.AbstractSampled
 Sampled
-AbstractCategorical
+DimensionalData.AbstractCategorical
 Categorical
-Unaligned
+DimensionalData.Unaligned
 Transformed
 NoLookup
-AutoLookup
+DimensionalData.AutoLookup
 DimensionalData.AutoIndex
 ```
 
@@ -100,40 +100,40 @@ DimensionalData.LookupArrayTrait
 ### Order
 
 ```@docs
-Order
-Unordered
-Ordered
-AutoOrder
+DimensionalData.Order
+DimensionalData.Ordered
 DimensionalData.ForwardOrdered
 DimensionalData.ReverseOrdered
+DimensionalData.Unordered
+DimensionalData.AutoOrder
 ```
 
 ### Span
 
 ```@docs
-Span
-Regular
-Irregular
-Explicit
-AutoSpan
+DimensionalData.Span
+DimensionalData.Regular
+DimensionalData.Irregular
+DimensionalData.Explicit
+DimensionalData.AutoSpan
 ```
 
 ### Sampling
 
 ```@docs
-Sampling
-Points
-Intervals
+DimensionalData.Sampling
+DimensionalData.Points
+DimensionalData.Intervals
 ```
 
 ### Loci
 
 ```@docs
-Locus
-Center
-Start
-End
-AutoLocus
+DimensionalData.Locus
+DimensionalData.Center
+DimensionalData.Start
+DimensionalData.End
+DimensionalData.AutoLocus
 ```
 
 ## Tables.jl interface
@@ -156,21 +156,21 @@ dims
 refdims
 metadata
 name
-units
-label
+DimensionalData.units
+DimensionalData.label
 ```
 
 Dimesion and lookup properties:
 
 ```@docs
 val
-index
 lookup
 bounds
 sampling
 locus
 span
 order
+DimensionalData.index
 ```
 
 Dimension querying

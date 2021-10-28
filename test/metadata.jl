@@ -1,5 +1,7 @@
 using DimensionalData, Test
 
+using DimensionalData: Metadata, NoMetadata, units
+
 @testset "Metadata" begin
     nt = (a="test1", units="km")
     d = (:a=>"test1", :units=>"km")

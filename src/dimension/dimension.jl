@@ -183,6 +183,8 @@ lookuptype(dim::Dimension) = typeof(lookup(dim))
 lookuptype(::Type{<:Dimension{L}}) where L = L
 lookuptype(x) = NoLookup
 
+Base.parent(dim::Dimension) = val(dim)
+
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
     hasselection(dims(x), selectors)
 end

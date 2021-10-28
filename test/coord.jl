@@ -1,4 +1,5 @@
 using DimensionalData, Test, Unitful
+using DimensionalData: NoLookup, index
 using Statistics: mean
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))

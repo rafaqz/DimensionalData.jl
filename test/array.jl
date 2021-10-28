@@ -1,5 +1,8 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random, ArrayInterface
-using DimensionalData: ForwardOrdered, Regular, Points, NoLookup, Center, Start, End, order, layerdims
+using DimensionalData: layerdims, locus, index, lookup
+using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
+    Regular, Irregular, Points, Intervals, Start, Center, End,
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
 
 a = [1 2; 3 4]
 a2 = [1 2 3 4
@@ -15,7 +18,6 @@ refdimz = (Ti(1:1),)
 da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
-
 
 @testset "size and axes" begin
     @test size(da2) == (3, 4)

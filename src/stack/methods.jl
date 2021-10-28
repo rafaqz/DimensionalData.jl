@@ -40,9 +40,9 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
 end
 
 """
-    Base.map(f, s::AbstractDimStack)
+    Base.map(f, stacks::AbstractDimStack...)
 
-Apply functrion `f` to each layer of the stack `s`, and rebuild it.
+Apply function `f` to each layer of the `stacks`.
 
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.

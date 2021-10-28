@@ -1,11 +1,13 @@
 
-
 """
     LookupArrayTrait
 
 Abstract supertype of all traits of a [`LookupArray`](@ref).
 
 These modify the behaviour of the lookup index.
+
+The term "Trait" is used loosely - these may be fields of an object
+of traits hard-coded to specific types.
 """
 abstract type LookupArrayTrait end
 
@@ -21,7 +23,7 @@ abstract type Order <: LookupArrayTrait end
     Ordered <: Order
 
 Supertype for the order of an ordered [`LookupArray`](@ref),
-like [`ForwardOrdered`](@ref) and [`ReverseOrdered`](@ref).
+including [`ForwardOrdered`](@ref) and [`ReverseOrdered`](@ref).
 """
 abstract type Ordered <: Order end
 
@@ -58,9 +60,10 @@ struct ReverseOrdered <: Ordered end
 
     Unordered()
 
-Trait indicating that the array or lookup has no order.
-This means the index cannot be searched with `searchsortedfirst`,
-or similar methods, and that plotting order does not matter.
+Indicates that `LookupArray` is unordered.
+
+This means the index cannot be searched with `searchsortedfirst`
+or similar optimised methods - instead it will use `findfirst`.
 """
 struct Unordered <: Order end
 
@@ -71,9 +74,10 @@ isrev(::Type{<:ReverseOrdered}) = true
 """
    Locus <: LookupArrayTrait
 
-Abstract supertype of types that indicate the position of index values in cells.
+Abstract supertype of types that indicate the position of index values 
+where they represent [`Intervals`](@ref).
 
-These allow for values array cells to align with the `Start`,
+These allow for values array cells to align with the [`Start`](@ref),
 [`Center`](@ref), or [`End`](@ref) of values in the lookup index.
 
 This means they can be plotted with correct axis markers, and allows automatic
@@ -86,8 +90,7 @@ abstract type Locus <: LookupArrayTrait end
 
     Center()
 
-Indicates a lookup value is for the center of its corresponding array cell,
-in the direction of the lookup index order.
+Indicates a lookup value is for the center of its corresponding array cell.
 """
 struct Center <: Locus end
 
@@ -116,8 +119,8 @@ struct End <: Locus end
 
     AutoLocus()
 
-Indicates a lookup where the index position is not yet known.
-This will be filled with a default on object construction.
+Indicates a interval where the index position is not yet known.
+This will be filled with a default value on object construction.
 """
 struct AutoLocus <: Locus end
 
@@ -156,8 +159,8 @@ locus(sampling::Points) = Center()
 [`Sampling`](@ref) specifying that sampled values are the mean (or similar)
 value over an _interval_, rather than at one specific point.
 
-Intervals require a [`Locus`](@ref) of `Start`, `Center` or `End`
-to define the location in the interval that the index values refer to.
+Intervals require a [`Locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
+[`End`](@ref) to define the location in the interval that the index values refer to.
 """
 struct Intervals{L} <: Sampling
     locus::L
@@ -188,7 +191,7 @@ struct NoSpan <: Span end
 
     AutoSpan()
 
-Span will be guessed and replaced by a constructor using `format`, or by `set`.
+The span will be guessed and replaced in `format` or `set`.
 """
 struct AutoSpan <: Span end
 
@@ -200,7 +203,7 @@ struct AutoBounds end
 
     Regular(step=AutoStep())
 
-Points or Intervals that have a fixed, regular step.
+`Points` or `Intervals` that have a fixed, regular step.
 """
 struct Regular{S} <: Span
     step::S
@@ -217,8 +220,8 @@ Base.step(span::Regular) = span.step
     Irregular(bounds::Tuple)
     Irregular(lowerbound, upperbound)
 
-Points or Intervals that have an `Irrigular` step size. To enable bounds tracking and
-accuract selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
+`Points` or `Intervals` that have an `Irrigular` step size. To enable bounds tracking
+and accuract selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
 `(nothing, nothing)` is acceptable input, the bounds will be guessed from the index,
 but may be innaccurate.
 """
