@@ -1,10 +1,5 @@
 # Crash course
 
-This is brief a tutorial for DimensionalData.jl.
-
-The main functionality is explained here, but the full list of features is
-listed at the [API](@ref) page.
-
 ## Dimensions and DimArrays
 
 The core type of DimensionalData.jl is the [`Dimension`](@ref) and the types
@@ -23,25 +18,28 @@ A = rand(X(5), Y(5))
 A[Y(1), X(2)]
 ```
 
-Or we can use the `Dim{X}` dim by using `Symbol`s:
+As shown above, `Dimension`s can be used to construct arrays in `rand`, `ones`,
+`zeros` and `fill` with either a range for a lookup index or a number for the
+dimension length.
+
+Or we can use the `Dim{X}` dims by using `Symbol`s, and indexing with keywords:
 
 ```@example main
 A = DimArray(rand(5, 5), (:a, :b))
 A[a=3, b=5]
 ```
 
-But often, we want to provide a lookup index for the dimension:
+Often, we want to provide a lookup index for the dimension:
 
 ```@example main
 using Dates
 t = DateTime(2001):Month(1):DateTime(2001,12)
 x = 10:10:100
-A = DimArray(rand(12, 10), (Ti(t), X(x)))
+A = rand(X(x), Ti(t))
 ```
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
-exported dimensions are `X, Y, Z, Ti`. `Ti` is shortening of `Time` - to avoid
-the conflict with `Dates.Time`.
+exported dimensions are `X, Y, Z, Ti` (`Ti` is shortening of `Time`).
 
 The length of each dimension index has to match the size of the corresponding
 array axis. 
@@ -52,10 +50,11 @@ This can also be done with `Symbol`, using `Dim{X}`:
 A2 = DimArray(rand(12, 10), (time=t, distance=x))
 ```
 
-Symbols can be more convenient than defining dims with `@dim`, but have some
-downsides. They don't inherit from a specific `Dimension` type, so plots will
-not know what axis to put them on. If you need to specify the dimension `mode`
-or `metadata` manually, the `Dim{X}` syntax becomes less beneficial. 
+Symbols can be more convenient to use than defining custom dims with `@dim`, but
+have some downsides. They don't inherit from a specific `Dimension` type, so
+plots will not know what axis to put them on. They also cannot use the basic
+constructor methods like `rand` or `zeros`, as we cannot dispatch on `Symbol`
+for Base methods without "type-piracy".
 
 
 ## Indexing the array by name and index
@@ -71,7 +70,7 @@ with the simple `Ti(range)` syntax like so:
 A[X(1:3:11), Ti(1:2:11)]
 ```
 
-Of course, when specifying only one dimension, all elements of the other
+When specifying only one dimension, all elements of the other
 dimensions are assumed to be included:
 
 ```@example main
@@ -80,58 +79,45 @@ A[X(1:3:10)]
 
 !!! info "Indexing"
     Indexing `AbstractDimArray`s works with `getindex`, `setindex!` and
-    `view`. The result is still an `AbstracDimArray`.
+    `view`. The result is still an `AbstracDimArray`, unless using all single
+    `Int` or `Selector`s that resolve to `Int`.
 
 
-## Selecting by name and value
+`Dimension`s can be used to construct arrays in `rand`, `ones`, `zeros` and
+`fill` with either a range for a lookup index or a number for the dimension
+length.
 
-The above example is useful because one does not have to care about the ordering
-of the dimensions. But arguably more useful is to be able to select a dimension
-by its values. For example, we would like to get all values of `A` where the `X`
-dimension is between two values.
-
-Selecting by value in `DimensionalData` is done with the **selectors**, which
-are listed in the [Selectors](@ref) page. This avoids the ambiguity of what
-happens when the index values of the dimension are also integers (like the case
-here for the dimension `X`).
-
-For simplicity, here we use the [`Between`](@ref) selector, but  others also
-exist, like [`At`](@ref), [`Contains`](@ref), or [`Near`](@ref).
-
-```@example main
-A[X(Between(12, 35)), Ti(Between(Date(2001, 5), Date(2001, 7)))]
+```@example ones
+using DimensionalData
+A1 = ones(X(1:40), Y(50))
 ```
 
-## Selecting by position
+We can also use dim wrappers for indexing, so that the dimension order in the underlying array
+does not need to be known:
 
-So far, the selection protocols we have mentioned work by specifying the _name_
-of the dimension, without worry about the order.
-
-However normal indexing also works by specifying dimensions by position. This
-functionality also covers [`Selector`](@ref)s.
-
-Continuing to use `A` we defined above, you can see how this works by comparing
-the statements without and with names:
-
-```@example main
-A[:, Between(12, 35)] == A[X(Between(12, 35))]
-A[:, 1:5] == A[X(1:5)]
-A[1:5, :] == A[Ti(1:5)]
+```@example ones
+A1[Y(1), X(1:10)]
 ```
 
-Using this approach it is necessary to specify _all_ dimensions by position. 
+## Indexing Performance
 
-In addition, to support as base Julia functionality single index access like in
-standard `Array`:
+Indexing with `Dimension` has no runtime cost:
 
-```@example main
-A[1:5]
+```julia
+julia> A2 = ones(X(3), Y(3))
+3×3 DimArray{Float64,2} with dimensions: X, Y
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+
+julia> @btime $A2[X(1), Y(2)]
+  1.077 ns (0 allocations: 0 bytes)
+1.0
+
+julia> @btime parent($A2)[1, 2]
+  1.078 ns (0 allocations: 0 bytes)
+1.0
 ```
-
-This selects the first 5 entries of the underlying array. In the case that `A`
-has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
-indexed this way will return a regular array.
-
 
 ## Specifying `dims` keyword arguments with `Dimension`
 
@@ -140,56 +126,186 @@ along which to perform the operation as an `Int`. It is also possible to do this
 using [`Dimension`](@ref) types with `AbstractDimArray`:
 
 ```@example main
-sum(A; dims=X)
+A3 = rand(X(3), Y(4), Ti(5));
+sum(A3; dims=Ti)
 ```
 
-## Numeric operations on dimension arrays and dimensions
-
-Numeric operations on a `AbstractDimArray` match base Julia as much as
-possible. Standard broadcasting and other type of operations across dimensional
-arrays typically perform as expected while still returning an
-`AbstractDimArray` type with correct dimensions.
-
-In cases where you would like to do some operation on the dimension index, e.g.
-take the cosines of the values of the dimension `X` while still keeping the
-dimensional information of `X`, you can use the syntax:
+This also works in methods from `Statistics`:
 
 ```@example main
-DimArray(cos, dims(A, X))
+using Statistics
+mean(A3; dims=Ti)
 ```
 
-## Referenced dimensions
+### Methods where dims, dim types, or `Symbol`s can be used to indicate the array dimension:
 
-The reference dimensions record the previous dimensions that an array
-was selected from. These can be use for plot labelling, and tracking array
-changes.
+- `size`, `axes`, `firstindex`, `lastindex`
+- `cat`, `reverse`, `dropdims`
+- `reduce`, `mapreduce`
+- `sum`, `prod`, `maximum`, `minimum`,
+- `mean`, `median`, `extrema`, `std`, `var`, `cor`, `cov`
+- `permutedims`, `adjoint`, `transpose`, `Transpose`
+- `mapslices`, `eachslice`
 
 
-## LookupArrays
+## LookupArrays and Selectors
 
-DimensionalData provides types for specifying details about the dimension index,
-in the [`LookupArrays`](@ref) module.
+Indexing by value in `DimensionalData` is done with [Selectors](@ref).
 
-These enable optimisations with `Selector`s, and modified behaviours such as
-selection of intervals or points, which will give slightly different results for
-selectors like [`Between`](@ref) for [`Points`](@ref) and [`Intervals`](@ref).
+| :----------------- | :----------------------------------------------------------------- |
+| [`At`](@ref)       | get the index exactly matching the passed in value(s)              |
+| [`Near`](@ref)     | get the closest index to the passed in value(s)                    |
+| [`Where`](@ref)    | filter the array axis by a function of the dimension index values. |
+| [`Between`](@ref)  | get all indices between two values, excluding the high value.      |
+| [`Contains`](@ref) | get indices where the value x falls within an interval             |
 
-This also allows reverse order index to still work with `seartsorted`, and for
-plots to always be the right way up when either the index or the 
-array is backwards - reversing the data lazily when required, not when loaded.
 
-The major categories of [`LookupArray`](@ref) are [`Categorical`](@ref),
-[`Sampled`](@ref) and [`NoLookup`](@ref), which are all subtypes of
-[`Aligned`](@ref). [`Unaligned`](@ref) also exists to handle dimensions with an
-index that is rotated or otherwise transformed in relation to the underlying
-array, such as [`Transformed`](@ref).
+Here we use the [`Between`](@ref) selector to select a range between integers
+and `DateTime`:
+
+```@example main
+A[X(Between(12, 35)), Ti(Between(Date(2001, 5), Date(2001, 7)))]
+```
+
+Selectors find indices in the `LookupArray`, for each dimension. 
+    
+(`Between` and `Contains` exlude the upper boundary so that adjacent selections
+never contain the same index)
+
+Selectors can be used in `getindex`, `setindex!` and
+`view` to select indices matching the passed in value(s)
+
+We can use selectors inside dim wrappers, here selecting from `DateTime` and `Int`:
+
+```@example main
+using Dates
+timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
+A4 = rand(Ti(timespan), X(10:10:100))
+A4[X(Near(35)), Ti(At(DateTime(2001,5)))]
+```
+
+Without dim wrappers selectors must be in the right order, and specify all axes:
+
+```@example main
+using Unitful
+A5 = rand(Y((1:10:100)u"m"), Ti((1:5:100)u"s"));
+A5[Between(10.5u"m", 50.5u"m"), Near(23u"s")]
+```
+
+We can also use Linear indices as in standard `Array`:
+
+```@example main
+A5[1:5]
+```
+
+But unless the `DimArray` is one dimensional, this will return a regular
+`Array`. It is not possible to keep the `LookupArray` or even `Dimension`s after
+linear indexing is used.
+
+## LookupArrays and traits
+
+Using a regular range or `Vector` as a lookup index has a number of downsides.
+We cannot use `searchsorted` for fast searches without knowing the order of the
+array, and this is slow to compute at runtime. It also means `reverse` or
+rotations cannot be used while keeping the `DimArray` wrapper.
+
+Step sizes are also a problem. Some ranges like `LinRange` lose their step size
+with a length of `1`. Often, instead of a range, multi-dimensional data formats
+provide a `Vector` of evenly spaced values for a lookup, with a step size
+specified separately. Converting to a range introduces floating point errors
+that means points may not be selected with `At` without setting tolerances.
+
+This means using a lookup wrapper with traits is more generally robust and
+versatile than simply using a range or vector. DimensionalData provides types
+for specifying details about the dimension index, in the [`LookupArrays`](@ref)
+sub-module:
+
+```julia
+using DimensionalData
+using .LookupArrays
+```
+
+The main [`LookupArray`](@ref) are :
+
+- [`Sampled`](@ref) 
+- [`Categorical`](@ref),
+- [`NoLookup`](@ref)
+
+Each comes with specific traits that are either fixed or variable, depending
+on the contained index. These enable optimisations with `Selector`s, and modified
+behaviours, such as:
+
+1. Selection of [`Intervals`](@ref) or [`Points`](@ref), which will give slightly
+  different results for selectors like [`Between`](@ref) - as whole intervals are
+  selected, and have different `bounds` values.
+
+2. Tracking of lookup order. A reverse order is labelled `ReverseOrdered` and
+  will still work with `searchsorted`, and for plots to always be the right way
+  up when either the index or the array is backwards. Reversing a `DimArray`
+  will reverse the `LookupArray` for that dimension, swapping `ReverseOrdered`
+  to `ForwardOrdered`.
+
+3. `Sampled` [`Intervals`](@ref) can have index located at a [`Locus`](@ref) of: 
+
+- [`Start`](@ref),
+- [`Center`](@ref) 
+- [`End`](@ref)
+
+Which specifies the point of the interval represented in the index, to match
+different data standards, e.g. GeoTIFF (`Start`) and NetCDF (`Center`).
+
+4. A [`Span`](@ref) specifies the gap between `Points` or the size of
+`Intervals`. This may be: 
+
+- [`Regular`](@ref), in the case of a range and equally spaced vector, 
+- [`Irregular`](@ref) for unequally spaced vectors
+- [`Explicit`](@ref) for the case where all interval start and end points are
+  specified explicitly - as is common in the NetCDF standard.
+
+These traits all for subtypes of [`Aligned`](@ref).
+
+[`Unaligned`](@ref) also exists to handle dimensions with an index that is
+rotated or otherwise transformed in relation to the underlying array, such as
+[`Transformed`](@ref).
+
 
 ## LookupArray detection
 
-[`Aligned`](@ref) types will be detected automatically if not specified - mostly
-specifying them isn't required. A `Dimension` containing and index of `String`,
-`Char` or `Symbol` will be given the [`Categorical`](@ref) mode. A range will be
-[`Sampled`](@ref), defaulting to [`Points`](@ref) and [`Regular`](@ref), with
-the [`Order`](@ref) detected automatically. 
+[`Aligned`](@ref) types will be detected automatically if not specified - which
+usually isn't required. 
 
-See the api docs for specifics about these [`LookupArray`](@ref)s.
+- An empty `Dimension` or a `Type` or `Symbol` will be assigned `NoLookup` -
+  this behaves as a simple named dimension without a lookup index.
+- A `Dimension` containing and index of `String`, `Char`, `Symbol` or mixed
+  types will be given the [`Categorical`](@ref) mode,
+- A range will be assigned [`Sampled`](@ref), defaulting to 
+  [`Regular`](@ref), [`Points`](@ref) 
+- Other `AbstractVector` will be assigned [`Sampled`](@ref) [`Irregular`](@ref)
+  [`Points`](@ref).
+
+In all cases the [`Order`](@ref) of [`ForwardOrdered`](@ref) or
+[`ReverseOrdered`](@ref) will be be detected, otherwise [`Unordered`](@ref)
+for an unsorted `Array`.
+
+See the [`LookupArray`](@ref) API docs for more detail.
+
+## Referenced dimensions
+
+The reference dimensions record the previous dimensions that an array was
+selected from. These can be use for plot labelling, and tracking array changes
+so that `cat` can reconstruct the lookup array from previous dimensions that
+have been sliced.
+
+## Warnings
+
+Indexing with unordered or reverse-ordered arrays has undefined behaviour.
+It will trash the dimension index, break `searchsorted` and nothing will make
+sense any more. So do it at you own risk.
+
+However, indexing with sorted vectors of `Int` can be useful, so it's allowed.
+But it may do strange things to interval sizes for [`Intervals`](@ref) that are
+not [`Explicit`](@ref).
+
+This selects the first 5 entries of the underlying array. In the case that `A`
+has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
+indexed this way will return a regular array.

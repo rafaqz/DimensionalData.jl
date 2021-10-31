@@ -30,10 +30,10 @@ Base.firstindex(l::LookupArray) = firstindex(parent(l))
 Base.lastindex(l::LookupArray) = lastindex(parent(l))
 
 function Base.searchsortedfirst(lookup::LookupArray, val; lt=<)
-    searchsortedfirst(parent(lookup), unwrap(val); order=_ordering(order(lookup)), lt=lt)
+    searchsortedfirst(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
 end
 function Base.searchsortedlast(lookup::LookupArray, val; lt=<)
-    searchsortedlast(parent(lookup), unwrap(val); order=_ordering(order(lookup)), lt=lt)
+    searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
 end
 
 function Base.:(==)(l1::LookupArray, l2::LookupArray)
@@ -543,5 +543,5 @@ _mayberange(x, step::Nothing) = [x]
 end
 @inline centerval(index::AbstractArray, len) = index[len ÷ 2 + 1]
 
-_ordering(::ForwardOrdered) = Base.Order.ForwardOrdering()
-_ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
+ordering(::ForwardOrdered) = Base.Order.ForwardOrdering()
+ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()

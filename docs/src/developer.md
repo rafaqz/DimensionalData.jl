@@ -71,3 +71,8 @@ returns the lost dimensions of a previous transformation, passed in to the
 
 Inheriting from `AbstractDimArray` will give nearly all the functionality
 of using `DimArray`.
+
+
+## LookupArrays and Dimensions
+
+[`LookupArrays`](@ref) and [`Dimensions`](@ref)
