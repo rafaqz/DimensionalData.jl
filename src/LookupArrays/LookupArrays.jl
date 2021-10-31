@@ -24,7 +24,8 @@ import Adapt, ConstructionBase
 using Base: tail, OneTo, @propagate_inbounds
 
 export order, sampling, span, bounds, locus, hasselection, transformdim,
-    metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus 
+    metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus,
+    maybeshiftlocus
 
 export Selector
 export At, Between, Contains, Near, Where
