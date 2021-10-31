@@ -6,7 +6,7 @@ Abstract supertype of all dimension types.
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
-`Dimension`s label the axes of an [`AbstractDimArray`](@ref),
+`Dimension`s label the axes of an `AbstractDimArray`,
 or other dimensional objects, and are used to index into the array.
 
 They may also provide an alternate index to lookup for each array axis.
@@ -164,11 +164,17 @@ dims(dims::DimTuple) = dims
 dims(x) = nothing
 dims(::Nothing) = error("No dims found")
 
+val(dim::Dimension) = dim.val
 refdims(x) = ()
 
-val(dim::Dimension) = dim.val
 lookup(dim::Dimension{<:AbstractArray}) = val(dim)
 lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
+
+lookuptype(dim::Dimension) = typeof(lookup(dim))
+lookuptype(::Type{<:Dimension{L}}) where L = L
+lookuptype(x) = NoLookup
+
+# LookupArrays methods
 metadata(dim::Dimension) = metadata(lookup(dim))
 
 index(dim::Dimension{<:AbstractArray}) = index(val(dim))
@@ -177,27 +183,23 @@ index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 
+label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
+
 bounds(dim::Dimension) = bounds(val(dim))
-
-lookuptype(dim::Dimension) = typeof(lookup(dim))
-lookuptype(::Type{<:Dimension{L}}) where L = L
-lookuptype(x) = NoLookup
-
-Base.parent(dim::Dimension) = val(dim)
+shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
+maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
     hasselection(dims(x), selectors)
 end
 hasselection(x::Nothing, selectors::Union{DimTuple,SelTuple,Selector,Dimension}) = false
-function hasselection(dims::DimTuple, seldims::DimTuple)
-    sorted = DD.dims(seldims, dims)
-    hasselection(DD.dims(dims, sorted), map(val, sorted))
+function hasselection(ds::DimTuple, seldims::DimTuple)
+    sorted = dims(seldims, ds)
+    hasselection(dims(ds, sorted), map(val, sorted))
 end
-hasselection(dims::DimTuple, selectors::SelTuple) = all(map(hasselection, dims, selectors))
-function hasselection(dims::DimTuple, selector::Dimension)
-    hasselection(DD.dims(dims, selector), selector)
-end
-function hasselection(dims::DimTuple, selector::Selector)
+hasselection(ds::DimTuple, selectors::SelTuple) = all(map(hasselection, ds, selectors))
+hasselection(ds::DimTuple, selector::Dimension) = hasselection(dims(ds, selector), selector)
+function hasselection(ds::DimTuple, selector::Selector)
     throw(ArgumentError("Cannot select from multiple Dimensions with a single Selector"))
 end
 hasselection(dim::Dimension, seldim::Dimension) = hasselection(dim, val(seldim))
@@ -211,10 +213,10 @@ end
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus,
           :name, :label, :units)
     @eval begin
-        $f(dims::DimTuple) = map($f, dims)
-        $f(dims::Tuple{}) = ()
-        $f(dims::DimTuple, i1, I...) = $f(dims, (i1, I...))
-        $f(dims::DimTuple, I) = $f(DD.dims(dims, key2dim(I)))
+        $f(ds::DimTuple) = map($f, ds)
+        $f(ds::Tuple{}) = ()
+        $f(ds::DimTuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::DimTuple, I) = $f(dims(ds, key2dim(I)))
     end
 end
 
@@ -228,13 +230,15 @@ end
         return selectindices(dims(x), selectors)
     end
 end
-@inline selectindices(dims::DimTuple, sel...) = selectindices(dims, sel)
-@inline selectindices(dims::DimTuple, sel::Tuple) = selectindices(val(dims), sel)
+@inline selectindices(ds::DimTuple, sel...) = selectindices(ds, sel)
+@inline selectindices(ds::DimTuple, sel::Tuple) = selectindices(val(ds), sel)
 @inline selectindices(dim::Dimension, sel) = selectindices(val(dim), sel)
+
 
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
 
+Base.parent(d::Dimension) = val(d)
 Base.eltype(d::Type{<:Dimension{T}}) where T = T
 Base.eltype(d::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(d::Dimension, args...) = size(val(d), args...)
@@ -275,10 +279,24 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
 
-"""
-Abstract supertype for Dimensions with user-set type paremeters
-"""
-abstract type ParametricDimension{X,T} <: Dimension{T} end
+# Produce a 2 * length(dim) matrix of interval bounds from a dim
+dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
+function dim2boundsmatrix(lookup::LookupArray)
+    samp = sampling(lookup)
+    samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
+    _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
+end
+
+_dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
+function _dim2boundsmatrix(::Locus, span::Regular, lookup)
+    starts = permutedims(LookupArrays._shiftindexlocus(Start(), lookup))
+    ends = permutedims(LookupArrays._shiftindexlocus(End(), lookup))
+    return vcat(starts, ends)
+end
+@noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, lookupj) =
+    error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
+@noinline _dim2boundsmatrix(::Start, span::Irregular, lookupj) =
+    error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
 
 """
     Dim{S}(val=:)
@@ -299,7 +317,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 Dim{:custom} Char[a, b, c]
 ```
 """
-struct Dim{S,T} <: ParametricDimension{S,T}
+struct Dim{S,T} <: Dimension{T}
     val::T
 end
 Dim{S}(val::T) where {S,T} = Dim{S,T}(val)
@@ -369,8 +387,8 @@ function dimmacro(typ, supertype, name::String=string(typ))
             $typ{typeof(val)}(val)
         end
         $typ() = $typ(:)
-        DimensionalData.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
-        DimensionalData.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
+        Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
     end |> esc
 end
 

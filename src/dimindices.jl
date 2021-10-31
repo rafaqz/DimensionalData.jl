@@ -11,7 +11,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimIndices, i1::Selector, I::Selector...) =
             Base.$f(A, dims2indices(A, i1, I)...)
         @propagate_inbounds function Base.$f(A::AbstractDimIndices, i1::Dimension, I::Dimension...; kw...)
-            Base.$f(A, dims2indices(A, i1, I..., _kwdims(values(kw))...)...)
+            Base.$f(A, dims2indices(A, i1, I..., kwdims(values(kw))...)...)
         end
     end
 end

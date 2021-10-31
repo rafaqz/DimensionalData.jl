@@ -25,7 +25,7 @@ for f in (:getindex, :view, :dotview)
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
-            Base.$f(A, dims2indices(A, (args..., _kwdims(values(kw))...))...)
+            Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
         # Standard indices
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
@@ -37,7 +37,7 @@ end
 
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
-    setindex!(A, x, dims2indices(A, (args..., _kwdims(values(kw))...))...)
+    setindex!(A, x, dims2indices(A, (args..., kwdims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =

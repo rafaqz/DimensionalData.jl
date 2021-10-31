@@ -1,8 +1,5 @@
 using DimensionalData, Test, Dates
-
-using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-    Sampled, Categorical, NoLookup, Transformed,
-    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 # define dims with both long name and Type name
 @dim Lon "Longitude"
@@ -35,7 +32,7 @@ end
     sv = sprint(show, MIME("text/plain"), NoLookup())
     @test occursin("NoLookup", sv)
     # LookupArray tuple
-    ls = map(lookup, ds)
+    ls = lookup(ds)
     sv = sprint(show, MIME("text/plain"), ls)
     @test occursin("Categorical", sv)
     @test occursin("Sampled", sv)

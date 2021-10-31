@@ -1,8 +1,7 @@
 using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random, ArrayInterface
-using DimensionalData: layerdims, locus, index, lookup
-using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
-    Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+using DimensionalData: layerdims
+
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 a = [1 2; 3 4]
 a2 = [1 2 3 4

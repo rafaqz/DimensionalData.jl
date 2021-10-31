@@ -1,10 +1,7 @@
 using DimensionalData, Dates, Test, BenchmarkTools
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
-using DimensionalData: basetypeof, slicedims, sortdims, commondims, setdims, swapdims, dims2indices, dim2key, key2dim, dimstride,
-      _call, _wraparg, _reducedims, combinedims, dimsmatch, index, lookup
-using DimensionalData: Dimension, XDim, YDim, ZDim, TimeDim, AlwaysTuple, MaybeFirst,
-    Sampled, Categorical, NoLookup, Transformed, Regular, Irregular, Points, Intervals,
-    Start, Center, End, Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+using .Dimensions: _call, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true

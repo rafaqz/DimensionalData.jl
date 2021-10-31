@@ -167,8 +167,10 @@ changes.
 
 ## LookupArrays
 
-DimensionalData provides types for specifying details about the dimension index.
-This enables optimisations with `Selector`s, and modified behaviours such as
+DimensionalData provides types for specifying details about the dimension index,
+in the [`LookupArrays`](@ref) module.
+
+These enable optimisations with `Selector`s, and modified behaviours such as
 selection of intervals or points, which will give slightly different results for
 selectors like [`Between`](@ref) for [`Points`](@ref) and [`Intervals`](@ref).
 

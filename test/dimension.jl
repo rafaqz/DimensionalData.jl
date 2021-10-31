@@ -1,14 +1,12 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: slicedims, sortdims, basetypeof, format,
-    lookuptype, label, units, index, lookup, locus,
-    AnonDim, Metadata, NoMetadata, ForwardOrdered, 
-    Sampled, Categorical, NoLookup, Regular, Points, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 @dim TestDim "Testname"
 
 @testset "dims creation macro" begin
+    @test parent(TestDim(1:10)) == 1:10
     @test val(TestDim(1:10)) == 1:10
-    @test DimensionalData.name(TestDim) == :Testname
+    @test name(TestDim) == :Testname
     @test label(TestDim) == "Testname"
     @test val(TestDim(:testval)) == :testval
     @test metadata(TestDim(Sampled(1:1; metadata=Metadata(a=1)))) == Metadata(a=1)
@@ -48,7 +46,7 @@ end
     @test format((X, Y), A) == (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(3))))
     @test format(Ti, zeros(3)) == (Ti(NoLookup(Base.OneTo(3))),)
     @test format((:a, :b), A) == (Dim{:a}(NoLookup(Base.OneTo(2))),
-                                      Dim{:b}(NoLookup(Base.OneTo(3))))
+                                  Dim{:b}(NoLookup(Base.OneTo(3))))
     @test format(:c, 51:100) == (Dim{:c}(NoLookup(Base.OneTo(50))),)
     @test format((a=[:A, :B], b=(10.0:10.0:30.0)), A) ==
         (Dim{:a}(Categorical([:A, :B], ForwardOrdered(), NoMetadata())),

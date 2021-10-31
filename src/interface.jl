@@ -22,7 +22,6 @@ missing fields or fields with different names to DimensionalData objects.
 The arguments required are defined for the abstract type that has a `rebuild` method.
 """
 function rebuild end
-rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 
 """
     dims(x, [dims::Tuple]) => Tuple{Vararg{<:Dimension}}

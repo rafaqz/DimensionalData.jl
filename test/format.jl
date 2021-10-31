@@ -1,10 +1,8 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: format, _format
-using Base: OneTo
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
-using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
-    Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+using .Dimensions: _format
+using Base: OneTo
 
 struct Unsortable
     val::Int
@@ -34,7 +32,7 @@ end
         @test format(Categorical(A, order=ForwardOrdered()), X, OneTo(2)) ===
             Categorical(A, ForwardOrdered(), NoMetadata())
         @test format(Categorical(A), X, OneTo(2)) ==
-            Categorical(A, Unordered(), NoMetadata())
+            Categorical(A, ForwardOrdered(), NoMetadata())
     end
 
     @testset "format Sampled Order, Span and Sampling from AutoLookup" begin

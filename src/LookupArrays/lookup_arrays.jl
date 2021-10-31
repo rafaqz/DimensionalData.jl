@@ -99,14 +99,14 @@ A [`LookupArray`](@ref) that is identical to the array axis.
 
 ## Example
 
-Defining a [`DimArray`](@ref) without passing an index
+Defining a `DimArray` without passing an index
 to the dimensions, it will be assigned `NoLookup`:
 
 ```jldoctest NoLookup
 using DimensionalData
 
 A = DimArray(rand(3, 3), (X, Y))
-lookup(A)
+Dimensions.lookup(A)
 
 # output
 
@@ -116,8 +116,9 @@ NoLookup, NoLookup
 Which is identical to:
 
 ```jldoctest NoLookup
+using .LookupArrays
 A = DimArray(rand(3, 3), (X(NoLookup()), Y(NoLookup())))
-lookup(A)
+Dimensions.lookup(A)
 
 # output
 
@@ -222,7 +223,7 @@ We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying
 that the index values are for the positions at the start of each interval.
 
 ```jldoctest Sampled
-using DimensionalData
+using DimensionalData, DimensionalData.LookupArrays
 
 x = X(Sampled(100:-20:10; sampling=Intervals(Start())))
 y = Y(Sampled([1, 4, 7, 10]; span=Regular(3), sampling=Intervals(Start())))
@@ -312,7 +313,7 @@ using DimensionalData
 
 ds = X(["one", "two", "three"]), Y([:a, :b, :c, :d])
 A = DimArray(rand(3, 4), ds)
-lookup(A)
+Dimensions.lookup(A)
 
 # output
 
@@ -325,7 +326,7 @@ struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O
     order::O
     metadata::M
 end
-function Categorical(data=AutoIndex(); order=Unordered(), metadata=NoMetadata())
+function Categorical(data=AutoIndex(); order=AutoOrder(), metadata=NoMetadata())
     Categorical(data, order, metadata)
 end
 
@@ -370,7 +371,7 @@ from CoordinateTransformations.jl may be useful.
 ## Example
 
 ```jldoctest
-using DimensionalData, CoordinateTransformations
+using DimensionalData, DimensionalData.LookupArrays, CoordinateTransformations
 
 m = LinearMap([0.5 0.0; 0.0 0.5])
 A = [1 2  3  4
@@ -391,7 +392,7 @@ struct Transformed{T,A<:AbstractVector{T},F,D,M} <: Unaligned{T,1}
     metadata::M
 end
 function Transformed(f, dim; metadata=NoMetadata())
-    Transformed(AutoIndex(), f, basedims(key2dim(dim)), metadata)
+    Transformed(AutoIndex(), f, basetypeof(dim)(), metadata)
 end
 
 function rebuild(l::Transformed; 

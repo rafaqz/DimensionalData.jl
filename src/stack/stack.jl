@@ -30,11 +30,13 @@ dims(s::AbstractDimStack) = s.dims
 refdims(s::AbstractDimStack) = s.refdims
 metadata(s::AbstractDimStack) = s.metadata
 
+
 layerdims(s::AbstractDimStack) = s.layerdims
 layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
 layermetadata(s::AbstractDimStack) = s.layermetadata
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
+Base.parent(s::AbstractDimStack) = s.data
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))

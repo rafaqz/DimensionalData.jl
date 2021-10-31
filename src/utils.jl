@@ -13,7 +13,7 @@ If no axis reversal is required the same objects will be returned, without alloc
 function reorder end
 
 reorder(x, p::Pair, ps::Vararg{<:Pair}) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, _pairdims(ps...))
+reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, Dimensions.pairdims(ps...))
 # Reorder specific dims.
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
@@ -129,34 +129,6 @@ function dimwise!(
     return dest
 end
 
-"""
-    basetypeof(x) => Type
-
-Get the "base" type of an object - the minimum required to
-define the object without it's fields. By default this is the full
-`UnionAll` for the type. But custom `basetypeof` methods can be
-defined for types with free type parameters.
-
-In DimensionalData this is primariliy used for comparing `Dimension`s,
-where `Dim{:x}` is different from `Dim{:y}`.
-"""
-@inline basetypeof(x::T) where T = basetypeof(T)
-@generated function basetypeof(::Type{T}) where T
-    if T isa Union
-        T
-    else
-        getfield(parentmodule(T), nameof(T))
-    end
-end
-
-# Left pipe operator for cleaning up brackets
-@deprecate f <| x f(x)
-
-# Unwrap Val
-unwrap(::Val{X}) where X = X
-unwrap(::Type{Val{X}}) where X = X
-unwrap(x) = x
-
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
 function uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}})
@@ -168,80 +140,6 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
-
-# Produce a 2 * length(dim) matrix of interval bounds from a dim
-dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
-function dim2boundsmatrix(lookup::LookupArray)
-    samp = sampling(lookup)
-    samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
-    _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
-end
-
-_dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
-_dim2boundsmatrix(::Locus, span::Regular, lookup) =
-    vcat(permutedims(_shiftindexlocus(Start(), lookup)), permutedims(_shiftindexlocus(End(), lookup)))
-@noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, lookupj) =
-    error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
-@noinline _dim2boundsmatrix(::Start, span::Irregular, lookupj) =
-    error("Cannot convert Irregular to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")
-
-
-"""
-    shiftlocus(locus::Locus, x)
-
-Shift the index of `x` from the current locus to the new locus.
-
-We only shift `Samped`, `Regular` or `Explicit`, `Intervals`. 
-"""
-shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
-function shiftlocus(locus::Locus, lookup::LookupArray)
-    samp = sampling(lookup)
-    samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
-    newindex = _shiftindexlocus(locus, lookup)
-    newlookup = rebuild(lookup; data=newindex)
-    return set(newlookup, locus)
-end
-
-# Fallback - no shifting
-_shiftindexlocus(locus::Locus, lookup::LookupArray) = index(lookup)
-# Sampled
-function _shiftindexlocus(locus::Locus, lookup::AbstractSampled)
-    _shiftindexlocus(locus, span(lookup), sampling(lookup), lookup)
-end
-# TODO:
-_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::LookupArray) = index(lookup)
-# Sampled Regular
-function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::LookupArray)
-    index(dim) .+ ((index(dim) .+ abs(step(span))) .- index(dim)) * _offset(locus(sampling), destlocus)
-end
-function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::LookupArray)
-    index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
-end
-# Sampled Explicit
-_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[1, :]
-_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[2, :]
-function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::LookupArray)
-    _shiftindexlocus(destlocus, locus(lookup), span, sampling, lookup)
-end
-_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::LookupArray) = index(lookup)
-function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::LookupArray)
-    # A little complicated so that DateTime works
-    (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
-end
-
-_offset(::Start, ::Center) = 0.5
-_offset(::Start, ::End) = 1
-_offset(::Center, ::Start) = -0.5
-_offset(::Center, ::End) = 0.5
-_offset(::End, ::Start) = -1
-_offset(::End, ::Center) = -0.5
-_offset(::T, ::T) where T<:Locus = 0
-
-maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
-maybeshiftlocus(locus::Locus, l::LookupArray) = _maybeshiftlocus(locus, sampling(l), l)
-
-_maybeshiftlocus(locus::Locus, sampling::Intervals, l::LookupArray) = shiftlocus(locus, l)
-_maybeshiftlocus(locus::Locus, sampling::Sampling, l::LookupArray) = l
 
 _astuple(t::Tuple) = t
 _astuple(x) = (x,)

@@ -1,8 +1,6 @@
 
 # API
 
-To use the functionality of DimensionalData in your module, dispatch on `AbstractDimArray` and `AbstractDimension`.
-
 ## Arrays
 
 ```@docs
@@ -17,123 +15,11 @@ AbstractDimStack
 DimStack
 ```
 
-## Dimension indices generator
+## Dimension indices generators
 
 ```@docs
 DimIndices
 DimKeys
-```
-
-## Core types
-
-### Dimensions:
-
-```@docs
-DimensionalData.Dimension
-DimensionalData.DependentDim
-DimensionalData.IndependentDim
-DimensionalData.XDim
-DimensionalData.YDim
-DimensionalData.ZDim
-DimensionalData.TimeDim
-X
-Y
-Z
-Ti
-DimensionalData.ParametricDimension
-Dim
-Coord
-DimensionalData.AnonDim
-@dim
-```
-
-
-## Selectors
-
-```@docs
-DimensionalData.Selector
-At
-Near
-Between
-Contains
-Where
-```
-
-## Name
-
-```@docs
-DimensionalData.AbstractName
-DimensionalData.Name
-DimensionalData.NoName
-```
-
-## Metadata
-
-```@docs
-DimensionalData.AbstractMetadata
-DimensionalData.Metadata
-DimensionalData.NoMetadata
-```
-
-## LookupArrays
-
-```@docs
-DimensionalData.LookupArray
-DimensionalData.Aligned
-DimensionalData.AbstractSampled
-Sampled
-DimensionalData.AbstractCategorical
-Categorical
-DimensionalData.Unaligned
-Transformed
-NoLookup
-DimensionalData.AutoLookup
-DimensionalData.AutoIndex
-```
-
-## LookupArray traits
-
-```@docs
-DimensionalData.LookupArrayTrait
-```
-
-### Order
-
-```@docs
-DimensionalData.Order
-DimensionalData.Ordered
-DimensionalData.ForwardOrdered
-DimensionalData.ReverseOrdered
-DimensionalData.Unordered
-DimensionalData.AutoOrder
-```
-
-### Span
-
-```@docs
-DimensionalData.Span
-DimensionalData.Regular
-DimensionalData.Irregular
-DimensionalData.Explicit
-DimensionalData.AutoSpan
-```
-
-### Sampling
-
-```@docs
-DimensionalData.Sampling
-DimensionalData.Points
-DimensionalData.Intervals
-```
-
-### Loci
-
-```@docs
-DimensionalData.Locus
-DimensionalData.Center
-DimensionalData.Start
-DimensionalData.End
-DimensionalData.AutoLocus
 ```
 
 ## Tables.jl interface
@@ -144,46 +30,18 @@ DimTable
 DimensionalData.DimColumn
 ```
 
+## Common methods
 
-## Methods
-
-## Getting basic info
-
-These useful functions for obtaining information from your dimensional data:
+Common functions for obtaining information from objects:
 
 ```@docs
 dims
 refdims
 metadata
 name
-DimensionalData.units
-DimensionalData.label
 ```
 
-Dimesion and lookup properties:
-
-```@docs
-val
-lookup
-bounds
-sampling
-locus
-span
-order
-DimensionalData.index
-```
-
-Dimension querying
-
-```@docs
-hasdim
-hasselection
-dimnum
-otherdims
-commondims
-```
-
-And some utility methods for transforming DimensionalData objects:
+Utility methods for transforming DimensionalData objects:
 
 ```@docs
 set
@@ -192,18 +50,66 @@ modify
 dimwise
 dimwise!
 reorder
+Base.cat
+Base.map
+Base.copy!
+```
+
+Most base methods work as expected, using `Dimension` wherever a `dims`
+keyword is used. They are not allspecifically documented here.
+
+
+Shorthand constructors:
+
+```@docs
 Base.fill
 Base.rand
 Base.zeros
 Base.ones
-Base.map
-Base.copy!
-Base.cat
 ```
 
-## Non-exported methods for developers
+# Dimensions
+
+Handling of Dimensions is kept in a sub-module `Dimensions`.
 
 ```@docs
+Dimensions.Dimensions
+```
+
+Dimensions have a type-heirarchy that organises plotting and
+dimension matching.
+
+```@docs
+Dimensions.Dimension
+Dimensions.DependentDim
+Dimensions.IndependentDim
+Dimensions.XDim
+Dimensions.YDim
+Dimensions.ZDim
+Dimensions.TimeDim
+X
+Y
+Z
+Ti
+Dim
+Coord
+Dimensions.AnonDim
+@dim
+```
+
+### Exported methopds
+
+```@docs
+hasdim
+dimnum
+```
+
+
+### Non-exported methods
+
+```@docs
+Dimensions.lookup
+Dimensions.label
 DimensionalData.dim2key
 DimensionalData.key2dim
 DimensionalData.dims2indices
@@ -214,6 +120,8 @@ DimensionalData.swapdims
 DimensionalData.slicedims
 DimensionalData.comparedims
 DimensionalData.combinedims
+DimensionalData.otherdims
+DimensionalData.commondims
 DimensionalData.sortdims
 DimensionalData.basetypeof
 DimensionalData.setdims
@@ -221,5 +129,116 @@ DimensionalData.dimsmatch
 DimensionalData.dimstride
 DimensionalData.refdims_title
 DimensionalData.rebuild_from_arrays
-DimensionalData.shiftlocus
+```
+
+# LookupArrays
+
+```@docs
+LookupArrays.LookupArrays
+```
+
+## Selectors
+
+```@docs
+LookupArrays.Selector
+At
+Near
+Between
+Contains
+Where
+```
+
+Lookup properties:
+
+```@docs
+bounds
+LookupArrays.val
+```
+
+```@docs
+LookupArrays.LookupArray
+LookupArrays.Aligned
+LookupArrays.AbstractSampled
+LookupArrays.Sampled
+LookupArrays.AbstractCategorical
+LookupArrays.Categorical
+LookupArrays.Unaligned
+LookupArrays.Transformed
+LookupArrays.NoLookup
+LookupArrays.AutoLookup
+LookupArrays.AutoIndex
+```
+
+## Metadata
+
+```@docs
+LookupArrays.AbstractMetadata
+LookupArrays.Metadata
+LookupArrays.NoMetadata
+```
+
+## LookupArray traits
+
+```@docs
+LookupArrays.LookupArrayTrait
+```
+
+### Order
+
+```@docs
+LookupArrays.Order
+LookupArrays.Ordered
+LookupArrays.ForwardOrdered
+LookupArrays.ReverseOrdered
+LookupArrays.Unordered
+LookupArrays.AutoOrder
+```
+
+### Span
+
+```@docs
+LookupArrays.Span
+LookupArrays.Regular
+LookupArrays.Irregular
+LookupArrays.Explicit
+LookupArrays.AutoSpan
+```
+
+### Sampling
+
+```@docs
+LookupArrays.Sampling
+LookupArrays.Points
+LookupArrays.Intervals
+```
+
+### Loci
+
+```@docs
+LookupArrays.Locus
+LookupArrays.Center
+LookupArrays.Start
+LookupArrays.End
+LookupArrays.AutoLocus
+```
+
+## LookupArrays methods
+
+```@docs
+hasselection
+LookupArrays.shiftlocus
+LookupArrays.sampling
+LookupArrays.span
+LookupArrays.order
+LookupArrays.index
+LookupArrays.locus
+LookupArrays.units
+```
+
+## Name
+
+```@docs
+DimensionalData.AbstractName
+DimensionalData.Name
+DimensionalData.NoName
 ```

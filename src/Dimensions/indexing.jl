@@ -14,9 +14,8 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 # Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, I::Tuple{Vararg{<:StandardIndices}}) = I
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
-@inline dims2indices(dims::DimTuple, sel::Tuple) = begin 
-    selectindices(lookup(dims), sel)
-end
+@inline dims2indices(dims::DimTuple, sel::Tuple) = 
+    LookupArrays.selectindices(lookup(dims), sel)
 @inline dims2indices(dims::DimTuple, ::Tuple{}) = ()
 # Otherwise attempt to convert dims to indices
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
@@ -70,7 +69,7 @@ end
     end
 end
 @inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
-    select_unalligned_indices(lookup(dims), sel)
+    LookupArrays.select_unalligned_indices(lookup(dims), sel)
 end
 
 _unwrapdim(dim::Dimension) = val(dim)
@@ -82,7 +81,5 @@ _unwrapdim(x) = x
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 # Simply unwrap dimensions
-@inline _dims2indices(dim::Dimension, seldim::Dimension) = selectindices(val(dim), val(seldim))
-
-
-@noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))
+@inline _dims2indices(dim::Dimension, seldim::Dimension) = 
+    LookupArrays.selectindices(val(dim), val(seldim))

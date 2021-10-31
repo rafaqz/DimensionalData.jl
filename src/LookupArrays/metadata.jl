@@ -111,5 +111,3 @@ units(m::NoMetadata) = nothing
 units(m::Nothing) = nothing
 units(m::Metadata) = get(m, :units, nothing)
 units(m::AbstractDict) = get(m, :units, nothing)
-
-label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))

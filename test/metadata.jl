@@ -1,6 +1,6 @@
 using DimensionalData, Test
 
-using DimensionalData: Metadata, NoMetadata, units
+using DimensionalData.LookupArrays: Metadata, NoMetadata, units, val
 
 @testset "Metadata" begin
     nt = (a="test1", units="km")
@@ -55,5 +55,5 @@ end
 end
 
 @testset "metadatadict" begin
-    @test DimensionalData.metadatadict(Dict("a"=>"A", "b"=>"B")) == Dict(:a=>"A", :b=>"B")
+    @test DimensionalData.LookupArrays.metadatadict(Dict("a"=>"A", "b"=>"B")) == Dict(:a=>"A", :b=>"B")
 end

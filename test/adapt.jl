@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Adapt
 
-using DimensionalData: Metadata, NoMetadata, Sampled
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 struct CustomArray{T,N} <: AbstractArray{T,N}
     arr::Array
@@ -20,8 +20,8 @@ end
 @testset "Dimension" begin
     d = X(Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2")))
     d1 = Adapt.adapt(CustomArray, d)
-    @test parent(val(d1)) isa CustomArray
-    @test parent(val(d1)).arr == [1:10...]
+    @test parent(parent(d1)) isa CustomArray
+    @test parent(parent(d1)).arr == [1:10...]
     @test metadata(d1) == NoMetadata()
 end
 

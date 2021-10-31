@@ -1,9 +1,5 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
-
-using DimensionalData: index
-using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
-    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 using LinearAlgebra: Transpose
 

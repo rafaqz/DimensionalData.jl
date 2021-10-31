@@ -5,14 +5,15 @@ Base.show(io::IO, mime::MIME"text/plain", lookup::NoLookup) = print(io, "NoLooku
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
     show_compact(io, mime, lookup)
-    print_dimval(io, mime, f(lookup))
+    show(io, mime, f(lookup))
     print(io, " ")
-    show_compact(io, mime, dim(lookup))
+    ctx = IOContext(io, :compact=>true)
+    show(ctx, mime, dim(lookup))
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::AbstractSampled)
     show_compact(io, mime, lookup)
-    print_dimval(io, mime, parent(lookup))
+    print_index(io, mime, parent(lookup))
     print(io, " ")
     print_order(io, lookup)
     print(io, " ")
@@ -23,7 +24,7 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::AbstractCategorical)
     show_compact(io, mime, lookup)
-    print_dimval(io, mime, parent(lookup))
+    print_index(io, mime, parent(lookup))
     print(io, " ")
     print_order(io, lookup)
 end
@@ -63,4 +64,22 @@ print_sampling(io, lookup) = print(io, nameof(typeof(sampling(lookup))))
 function print_metadata(io, lookup)
     metadata(lookup) isa NoMetadata && return nothing
     print(io, nameof(typeof(metadata(lookup))))
+end
+
+function print_index(io, mime, A::AbstractRange, nchars=0)
+    print(io, " ")
+    printstyled(io, A; color=:cyan)
+end
+function print_index(io, mime, v::AbstractVector, nchars=0)
+    print(io, " ")
+    # Maximum 2 values for dates
+    vals = if length(v) > 2 && eltype(v) <: Dates.TimeType
+        "$(v[1]), …, $(v[end])"
+    # Maximum 4 values for other types 
+    elseif length(v) > 5
+        "$(v[1]), $(v[2]), …, $(v[end-1]), $(v[end])"
+    else
+        join((string(va) for va in v), ", ")
+    end
+    printstyled(io, string(eltype(v)) * "[" * vals * "]"; color=:cyan)
 end

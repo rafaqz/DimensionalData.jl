@@ -1,6 +1,7 @@
 using DimensionalData, Tables, Test, DataFrames
 
-using DimensionalData: key2dim, dim2key, DimTable, DimColumn, DimArrayColumn, dimstride
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData: DimTable, DimColumn, DimArrayColumn, dimstride
 
 x = X([:a, :b, :c])
 y = Y([10.0, 20.0])
