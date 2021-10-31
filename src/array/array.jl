@@ -360,12 +360,22 @@ for f in (:zeros, :ones, :rand)
         Base.$f(dims::DimTuple) = $f(Float64, dims)
     end
 end
+for f in (:trues, :falses)
+    @eval begin
+        Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
+        function Base.$f(dims::DimTuple)
+            C = dimconstructor(dims)
+            C($f(_dimlength(dims)), _maybestripval(dims))
+        end
+    end
+end
 # Type specific DimArray creation methods
 for f in (:zeros, :ones, :rand)
     @eval begin
         Base.$f(::Type{T}, d1::Dimension, dims::Dimension...) where T = $f(T, (d1, dims...))
         function Base.$f(::Type{T}, dims::DimTuple) where T
-            DimArray($f(T, _dimlength(dims)), _maybestripval(dims))
+            C = dimconstructor(dims)
+            C($f(T, _dimlength(dims)), _maybestripval(dims))
         end
     end
 end
@@ -375,20 +385,23 @@ for f in (:fill, :rand)
         Base.$f(x, d1::Dimension, dims::Dimension...) = $f(x, (d1, dims...))
         function Base.$f(x, dims::DimTuple)
             A = $f(x, _dimlength(dims))
-            DimArray(A, _maybestripval(dims))
+            C = dimconstructor(dims)
+            C(A, _maybestripval(dims))
         end
     end
 end
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...) = rand(r, x, (d1, dims...))
 function Base.rand(r::AbstractRNG, x, dims::DimTuple)
-    DimArray(rand(r, x, _dimlength(dims)), _maybestripval(dims))
+    C = dimconstructor(dims)
+    C(rand(r, x, _dimlength(dims)), _maybestripval(dims))
 end
-function Base.rand(r::AbstractRNG, ::Type{X}, d1::Dimension, dims::Dimension...) where X
-    rand(r, X, (d1, dims...))
+function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...) where T
+    rand(r, T, (d1, dims...))
 end
-function Base.rand(r::AbstractRNG, ::Type{X}, dims::DimTuple) where X
-    DimArray(rand(r, X, _dimlength(dims)), _maybestripval(dims))
+function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple) where T
+    C = dimconstructor(dims)
+    C(rand(r, T, _dimlength(dims)), _maybestripval(dims))
 end
 
 _dimlength(dims::Tuple) = map(_dimlength, dims)
@@ -403,3 +416,9 @@ function _maybestripval(dims)
         val(d) isa AbstractArray ? d : basetypeof(d)()
     end
 end
+
+# dimconstructor
+# Allow customising constructors based on dimension types
+# Thed default constructor is DimArray
+dimconstructor(dims::DimTuple) = dimconstructor(tail(dims)) 
+dimconstructor(dims::Tuple{}) = DimArray 

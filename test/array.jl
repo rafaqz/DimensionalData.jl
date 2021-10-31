@@ -222,7 +222,7 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
-@testset "ones, zeros constructors" begin
+@testset "ones, zeros, trues, falses constructors" begin
     da = zeros(X(4), Y(40.0:10.0:80.0))
     @test eltype(da) <: Float64
     @test all(==(0), da) 
@@ -231,10 +231,21 @@ end
          X(NoLookup(Base.OneTo(4))), 
          Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
     )
-    da = ones(Int32, (Ti(Date(2001):Year(1):Date(2004))))
+    ti = Ti(Date(2001):Year(1):Date(2004))
+    da = ones(Int32, ti)
     @test size(da) == (4,)
     @test eltype(da) <: Int32
     @test all(==(1), da) 
+    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+    da = trues(ti)
+    @test size(da) == (4,)
+    @test eltype(da) <: Bool
+    @test all(==(true), da) 
+    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+    da = falses(ti)
+    @test size(da) == (4,)
+    @test eltype(da) <: Bool
+    @test all(==(false), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 end
 
