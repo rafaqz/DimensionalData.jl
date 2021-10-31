@@ -1,7 +1,7 @@
 using DimensionalData, Test 
-using DimensionalData: _set, index, locus, AutoSampling, AutoLocus, AutoSpan
-using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-    Sampled, Categorical, NoLookup, Regular, Irregular, Points, Intervals, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
+
+using DimensionalData.LookupArrays: _set
 
 a = [1 2; 3 4]
 dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),

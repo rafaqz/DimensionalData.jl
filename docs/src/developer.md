@@ -51,7 +51,7 @@ NamedDims.jl has concise syntax, but the dimensions are no longer types,
 NamedDims.jl syntax can now be replicated using `Dim{:X}`: 
 
 ```julia
-A = Dimarray(rand(4, 5), (:a, :b)
+A = Dimarray(rand(4, 5), (:a, :b))
 A[:b=5, :a=3] = 25.0
 ```
 

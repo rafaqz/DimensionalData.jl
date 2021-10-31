@@ -14,7 +14,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
             newlayers = map(A -> Base.$f(A, I...; kw...), layers(s))
             if all(map(v -> v isa AbstractDimArray, newlayers))
-                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), (I..., _kwdims(values(kw))...))))
+                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), (I..., kwdims(values(kw))...))))
             else
                 newlayers
             end
@@ -31,3 +31,5 @@ end
     K1 == K2 || _keysmismatch(K1, K2)
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 end
+
+@noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))

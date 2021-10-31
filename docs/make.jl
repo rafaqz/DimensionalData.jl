@@ -2,8 +2,7 @@ using Pkg
 Pkg.activate(@__DIR__)
 
 using Documenter, DimensionalData, CoordinateTransformations, Dates
-
-using DimensionalData: LookupArray, Aligned, Order, Selector, Unaligned
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
 

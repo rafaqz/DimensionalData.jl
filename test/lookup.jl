@@ -1,8 +1,7 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: _slicespan, isrev, _bounds, dims2indices, locus
-using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-    Sampled, Categorical, NoLookup, Transformed,
-    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
+using DimensionalData.Dimensions: _slicedims
 
 @testset "isrev" begin
     @test isrev(ForwardOrdered()) == false
@@ -112,7 +111,7 @@ end
             bnds = vcat(ind', (ind .+ 10)')
             dim = X(Sampled(ind, ForwardOrdered(), Explicit(bnds), Intervals(Start()), NoMetadata()))
             @test bounds(dim) == (10.0, 60.0)
-            @test bounds(DimensionalData._slicedims(getindex, dim, 2:3)[1][1]) == (20.0, 40.0)
+            @test bounds(_slicedims(getindex, dim, 2:3)[1][1]) == (20.0, 40.0)
         end
     end
 
@@ -133,8 +132,8 @@ end
         dim = X(Categorical(ind; order=ForwardOrdered()))
         @test order(dim) == ForwardOrdered()
         @test_throws ErrorException step(dim)
-        @test span(dim) == DimensionalData.NoSpan()
-        @test sampling(dim) == DimensionalData.NoSampling()
+        @test span(dim) == NoSpan()
+        @test sampling(dim) == NoSampling()
         @test dims(lookup(dim)) === nothing
         @test locus(dim) == Center()
         @test bounds(dim) == (:a, :d)

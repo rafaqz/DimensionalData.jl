@@ -69,12 +69,6 @@ Coord(d1::Dimension, dims::Dimension...) = Coord((d1, dims...))
 Coord() = Coord(:)
 
 dims(d::Coord) = dims(val(d))
-bounds(d::Coord) = ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
-
-# Return a Vector{Bool} for matching coordinates
-selectindices(lookup::CoordLookupArray, sel::DimTuple) = selectindices(lookup, sortdims(sel, dims(lookup)))
-selectindices(lookup::CoordLookupArray, sel::Tuple) = [all(map(_matches, sel, x)) for x in lookup]
-selectindices(lookup::CoordLookupArray, sel::StandardIndices) = sel
 
 _matches(sel::Dimension, x) = _matches(val(sel), x)
 _matches(sel::Between, x) = (x >= first(sel)) & (x < last(sel))
@@ -87,7 +81,15 @@ function _format(dim::Coord, axis::AbstractRange)
     return dim
 end
 
-@inline reducelookup(l::CoordLookupArray) = NoLookup(OneTo(1))
+
+LookupArrays.bounds(d::Coord) = ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
+
+# Return a Vector{Bool} for matching coordinates
+LookupArrays.selectindices(lookup::CoordLookupArray, sel::DimTuple) = selectindices(lookup, sortdims(sel, dims(lookup)))
+LookupArrays.selectindices(lookup::CoordLookupArray, sel::Tuple) = [all(map(_matches, sel, x)) for x in lookup]
+LookupArrays.selectindices(lookup::CoordLookupArray, sel::StandardIndices) = sel
+
+@inline LookupArrays.reducelookup(l::CoordLookupArray) = NoLookup(OneTo(1))
 
 _tozero(xs) = map(x -> zero(x), xs)
 @inline _reducedims(lookup::CoordLookupArray, dim::Dimension) =

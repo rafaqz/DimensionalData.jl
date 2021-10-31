@@ -1,4 +1,5 @@
 using DimensionalData, Test
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 di = DimIndices(A)

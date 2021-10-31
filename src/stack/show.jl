@@ -1,6 +1,6 @@
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
     print(io, nameof(typeof(stack)))
-    print_dims(io, mime, dims(stack))
+    Dimensions.print_dims(io, mime, dims(stack))
     nlayers = length(keys(stack))
     layers_str = nlayers == 1 ? "layer" : "layers"
     printstyled(io, "\nand "; color=:light_black) 
@@ -16,7 +16,7 @@ function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
         printstyled(io, " dims: "; color=:light_black)
         if n_dims > 0
             for (d, dim) in enumerate(field_dims)
-                print_dimname(io, dim)
+                Dimensions.print_dimname(io, dim)
                 d != length(field_dims) && print(io, ", ")
             end
             print(io, " (")

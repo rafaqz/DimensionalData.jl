@@ -19,6 +19,7 @@ Selectors provided in DimensionalData are:
 abstract type Selector{T} end
 
 val(sel::Selector) = sel.val
+Base.parent(sel::Selector) = sel.val
 
 const SelTuple = Tuple{<:Selector,Vararg{<:Selector}}
 
@@ -203,9 +204,9 @@ Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 ## Example
 
 ```jldoctest
-using DimensionalData
-dims_ = X(10:10:20; sampling=Intervals(Center())),
-        Y(5:7; sampling=Intervals(Center()))
+using DimensionalData; const DD = DimensionalData
+dims_ = X(10:10:20; sampling=DD.Intervals(DD.Center())),
+        Y(5:7; sampling=DD.Intervals(DD.Center()))
 A = DimArray([1 2 3; 4 5 6], dims_)
 A[X(Contains(8)), Y(Contains(6.8))]
 
@@ -470,6 +471,7 @@ _lt(::_Upper) = (<=)
 _maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds) 
 _maybeflipbounds(o::ForwardOrdered, (a, b)) = (a, b)
 _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
+_maybeflipbounds(o::Unordered, (a, b)) = (a, b)
 
 """
     Where <: Selector

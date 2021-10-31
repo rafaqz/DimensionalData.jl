@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData: NoLookup, index
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using Statistics: mean
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))
@@ -36,5 +36,5 @@ end
     @test dims(m, Coord).val == DimensionalData.NoLookup(Base.OneTo(1))
     pure_mean = mean(da2.data; dims = 1)
     @test vec(pure_mean) == vec(m.data)
-    @test DimensionalData._tozero((1.0, 1.0)) == (0.0, 0.0)
+    @test Dimensions._tozero((1.0, 1.0)) == (0.0, 0.0)
 end

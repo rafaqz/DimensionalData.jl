@@ -1,8 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates
-using DimensionalData: between, at, near, contains, selectindices, hasselection, lookup, index
-using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-    Sampled, Categorical, NoLookup, Transformed,
-    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using .LookupArrays: between, at, near, contains
 
 a = [1 2  3  4
      5 6  7  8

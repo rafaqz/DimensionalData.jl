@@ -121,14 +121,14 @@ any combination of either.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
-2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z
+2×3×2 DimArray{Float64,3} with dimensions: X , Y , Z
 [:, :, 1]
  1.0  1.0  1.0
  1.0  1.0  1.0
 [and 1 more slices...]
 
 julia> dims(A, (X, Y))
-X, Y
+X , Y
 
 ```
 """
@@ -148,16 +148,15 @@ No errors are thrown if dims are absent from either `x` or `lookup`.
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 
 ```jldoctest
-julia> using DimensionalData
+julia> using DimensionalData, .Dimensions
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
-
 
 julia> commondims(A, X)
 X
 
 julia> commondims(A, (X, Z))
-X, Z
+X , Z
 
 julia> commondims(A, Ti)
 ()
@@ -187,7 +186,6 @@ depending on wether `lookup` is a `Tuple` or single `Dimension`.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
-
 
 julia> dimnum(A, (Z, X, Y))
 (3, 1, 2)
@@ -231,7 +229,6 @@ julia> using DimensionalData
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-
 julia> hasdim(A, X)
 true
 
@@ -263,19 +260,18 @@ A tuple holding the unmatched dimensions is always returned.
 
 ## Example
 ```jldoctest
-julia> using DimensionalData
+julia> using DimensionalData, DimensionalData.Dimensions
 
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
-
 julia> otherdims(A, X)
-Y, Z
+Y , Z
 
 julia> otherdims(A, (Y, Z))
 X
 
-julia> otherdims(A, Ti)
-X, Y, Z
+julia> 
+
 ```
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)
@@ -301,12 +297,12 @@ and returns a new object or tuple with the dimension updated.
 
 # Example
 ```jldoctest
-using DimensionalData
+using DimensionalData, DimensionalData.Dimensions, DimensionalData.LookupArrays 
 A = ones(X(10), Y(10:10:100))
-B = setdims(A, Y(Categorical('a':'j'; order=DimensionalData.ForwardOrdered())))
-index(B, Y)
+B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
+lookup(B, Y)
 # output
-'a':1:'j'
+Categorical 'a':1:'j' ForwardOrdered
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
@@ -337,9 +333,10 @@ dimension as-is.
 ```jldoctest
 using DimensionalData
 A = ones(X(2), Y(4), Z(2))
-swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
+Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
+
 # output
-2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a} , Dim{:b} , Dim{:c}
 [:, :, 1]
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
@@ -461,11 +458,12 @@ function comparedims end
 @inline function comparedims(a::Dimension, b::Dimension; 
     type=true, length=true, lookup=false, val=false, metadata=false
 )
+    D = Dimensions
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
-    lookup && typeof(DD.lookup(a)) != typeof(DD.lookup(b)) && _lookuperror(a, b)
+    lookup && typeof(D.lookup(a)) != typeof(D.lookup(b)) && _lookuperror(a, b)
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
-    val && DD.val(a) != DD.val(b) && _valerror(a, b)
-    metadata && DD.metadata(a) != DD.metadata(b) && _metadataerror(a, b)
+    val && D.val(a) != D.val(b) && _valerror(a, b)
+    metadata && D.metadata(a) != D.metadata(b) && _metadataerror(a, b)
     return a
 end
 
@@ -543,14 +541,14 @@ struct AlwaysTuple end
 _maybefirst(xs::Tuple) = first(xs)
 _maybefirst(::Tuple{}) = nothing
 
-@inline _kwdims(kw::Base.Iterators.Pairs) = _kwdims(values(kw))
+@inline kwdims(kw::Base.Iterators.Pairs) = kwdims(values(kw))
 # Convert `Symbol` keyword arguments to a `Tuple` of `Dimension`
-@inline _kwdims(kw::NamedTuple{Keys}) where Keys = _kwdims(key2dim(Keys), values(kw))
-@inline _kwdims(dims::Tuple, vals::Tuple) =
-    (rebuild(first(dims), first(vals)), _kwdims(tail(dims), tail(vals))...)
-@inline _kwdims(dims::Tuple{}, vals::Tuple{}) = ()
+@inline kwdims(kw::NamedTuple{Keys}) where Keys = kwdims(key2dim(Keys), values(kw))
+@inline kwdims(dims::Tuple, vals::Tuple) =
+    (rebuild(first(dims), first(vals)), kwdims(tail(dims), tail(vals))...)
+@inline kwdims(dims::Tuple{}, vals::Tuple{}) = ()
 
-@inline _pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+@inline pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)

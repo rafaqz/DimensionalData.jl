@@ -1,15 +1,12 @@
 using DimensionalData, Test, BenchmarkTools
-using DimensionalData: dims2indices, locus
-using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
-    Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 @testset "dims2indices" begin
     a = [1 2 3; 4 5 6]
     da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0)))
     dimz = dims(da)
 
-    @test DimensionalData._dims2indices(dimz[1], Y) == Colon()
+    @test Dimensions._dims2indices(dimz[1], Y) == Colon()
     @test dims2indices(dimz, (Y(),)) == (Colon(), Colon())
     @test (@ballocated dims2indices($dimz, (Y(),))) == 0
     @test dims2indices(dimz, (Y(1),)) == (Colon(), 1)
@@ -64,7 +61,7 @@ end
         @test metadata(a, X) === xmeta
         @test bounds(a) === ((143.0, 145.0),)
         @test bounds(a, X) === (143.0, 145.0)
-        @test locus(lookup(da, X)) == Center()
+        @test locus(da, X) == Center()
 
         a = da[X(1), Y(1:2)]
         @test a == [1, 2]

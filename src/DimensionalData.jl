@@ -28,6 +28,17 @@ import Adapt,
 
 using RecipesBase: @recipe
 
+include("Dimensions/Dimensions.jl")
+
+using .Dimensions
+using .Dimensions.LookupArrays
+using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimType, AllDims
+import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
+    order, span, sampling, locus, val, index, bounds, hasselection, units
+import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label
+
+export LookupArrays, Dimensions
+
 # Dimension
 export X, Y, Z, Ti, Dim, Coord
 
@@ -43,7 +54,7 @@ export AbstractDimTable, DimTable
 export DimIndices, DimKeys
 
 # getter methods
-export dims, refdims, lookup, metadata, name, val, order, sampling, span, bounds
+export dims, refdims, metadata, name, bounds
 
 # Dimension/Lookup primitives
 export dimnum, hasdim, hasselection, otherdims
@@ -51,29 +62,12 @@ export dimnum, hasdim, hasselection, otherdims
 # utils
 export set, rebuild, reorder, modify, dimwise, dimwise!
 
-export @dim
-
 const DD = DimensionalData
 
-const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer}
-
-# Shared deps
+# Common
 include("interface.jl")
 include("name.jl")
-include("metadata.jl")
-# LookupArrays
-include("lookup/lookup_traits.jl")
-include("lookup/lookup.jl")
-include("lookup/selector.jl")
-include("lookup/methods.jl")
-include("lookup/show.jl")
-# Dimensions
-include("dimension/dimension.jl")
-include("dimension/primitives.jl")
-include("dimension/format.jl")
-include("dimension/indexing.jl")
-include("dimension/coord.jl")
-include("dimension/show.jl")
+
 # Arrays
 include("array/array.jl")
 include("array/indexing.jl")

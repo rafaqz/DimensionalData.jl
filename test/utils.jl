@@ -1,10 +1,6 @@
 using DimensionalData, Test, Dates
-using DimensionalData: shiftlocus, maybeshiftlocus, order, Metadata, NoMetadata
-
-using DimensionalData: index, locus, data
-using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-    Sampled, Categorical, NoLookup, Transformed,
-    Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
+using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using .LookupArrays: shiftlocus, maybeshiftlocus
 
 @testset "reverse" begin
     @testset "dimension" begin
@@ -96,7 +92,7 @@ end
         da2 = DimArray(2A, dimz; name=:da2)
         s = DimStack(da1, da2)
         ms = modify(A -> A .> 3, s)
-        @test data(ms) == (da1=[false false false; true true true],
+        @test parent(ms) == (da1=[false false false; true true true],
                               da2=[false true  true ; true true true])
         @test typeof(parent(ms[:da2])) == BitArray{2}
     end
@@ -186,22 +182,22 @@ end
 @testset "dim2boundsmatrix" begin
     @testset "Regular span" begin
         dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.5 1.5 2.5
+        @test Dimensions.dim2boundsmatrix(dim) == [0.5 1.5 2.5
                                                         1.5 2.5 3.5]
         dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Start()), NoMetadata()))
-        @test DimensionalData.dim2boundsmatrix(dim) == [1.0 2.0 3.0
+        @test Dimensions.dim2boundsmatrix(dim) == [1.0 2.0 3.0
                                                         2.0 3.0 4.0]
         dim = X(Sampled(1.0:3.0, ReverseOrdered(), Regular(1.0), Intervals(End()), NoMetadata()))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
+        @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
         dim = X(Sampled(3.0:-1:1.0, ReverseOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
-        @test DimensionalData.dim2boundsmatrix(dim) == [2.5 1.5 0.5
+        @test Dimensions.dim2boundsmatrix(dim) == [2.5 1.5 0.5
                                                         3.5 2.5 1.5]
     end
     @testset "Explicit span" begin
         dim = X(Sampled(1.0:3.0, ForwardOrdered(), 
                 Explicit([0.0 1.0 2.0; 1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
-        @test DimensionalData.dim2boundsmatrix(dim) == [0.0 1.0 2.0
+        @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
     end
 end

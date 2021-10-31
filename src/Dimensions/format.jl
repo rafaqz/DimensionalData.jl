@@ -44,21 +44,18 @@ format(m::LookupArray, D::Type, axis::AbstractRange) = format(m, D, parent(m), a
 # No more identification required for NoLookup
 format(m::NoLookup, D::Type, index, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, index::AutoIndex, axis::AbstractRange) = NoLookup(axis)
-# AutoLookup
+# # AutoLookup
 function format(m::AutoLookup, D::Type, index::AbstractArray{T}, axis::AbstractRange) where T
     # A mixed type index is Categorical
     m = if isconcretetype(T) 
         Sampled(; order=order(m), span=span(m), sampling=sampling(m), metadata=metadata(m))
     else
-        Categorical(; order=order(m), metadata=metadata(m))
+        o = order(m) isa AutoOrder ? Unordered() : order(m)
+        Categorical(; order=o, metadata=metadata(m))
     end
     format(m, D, index, axis)
 end
 function format(m::AutoLookup, D::Type, index::AbstractArray{<:CategoricalEltypes}, axis::AbstractRange)
-    o = _format(order(m), D, index)
-    return Categorical(index; order=o, metadata=metadata(m))
-end
-function format(m::AutoLookup, D::Type, index::Val, axis::AbstractRange)
     o = _format(order(m), D, index)
     return Categorical(index; order=o, metadata=metadata(m))
 end
@@ -67,7 +64,7 @@ function format(m::Categorical, D::Type, index, axis::AbstractRange)
     o = _format(order(m), D, index)
     return rebuild(m; data=i, order=o)
 end
-# Sampled
+# # Sampled
 function format(m::AbstractSampled, D::Type, index, axis::AbstractRange)
     i = _format(index, axis)
     o = _format(order(m), D, index)
@@ -76,7 +73,7 @@ function format(m::AbstractSampled, D::Type, index, axis::AbstractRange)
     x = rebuild(m; data=i, order=o, span=sp, sampling=sa)
     return x
 end
-# Transformed
+# # Transformed
 format(m::Transformed, D::Type, index::AutoIndex, axis::AbstractRange) = rebuild(m; data=axis)
 format(m::Transformed, D::Type, index, axis::AbstractRange) = m
 
@@ -85,7 +82,7 @@ _format(index::AbstractArray, axis::AbstractRange) = index
 _format(index::AutoLookup, axis::AbstractRange) = axis
 # Order
 _format(order::Order, D::Type, index) = order
-_format(order::AutoOrder, D::Type, index) = _orderof(index)
+_format(order::AutoOrder, D::Type, index) = LookupArrays.orderof(index)
 # Span
 _format(span::AutoSpan, D::Type, index::Union{AbstractArray,Val}) =
     _format(Irregular(), D, index)
@@ -115,24 +112,6 @@ _format(locus::AutoLocus, D::Type, index) = Center()
 # calculate with DateTime step values.
 _format(locus::AutoLocus, D::Type{<:TimeDim}, index) = Start()
 _format(locus::Locus, D::Type, index) = locus
-
-_orderof(index::AbstractUnitRange) = ForwardOrdered()
-_orderof(index::AbstractRange) = _order(index)
-_orderof(index::AbstractArray) = _detectorder(index)
-
-function _detectorder(index)
-    local sorted, indord
-    # This is awful. But we don't know if we can
-    # call `issorted` on the contents of `index`.
-    # This may be resolved by: https://github.com/JuliaLang/julia/pull/37239
-    try
-        indord = _order(index)
-        sorted = issorted(index; rev=isrev(indord))
-    catch
-        sorted = false
-    end
-    return sorted ? indord : Unordered()
-end
 
 _order(index) = first(index) <= last(index) ? ForwardOrdered() : ReverseOrdered()
 
