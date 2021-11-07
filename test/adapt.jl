@@ -17,6 +17,28 @@ Base.count(x::CustomArray) = count(x.arr)
     @test adapt(CustomArray, Metadata(:a=>"1", :b=>"2")) == NoMetadata()
 end
 
+@testset "LookupArray" begin
+    l = Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2"))
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(parent(l1)) isa CustomArray
+    @test parent(parent(l1)).arr == [1:10...]
+    @test metadata(l1) == NoMetadata()
+    l = Categorical('a':1:'n'; metadata=Metadata(:a=>"1", :b=>"2"))
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(parent(l1)) isa StepRange
+    @test metadata(l1) == NoMetadata()
+    l = Categorical(['a', 'e', 'n']; metadata=Metadata(:a=>"1", :b=>"2"))
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(parent(l1)) isa CustomArray
+    @test metadata(l1) == NoMetadata()
+    l = NoLookup(Base.OneTo(10))
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(parent(l1)) isa Base.OneTo
+    l = AutoLookup()
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(l1) isa AutoIndex
+end
+
 @testset "Dimension" begin
     d = X(Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2")))
     d1 = Adapt.adapt(CustomArray, d)

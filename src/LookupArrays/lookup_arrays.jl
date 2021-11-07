@@ -39,9 +39,8 @@ end
 function Base.:(==)(l1::LookupArray, l2::LookupArray)
     typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
 end
-
 function Adapt.adapt_structure(to, l::LookupArray)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
+    rebuild(l; data=Adapt.adapt(to, parent(l)))
 end
 
 """
@@ -157,6 +156,10 @@ metadata(lookup::AbstractSampled) = lookup.metadata
 locus(lookup::AbstractSampled) = locus(sampling(lookup))
 
 Base.step(lookup::AbstractSampled) = step(span(lookup))
+
+function Adapt.adapt_structure(to, l::AbstractSampled)
+    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
+end
 
 # bounds
 bounds(lookup::AbstractSampled) = _bounds(sampling(lookup), span(lookup), lookup)
@@ -278,6 +281,11 @@ order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
+
+function Adapt.adapt_structure(to, l::AbstractCategorical)
+    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
+end
+
 
 """
     Categorical <: AbstractCategorical
