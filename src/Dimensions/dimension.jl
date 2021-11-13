@@ -142,10 +142,11 @@ Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{<:Dimension,Vararg{<:Dimension}}
+const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{<:DimType,Vararg{<:DimType}}
-const VectorOfDim = Vector{<:Dimension}
-const DimOrDimType = Union{Dimension,DimType}
-const AllDims = Union{Dimension,DimTuple,DimType,DimTypeTuple,VectorOfDim}
+const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
+const DimOrDimType = Union{Dimension,DimType,Symbol}
+const AllDims = Union{Symbol,Dimension,DimTuple,SymbolTuple,DimType,DimTypeTuple,VectorOfDim}
 
 # DimensionalData interface methods
 
