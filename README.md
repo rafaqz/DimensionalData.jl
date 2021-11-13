@@ -70,7 +70,7 @@ Some properties of DimensionalData.jl objects:
 - `mapslices`, `eachslice`
 
 ## Methods where dims can be used to construct `DimArray`s:
-- `fill`, `ones`, `zeros`, `rand`
+- `fill`, `ones`, `zeros`, `falses`, `trues`, `rand`
 
 ## **Note**: recent changes have greatly reduced the exported API
 
