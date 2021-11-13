@@ -19,12 +19,19 @@ val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
 @testset "size and axes" begin
+    row_dims = (1, Dim{:row}(), Dim{:row}, :row, dimz2[1])
+    for dim in row_dims
+        @test size(da2, dim) == 3
+        @test axes(da2, dim) == 1:3
+        @test firstindex(da2, dim) == 1
+        @test lastindex(da2, dim) == 3
+    end
+    @test size(da2, :column) == 4
+    @test axes(da2, :column) == 1:4
     @test size(da2) == (3, 4)
-    @test size(da2, Dim{:row}) == 3
-    @test size(da2, Dim{:column}()) == 4
     @test axes(da2) == (1:3, 1:4)
-    @test axes(da2, Dim{:row}()) == 1:3
-    @test axes(da2, Dim{:column}) == 1:4
+    @test firstindex(da2) == 1
+    @test lastindex(da2) == 12
     @inferred axes(da2, Dim{:column})
     @test IndexStyle(da) == IndexLinear()
 end

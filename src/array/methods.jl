@@ -269,11 +269,10 @@ end
 # Index breaking
 
 # TODO: change the index and traits of the reduced dimension and return a DimArray.
-Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Colon}=:) = _unique(A, dims)
+Base.unique(A::AbstractDimArray; dims::Union{DimOrDimType,Int,Colon}=:) = _unique(A, dims)
 Base.unique(A::AbstractDimArray{<:Any,1}) = unique(parent(A))
 
-_unique(A::AbstractDimArray, dims::DimOrDimType) =
-    unique(parent(A); dims=dimnum(A, dims))
+_unique(A::AbstractDimArray, dims) = unique(parent(A); dims=dimnum(A, dims))
 _unique(A::AbstractDimArray, dims::Colon) = unique(parent(A); dims=:)
 
 Base.diff(A::AbstractDimVector; dims=1) = _diff(A, dimnum(A, dims))
