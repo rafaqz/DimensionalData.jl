@@ -72,13 +72,13 @@ function at(lookup::LookupArray, sel::At; kw...)
     at(order(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
 function at(
-    ::Ordered, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing; 
+    ::Ordered, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
     i = searchsortedlast(lookup, x)
     # Try the current index
-    if i === 0 
+    if i === 0
         i1 = i + 1
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1
@@ -87,7 +87,7 @@ function at(
         end
     elseif _is_at(x, lookup[i], atol)
         return i
-    else 
+    else
         # Try again with the next index
         i1 = i + 1
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
@@ -100,7 +100,7 @@ end
 # catch-all for an unordered or non-number index
 function at(order, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
-    if i === nothing 
+    if i === nothing
         return _selnotfound_or_nothing(err, lookup, selval)
     else
         return i
@@ -146,8 +146,8 @@ end
 
 near(lookup::NoLookup, sel::Near) = val(sel)
 function near(lookup::LookupArray, sel::Near)
-    span(lookup) isa Irregular && locus(lookup) isa Union{Start,End} &&
-        throw(ArgumentError("Near is not implemented for Irregular with Start or End loci. Use Contains"))
+    span(lookup) isa Union{Irregular,Explicit} && locus(lookup) isa Union{Start,End} &&
+        throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End loci. Use Contains"))
     near(order(lookup), sampling(lookup), lookup, sel)
 end
 near(order::Order, ::NoSampling, lookup::LookupArray, sel::Near) = at(lookup, At(val(sel)))
@@ -175,8 +175,8 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, se
     dist_to_prev = abs(v_adj - lookup[prev_i])
     dist_to_found = abs(v_adj - lookup[found_i])
     # Compare distance to the found and previous index values
-    # We have to use the correct >/>= for Start/End locus 
-    lessthan = _lt(locus(lookup)) 
+    # We have to use the correct >/>= for Start/End locus
+    lessthan = _lt(locus(lookup))
     closest_i = lessthan(dist_to_prev, dist_to_found) ? prev_i : found_i
 
     return closest_i
@@ -224,11 +224,11 @@ end
 contains(l::NoLookup, sel::Contains; kw...) = val(sel)
 contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
-function contains(::NoSampling, lookup::LookupArray, sel::Contains; kw...)
-    at(lookup, At(val(sel)); kw...)
+function contains(::NoSampling, l::LookupArray, sel::Contains; kw...)
+    at(l, At(val(sel)); kw...)
 end
 # Points --------------------------------------
-function contains(::Points, lookup::LookupArray, sel::Contains; err=_True())
+function contains(::Points, l::LookupArray, sel::Contains; err=_True())
     if err isa _True
         throw(ArgumentError("Points LookupArray cannot use `Contains`, use `Near` or `At` for Points."))
     else
@@ -236,88 +236,89 @@ function contains(::Points, lookup::LookupArray, sel::Contains; err=_True())
     end
 end
 # Intervals -----------------------------------
-function contains(sampling::Intervals, lookup::LookupArray, sel::Contains; kw...)
-    contains(span(lookup), sampling, order(lookup), locus(lookup), lookup, sel; kw...)
+function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())
+    _locus_checkbounds(locus(l), l, sel) || return _boundserror_or_nothing(err)
+    contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 # Regular Intervals ---------------------------
-function contains(span::Regular, ::Intervals, order, locus, lookup::LookupArray, sel::Contains; 
+function contains(o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
     err=_True()
 )
-    _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
     v = val(sel)
+    i = _searchfunc(locus, o)(l, v)
+    return check_regular_contains(span, locus, l, v, i, err)
+end
+function contains(o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
+    err=_True()
+)
+    v = val(sel) + abs(val(span)) / 2
+    i = _searchfunc(locus, o)(l, v)
+    return check_regular_contains(span, locus, l, v, i, err)
+end
+
+function check_regular_contains(span::Span, locus::Locus, l::LookupArray, v, i, err)
     absstep = abs(val(span))
-    centeredval = _maybeaddhalf(locus, absstep, v)
-    searchfunc = _whichsearch(locus, order)
-    i = searchfunc(lookup, centeredval)
-    # Check the value is in this cell. 
-    # It is always for AbstractRange but might not be for Val tuple or Vector.
-    if (parent(lookup) isa AbstractRange) || _lt(locus)(v, lookup[i] + absstep)
+    if (parent(l) isa AbstractRange) || _lt(locus)(v, l[i] + absstep)
         return i
     else
         return _notcontained_or_nothing(err, v)
     end
 end
+
 # Explicit Intervals ---------------------------
 function contains(
-    span::Explicit, ::Intervals, order,locus, lookup::LookupArray, sel::Contains;
+    o::Ordered, span::Explicit, ::Intervals, locus, l::LookupArray, sel::Contains;
     err=_True()
 )
-    x = val(sel)
-    i = searchsortedlast(view(val(span), 1, :), x)
-    if i === 0 || val(span)[2, i] < x 
-        return _notcontained_or_nothing(err, x)
+    v = val(sel)
+    searchfunc = _searchfunc(_Upper(), o)
+    i = searchfunc(view(val(span), 1, :), v; order=ordering(o), lt=_lt(locus))
+    if i === 0 || val(span)[2, i] < v
+        return _notcontained_or_nothing(err, v)
     else
         return i
     end
 end
 # Irregular Intervals -------------------------
 function contains(
-    span::Irregular, ::Intervals, order::Order,
-    locus::Locus,lookup::LookupArray, sel::Contains;
+    o::Ordered, span::Irregular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
     err=_True()
 )
-    _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
-    searchfunc =  _whichsearch(locus, order)
-    i = searchfunc(lookup, val(sel))
-    return i
+    return _searchfunc(locus, o)(l, val(sel))
 end
 function contains(
-    span::Irregular, ::Intervals, order::Order,
-    locus::Center, lookup::LookupArray, sel::Contains; 
+    o::Ordered, span::Irregular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
     err=_True()
 )
-    _locus_checkbounds(locus, lookup, sel) || return _boundserror_or_nothing(err)
+    _order_lt(::ForwardOrdered) = (<)
+    _order_lt(::ReverseOrdered) = (<=)
+
     v = val(sel)
-    i = searchsortedfirst(lookup, v)
-    i = if i <= firstindex(lookup) 
-        firstindex(lookup)
-    elseif i > lastindex(lookup) 
-        lastindex(lookup)
+    i = searchsortedfirst(l, v)
+    i = if i <= firstindex(l)
+        firstindex(l)
+    elseif i > lastindex(l)
+        lastindex(l)
     else
-        interval = abs(lookup[i] - lookup[i - 1])
-        distance = abs(lookup[i] - v)
-        _order_lt(order)(interval / 2, distance) ? i - 1 : i
+        interval = abs(l[i] - l[i - 1])
+        distance = abs(l[i] - v)
+        _order_lt(o)(interval / 2, distance) ? i - 1 : i
     end
     return i
-end 
+end
 
 _boundserror_or_nothing(err::_True) = throw(BoundsError())
 _boundserror_or_nothing(err::_False) = nothing
 
 _notcontained_or_nothing(err::_True, selval) = _notcontainederror(selval)
 _notcontained_or_nothing(err::_False, selval) = nothing
-@noinline _notcontainederror(v) = throw(ArgumentError("No interval contains $(v)"))
 
-_whichsearch(::Locus, ::ForwardOrdered) = searchsortedlast
-_whichsearch(::Locus, ::ReverseOrdered) = searchsortedfirst
-_whichsearch(::End, ::ForwardOrdered) = searchsortedfirst
-_whichsearch(::End, ::ReverseOrdered) = searchsortedlast
+_notcontainederror(v) = throw(ArgumentError("No interval contains $v"))
 
-_maybeaddhalf(::Locus, s, v) = v
-_maybeaddhalf(::Center, s, v) = v + s / 2
-
-_order_lt(::ForwardOrdered) = (<)
-_order_lt(::ReverseOrdered) = (<=)
+_searchfunc(::Locus, ::ForwardOrdered) = searchsortedlast
+_searchfunc(::End, ::ForwardOrdered) = searchsortedfirst
+_searchfunc(::Locus, ::ReverseOrdered) = searchsortedfirst
+_searchfunc(::End, ::ReverseOrdered) = searchsortedlast
 
 """
     Between <: Selector
@@ -326,7 +327,7 @@ _order_lt(::ReverseOrdered) = (<=)
 
 Selector that retreive all indices located between 2 values,
 evaluated with `>=` for the lower value, and `<` for the upper value.
-This means the same value will not be counted twice in 2 adjacent 
+This means the same value will not be counted twice in 2 adjacent
 `Between` selections.
 
 For [`Intervals`](@ref) the whole interval must be lie between the
@@ -370,86 +371,88 @@ Base.last(sel::Between) = last(val(sel))
 struct _Upper end
 struct _Lower end
 
-(sel::Between)(lookup::LookupArray) = between(lookup, sel)
+(sel::Between)(l::LookupArray) = between(l, sel)
 
-between(lookup::NoLookup, sel::Between) = val(sel)[1]:val(sel)[2]
-between(lookup::LookupArray, sel::Between) = between(sampling(lookup), lookup, sel)
+between(l::NoLookup, sel::Between) = val(sel)[1]:val(sel)[2]
+between(l::LookupArray, sel::Between) = between(sampling(l), l, sel)
 # This is the main method called above
-function between(sampling::Sampling, lookup::LookupArray, sel::Between)
-    o = order(lookup)
+function between(sampling::Sampling, l::LookupArray, sel::Between)
+    o = order(l)
     o isa Unordered && throw(ArgumentError("Cannot use `Between` with Unordered"))
-    a, b = between(sampling, o, lookup, sel)
+    a, b = between(sampling, o, l, sel)
     return a:b
 end
 
-function between(sampling::NoSampling, o::Order, lookup::LookupArray, sel::Between)
-    between(Points(), o, lookup, sel)
-end
-# Points ------------------------------------
-function between(sampling::Points, o::Order, lookup::LookupArray, sel::Between)
-    b1, b2 = _maybeflipbounds(o, _sorttuple(sel))
-    s1, s2 = _maybeflipbounds(o, (searchsortedfirst, searchsortedlast))
-    low_i = s1(lookup, b1)
-    high_i = s2(lookup, b2)
-    return _inbounds((low_i, high_i), lookup)
+function between(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Between)
+    between(Points(), o, l, sel)
 end
 # Intervals -------------------------
-function between(sampling::Intervals, o::Order, lookup::LookupArray, sel::Between)
-    between(span(lookup), sampling, o, lookup, sel)
-end
-# Regular Intervals -------------------------
-function between(span::Regular, ::Intervals, o::Order, lookup::LookupArray, sel::Between)
-    lowval, highval = _maybeflipbounds(o, _sorttuple(sel) .+ _locus_adjust(lookup))
-    low_i = searchsortedfirst(lookup, lowval)
-    high_i = searchsortedlast(lookup, highval)
-    return _inbounds((low_i, high_i), lookup)
-end
-# Explicit Intervals -------------------------
-function between(span::Explicit, ::Intervals, o::Order, lookup::LookupArray, sel::Between)
-    lower_bounds = view(val(span), 1, :)
-    upper_bounds = view(val(span), 2, :)
-    low_i = searchsortedfirst(lower_bounds, first(val(sel)); lt=<)
-    high_i = searchsortedlast(upper_bounds, last(val(sel)); lt=<)
-    return _inbounds((low_i, high_i), lookup)
-end
-# Irregular Intervals -----------------------
-function between(span::Irregular, ::Intervals, o::Order, l::LookupArray, sel::Between)
-    lowval, highval = _sorttuple(sel) 
-    lowerbound, upperbound = bounds(span)
-
-    a = if lowval <= lowerbound 
-        o isa ForwardOrdered ? firstindex(l) : lastindex(l)
+function between(sampling, o::Ordered, l::LookupArray, sel::Between)
+    lowerbound, upperbound = bounds(l)
+    lowval, highval = _sorttuple(sel)
+    lessthan, greaterthan = _lt(locus(l)), _gt(locus(l))
+    a = if greaterthan(lowval, upperbound)
+        ordered_lastindex(l) + _ordscalar(o)
+    elseif lessthan(lowval, lowerbound)
+        ordered_firstindex(l)
     else
-        _irregbetween(_Lower(), locus(l), o, l, lowval)
+        _between_side(_Lower(), o, span(l), sampling, l, lowval)
     end
-    b = if highval >= upperbound 
-        o isa ForwardOrdered ? lastindex(l) : firstindex(l)
+    b = if lessthan(highval, lowerbound)
+        ordered_firstindex(l) - _ordscalar(o)
+    elseif greaterthan(highval, upperbound)
+        ordered_lastindex(l)
     else
-        _irregbetween(_Upper(), locus(l), o, l, highval)
+        _between_side(_Upper(), o, span(l), sampling, l, highval)
     end
     return _maybeflipbounds(o, (a, b))
 end
-function _irregbetween(side, locus::Union{Start,End}, o::Order, m::LookupArray, v)
-    _search(side, m, v) - _ordscalar(o) * (_locscalar(locus) + _endshift(side))
+
+# Points ------------------------------------
+_between_side(side, o::Order, x, ::Points, l, v) = _searchfunc(side, o)(l, v)
+
+# Regular Intervals -------------------------
+function _between_side(side::_Lower, o::Ordered, ::Regular, ::Intervals, l, v)
+    _searchfunc(side, o)(l, v + _locus_adjust(l)[1])
 end
-function _irregbetween(side, locus::Center, o::Order, l::LookupArray, v)
-    r = _ordscalar(o) 
+function _between_side(side::_Upper, o::Ordered, ::Regular, ::Intervals, l, v)
+    _searchfunc(side, o)(l, v + _locus_adjust(l)[2])
+end
+
+# Explicit Intervals -------------------------
+function _between_side(side::_Lower, o::Ordered, span::Explicit, ::Intervals, l, v)
+    lower_bounds = view(val(span), 1, :)
+    return _searchfunc(side, o)(lower_bounds, v; order=ordering(o))
+end
+function _between_side(side::_Upper, o::Ordered, span::Explicit, ::Intervals, l, v)
+    upper_bounds = view(val(span), 2, :)
+    return _searchfunc(side, o)(upper_bounds, v; order=ordering(o))
+end
+
+# Irregular Intervals -----------------------
+# We need to special-case Center locus for Irregular
+_between_side(side, o, span::Irregular, ::Intervals, l, v) = _irreg_side(side, locus(l), o, l, v)
+function _irreg_side(side, locus::Union{Start,End}, o, l, v)
+    _irreg_search(side, o, l, v) - _ordscalar(o) * (_locscalar(locus) + _endshift(side))
+end
+function _irreg_side(side, locus::Center, o, l, v)
+    r = _ordscalar(o)
     sh = _endshift(side)
-    i = _search(side, l, v)
+    i = _irreg_search(side, o, l, v)
     interval = abs(l[i] - l[i-r])
     distance = abs(l[i] - v)
-    # Use the right >/>= to match interval bounds
-    if _lt(side)(distance, (interval / 2)) 
-        i - sh * r 
+    # Use the right less than </<= to match interval bounds
+    if _lt(side)(distance, (interval / 2))
+        i - sh * r
     else
         i - (1 + sh) * r
     end
 end
 
-function _search(side, lookup, val)
-    searchfunc = _searchfunc(order(lookup))
-    i = searchfunc(lookup, val; lt=_lt(side))
-    _inbounds(i, lookup)
+function _irreg_search(side, o, l, val)
+    searchfunc = _searchfunc(o)
+    i = searchfunc(l, val; lt=_lt(side))
+    return _inbounds(i, l)
 end
 
 _locus_adjust(lookup) = _locus_adjust(locus(lookup), abs(step(span(lookup))))
@@ -464,11 +467,10 @@ _endshift(::_Upper) = 1
 _ordscalar(::ForwardOrdered) = 1
 _ordscalar(::ReverseOrdered) = -1
 
-
 _lt(::_Lower) = (<)
 _lt(::_Upper) = (<=)
 
-_maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds) 
+_maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds)
 _maybeflipbounds(o::ForwardOrdered, (a, b)) = (a, b)
 _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
 _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
@@ -503,7 +505,7 @@ end
 
 val(sel::Where) = sel.f
 
-# Yes this is everything. `Where` doesn't need lookup specialisation  
+# Yes this is everything. `Where` doesn't need lookup specialisation
 @inline function (sel::Where)(lookup::LookupArray)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
@@ -582,11 +584,16 @@ _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
 
-_locus_checkbounds(loc, lookup::LookupArray, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel)) 
+_locus_checkbounds(loc, lookup::LookupArray, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel))
 _locus_checkbounds(loc, (l, h)::Tuple, v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
 
 _searchfunc(::ForwardOrdered) = searchsortedfirst
 _searchfunc(::ReverseOrdered) = searchsortedlast
+
+_searchfunc(::_Lower, ::ForwardOrdered) = searchsortedfirst
+_searchfunc(::_Lower, ::ReverseOrdered) = searchsortedlast
+_searchfunc(::_Upper, ::ForwardOrdered) = searchsortedlast
+_searchfunc(::_Upper, ::ReverseOrdered) = searchsortedfirst
 
 hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
 hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true

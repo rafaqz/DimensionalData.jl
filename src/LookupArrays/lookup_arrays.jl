@@ -17,9 +17,9 @@ span(lookup::LookupArray) = NoSpan()
 sampling(lookup::LookupArray) = NoSampling()
 
 dims(::LookupArray) = nothing
-val(l::LookupArray) = parent(lookup)
-index(lookup::LookupArray) = parent(lookup)
-locus(lookup::LookupArray) = Center()
+val(l::LookupArray) = parent(l)
+index(l::LookupArray) = parent(l)
+locus(l::LookupArray) = Center()
 
 Base.parent(l::LookupArray) = l.data
 Base.size(l::LookupArray) = size(parent(l))
@@ -28,6 +28,18 @@ Base.first(l::LookupArray) = first(parent(l))
 Base.last(l::LookupArray) = last(parent(l))
 Base.firstindex(l::LookupArray) = firstindex(parent(l))
 Base.lastindex(l::LookupArray) = lastindex(parent(l))
+
+ordered_first(l::LookupArray) = l[ordered_firstindex(l)]
+ordered_last(l::LookupArray) = l[ordered_lastindex(l)]
+
+ordered_firstindex(l::LookupArray) = ordered_firstindex(order(l), l)
+ordered_lastindex(l::LookupArray) = ordered_lastindex(order(l), l)
+ordered_firstindex(o::ForwardOrdered, l::LookupArray) = firstindex(parent(l))
+ordered_firstindex(o::ReverseOrdered, l::LookupArray) = lastindex(parent(l))
+ordered_firstindex(o::Unordered, l::LookupArray) = firstindex(parent(l))
+ordered_lastindex(o::ForwardOrdered, l::LookupArray) = lastindex(parent(l))
+ordered_lastindex(o::ReverseOrdered, l::LookupArray) = firstindex(parent(l))
+ordered_lastindex(o::Unordered, l::LookupArray) = lastindex(parent(l))
 
 function Base.searchsortedfirst(lookup::LookupArray, val; lt=<)
     searchsortedfirst(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
