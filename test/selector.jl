@@ -12,12 +12,27 @@ A = DimArray([1 2 3; 4 5 6], dims_)
 
 @testset "selector primitives" begin
 
-    @testset "Regular Intervals with range" begin
-        # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
-        # Varnames: locusindexorderrelation
+    @testset "Explicit Intervals" begin
+        fwdindex = 11.0:30.0
+        revindex = 30.0:-1.0:11.0
+
         args = Intervals(Start()), NoMetadata()
-        startfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
-        startrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
+        fwdmatrix = vcat(fwdindex', (fwdindex .+ 1)')
+        revmatrix = vcat(revindex', (revindex .+ 1)')
+        startfwd = Sampled(fwdindex, ForwardOrdered(), Explicit(fwdmatrix), args...)
+        startrev = Sampled(revindex, ReverseOrdered(), Explicit(revmatrix), args...)
+
+        args = Intervals(Center()), NoMetadata()
+        fwdmatrix = vcat((fwdindex .- 0.5)', (fwdindex .+ 0.5)')
+        revmatrix = vcat((revindex .- 0.5)', (revindex .+ 0.5)')
+        centerfwd = Sampled(fwdindex, ForwardOrdered(), Explicit(fwdmatrix), args...)
+        centerrev = Sampled(revindex, ReverseOrdered(), Explicit(revmatrix), args...)
+
+        args = Intervals(End()), NoMetadata()
+        fwdmatrix = vcat((fwdindex .- 1)', fwdindex')
+        revmatrix = vcat((revindex .- 1)', revindex')
+        endfwd = Sampled(fwdindex, ForwardOrdered(), Explicit(fwdmatrix), args...)
+        endrev = Sampled(revindex, ReverseOrdered(), Explicit(revmatrix), args...)
 
         @testset "Any at" begin
             @test at(startfwd, At(30)) == 20
@@ -29,54 +44,72 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start between" begin
+            @test between(startfwd, Between(0, 11.9)) === 1:0
+            @test between(startfwd, Between(0, 12)) === 1:1
             @test between(startfwd, Between(11, 14)) === 1:3
-            @test between(startrev, Between(11, 14)) === 18:20
+            @test between(startfwd, Between(30, 50)) === 20:20
+            @test between(startfwd, Between(31, 50)) === 21:20
             @test between(startfwd, Between(11.1, 13.9)) === 2:2
+            @test between(startrev, Between(0, 11.9)) === 21:20
+            @test between(startrev, Between(0, 12)) === 20:20
+            @test between(startrev, Between(11, 14)) === 18:20
             @test between(startrev, Between(11.1, 13.9)) === 19:19
+            @test between(startrev, Between(30, 50)) === 1:1
+            @test between(startrev, Between(30.1, 50)) === 1:0
             # Input order doesn't matter
             @test between(startfwd, Between(14, 11)) === 1:3
         end
 
+        @testset "Center between" begin
+            @test between(centerfwd, Between(0, 11.4)) === 1:0
+            @test between(centerfwd, Between(0, 11.5)) === 1:1
+            @test between(centerfwd, Between(10.5, 14.6)) === 1:4
+            @test between(centerfwd, Between(10.6, 14.4)) === 2:3
+            @test between(centerfwd, Between(29.5, 50.0)) === 20:20
+            @test between(centerfwd, Between(29.6, 50.0)) === 21:20
+            @test between(centerrev, Between(10.5, 14.6)) === 17:20
+            @test between(centerrev, Between(10.6, 14.4)) === 18:19
+            @test between(centerrev, Between(0, 11.4)) === 21:20
+            @test between(centerrev, Between(0, 11.5)) === 20:20
+            @test between(centerrev, Between(29.5, 50.0)) === 1:1
+            @test between(centerrev, Between(29.6, 50.0)) === 1:0
+            # Input order doesn't matter
+            @test between(centerfwd, Between(15, 10)) === 1:4
+        end
+
+        @testset "End between" begin
+            @test between(endfwd, Between(0.0, 10.9)) === 1:0
+            @test between(endfwd, Between(0, 11)) === 1:1
+            @test between(endfwd, Between(10.1, 14.9)) === 2:4
+            @test between(endfwd, Between(10, 15)) === 1:5
+            @test between(endfwd, Between(29.0, 30.0)) === 20:20
+            @test between(endfwd, Between(29.1, 50.0)) === 21:20
+            @test between(endrev, Between(0.0, 10.9)) === 21:20
+            @test between(endrev, Between(0.0, 11.0)) === 20:20
+            @test between(endrev, Between(10.1, 14.9)) === 17:19
+            @test between(endrev, Between(10, 15)) === 16:20
+            @test between(endrev, Between(29.0, 50.0)) === 1:1
+            @test between(endrev, Between(29.1, 50.0)) === 1:0
+            # Input order doesn't matter
+            @test between(endfwd, Between(15, 10)) === 1:5
+        end
+
         @testset "Start contains" begin
             @test_throws BoundsError contains(startfwd, Contains(10.9))
+            @test_throws BoundsError contains(startfwd, Contains(31))
             @test_throws BoundsError contains(startrev, Contains(31))
+            @test_throws BoundsError contains(startrev, Contains(10.9))
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
             @test contains(startfwd, Contains(30.0)) == 20
+            @test contains(startfwd, Contains(30.9)) == 20
             @test contains(startfwd, Contains(29.9)) == 19
             @test contains(startrev, Contains(11.9)) == 20
             @test contains(startrev, Contains(12.0)) == 19
-            @test contains(startrev, Contains(30.9)) == 1
             @test contains(startrev, Contains(30.0)) == 1
+            @test contains(startrev, Contains(30.9)) == 1
             @test contains(startrev, Contains(29.0)) == 2
-        end
-
-        @testset "Start near" begin
-            @test bounds(startfwd) == bounds(startrev)
-            @test near(startfwd, Near(-100)) == 1
-            @test near(startfwd, Near(11.9)) == 1
-            @test near(startfwd, Near(12.0)) == 2
-            @test near(startfwd, Near(30.0)) == 20
-            @test near(startfwd, Near(29.9)) == 19
-            @test near(startrev, Near(11.9)) == 20
-            @test near(startrev, Near(12.0)) == 19
-            @test near(startrev, Near(29.0)) == 2
-            @test near(startrev, Near(30.0)) == 1
-            @test near(startfwd, Near(100)) == 20
-        end
-
-        args = Intervals(Center()), NoMetadata()
-        centerfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
-        centerrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
-
-        @testset "Center between" begin
-            @test between(centerfwd, Between(10.5, 14.6)) === 1:4
-            @test between(centerfwd, Between(10.6, 14.4)) === 2:3
-            @test between(centerrev, Between(10.5, 14.6)) === 17:20
-            @test between(centerrev, Between(10.6, 14.4)) === 18:19
-            # Input order doesn't matter
-            @test between(centerfwd, Between(15, 10)) === 1:4
         end
 
         @testset "Center contains" begin
@@ -92,34 +125,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(centerrev, Contains(30.4)) == 1
             @test contains(centerrev, Contains(29.5)) == 1
             @test contains(centerrev, Contains(29.4)) == 2
-        end
-
-        @testset "Center near" begin
-            @test near(centerfwd, Near(10.4)) == 1
-            @test near(centerfwd, Near(30.5)) == 20
-            @test near(centerrev, Near(10.4)) == 20
-            @test near(centerrev, Near(30.5)) == 1
-            @test near(centerfwd, Near(10.5)) == 1
-            @test near(centerfwd, Near(30.4)) == 20
-            @test near(centerfwd, Near(29.5)) == 20
-            @test near(centerfwd, Near(29.4)) == 19
-            @test near(centerrev, Near(10.5)) == 20
-            @test near(centerrev, Near(30.4)) == 1
-            @test near(centerrev, Near(29.5)) == 1
-            @test near(centerrev, Near(29.4)) == 2
-        end
-
-        args = Intervals(End()), NoMetadata()
-        endfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
-        endrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
-
-        @testset "End between" begin
-            @test between(endfwd, Between(10.1, 14.9)) === 2:4
-            @test between(endrev, Between(10.1, 14.9)) === 17:19
-            @test between(endfwd, Between(10, 15)) === 1:5
-            @test between(endrev, Between(10, 15)) === 16:20
-            # Input order doesn't matter
-            @test between(endfwd, Between(15, 10)) === 1:5
         end
 
         @testset "End contains" begin
@@ -141,6 +146,176 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(endrev, Contains(30.0)) == 1
             @test contains(endrev, Contains(11.0)) == 20
             @test contains(endrev, Contains(11.1)) == 19
+        end
+
+        @testset "Center near" begin
+            @test near(centerfwd, Near(10.4)) == 1
+            @test near(centerfwd, Near(30.5)) == 20
+            @test near(centerrev, Near(10.4)) == 20
+            @test near(centerrev, Near(30.5)) == 1
+            @test near(centerfwd, Near(10.5)) == 1
+            @test near(centerfwd, Near(30.4)) == 20
+            @test near(centerfwd, Near(29.5)) == 20
+            @test near(centerfwd, Near(29.4)) == 19
+            @test near(centerrev, Near(10.5)) == 20
+            @test near(centerrev, Near(30.4)) == 1
+            @test near(centerrev, Near(29.5)) == 1
+            @test near(centerrev, Near(29.4)) == 2
+        end
+
+    end
+
+    @testset "Regular Intervals with range" begin
+        args = Intervals(Start()), NoMetadata()
+        startfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
+        startrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
+
+        args = Intervals(Center()), NoMetadata()
+        centerfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
+        centerrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
+
+        args = Intervals(End()), NoMetadata()
+        endfwd = Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...)
+        endrev = Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...)
+
+        @testset "Any at" begin
+            @test at(startfwd, At(30)) == 20
+            @test at(startrev, At(30)) == 1
+            @test at(startfwd, At(29.9; atol=0.2)) == 20
+            @test at(startrev, At(29.9; atol=0.2)) == 1
+            @test at(startfwd, At(30.1; atol=0.2)) == 20
+            @test at(startrev, At(30.1; atol=0.2)) == 1
+        end
+
+        @testset "Start between" begin
+            @test between(startfwd, Between(0, 11.9)) === 1:0
+            @test between(startfwd, Between(0, 12)) === 1:1
+            @test between(startfwd, Between(11, 14)) === 1:3
+            @test between(startfwd, Between(30, 50)) === 20:20
+            @test between(startfwd, Between(31, 50)) === 21:20
+            @test between(startfwd, Between(11.1, 13.9)) === 2:2
+            @test between(startrev, Between(0, 11.9)) === 21:20
+            @test between(startrev, Between(0, 12)) === 20:20
+            @test between(startrev, Between(11, 14)) === 18:20
+            @test between(startrev, Between(11.1, 13.9)) === 19:19
+            @test between(startrev, Between(30, 50)) === 1:1
+            @test between(startrev, Between(30.1, 50)) === 1:0
+            # Input order doesn't matter
+            @test between(startfwd, Between(14, 11)) === 1:3
+        end
+
+        @testset "Center between" begin
+            @test between(centerfwd, Between(0, 11.4)) === 1:0
+            @test between(centerfwd, Between(0, 11.5)) === 1:1
+            @test between(centerfwd, Between(10.5, 14.6)) === 1:4
+            @test between(centerfwd, Between(10.6, 14.4)) === 2:3
+            @test between(centerfwd, Between(29.5, 50.0)) === 20:20
+            @test between(centerfwd, Between(29.6, 50.0)) === 21:20
+            @test between(centerrev, Between(10.5, 14.6)) === 17:20
+            @test between(centerrev, Between(10.6, 14.4)) === 18:19
+            @test between(centerrev, Between(0, 11.4)) === 21:20
+            @test between(centerrev, Between(0, 11.5)) === 20:20
+            @test between(centerrev, Between(29.5, 50.0)) === 1:1
+            @test between(centerrev, Between(29.6, 50.0)) === 1:0
+            # Input order doesn't matter
+            @test between(centerfwd, Between(15, 10)) === 1:4
+        end
+
+        @testset "End between" begin
+            @test between(endfwd, Between(0.0, 10.9)) === 1:0
+            @test between(endfwd, Between(0, 11)) === 1:1
+            @test between(endfwd, Between(10.1, 14.9)) === 2:4
+            @test between(endfwd, Between(10, 15)) === 1:5
+            @test between(endfwd, Between(29.0, 30.0)) === 20:20
+            @test between(endfwd, Between(29.1, 50.0)) === 21:20
+            @test between(endrev, Between(0.0, 10.9)) === 21:20
+            @test between(endrev, Between(0.0, 11.0)) === 20:20
+            @test between(endrev, Between(10.1, 14.9)) === 17:19
+            @test between(endrev, Between(10, 15)) === 16:20
+            @test between(endrev, Between(29.0, 50.0)) === 1:1
+            @test between(endrev, Between(29.1, 50.0)) === 1:0
+            # Input order doesn't matter
+            @test between(endfwd, Between(15, 10)) === 1:5
+        end
+
+        @testset "Start contains" begin
+            @test_throws BoundsError contains(startfwd, Contains(10.9))
+            @test_throws BoundsError contains(startrev, Contains(31))
+            @test contains(startfwd, Contains(11)) == 1
+            @test contains(startfwd, Contains(11.9)) == 1
+            @test contains(startfwd, Contains(12.0)) == 2
+            @test contains(startfwd, Contains(30.0)) == 20
+            @test contains(startfwd, Contains(29.9)) == 19
+            @test contains(startrev, Contains(11.9)) == 20
+            @test contains(startrev, Contains(12.0)) == 19
+            @test contains(startrev, Contains(30.9)) == 1
+            @test contains(startrev, Contains(30.0)) == 1
+            @test contains(startrev, Contains(29.0)) == 2
+        end
+
+        @testset "Center contains" begin
+            @test_throws BoundsError contains(centerfwd, Contains(10.4))
+            @test_throws BoundsError contains(centerfwd, Contains(30.5))
+            @test_throws BoundsError contains(centerrev, Contains(10.4))
+            @test_throws BoundsError contains(centerrev, Contains(30.5))
+            @test contains(centerfwd, Contains(10.5)) == 1
+            @test contains(centerfwd, Contains(30.4)) == 20
+            @test contains(centerfwd, Contains(29.5)) == 20
+            @test contains(centerfwd, Contains(29.4)) == 19
+            @test contains(centerrev, Contains(10.5)) == 20
+            @test contains(centerrev, Contains(30.4)) == 1
+            @test contains(centerrev, Contains(29.5)) == 1
+            @test contains(centerrev, Contains(29.4)) == 2
+        end
+
+        @testset "End contains" begin
+            @test_throws BoundsError contains(endfwd, Contains(10))
+            @test_throws BoundsError contains(endfwd, Contains(30.1))
+            @test_throws BoundsError contains(endrev, Contains(10))
+            @test_throws BoundsError contains(endrev, Contains(30.1))
+            @test contains(endfwd, Contains(10.1)) == 1
+            @test contains(endfwd, Contains(11.0)) == 1
+            @test contains(endfwd, Contains(11.1)) == 2
+            @test contains(endfwd, Contains(29.0)) == 19
+            @test contains(endfwd, Contains(29.1)) == 20
+            @test contains(endfwd, Contains(30.0)) == 20
+            @test contains(endrev, Contains(10.1)) == 20
+            @test contains(endrev, Contains(11.0)) == 20
+            @test contains(endrev, Contains(11.1)) == 19
+            @test contains(endrev, Contains(29.0)) == 2
+            @test contains(endrev, Contains(29.1)) == 1
+            @test contains(endrev, Contains(30.0)) == 1
+            @test contains(endrev, Contains(11.0)) == 20
+            @test contains(endrev, Contains(11.1)) == 19
+        end
+
+        @testset "Start near" begin
+            @test bounds(startfwd) == bounds(startrev)
+            @test near(startfwd, Near(-100)) == 1
+            @test near(startfwd, Near(11.9)) == 1
+            @test near(startfwd, Near(12.0)) == 2
+            @test near(startfwd, Near(30.0)) == 20
+            @test near(startfwd, Near(29.9)) == 19
+            @test near(startrev, Near(11.9)) == 20
+            @test near(startrev, Near(12.0)) == 19
+            @test near(startrev, Near(29.0)) == 2
+            @test near(startrev, Near(30.0)) == 1
+            @test near(startfwd, Near(100)) == 20
+        end
+
+        @testset "Center near" begin
+            @test near(centerfwd, Near(10.4)) == 1
+            @test near(centerfwd, Near(30.5)) == 20
+            @test near(centerrev, Near(10.4)) == 20
+            @test near(centerrev, Near(30.5)) == 1
+            @test near(centerfwd, Near(10.5)) == 1
+            @test near(centerfwd, Near(30.4)) == 20
+            @test near(centerfwd, Near(29.5)) == 20
+            @test near(centerfwd, Near(29.4)) == 19
+            @test near(centerrev, Near(10.5)) == 20
+            @test near(centerrev, Near(30.4)) == 1
+            @test near(centerrev, Near(29.5)) == 1
+            @test near(centerrev, Near(29.4)) == 2
         end
 
         @testset "End near" begin
@@ -196,6 +371,14 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         startfwd = Sampled((1:10).^2,    ForwardOrdered(), args...)
         startrev = Sampled((10:-1:1).^2, ReverseOrdered(), args...)
 
+        args = Irregular(0.5, 111.5), Intervals(Center()), NoMetadata()
+        centerfwd = Sampled((1.0:10.0).^2,      ForwardOrdered(), args...)
+        centerrev = Sampled((10.0:-1.0:1.0).^2, ReverseOrdered(), args...)
+
+        args = Irregular(0.0, 100.0), Intervals(End()), NoMetadata()
+        endfwd = Sampled((1.0:10.0).^2,      ForwardOrdered(), args...)
+        endrev = Sampled((10.0:-1.0:1.0).^2, ReverseOrdered(), args...)
+
         @testset "Any at" begin
             @test at(startfwd, At(25)) == 5
             @test at(startrev, At(25)) == 6
@@ -205,16 +388,56 @@ A = DimArray([1 2 3; 4 5 6], dims_)
 
         @testset "Start between" begin
             @test between(startfwd, Between(9, 36)) === 3:5
-            @test between(startrev, Between(9, 36)) === 6:8
             @test between(startfwd, Between(9.1, 35.0)) === 4:4
+            @test between(startrev, Between(9, 36)) === 6:8
             @test between(startrev, Between(9.1, 35.9)) === 7:7
             # Input order doesn't matter
             @test between(startfwd, Between(36, 9)) === 3:5
             # Handle searchorted overflow
+            @test between(startfwd, Between(0, 0)) === 1:0
+            @test between(startfwd, Between(130, 130)) === 11:10
+            @test between(startrev, Between(0, 0)) === 11:10
+            @test between(startrev, Between(130, 130)) === 1:0
             @test between(startfwd, Between(-100, 9)) === 1:2
             @test between(startfwd, Between(80, 150)) === 9:10
             @test between(startrev, Between(-100, 9)) === 9:10
             @test between(startrev, Between(80, 150)) === 1:2
+        end
+
+        @testset "Center between" begin
+            @test between(centerfwd, Between(6.5, 30.5)) === 3:5
+            @test between(centerfwd, Between(6.6, 30.4)) === 4:4
+            @test between(centerrev, Between(6.5, 30.5)) === 6:8
+            @test between(centerrev, Between(6.6, 30.4)) === 7:7
+            # Input order doesn't matter
+            @test between(centerfwd, Between(30.5, 6.5)) === 3:5
+            # Handle searchorted overflow
+            @test between(centerfwd, Between(0, 0)) === 1:0
+            @test between(centerfwd, Between(-100, 9)) === 1:2
+            @test between(centerfwd, Between(70, 150)) === 9:10
+            @test between(centerfwd, Between(130, 130)) === 11:10
+            @test between(centerrev, Between(0, 0)) === 11:10
+            @test between(centerrev, Between(-100, 9)) === 9:10
+            @test between(centerrev, Between(70, 150)) === 1:2
+            @test between(centerrev, Between(130, 130)) === 1:0
+        end
+
+        @testset "End between" begin
+            @test between(endfwd, Between(4, 25)) === 3:5
+            @test between(endrev, Between(4, 25)) === 6:8
+            @test between(endfwd, Between(4.1, 24.9)) === 4:4
+            @test between(endrev, Between(4.1, 24.9)) === 7:7
+            # Input order doesn't matter
+            @test between(endfwd, Between(25, 4)) === 3:5
+            # Handle searchorted overflow
+            @test between(endfwd, Between(0, 0)) === 1:0
+            @test between(endfwd, Between(130, 130)) === 11:10
+            @test between(endrev, Between(0, 0)) === 11:10
+            @test between(endrev, Between(130, 130)) === 1:0
+            @test between(endfwd, Between(-100, 4)) === 1:2
+            @test between(endfwd, Between(64, 150)) === 9:10
+            @test between(endrev, Between(-100, 4)) === 9:10
+            @test between(endrev, Between(64, 150)) === 1:2
         end
 
         @testset "Start contains" begin
@@ -234,19 +457,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(startrev, Contains(99.0)) == 2
         end
 
-        args = Irregular(0.5, 111.5), Intervals(Center()), NoMetadata()
-        centerfwd = Sampled((1.0:10.0).^2,      ForwardOrdered(), args...)
-        centerrev = Sampled((10.0:-1.0:1.0).^2, ReverseOrdered(), args...)
-
-        @testset "Center between" begin
-            @test between(centerfwd, Between(6.5, 30.5)) === 3:5
-            @test between(centerfwd, Between(6.6, 30.4)) === 4:4
-            @test between(centerrev, Between(6.5, 30.5)) === 6:8
-            @test between(centerrev, Between(6.6, 30.4)) === 7:7
-            # Input order doesn't matter
-            @test between(centerfwd, Between(30.5, 6.5)) === 3:5
-        end
-
         @testset "Center contains" begin
             @test_throws BoundsError contains(centerfwd, Contains(0.4))
             @test_throws BoundsError contains(centerfwd, Contains(111.5))
@@ -262,25 +472,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test contains(centerrev, Contains(111.4)) == 1
             @test contains(centerrev, Contains(90.5)) == 1
             @test contains(centerrev, Contains(90.4)) == 2
-        end
-
-        args = Irregular(0.0, 100.0), Intervals(End()), NoMetadata()
-        endfwd = Sampled((1.0:10.0).^2,      ForwardOrdered(), args...)
-        endrev = Sampled((10.0:-1.0:1.0).^2, ReverseOrdered(), args...)
-
-        @testset "End between" begin
-            @test between(endfwd, Between(4, 25)) === 3:5
-            @test between(endrev, Between(4, 25)) === 6:8
-            @test between(endfwd, Between(4.1, 24.9)) === 4:4
-            @test between(endrev, Between(4.1, 24.9)) === 7:7
-            # Input order doesn't matter
-            @test between(endfwd, Between(25, 4)) === 3:5
-            # Handle searchorted overflow
-            @test between(endfwd, Between(-100, 4)) === 1:2
-            @test between(endfwd, Between(-100, 4)) === 1:2
-            @test between(endfwd, Between(64, 150)) === 9:10
-            @test between(endrev, Between(-100, 4)) === 9:10
-            @test between(endrev, Between(64, 150)) === 1:2
         end
 
         @testset "End contains" begin
@@ -309,8 +500,16 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         rev = Sampled(30.0:-1.0:5.0; order=ReverseOrdered(), sampling=Points())
 
         @testset "between" begin
+            @test between(fwd, Between(0, 4.9)) === 1:0
+            @test between(fwd, Between(0, 5)) === 1:1
+            @test between(fwd, Between(30, 31)) === 27:26
+            @test between(fwd, Between(10, 14.9)) === 6:10
             @test between(fwd, Between(10, 15)) === 6:11
+            @test between(rev, Between(10, 14.9)) === 17:21
             @test between(rev, Between(10, 15)) === 16:21
+            @test between(rev, Between(0, 4.9)) === 27:26
+            @test between(rev, Between(0, 5)) === 26:26
+            @test between(rev, Between(30, 31)) === 1:0
             # Input order doesn't matter
             @test between(fwd, Between(15, 10)) === 6:11
         end
@@ -536,6 +735,13 @@ end
         @test @inferred view(da, Between(11, 26), At((2:3)u"s")) == [6 7]
         # Between also accepts a tuple input
         @test @inferred view(da, Between((11, 26)), Between((2u"s", 4u"s"))) == [6 7]
+    end
+
+    @testset "out of bounds" begin
+        @test size(view(da, Between(0, 4), At((2:3)u"s"))) == (0, 2)
+        @test view(da, Between(0, 4), At((2:3)u"s")) isa DimArray{Int64,2}
+        @test size(view(da, Between(40, 45), At((2:3)u"s"))) == (0, 2)
+        @test view(da, Between(40, 45), At((2:3)u"s")) isa DimArray{Int64,2}
     end
 
     @testset "with DateTime index" begin
