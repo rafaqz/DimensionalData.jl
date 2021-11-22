@@ -439,13 +439,14 @@ function _irreg_side(side, locus::Center, o, l, v)
     r = _ordscalar(o)
     sh = _endshift(side)
     i = _irreg_search(side, o, l, v)
+    (i - r < firstindex(l) ||  i - r > lastindex(l)) && return i
     interval = abs(l[i] - l[i-r])
     distance = abs(l[i] - v)
     # Use the right less than </<= to match interval bounds
     if _lt(side)(distance, (interval / 2))
-        i - sh * r
+        return i - sh * r
     else
-        i - (1 + sh) * r
+        return i - (1 + sh) * r
     end
 end
 
