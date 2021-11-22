@@ -56,6 +56,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(startrev, Between(11.1, 13.9)) === 19:19
             @test between(startrev, Between(30, 50)) === 1:1
             @test between(startrev, Between(30.1, 50)) === 1:0
+            @test between(startfwd, Between(0, 40)) === 1:20
+            @test between(startrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(startfwd, Between(14, 11)) === 1:3
         end
@@ -73,6 +75,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(centerrev, Between(0, 11.5)) === 20:20
             @test between(centerrev, Between(29.5, 50.0)) === 1:1
             @test between(centerrev, Between(29.6, 50.0)) === 1:0
+            @test between(centerfwd, Between(0, 40)) === 1:20
+            @test between(centerrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(centerfwd, Between(15, 10)) === 1:4
         end
@@ -90,6 +94,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endrev, Between(10, 15)) === 16:20
             @test between(endrev, Between(29.0, 50.0)) === 1:1
             @test between(endrev, Between(29.1, 50.0)) === 1:0
+            @test between(endfwd, Between(0, 40)) === 1:20
+            @test between(endrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(endfwd, Between(15, 10)) === 1:5
         end
@@ -200,6 +206,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(startrev, Between(11.1, 13.9)) === 19:19
             @test between(startrev, Between(30, 50)) === 1:1
             @test between(startrev, Between(30.1, 50)) === 1:0
+            @test between(startfwd, Between(0, 40)) === 1:20
+            @test between(startrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(startfwd, Between(14, 11)) === 1:3
         end
@@ -217,6 +225,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(centerrev, Between(0, 11.5)) === 20:20
             @test between(centerrev, Between(29.5, 50.0)) === 1:1
             @test between(centerrev, Between(29.6, 50.0)) === 1:0
+            @test between(centerfwd, Between(0, 40)) === 1:20
+            @test between(centerrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(centerfwd, Between(15, 10)) === 1:4
         end
@@ -234,6 +244,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endrev, Between(10, 15)) === 16:20
             @test between(endrev, Between(29.0, 50.0)) === 1:1
             @test between(endrev, Between(29.1, 50.0)) === 1:0
+            @test between(endfwd, Between(0, 40)) === 1:20
+            @test between(endrev, Between(0, 40)) === 1:20
             # Input order doesn't matter
             @test between(endfwd, Between(15, 10)) === 1:5
         end
@@ -402,6 +414,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(startfwd, Between(80, 150)) === 9:10
             @test between(startrev, Between(-100, 9)) === 9:10
             @test between(startrev, Between(80, 150)) === 1:2
+            @test between(startfwd, Between(-200, 200)) === 1:10
+            @test between(startrev, Between(-200, 200)) === 1:10
         end
 
         @testset "Center between" begin
@@ -420,6 +434,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(centerrev, Between(-100, 9)) === 9:10
             @test between(centerrev, Between(70, 150)) === 1:2
             @test between(centerrev, Between(130, 130)) === 1:0
+            @test between(centerfwd, Between(-200, 200)) === 1:10
+            @test between(centerrev, Between(-200, 200)) === 1:10
         end
 
         @testset "End between" begin
@@ -438,6 +454,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endfwd, Between(64, 150)) === 9:10
             @test between(endrev, Between(-100, 4)) === 9:10
             @test between(endrev, Between(64, 150)) === 1:2
+            @test between(endfwd, Between(-200, 200)) === 1:10
+            @test between(endrev, Between(-200, 200)) === 1:10
         end
 
         @testset "Start contains" begin
