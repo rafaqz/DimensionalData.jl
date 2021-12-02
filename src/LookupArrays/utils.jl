@@ -27,7 +27,7 @@ function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals,
         return index(dim)
     else
         offset = _offset(locus(sampling), destlocus)
-        shift = ((index(dim) .+ abs(step(span))) .- index(dim)) .*
+        shift = ((index(dim) .+ abs(step(span))) .- index(dim)) .* offset
         return index(dim) .+ shift
     end
 end
