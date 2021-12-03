@@ -29,6 +29,7 @@ data(s::AbstractDimStack) = s.data
 dims(s::AbstractDimStack) = s.dims
 refdims(s::AbstractDimStack) = s.refdims
 metadata(s::AbstractDimStack) = s.metadata
+missingval(s::AbstractDimStack) = map(s, missingval)
 
 
 layerdims(s::AbstractDimStack) = s.layerdims
@@ -47,13 +48,21 @@ Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
 Base.length(s::AbstractDimStack) = length(keys(s))
 Base.size(s::AbstractDimStack) = map(length, dims(s))
-Base.size(A::AbstractDimStack, dims::DimOrDimType) = size(A, dimnum(A, dims))
-Base.size(A::AbstractDimStack, dims::Integer) = size(A)[dims]
+Base.size(s::AbstractDimStack, dims::DimOrDimType) = size(s, dimnum(s, dims))
+Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
 Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
-Base.axes(A::AbstractDimStack, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-Base.axes(A::AbstractDimStack, dims::Integer) = axes(A)[dims]
+Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
+Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
+Base.similar(s::AbstractDimStack) = map(similar, s) 
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
+function Base.merge(stacks::AbstractDimStack...) 
+    rebuild_from_arrays(s1, merge(map(layers, stacks)...); refdims=())
+end
+function Base.merge(s1::AbstractDimStack, pairs) 
+    rebuild_from_arrays(s1, merge(layers(s1), pairs); refdims=())
+end
+
 
 function rebuild(
     s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s),
@@ -217,3 +226,4 @@ function DimStack(data::NamedTuple, dims::Tuple;
 end
 
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
+

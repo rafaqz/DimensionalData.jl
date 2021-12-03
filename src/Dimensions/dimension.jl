@@ -250,6 +250,8 @@ Base.length(d::Dimension) = length(val(d))
 Base.ndims(d::Dimension) = 0
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
 
+Base.size(dims::DimTuple) = map(length, dims)
+
 @inline Base.getindex(d::Dimension) = val(d)
 for f in (:getindex, :view, :dotview)
     @eval begin
