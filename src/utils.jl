@@ -77,7 +77,7 @@ function modify(f, index::AbstractArray)
 end
 
 """
-    dimwise(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
+    brodadcast_dims(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
 
 Dimension-wise application of function `f` to `A` and `B`.
 
@@ -89,12 +89,14 @@ Dimension-wise application of function `f` to `A` and `B`.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function dimwise(f, A::AbstractDimArray, B::AbstractDimArray)
-    dimwise!(f, similar(A, promote_type(eltype(A), eltype(B))), A, B)
+function broadcast_dims(f, As::AbstractDimArray...)
+    dims = combinedims(As...)
+    T = Base.Broadcast.combine_eltypes(f, As)
+    dimwise!(f, similar(first(As), T, dims), As...)
 end
 
 """
-    dimwise!(f, dest::AbstractDimArray{T1,N}, A::AbstractDimArray{T2,N}, B::AbstractDimArray) => dest
+    brodadcast_dims!(f, dest::AbstractDimArray{T1,N}, A::AbstractDimArray{T2,N}, B::AbstractDimArray) => dest
 
 Dimension-wise application of function `f`.
 
@@ -107,27 +109,41 @@ Dimension-wise application of function `f`.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`, and storing the value in `dest`.
 """
-function dimwise!(
-    f, dest::AbstractDimArray{T,N}, a::AbstractDimArray{TA,N}, b::AbstractDimArray{TB,NB}
-) where {T,TA,TB,N,NB}
-    N >= NB || error("B-array cannot have more dimensions than A array")
-    comparedims(dest, a)
-    common = commondims(a, dims(b))
-    od = otherdims(a, common)
-    # Lazily permute B dims to match the order in A, if required
-    if !dimsmatch(common, dims(b))
-        b = PermutedDimsArray(b, common)
-    end
-    # Broadcast over b for each combination of dimensional indices D
-    if length(od) == 0
-        dest .= f.(a, b)
-    else
-        map(DimIndices(od)) do D
-            dest[D...] .= f.(a[D...], b)
+function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractDimArray...) where {N}
+    As = map(As) do A
+        isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
+        # comparedims(dest, dims(A, dims(dest)))
+        # Lazily permute B dims to match the order in A, if required
+        if !dimsmatch(commondims(A, dest), commondims(dest, A))
+            PermutedDimsArray(A, commondims(dest, A))
+        else
+            A
         end
+    end
+    od = map(A -> otherdims(dest, dims(A)), As)
+
+    # Broadcast over b for each combination of dimensional indices D
+    if all(map(isempty, od))
+        dest .= f.(As...)
+    else
+        not_shared_dims = combinedims(od...) 
+        reshaped = map(As) do A
+            all(hasdim(A, dims(dest))) ? parent(A) : _insert_length_one_dims(A, dims(dest))
+        end
+        dest .= f.(reshaped...)
     end
     return dest
 end
+
+function _insert_length_one_dims(A, alldims)
+    lengths = map(alldims) do d 
+        hasdim(A, d) ? size(A, d) : 1
+    end
+    return reshape(parent(A), lengths)
+end
+
+@deprecate dimwise broadcast_dims
+@deprecate dimwise! broadcast_dims!
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
