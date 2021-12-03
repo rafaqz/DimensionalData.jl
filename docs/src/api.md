@@ -20,6 +20,7 @@ DimStack
 ```@docs
 DimIndices
 DimKeys
+DimPoints
 ```
 
 ## Tables.jl interface

@@ -33,7 +33,7 @@ end
     DimIndices(dims::Tuple)
     DimIndices(dims::Dimension)
 
-Like CartesianIndices, but for Dimensions. Behaves as an `Array` of `Tuple`
+Like `CartesianIndices`, but for `Dimension`s. Behaves as an `Array` of `Tuple`
 of `Dimension(i)` for all combinations of the axis indices of `dims`.
 
 This can be used to view/index into arbitrary dimensions over an array, and
@@ -60,16 +60,20 @@ end
 """
     DimPoints <: AbstractArray
 
-    DimPoints(x)
-    DimPoints(dims::Tuple)
-    DimPoints(dims::Dimension)
+    DimPoints(x; order)
+    DimPoints(dims::Tuple; order)
+    DimPoints(dims::Dimension; order)
 
-Like CartesianIndices, but for Dimensions. Behaves as an `Array` of `Tuple`
-of `Dimension(i)` for all combinations of the axis indices of `dims`.
+Like `CartesianIndices`, but for the point values of the dimension index. 
+Behaves as an `Array` of `Tuple` lookup values (whatever they are) for all
+combinations of the lookup values of `dims`.
 
-This can be used to view/index into arbitrary dimensions over an array, and
-is especially useful when combined with `otherdims`, to iterate over the
-indices of unknown dimension.
+Either a `Dimension`, a `Tuple` of `Dimension` or an object that defines a
+`dims` method can be passed in.
+
+# Keywords
+
+- `order`: determines the order of the points, the same as the order of `dims` by default.
 """
 struct DimPoints{T,N,D<:DimTuple,O} <: AbstractDimIndices{T,N}
     dims::D
@@ -99,9 +103,9 @@ end
     DimKeys(dims::Tuple)
     DimKeys(dims::Dimension)
 
-Like CartesianIndices, but for the key values of Dimensions. Behaves as an
-`Array` of `Tuple` of `Dimension(At(keyvalue))` for all combinations of the
-axis values of `dims`.
+Like `CartesianIndices`, but for the lookup values of Dimensions. Behaves as an
+`Array` of `Tuple` of `Dimension(At(lookupvalue))` for all combinations of the
+lookup values of `dims`.
 """
 struct DimKeys{T,N,D<:Tuple{<:Dimension,Vararg{<:Dimension}},S} <: AbstractDimIndices{T,N}
     dims::D
