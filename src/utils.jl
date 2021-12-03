@@ -77,14 +77,15 @@ function modify(f, index::AbstractArray)
 end
 
 """
-    brodadcast_dims(f, A::AbstractDimArray{T,N}, B::AbstractDimArray{T2,M}) => AbstractDimArray{T3,N}
+    brodadcast_dims(f, sources::AbstractDimArray...) => AbstractDimArray
 
-Dimension-wise application of function `f` to `A` and `B`.
+Broadcast function `f` over the `AbstractDimArray`s in `sources`, permuting and reshaping
+dimensions to match where required. The result will contain all the dimensions in 
+all passed in arrays in the order in which they are found.
 
 ## Arguments
 
-- `a`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
-- `b`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
+- `sources`: `AbstractDimArrays` to broadcast over with `f`.
 
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
@@ -96,18 +97,18 @@ function broadcast_dims(f, As::AbstractDimArray...)
 end
 
 """
-    brodadcast_dims!(f, dest::AbstractDimArray{T1,N}, A::AbstractDimArray{T2,N}, B::AbstractDimArray) => dest
+    brodadcast_dims!(f, dest::AbstractDimArray, sources::AbstractDimArray...) => dest
 
-Dimension-wise application of function `f`.
+Broadcast function `f` over the `AbstractDimArray`s in `sources`, writing to `dest`. 
+`sources` are permuting and reshaping dimensions to match where required.
+
+The result will contain all the dimensions in all passed in arrays, in the order in
+which they are found.
 
 ## Arguments
 
-- `dest`: `AbstractDimArray` to update
-- `A`: `AbstractDimArray` to broacast from, along dimensions not in `b`.
-- `B`: `AbstractDimArray` to broadcast from all dimensions. Dimensions must be a subset of a.
-
-This is like broadcasting over every slice of `A` if it is
-sliced by the dimensions of `B`, and storing the value in `dest`.
+- `dest`: `AbstractDimArray` to update.
+- `sources`: `AbstractDimArrays` to broadcast over with `f`.
 """
 function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractDimArray...) where {N}
     As = map(As) do A
