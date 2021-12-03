@@ -48,8 +48,8 @@ Utility methods for transforming DimensionalData objects:
 set
 rebuild
 modify
-dimwise
-dimwise!
+broadcast_dims
+broadcast_dims!
 reorder
 Base.cat
 Base.map
