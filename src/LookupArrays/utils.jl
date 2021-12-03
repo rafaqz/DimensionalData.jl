@@ -23,7 +23,13 @@ end
 _shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::LookupArray) = index(lookup)
 # Sampled Regular
 function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::LookupArray)
-    index(dim) .+ ((index(dim) .+ abs(step(span))) .- index(dim)) * _offset(locus(sampling), destlocus)
+    if destlocus === locus(sampling)
+        return index(dim)
+    else
+        offset = _offset(locus(sampling), destlocus)
+        shift = ((index(dim) .+ abs(step(span))) .- index(dim)) .* offset
+        return index(dim) .+ shift
+    end
 end
 function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::LookupArray)
     index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
