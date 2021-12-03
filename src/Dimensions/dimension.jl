@@ -162,6 +162,7 @@ end
 
 dims(dim::Union{Dimension,DimType,Val{<:Dimension}}) = dim
 dims(dims::DimTuple) = dims
+dims(::Tuple{}) = ()
 dims(x) = nothing
 dims(::Nothing) = error("No dims found")
 
