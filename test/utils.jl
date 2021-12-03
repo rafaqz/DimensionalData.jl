@@ -106,28 +106,27 @@ end
     end
 end
 
-@testset "dimwise" begin
+@testset "broadcast_dims" begin
     A2 = [1 2 3; 4 5 6]
     B1 = [1, 2, 3]
     da2 = DimArray(A2, (X([20, 30]), Y([:a, :b, :c])))
     db1 = DimArray(B1, (Y([:a, :b, :c]),))
-    dc1 = dimwise(+, db1, db1)
+    dc1 = broadcast_dims(+, db1, db1)
     @test dc1 == [2, 4, 6]
-    dc2 = dimwise(+, da2, db1)
+    dc2 = broadcast_dims(+, da2, db1)
     @test dc2 == [2 4 6; 5 7 9]
-    dc4 = dimwise(+, da2, db1)
+    dc4 = broadcast_dims(+, da2, db1)
 
     A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
     da3 = DimArray(A3, (X, Y, Z))
     db2 = DimArray(A2, (X, Y))
-    dc3 = dimwise(+, da3, db2)
+    dc3 = broadcast_dims(+, da3, db2)
     @test dc3 == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
-    dc3 = dimwise!(+, da3, da3, db2)
 
     A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
     da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
     db1 = DimArray(B1, (Y([:a, :b, :c]),))
-    dc3 = dimwise(+, da3, db1)
+    dc3 = broadcast_dims(+, da3, db1)
     @test dc3 == cat([2 4 6; 5 7 9], [12 14 16; 15 17 19]; dims=3)
 
     @testset "works with permuted dims" begin
@@ -136,6 +135,8 @@ end
         @test dc3p == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
     end
 
+    @test_throws DimensionMismatch broadcast_dims!(+, db1, zeros(Z(3)))
+    @test broadcast_dims(+, db1, ones(Z(3))) == [2.0 2.0 2.0; 3.0 3.0 3.0; 4.0 4.0 4.0]
 end
 
 @testset "shiftlocus" begin
