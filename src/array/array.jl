@@ -82,8 +82,11 @@ function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
 end
 
 # undef constructor for Array, using dims 
-Base.Array{T}(x::UndefInitializer, dims::DimTuple) where T = Array{T}(x, dims...)
-Base.Array{T}(x::UndefInitializer, dims::Dimension...) where T = Array{T,length(dims)}(x, map(length, dims))
+function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
+    Base.Array{T}(x, (d1, dims...))
+end
+Base.Array{T}(x::UndefInitializer, dims::DimTuple) where T = Array{T}(x, size(dims))
+
 # undef constructor for all AbstractDimArray 
 (::Type{A})(x::UndefInitializer, dims::Dimension...) where {A<:AbstractDimArray} = A(x, dims)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple) where {A<:AbstractDimArray{T}} where T

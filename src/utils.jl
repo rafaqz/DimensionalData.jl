@@ -93,7 +93,7 @@ sliced by the dimensions of `B`.
 function broadcast_dims(f, As::AbstractDimArray...)
     dims = combinedims(As...)
     T = Base.Broadcast.combine_eltypes(f, As)
-    dimwise!(f, similar(first(As), T, dims), As...)
+    broadcast_dims!(f, similar(first(As), T, dims), As...)
 end
 
 """
