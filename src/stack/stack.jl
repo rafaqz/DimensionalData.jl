@@ -53,14 +53,16 @@ Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
 Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
 Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
 Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack) = map(similar, s) 
+Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
+Base.eltype(s::AbstractDimStack, args...) = map(eltype, s)
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
-function Base.merge(stacks::AbstractDimStack...) 
-    rebuild_from_arrays(s1, merge(map(layers, stacks)...); refdims=())
+Base.merge(s::AbstractDimStack) = s
+function Base.merge(s1::AbstractDimStack, s2::AbstractDimStack, stacks::AbstractDimStack...) 
+    rebuild_from_arrays(s1, merge(map(layers, (s1, s2, stacks...))...); refdims=())
 end
-function Base.merge(s1::AbstractDimStack, pairs) 
-    rebuild_from_arrays(s1, merge(layers(s1), pairs); refdims=())
+function Base.merge(s::AbstractDimStack, pairs) 
+    rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
 end
 
 

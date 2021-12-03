@@ -18,6 +18,14 @@ da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
+@testset "checkbounds" begin
+    @test checkbounds(Bool, da, X(2), Y(1)) == true
+    @test checkbounds(Bool, da, X(10), Y(1)) == false
+    checkbounds(da, X(2), Y(1))
+    @test_throws BoundsError checkbounds(da, X(10), Y(20))
+    @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+end
+
 @testset "size and axes" begin
     row_dims = (1, Dim{:row}(), Dim{:row}, :row, dimz2[1])
     for dim in row_dims
@@ -284,6 +292,18 @@ end
     @test eltype(da) <: Bool
     @test all(==(false), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+end
+
+@testset "undef Array constructor" begin
+    A = Array{Bool}(undef, dimz...)
+    @test eltype(A) === Bool
+    @test size(A) === size(da)
+    @test A isa Array
+    A = DimArray{Int}(undef, dimz...)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
 end
 
 @testset "rand constructors" begin

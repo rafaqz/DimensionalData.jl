@@ -40,6 +40,7 @@ end
 @testset "low level base methods" begin
     @test keys(data(s)) == (:one, :two, :three)
     @test keys(data(mixed)) == (:one, :two, :extradim)
+    @test eltype(mixed) === (one=Float64, two=Float32, extradim=Float64)
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
     @test length(s) == 3 # length is as for NamedTuple
@@ -49,8 +50,26 @@ end
     @test axes(mixed) === (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
     @test axes(mixed, X) === Base.OneTo(2)
     @test axes(mixed, 2) === Base.OneTo(3)
-    @test first(s) == da1
+    @test first(s) == da1 # first/last are for the NamedTuple
     @test last(s) == da3
+end
+
+@testset "similar" begin
+    @test all(map(similar(mixed), mixed) do s, m
+        dims(s) === dims(m) && eltype(s) === eltype(m)
+    end)
+    @test all(map(==(Int), eltype(similar(s, Int))))
+    st2 = similar(mixed, Bool, x, y)
+    @test dims(st2) === (x, y)
+    @test dims(st2[:one]) === (x, y)
+    @test all(map(==(Bool), eltype(st2)))
+end
+
+@testset "merge" begin
+    @test merge(mixed) === mixed
+    @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
+    @test keys(merge(s, mixed)) == (:one, :two, :three, :extradim)
+    @test keys(merge(s, (:new=>da4,))) == (:one, :two, :three, :new)
 end
 
 @testset "copy and friends" begin
