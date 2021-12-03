@@ -72,8 +72,22 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
-function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::Dimension...)
+
+const IDim = Dimension{<:StandardIndices}
+function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::IDim...)
     Base.checkbounds(Bool, A, dims2indices(A, dims)...)
+end
+function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
+    Base.checkbounds(A, dims2indices(A, dims)...)
+end
+
+# undef constructor for Array, using dims 
+Base.Array{T}(x::UndefInitializer, dims::DimTuple) where T = Array{T}(x, dims...)
+Base.Array{T}(x::UndefInitializer, dims::Dimension...) where T = Array{T,length(dims)}(x, map(length, dims))
+# undef constructor for all AbstractDimArray 
+(::Type{A})(x::UndefInitializer, dims::Dimension...) where {A<:AbstractDimArray} = A(x, dims)
+function (::Type{A})(x::UndefInitializer, dims::DimTuple) where {A<:AbstractDimArray{T}} where T
+    basetypeof(A)(Array{T}(undef, size(dims)), dims)
 end
 
 # Dummy read methods that do nothing.
@@ -371,8 +385,6 @@ julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
 Base.ones
 
 # Dimension only DimArray creation methods
-Base.Array{T}(x, dims::DimTuple) where T = Array{T}(x, dims...)
-Base.Array{T}(x, dims::Dimension...) where T = Array{T,length(dims)}(x, map(length, dims))
 
 for f in (:zeros, :ones, :rand)
     @eval begin
