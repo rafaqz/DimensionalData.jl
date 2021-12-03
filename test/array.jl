@@ -93,36 +93,66 @@ end
 end
 
 @testset "similar" begin
-    da_sim = similar(da2)
-    @test eltype(da_sim) == eltype(da2)
-    @test size(da_sim) == size(da2)
-    @test dims(da_sim) == dims(da2)
-    @test refdims(da_sim) == refdims(da2)
+    @testset "similar with no args" begin
+        da_sim = similar(da2)
+        @test eltype(da_sim) == eltype(da2)
+        @test size(da_sim) == size(da2)
+        @test dims(da_sim) == dims(da2)
+        @test refdims(da_sim) == refdims(da2)
+    end
 
-    da_float = similar(da2, Float64)
-    @test eltype(da_float) == Float64
-    @test size(da_float) == size(da2)
-    @test dims(da_float) == dims(da2)
-    @test refdims(da_float) == refdims(da2)
+    @testset "similar with a type" begin
+        da_float = similar(da2, Float64)
+        @test eltype(da_float) == Float64
+        @test size(da_float) == size(da2)
+        @test dims(da_float) == dims(da2)
+        @test refdims(da_float) == refdims(da2)
+    end
 
-    # Changing the axis size removes dims.
-    # TODO we can keep dims, but with NoLookup?
-    da_size_float = similar(da2, Float64, (10, 10))
-    @test eltype(da_size_float) == Float64
-    @test size(da_size_float) == (10, 10)
-    @test typeof(da_size_float) <: Array{Float64,2}
-    da_size_float_splat = similar(da2, Float64, 10, 10)
-    @test size(da_size_float_splat) == (10, 10)
-    @test typeof(da_size_float_splat)  <: Array{Float64,2}
+    @testset "similar with a size" begin
+        # Changing the axis size removes dims.
+        # TODO we can keep dims, but with NoLookup?
+        da_size = similar(da2, (5, 5))
+        @test eltype(da_size) == Int
+        @test size(da_size) == (5, 5)
+        da_size_splat = similar(da2, 5, 5)
+        @test eltype(da_size_splat) == Int
+        @test size(da_size_splat) == (5, 5)
+        da_size_float = similar(da2, Float64, (10, 10))
+        @test eltype(da_size_float) == Float64
+        @test size(da_size_float) == (10, 10)
+        @test typeof(da_size_float) <: Array{Float64,2}
+        da_size_float_splat = similar(da2, Float64, 10, 10)
+        @test size(da_size_float_splat) == (10, 10)
+        @test typeof(da_size_float_splat)  <: Array{Float64,2}
+    end
 
-    sda = DimArray(sprand(Float64, 10, 10, 0.5), (X, Y))
-    sparse_size_int = similar(sda, Int64, (5, 5))
-    @test eltype(sparse_size_int) == Int64 != eltype(sda)
-    @test size(sparse_size_int) == (5, 5)
-    @test sparse_size_int isa SparseMatrixCSC
+    @testset "similar with sparse arrays" begin
+        sda = DimArray(sprand(Float64, 10, 10, 0.5), (X, Y))
+        sparse_size_int = similar(sda, Int64, (5, 5))
+        @test eltype(sparse_size_int) == Int64 != eltype(sda)
+        @test size(sparse_size_int) == (5, 5)
+        @test sparse_size_int isa SparseMatrixCSC
+    end
 
-    @test dims(da_float) == dims(da2)
-    @test refdims(da_float) == refdims(da2)
+    @testset "similar with dims" begin
+        da_sim_dims = similar(da2, dims(da))
+        da_sim_dims_splat = similar(da2, dims(da))
+        for A in (da_sim_dims, da_sim_dims_splat)
+            @test eltype(A) == eltype(da2)
+            @test size(A) == size(da)
+            @test dims(A) == dims(da)
+            @test refdims(A) == ()
+        end
+        da_sim_type_dims = similar(da2, Bool, dims(da))
+        da_sim_type_dims_splat = similar(da2, Bool, dims(da)...)
+        for A in (da_sim_type_dims, da_sim_type_dims_splat)
+            @test eltype(A) == Bool
+            @test size(A) == size(da)
+            @test dims(A) == dims(da)
+            @test refdims(A) == ()
+        end
+    end
 end
 
 @testset "replace" begin

@@ -72,6 +72,9 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
+function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::Dimension...)
+    Base.checkbounds(Bool, A, dims2indices(A, dims)...)
+end
 
 # Dummy read methods that do nothing.
 # Means can actually read subtypes that are not in-memory Arrays
@@ -84,11 +87,25 @@ Base.similar(A::AbstractDimArray) =
     rebuild(A, similar(parent(A)), dims(A), refdims(A), _noname(A))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
     rebuild(A, similar(parent(A), T), dims(A), refdims(A), _noname(A))
-# If the shape changes, use the wrapped array:
+# We can't resize the dims or add missing dims, so return the unwraped Array type?
+# An alternative would be to fill missing dims with `Anon`, and keep existing
+# dims but strip the Lookup? It jsut seems a little complicated when the methods
+# below using DimTuple work better anyway.
+Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{<:Integer}) =
+    similar(A, eltype(A), (i, I...))
+Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}) = 
+    similar(A, eltype(A), I)
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
+    similar(A, T, (i, I...))
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
-    similar(parent(A), T, i, I...)
+# With Dimensions we can return an `AbstractDimArray`
+Base.similar(A::AbstractDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
+    Base.similar(A, T, D) 
+Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
+    rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=())
 
 # Keep the same type in `similar`
 _noname(A::AbstractDimArray) = _noname(name(A))
@@ -354,6 +371,9 @@ julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
 Base.ones
 
 # Dimension only DimArray creation methods
+Base.Array{T}(x, dims::DimTuple) where T = Array{T}(x, dims...)
+Base.Array{T}(x, dims::Dimension...) where T = Array{T,length(dims)}(x, map(length, dims))
+
 for f in (:zeros, :ones, :rand)
     @eval begin
         Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
