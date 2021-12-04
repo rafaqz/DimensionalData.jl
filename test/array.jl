@@ -323,6 +323,11 @@ end
     da = rand(MersenneTwister(), Float32, X([:a, :b]), Y(3))
     @test size(da) == (2, 3)
     @test eltype(da) <: Float32
+    da = rand(MersenneTwister(), 1:2, X([:a, :b]), Y(3))
+    @test eltype(da) <: Int
+    @test size(da) == (2, 3)
+    @test maximum(da) in (1, 2)
+    @test minimum(da) in (1, 2)
 end
 
 @testset "OffsetArray" begin
