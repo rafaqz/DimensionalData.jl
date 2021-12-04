@@ -29,8 +29,6 @@ data(s::AbstractDimStack) = s.data
 dims(s::AbstractDimStack) = s.dims
 refdims(s::AbstractDimStack) = s.refdims
 metadata(s::AbstractDimStack) = s.metadata
-missingval(s::AbstractDimStack) = map(s, missingval)
-
 
 layerdims(s::AbstractDimStack) = s.layerdims
 layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
