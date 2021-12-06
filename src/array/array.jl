@@ -88,9 +88,9 @@ end
 Base.Array{T}(x::UndefInitializer, dims::DimTuple) where T = Array{T}(x, size(dims))
 
 # undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...) where {A<:AbstractDimArray} = A(x, dims)
-function (::Type{A})(x::UndefInitializer, dims::DimTuple) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, size(dims)), dims)
+(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray} = A(x, dims; kw...)
+function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
+    basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
 end
 
 # Dummy read methods that do nothing.
