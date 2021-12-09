@@ -14,7 +14,7 @@ DimensionalData is a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
 syntax, and additional functionality found in NamedDims.jl. It has similar goals
 to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
-written for use with spatial data in [GeoData.jl](https://github.com/rafaqz/GeoData.jl).
+written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
 The basic syntax is:
 
