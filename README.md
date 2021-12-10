@@ -75,7 +75,7 @@ Some properties of DimensionalData.jl objects:
 ## **Note**: recent changes have greatly reduced the exported API
 
 Previously exported methods can me brought into global scope by `using`
-the sum-modules they have been moved to - `LookupArrays` and `Dimensions`:
+the sub-modules they have been moved to - `LookupArrays` and `Dimensions`:
 
 ```julia
 using DimensionalData
