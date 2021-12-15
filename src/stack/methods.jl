@@ -1,7 +1,7 @@
 # Base methods
 
 """
-    Base.copy!(dst::AbstractArray, src::DiskGeoStack, key::Key)
+    Base.copy!(dst::AbstractArray, src::AbstractGimStack, key::Key)
 
 Copy the stack layer `key` to `dst`, which can be any `AbstractArray`.
 
@@ -57,7 +57,7 @@ function _maybestack(
 end
 
 """
-    Base.cat(stacks::AbstractGeoStack...; [keys=keys(stacks[1])], dims)
+    Base.cat(stacks::AbstractDimStack...; [keys=keys(stacks[1])], dims)
 
 Concatenate all or a subset of layers for all passed in stacks.
 
