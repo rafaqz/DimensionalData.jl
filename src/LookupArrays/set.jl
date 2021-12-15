@@ -70,6 +70,8 @@ _set(lookup::AbstractSampled, newsampling::Sampling) =
 _set(lookup::AbstractSampled, sampling::AutoSampling) = lookup
 _set(sampling::Sampling, newsampling::Sampling) = newsampling
 _set(sampling::Sampling, newsampling::AutoSampling) = sampling
+_set(sampling::Sampling, newsampling::Intervals) =
+    _set(newsampling, _set(locus(sampling), locus(newsampling)))
 
 # Locus
 _set(lookup::AbstractSampled, locus::Locus) =
@@ -78,6 +80,9 @@ _set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
 _set(sampling::Points, locus::Locus) = _locuserror()
 _set(sampling::Intervals, locus::Locus) = Intervals(locus)
 _set(sampling::Intervals, locus::AutoLocus) = sampling
+
+_set(locus::Locus, newlocus::Locus) = newlocus
+_set(locus::Locus, newlocus::AutoLocus) = locus
 
 # Metadata
 _set(lookup::LookupArray, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)

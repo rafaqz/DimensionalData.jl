@@ -271,11 +271,6 @@ end
     da = zeros(X(4), Y(40.0:10.0:80.0))
     @test eltype(da) <: Float64
     @test all(==(0), da) 
-    @test size(da) == (4, 5)
-    @test dims(da) == (
-         X(NoLookup(Base.OneTo(4))), 
-         Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
-    )
     ti = Ti(Date(2001):Year(1):Date(2004))
     da = ones(Int32, ti)
     @test size(da) == (4,)
@@ -292,6 +287,15 @@ end
     @test eltype(da) <: Bool
     @test all(==(false), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+
+    for f in (ones, zeros, trues, falses)
+        da = f(X(4), Y(40.0:10.0:80.0))
+        @test size(da) == (4, 5)
+        @test dims(da) == (
+             X(NoLookup(Base.OneTo(4))), 
+             Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
+        )
+    end
 end
 
 @testset "undef Array constructor" begin

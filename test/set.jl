@@ -87,6 +87,7 @@ end
         @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
         @test locus(set(interval_da, X=End, Y=Center)) == (End(), Center())
         @test locus(set(da, Y=Center())) == (Center(), Center())
+        @test _set(Points(), Intervals()) == Intervals(Center())
         @test _set(Intervals(Center()), Start()) == Intervals(Start())
         @test _set(Intervals(Center()), AutoLocus()) == Intervals(Center())
         @test _set(Points(), Center()) == Points()
@@ -95,7 +96,7 @@ end
     end
 
     @testset "sampling" begin
-        @test sampling(interval_da) == (Intervals(), Intervals())
+        @test sampling(interval_da) == (Intervals(Center()), Intervals(Center()))
         @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
             (Intervals(End()), Intervals(Start())) 
         @test _set(Sampled(), AutoSampling()) == Sampled()
