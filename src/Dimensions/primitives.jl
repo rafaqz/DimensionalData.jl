@@ -276,13 +276,16 @@ julia>
 """
 @inline otherdims(args...) = _call(_otherdims_presort, AlwaysTuple(), args...)
 
-@inline _otherdims_presort(f, ds, lookup) = _otherdims(f, ds, _sortdims(f, lookup, ds))
+@inline _otherdims_presort(f, ds, lookup) = _otherdims(f, ds, _sortdims(_rev_op(f), lookup, ds))
 # Work with a sorted lookup where the missing dims are `nothing`
 @inline _otherdims(f, ds::Tuple, lookup::Tuple) =
     (_dimifmatching(f, first(ds), first(lookup))..., _otherdims(f, tail(ds), tail(lookup))...)
 @inline _otherdims(f, dims::Tuple{}, ::Tuple{}) = ()
 
 @inline _dimifmatching(f, dim, lookup) = dimsmatch(f, dim, lookup) ? () : (dim,)
+
+_rev_op(::typeof(<:)) = >:
+_rev_op(::typeof(>:)) = <:
 
 """
     setdims(X, newdims) => AbstractArray
