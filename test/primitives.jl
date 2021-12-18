@@ -263,6 +263,7 @@ end
     @test (@ballocated otherdims($A, X())) == 0
     @test otherdims(A, Y) == dims(A, (X, Z))
     @test otherdims(A, Z) == dims(A, (X, Y))
+    @test otherdims(A, DimensionalData.ZDim) == dims(A, (X, Y))
     @test otherdims(A, (X, Z)) == dims(A, (Y,))
     f1 = A -> otherdims(A, (X, Z))
     @ballocated $f1($A)
