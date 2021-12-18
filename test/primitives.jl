@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test, BenchmarkTools
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
-using .Dimensions: _call, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
+using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
@@ -76,14 +76,14 @@ end
                         DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
 end
 
-@testset "_call" begin
-    @test _call((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
-          _call((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
+@testset "_call_primitive" begin
+    @test _call_primitive((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
+          _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
           ((Val(Z), Dim{:a}(), Dim{:b}()), (Val(Ti), Val(XDim), Dim{:x}()))
-    @test _call((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
+    @test _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
         (Val(Z), Dim{:a}(), Dim{:b}())
-    @testset "_call" begin
-        f1 = t -> _call((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
+    @testset "_call_primitive" begin
+        f1 = t -> _call_primitive((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
         @inferred f1(AlwaysTuple())
         @test (@ballocated $f1(AlwaysTuple())) == 0
     end
