@@ -272,6 +272,12 @@ end
         end
     end
 
+    @testset "getindex Tuple" begin
+        st1 = s[(:three, :one)]
+        @test keys(st1) === (:three, :one)
+        @test values(st1) == (da3, da1)
+    end
+
     @testset "view" begin
         sv = view(s, 1, 1)
         @test sv.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))

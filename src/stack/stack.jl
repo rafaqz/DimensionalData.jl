@@ -95,9 +95,9 @@ Keywords are simply the fields of the stack object:
 - `layermetadata`
 """
 function rebuild_from_arrays(
-    s::AbstractDimStack, das::Tuple{Vararg{<:AbstractDimArray}}; kw...
-)
-    rebuild_from_arrays(s, NamedTuple{keys(s)}(das); kw...)
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{<:AbstractDimArray}}; kw...
+) where Keys
+    rebuild_from_arrays(s, NamedTuple{Keys}(das); kw...)
 end
 function rebuild_from_arrays(
     s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}};
