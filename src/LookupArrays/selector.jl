@@ -373,7 +373,12 @@ struct _Lower end
 
 (sel::Between)(l::LookupArray) = between(l, sel)
 
-between(l::NoLookup, sel::Between) = val(sel)[1]:val(sel)[2]
+function between(l::NoLookup, sel::Between)
+    lowsel, highsel = _sorttuple(val(sel))
+    low = max(ceil(Int, lowsel), first(axes(l, 1)))
+    high = min(floor(Int, highsel), last(axes(l, 1)))
+    return low:high
+end
 between(l::LookupArray, sel::Between) = between(sampling(l), l, sel)
 # This is the main method called above
 function between(sampling::Sampling, l::LookupArray, sel::Between)
