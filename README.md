@@ -21,27 +21,27 @@ The basic syntax is:
 ```julia
 julia> using DimensionalData
 
-julia> A = rand(X(1:40), Y(50))
-40×50 DimArray{Float64,2} with dimensions:
-  X Sampled 1:40 ForwardOrdered Regular Points,
+julia> rand(X(10.0:40.0), Y(50))
+31×50 DimArray{Float64,2} with dimensions:
+  X Sampled 10.0:1.0:40.0 ForwardOrdered Regular Points,
   Y
- 0.30092   0.227971  0.128361  …  0.389487  0.0555927  0.871982
- 0.159059  0.394427  0.809897     0.226557  0.741705   0.0789759
+ 0.793097  0.489866  0.462396  …  0.910434  0.850573   0.183605
+ 0.76277   0.737544  0.290279     0.742267  0.686086   0.530159
  ⋮                             ⋱
- 0.425069  0.632975  0.908398     0.965678  0.5779     0.842689
- 0.567717  0.803798  0.799519     0.577853  0.498151   0.277229
+ 0.281043  0.979182  0.868658     0.642477  0.139536   0.540512
+ 0.546036  0.83382   0.530098  …  0.351608  0.0385814  0.159299
 
 julia> A[Y=1, X=1:10]
 10-element DimArray{Float64,1} with dimensions:
-  X Sampled 1:10 ForwardOrdered Regular Points
+  X Sampled 10.0:1.0:19.0 ForwardOrdered Regular Points
 and reference dimensions: Y
- 0.112816
- 0.770233
- 0.760037
+ 0.245691
+ 0.902444
+ 0.777441
  ⋮
- 0.953163
- 0.626103
- 0.38987
+ 0.744612
+ 0.440409
+ 0.631956
 ```
 
 [See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/stable)

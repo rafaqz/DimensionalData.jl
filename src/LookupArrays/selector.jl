@@ -21,7 +21,9 @@ abstract type Selector{T} end
 val(sel::Selector) = sel.val
 Base.parent(sel::Selector) = sel.val
 
-const SelTuple = Tuple{<:Selector,Vararg{<:Selector}}
+const SelectorOrInterval = Union{Selector,Interval}
+
+const SelTuple = Tuple{<:SelectorOrInterval,Vararg{<:SelectorOrInterval}}
 
 """
     At <: Selector
@@ -325,6 +327,13 @@ _searchfunc(::End, ::ReverseOrdered) = searchsortedlast
 
     Between(a, b)
 
+
+Depreciated: use `a..b` instead of `Between(a, b)`. Other `Interval`
+objects from IntervalSets.jl, like `OpenInterval(a, b) will also work,
+giving the correct open/closed boundaries.
+
+`Between` will e removed in furture to avoid clashes with `DataFrames.Between`.
+
 Selector that retreive all indices located between 2 values,
 evaluated with `>=` for the lower value, and `<` for the upper value.
 This means the same value will not be counted twice in 2 adjacent
@@ -343,6 +352,7 @@ For [`Center`](@ref), we take the mid point between two index values
 as the start and end of each interval. This may or may not make sense for
 the values in your indes, so use `Between` with `Irregular` `Intervals(Center())`
 with caution.
+
 
 ## Example
 
@@ -368,108 +378,197 @@ Between(args...) = Between(args)
 Base.first(sel::Between) = first(val(sel))
 Base.last(sel::Between) = last(val(sel))
 
-struct _Upper end
-struct _Lower end
+abstract type _Side end
+struct _Upper <: _Side end
+struct _Lower <: _Side end
 
 (sel::Between)(l::LookupArray) = between(l, sel)
 
-function between(l::NoLookup, sel::Between)
-    lowsel, highsel = _sorttuple(val(sel))
-    low = max(ceil(Int, lowsel), first(axes(l, 1)))
-    high = min(floor(Int, highsel), last(axes(l, 1)))
-    return low:high
+function between(l::LookupArray, sel::Between)
+    a, b = _sorttuple(sel)
+    return between(l, a..b)
 end
-between(l::LookupArray, sel::Between) = between(sampling(l), l, sel)
+function between(l::NoLookup, sel::Interval)
+    x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
+    return ceil(Int, x.left):floor(Int, x.right) 
+end
+between(l::LookupArray, sel::Interval) = between(sampling(l), l, sel)
 # This is the main method called above
-function between(sampling::Sampling, l::LookupArray, sel::Between)
+function between(sampling::Sampling, l::LookupArray, sel::Interval)
     o = order(l)
-    o isa Unordered && throw(ArgumentError("Cannot use `Between` with Unordered"))
-    a, b = between(sampling, o, l, sel)
+    o isa Unordered && throw(ArgumentError("Cannot use an interval or `Between` with Unordered"))
+    between(sampling, o, l, sel)
+end
+
+_to_closed(T, i::Interval{:closed,:closed}) = i
+_to_closed(T, i::Interval{:open,:open}) = (i.left + _minstep(T))..(i.right - _minstep(T))
+_to_closed(T, i::Interval{:closed,:open}) = i.left..(i.right - _minstep(T))
+_to_closed(T, i::Interval{:open,:closed}) = (i.left + _minstep(T))..i.right
+
+# Maybe not the best way to do this but manipulating <= > etc
+# inside `searchsorted` is already too complicated.
+_minstep(T) = eps(T)
+_minstep(T::Type{<:Integer}) = one(T)
+_minstep(T::Type{<:Char}) = 1
+
+function between(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Interval)
+    between(Points(), o, l, sel)
+end
+
+function between(sampling, o::Ordered, l::LookupArray, sel::Interval)
+    lowerbound, upperbound = bounds(l)
+    lowsel, highsel = endpoints(sel)
+    a = if lowsel > upperbound
+        ordered_lastindex(l) + _ordscalar(o)
+    elseif lowsel < lowerbound
+        ordered_firstindex(l)
+    else
+        _between_side(_Lower(), o, span(l), sampling, l, sel, lowsel)
+    end
+    b = if highsel < lowerbound
+        ordered_firstindex(l) - _ordscalar(o)
+    elseif highsel > upperbound
+        ordered_lastindex(l)
+    else
+        _between_side(_Upper(), o, span(l), sampling, l, sel, highsel)
+    end
+    # Fix empty range values
+    a, b = _maybeflipbounds(o, (a, b))
+    # Fix empty range values
+    if a > b
+        if b < firstindex(l)
+            return firstindex(l):(firstindex(l) - 1)
+        elseif a > lastindex(l)
+            return (lastindex(l) + 1):lastindex(l)
+        end
+    else
+        return a:b
+    end
     return a:b
 end
 
-function between(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Between)
-    between(Points(), o, l, sel)
+# Points -------------------------
+function _between_side(side::_Lower, o::Ordered, span, ::Points, l, sel, v)
+    i = v <= bounds(l)[1] ? ordered_firstindex(l) : _searchfunc(side, o)(l, v)
+    return _close_interval(side, l, sel, l[i], i)
 end
-# Intervals -------------------------
-function between(sampling, o::Ordered, l::LookupArray, sel::Between)
-    lowerbound, upperbound = bounds(l)
-    lowval, highval = _sorttuple(sel)
-    lessthan, greaterthan = _lt(locus(l)), _gt(locus(l))
-    a = if greaterthan(lowval, upperbound)
-        ordered_lastindex(l) + _ordscalar(o)
-    elseif lessthan(lowval, lowerbound)
-        ordered_firstindex(l)
-    else
-        _between_side(_Lower(), o, span(l), sampling, l, lowval)
-    end
-    b = if lessthan(highval, lowerbound)
-        ordered_firstindex(l) - _ordscalar(o)
-    elseif greaterthan(highval, upperbound)
-        ordered_lastindex(l)
-    else
-        _between_side(_Upper(), o, span(l), sampling, l, highval)
-    end
-    return _maybeflipbounds(o, (a, b))
+function _between_side(side::_Upper, o::Ordered, span, ::Points, l, sel, v)
+    i = v >= bounds(l)[2] ? ordered_lastindex(l) : _searchfunc(side, o)(l, v)
+    return _close_interval(side, l, sel, l[i], i)
 end
-
-# Points ------------------------------------
-_between_side(side, o::Order, x, ::Points, l, v) = _searchfunc(side, o)(l, v)
 
 # Regular Intervals -------------------------
-function _between_side(side::_Lower, o::Ordered, ::Regular, ::Intervals, l, v)
-    _searchfunc(side, o)(l, v + _locus_adjust(l)[1])
-end
-function _between_side(side::_Upper, o::Ordered, ::Regular, ::Intervals, l, v)
-    _searchfunc(side, o)(l, v + _locus_adjust(l)[2])
+# Adjust the value for the lookup locus before search
+function _between_side(side, o::Ordered, ::Regular, ::Intervals, l, sel, v)
+    adj = _locus_adjust(side, l)
+    v1 = v + adj
+    s = _ordscalar(o)
+    i = _searchfunc(side, o)(l, v1)
+    fi, li = firstindex(l), lastindex(l)
+    v2 = if i > li
+        l[li] + adj
+    elseif i < fi
+        l[fi] + adj
+    else
+        l[i] - adj
+    end
+    return _close_interval(side, l, sel, v2, i)
 end
 
+_locus_adjust(side, l) = _locus_adjust(side, locus(l), abs(step(span(l))))
+_locus_adjust(::_Lower, locus::Start, step) = zero(step)
+_locus_adjust(::_Upper, locus::Start, step) = -step
+_locus_adjust(::_Lower, locus::Center, step) = step/2
+_locus_adjust(::_Upper, locus::Center, step) = -step/2
+_locus_adjust(::_Lower, locus::End, step) = step
+_locus_adjust(::_Upper, locus::End, step) = -zero(step)
+
 # Explicit Intervals -------------------------
-function _between_side(side::_Lower, o::Ordered, span::Explicit, ::Intervals, l, v)
-    lower_bounds = view(val(span), 1, :)
-    return _searchfunc(side, o)(lower_bounds, v; order=ordering(o))
-end
-function _between_side(side::_Upper, o::Ordered, span::Explicit, ::Intervals, l, v)
-    upper_bounds = view(val(span), 2, :)
-    return _searchfunc(side, o)(upper_bounds, v; order=ordering(o))
+# Rebuild the lookup with the bounds matrix values before searching
+function _between_side(side, o::Ordered, span::Explicit, ::Intervals, l, sel, v)
+    boundsvec = side isa _Lower ? view(val(span), 1, :) : view(val(span), 2, :)
+    l1 = rebuild(l; data=boundsvec)
+    i = _searchfunc(side, o)(l1, v)
+    return checkbounds(Bool, l1, i) ? (@inbounds _close_interval(side, l1, sel, l1[i], i)) : i
 end
 
 # Irregular Intervals -----------------------
+#
+# This works a little differently to Regular variants, 
+# as we have to work with unequal step sizes, calculating them
+# as we find close values.
+#
+# Find the inteval the value falls in.
 # We need to special-case Center locus for Irregular
-_between_side(side, o, span::Irregular, ::Intervals, l, v) = _irreg_side(side, locus(l), o, l, v)
-function _irreg_side(side, locus::Union{Start,End}, o, l, v)
-    _irreg_search(side, o, l, v) - _ordscalar(o) * (_locscalar(locus) + _endshift(side))
-end
-function _irreg_side(side, locus::Center, o, l, v)
-    r = _ordscalar(o)
-    sh = _endshift(side)
-    i = _irreg_search(side, o, l, v)
-    (i - r < firstindex(l) ||  i - r > lastindex(l)) && return i
-    interval = abs(l[i] - l[i-r])
-    distance = abs(l[i] - v)
-    # Use the right less than </<= to match interval bounds
-    if _lt(side)(distance, (interval / 2))
-        return i - sh * r
+_between_side(side, o, span::Irregular, ::Intervals, l, sel, v) = _irreg_side(side, locus(l), o, l, sel, v)
+
+function _irreg_side(side, locus::Union{Start,End}, o, l, sel, v)
+    s = _ordscalar(o)
+    if v == bounds(l)[1]
+        i = ordered_firstindex(l)
+        v1 = v
+    elseif v == bounds(l)[2]
+        i = ordered_lastindex(l)
+        v1 = v
     else
-        return i - (1 + sh) * r
+        # Search for the value and offset per order/locus/side
+        i = _searchfunc(o)(l, v; lt=_lt(side))
+        i += - s * (_locscalar(locus) + _sideshift(side))
+        # Get the value on the interval edge
+        v1 = if i < firstindex(l)
+            _maybeflipbounds(l, bounds(l))[1]
+        elseif i > lastindex(l)
+            _maybeflipbounds(l, bounds(l))[2]
+        elseif side isa _Lower && locus isa End
+            l[i-s]
+        elseif side isa _Upper && locus isa Start
+            l[i+s]
+        else
+            l[i]
+        end
     end
+    return _close_interval(side, l, sel, v1, i)
+end
+function _irreg_side(side, locus::Center, o, l, sel, v)
+    if v == bounds(l)[1]
+        i = ordered_firstindex(l)
+        v1 = v
+    elseif v == bounds(l)[2]
+        i = ordered_lastindex(l)
+        v1 = v
+    else
+        r = _ordscalar(o)
+        sh = _sideshift(side)
+        i = _searchfunc(o)(l, v; lt=_lt(side))
+        (i - r < firstindex(l) ||  i - r > lastindex(l)) && return i
+        half_step = abs(l[i] - l[i-r]) / 2
+        distance = abs(l[i] - v)
+        # Use the right less than </<= to match interval bounds
+        i = if _lt(side)(distance, half_step)
+            i - sh * r
+        else
+            i - (1 + sh) * r
+        end
+        shift = side isa _Lower ? -half_step : half_step
+        v1 = l[i] + shift
+    end
+    return _close_interval(side, l, sel, v1, i)
 end
 
-function _irreg_search(side, o, l, val)
-    searchfunc = _searchfunc(o)
-    i = searchfunc(l, val; lt=_lt(side))
-    return _inbounds(i, l)
-end
 
-_locus_adjust(lookup) = _locus_adjust(locus(lookup), abs(step(span(lookup))))
-_locus_adjust(locus::Start, step) = zero(step), -step
-_locus_adjust(locus::Center, step) = step/2, -step/2
-_locus_adjust(locus::End, step) = step, zero(step)
+_close_interval(side, l, sel, v, i) = i
+function _close_interval(side::_Lower, l, sel::Interval{:open,<:Any}, v, i)
+    v in sel ? i : i + _ordscalar(l)
+end
+function _close_interval(side::_Upper, l, sel::Interval{<:Any,:open}, v, i)
+    v in sel ? i : i - _ordscalar(l)
+end
 
 _locscalar(::Start) = 1
 _locscalar(::End) = 0
-_endshift(::_Lower) = -1
-_endshift(::_Upper) = 1
+_sideshift(::_Lower) = -1
+_sideshift(::_Upper) = 1
+_ordscalar(l) = _ordscalar(order(l))
 _ordscalar(::ForwardOrdered) = 1
 _ordscalar(::ReverseOrdered) = -1
 
@@ -604,6 +703,6 @@ _searchfunc(::_Upper, ::ReverseOrdered) = searchsortedfirst
 hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
 hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
-# Otherwise Near returns the nearest index, and Between and empty range
+# Otherwise Near returns the nearest index, and Between an empty range
 hasselection(lookup::LookupArray, selnear::Near) = order(lookup) isa Unordered ? false : true
-hasselection(lookup::LookupArray, selnear::Between) = order(lookup) isa Unordered ? false : true
+hasselection(lookup::LookupArray, selnear::Union{Interval,Between}) = order(lookup) isa Unordered ? false : true
