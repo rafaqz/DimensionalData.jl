@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, Combinatorics, Dates
+using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using .LookupArrays: between, at, near, contains
 
@@ -44,60 +44,109 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start between" begin
-            @test between(startfwd, Between(0, 11.9)) === 1:0
-            @test between(startfwd, Between(0, 12)) === 1:1
-            @test between(startfwd, Between(11, 14)) === 1:3
-            @test between(startfwd, Between(30, 50)) === 20:20
-            @test between(startfwd, Between(31, 50)) === 21:20
-            @test between(startfwd, Between(11.1, 13.9)) === 2:2
-            @test between(startrev, Between(0, 11.9)) === 21:20
-            @test between(startrev, Between(0, 12)) === 20:20
-            @test between(startrev, Between(11, 14)) === 18:20
-            @test between(startrev, Between(11.1, 13.9)) === 19:19
-            @test between(startrev, Between(30, 50)) === 1:1
-            @test between(startrev, Between(30.1, 50)) === 1:0
-            @test between(startfwd, Between(0, 40)) === 1:20
-            @test between(startrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
+            @test between(startfwd, 0..11.9) === 1:0
+            @test between(startfwd, 0..12) === 1:1
+            @test between(startfwd, 30..50) === 20:20
+            @test between(startfwd, 31..50) === 21:20
+            @test between(startrev, 0..11.9) === 21:20
+            @test between(startrev, 0..12) === 20:20
+            @test between(startrev, 30..50) === 1:1
+            @test between(startrev, 30.1..50) === 1:0
+            @test between(startfwd, 0..40) === 1:20
+            @test between(startrev, 0..40) === 1:20
+            # Bounds
+            @test between(startfwd, 11.0..31.0) === 1:20
+            @test between(startrev, 11.0..31.0) === 1:20
+            # Input order doesn't matter with Between
             @test between(startfwd, Between(14, 11)) === 1:3
+            @test between(startfwd, Between(0, 11.9)) === 1:0
+            # Intervals
+            @test between(startfwd, 12.0..15.0) === 2:4
+            @test between(startfwd, 12.1..14.9) === 3:3
+            @test between(startrev, 12.0..15.0) === 17:19
+            @test between(startrev, 12.1..14.9) === 18:18
+            @test between(startfwd, Interval{:open,:open}(11.9..15.1)) === 2:4
+            @test between(startfwd, Interval{:open,:open}(12.0..15.0)) === 3:3
+            @test between(startrev, Interval{:open,:open}(11.9..15.1)) === 17:19
+            @test between(startrev, Interval{:open,:open}(12.0..15.0)) === 18:18
+            @test between(startfwd, Interval{:open,:closed}(11.9..15.0)) === 2:4
+            @test between(startfwd, Interval{:open,:closed}(12.0..14.9)) === 3:3
+            @test between(startrev, Interval{:open,:closed}(11.9..15.0)) === 17:19
+            @test between(startrev, Interval{:open,:closed}(12.0..14.9)) === 18:18
+            @test between(startfwd, Interval{:closed,:open}(12.0..15.1)) === 2:4
+            @test between(startfwd, Interval{:closed,:open}(12.1..15.0)) === 3:3
+            @test between(startrev, Interval{:closed,:open}(12.0..15.1)) === 17:19
+            @test between(startrev, Interval{:closed,:open}(12.1..15.0)) === 18:18
         end
 
         @testset "Center between" begin
-            @test between(centerfwd, Between(0, 11.4)) === 1:0
-            @test between(centerfwd, Between(0, 11.5)) === 1:1
-            @test between(centerfwd, Between(10.5, 14.6)) === 1:4
-            @test between(centerfwd, Between(10.6, 14.4)) === 2:3
-            @test between(centerfwd, Between(29.5, 50.0)) === 20:20
-            @test between(centerfwd, Between(29.6, 50.0)) === 21:20
-            @test between(centerrev, Between(10.5, 14.6)) === 17:20
-            @test between(centerrev, Between(10.6, 14.4)) === 18:19
-            @test between(centerrev, Between(0, 11.4)) === 21:20
-            @test between(centerrev, Between(0, 11.5)) === 20:20
-            @test between(centerrev, Between(29.5, 50.0)) === 1:1
-            @test between(centerrev, Between(29.6, 50.0)) === 1:0
-            @test between(centerfwd, Between(0, 40)) === 1:20
-            @test between(centerrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
+            @test between(centerfwd, 0..11.4) === 1:0
+            @test between(centerfwd, 0..11.5) === 1:1
+            @test between(centerfwd, 29.5..50.0) === 20:20
+            @test between(centerfwd, 29.6..50.0) === 21:20
+            @test between(centerrev, 0..11.4) === 21:20
+            @test between(centerrev, 0..11.5) === 20:20
+            @test between(centerrev, 29.5..50.0) === 1:1
+            @test between(centerrev, 29.6..50.0) === 1:0
+            @test between(centerfwd, 0..40) === 1:20
+            @test between(centerrev, 0..40) === 1:20
+            # Bounds
+            @test between(centerrev, 10.5..30.5) === 1:20
+            @test between(centerrev, 10.5..30.5) === 1:20
+            # Input order doesn't matter with Between
             @test between(centerfwd, Between(15, 10)) === 1:4
+
+            @test between(centerfwd, 11.5..14.5) === 2:4
+            @test between(centerfwd, 11.6..14.4) === 3:3
+            @test between(centerrev, 11.5..14.5) === 17:19
+            @test between(centerrev, 11.6..14.4) === 18:18
+            @test between(centerfwd, Interval{:open,:open}(11.4..14.6)) === 2:4
+            @test between(centerfwd, Interval{:open,:open}(11.5..14.5)) === 3:3
+            @test between(centerrev, Interval{:open,:open}(11.4..14.6)) === 17:19
+            @test between(centerrev, Interval{:open,:open}(11.5..14.5)) === 18:18
+            @test between(centerfwd, Interval{:open,:closed}(11.4..14.5)) === 2:4
+            @test between(centerfwd, Interval{:open,:closed}(11.5..14.4)) === 3:3
+            @test between(centerrev, Interval{:open,:closed}(11.4..14.5)) === 17:19
+            @test between(centerrev, Interval{:open,:closed}(11.5..14.4)) === 18:18
+            @test between(centerfwd, Interval{:closed,:open}(11.5..14.6)) === 2:4
+            @test between(centerfwd, Interval{:closed,:open}(11.6..14.5)) === 3:3
+            @test between(centerrev, Interval{:closed,:open}(11.5..14.6)) === 17:19
+            @test between(centerrev, Interval{:closed,:open}(11.6..14.5)) === 18:18
         end
 
         @testset "End between" begin
-            @test between(endfwd, Between(0.0, 10.9)) === 1:0
-            @test between(endfwd, Between(0, 11)) === 1:1
-            @test between(endfwd, Between(10.1, 14.9)) === 2:4
-            @test between(endfwd, Between(10, 15)) === 1:5
-            @test between(endfwd, Between(29.0, 30.0)) === 20:20
-            @test between(endfwd, Between(29.1, 50.0)) === 21:20
-            @test between(endrev, Between(0.0, 10.9)) === 21:20
-            @test between(endrev, Between(0.0, 11.0)) === 20:20
-            @test between(endrev, Between(10.1, 14.9)) === 17:19
-            @test between(endrev, Between(10, 15)) === 16:20
-            @test between(endrev, Between(29.0, 50.0)) === 1:1
-            @test between(endrev, Between(29.1, 50.0)) === 1:0
-            @test between(endfwd, Between(0, 40)) === 1:20
-            @test between(endrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
+            @test between(endfwd, 0.0..10.9) === 1:0
+            @test between(endfwd, 0..11) === 1:1
+            @test between(endfwd, 29.0..30.0) === 20:20
+            @test between(endfwd, 29.1..50.0) === 21:20
+            @test between(endrev, 0.0..10.9) === 21:20
+            @test between(endrev, 0.0..11.0) === 20:20
+            @test between(endrev, 29.0..50.0) === 1:1
+            @test between(endrev, 29.1..50.0) === 1:0
+            @test between(endfwd, 0..40) === 1:20
+            @test between(endrev, 0..40) === 1:20
+            # Bounds
+            @test between(endfwd, 10.0..30.0) === 1:20
+            @test between(endrev, 10.0..30.0) === 1:20
+            # Input order doesn't matter with Between
             @test between(endfwd, Between(15, 10)) === 1:5
+
+            @test between(endfwd, 12.0..15.0) === 3:5
+            @test between(endfwd, 12.1..14.9) === 4:4
+            @test between(endrev, 12.0..15.0) === 16:18
+            @test between(endrev, 12.1..14.9) === 17:17
+            @test between(endfwd, Interval{:open,:open}(11.9..15.1)) === 3:5
+            @test between(endfwd, Interval{:open,:open}(12.0..15.0)) === 4:4
+            @test between(endrev, Interval{:open,:open}(11.9..15.1)) === 16:18
+            @test between(endrev, Interval{:open,:open}(12.0..15.0)) === 17:17
+            @test between(endfwd, Interval{:open,:closed}(11.9..15.0)) === 3:5
+            @test between(endfwd, Interval{:open,:closed}(12.0..14.9)) === 4:4
+            @test between(endrev, Interval{:open,:closed}(11.9..15.0)) === 16:18
+            @test between(endrev, Interval{:open,:closed}(12.0..14.9)) === 17:17
+            @test between(endfwd, Interval{:closed,:open}(12.0..15.1)) === 3:5
+            @test between(endfwd, Interval{:closed,:open}(12.1..15.0)) === 4:4
+            @test between(endrev, Interval{:closed,:open}(12.0..15.1)) === 16:18
+            @test between(endrev, Interval{:closed,:open}(12.1..15.0)) === 17:17
         end
 
         @testset "Start contains" begin
@@ -194,60 +243,102 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start between" begin
-            @test between(startfwd, Between(0, 11.9)) === 1:0
-            @test between(startfwd, Between(0, 12)) === 1:1
-            @test between(startfwd, Between(11, 14)) === 1:3
-            @test between(startfwd, Between(30, 50)) === 20:20
-            @test between(startfwd, Between(31, 50)) === 21:20
-            @test between(startfwd, Between(11.1, 13.9)) === 2:2
-            @test between(startrev, Between(0, 11.9)) === 21:20
-            @test between(startrev, Between(0, 12)) === 20:20
-            @test between(startrev, Between(11, 14)) === 18:20
-            @test between(startrev, Between(11.1, 13.9)) === 19:19
-            @test between(startrev, Between(30, 50)) === 1:1
-            @test between(startrev, Between(30.1, 50)) === 1:0
-            @test between(startfwd, Between(0, 40)) === 1:20
-            @test between(startrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
-            @test between(startfwd, Between(14, 11)) === 1:3
+            @test between(startfwd, 0..11.9) === 1:0
+            @test between(startfwd, 0..12) === 1:1
+            @test between(startfwd, 30..50) === 20:20
+            @test between(startfwd, 31..50) === 21:20
+            @test between(startrev, 0..11.9) === 21:20
+            @test between(startrev, 0..12) === 20:20
+            @test between(startrev, 30..50) === 1:1
+            @test between(startrev, 30.1..50) === 1:0
+            @test between(startfwd, 0..40) === 1:20
+            @test between(startrev, 0..40) === 1:20
+            # Bounds
+            @test between(startfwd, 11.0..31.0) === 1:20
+            @test between(startrev, 11.0..31.0) === 1:20
+
+            @test between(startfwd, 11.1..13.9) === 2:2
+            @test between(startfwd, 11.0..14.0) === 1:3
+            @test between(startrev, 11.1..13.9) === 19:19
+            @test between(startrev, 11.0..14.0) === 18:20
+            @test between(startfwd, Interval{:open,:open}(11.0..14.0)) === 2:2
+            @test between(startfwd, Interval{:open,:open}(10.9..14.1)) === 1:3
+            @test between(startrev, Interval{:open,:open}(11.0..14.0)) === 19:19
+            @test between(startrev, Interval{:open,:open}(10.9..14.1)) === 18:20
+            @test between(startfwd, Interval{:open,:closed}(11.0..13.9)) === 2:2
+            @test between(startfwd, Interval{:open,:closed}(10.9..14.0)) === 1:3
+            @test between(startrev, Interval{:open,:closed}(11.0..13.9)) === 19:19
+            @test between(startrev, Interval{:open,:closed}(10.9..14.0)) === 18:20
+            @test between(startfwd, Interval{:closed,:open}(11.1..13.9)) === 2:2
+            @test between(startfwd, Interval{:closed,:open}(11.0..14.1)) === 1:3
+            @test between(startrev, Interval{:closed,:open}(11.1..14.0)) === 19:19
+            @test between(startrev, Interval{:closed,:open}(11.0..14.1)) === 18:20
         end
 
         @testset "Center between" begin
-            @test between(centerfwd, Between(0, 11.4)) === 1:0
-            @test between(centerfwd, Between(0, 11.5)) === 1:1
-            @test between(centerfwd, Between(10.5, 14.6)) === 1:4
-            @test between(centerfwd, Between(10.6, 14.4)) === 2:3
-            @test between(centerfwd, Between(29.5, 50.0)) === 20:20
-            @test between(centerfwd, Between(29.6, 50.0)) === 21:20
-            @test between(centerrev, Between(10.5, 14.6)) === 17:20
-            @test between(centerrev, Between(10.6, 14.4)) === 18:19
-            @test between(centerrev, Between(0, 11.4)) === 21:20
-            @test between(centerrev, Between(0, 11.5)) === 20:20
-            @test between(centerrev, Between(29.5, 50.0)) === 1:1
-            @test between(centerrev, Between(29.6, 50.0)) === 1:0
-            @test between(centerfwd, Between(0, 40)) === 1:20
-            @test between(centerrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
-            @test between(centerfwd, Between(15, 10)) === 1:4
+            @test between(centerfwd, 0..11.4) === 1:0
+            @test between(centerfwd, 0..11.5) === 1:1
+            @test between(centerfwd, 29.5..50.0) === 20:20
+            @test between(centerfwd, 29.6..50.0) === 21:20
+            @test between(centerrev, 0..11.4) === 21:20
+            @test between(centerrev, 0..11.5) === 20:20
+            @test between(centerrev, 29.5..50.0) === 1:1
+            @test between(centerrev, 29.6..50.0) === 1:0
+            @test between(centerfwd, 0..40) === 1:20
+            @test between(centerrev, 0..40) === 1:20
+            # Bounds
+            @test between(centerrev, 10.5..30.5) === 1:20
+            @test between(centerrev, 10.5..30.5) === 1:20
+
+            @test between(centerfwd, 10.5..14.5) === 1:4
+            @test between(centerfwd, 10.6..14.4) === 2:3
+            @test between(centerrev, 10.5..14.5) === 17:20
+            @test between(centerrev, 10.6..14.4) === 18:19
+            @test between(centerfwd, Interval{:open,:open}(10.4..14.6)) === 1:4
+            @test between(centerfwd, Interval{:open,:open}(10.5..14.5)) === 2:3
+            @test between(centerrev, Interval{:open,:open}(10.4..14.6)) === 17:20
+            @test between(centerrev, Interval{:open,:open}(10.6..14.5)) === 18:19
+            @test between(centerfwd, Interval{:open,:closed}(10.4..14.6)) === 1:4
+            @test between(centerfwd, Interval{:open,:closed}(10.5..14.4)) === 2:3
+            @test between(centerrev, Interval{:open,:closed}(10.4..14.6)) === 17:20
+            @test between(centerrev, Interval{:open,:closed}(10.5..14.4)) === 18:19
+            @test between(centerfwd, Interval{:closed,:open}(10.5..14.6)) === 1:4
+            @test between(centerfwd, Interval{:closed,:open}(10.6..14.5)) === 2:3
+            @test between(centerrev, Interval{:closed,:open}(10.5..14.6)) === 17:20
+            @test between(centerrev, Interval{:closed,:open}(10.6..14.5)) === 18:19
         end
 
         @testset "End between" begin
-            @test between(endfwd, Between(0.0, 10.9)) === 1:0
-            @test between(endfwd, Between(0, 11)) === 1:1
-            @test between(endfwd, Between(10.1, 14.9)) === 2:4
-            @test between(endfwd, Between(10, 15)) === 1:5
-            @test between(endfwd, Between(29.0, 30.0)) === 20:20
-            @test between(endfwd, Between(29.1, 50.0)) === 21:20
-            @test between(endrev, Between(0.0, 10.9)) === 21:20
-            @test between(endrev, Between(0.0, 11.0)) === 20:20
-            @test between(endrev, Between(10.1, 14.9)) === 17:19
-            @test between(endrev, Between(10, 15)) === 16:20
-            @test between(endrev, Between(29.0, 50.0)) === 1:1
-            @test between(endrev, Between(29.1, 50.0)) === 1:0
-            @test between(endfwd, Between(0, 40)) === 1:20
-            @test between(endrev, Between(0, 40)) === 1:20
-            # Input order doesn't matter
-            @test between(endfwd, Between(15, 10)) === 1:5
+            @test between(endfwd, 0.0..10.9) === 1:0
+            @test between(endfwd, 0..11) === 1:1
+            @test between(endfwd, 29.0..30.0) === 20:20
+            @test between(endfwd, 29.1..50.0) === 21:20
+            @test between(endrev, 0.0..10.9) === 21:20
+            @test between(endrev, 0.0..11.0) === 20:20
+            @test between(endrev, 29.0..50.0) === 1:1
+            @test between(endrev, 29.1..50.0) === 1:0
+            @test between(endfwd, 0..40) === 1:20
+            @test between(endrev, 0..40) === 1:20
+            # Bounds
+            @test between(endfwd, 10.0..30.0) === 1:20
+            @test between(endrev, 10.0..30.0) === 1:20
+
+            @test between(endfwd, 10.0..15.0) === 1:5
+            @test between(endfwd, 10.1..14.9) === 2:4
+            @test between(endrev, 10.0..15.0) === 16:20
+            @test between(endrev, 10.1..14.9) === 17:19
+            @test between(endfwd, Interval{:open,:open}( 9.9..15.1)) === 1:5
+            @test between(endfwd, Interval{:open,:open}(10.0..15.0)) === 2:4
+            @test between(endrev, Interval{:open,:open}( 9.9..15.1)) === 16:20
+            @test between(endrev, Interval{:open,:open}(10.0..15.0)) === 17:19
+            @test between(endfwd, Interval{:open,:closed}( 9.9..15.0)) === 1:5
+            @test between(endfwd, Interval{:open,:closed}(10.0..14.9)) === 2:4
+            @test between(endrev, Interval{:open,:closed}( 9.9..15.0)) === 16:20
+            @test between(endrev, Interval{:open,:closed}(10.0..14.9)) === 17:19
+            @test between(endfwd, Interval{:closed,:open}(10.0..15.1)) === 1:5
+            @test between(endfwd, Interval{:closed,:open}(10.1..15.0)) === 2:4
+            @test between(endrev, Interval{:closed,:open}(10.0..15.1)) === 16:20
+            @test between(endrev, Interval{:closed,:open}(10.1..15.0)) === 17:19
         end
 
         @testset "Start contains" begin
@@ -380,8 +471,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         # Order: index, array, relation (array order is irrelevent here, it's just for plotting)
         # Varnames: locusindexorderrelation
         args = Irregular(1.0, 121.0), Intervals(Start()), NoMetadata()
-        startfwd = Sampled((1:10).^2,    ForwardOrdered(), args...)
-        startrev = Sampled((10:-1:1).^2, ReverseOrdered(), args...)
+        startfwd = Sampled((1.0:10.0).^2,    ForwardOrdered(), args...)
+        startrev = Sampled((10.0:-1.0:1.0).^2, ReverseOrdered(), args...)
 
         args = Irregular(0.5, 111.5), Intervals(Center()), NoMetadata()
         centerfwd = Sampled((1.0:10.0).^2,      ForwardOrdered(), args...)
@@ -399,63 +490,116 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start between" begin
-            @test between(startfwd, Between(9, 36)) === 3:5
-            @test between(startfwd, Between(9.1, 35.0)) === 4:4
-            @test between(startrev, Between(9, 36)) === 6:8
-            @test between(startrev, Between(9.1, 35.9)) === 7:7
-            # Input order doesn't matter
-            @test between(startfwd, Between(36, 9)) === 3:5
             # Handle searchorted overflow
-            @test between(startfwd, Between(0, 0)) === 1:0
-            @test between(startfwd, Between(130, 130)) === 11:10
-            @test between(startrev, Between(0, 0)) === 11:10
-            @test between(startrev, Between(130, 130)) === 1:0
-            @test between(startfwd, Between(-100, 9)) === 1:2
-            @test between(startfwd, Between(80, 150)) === 9:10
-            @test between(startrev, Between(-100, 9)) === 9:10
-            @test between(startrev, Between(80, 150)) === 1:2
-            @test between(startfwd, Between(-200, 200)) === 1:10
-            @test between(startrev, Between(-200, 200)) === 1:10
+            @test between(startfwd, 0..0) === 1:0
+            @test between(startfwd, 130..130) === 11:10
+            @test between(startrev, 0..0) === 11:10
+            @test between(startrev, 130..130) === 1:0
+            @test between(startfwd, -100..9) === 1:2
+            @test between(startfwd, 80..150) === 9:10
+            @test between(startrev, -100..9) === 9:10
+            @test between(startrev, 80..150) === 1:2
+            @test between(startfwd, -200..200) === 1:10
+            @test between(startrev, -200..200) === 1:10
+            # Bounds
+            @test between(startfwd, 1.0..121.0) === 1:10
+            @test between(startrev, 1.0..121.0) === 1:10
+            @test between(startfwd, Interval{:open,:open}(1.0..121.0)) === 2:9
+            @test between(startrev, Interval{:open,:open}(1.0..121.0)) === 2:9
+
+            @test between(startfwd, 9..36) === 3:5
+            @test between(startfwd, 9.1..35.0) === 4:4
+            @test between(startrev, 9..36) === 6:8
+            @test between(startrev, 9.1..35.9) === 7:7
+            @test between(startfwd, Interval{:open,:open}(8.9..36.1)) === 3:5
+            @test between(startfwd, Interval{:open,:open}(9.0..36.0)) === 4:4
+            @test between(startrev, Interval{:open,:open}(8.9..36.1)) === 6:8
+            @test between(startrev, Interval{:open,:open}(9..36)) === 7:7
+            @test between(startfwd, Interval{:open,:closed}(8.9..36)) === 3:5
+            @test between(startfwd, Interval{:open,:closed}(9.0..35.9)) === 4:4
+            @test between(startrev, Interval{:open,:closed}(8.9..36)) === 6:8
+            @test between(startrev, Interval{:open,:closed}(9.0..35.9)) === 7:7
+            @test between(startfwd, Interval{:closed,:open}(9.0..36.1)) === 3:5
+            @test between(startfwd, Interval{:closed,:open}(9.1..36.0)) === 4:4
+            @test between(startrev, Interval{:closed,:open}(9.0..36.1)) === 6:8
+            @test between(startrev, Interval{:closed,:open}(9.1..36.0)) === 7:7
+
         end
 
+
         @testset "Center between" begin
-            @test between(centerfwd, Between(6.5, 30.5)) === 3:5
-            @test between(centerfwd, Between(6.6, 30.4)) === 4:4
-            @test between(centerrev, Between(6.5, 30.5)) === 6:8
-            @test between(centerrev, Between(6.6, 30.4)) === 7:7
-            # Input order doesn't matter
-            @test between(centerfwd, Between(30.5, 6.5)) === 3:5
             # Handle searchorted overflow
-            @test between(centerfwd, Between(0, 0)) === 1:0
-            @test between(centerfwd, Between(-100, 9)) === 1:2
-            @test between(centerfwd, Between(70, 150)) === 9:10
-            @test between(centerfwd, Between(130, 130)) === 11:10
-            @test between(centerrev, Between(0, 0)) === 11:10
-            @test between(centerrev, Between(-100, 9)) === 9:10
-            @test between(centerrev, Between(70, 150)) === 1:2
-            @test between(centerrev, Between(130, 130)) === 1:0
-            @test between(centerfwd, Between(-200, 200)) === 1:10
-            @test between(centerrev, Between(-200, 200)) === 1:10
+            @test between(centerfwd, 0..0) === 1:0
+            @test between(centerfwd, 0..0) === 1:0
+            @test between(centerfwd, -100..9) === 1:2
+            @test between(centerfwd, 70..150) === 9:10
+            @test between(centerfwd, 130..130) === 11:10
+            @test between(centerrev, 0..0) === 11:10
+            @test between(centerrev, -100..9) === 9:10
+            @test between(centerrev, 70..150) === 1:2
+            @test between(centerrev, 130..130) === 1:0
+            @test between(centerfwd, -200..200) === 1:10
+            @test between(centerrev, -200..200) === 1:10
+            # Bounds
+            @test between(centerfwd, 0.5..111.5) === 1:10
+            @test between(centerrev, 0.5..111.5) === 1:10
+            @test between(centerfwd, Interval{:open,:open}(0.5..111.5)) === 2:9
+            @test between(centerrev, Interval{:open,:open}(0.5..111.5)) === 2:9
+    
+
+            @test between(centerfwd, 6.5..30.5) === 3:5
+            @test between(centerfwd, 6.6..30.4) === 4:4
+            @test between(centerrev, 6.5..30.5) === 6:8
+            @test between(centerrev, 6.6..30.4) === 7:7
+            @test between(centerfwd, Interval{:open,:open}(6.4..30.6)) === 3:5
+            @test between(centerfwd, Interval{:open,:open}(6.5..30.5)) === 4:4
+            @test between(centerrev, Interval{:open,:open}(6.4..30.6)) === 6:8
+            @test between(centerrev, Interval{:open,:open}(6.5..30.5)) === 7:7
+            @test between(centerfwd, Interval{:open,:closed}(6.4..30.5)) === 3:5
+            @test between(centerfwd, Interval{:open,:closed}(6.5..30.4)) === 4:4
+            @test between(centerrev, Interval{:open,:closed}(6.4..30.5)) === 6:8
+            @test between(centerrev, Interval{:open,:closed}(6.5..30.4)) === 7:7
+            @test between(centerfwd, Interval{:closed,:open}(6.5..30.6)) === 3:5
+            @test between(centerfwd, Interval{:closed,:open}(6.6..30.5)) === 4:4
+            @test between(centerrev, Interval{:closed,:open}(6.5..30.6)) === 6:8
+            @test between(centerrev, Interval{:closed,:open}(6.6..30.5)) === 7:7
+
         end
 
         @testset "End between" begin
-            @test between(endfwd, Between(4, 25)) === 3:5
-            @test between(endrev, Between(4, 25)) === 6:8
-            @test between(endfwd, Between(4.1, 24.9)) === 4:4
-            @test between(endrev, Between(4.1, 24.9)) === 7:7
-            # Input order doesn't matter
-            @test between(endfwd, Between(25, 4)) === 3:5
             # Handle searchorted overflow
-            @test between(endfwd, Between(0, 0)) === 1:0
-            @test between(endfwd, Between(130, 130)) === 11:10
-            @test between(endrev, Between(0, 0)) === 11:10
-            @test between(endrev, Between(130, 130)) === 1:0
-            @test between(endfwd, Between(-100, 4)) === 1:2
-            @test between(endfwd, Between(64, 150)) === 9:10
-            @test between(endrev, Between(-100, 4)) === 9:10
-            @test between(endrev, Between(64, 150)) === 1:2
-            @test between(endfwd, Between(-200, 200)) === 1:10
-            @test between(endrev, Between(-200, 200)) === 1:10
+            @test between(endfwd, -1 .. -1) === 1:0
+            @test between(endfwd, 130..130) === 11:10
+            @test between(endrev, -1 .. -1) === 11:10
+            @test between(endrev, 130..130) === 1:0
+            @test between(endfwd, -100..4) === 1:2
+            @test between(endfwd, 64..150) === 9:10
+            @test between(endrev, -100..4) === 9:10
+            @test between(endrev, 64..150) === 1:2
+            @test between(endfwd, -200..200) === 1:10
+            @test between(endrev, -200..200) === 1:10
+            # Bounds
+            @test between(endfwd, 0.0..100.0) === 1:10
+            @test between(endrev, 0.0..100.0) === 1:10
+            @test between(endfwd, Interval{:open,:open}(0.0..100.0)) === 2:9
+            @test between(endrev, Interval{:open,:open}(0.0..100.0)) === 2:9
+
+            @test between(endfwd, 4.0..25.0) === 3:5
+            @test between(endrev, 4.0..25.0) === 6:8
+            @test between(endfwd, 4.1..24.9) === 4:4
+            @test between(endrev, 4.1..24.9) === 7:7
+            @test between(endfwd, Interval{:open,:open}(3.9..25.1)) === 3:5
+            @test between(endrev, Interval{:open,:open}(3.9..25.1)) === 6:8
+            @test between(endfwd, Interval{:open,:open}(4.0..25.0)) === 4:4
+            @test between(endrev, Interval{:open,:open}(4.0..25.0)) === 7:7
+            @test between(endfwd, Interval{:open,:closed}(3.9..25.0)) === 3:5
+            @test between(endrev, Interval{:open,:closed}(3.9..25.0)) === 6:8
+            @test between(endfwd, Interval{:open,:closed}(4.0..24.9)) === 4:4
+            @test between(endrev, Interval{:open,:closed}(4.0..24.9)) === 7:7
+            @test between(endfwd, Interval{:closed,:open}(4.0..25.1)) === 3:5
+            @test between(endrev, Interval{:closed,:open}(4.0..25.1)) === 6:8
+            @test between(endfwd, Interval{:closed,:open}(4.1..25.0)) === 4:4
+            @test between(endrev, Interval{:closed,:open}(4.1..25.0)) === 7:7
         end
 
         @testset "Start contains" begin
@@ -518,18 +662,56 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         rev = Sampled(30.0:-1.0:5.0; order=ReverseOrdered(), sampling=Points())
 
         @testset "between" begin
-            @test between(fwd, Between(0, 4.9)) === 1:0
-            @test between(fwd, Between(0, 5)) === 1:1
-            @test between(fwd, Between(30, 31)) === 27:26
-            @test between(fwd, Between(10, 14.9)) === 6:10
-            @test between(fwd, Between(10, 15)) === 6:11
-            @test between(rev, Between(10, 14.9)) === 17:21
-            @test between(rev, Between(10, 15)) === 16:21
-            @test between(rev, Between(0, 4.9)) === 27:26
-            @test between(rev, Between(0, 5)) === 26:26
-            @test between(rev, Between(30, 31)) === 1:0
-            # Input order doesn't matter
-            @test between(fwd, Between(15, 10)) === 6:11
+            @test between(fwd, 0..4.9) === 1:0
+            @test between(fwd, 0..5) === 1:1
+            @test between(fwd, 30..31) === 26:26
+            @test between(fwd, 10..14.9) === 6:10
+            @test between(fwd, 10..15) === 6:11
+            @test between(rev, 10..14.9) === 17:21
+            @test between(rev, 10..15) === 16:21
+            @test between(rev, 0..4.9) === 27:26
+            @test between(rev, 0..5) === 26:26
+            @test between(rev, 30..31) === 1:1
+
+            @test between(fwd, OpenInterval(0..5)) === 1:0
+            @test between(fwd, OpenInterval(0..5.1)) === 1:1
+            @test between(fwd, OpenInterval(30..31)) === 27:26
+            @test between(fwd, OpenInterval(10..15)) === 7:10
+            @test between(fwd, OpenInterval(10..15.1)) === 7:11
+            @test between(rev, OpenInterval(10..15)) === 17:20
+            @test between(rev, OpenInterval(10..15.1)) === 16:20
+            @test between(rev, OpenInterval(0..5)) === 27:26
+            @test between(rev, OpenInterval(0..5.1)) === 26:26
+            @test between(rev, OpenInterval(30..31)) === 1:0
+
+            @test between(fwd, Interval{:open,:closed}(0..4.9)) === 1:0
+            @test between(fwd, Interval{:open,:closed}(0..5.0)) === 1:1
+            @test between(fwd, Interval{:open,:closed}(30..31)) === 27:26
+            @test between(fwd, Interval{:open,:closed}(10..14.9)) === 7:10
+            @test between(fwd, Interval{:open,:closed}(10..15.0)) === 7:11
+            @test between(rev, Interval{:open,:closed}(10..14.9)) === 17:20
+            @test between(rev, Interval{:open,:closed}(10..15.0)) === 16:20
+            @test between(rev, Interval{:open,:closed}(0..4.9)) === 27:26
+            @test between(rev, Interval{:open,:closed}(0..5.0)) === 26:26
+            @test between(rev, Interval{:open,:closed}(30..31)) === 1:0
+
+            @test between(fwd, Interval{:closed,:open}(0..5.0)) === 1:0
+            @test between(fwd, Interval{:closed,:open}(0..5.1)) === 1:1
+            @test between(fwd, Interval{:closed,:open}(30..31)) === 26:26
+            @test between(fwd, Interval{:closed,:open}(10..15)) === 6:10
+            @test between(fwd, Interval{:closed,:open}(10..15.1)) === 6:11
+            @test between(rev, Interval{:closed,:open}(10..15)) === 17:21
+            @test between(rev, Interval{:closed,:open}(10..15.1)) === 16:21
+            @test between(rev, Interval{:closed,:open}(0..5.0)) === 27:26
+            @test between(rev, Interval{:closed,:open}(0..5.1)) === 26:26
+            @test between(rev, Interval{:closed,:open}(30..31)) === 1:1
+            
+            fwd1 = Sampled(5.0:5.0; order=ForwardOrdered(), sampling=Points())
+            rev1 = Sampled(5.0:-1.0:5.0; order=ReverseOrdered(), sampling=Points())
+            @test between(fwd1, 5..5) === 1:1
+            @test between(rev1, 5..5) === 1:1
+            @test between(fwd1, OpenInterval(5..5)) === 1:0
+            @test between(rev1, OpenInterval(5..5)) === 1:0
         end
 
         @testset "at" begin

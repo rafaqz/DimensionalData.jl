@@ -151,31 +151,29 @@ mean(A3; dims=Ti)
 ## LookupArrays and Selectors
 
 Indexing by value in `DimensionalData` is done with [Selectors](@ref).
+IntervalSets.jl is now used for selecting ranges of values (formerly `Between`).
 
-| :----------------- | :----------------------------------------------------------------- |
-| [`At`](@ref)       | get the index exactly matching the passed in value(s)              |
-| [`Near`](@ref)     | get the closest index to the passed in value(s)                    |
-| [`Where`](@ref)    | filter the array axis by a function of the dimension index values. |
-| [`Between`](@ref)  | get all indices between two values, excluding the high value.      |
-| [`Contains`](@ref) | get indices where the value x falls within an interval             |
+| :---------------------- | :------------------------------------------------------------------ |
+| [`At(x)`]               | get the index exactly matching the passed in value(s)               |
+| [`Near(x)`]             | get the closest index to the passed in value(s)                     |
+| [`Contains(x)`]         | get indices where the value x falls within an interval              |
+| [`Where(f)`]            | filter the array axis by a function of the dimension index values.  |
+| [`a..b`]                | get all indices between two values, inclusively.                    |
+| [`OpenInterval(a, b)`]  | get all indices between `a` and `b`, exclusively.                   |
+| [`Interval{A,B}(a, b)`] | get all indices between `a` and `b`, as `:closed` or `:open`.       |
 
-
-Here we use the [`Between`](@ref) selector to select a range between integers
-and `DateTime`:
-
-```@example main
-A[X(Between(12, 35)), Ti(Between(Date(2001, 5), Date(2001, 7)))]
-```
 
 Selectors find indices in the `LookupArray`, for each dimension. 
-    
-(`Between` and `Contains` exlude the upper boundary so that adjacent selections
-never contain the same index)
+Here we use an `Interval` to select a range between integers and `DateTime`:
+
+```@example main
+A[X(12..35), Ti(Date(2001, 5)..Date(2001, 7))]
+```
 
 Selectors can be used in `getindex`, `setindex!` and
 `view` to select indices matching the passed in value(s)
 
-We can use selectors inside dim wrappers, here selecting from `DateTime` and `Int`:
+We can use selectors inside dim wrappers, here selecting values from `DateTime` and `Int`:
 
 ```@example main
 using Dates
@@ -189,7 +187,7 @@ Without dim wrappers selectors must be in the right order, and specify all axes:
 ```@example main
 using Unitful
 A5 = rand(Y((1:10:100)u"m"), Ti((1:5:100)u"s"));
-A5[Between(10.5u"m", 50.5u"m"), Near(23u"s")]
+A5[10.5u"m" .. 50.5u"m", Near(23u"s")]
 ```
 
 We can also use Linear indices as in standard `Array`:
@@ -236,7 +234,7 @@ on the contained index. These enable optimisations with `Selector`s, and modifie
 behaviours, such as:
 
 1. Selection of [`Intervals`](@ref) or [`Points`](@ref), which will give slightly
-  different results for selectors like [`Between`](@ref) - as whole intervals are
+  different results for selectors like `..` - as whole intervals are
   selected, and have different `bounds` values.
 
 2. Tracking of lookup order. A reverse order is labelled `ReverseOrdered` and

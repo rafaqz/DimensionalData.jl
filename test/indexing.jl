@@ -93,6 +93,13 @@ end
         a = da[X([2, 1]), Y([2, 1])]
         @test a == [4 3; 2 1]
     end
+    
+    @testset "selectors work" begin
+        @test da[At(143), -38.0..36.0] == [1, 2]
+        @test da[144.0..146.0, Near(-37.1)] == [3]
+        @test da[X=At(143), Y=-38.0..36.0] == [1, 2]
+        @test da[X=144.0..146.0, Y=Near(-37.1)] == [3]
+    end
 
     @testset "view DimensionArray containing views" begin
         v = view(da, Y(1), X(1))

@@ -18,7 +18,7 @@ using .LookupArrays
 """
 module LookupArrays
 
-using Dates
+using Dates, IntervalSets
 import Adapt, ConstructionBase
 
 using Base: tail, OneTo, @propagate_inbounds
@@ -29,6 +29,7 @@ export order, sampling, span, bounds, locus, hasselection, transformdim,
 
 export Selector
 export At, Between, Contains, Near, Where
+export ..
 
 export LookupArrayTrait
 export Order, Ordered, ForwardOrdered, ReverseOrdered, Unordered, AutoOrder
