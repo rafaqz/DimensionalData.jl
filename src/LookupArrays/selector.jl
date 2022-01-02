@@ -642,6 +642,7 @@ end
 
 # Otherwise apply the selector
 @inline selectindices(lookup::LookupArray, sel::Selector) = sel(lookup)
+@inline selectindices(lookup::LookupArray, sel::Interval) = between(lookup, sel)
 
 
 # Unaligned LookupArray ------------------------------------------

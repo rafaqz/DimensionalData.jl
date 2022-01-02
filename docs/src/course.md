@@ -187,7 +187,7 @@ Without dim wrappers selectors must be in the right order, and specify all axes:
 ```@example main
 using Unitful
 A5 = rand(Y((1:10:100)u"m"), Ti((1:5:100)u"s"));
-A5[10.5u"m"..50.5u"m", Near(23u"s")]
+A5[10.5u"m" .. 50.5u"m", Near(23u"s")]
 ```
 
 We can also use Linear indices as in standard `Array`:
