@@ -153,6 +153,8 @@ mean(A3; dims=Ti)
 Indexing by value in `DimensionalData` is done with [Selectors](@ref).
 IntervalSets.jl is now used for selecting ranges of values (formerly `Between`).
 
+
+| Selector                | Description                                                         |
 | :---------------------- | :------------------------------------------------------------------ |
 | [`At(x)`]               | get the index exactly matching the passed in value(s)               |
 | [`Near(x)`]             | get the closest index to the passed in value(s)                     |
