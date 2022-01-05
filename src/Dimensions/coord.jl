@@ -72,7 +72,7 @@ dims(d::Coord) = dims(val(d))
 
 _matches(sel::Dimension, x) = _matches(val(sel), x)
 _matches(sel::Between, x) = (x >= first(sel)) & (x < last(sel))
-_matches(sel::AbstractInterval, x) = x ∈ sel
+_matches(sel::LookupArrays.AbstractInterval, x) = x ∈ sel
 _matches(sel::At, x) = x == val(sel)
 _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true
