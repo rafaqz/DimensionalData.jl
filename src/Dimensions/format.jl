@@ -12,8 +12,8 @@ Format the passed-in dimension(s) `dims` to match the object `x`.
 This means converting indexes of `Tuple` to `LinRange`, and running
 `format`. Errors are also thrown if dims don't match the array dims or size.
 
-If a [`LookupArray`](@ref) hasn't been specified, an lookup is chosen
-based on the type and element type of the index:
+If a [`LookupArray`](@ref) hasn't been specified, a lookup is chosen
+based on the type and element type of the index.
 """
 format(dims, A::AbstractArray) = format((dims,), A)
 function format(dims::NamedTuple, A::AbstractArray)
