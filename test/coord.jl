@@ -38,3 +38,9 @@ end
     @test vec(pure_mean) == vec(m.data)
     @test Dimensions._tozero((1.0, 1.0)) == (0.0, 0.0)
 end
+
+@testset "coord indexing with intervals" begin
+    interval = (0.1,0.1,0.1)..(0.2,0.2,0.2)
+    sel = da[Coord(interval)]
+    @test length(sel) == 2
+end
