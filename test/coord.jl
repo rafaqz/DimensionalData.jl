@@ -40,7 +40,5 @@ end
 end
 
 @testset "coord indexing with intervals" begin
-    interval = (0.1,0.1,0.1)..(0.2,0.2,0.2)
-    sel = da[Coord(interval)]
-    @test length(sel) == 2
+    @test da[Coord(Z(At(1.0)), Y(1..3))] == [0.1]
 end
