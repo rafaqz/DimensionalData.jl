@@ -37,6 +37,11 @@ end
     @test typeof(da1x) === typeof(da1)
 end
 
+@testset "broadcast over layer" begin
+    s[:one] .*= 2
+    s[:one] ./= 2
+end
+
 @testset "low level base methods" begin
     @test keys(data(s)) == (:one, :two, :three)
     @test keys(data(mixed)) == (:one, :two, :extradim)

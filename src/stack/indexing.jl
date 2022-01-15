@@ -3,8 +3,10 @@
 #### getindex ####
 
 # Symbol key
-@propagate_inbounds Base.getindex(s::AbstractDimStack, key::Symbol) =
-    DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
+for f in (:getindex, :view, :dotview)
+    @eval @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
+        DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
+end
 @propagate_inbounds function Base.getindex(s::AbstractDimStack, keys::Tuple)
     rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
 end
