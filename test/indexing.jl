@@ -1,4 +1,4 @@
-using DimensionalData, Test, BenchmarkTools
+using DimensionalData, Test, BenchmarkTools, Dates, Statistics
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 @testset "dims2indices" begin
@@ -329,4 +329,20 @@ end
         @test s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
         @test_throws ArgumentError s_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
     end
+end
+
+@testset "indexing irregular" begin
+    total_time = 5
+    t1 = Ti([mod1(i, 12) for i in 1:total_time]) # centurial averages with seasonal cycle
+    t2 = Ti([Date(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]) # centurial averages with seasonal cycle
+    t3 = Ti([DateTime(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]) # centurial averages with seasonal cycle
+
+    p = reshape([1, 2, 3, 4, 5], 1, 1, 5)
+    A1 = DimArray(p, (X, Y, t1))
+    A2 = DimArray(p, (X, Y, t2))
+    A3 = DimArray(p, (X, Y, t3))
+
+    @test view(A1, Ti(5)) == 5
+    @test view(A2, Ti(5)) == 5
+    @test view(A3, Ti(5)) == 5
 end
