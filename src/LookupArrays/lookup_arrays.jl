@@ -471,23 +471,24 @@ function _slicespan(locus::Center, span::Irregular, l::LookupArray, i::StandardI
     last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
 end
 # Have to special-case date/time so we work with seconds and add to the original
-function _slicespan(locus::Center, span::Irregular, l::LookupArray{<:Dates.AbstractTime}, i::StandardIndices)
+function _slicespan(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
+    op = T === Date ? div : /
     frst = if first(i) <= firstindex(l)
         _maybeflipbounds(l, bounds(span))[1]
     else
         if isrev(order(l))
-            (l[first(i)] - l[first(i) - 1]) / 2 + l[first(i) - 1]
+            op(l[first(i)] - l[first(i) - 1], 2) + l[first(i) - 1]
         else
-            (l[first(i) - 1] - l[first(i)]) / 2 + l[first(i)] 
+            op(l[first(i) - 1] - l[first(i)], 2) + l[first(i)] 
         end
     end
     lst = if last(i) >= lastindex(l)
         _maybeflipbounds(l, bounds(span))[2]
     else
         if isrev(order(l))
-            (l[last(i)] - l[last(i) + 1]) / 2 + l[last(i) + 1]
+            op(l[last(i)] - l[last(i) + 1], 2) + l[last(i) + 1]
         else
-            (l[last(i) + 1] - l[last(i)]) / 2 + l[last(i)]
+            op(l[last(i) + 1] - l[last(i)], 2) + l[last(i)]
         end
     end
     return (frst, lst)
