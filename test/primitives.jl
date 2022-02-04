@@ -327,33 +327,61 @@ end
 end
 
 @testset "slicedims" begin
-    @testset "Regular" begin
+    @testset "Regular Points" begin
+        da = DimArray(a, (X(143:2:145), Y(-20:-1:-22)))
+        dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == slicedims(dimz, 1:2, 3) == slicedims(dimz, (), (1:2, 3)) ==
             ((X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),),
-             (Y(Sampled(-36:-36, ForwardOrdered(), Regular(1), Points(), NoMetadata())),))
+             (Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata())),))
         @test slicedims(dimz, (Z(),), (1:2, 3)) == slicedims(dimz, (Z(),), 1:2, 3) ==
             ((X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),),
-             (Z(), Y(Sampled(-36:-36, ForwardOrdered(), Regular(1), Points(), NoMetadata())),))
+             (Z(), Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata())),))
         @test slicedims(dimz, 2:2, :) == slicedims(dimz, (), 2:2, :) ==
             ((X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
-              Y(Sampled(-38:-36, ForwardOrdered(), Regular(1), Points(), NoMetadata()))), ())
+              Y(Sampled(-20:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata()))), ())
         @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
               slicedims((), 1:2, 3) == slicedims((), (), 1:2, 3) == ((), ())
         @test slicedims(dimz, CartesianIndex(2, 3)) ==
             ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
-                  Y(Sampled(-36:-36, ForwardOrdered(), Regular(1), Points(), NoMetadata()))),)
+                  Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata()))),)
     end
 
-    @testset "Irregular" begin
+    @testset "Regular Intervals" begin
+        irreg = DimArray(a, (X(Sampled([140.0, 142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),
+                             Y(Sampled([30.0, 20.0, 10.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata())), ))
+        irreg_dimz = dims(irreg)
+        @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
+            ((X(Sampled([140.0, 142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),),
+                 (Y(Sampled([10.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata())),))
+        @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
+            ((X(Sampled([142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),
+              Y(Sampled([30.0, 20.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata()))), ())
+        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+    end
+
+    @testset "Irregular Points" begin
+        irreg = DimArray(a, (X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(), Points(), NoMetadata())),
+                             Y(Sampled([40.0, 20.0, 10.0], ReverseOrdered(), Irregular(), Points(), NoMetadata())), ))
+        irreg_dimz = dims(irreg)
+        @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
+        ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),),
+         (Y(Sampled([10.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),))
+        @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
+        ((X(Sampled([142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),
+          Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata()))), ())
+        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+    end
+
+    @testset "Irregular Intervals" begin
         irreg = DimArray(a, (X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(140.0, 144.0), Intervals(Start()), NoMetadata())),
-                             Y(Sampled([10.0, 20.0, 40.0], ForwardOrdered(), Irregular(0.0, 60.0), Intervals(Center()), NoMetadata())), ))
+                             Y(Sampled([40.0, 20.0, 10.0], ReverseOrdered(), Irregular(0.0, 60.0), Intervals(Center()), NoMetadata())), ))
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
             ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(140.0, 144.0), Intervals(Start()), NoMetadata())),),
-                 (Y(Sampled([40.0], ForwardOrdered(), Irregular(30.0, 60.0), Intervals(Center()), NoMetadata())),))
+                 (Y(Sampled([10.0], ReverseOrdered(), Irregular(30.0, 60.0), Intervals(Center()), NoMetadata())),))
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Irregular(142.0, 144.0), Intervals(Start()), NoMetadata())),
-              Y(Sampled([10.0, 20.0], ForwardOrdered(), Irregular(0.0, 30.0), Intervals(Center()), NoMetadata()))), ())
+              Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(0.0, 30.0), Intervals(Center()), NoMetadata()))), ())
         @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
     end
 
