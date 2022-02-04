@@ -331,18 +331,19 @@ end
     end
 end
 
-@testset "indexing irregular" begin
+@testset "indexing irregular with bounds slice" begin
     total_time = 5
-    t1 = Ti([mod1(i, 12) for i in 1:total_time]) # centurial averages with seasonal cycle
-    t2 = Ti([Date(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]) # centurial averages with seasonal cycle
-    t3 = Ti([DateTime(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]) # centurial averages with seasonal cycle
+    t1 = Ti([mod1(i, 12) for i in 1:total_time]; sampling=Intervals()) # centurial averages with seasonal cycle
+    t2 = Ti([Date(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]; sampling=Intervals()) # centurial averages with seasonal cycle
+    t3 = Ti([DateTime(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]; sampling=Intervals()) # centurial averages with seasonal cycle
+    t4 = Ti([DateTime(-26000 + ((i-1)÷12)*100, mod1(i, 12), 1) for i in 1:total_time]; sampling=Points()) # centurial averages with seasonal cycle
 
     p = reshape([1, 2, 3, 4, 5], 1, 1, 5)
     A1 = DimArray(p, (X, Y, t1))
     A2 = DimArray(p, (X, Y, t2))
     A3 = DimArray(p, (X, Y, t3))
 
-    @test view(A1, Ti(5)) == 5
-    @test view(A2, Ti(5)) == 5
-    @test view(A3, Ti(5)) == 5
+    @test view(A1, Ti(5)) == [5;;]
+    @test view(A2, Ti(5)) == [5;;]
+    @test view(A3, Ti(5)) == [5;;]
 end

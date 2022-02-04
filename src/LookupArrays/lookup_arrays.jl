@@ -456,22 +456,24 @@ _slicespan(span::Regular, l::LookupArray, i::AbstractRange) = Regular(step(l) * 
 _slicespan(span::Regular, l::LookupArray, i::AbstractArray) = _slicespan(Irregular(bounds(l)), l, i) 
 _slicespan(span::Explicit, l::LookupArray, i::Int) = Explicit(val(span)[:, i])
 _slicespan(span::Explicit, l::LookupArray, i::AbstractArray) = Explicit(val(span)[:, i])
+_slicespan(span::Irregular, l::LookupArray, i::StandardIndices) =
+    _slicespan(sampling(l), span, l, i)
+_slicespan(::Points, span::Irregular, l::LookupArray, i::StandardIndices) = span
+_slicespan(::Intervals, span::Irregular, l::LookupArray, i::StandardIndices) =
+    Irregular(_maybeflipbounds(l, _slicebounds(locus(l), span, l, i)))
 
-function _slicespan(span::Irregular, l::LookupArray, i::StandardIndices)
-    Irregular(_maybeflipbounds(l, _slicespan(locus(l), span, l, i)))
-end
-function _slicespan(locus::Start, span::Irregular, l::LookupArray, i::StandardIndices)
+function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::StandardIndices)
     l[first(i)], last(i) >= lastindex(l) ? _maybeflipbounds(l, bounds(span))[2] : l[last(i) + 1]
 end
-function _slicespan(locus::End, span::Irregular, l::LookupArray, i::StandardIndices)
+function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::StandardIndices)
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : l[first(i) - 1], l[last(i)]
 end
-function _slicespan(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
+function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2,
     last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
 end
 # Have to special-case date/time so we work with seconds and add to the original
-function _slicespan(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
+function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
     op = T === Date ? div : /
     frst = if first(i) <= firstindex(l)
         _maybeflipbounds(l, bounds(span))[1]
