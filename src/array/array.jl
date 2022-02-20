@@ -85,7 +85,7 @@ end
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))
 end
-Base.Array{T}(x::UndefInitializer, dims::DimTuple) where T = Array{T}(x, size(dims))
+Base.Array{T}(x::UndefInitializer, dims::DimTuple; kw...) where T = Array{T}(x, size(dims))
 
 # undef constructor for all AbstractDimArray 
 (::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray} = A(x, dims; kw...)
@@ -241,7 +241,7 @@ function DimArray(A::AbstractDimArray;
     DimArray(data, dims; refdims, name, metadata)
 end
 """
-    DimArray(f::Function, dim::Dimension [, name])
+    DimArray(f::Function, dim::Dimension; [name])
 
 Apply function `f` across the values of the dimension `dim`
 (using `broadcast`), and return the result as a dimensional array with
@@ -266,8 +266,8 @@ end
 
 
 """
-    Base.fill(x, dims::Dimension...) => DimArray
-    Base.fill(x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
+    Base.fill(x, dims::Dimension...; kw...) => DimArray
+    Base.fill(x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
 
 Create a [`DimArray`](@ref) with a fill value of `x`.
 
@@ -276,6 +276,8 @@ There are two kinds of `Dimension` value acepted:
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
+
+Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 ```@doctest
@@ -290,10 +292,10 @@ julia> rand(Bool, X(2), Y(4))
 Base.fill
 
 """
-    Base.rand(x, dims::Dimension...) => DimArray
-    Base.rand(x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
-    Base.rand(r::AbstractRNG, x, dims::Tuple{Vararg{<:Dimension}}) => DimArray
-    Base.rand(r::AbstractRNG, x, dims::Dimension...) => DimArray
+    Base.rand(x, dims::Dimension...; kw...) => DimArray
+    Base.rand(x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
+    Base.rand(r::AbstractRNG, x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
+    Base.rand(r::AbstractRNG, x, dims::Dimension...; kw...) => DimArray
 
 Create a [`DimArray`](@ref) of random values.
 
@@ -302,6 +304,8 @@ There are two kinds of `Dimension` value acepted:
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
+
+Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 ```julia
@@ -324,8 +328,8 @@ julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
 Base.rand
 
 """
-    Base.zeros(x, dims::Dimension...) => DimArray
-    Base.zeros(x, dims::Tuple{Vararg{Dimension}}) => DimArray
+    Base.zeros(x, dims::Dimension...; kw...) => DimArray
+    Base.zeros(x, dims::Tuple{Vararg{Dimension}}; kw...) => DimArray
 
 Create a [`DimArray`](@ref) of zeros.
 
@@ -334,6 +338,8 @@ There are two kinds of `Dimension` value acepted:
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
+
+Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 ```@doctest
@@ -356,8 +362,8 @@ julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
 Base.zeros
 
 """
-    Base.ones(x, dims::Dimension...) => DimArray
-    Base.ones(x, dims::Tuple{Vararg{Dimension}}) => DimArray
+    Base.ones(x, dims::Dimension...; kw...) => DimArray
+    Base.ones(x, dims::Tuple{Vararg{Dimension}}; kw...) => DimArray
 
 Create a [`DimArray`](@ref) of ones.
 
@@ -366,6 +372,8 @@ There are two kinds of `Dimension` value acepted:
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
+
+Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 ```@doctest
