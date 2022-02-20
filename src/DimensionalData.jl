@@ -43,7 +43,7 @@ export LookupArrays, Dimensions
 export X, Y, Z, Ti, Dim, Coord
 
 # Selector
-export At, Between, Contains, Near, Where, ..
+export At, Between, Contains, Near, Where, All, ..
 
 export AbstractDimArray, DimArray
 

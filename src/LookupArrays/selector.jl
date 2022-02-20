@@ -67,7 +67,7 @@ rtol(sel::At) = sel.rtol
 struct _True end
 struct _False end
 
-(sel::At)(lookup::LookupArray; kw...) = at(lookup, sel; kw...)
+selectindices(lookup::LookupArray, sel::At; kw...) = at(lookup, sel; kw...)
 
 at(lookup::NoLookup, sel::At; kw...) = val(sel)
 function at(lookup::LookupArray, sel::At; kw...)
@@ -144,7 +144,7 @@ struct Near{T} <: Selector{T}
     val::T
 end
 
-(sel::Near)(lookup::LookupArray) = near(lookup, sel)
+selectindices(lookup::LookupArray, sel::Near) = near(lookup, sel)
 
 near(lookup::NoLookup, sel::Near) = val(sel)
 function near(lookup::LookupArray, sel::Near)
@@ -221,7 +221,7 @@ struct Contains{T} <: Selector{T}
 end
 
 # Filter based on sampling and selector -----------------
-(sel::Contains)(l::LookupArray; kw...) = contains(l, sel)
+selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
 
 contains(l::NoLookup, sel::Contains; kw...) = val(sel)
 contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
@@ -353,7 +353,6 @@ as the start and end of each interval. This may or may not make sense for
 the values in your indes, so use `Between` with `Irregular` `Intervals(Center())`
 with caution.
 
-
 ## Example
 
 ```jldoctest
@@ -382,7 +381,7 @@ abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
 
-(sel::Between)(l::LookupArray) = between(l, sel)
+selectindices(l::LookupArray, sel::Union{Between,Interval}) = between(l, sel)
 
 function between(l::LookupArray, sel::Between)
     a, b = _sorttuple(sel)
@@ -615,6 +614,35 @@ val(sel::Where) = sel.f
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
 
+"""
+    All <: Selector
+
+    All(selectors::Selector...)
+
+Selector that combines the results of other selectors. 
+The indices used will be the union of all result sorted in ascending order.
+
+## Example
+
+```jldoctest
+using DimensionalData, Unitful
+
+A = rand(X(10.0:10:200.0), Ti(1u"s":1u"s":100u"s"))
+A[X=All(At(10.0), At(30.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
+
+# output
+
+```
+"""
+struct All{S<:Tuple{Vararg{<:SelectorOrInterval}}} <: Selector{S}
+    selectors::S
+end
+All(args::SelectorOrInterval...) = All(args)
+
+@inline function selectindices(lookup::LookupArray, sel::All)
+    results = map(s -> selectindices(lookup, s), sel.selectors)
+    sort!(union(results...))
+end
 
 # selectindices ==========================================================================
 
@@ -639,10 +667,6 @@ end
 # Vectors are mapped
 @inline selectindices(lookup::LookupArray, sel::Selector{<:AbstractVector}) =
     [selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
-
-# Otherwise apply the selector
-@inline selectindices(lookup::LookupArray, sel::Selector) = sel(lookup)
-@inline selectindices(lookup::LookupArray, sel::Interval) = between(lookup, sel)
 
 
 # Unaligned LookupArray ------------------------------------------
