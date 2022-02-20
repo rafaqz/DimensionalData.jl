@@ -268,8 +268,9 @@ end
 end
 
 @testset "ones, zeros, trues, falses constructors" begin
-    da = zeros(X(4), Y(40.0:10.0:80.0))
+    da = zeros(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
+    @test metadata(da) == (a=1, b=2)
     @test all(==(0), da) 
     ti = Ti(Date(2001):Year(1):Date(2004))
     da = ones(Int32, ti)
@@ -289,8 +290,9 @@ end
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 
     for f in (ones, zeros, trues, falses)
-        da = f(X(4), Y(40.0:10.0:80.0))
+        da = f(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
         @test size(da) == (4, 5)
+        @test metadata(da) == (a=1, b=2)
         @test dims(da) == (
              X(NoLookup(Base.OneTo(4))), 
              Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
@@ -311,9 +313,10 @@ end
 end
 
 @testset "rand constructors" begin
-    da = rand(1:10, X(8), Y(11:20))
+    da = rand(1:10, X(8), Y(11:20); metadata=(a=1, b=2))
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
+    @test metadata(da) == (a=1, b=2)
     @test dims(da) == (
          X(NoLookup(Base.OneTo(8))), 
          Y(Sampled(11:20, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
