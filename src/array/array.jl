@@ -132,7 +132,7 @@ _noname(name::Name) = name # Keep the name so the type doesn't change
 
 for func in (:copy, :one, :oneunit, :zero)
     @eval begin
-        (Base.$func)(A::AbstractDimArray) = rebuild(A, ($func)(parent(A)))
+        (Base.$func)(A::AbstractDimArray; kw...) = rebuild(A; data=($func)(parent(A)), kw...)
     end
 end
 
@@ -391,52 +391,53 @@ Base.ones
 
 for f in (:zeros, :ones, :rand)
     @eval begin
-        Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
-        Base.$f(dims::DimTuple) = $f(Float64, dims)
+        Base.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
+        Base.$f(dims::DimTuple; kw...) = $f(Float64, dims; kw...)
     end
 end
 for f in (:trues, :falses)
     @eval begin
-        Base.$f(dim1::Dimension, dims::Dimension...) = $f((dim1, dims...))
-        function Base.$f(dims::DimTuple)
+        Base.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
+        function Base.$f(dims::DimTuple; kw...)
             C = dimconstructor(dims)
-            C($f(_dimlength(dims)), _maybestripval(dims))
+            C($f(_dimlength(dims)), _maybestripval(dims); kw...)
         end
     end
 end
 # Type specific DimArray creation methods
 for f in (:zeros, :ones, :rand)
     @eval begin
-        Base.$f(::Type{T}, d1::Dimension, dims::Dimension...) where T = $f(T, (d1, dims...))
-        function Base.$f(::Type{T}, dims::DimTuple) where T
+        Base.$f(::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T = 
+            $f(T, (d1, dims...); kw...)
+        function Base.$f(::Type{T}, dims::DimTuple; kw...) where T
             C = dimconstructor(dims)
-            C($f(T, _dimlength(dims)), _maybestripval(dims))
+            C($f(T, _dimlength(dims)), _maybestripval(dims); kw...)
         end
     end
 end
 # Arbitrary object DimArray creation methods
 for f in (:fill, :rand)
     @eval begin
-        Base.$f(x, d1::Dimension, dims::Dimension...) = $f(x, (d1, dims...))
-        function Base.$f(x, dims::DimTuple)
+        Base.$f(x, d1::Dimension, dims::Dimension...; kw...) = $f(x, (d1, dims...); kw...)
+        function Base.$f(x, dims::DimTuple; kw...)
             A = $f(x, _dimlength(dims))
             C = dimconstructor(dims)
-            C(A, _maybestripval(dims))
+            C(A, _maybestripval(dims); kw...)
         end
     end
 end
 # AbstractRNG rand DimArray creation methods
-Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...) = rand(r, x, (d1, dims...))
-function Base.rand(r::AbstractRNG, x, dims::DimTuple)
+Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = rand(r, x, (d1, dims...); kw...)
+function Base.rand(r::AbstractRNG, x, dims::DimTuple; kw...)
     C = dimconstructor(dims)
-    C(rand(r, x, _dimlength(dims)), _maybestripval(dims))
+    C(rand(r, x, _dimlength(dims)), _maybestripval(dims); kw...)
 end
-function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...) where T
-    rand(r, T, (d1, dims...))
+function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T
+    rand(r, T, (d1, dims...); kw...)
 end
-function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple) where T
+function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)
-    C(rand(r, T, _dimlength(dims)), _maybestripval(dims))
+    C(rand(r, T, _dimlength(dims)), _maybestripval(dims); kw...)
 end
 
 _dimlength(dims::Tuple) = map(_dimlength, dims)
