@@ -914,10 +914,9 @@ end
     @testset "All " begin
         dimz = X(10.0:20:200.0), Ti(1u"s":5u"s":100u"s")
         A = DimArray((1:10) * (1:20)', dimz)
-        aA = A[X=All(At(10.0), At(30.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
+        aA = A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
         @test parent(aA) == 
             [1  2  19  20
-             2  4  38  40
              3  6  57  60]
     end
 
