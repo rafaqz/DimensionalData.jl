@@ -67,7 +67,10 @@ rtol(sel::At) = sel.rtol
 struct _True end
 struct _False end
 
-selectindices(lookup::LookupArray, sel::At; kw...) = at(lookup, sel; kw...)
+selectindices(l::LookupArray, sel::At; kw...) = at(l, sel; kw...)
+selectindices(l::LookupArray, sel::At{<:AbstractVector}) = _selectvec(l, sel)
+
+_selectvec(l, sel) = [selectindices(l, rebuild(sel; val=v)) for v in val(sel)]
 
 at(lookup::NoLookup, sel::At; kw...) = val(sel)
 function at(lookup::LookupArray, sel::At; kw...)
@@ -144,7 +147,8 @@ struct Near{T} <: Selector{T}
     val::T
 end
 
-selectindices(lookup::LookupArray, sel::Near) = near(lookup, sel)
+selectindices(l::LookupArray, sel::Near) = near(l, sel)
+selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
 
 near(lookup::NoLookup, sel::Near) = val(sel)
 function near(lookup::LookupArray, sel::Near)
@@ -222,6 +226,7 @@ end
 
 # Filter based on sampling and selector -----------------
 selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
+selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel)
 
 contains(l::NoLookup, sel::Contains; kw...) = val(sel)
 contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
@@ -369,7 +374,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
  4  5
 ```
 """
-struct Between{T<:Union{Tuple{Any,Any},Nothing}} <: Selector{T}
+struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: Selector{T}
     val::T
 end
 Between(args...) = Between(args)
@@ -381,7 +386,13 @@ abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
 
-selectindices(l::LookupArray, sel::Union{Between,Interval}) = between(l, sel)
+selectindices(l::LookupArray, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+function selectindices(lookup::LookupArray, sel::Between{<:AbstractVector})
+    inds = Int[]
+    for v in val(sel)
+        append!(inds, selectindices(lookup, rebuild(sel; val=v)))
+    end
+end
 
 function between(l::LookupArray, sel::Between)
     a, b = _sorttuple(sel)
@@ -610,7 +621,7 @@ end
 val(sel::Where) = sel.f
 
 # Yes this is everything. `Where` doesn't need lookup specialisation
-@inline function (sel::Where)(lookup::LookupArray)
+@inline function selectindices(lookup::LookupArray, sel::Where)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
 
@@ -634,10 +645,9 @@ A[X=All(At(10.0), At(30.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 # output
 
 3×4 DimArray{Int64,2} with dimensions:
-  X Sampled Float64[10.0, 30.0, 50.0] ForwardOrdered Regular Points,
+  X Sampled Float64[10.0, 50.0] ForwardOrdered Regular Points,
   Ti Sampled Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[1 s, 6 s, 91 s, 96 s] ForwardOrdered Regular Points
  1  2  19  20
- 2  4  38  40
  3  6  57  60
 ```
 """
