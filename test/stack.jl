@@ -57,6 +57,7 @@ end
     @test axes(mixed, 2) === Base.OneTo(3)
     @test first(s) == da1 # first/last are for the NamedTuple
     @test last(s) == da3
+    @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 
 @testset "similar" begin

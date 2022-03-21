@@ -87,6 +87,12 @@ function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) w
 end
 Base.Array{T}(x::UndefInitializer, dims::DimTuple; kw...) where T = Array{T}(x, size(dims))
 
+function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...) 
+    arrays = (A1, As...)
+    keys = map(Symbol ∘ name, arrays)
+    NamedTuple{keys}(arrays)
+end
+
 # undef constructor for all AbstractDimArray 
 (::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray} = A(x, dims; kw...)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
