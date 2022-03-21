@@ -357,6 +357,13 @@ end
     end
 end
 
+@testset "NamedTuple" begin
+    @test NamedTuple(da) == (; test=da)
+    @test NamedTuple(da, da2) == (; test=da, test2=da2)
+    da3 = DimArray(a2, dimz2; refdims=refdimz, name=DimensionalData.Name(:test3))
+    @test NamedTuple(da, da3) == (; test=da, test3=da3)
+end
+
 @testset "ArrayInterface" begin
     @test ArrayInterface.parent_type(da) == Matrix{Int}
 end

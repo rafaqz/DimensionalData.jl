@@ -62,6 +62,7 @@ end
 function Base.merge(s::AbstractDimStack, pairs) 
     rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
 end
+Base.NamedTuple(s::AbstractDimStack) = layers(s)
 
 
 function rebuild(
