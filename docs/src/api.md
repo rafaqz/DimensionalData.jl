@@ -147,6 +147,7 @@ Near
 Between
 Contains
 Where
+All
 ```
 
 Lookup properties:

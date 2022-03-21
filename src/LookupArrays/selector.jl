@@ -640,7 +640,7 @@ using DimensionalData, Unitful
 
 dimz = X(10.0:20:200.0), Ti(1u"s":5u"s":100u"s")
 A = DimArray((1:10) * (1:20)', dimz)
-A[X=All(At(10.0), At(30.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
+A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 
 # output
 
