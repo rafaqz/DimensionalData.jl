@@ -123,6 +123,7 @@ end
     @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
     @test map(+, s, s, s) == map(a -> a .* 3, s)
     @test_throws ArgumentError map(+, s, mixed)
+    @test map((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
 end
 
 @testset "methods with no arguments" begin
