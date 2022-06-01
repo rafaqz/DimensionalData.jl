@@ -13,9 +13,9 @@ for f in (:getindex, :view, :dotview)
     @eval begin
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I...) =
-            Base.$f(A, dims2indices(A, I)...)
-        # Linear indexing returns parent type
+        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, I...) = Base.$f(A, dims2indices(A, I)...)
+        # Linear indexing forwards to the parent array
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
@@ -29,7 +29,6 @@ for f in (:getindex, :view, :dotview)
         # Standard indices
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
     end
 end
 

@@ -28,6 +28,20 @@ Base.first(l::LookupArray) = first(parent(l))
 Base.last(l::LookupArray) = last(parent(l))
 Base.firstindex(l::LookupArray) = firstindex(parent(l))
 Base.lastindex(l::LookupArray) = lastindex(parent(l))
+function Base.:(==)(l1::LookupArray, l2::LookupArray)
+    typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
+end
+
+for f in (:getindex, :view, :dotview)
+    @eval begin
+        # AbstractArray and Colon the lookup is rebuilt around a new parent
+        @propagate_inbounds Base.$f(l::LookupArray, i::Union{AbstractArray,Colon}) = 
+            rebuild(l; data=Base.$f(parent(l), i))
+        # Int and CartesianIndex forward to the parent
+        @propagate_inbounds Base.$f(l::LookupArray, i::Union{Int,CartesianIndex}) =
+            Base.$f(parent(l), i)
+    end
+end
 
 ordered_first(l::LookupArray) = l[ordered_firstindex(l)]
 ordered_last(l::LookupArray) = l[ordered_lastindex(l)]
@@ -48,9 +62,6 @@ function Base.searchsortedlast(lookup::LookupArray, val; lt=<)
     searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
 end
 
-function Base.:(==)(l1::LookupArray, l2::LookupArray)
-    typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
-end
 function Adapt.adapt_structure(to, l::LookupArray)
     rebuild(l; data=Adapt.adapt(to, parent(l)))
 end
@@ -168,6 +179,14 @@ metadata(lookup::AbstractSampled) = lookup.metadata
 locus(lookup::AbstractSampled) = locus(sampling(lookup))
 
 Base.step(lookup::AbstractSampled) = step(span(lookup))
+
+for f in (:getindex, :view, :dotview)
+    @eval begin
+        # Regular span may need its step size updated
+        @propagate_inbounds Base.$f(l::AbstractSampled, i::AbstractRange) = 
+            rebuild(l; data=Base.$f(parent(l), i), span=slicespan(l, i))
+    end
+end
 
 function Adapt.adapt_structure(to, l::AbstractSampled)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
@@ -434,19 +453,7 @@ Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1)
 # TODO Transformed bounds
 
 
-# Common methods
-
-# TODO deal with unordered arrays trashing the index order
-for f in (:getindex, :view, :dotview)
-    @eval begin
-        @propagate_inbounds Base.$f(l::LookupArray, i::AbstractArray) = 
-            rebuild(l; data=Base.$f(parent(l), i))
-        @propagate_inbounds Base.$f(l::LookupArray, i::Int) = Base.$f(parent(l), i)
-        @propagate_inbounds Base.$f(l::AbstractSampled, i::AbstractRange) = 
-            rebuild(l; data=Base.$f(parent(l), i), span=slicespan(l, i))
-        @propagate_inbounds Base.$f(l::NoLookup, i::Int) = i
-    end
-end
+# Shared methods
 
 slicespan(l::LookupArray, i::Colon) = span(l)
 slicespan(l::LookupArray, i) = _slicespan(span(l), l, i)
