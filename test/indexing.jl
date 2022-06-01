@@ -65,6 +65,12 @@ end
         @test x = da[1, :][1:2] isa DimArray
     end
 
+    @testset "mixed CartesianIndex indexing works" begin
+        da3 = cat(da, 10da; dims=Z) 
+        @test da3[1, CartesianIndex(1, 2)] == 10
+        @test view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
+    end
+
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
         a = da[X(1:2), Y(1)]
         @test a == [1, 3]
