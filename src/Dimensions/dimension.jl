@@ -249,25 +249,6 @@ Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
 Base.ndims(d::Dimension) = 0
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
-
-Base.size(dims::DimTuple) = map(length, dims)
-
-@inline Base.getindex(d::Dimension) = val(d)
-for f in (:getindex, :view, :dotview)
-    @eval begin
-        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::StandardIndices)
-            x = Base.$f(val(d), i)
-            x isa AbstractArray ? rebuild(d, x) : x
-        end
-        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
-            x = Base.$f(val(d), selectindices(val(d), i))
-            x isa AbstractArray ? rebuild(d, x) : x
-        end
-    end
-end
-# @propagate_inbounds Base.getindex(d::Dimension{<:Val{Index}}, i) where Index =
-    # rebuild(getindex(Index, selectindices(d, i))
-
 Base.iterate(d::Dimension{<:AbstractArray}, args...) = iterate(lookup(d), args...)
 Base.first(d::Dimension) = val(d)
 Base.first(d::Dimension{<:AbstractArray}) = first(lookup(d))
@@ -282,6 +263,8 @@ Base.Array(d::Dimension{<:AbstractArray}) = collect(lookup(d))
 function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
+
+Base.size(dims::DimTuple) = map(length, dims)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))

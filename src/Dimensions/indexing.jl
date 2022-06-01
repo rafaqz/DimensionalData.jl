@@ -1,3 +1,18 @@
+@inline Base.getindex(d::Dimension) = val(d)
+
+for f in (:getindex, :view, :dotview)
+    @eval begin
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::StandardIndices)
+            x = Base.$f(val(d), i)
+            x isa AbstractArray && ndims(x) > 0 ? rebuild(d, x) : x
+        end
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
+            x = Base.$f(val(d), selectindices(val(d), i))
+            x isa AbstractArray && ndims(x) > 0 ? rebuild(d, x) : x
+        end
+    end
+end
+
 #### dims2indices ####
 
 """
