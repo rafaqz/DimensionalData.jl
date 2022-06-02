@@ -1101,6 +1101,21 @@ end
 
 end
 
+@testset "NoIndex" begin
+    l = NoLookup(1:100)
+    @test_throws BoundsError selectindices(l, At(0))
+    @test_throws BoundsError selectindices(l, At(200))
+    @test selectindices(l, At(50)) == 50
+    @test selectindices(l, At(50.1; atol=0.3)) == 50
+    @test selectindices(l, Near(200.1)) == 100
+    @test selectindices(l, Near(-200.1)) == 1
+    @test selectindices(l, Contains(20)) == 20
+    @test_throws InexactError selectindices(l, Contains(20.1))
+    @test_throws BoundsError selectindices(l, Contains(0)) 
+    @test_throws BoundsError selectindices(l, Contains(200)) 
+    @test selectindices(l, 20.1..40) == 21:40
+end
+
 @testset "selectindices" begin
     @test selectindices(A[X(1)], Contains(7)) == (3,)
     @test selectindices(dims_, ()) == ()

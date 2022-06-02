@@ -72,7 +72,19 @@ selectindices(l::LookupArray, sel::At{<:AbstractVector}) = _selectvec(l, sel)
 
 _selectvec(l, sel) = [selectindices(l, rebuild(sel; val=v)) for v in val(sel)]
 
-at(lookup::NoLookup, sel::At; kw...) = val(sel)
+function at(lookup::NoLookup, sel::At; kw...) 
+    v = val(sel)
+    r = round(Int, v)
+    at = atol(sel)
+    if isnothing(at)
+        v == r || _selvalnotfound(lookup, v)
+    else
+        at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
+        isapprox(v, r; atol=at) || _selvalnotfound(lookup, v)
+    end
+    r in lookup || throw(BoundsError(lookup, r))
+    return r
+end
 function at(lookup::LookupArray, sel::At; kw...)
     at(order(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
@@ -150,7 +162,7 @@ end
 selectindices(l::LookupArray, sel::Near) = near(l, sel)
 selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
 
-near(lookup::NoLookup, sel::Near) = val(sel)
+near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
 function near(lookup::LookupArray, sel::Near)
     span(lookup) isa Union{Irregular,Explicit} && locus(lookup) isa Union{Start,End} &&
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End loci. Use Contains"))
@@ -228,7 +240,11 @@ end
 selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
 selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel)
 
-contains(l::NoLookup, sel::Contains; kw...) = val(sel)
+function contains(l::NoLookup, sel::Contains; kw...) 
+    i = Int(val(sel))
+    i in l || throw(BoundsError(l, i))
+    return i
+end
 contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
 function contains(::NoSampling, l::LookupArray, sel::Contains; kw...)

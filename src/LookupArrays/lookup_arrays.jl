@@ -40,6 +40,8 @@ for f in (:getindex, :view, :dotview)
         # Int and CartesianIndex forward to the parent
         @propagate_inbounds Base.$f(l::LookupArray, i::Union{Int,CartesianIndex}) =
             Base.$f(parent(l), i)
+        # Selectors
+        @propagate_inbounds Base.$f(l::LookupArray, i) = (@show i; Base.$f(l, selectindices(l, i)))
     end
 end
 
@@ -165,8 +167,7 @@ rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
 Abstract supertype for [`LookupArray`](@ref)s where the index is
 aligned with the array, and is independent of other dimensions. [`Sampled`](@ref)
-is provided by this package, `Projected` in GeoData.jl also extends
-[`AbstractSampled`](@ref), adding crs projections.
+is provided by this package.
 
 `AbstractSampled` must have  `order`, `span` and `sampling` fields,
 or a `rebuild` method that accpts them as keyword arguments.

@@ -24,10 +24,32 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     @test dims2indices(dimz[1], X(2)) == 2
 end
 
-@testset "dimension/lookup" begin
+@testset "lookup" begin
+    l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
+    @test l[:] == l
+    @test l[1:5] == l
+    @test l[1:5] isa typeof(l)
+    @test l[Near(2.1)] == 2.0
+    # TODO properly handle index mashing arrays: here Regular should become Irregular
+    # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
+    # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
+    @test l[2] === 4.0
+    @test l[CartesianIndex((4,))] == 8.0
+    @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
+    l = NoLookup(1:100)
+    l = NoLookup(1:100)
+    @test l[100] == 100
+    @test l[1:5] isa typeof(l)
+    @test l[CartesianIndex((1,))] == 1 
+    @test view(l, 50) === view(1:100, 50)
+    @test Base.dotview(l, 50) === 50
+end
+
+@testset "dimension" begin
     d = X(Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing))
     @test d[:] == d
     @test d[1:5] == d
+    @test d[1:5] isa typeof(d)
     # TODO properly handle index mashing arrays: here Regular should become Irregular
     # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
@@ -36,6 +58,7 @@ end
     @test d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing))
     d = Y(NoLookup(1:100))
     @test d[100] == 100
+    @test d[1:5] isa typeof(d)
     @test d[CartesianIndex((1,))] == 1 
     @test view(d, 50) === view(1:100, 50)
     @test Base.dotview(d, 50) === 50
