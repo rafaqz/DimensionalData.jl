@@ -2,13 +2,14 @@
 
 for f in (:getindex, :view, :dotview)
     @eval begin
-        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::StandardIndices)
-            x = Base.$f(val(d), i)
-            x isa AbstractArray && ndims(x) > 0 ? rebuild(d, x) : x
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{Int,CartesianIndex})
+            Base.$f(val(d), i)
+        end
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{AbstractArray,Colon})
+            rebuild(d, Base.$f(val(d), i))
         end
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
-            x = Base.$f(val(d), selectindices(val(d), i))
-            x isa AbstractArray && ndims(x) > 0 ? rebuild(d, x) : x
+            Base.$f(d, selectindices(val(d), i))
         end
     end
 end

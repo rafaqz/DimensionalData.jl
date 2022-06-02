@@ -27,10 +27,18 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
         # Standard indices
-        @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
+    end
+    if f == :view
+        @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
             I = _unwrap_cartesian(i1, i2, I...)
             x = Base.$f(parent(A), I...)
-            x isa AbstractArray ? rebuildsliced(Base.$f, A, x, I) : x
+            rebuildsliced(Base.$f, A, x, I)
+        end
+    else
+        @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
+            I = _unwrap_cartesian(i1, i2, I...)
+            x = Base.$f(parent(A), I...)
+            all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)
         end
     end
 end
