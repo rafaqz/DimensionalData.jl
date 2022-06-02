@@ -22,7 +22,7 @@ using .LookupArrays
 
 import .LookupArrays: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, units, basetypeof, unwrap, selectindices, hasselection,
-    shiftlocus, maybeshiftlocus, SelectorOrInterval
+    shiftlocus, maybeshiftlocus, SelectorOrInterval, Interval
 using .LookupArrays: StandardIndices, SelTuple, CategoricalEltypes,
     LookupArrayTrait, AllMetadata, LookupArraySetters
 

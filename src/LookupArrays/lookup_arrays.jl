@@ -11,6 +11,7 @@ or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
+
 const LookupArrayTuple = Tuple{<:LookupArray,Vararg{<:LookupArray}}
 
 span(lookup::LookupArray) = NoSpan() 
@@ -144,10 +145,9 @@ NoLookup() = NoLookup(AutoIndex())
 order(lookup::NoLookup) = ForwardOrdered()
 span(lookup::NoLookup) = Regular(1)
 
-Base.step(lookup::NoLookup) = 1
-
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
+Base.step(lookup::NoLookup) = 1
 
 """
     AbstractSampled <: Aligned
@@ -431,7 +431,7 @@ end
 f(lookup::Transformed) = lookup.f
 dim(lookup::Transformed) = lookup.dim
 
-transformfunc(lookup::Transformed) = f(lookup)
+transformfunc(lookup::Transformed) = lookup.f
 transformdim(x) = nothing
 transformdim(lookup::Transformed) = lookup.dim
 transformdim(::Type{<:Transformed{<:Any,<:Any,<:Any,D}}) where D = D

@@ -1,16 +1,14 @@
 
 # When an object like DimArray or DimStack is constructed,
-# `format` is called on its dimensions check that the axes match,
-# and fill in any `Auto-` fields.
-
+# `format` is called on its dimensions
 
 """
     format(dims, x) => Tuple{Vararg{<:Dimension,N}}
 
 Format the passed-in dimension(s) `dims` to match the object `x`.
 
-This means converting indexes of `Tuple` to `LinRange`, and running
-`format`. Errors are also thrown if dims don't match the array dims or size.
+Errors are thrown if dims don't match the array dims or size, 
+and any fields holding `Auto-` objects are filled with guessed objects.
 
 If a [`LookupArray`](@ref) hasn't been specified, a lookup is chosen
 based on the type and element type of the index.
