@@ -13,7 +13,7 @@ for f in (:getindex, :view, :dotview)
     @eval begin
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, I...) = Base.$f(A, dims2indices(A, I)...)
         # Linear indexing forwards to the parent array
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
@@ -21,7 +21,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
             Base.$f(parent(A), i)
         # Except 1D DimArrays
-        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any,1}, i::Union{Colon,AbstractVector{<:Integer}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
@@ -56,5 +56,3 @@ end
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
-    setindex!(parent(A), x, I)
