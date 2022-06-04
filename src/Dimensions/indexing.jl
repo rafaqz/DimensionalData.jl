@@ -2,14 +2,21 @@
 
 for f in (:getindex, :view, :dotview)
     @eval begin
+        # Int and CartesianIndex forward to the parent array
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{Int,CartesianIndex})
             Base.$f(val(d), i)
         end
+        # AbstractArray/Colon return an AbstractArray - so rebuild the dimension
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{AbstractArray,Colon})
             rebuild(d, Base.$f(val(d), i))
         end
-        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
+        # Selector gets processed with `selectindices`
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::SelectorOrInterval)
             Base.$f(d, selectindices(val(d), i))
+        end
+        # Everything else (like custom indexing from other packages) passes through to the parent
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
+            Base.$f(parent(d), i)
         end
     end
 end

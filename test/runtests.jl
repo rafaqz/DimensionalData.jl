@@ -16,6 +16,7 @@ end
 # For coverage stats only
 DimensionalData._precompile()
 
+@time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "metadata" begin include("metadata.jl") end
 @time @safetestset "name" begin include("name.jl") end

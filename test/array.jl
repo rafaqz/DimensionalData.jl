@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, OffsetArrays, SparseArrays, Dates, Random, ArrayInterface
+using DimensionalData, Test, Unitful, SparseArrays, Dates, Random, ArrayInterface
 using DimensionalData: layerdims
 
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
@@ -335,26 +335,6 @@ end
     @test size(da) == (2, 3)
     @test maximum(da) in (1, 2)
     @test minimum(da) in (1, 2)
-end
-
-@testset "OffsetArray" begin
-    oa = OffsetArray(a2, -1:1, 5:8)
-    @testset "Regular dimensions don't work: axes must match" begin
-        dimz = (X(100:100:300), Y([:a, :b, :c, :d]))
-        @test_throws DimensionMismatch DimArray(oa, dimz)
-    end
-    odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
-    oda = DimArray(oa, odimz)
-    @testset "Indexing and selectors work with offsets" begin
-        @test axes(oda) == (-1:1, 5:8)
-        @test oda[-1, 5] == oa[-1, 5] == 1
-        @test oda[Near(105), At(:a)] == oa[-1, 5] == 1
-        @test oda[Between(100, 250), At(:a)] == oa[-1:0, 5] == [1, 3]
-    end
-    @testset "Subsetting reverts to a regular array and dims" begin
-        @test axes(oda[0:1, 7:8]) == (1:2, 1:2)
-        @test axes.(dims(oda[0:1, 7:8])) == ((1:2,), (1:2,))
-    end
 end
 
 @testset "NamedTuple" begin

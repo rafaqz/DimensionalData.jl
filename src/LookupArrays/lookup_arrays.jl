@@ -32,19 +32,6 @@ function Base.:(==)(l1::LookupArray, l2::LookupArray)
     typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
 end
 
-for f in (:getindex, :view, :dotview)
-    @eval begin
-        # AbstractArray and Colon the lookup is rebuilt around a new parent
-        @propagate_inbounds Base.$f(l::LookupArray, i::Union{AbstractArray,Colon}) = 
-            rebuild(l; data=Base.$f(parent(l), i))
-        # Int and CartesianIndex forward to the parent
-        @propagate_inbounds Base.$f(l::LookupArray, i::Union{Int,CartesianIndex}) =
-            Base.$f(parent(l), i)
-        # Selectors
-        @propagate_inbounds Base.$f(l::LookupArray, i) = (@show i; Base.$f(l, selectindices(l, i)))
-    end
-end
-
 ordered_first(l::LookupArray) = l[ordered_firstindex(l)]
 ordered_last(l::LookupArray) = l[ordered_lastindex(l)]
 
