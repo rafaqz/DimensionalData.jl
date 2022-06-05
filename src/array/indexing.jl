@@ -9,25 +9,31 @@
 @propagate_inbounds Base.getindex(A::AbstractDimArray) = Base.getindex(parent(A))
 @propagate_inbounds Base.view(A::AbstractDimArray) = rebuild(A, Base.view(parent(A)), ())
 
+const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
+
 for f in (:getindex, :view, :dotview)
     @eval begin
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) = Base.$f(parent(A), I)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I...) = Base.$f(A, dims2indices(A, I)...)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
         # Linear indexing forwards to the parent array
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
             Base.$f(parent(A), i)
         # Except 1D DimArrays
-        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any, 1}, i::Union{Colon,AbstractVector{<:Integer}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any,1}, i::Union{Colon,AbstractVector{<:Integer}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
+        # Selector/Interval indexing
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, I::SelectorOrStandard...) =
+            Base.$f(A, dims2indices(A, (i1, I...))...)
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
-        # Standard indices
+        # Everything else - such as custom indexing types from other packages
+        # @propagate_inbounds Base.$f(A::AbstractDimArray, i1, I...) = Base.$f(parent(A), i1, I...)
     end
+    # Standard indices
     if f == :view
         @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
             I = _unwrap_cartesian(i1, i2, I...)
@@ -56,5 +62,3 @@ end
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::CartesianIndex) =
-    setindex!(parent(A), x, I)
