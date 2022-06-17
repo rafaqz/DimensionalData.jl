@@ -59,6 +59,9 @@ for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
 
+Extents.extent(A::AbstractDimArray, args...) = Extents.extent(dims(A), args...) 
+ 
+
 # Array interface methods ######################################################
 
 Base.size(A::AbstractDimArray) = size(parent(A))

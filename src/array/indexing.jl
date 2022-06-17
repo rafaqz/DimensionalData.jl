@@ -27,6 +27,8 @@ for f in (:getindex, :view, :dotview)
         # Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, I...))...)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Extents.Extent) =
+            Base.$f(A, dims2indices(A, extent)...)
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)

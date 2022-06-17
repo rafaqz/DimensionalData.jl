@@ -51,12 +51,14 @@ All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 """
     dim2key(dim::Dimension) => Symbol
     dim2key(dims::Type{<:Dimension}) => Symbol
+    dim2key(dims::Tuple) => Tuple{Symbol,Vararg}
 
 Convert a dimension object to a simbol. `X()`, `Y()`, `Ti()` etc will be converted.
 to `:X`, `:Y`, `:Ti`, as with any other dims generated with the [`@dim`](@ref) macro.
 
 All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 """
+@inline dim2key(dims::Tuple) = map(dim2key, dims)
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
 @inline dim2key(dim::Val{D}) where D <: Dimension = dim2key(D)
 @inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.nameof(dt))
@@ -583,6 +585,8 @@ _maybefirst(::Tuple{}) = nothing
 @inline _flip_subtype(::typeof(<:)) = >:
 @inline _flip_subtype(::typeof(>:)) = <:
 
+_astuple(t::Tuple) = t
+_astuple(x) = (x,)
 
 # Error methods. @noinline to avoid allocations.
 

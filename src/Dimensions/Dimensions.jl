@@ -13,7 +13,7 @@ using .LookupArrays
 """
 module Dimensions
 
-import Adapt, ConstructionBase
+import Adapt, ConstructionBase, Extents
 using Dates 
 
 include("../LookupArrays/LookupArrays.jl")
