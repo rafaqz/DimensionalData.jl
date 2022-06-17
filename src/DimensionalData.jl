@@ -89,11 +89,11 @@ include("utils.jl")
 include("set.jl")
 
 function _precompile()
-    precompile(DimArray, (Array{Int,1}, typeof(X())))
-    precompile(DimArray, (Array{Int,2}, Tuple{typeof(X()), typeof(Y())}))
-    precompile(DimArray, (Array{Float64,1}, typeof(X())))
-    precompile(DimArray, (Array{Float64,2}, Tuple{typeof(X()), typeof(Y())}))
-    precompile(DimArray, (Array{Float64,3}, Tuple{typeof(X()), typeof(Y()), typeof(Z())}))
+    for f in (zeros, ones, falses, trues, rand)
+        f(X(10:10:20), Y(10:10:20))
+        f(X(10.0:10.0:20), Y(10.0:10:20.0))
+        f(X(2), Y(2))
+    end
 end
 
 _precompile()
