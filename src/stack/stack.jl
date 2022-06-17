@@ -64,6 +64,7 @@ function Base.merge(s::AbstractDimStack, pairs)
 end
 Base.NamedTuple(s::AbstractDimStack) = layers(s)
 
+Extents.extent(A::AbstractDimStack, args...) = Extents.extent(dims(A), args...) 
 
 function rebuild(
     s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s),
