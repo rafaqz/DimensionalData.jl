@@ -157,6 +157,3 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
-
-_astuple(t::Tuple) = t
-_astuple(x) = (x,)

@@ -23,6 +23,7 @@ using Base: tail, OneTo, @propagate_inbounds
 import Adapt, 
        ArrayInterface,
        ConstructionBase, 
+       Extents,
        RecipesBase,
        Tables
 
@@ -35,7 +36,7 @@ using .Dimensions.LookupArrays
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimType, AllDims
 import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, hasselection, units, SelectorOrInterval
-import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label
+import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
 
 export LookupArrays, Dimensions
 

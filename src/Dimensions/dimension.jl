@@ -266,6 +266,16 @@ end
 
 Base.size(dims::DimTuple) = map(length, dims)
 
+# Extents.jl
+function Extents.extent(ds::DimTuple, args...)
+    extent_dims = _astuple(dims(ds, args...))
+    extent_bounds = bounds(extent_dims)
+    return Extents.Extent{dim2key(extent_dims)}(extent_bounds)
+end
+
+dims(extent::Extents.Extent{K}) where K = map(rebuild, key2dim(K), values(extent))
+dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
+
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
 function dim2boundsmatrix(lookup::LookupArray)
