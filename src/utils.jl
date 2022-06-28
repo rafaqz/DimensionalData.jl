@@ -157,3 +157,5 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
+uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
+uniquekeys(nt::NamedTuple) = keys(nt)
