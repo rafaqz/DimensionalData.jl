@@ -271,9 +271,6 @@ Y , Z
 
 julia> otherdims(A, (Y, Z))
 X
-
-julia>
-
 ```
 """
 @inline otherdims(args...) = _call_primitive(_otherdims_presort, AlwaysTuple(), args...)
