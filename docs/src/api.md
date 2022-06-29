@@ -142,6 +142,8 @@ LookupArrays.LookupArrays
 
 ```@docs
 LookupArrays.Selector
+LookupArrays.IntSelector
+LookupArrays.ArraySelector
 At
 Near
 Between
