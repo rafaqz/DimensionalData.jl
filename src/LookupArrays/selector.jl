@@ -21,12 +21,28 @@ abstract type Selector{T} end
 val(sel::Selector) = sel.val
 Base.parent(sel::Selector) = sel.val
 
+abstract type Selector{T} end
+
+"""
+    IntSelector <: Selector
+
+Abstract supertype for [`Selector`](@ref)s that return a single `Int` index.
+"""
+abstract type IntSelector{T} <: Selector{T} end
+
+"""
+    ArraySelector <: Selector
+
+Abstract supertype for [`Selector`](@ref)s that return an `AbstractArray`.
+"""
+abstract type ArraySelector{T} <: Selector{T} end
+
 const SelectorOrInterval = Union{Selector,Interval}
 
 const SelTuple = Tuple{<:SelectorOrInterval,Vararg{<:SelectorOrInterval}}
 
 """
-    At <: Selector
+    At <: IntSelector
 
     At(x, atol, rtol)
     At(x; atol=nothing, rtol=nothing)
@@ -54,7 +70,7 @@ A[X(At(20)), Y(At(6))]
 5
 ```
 """
-struct At{T,A,R} <: Selector{T}
+struct At{T,A,R} <: IntSelector{T}
     val::T
     atol::A
     rtol::R
@@ -132,7 +148,7 @@ _selnotfound_or_nothing(err::_False, lookup, selval) = nothing
 @noinline _selvalnotfound(lookup, selval) = throw(ArgumentError("$selval not found in $lookup"))
 
 """
-    Near <: Selector
+    Near <: IntSelector
 
     Near(x)
 
@@ -155,7 +171,7 @@ A[X(Near(23)), Y(Near(5.1))]
 4
 ```
 """
-struct Near{T} <: Selector{T}
+struct Near{T} <: IntSelector{T}
     val::T
 end
 
@@ -210,7 +226,7 @@ _locus_adjust(locus::Start, v::DateTime, lookup) = v - (v - (v - abs(step(lookup
 _locus_adjust(locus::End, v::DateTime, lookup) = v + (v + abs(step(lookup)) - v) / 2
 
 """
-    Contains <: Selector
+    Contains <: IntSelector
 
     Contains(x)
 
@@ -232,7 +248,7 @@ A[X(Contains(8)), Y(Contains(6.8))]
 3
 ```
 """
-struct Contains{T} <: Selector{T}
+struct Contains{T} <: IntSelector{T}
     val::T
 end
 
@@ -344,7 +360,7 @@ _searchfunc(::Locus, ::ReverseOrdered) = searchsortedfirst
 _searchfunc(::End, ::ReverseOrdered) = searchsortedlast
 
 """
-    Between <: Selector
+    Between <: ArraySelector
 
     Between(a, b)
 
@@ -390,7 +406,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
  4  5
 ```
 """
-struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: Selector{T}
+struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
     val::T
 end
 Between(args...) = Between(args)
@@ -607,7 +623,7 @@ _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
 _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
 
 """
-    Where <: Selector
+    Where <: ArraySelector
 
     Where(f::Function)
 
@@ -630,7 +646,7 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
  4  6
 ```
 """
-struct Where{T} <: Selector{T}
+struct Where{T} <: ArraySelector{T}
     f::T
 end
 
@@ -706,16 +722,19 @@ end
 
 # select_unalligned_indices is callled directly from dims2indices
 
-# We use the transformation from the first Transformed dim.
+# We use the transformation from the first unalligned dim.
 # In practice the others could be empty.
-@inline function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
-    coords = [map(val, sel)...]
-    transformed = transformfunc(lookups[1])(coords)
-    map(_transform2int, sel, transformed)
+function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:IntSelector,Vararg{<:IntSelector}})
+    transformed = transformfunc(lookups[1])(map(val, sel))
+    map(_transform2int, lookups, sel, transformed)
+end
+function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
+    throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 
-_transform2int(::Near, x) = round(Int, x)
-_transform2int(sel::At, x) = _transform2int(sel::At, x, atol(sel))
+_transform2int(lookup, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
+_transform2int(lookup, ::Contains, x) = round(Int, x)
+_transform2int(lookup, sel::At, x) = _transform2int(sel, x, atol(sel))
 _transform2int(::At, x, atol::Nothing) = convert(Int, x)
 function _transform2int(::At, x, atol)
     i = round(Int, x)

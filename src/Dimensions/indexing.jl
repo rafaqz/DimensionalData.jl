@@ -6,8 +6,8 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{Int,CartesianIndex})
             Base.$f(val(d), i)
         end
-        # AbstractArray/Colon return an AbstractArray - so rebuild the dimension
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{AbstractArray,Colon})
+            # AbstractArray/Colon return an AbstractArray - so rebuild the dimension
             rebuild(d, Base.$f(val(d), i))
         end
         # Selector gets processed with `selectindices`
@@ -89,13 +89,16 @@ end
 
 @inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple)
     map(sel) do s
-        s isa Selector && throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(string ∘ dim2key, dims), ", ")) dims, or none of them"))
+        s isa Union{Selector,Interval} && _unalligned_all_selector_error(dims)
         isnothing(s) ? Colon() : s
     end
 end
 @inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
     LookupArrays.select_unalligned_indices(lookup(dims), sel)
 end
+
+_unalligned_all_selector_error(dims) =
+    throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(string ∘ dim2key, dims), ", ")) dims, or none of them"))
 
 _unwrapdim(dim::Dimension) = val(dim)
 _unwrapdim(x) = x

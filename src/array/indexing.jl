@@ -33,7 +33,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
         # Everything else - such as custom indexing types from other packages
-        # @propagate_inbounds Base.$f(A::AbstractDimArray, i1, I...) = Base.$f(parent(A), i1, I...)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i1, I...) = Base.$f(parent(A), i1, I...)
     end
     # Standard indices
     if f == :view

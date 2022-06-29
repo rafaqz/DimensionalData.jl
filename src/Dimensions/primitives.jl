@@ -246,7 +246,7 @@ false
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
 @inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) =
-    map(l -> l in 1:length(dims), lookup)
+    map(l -> l in eachindex(dims), lookup)
 
 """
     otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
@@ -271,9 +271,6 @@ Y , Z
 
 julia> otherdims(A, (Y, Z))
 X
-
-julia> 
-
 ```
 """
 @inline otherdims(args...) = _call_primitive(_otherdims_presort, AlwaysTuple(), args...)
@@ -302,7 +299,7 @@ and returns a new object or tuple with the dimension updated.
 
 # Example
 ```jldoctest
-using DimensionalData, DimensionalData.Dimensions, DimensionalData.LookupArrays 
+using DimensionalData, DimensionalData.Dimensions, DimensionalData.LookupArrays
 A = ones(X(10), Y(10:10:100))
 B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
 lookup(B, Y)
@@ -389,9 +386,22 @@ function slicedims end
 @inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) =
     slicedims(f, dims, refdims, Tuple(I))
 
-@inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple) = begin
-    newdims, newrefdims = _slicedims(f, dims, I)
-    newdims, (refdims..., newrefdims...)
+@inline function _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple)
+    # Unnaligned may need grouped slicing
+    newdims, newrefdims = if any(d -> lookup(d) isa Unaligned, dims)
+        # Separate out unalligned dims
+        udims = _unalligned_dims(dims)
+        odims = otherdims(dims, udims)
+        oI = map(d -> I[dimnum(dims, d)], odims)
+        uI = map(d -> I[dimnum(dims, d)], udims)
+        d, rd = _slicedims(f, odims, oI)
+        udims, urefdims = sliceunalligneddims(f, uI, udims...)
+        # Recombine dims and refdims
+        sortdims((d..., udims...), dims), (rd..., urefdims...)
+    else
+        _slicedims(f, dims, I)
+    end
+    return newdims, (refdims..., newrefdims...)
 end
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
@@ -405,6 +415,16 @@ end
 @inline _slicedims(f, d::Dimension, i::Colon) = (d,), ()
 @inline _slicedims(f, d::Dimension, i::Integer) = (), (f(d, i:i),)
 @inline _slicedims(f, d::Dimension, i) = (f(d, i),), ()
+
+_unalligned_dims(dims::Tuple) = _unalligned_dims(dims...)
+_unalligned_dims(dim::Dimension{<:Unaligned}, args...) = (dim, _unalligned_dims(args...)...)
+_unalligned_dims(dim::Dimension, args...) = _unalligned_dims(args...)
+_unalligned_dims() = ()
+
+# Default
+function sliceunalligneddims(f, uI, udims...)
+    udims, ()
+end
 
 """
     reducedims(x, dimstoreduce) => Tuple{Vararg{<:Dimension}}
@@ -460,7 +480,7 @@ function comparedims end
 @inline comparedims(a::AnonDim, b::AnonDim; kw...) = nothing
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
-@inline function comparedims(a::Dimension, b::Dimension; 
+@inline function comparedims(a::Dimension, b::Dimension;
     type=true, length=true, lookup=false, val=false, metadata=false
 )
     D = Dimensions
