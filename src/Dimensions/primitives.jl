@@ -397,7 +397,7 @@ function slicedims end
         d, rd = _slicedims(f, odims, oI)
         udims, urefdims = sliceunalligneddims(f, uI, udims...)
         # Recombine dims and refdims
-        sortdims((d..., udims...), dims), (rd..., urefdims...)
+        Dimensions.dims((d..., udims...), dims), (rd..., urefdims...)
     else
         _slicedims(f, dims, I)
     end
