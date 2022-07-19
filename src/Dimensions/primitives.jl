@@ -388,7 +388,7 @@ function slicedims end
 
 @inline function _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple)
     # Unnaligned may need grouped slicing
-    newdims, newrefdims = if any(d -> lookup(d) isa Unaligned, dims)
+    newdims, newrefdims = if any(map(d -> lookup(d) isa Unaligned, dims))
         # Separate out unalligned dims
         udims = _unalligned_dims(dims)
         odims = otherdims(dims, udims)
@@ -403,6 +403,7 @@ function slicedims end
     end
     return newdims, (refdims..., newrefdims...)
 end
+
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
 @inline _slicedims(f, dims::DimTuple, I::Tuple) = begin
