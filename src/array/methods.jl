@@ -213,7 +213,9 @@ function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
     cat_dnums = (inserted_dnums..., appended_dnums...)
 
     newrefdims = otherdims(refdims(A1), newcatdims)
-    newA = Base._cat(cat_dnums, map(data, Xin)...)
+    T = Base.promote_eltypeof(Xin...)
+    data = map(parent, Xin)
+    newA = Base._cat_t(cat_dnums, T, data...)
     rebuild(A1, newA, format(newdims, newA), newrefdims)
 end
 function Base._cat(catdim::DimType, Xin::AbstractDimArray...)
