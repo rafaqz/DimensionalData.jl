@@ -113,7 +113,7 @@ _unwrapdim(x) = x
     LookupArrays.selectindices(val(dim), val(seldim))
 
 function _extent_as_selectors(extent::Extents.Extent{Keys}) where Keys
-    map(Keys, values(extent)) do k, v
-        rebuild(key2dim(k), LookupArrays.Interval(v...))
+    map(map(key2dim, Keys), values(extent)) do k, v
+        rebuild(k, LookupArrays.Interval(v...))
     end    
 end
