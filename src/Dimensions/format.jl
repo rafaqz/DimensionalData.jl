@@ -92,6 +92,10 @@ function _format(span::Regular, D::Type, index::AbstractRange)
     step(span) isa Number && !(step(span) ≈ step(index)) && _steperror(index, span)
     return span
 end
+function _format(span::Regular, D::Type, index::LinRange{T}) where T
+    step(span) isa Number && step(index) > zero(T) && !(step(span) ≈ step(index)) && _steperror(index, span)
+    return span
+end
 _format(span::Irregular{AutoBounds}, D, index) = Irregular(nothing, nothing)
 _format(span::Irregular{<:Tuple}, D, index) = span
 _format(span::Explicit, D, index) = span
