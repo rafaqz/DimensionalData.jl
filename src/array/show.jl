@@ -30,27 +30,27 @@ end
 # Semi-interface methods for adding addional `show` text
 # for AbstractDimArray/AbstractDimStack subtypes
 # TODO actually document in the interface
-show_after(io::IO, mime, A::AbstractDimArray) = print_array(io, mime, parent(A))
+show_after(io::IO, mime, A::AbstractDimArray) = print_array(io, mime, A)
 
 # Showing the array is optional for AbstractDimArray
 # `print_array` must be called from `show_after`.
-function print_array(io::IO, mime, A::AbstractArray{T,0}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,0}) where T
     print(_print_array_ctx(io, T), "\n", A[])
 end
-function print_array(io::IO, mime, A::AbstractArray{T,1}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,1}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime, A::AbstractArray{T,2}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,2}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime, A::AbstractArray{T,N}) where {T,N}
-    o = ones(Int, N-2)
-    frame = A[:, :, o...]
+function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
+    o = ntuple(x -> 1, N-2)
+    frame = view(A, :, :, o...)
     onestring = join(o, ", ")
     println(io, "[:, :, $(onestring)]")
     Base.print_matrix(_print_array_ctx(io, T), frame)
     nremaining = prod(size(A, d) for d=3:N) - 1
-    nremaining > 0 && print(io, "\n[and ", nremaining," more slices...]")
+    nremaining > 0 && printstyled(io, "\n[and ", nremaining," more slices...]"; color=:light_black)
 end
 
 function _print_array_ctx(io, T)
@@ -63,3 +63,63 @@ function print_name(io::IO, name)
     end
 end
 
+# Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
+function Base.print_matrix(io::IO, A::AbstractDimArray)
+    h, w = displaysize(io)
+    wn = w ÷ 3 # integers take 3 columns each when printed, floats more
+
+    A_dims = if ndims(A) == 1
+        itop =    size(A,1) < h ? (firstindex(A,1):lastindex(A,1)) : (1:(h÷2))
+        ibottom = size(A,1) < h ? (1:0)                            : size(A,1)-(h÷2):size(A,1)
+        labels = vcat(ShowWith.(lookup(A, 1)[itop]), ShowWith.(lookup(A, 1))[ibottom])
+        vals = vcat(parent(A)[itop], parent(A)[ibottom])
+        hcat(labels, vals)
+    else
+        itop    = size(A, 1) < h  ? (firstindex(A,1):lastindex(A,1)) : (1:(h÷2))
+        ibottom = size(A, 1) < h  ? (1:0)                            : size(A,1)-(h÷2):size(A,1)
+        ileft   = size(A, 2) < wn ? (firstindex(A,2):lastindex(A,2)) : (1:(wn÷2))
+        iright  = size(A, 2) < wn ? (1:0)                            : size(A,2)-(wn÷2)+1:size(A,2)
+
+        topleft = collect(A[itop, ileft])
+        bottomleft = collect(A[ibottom, ileft])
+        if !(lookup(A, 1) isa NoLookup)
+            topleft = hcat(ShowWith.(lookup(A,1)[itop]), topleft)
+            bottomleft = hcat(ShowWith.(lookup(A, 1)[ibottom]), bottomleft)
+        end
+
+        leftblock = vcat(topleft, bottomleft)
+        rightblock = vcat(collect(A[itop, iright]), collect(A[ibottom, iright]))
+        bottomblock = hcat(leftblock, rightblock)
+
+        if lookup(A, 2) isa NoLookup
+            bottomblock
+        else
+            toplabels = ShowWith.(dims(A, 2))[ileft], ShowWith.(dims(A, 2))[iright]
+            toprow = if lookup(A, 1) isa NoLookup
+                vcat(toplabels...)
+            else
+                vcat(ShowWith(0, hide=true), toplabels...)
+            end |> permutedims
+            vcat(toprow, bottomblock)
+        end
+    end
+    Base.print_matrix(io, A_dims)
+end
+
+struct ShowWith{T,NT} <: AbstractString
+    val::T
+    hide::Bool
+    nt::NT
+    function ShowWith(val; hide::Bool=false, kw...)
+        new{typeof(val),typeof(values(kw))}(val, hide, values(kw))
+    end
+end
+function Base.show(io::IO, x::ShowWith; kw...)
+    s = sprint(show, x.val; context=io, kw...)
+    s1 = x.hide ? " "^length(s) : s
+    printstyled(io, s1; color=:light_black, x.nt...)
+end
+Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
+Base.length(x::ShowWith) = length(string(x.val))
+Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
+Base.print(io::IO, x::ShowWith) = printstyled(io, string(x.val); x.nt...)

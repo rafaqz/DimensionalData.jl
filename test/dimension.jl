@@ -41,6 +41,17 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     @test TestDim(Sampled(5.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))[At(6.0)] == 6.0
 end
 
+@testset "dim tuple methods" begin
+    ds = (X(20:30), Y(1.0:4.0))
+    @test axes(ds) == (Base.OneTo(11), Base.OneTo(4))
+    @test axes(ds, 1) == Base.OneTo(11)
+    @test axes(ds, Y) == Base.OneTo(4)
+    @test size(ds) == (11, 4)
+    @test size(ds, 1) == 11
+    @test size(ds, Y) == 4
+    checkbounds(ds)[1, 2]
+end
+
 @testset "format" begin
     A = [1 2 3; 4 5 6]
     @test format((X, Y), A) == (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(3))))
@@ -58,6 +69,8 @@ end
      @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) == 
         (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata())), 
          Y(NoLookup(Base.OneTo(3))))
+     @test format((X(Sampled(LinRange(2, 1, 0); span=Regular(1.0)), 1.0:0.0) == 
+        (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata()))) 
 end
 
 @testset "Val" begin
