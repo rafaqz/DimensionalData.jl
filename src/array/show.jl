@@ -69,16 +69,20 @@ function Base.print_matrix(io::IO, A::AbstractDimArray)
     wn = w ÷ 3 # integers take 3 columns each when printed, floats more
 
     A_dims = if ndims(A) == 1
-        itop =    size(A,1) < h ? (firstindex(A,1):lastindex(A,1)) : (1:(h÷2))
-        ibottom = size(A,1) < h ? (1:0)                            : size(A,1)-(h÷2):size(A,1)
+        f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
+        itop =    s1 < h ? (f1:l1) : (1:(h ÷ 2))
+        ibottom = s1 < h ? (1:0)   : s1-(h ÷ 2):s1
         labels = vcat(ShowWith.(lookup(A, 1)[itop]), ShowWith.(lookup(A, 1))[ibottom])
         vals = vcat(parent(A)[itop], parent(A)[ibottom])
         hcat(labels, vals)
     else
-        itop    = size(A, 1) < h  ? (firstindex(A,1):lastindex(A,1)) : (1:(h÷2))
-        ibottom = size(A, 1) < h  ? (1:0)                            : size(A,1)-(h÷2):size(A,1)
-        ileft   = size(A, 2) < wn ? (firstindex(A,2):lastindex(A,2)) : (1:(wn÷2))
-        iright  = size(A, 2) < wn ? (1:0)                            : size(A,2)-(wn÷2)+1:size(A,2)
+        f1, f2 = firstindex(A, 1), firstindex(A, 2)
+        l1, l2 = lastindex(A, 1), lastindex(A, 2)
+        s1, s2 = size(A)
+        itop    = s1 < h  ? (f1:l1)     : (f1:((h ÷ 2)) + f1 - 1)
+        ibottom = s1 < h  ? (f1:f1 - 1) : s1 - (h ÷ 2) + f1 - 1:s1 + f1 - 1
+        ileft   = s2 < wn ? (f2:l2)     : (f2:(wn ÷ 2)) + f2 - 1
+        iright  = s2 < wn ? (f2:f2 - 1) : s2 - (wn ÷ 2) + f2:s2 + f2 - 1
 
         topleft = collect(A[itop, ileft])
         bottomleft = collect(A[ibottom, ileft])
@@ -94,7 +98,7 @@ function Base.print_matrix(io::IO, A::AbstractDimArray)
         if lookup(A, 2) isa NoLookup
             bottomblock
         else
-            toplabels = ShowWith.(dims(A, 2))[ileft], ShowWith.(dims(A, 2))[iright]
+            toplabels = ShowWith.(lookup(A, 2))[ileft], ShowWith.(lookup(A, 2))[iright]
             toprow = if lookup(A, 1) isa NoLookup
                 vcat(toplabels...)
             else
