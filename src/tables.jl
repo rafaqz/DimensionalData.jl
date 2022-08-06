@@ -205,3 +205,18 @@ function _colnames(s::AbstractDimStack)
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
+
+
+# TableTraits.jl interface
+
+function IteratorInterfaceExtensions.getiterator(x::DimTableSources)
+    return Tables.datavaluerows(Tables.columntable(x))
+end
+IteratorInterfaceExtensions.isiterable(::DimTableSources) = true
+TableTraits.isiterabletable(::DimTableSources) = true
+
+function IteratorInterfaceExtensions.getiterator(t::DimTable)
+    return Tables.datavaluerows(Tables.columntable(t))
+end
+IteratorInterfaceExtensions.isiterable(::DimTable) = true
+TableTraits.isiterabletable(::DimTable) = true
