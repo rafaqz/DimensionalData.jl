@@ -121,7 +121,7 @@ abstract type AbstractDimTable <: Tables.AbstractColumns end
 
     DimTable(A::AbstractDimArray)
 
-Construct a Tables.jl compatible object out of an `AbstractDimArray`.
+Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray`.
 
 This table will have a column for the array data and columns for each
 `Dimension` index, as a [`DimColumn`]. These are lazy, and generated
