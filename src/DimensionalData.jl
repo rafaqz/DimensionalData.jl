@@ -20,9 +20,9 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
 using Base: tail, OneTo, @propagate_inbounds
       
 # Ecosystem
-import Adapt,
+import Adapt, 
        ArrayInterface,
-       ConstructionBase,
+       ConstructionBase, 
        Extents,
        IteratorInterfaceExtensions,
        RecipesBase,
