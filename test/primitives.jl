@@ -5,6 +5,13 @@ using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFir
 
 @dim Tst
 
+a = [1 2 3; 4 5 6]
+da = DimArray(a, (X(143:2:145), Y(-38:-36)))
+dimz = dims(da)
+
+@dim Tst
+
+
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
     @test (@inferred dimsmatch(X(), Y())) == false
@@ -115,10 +122,6 @@ end
     # Repeating
     @test sortdims((Z(:a), Y(), Z(:b)), (YDim, Z(), ZDim)) == (Y(), Z(:a), Z(:b))
 end
-
-a = [1 2 3; 4 5 6]
-da = DimArray(a, (X(143:2:145), Y(-38:-36)))
-dimz = dims(da)
 
 @testset "dims" begin
     dimz = dims(da)
@@ -333,18 +336,18 @@ end
         dimz = dims(da)
         @test slicedims(dimz, (1:2, 3)) == slicedims(dimz, 1:2, 3) == slicedims(dimz, (), (1:2, 3)) ==
             ((X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),),
-             (Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata())),))
+              (Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata())),))
         @test slicedims(dimz, (Z(),), (1:2, 3)) == slicedims(dimz, (Z(),), 1:2, 3) ==
             ((X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),),
-             (Z(), Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata())),))
+             (Z(), Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata())),))
         @test slicedims(dimz, 2:2, :) == slicedims(dimz, (), 2:2, :) ==
             ((X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
-              Y(Sampled(-20:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata()))), ())
+              Y(Sampled(-20:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))), ())
         @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
               slicedims((), 1:2, 3) == slicedims((), (), 1:2, 3) == ((), ())
         @test slicedims(dimz, CartesianIndex(2, 3)) ==
             ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
-                  Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(1), Points(), NoMetadata()))),)
+                  Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))),)
     end
 
     @testset "Regular Intervals" begin
@@ -379,10 +382,10 @@ end
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
             ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(140.0, 144.0), Intervals(Start()), NoMetadata())),),
-                 (Y(Sampled([10.0], ReverseOrdered(), Irregular(30.0, 60.0), Intervals(Center()), NoMetadata())),))
+             (Y(Sampled([10.0], ReverseOrdered(), Irregular(0.0, 15.0), Intervals(Center()), NoMetadata())),))
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Irregular(142.0, 144.0), Intervals(Start()), NoMetadata())),
-              Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(0.0, 30.0), Intervals(Center()), NoMetadata()))), ())
+              Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(15.0, 60.0), Intervals(Center()), NoMetadata()))), ())
         @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
     end
 
@@ -441,7 +444,7 @@ end
         testdim = Ti(Sampled([DateTime(2001, 1, 2)], ForwardOrdered(), Regular(teststep), Points(), NoMetadata()))
         reduceddim = _reducedims((Ti(Sampled(timespan, ForwardOrdered(), Regular(step_), Points(), NoMetadata())),), (Ti,))[1]
         @test typeof(testdim) == typeof(reduceddim)
-        @test val(testdim) == val(reduceddim)
+        @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
     end
 

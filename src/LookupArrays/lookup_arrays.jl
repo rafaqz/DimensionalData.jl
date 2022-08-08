@@ -476,8 +476,13 @@ function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::StandardIn
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : l[first(i) - 1], l[last(i)]
 end
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
-    first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2,
-    last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
+    if length(i) == 0
+        return map(zero, val(span))
+    else
+        f = first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2
+        l = last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
+        return f, l
+    end
 end
 # Have to special-case date/time so we work with seconds and add to the original
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
