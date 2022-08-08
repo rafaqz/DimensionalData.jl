@@ -121,7 +121,7 @@ abstract type AbstractDimTable <: Tables.AbstractColumns end
 
     DimTable(A::AbstractDimArray)
 
-Construct a Tables.jl compatible object out of an `AbstractDimArray`.
+Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray`.
 
 This table will have a column for the array data and columns for each
 `Dimension` index, as a [`DimColumn`]. These are lazy, and generated
@@ -205,3 +205,18 @@ function _colnames(s::AbstractDimStack)
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
+
+
+# TableTraits.jl interface
+
+function IteratorInterfaceExtensions.getiterator(x::DimTableSources)
+    return Tables.datavaluerows(Tables.columntable(x))
+end
+IteratorInterfaceExtensions.isiterable(::DimTableSources) = true
+TableTraits.isiterabletable(::DimTableSources) = true
+
+function IteratorInterfaceExtensions.getiterator(t::DimTable)
+    return Tables.datavaluerows(Tables.columntable(t))
+end
+IteratorInterfaceExtensions.isiterable(::DimTable) = true
+TableTraits.isiterabletable(::DimTable) = true

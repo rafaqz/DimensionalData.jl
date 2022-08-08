@@ -23,7 +23,7 @@ DimKeys
 DimPoints
 ```
 
-## Tables.jl interface
+## Tables.jl/TableTraits.jl interface
 
 ```@docs
 DimensionalData.AbstractDimTable

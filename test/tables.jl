@@ -1,4 +1,4 @@
-using DimensionalData, Tables, Test, DataFrames
+using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
 
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimColumn, DimArrayColumn, dimstride
@@ -54,6 +54,16 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
           Tables.getcolumn(ds, Float64, 2, :Y)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
     @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
     @test_throws BoundsError Tables.getcolumn(t, 5)
+end
+
+@testset "DimArray TableTraits interface" begin
+    ds = DimStack(da)
+    t = DimTable(ds)
+    for x in (da, ds, t)
+        @test IteratorInterfaceExtensions.isiterable(x)
+        @test TableTraits.isiterabletable(x)
+        @test collect(Tables.namedtupleiterator(x)) == collect(IteratorInterfaceExtensions.getiterator(x))
+    end
 end
 
 @testset "DimColumn" begin

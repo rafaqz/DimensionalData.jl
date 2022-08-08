@@ -24,7 +24,9 @@ import Adapt,
        ArrayInterface,
        ConstructionBase, 
        Extents,
+       IteratorInterfaceExtensions,
        RecipesBase,
+       TableTraits,
        Tables
 
 using RecipesBase: @recipe
