@@ -20,8 +20,10 @@ the first value of the iterator - the `DimArray` for the first layer.
 See [`DimStack`](@ref) for the concrete implementation.
 Most methods are defined on the abstract type.
 
-To extend `AbstractDimStack`, implement [`rebuild`](@ref) and
-[`rebuild_from_arrays`](@ref).
+To extend `AbstractDimStack`, implement argument and keyword version of 
+[`rebuild`](@ref) and also [`rebuild_from_arrays`](@ref).
+
+The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
 abstract type AbstractDimStack{L} end
 
@@ -78,8 +80,17 @@ Base.NamedTuple(s::AbstractDimStack) = layers(s)
 
 Extents.extent(A::AbstractDimStack, args...) = Extents.extent(dims(A), args...) 
 
+ConstructionBase.getproperties(s::AbstractDimStack) = layers(s)
+ConstructionBase.setproperties(s::AbstractDimStack, patch::NamedTuple) = 
+    ConstructionBase.constructorof(typeof(s))(ConstructionBase.setproperties(layers(s), patch))
+
 function rebuild(
     s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s),
+    layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
+)
+    basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)
+end
+function rebuild(s::AbstractDimStack; data=data(s), dims=dims(s), refdims=refdims(s),
     layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
 )
     basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)
