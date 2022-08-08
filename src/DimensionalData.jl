@@ -26,8 +26,8 @@ import Adapt,
        Extents,
        IteratorInterfaceExtensions,
        RecipesBase,
-       Tables,
-       TableTraits
+       TableTraits,
+       Tables
 
 using RecipesBase: @recipe
 
