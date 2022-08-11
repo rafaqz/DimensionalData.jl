@@ -119,7 +119,7 @@ struct ShowWith{T,NT} <: AbstractString
     end
 end
 function Base.show(io::IO, x::ShowWith; kw...)
-    s = sprint(show, x.val; context=io, kw...)
+    s = sprint(show, MIME"text/plain"(), x.val; context=io, kw...)
     s1 = x.hide ? " "^length(s) : s
     printstyled(io, s1; color=:light_black, x.nt...)
 end
