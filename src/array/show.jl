@@ -79,10 +79,10 @@ function Base.print_matrix(io::IO, A::AbstractDimArray)
         f1, f2 = firstindex(A, 1), firstindex(A, 2)
         l1, l2 = lastindex(A, 1), lastindex(A, 2)
         s1, s2 = size(A)
-        itop    = s1 < h  ? (f1:l1)     : (f1:((h ÷ 2)) + f1 - 1)
-        ibottom = s1 < h  ? (f1:f1 - 1) : s1 - (h ÷ 2) + f1 - 1:s1 + f1 - 1
-        ileft   = s2 < wn ? (f2:l2)     : (f2:(wn ÷ 2)) + f2 - 1
-        iright  = s2 < wn ? (f2:f2 - 1) : s2 - (wn ÷ 2) + f2:s2 + f2 - 1
+        itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
+        ibottom = s1 < h  ? (f1:f1 - 1) : (s1 - h ÷ 2 + f1 - 1:s1 + f1 - 1)
+        ileft   = s2 < wn ? (f2:l2)     : (f2:wn ÷ 2 + f2 - 1)
+        iright  = s2 < wn ? (f2:f2 - 1) : (s2 - wn ÷ 2 + f2:s2 + f2 - 1)
 
         topleft = collect(A[itop, ileft])
         bottomleft = collect(A[ibottom, ileft])
