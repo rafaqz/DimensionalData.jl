@@ -23,7 +23,7 @@ using OffsetArrays, ImageFiltering, ImageTransformations, DimensionalData
     end
     @testset "show" begin
         s = sprint(show, MIME("text/plain"), oda)
-        @test occursin(":a", sv)
+        @test occursin(":a", s)
     end
 end
 
