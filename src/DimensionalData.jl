@@ -21,7 +21,7 @@ using Base: tail, OneTo, @propagate_inbounds
       
 # Ecosystem
 import Adapt, 
-       ArrayInterface,
+       ArrayInterfaceCore,
        ConstructionBase, 
        Extents,
        RecipesBase,
