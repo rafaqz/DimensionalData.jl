@@ -255,11 +255,12 @@ A = ones(x, y)
 5×4 DimArray{Float64,2} with dimensions:
   X Sampled 100:-20:20 ReverseOrdered Regular Intervals,
   Y Sampled Int64[1, 4, 7, 10] ForwardOrdered Regular Intervals
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
+      1    4    7    10
+ 100  1.0  1.0  1.0   1.0
+  80  1.0  1.0  1.0   1.0
+  60  1.0  1.0  1.0   1.0
+  40  1.0  1.0  1.0   1.0
+  20  1.0  1.0  1.0   1.0
 ```
 """
 struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}

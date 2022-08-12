@@ -28,6 +28,10 @@ end
         @test axes(oda[0:1, 7:8]) == (1:2, 1:2)
         @test axes.(dims(oda[0:1, 7:8])) == ((1:2,), (1:2,))
     end
+    @testset "show" begin
+        s = sprint(show, MIME("text/plain"), oda)
+        @test occursin(":a", s)
+    end
 end
 
 @testset "ImageFiltering and ImageTransformations" begin

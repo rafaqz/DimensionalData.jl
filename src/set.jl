@@ -42,9 +42,10 @@ julia> set(da, ones(3, 4))
 3×4 DimArray{Float64,2} with dimensions:
   Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
   Z Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0 
+       -20.0  -10.0  0.0  10.0
+ 10.0    1.0    1.0  1.0   1.0
+ 20.0    1.0    1.0  1.0   1.0
+ 30.0    1.0    1.0  1.0   1.0 
 ```
 
 Change the `Dimension` wrapper type:
@@ -54,9 +55,10 @@ julia> set(da, :Z => Ti, :custom => Z)
 3×4 DimArray{Float64,2} with dimensions:
   Z Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
   Ti Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0 
+       -20.0  -10.0  0.0  10.0
+ 10.0    0.0    0.0  0.0   0.0
+ 20.0    0.0    0.0  0.0   0.0
+ 30.0    0.0    0.0  0.0   0.0 
 ```
 
 Change the lookup `Vector`:
@@ -66,9 +68,10 @@ julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 3×4 DimArray{Float64,2} with dimensions:
   Dim{:custom} Sampled Int64[4, 5, 6] ForwardOrdered Regular Points,
   Z Sampled Symbol[a, b, c, d] ForwardOrdered Regular Points
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
+     :a   :b   :c   :d
+ 4  0.0  0.0  0.0  0.0
+ 5  0.0  0.0  0.0  0.0
+ 6  0.0  0.0  0.0  0.0
 ```
 
 Change the `LookupArray` type:
@@ -78,9 +81,9 @@ julia> set(da, Z=DD.NoLookup(), custom=DD.Sampled())
 3×4 DimArray{Float64,2} with dimensions:
   Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Regular Points,
   Z
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
+ 10.0  0.0  0.0  0.0  0.0
+ 20.0  0.0  0.0  0.0  0.0
+ 30.0  0.0  0.0  0.0  0.0
 ```
 
 Change the `Sampling` trait:
@@ -90,9 +93,10 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 3×4 DimArray{Float64,2} with dimensions:
   Dim{:custom} Sampled 10.0:10.0:30.0 ForwardOrdered Irregular Points,
   Z Sampled -20.0:10.0:10.0 ForwardOrdered Regular Points
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0
+       -20.0  -10.0  0.0  10.0
+ 10.0    0.0    0.0  0.0   0.0
+ 20.0    0.0    0.0  0.0   0.0
+ 30.0    0.0    0.0  0.0   0.0
 ```
 """
 function set end

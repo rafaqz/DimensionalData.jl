@@ -38,9 +38,10 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
   X Sampled 2:2:10 ForwardOrdered Regular Points,
   Ti Sampled DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 [:, :, 1]
- 0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0  0.0
- 0.0  0.0  0.0  0.0  0.0
+       2    4    6    8    10
+  'a'  0.0  0.0  0.0  0.0   0.0
+  'b'  0.0  0.0  0.0  0.0   0.0
+  'c'  0.0  0.0  0.0  0.0   0.0
 [and 11 more slices...]
 ```
 
@@ -57,18 +58,18 @@ x = A[X(2), Y(3)]
 and reference dimensions:
   Y Categorical Char[c] ForwardOrdered,
   X Sampled 4:2:4 ForwardOrdered Regular Points
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
- 0.0
+ 2021-01-01T00:00:00  0.0
+ 2021-02-01T00:00:00  0.0
+ 2021-03-01T00:00:00  0.0
+ 2021-04-01T00:00:00  0.0
+ 2021-05-01T00:00:00  0.0
+ 2021-06-01T00:00:00  0.0
+ 2021-07-01T00:00:00  0.0
+ 2021-08-01T00:00:00  0.0
+ 2021-09-01T00:00:00  0.0
+ 2021-10-01T00:00:00  0.0
+ 2021-11-01T00:00:00  0.0
+ 2021-12-01T00:00:00  0.0
 ```
 
 A `Dimension` can also wrap [`Selector`](@ref).
@@ -83,7 +84,8 @@ x = A[X(Between(3, 4)), Y(At('b'))]
   Ti Sampled DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 and reference dimensions:
   Y Categorical Char[b] ForwardOrdered
- 0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0  0.0
+     2021-01-01T00:00:00  …   2021-12-01T00:00:00
+ 4  0.0                                  0.0
 ```
 
 `Dimension` objects may have [`lookup`](@ref) and [`metadata`](@ref) fields
