@@ -44,7 +44,7 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,2}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
 function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
-    o = ntuple(x -> 1, N-2)
+    o = ntuple(x -> firstindex(A, x + 2), N-2)
     frame = view(A, :, :, o...)
     onestring = join(o, ", ")
     println(io, "[:, :, $(onestring)]")
@@ -70,8 +70,8 @@ function Base.print_matrix(io::IO, A::AbstractDimArray)
 
     A_dims = if ndims(A) == 1
         f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
-        itop =    s1 < h ? (f1:l1) : (1:(h ÷ 2))
-        ibottom = s1 < h ? (1:0)   : s1-(h ÷ 2):s1
+        itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
+        ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
         labels = vcat(ShowWith.(lookup(A, 1)[itop]), ShowWith.(lookup(A, 1))[ibottom])
         vals = vcat(parent(A)[itop], parent(A)[ibottom])
         hcat(labels, vals)
@@ -80,9 +80,9 @@ function Base.print_matrix(io::IO, A::AbstractDimArray)
         l1, l2 = lastindex(A, 1), lastindex(A, 2)
         s1, s2 = size(A)
         itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
-        ibottom = s1 < h  ? (f1:f1 - 1) : (s1 - h ÷ 2 + f1 - 1:s1 + f1 - 1)
-        ileft   = s2 < wn ? (f2:l2)     : (f2:wn ÷ 2 + f2 - 1)
-        iright  = s2 < wn ? (f2:f2 - 1) : (s2 - wn ÷ 2 + f2:s2 + f2 - 1)
+        ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
+        ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
+        iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
 
         topleft = collect(A[itop, ileft])
         bottomleft = collect(A[ibottom, ileft])

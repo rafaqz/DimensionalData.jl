@@ -30,7 +30,20 @@ end
     end
     @testset "show" begin
         s = sprint(show, MIME("text/plain"), oda)
+        s = sprint(show, MIME("text/plain"), oda; context=:displaysize=>(10, 10))
+        s = sprint(show, MIME("text/plain"), oda; context=:displaysize=>(100, 100))
         @test occursin(":a", s)
+    end
+    @testset "3 dimensions" begin
+        z = Z(OffsetArray('a':'j', -10:-1))
+        oa3 = OffsetArray(zeros(10, 3, 4), -10:-1, -1:1, 5:8)
+        oda3 = DimArray(oa3, (z, odimz...))
+        s = sprint(show, MIME("text/plain"), oda3)
+        @test occursin("'d'", s)
+        s = sprint(show, MIME("text/plain"), oda3; context=:displaysize=>(15, 25))
+        @test occursin("'a'", s)
+        @test occursin("'j'", s)
+        @test !occursin("'d'", s)
     end
 end
 
