@@ -2,7 +2,7 @@
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
     ctx = IOContext(io, :compact=>true)
     if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
-        for d in dims[1:end-1]
+        for d in dims[begin:end-1]
             show(ctx, mime, d)
             print(io, ", ")
         end
@@ -12,7 +12,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
         haskey(io, :inset) && print(io, "\n")
         inset = get(io, :inset, "")
         lines = 3
-        for d in dims[1:end-1]
+        for d in dims[begin:end-1]
             print(io, inset)
             show(ctx, mime, d)
             print(io, ",")
