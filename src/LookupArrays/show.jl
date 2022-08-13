@@ -33,7 +33,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{<:LookupArray,
     length(lookups) > 0 || return 0
     ctx = IOContext(io, :compact=>true)
     if all(l -> l isa NoLookup, lookups)
-        for l in lookups[1:end-1]
+        for l in lookups[begin:end-1]
             show(ctx, mime, l)
             print(io, ", ")
         end
@@ -43,7 +43,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{<:LookupArray,
         lines = 3
         haskey(io, :inset) && print(io, "\n")
         inset = get(io, :inset, "")
-        for l in lookups[1:end-1]
+        for l in lookups[begin:end-1]
             print(io, inset)
             show(ctx, mime, l)
             print(io, ",")
@@ -74,10 +74,10 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     print(io, " ")
     # Maximum 2 values for dates
     vals = if length(v) > 2 && eltype(v) <: Dates.TimeType
-        "$(v[1]), …, $(v[end])"
+        "$(v[begin]), …, $(v[end])"
     # Maximum 4 values for other types 
     elseif length(v) > 5
-        "$(v[1]), $(v[2]), …, $(v[end-1]), $(v[end])"
+        "$(v[begin]), $(v[begin+1]), …, $(v[end-1]), $(v[end])"
     else
         join((string(va) for va in v), ", ")
     end
