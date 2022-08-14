@@ -87,4 +87,11 @@ end
             Sampled(A, Unordered(), Irregular(nothing, nothing), Points(), NoMetadata())
     end
 
+    @testset "Zero length LinRange is handled" begin
+        l = LinRange(2.0, 3.0, 2)
+        @test format(l, X, Base.OneTo(2)) === Sampled(l, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())
+        l = LinRange(2.0, 2.0, 1)
+        @test format(l, X, Base.OneTo(2)) === Sampled(l, ForwardOrdered(), Regular(0.0), Points(), NoMetadata())
+    end
+
 end
