@@ -57,7 +57,7 @@ export AbstractDimTable, DimTable
 export DimIndices, DimKeys, DimPoints
 
 # getter methods
-export dims, refdims, metadata, name, bounds
+export dims, refdims, metadata, name, lookup, bounds
 
 # Dimension/Lookup primitives
 export dimnum, hasdim, hasselection, otherdims
