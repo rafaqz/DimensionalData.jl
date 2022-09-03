@@ -62,7 +62,7 @@ end
 
 @testset "similar" begin
     @test all(map(similar(mixed), mixed) do s, m
-        dims(s) === dims(m) && eltype(s) === eltype(m)
+        dims(s) == dims(m) && dims(s) !== dims(m) && eltype(s) === eltype(m)
     end)
     @test all(map(==(Int), eltype(similar(s, Int))))
     st2 = similar(mixed, Bool, x, y)
