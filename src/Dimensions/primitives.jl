@@ -452,9 +452,9 @@ cell step, sampling type and order.
 @inline _reducedims(dim::Dimension, ::DimOrDimType) = rebuild(dim, reducelookup(lookup(dim)))
 
 """
-    comparedims(A::AbstractDimArray...)
-    comparedims(A::Tuple...)
-    comparedims(a, b)
+    comparedims(A::AbstractDimArray...; kw...)
+    comparedims(A::Tuple...; kw...)
+    comparedims(a, b; kw...)
 
 Check that dimensions or tuples of dimensions are the same,
 and return the first valid dimension. If `AbstractDimArray`s
@@ -462,6 +462,18 @@ are passed as arguments their dimensions are compared.
 
 Empty tuples and `nothing` dimension values are ignored,
 returning the `Dimension` value if it exists.
+
+# Keywords
+
+These are all `Bool` flags:
+
+- `type`: compare complete type, `true` by default.
+- `lookuptype`: compare wrapped `LookupArray` type, `false` by default. 
+- `length`: compare lengths, `true` by default.
+- `ignore_length_one`: ignore length `1` in comparisons, and return whichever
+    dimension is not length 1, if any. This is useful in e.g. broadcasting comparisons.
+    `false` by default.
+- `value`: compare all values in each `LookupArray` are identical, `false` by default.
 """
 function comparedims end
 @inline comparedims(x...; kw...) = comparedims(x; kw...)
@@ -482,14 +494,16 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
 @inline function comparedims(a::Dimension, b::Dimension;
-    type=true, length=true, lookup=false, val=false, metadata=false
+    type=true, valuetype=false, length=true, ignore_length_one=false, value=false,
 )
-    D = Dimensions
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
-    lookup && typeof(D.lookup(a)) != typeof(D.lookup(b)) && _lookuperror(a, b)
+    valuetype && typeof(parent(a)) != typeof(parent(b)) && _valuetypeerror(a, b)
+    value && parent(a) != parent(b) && _valueerror(a, b)
+    if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
+        @show Base.length(b)
+        return Base.length(b) == 1 ? a : b
+    end
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
-    val && D.val(a) != D.val(b) && _valerror(a, b)
-    metadata && D.metadata(a) != D.metadata(b) && _metadataerror(a, b)
     return a
 end
 
@@ -614,8 +628,8 @@ _astuple(x) = (x,)
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
-@noinline _lookuperror(a, b) = throw(DimensionMismatch("Mode $(lookup(a)) and $(lookup(b)) do not match"))
+@noinline _valuetypeerror(a, b) = throw(DimensionMismatch("Mode $((a)) and $(lookup(b)) do not match"))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(madata(b)) do not match"))
-@noinline _valerror(a, b) = throw(DimensionMismatch("Dimension index $(val(a)) and $(val(b)) do not match"))
+@noinline _valueerror(a, b) = throw(DimensionMismatch("Dimension index $(parent(a)) and $(parent(b)) do not match"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))
