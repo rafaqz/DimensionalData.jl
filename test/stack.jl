@@ -66,8 +66,10 @@ end
     end)
     @test all(map(==(Int), eltype(similar(s, Int))))
     st2 = similar(mixed, Bool, x, y)
-    @test dims(st2) === (x, y)
-    @test dims(st2[:one]) === (x, y)
+    @test dims(st2) == (x, y)
+    @test dims(st2) !== (x, y)
+    @test dims(st2[:one]) == (x, y)
+    @test dims(st2[:one]) !== (x, y)
     @test all(map(==(Bool), eltype(st2)))
 end
 
