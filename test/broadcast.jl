@@ -4,7 +4,7 @@ using DimensionalData: NoLookup
 
 # Tests taken from NamedDims. Thanks @oxinabox
 
-da = DimArray(ones(3), X)
+da = ones(X(3))
 @test Base.BroadcastStyle(typeof(da)) isa DimensionalData.DimensionalStyle
 
 @testset "standard case" begin
@@ -12,6 +12,11 @@ da = DimArray(ones(3), X)
     @test dims(da .+ da) == dims(da)
     @test da .+ da .+ da == 3ones(3)
     @test dims(da .+ da .+ da) == dims(da)
+end
+
+@testset "broadcast over length one dimension" begin
+    da2 = DimArray((1:4) * (1:2:8)', (X, Y))
+    @test da2 .* da2[:, 1:1] == [1, 4, 9, 16] * (1:2:8)'
 end
 
 @testset "in place" begin
