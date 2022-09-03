@@ -9,11 +9,13 @@ a2 = [1 2 3 4
       4 5 6 7]
 xmeta = Metadata(:meta => "X")
 ymeta = Metadata(:meta => "Y")
+tmeta = Metadata(:meta => "T")
 ameta = Metadata(:meta => "da")
 dimz = (X(Sampled(143.0:2.0:145.0; order=ForwardOrdered(), metadata=xmeta)),
         Y(Sampled(-38.0:2.0:-36.0; order=ForwardOrdered(), metadata=ymeta)))
 dimz2 = (Dim{:row}(10:10:30), Dim{:column}(-20:10:10))
-refdimz = (Ti(1:1),)
+
+refdimz = (Ti(1:1; metadata=tmeta),)
 da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
@@ -102,19 +104,27 @@ end
 
 @testset "similar" begin
     @testset "similar with no args" begin
-        da_sim = similar(da2)
-        @test eltype(da_sim) == eltype(da2)
-        @test size(da_sim) == size(da2)
-        @test dims(da_sim) == dims(da2)
-        @test refdims(da_sim) == refdims(da2)
+        da_sim = similar(da)
+        @test eltype(da_sim) == eltype(da)
+        @test size(da_sim) == size(da)
+        @test dims(da_sim) == dims(da)
+        @test dims(da_sim) !== dims(da)
+        @test refdims(da_sim) == refdims(da)
+        @test refdims(da_sim) !== refdims(da)
+        @test metadata(da_sim) == metadata(da)
+        @test metadata(da_sim) !== metadata(da)
     end
 
     @testset "similar with a type" begin
-        da_float = similar(da2, Float64)
+        da_float = similar(da, Float64)
         @test eltype(da_float) == Float64
-        @test size(da_float) == size(da2)
-        @test dims(da_float) == dims(da2)
-        @test refdims(da_float) == refdims(da2)
+        @test size(da_float) == size(da)
+        @test dims(da_float) == dims(da)
+        @test dims(da_float) !== dims(da)
+        @test refdims(da_float) == refdims(da)
+        @test refdims(da_float) !== refdims(da)
+        @test metadata(da_float) == metadata(da)
+        @test metadata(da_float) !== metadata(da)
     end
 
     @testset "similar with a size" begin
@@ -144,12 +154,13 @@ end
     end
 
     @testset "similar with dims" begin
-        da_sim_dims = similar(da2, dims(da))
-        da_sim_dims_splat = similar(da2, dims(da))
+        da_sim_dims = similar(da, dims(da))
+        da_sim_dims_splat = similar(da, dims(da))
         for A in (da_sim_dims, da_sim_dims_splat)
-            @test eltype(A) == eltype(da2)
+            @test eltype(A) == eltype(da)
             @test size(A) == size(da)
             @test dims(A) == dims(da)
+            @test dims(A) !== dims(da)
             @test refdims(A) == ()
         end
         da_sim_type_dims = similar(da2, Bool, dims(da))
@@ -158,7 +169,9 @@ end
             @test eltype(A) == Bool
             @test size(A) == size(da)
             @test dims(A) == dims(da)
+            @test dims(A) !== dims(da)
             @test refdims(A) == ()
+            @test metadata(A) == NoMetadata()
         end
     end
 end
