@@ -102,20 +102,21 @@ function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:Abstr
     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
 end
 
-# Dummy read methods that do nothing.
-# Means can actually read subtypes that are not in-memory Arrays
+# Dummy `read` methods that does nothing.
+# This can be used to actually read `AbstractDimArray` subtypes that dont hold in-memory Arrays.
 Base.read(A::AbstractDimArray) = A
 
 # Methods that create copies of an AbstractDimArray #######################################
 
 # Need to cover a few type signatures to avoid ambiguity with base
+# We also need to `deepcopy` all dims and metadata to avoid shared state
 Base.similar(A::AbstractDimArray) =
-    rebuild(A, similar(parent(A)), dims(A), refdims(A), _noname(A))
+    rebuild(A; data=similar(parent(A)), dims=deepcopy(dims(A)), refdims=deepcopy(refdims(A)), name=_noname(A), metadata=deepcopy(metadata(A)))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
-    rebuild(A, similar(parent(A), T), dims(A), refdims(A), _noname(A))
+    rebuild(A; data=similar(parent(A), T), dims=deepcopy(dims(A)), refdims=deepcopy(refdims(A)), name=_noname(A), metadata=deepcopy(metadata(A)))
 # We can't resize the dims or add missing dims, so return the unwraped Array type?
 # An alternative would be to fill missing dims with `Anon`, and keep existing
-# dims but strip the Lookup? It jsut seems a little complicated when the methods
+# dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
 Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{<:Integer}) =
     similar(A, eltype(A), (i, I...))
@@ -131,7 +132,7 @@ Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
     Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
-    rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=())
+    rebuild(A; data=similar(parent(A), T, size(D)), dims=deepcopy(D), refdims=(), metadata=NoMetadata())
 
 # Keep the same type in `similar`
 _noname(A::AbstractDimArray) = _noname(name(A))
