@@ -494,11 +494,11 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
 @inline function comparedims(a::Dimension, b::Dimension;
-    type=true, valuetype=false, length=true, ignore_length_one=false, value=false,
+    type=true, valtype=false, length=true, ignore_length_one=false, val=false,
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
-    valuetype && typeof(parent(a)) != typeof(parent(b)) && _valuetypeerror(a, b)
-    value && parent(a) != parent(b) && _valueerror(a, b)
+    valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)
+    val && parent(a) != parent(b) && _valerror(a, b)
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
         @show Base.length(b)
         return Base.length(b) == 1 ? a : b
@@ -628,8 +628,8 @@ _astuple(x) = (x,)
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
-@noinline _valuetypeerror(a, b) = throw(DimensionMismatch("Mode $((a)) and $(lookup(b)) do not match"))
+@noinline _valtypeerror(a, b) = throw(DimensionMismatch("Mode $((a)) and $(lookup(b)) do not match"))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(madata(b)) do not match"))
-@noinline _valueerror(a, b) = throw(DimensionMismatch("Dimension index $(parent(a)) and $(parent(b)) do not match"))
+@noinline _valerror(a, b) = throw(DimensionMismatch("Dimension index $(parent(a)) and $(parent(b)) do not match"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))
