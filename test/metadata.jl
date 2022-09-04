@@ -42,6 +42,10 @@ using DimensionalData.LookupArrays: Metadata, NoMetadata, units, val
         @test Base.IteratorEltype(md) == Base.HasEltype()
     end
 
+    # allow string keys
+    @test Metadata("a"=>"test1")["a"] == "test1"
+
+    # Can't mix arguments and keywords
     @test_throws ArgumentError Metadata{:Test}(:a => "1"; units="km")
 end
 

@@ -17,9 +17,9 @@ const _MetadataContents =Union{AbstractDict,NamedTuple}
 const AllMetadata = Union{AbstractMetadata,AbstractDict}
 
 Base.get(m::AbstractMetadata, args...) = get(val(m), args...)
-Base.getindex(m::AbstractMetadata, key) = getindex(val(m), Symbol(key))
-Base.setindex!(m::AbstractMetadata, x, key) = setindex!(val(m), x, Symbol(key))
-Base.haskey(m::AbstractMetadata, key) = haskey(val(m), Symbol(key))
+Base.getindex(m::AbstractMetadata, key) = getindex(val(m), key)
+Base.setindex!(m::AbstractMetadata, x, key) = setindex!(val(m), x, key)
+Base.haskey(m::AbstractMetadata, key) = haskey(val(m), key)
 Base.keys(m::AbstractMetadata) = keys(val(m))
 Base.iterate(m::AbstractMetadata, args...) = iterate(val(m), args...)
 Base.IteratorSize(m::AbstractMetadata) = Base.IteratorSize(val(m))
