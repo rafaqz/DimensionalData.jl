@@ -123,14 +123,14 @@ any combination of either.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
-2×3×2 DimArray{Float64,3} with dimensions: X , Y , Z
+2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z
 [:, :, 1]
  1.0  1.0  1.0
  1.0  1.0  1.0
 [and 1 more slices...]
 
 julia> dims(A, (X, Y))
-X , Y
+X, Y
 
 ```
 """
@@ -158,7 +158,7 @@ julia> commondims(A, X)
 X
 
 julia> commondims(A, (X, Z))
-X , Z
+X, Z
 
 julia> commondims(A, Ti)
 ()
@@ -267,7 +267,7 @@ julia> using DimensionalData, DimensionalData.Dimensions
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-Y , Z
+Y, Z
 
 julia> otherdims(A, (Y, Z))
 X
@@ -304,7 +304,8 @@ A = ones(X(10), Y(10:10:100))
 B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
 lookup(B, Y)
 # output
-Categorical 'a':1:'j' ForwardOrdered
+Categorical{Char} ForwardOrdered
+wrapping: 'a':1:'j'
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
@@ -338,7 +339,7 @@ A = ones(X(2), Y(4), Z(2))
 Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 
 # output
-2×4×2 DimArray{Float64,3} with dimensions: Dim{:a} , Dim{:b} , Dim{:c}
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}
 [:, :, 1]
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
