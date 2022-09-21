@@ -25,7 +25,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
     end
 end
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
-    get(io, :compact, false) && return show_compact(io::IO, mime, dim)
+    get(io, :compact, false) && return show_compact(io, mime, dim)
     print_dimname(io, dim)
     print_dimval(io, mime, val(dim))
 end
@@ -33,7 +33,7 @@ function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension{Colon})
     print_dimname(io, dim)
 end
 
-# compact version for dimensions and lookups
+# compact version for dimensions
 show_compact(io::IO, mime, dim::Dimension{Colon}) = print_dimname(io, dim)
 function show_compact(io::IO, mime, dim::Dimension)
     # Print to a buffer and count lengths
@@ -91,10 +91,9 @@ end
 function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
     LookupArrays.print_index(io, mime, lookup, nchars)
 end
-print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, " ")
+print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")
 function print_dimval(io, mime, lookup::LookupArray, nchars=0)
     print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)
     show(ctx, mime, lookup)
 end
-
