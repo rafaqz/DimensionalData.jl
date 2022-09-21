@@ -680,7 +680,7 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 
 2×4 DimArray{Int64,2} with dimensions:
   X Sampled{Float64} Float64[10.0, 50.0] ForwardOrdered Regular Points,
-  Ti Sampled{Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[1 s, 6 s, 91 s, 96 s] ForwardOrdered Regular Points
+  Ti Sampled{Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[1 s, 6 s, 91 s, 96 s] ForwardOrdered Regular Points
        1 s  6 s  91 s  96 s
  10.0    1    2    19    20
  50.0    3    6    57    60

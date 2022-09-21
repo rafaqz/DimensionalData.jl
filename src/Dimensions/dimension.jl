@@ -361,9 +361,13 @@ automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
 Example:
-```julia
+```jldoctest
+using DimensionalData
+using DimensionalData: @dim, YDim, XDim
 @dim Lat YDim "latitude"
 @dim Lon XDim "Longitude"
+# output
+
 ```
 """
 macro dim end
