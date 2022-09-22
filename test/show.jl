@@ -21,14 +21,20 @@ ds = dims(A)
 end
 
 @testset "show lookups" begin
-    sv = sprint(show, MIME("text/plain"), Categorical([:a, :b]; order=Unordered()))
+    cl = Categorical([:a, :b]; order=Unordered())
+    sv = sprint(show, MIME("text/plain"), cl)
     @test occursin("Categorical", sv)
     @test occursin("Unordered", sv)
-    sv = sprint(show, MIME("text/plain"), Sampled(1:2; order=ForwardOrdered(), span=Regular(), sampling=Points()))
+    @test occursin("wrapping:", sv)
+    @test occursin(sprint(show, MIME("text/plain"), parent(cl)), sv)
+    sl = Sampled(1:2; order=ForwardOrdered(), span=Regular(), sampling=Points())
+    sv = sprint(show, MIME("text/plain"), sl)
     @test occursin("Sampled", sv)
     @test occursin("Ordered", sv)
     @test occursin("Regular", sv)
     @test occursin("Points", sv)
+    @test occursin("wrapping:", sv)
+    @test occursin(sprint(show, MIME("text/plain"), parent(sl)), sv)
     sv = sprint(show, MIME("text/plain"), NoLookup())
     @test occursin("NoLookup", sv)
     # LookupArray tuple
@@ -41,8 +47,7 @@ end
     @test occursin("X", sv)
     nds = (X(NoLookup(Base.OneTo(10))), Y(NoLookup(Base.OneTo(5))))
     sv = sprint(show, MIME("text/plain"), nds)
-    @test occursin("X", sv)
-    @test occursin("Y", sv)
+    @test sv == "X, Y"
 end
 
 @testset "arrays" begin

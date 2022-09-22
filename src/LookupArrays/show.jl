@@ -11,9 +11,18 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
     show(ctx, mime, dim(lookup))
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", lookup::AbstractSampled)
+function Base.show(io::IO, mime::MIME"text/plain", lookup::LookupArray)
     show_compact(io, mime, lookup)
-    print_index(io, mime, parent(lookup))
+    get(io, :compact, false) && print_index(io, mime, parent(lookup))
+    show_properties(io, lookup)
+    if !get(io, :compact, false) 
+        println(io)
+        printstyled(io, "wrapping: "; color=:light_black)
+        Base.show(io, mime, parent(lookup))
+    end
+end
+
+function show_properties(io::IO, lookup::AbstractSampled)
     print(io, " ")
     print_order(io, lookup)
     print(io, " ")
@@ -22,9 +31,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::AbstractSampled)
     print_sampling(io, lookup)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", lookup::AbstractCategorical)
-    show_compact(io, mime, lookup)
-    print_index(io, mime, parent(lookup))
+function show_properties(io::IO, lookup::AbstractCategorical)
     print(io, " ")
     print_order(io, lookup)
 end
@@ -56,7 +63,9 @@ function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{<:LookupArray,
     end
 end
 
-show_compact(io, mime, lookup::LookupArray) = print(io, nameof(typeof(lookup)))
+function show_compact(io, mime, lookup::LookupArray)
+    print(io, nameof(typeof(lookup)), "{", string(eltype(lookup)), "}")
+end
 
 print_order(io, lookup) = print(io, nameof(typeof(order(lookup))))
 print_span(io, lookup) = print(io, nameof(typeof(span(lookup))))

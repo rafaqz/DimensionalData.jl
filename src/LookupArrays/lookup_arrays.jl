@@ -253,8 +253,8 @@ A = ones(x, y)
 
 # output
 5×4 DimArray{Float64,2} with dimensions:
-  X Sampled 100:-20:20 ReverseOrdered Regular Intervals,
-  Y Sampled Int64[1, 4, 7, 10] ForwardOrdered Regular Intervals
+  X Sampled{Int64} 100:-20:20 ReverseOrdered Regular Intervals,
+  Y Sampled{Int64} Int64[1, 4, 7, 10] ForwardOrdered Regular Intervals
       1    4    7    10
  100  1.0  1.0  1.0   1.0
   80  1.0  1.0  1.0   1.0
@@ -345,8 +345,8 @@ Dimensions.lookup(A)
 
 # output
 
-Categorical String[one, two, three] Unordered,
-Categorical Symbol[a, b, c, d] ForwardOrdered
+Categorical{String} String[one, two, three] Unordered,
+Categorical{Symbol} Symbol[a, b, c, d] ForwardOrdered
 ```
 """
 struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O}
