@@ -44,7 +44,7 @@ export AutoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCategorical, Categorical
 export Unaligned, Transformed
 
-const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex}
+const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex,CartesianIndices}
 
 rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 

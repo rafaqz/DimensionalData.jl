@@ -6,7 +6,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{Int,CartesianIndex})
             Base.$f(val(d), i)
         end
-        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{AbstractArray,Colon})
+        @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::Union{AbstractArray,Colon,CartesianIndices})
             # AbstractArray/Colon return an AbstractArray - so rebuild the dimension
             rebuild(d, Base.$f(val(d), i))
         end

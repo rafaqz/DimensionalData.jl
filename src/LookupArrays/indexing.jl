@@ -4,8 +4,8 @@ for f in (:getindex, :view, :dotview)
         # Int and CartesianIndex forward to the parent
         @propagate_inbounds Base.$f(l::LookupArray, i::Union{Int,CartesianIndex}) =
             Base.$f(parent(l), i)
-        # AbstractArray and Colon the lookup is rebuilt around a new parent
-        @propagate_inbounds Base.$f(l::LookupArray, i::Union{AbstractArray,Colon}) = 
+        # AbstractArray, Colon and CartesianIndices: the lookup is rebuilt around a new parent
+        @propagate_inbounds Base.$f(l::LookupArray, i::Union{AbstractArray,Colon,CartesianIndices}) = 
             rebuild(l; data=Base.$f(parent(l), i))
         # Selector gets processed with `selectindices`
         @propagate_inbounds Base.$f(l::LookupArray, i::SelectorOrInterval) = Base.$f(l, selectindices(l, i))
