@@ -18,8 +18,8 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
         # CartesianIndices 
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
-            Base.$f(A, to_indices(i)
-        # Linear indexing forwards to the parent array
+            Base.$f(A, to_indices(i)...)
+        # Linear indexing forwards to the parent array as it will break the dimensions
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
@@ -29,13 +29,14 @@ for f in (:getindex, :view, :dotview)
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
         # Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, I::SelectorOrStandard...) =
-            Base.$f(A, dims2indices(A, to_indices(A, (i1, I...))...)
+            Base.$f(A, dims2indices(A, (i1, I...))...)
         @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Extents.Extent) =
             Base.$f(A, dims2indices(A, extent)...)
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
-        # Everything else - such as custom indexing types from other packages
+        # Everything else works on the parent array - such as custom indexing types from other packages.
+        # We can't know what they do so cant handle the potential dimension transformations
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1, I...) = Base.$f(parent(A), i1, I...)
     end
     # Standard indices
