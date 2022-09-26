@@ -54,9 +54,11 @@ da2_XY = DimArray(A2, (X(1:10:400), Y(1:5:100)); name=:Normal)
 da2_YX = DimArray(A2, (Y(1:10:400), X(1:5:100)); name=:Normal)
 da2_ZY = DimArray(A2, (Z(1:10:400), Y(1:5:100)); name=:Normal)
 da2_XTi = DimArray(A2, (X(1:10:400), Ti(1:5:100)); name=:Normal)
+da2_other = DimArray(A2, (X=1:10:400, other=1:5:100); name=:Normal)
 
 # For manual testing
 da2 = da2_XTi
+da2= da2_other
 
 for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY, da2_ZY)
     for da2 in (da, reverse(da, dims=first(dims(da))), reverse(da, dims=first(dims(da))))
@@ -83,6 +85,44 @@ for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY
         boxplot(da2)
         violin(da2)
         ea_histogram(da2)
+    end
+end
+
+A3 = rand(Distributions.Normal(), 40, 20, 10)
+da3_regular = DimArray(A3, (X(1:10:400), Y(1:5:100), Z(1:2:20)); name=:Normal)
+da3_noindex = DimArray(A3, (X(), Y(), Z()); name=:Normal)
+da3_ni_r = DimArray(A3, (X(), Y(1:5:100), Z()); name=:Normal)
+da3_r_ni = DimArray(A3, (X(1:10:400), Y(), Z()); name=:Normal)
+da3_c_c = DimArray(A3, (X('A':'h'), Y('a':'t'), Z()); name=:Normal)
+da3_XTi = DimArray(A3, (X(1:10:400), Ti(1:5:100), Z()); name=:Normal)
+da3_other = DimArray(A3, (X=1:10:400, other=1:5:100, anothing=NoLookup()); name=:Normal)
+da3 = da3_other
+
+for da in (da3_regular, da3_noindex, da3_ni_r, da3_r_ni, da3_c_c, da3_YX, da3_XY, da3_ZY, da3_other)
+    for da3 in (da, reverse(da, dims=first(dims(da))), reverse(da, dims=first(dims(da))))
+        # Plots
+        plot(parent(da3))
+        bar(da3)
+        violin(da3)
+        boxplot(da3)
+        sticks(da3)
+        histogram(da3)
+        stephist(da3)
+        barhist(da3)
+        scatterhist(da3)
+        histogram2d(da3)
+        hline(da3)
+        vline(da3)
+        plot(da3; seriestype=:line)
+        heatmap(da3)
+        contour(da3)
+        wireframe(da3)
+        # StatsPlots
+        density(da3)
+        dotplot(da3)
+        boxplot(da3)
+        violin(da3)
+        ea_histogram(da3)
     end
 end
 

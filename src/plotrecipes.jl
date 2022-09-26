@@ -17,7 +17,7 @@ end
     if !(sertype in (:marginalhist,))
         :title --> refdims_title(A_fwd)
     end
-    if ndims(A) > 2
+    if ndims(A) > 3
         parent(A)
     elseif sertype in (:heatmap, :contour, :volume, :marginalhist,
                        :surface, :contour3d, :wireframe, :scatter3d)
@@ -45,11 +45,12 @@ end
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
+    :label --> string(name(A))
     _xticks!(plotattributes, s, dim)
     _withaxes(dim, A)
 end
 @recipe function f(s::SeriesLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, Dimension, Dimension), dims(A)))
+    A = permutedims(A, _orderdims(A))
     ind, dep = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
@@ -60,12 +61,12 @@ end
     _withaxes(ind, A)
 end
 @recipe function f(s::SeriesLike, A::AbstractArray{T,3}) where T
-    A = permutedims(A, commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension), dims(A)))
+    A = permutedims(A, _orderdims(A))
     ind, dep1, dep2 = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
-    :legendtitle --> label(dep)
-    :label --> permutedims(val(dep))
+    :legendtitle --> label(dep1)
+    :label --> permutedims(val(dep1))
     :tickfontalign --> :left
     _xticks!(plotattributes, s, ind)
     _withaxes(ind, A)
@@ -109,8 +110,10 @@ end
     parent(A)
 end
 
+_orderdims(x) = commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension), dims(x))
+
 @recipe function f(s::HeatMapLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (ZDim, YDim, XDim, TimeDim, Dimension, Dimension), dims(A)))
+    A = permutedims(A, reverse(_orderdims(A)))
     y, x = dims(A)
     :xguide --> label(x)
     :yguide --> label(y)
