@@ -3,7 +3,7 @@ using DimensionalData, Test, LinearAlgebra, Statistics
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
@@ -74,10 +74,22 @@ end
 end
 
 @testset "merge" begin
+    @test layers(s) === (; s...)
+    @test layers(s) === (; one=da1, s[(:two,)]..., (three=da3,)...)
+    @test layers(s) === (; (one=da1,)..., two=da2, s[(:three,)]...)
+    @test s === merge(s[(:one,:two)], (three=da3,))
+    @test s === merge(s[(:one,)], (two=da2, three=da3))
     @test merge(mixed) === mixed
     @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
     @test keys(merge(s, mixed)) == (:one, :two, :three, :extradim)
     @test keys(merge(s, (:new=>da4,))) == (:one, :two, :three, :new)
+end
+
+@testset "setindex" begin
+    s12 = DimStack((da1, da2))
+    @test s === Base.setindex(s12, da3, :three)
+    s423 = DimStack((one=da4, two=da2, three=da3))
+    @test s === Base.setindex(s423, da1, :one)
 end
 
 @testset "copy and friends" begin
