@@ -55,12 +55,23 @@ Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
 Base.eltype(s::AbstractDimStack, args...) = map(eltype, s)
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
+# `merge` for AbstractDimStack and NamedTuple.
+# One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
-function Base.merge(s1::AbstractDimStack, s2::AbstractDimStack, stacks::AbstractDimStack...) 
-    rebuild_from_arrays(s1, merge(map(layers, (s1, s2, stacks...))...); refdims=())
+function Base.merge(x1::AbstractDimStack, x2::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) 
+    rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); refdims=())
 end
 function Base.merge(s::AbstractDimStack, pairs) 
     rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
+end
+function Base.merge(x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...)
+    merge(map(layers, (x1, x2, xs...))...)
+end
+function Base.merge(x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...)
+    merge(map(layers, (x1, x2, x3, xs...))...)
+end
+function Base.setindex(s::AbstractDimStack, val::AbstractDimArray, key) 
+    rebuild_from_arrays(s, Base.setindex(layers(s), val, key))
 end
 Base.NamedTuple(s::AbstractDimStack) = layers(s)
 
@@ -113,6 +124,7 @@ function rebuild_from_arrays(
     rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
+layers(nt::NamedTuple) = nt
 function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
