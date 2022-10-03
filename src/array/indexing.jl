@@ -18,7 +18,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
         # CartesianIndices 
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
-            Base.$f(A, to_indices(i)...)
+            Base.$f(A, to_indices(A, (I,))...)
         # Linear indexing forwards to the parent array as it will break the dimensions
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)

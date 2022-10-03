@@ -95,6 +95,8 @@ end
         @test da3[1, CartesianIndex(1, 2)] == 10
         @test view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
         @test da3[1, CartesianIndices((1:2, 1:1))] isa DimArray
+        @test da3[CartesianIndices(da3)] isa DimArray
+        @test da3[CartesianIndices(da3)] == da3
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
