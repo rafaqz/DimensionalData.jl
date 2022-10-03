@@ -35,6 +35,7 @@ end
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     @test l[2] === 4.0
     @test l[CartesianIndex((4,))] == 8.0
+    @test l[CartesianIndices((1:3,))] isa Sampled
     @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
     l = NoLookup(1:100)
     l = NoLookup(1:100)
@@ -55,6 +56,7 @@ end
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     @test d[2] === 4.0
     @test d[CartesianIndex((4,))] == 8.0
+    @test d[CartesianIndices((3:4,))] isa X{<:Sampled}
     @test d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing))
     d = Y(NoLookup(1:100))
     @test d[100] == 100
@@ -88,11 +90,13 @@ end
         @test x = da[1, :][1:2] isa DimArray
     end
 
-    @testset "mixed CartesianIndex indexing works" begin
-
+    @testset "mixed CartesianIndex and CartesianIndices indexing works" begin
         da3 = cat(da, 10da; dims=Z) 
         @test da3[1, CartesianIndex(1, 2)] == 10
         @test view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
+        @test da3[1, CartesianIndices((1:2, 1:1))] isa DimArray
+        @test da3[CartesianIndices(da3)] isa DimArray
+        @test da3[CartesianIndices(da3)] == da3
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin

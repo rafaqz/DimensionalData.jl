@@ -16,7 +16,10 @@ for f in (:getindex, :view, :dotview)
         #### Array getindex/view ###
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
-        # Linear indexing forwards to the parent array
+        # CartesianIndices 
+        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
+            Base.$f(A, to_indices(A, (I,))...)
+        # Linear indexing forwards to the parent array as it will break the dimensions
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
@@ -32,25 +35,27 @@ for f in (:getindex, :view, :dotview)
         # Dimension indexing. Allows indexing with A[somedim=At(25.0)] for Dim{:somedim}
         @propagate_inbounds Base.$f(A::AbstractDimArray, args::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, (args..., kwdims(values(kw))...))...)
-        # Everything else - such as custom indexing types from other packages
+        # Everything else works on the parent array - such as custom indexing types from other packages.
+        # We can't know what they do so cant handle the potential dimension transformations
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1, I...) = Base.$f(parent(A), i1, I...)
     end
     # Standard indices
     if f == :view
         @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
-            I = _unwrap_cartesian(i1, i2, I...)
+            I = to_indices(A, (i1, i2, I...))
             x = Base.$f(parent(A), I...)
             rebuildsliced(Base.$f, A, x, I)
         end
     else
         @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
-            I = _unwrap_cartesian(i1, i2, I...)
+            I = to_indices(A, (i1, i2, I...))
             x = Base.$f(parent(A), I...)
             all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)
         end
     end
 end
 
+@inline _unwrap_cartesian(i1::CartesianIndices, I...) = (Tuple(i1)..., _unwrap_cartesian(I...)...)
 @inline _unwrap_cartesian(i1::CartesianIndex, I...) = (Tuple(i1)..., _unwrap_cartesian(I...)...)
 @inline _unwrap_cartesian(i1, I...) = (i1, _unwrap_cartesian(I...)...)
 @inline _unwrap_cartesian() = ()
