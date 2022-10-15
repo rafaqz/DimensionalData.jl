@@ -176,11 +176,11 @@ for fname in [:permutedims, :PermutedDimsArray]
 end
 
 # Concatenation
-function Base._cat(catdims::Union{Int,Base.Dims}, Xin::AbstractDimArray...)
-    Base._cat(dims(first(Xin), catdims), Xin...)
+function Base._cat(catdims::Union{Int,Base.Dims}, A1::AbstractDimArray, As::AbstractDimArray...)
+    Base._cat(dims(A1, catdims), A1, As...)
 end
-function Base._cat(catdims::Tuple, Xin::AbstractDimArray...)
-    A1 = first(Xin)
+function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
+    Xin = (A1, As...)
     comparedims(map(x -> otherdims(x, catdims), Xin)...)
     newcatdims = map(catdims) do catdim
         if all(x -> hasdim(x, catdim), Xin)
@@ -225,9 +225,9 @@ function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
     Base._cat((catdim,), Xin...)
 end
 
-function Base.vcat(dims::Dimension...)
-    newlookup = _vcat_lookups(lookup(dims)...)
-    rebuild(dims[1], newlookup)
+function Base.vcat(d1::Dimension, ds::Dimension...)
+    newlookup = _vcat_lookups(lookup((d1, ds...))...)
+    rebuild(d1, newlookup)
 end
 
 # LookupArrays may need adjustment for `cat`

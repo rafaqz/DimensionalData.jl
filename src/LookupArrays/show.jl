@@ -90,5 +90,5 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     else
         join((string(va) for va in v), ", ")
     end
-    printstyled(io, string(eltype(v)) * "[" * vals * "]"; color=:cyan)
+    printstyled(io, string(eltype(v), "[", vals, "]"); color=:cyan)
 end

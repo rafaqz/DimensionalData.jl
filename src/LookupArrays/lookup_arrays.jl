@@ -424,7 +424,7 @@ function Transformed(f, dim; metadata=NoMetadata())
 end
 
 function rebuild(l::Transformed; 
-    data=data(l), f=f(l), dim=dim(l), metadata=metadata(l)
+    data=parent(l), f=f(l), dim=dim(l), metadata=metadata(l)
 )
     Transformed(data, f, dim, metadata)
 end

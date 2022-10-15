@@ -24,7 +24,7 @@ format(dims::Tuple{Vararg{<:Any,N}}, A::AbstractArray{<:Any,N}) where N =
     format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{<:Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
-format(dims::Tuple, axes::Tuple) = map(_format, dims, axes)
+format(dims::Tuple{Vararg{<:Any,N}}, axes::Tuple{Vararg{<:Any,N}}) where N = map(_format, dims, axes)
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))

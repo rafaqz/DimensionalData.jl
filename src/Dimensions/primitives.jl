@@ -43,7 +43,6 @@ All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 @inline key2dim(t::Tuple) = map(key2dim, t)
 @inline key2dim(s::Symbol) = key2dim(Val{s}())
 # Allow other things to pass through
-@inline key2dim(d::Val{<:Dimension}) = d
 @inline key2dim(d) = d
 
 # key2dim is defined for concrete instances in dimensions.jl
@@ -77,9 +76,10 @@ can be used in `order`.
 
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 """
-@inline sortdims(args...) = _call_primitive(_sortdims, MaybeFirst(), args...)
+@inline sortdims(a1, args...) = _call_primitive(_sortdims, MaybeFirst(), a1, args...)
 
-@inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) = map(p -> tosort[p], order)
+@inline _sortdims(f, tosort::Tuple{Vararg{<:Any,N}}, order::Tuple{Vararg{N,<:Integer}}) where N =
+    map(p -> tosort[p], order)
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
 
 @generated _sortdims_gen(f, tosort::Tuple, order::Tuple) = begin
@@ -134,7 +134,7 @@ X, Y
 
 ```
 """
-@inline dims(args...) = _call_primitive(_dims, MaybeFirst(), args...)
+@inline dims(a1, args...) = _call_primitive(_dims, MaybeFirst(), a1, args...)
 
 @inline _dims(f, dims, lookup) = _remove_nothing(_sortdims(f, dims, lookup))
 
@@ -165,7 +165,7 @@ julia> commondims(A, Ti)
 
 ```
 """
-@inline commondims(args...) = _call_primitive(_commondims, AlwaysTuple(), args...)
+@inline commondims(a1, args...) = _call_primitive(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds))
 
@@ -196,9 +196,9 @@ julia> dimnum(A, Y)
 2
 ```
 """
-@inline function dimnum(args...)
-    all(hasdim(args...)) || _errorextradims()
-    _call_primitive(_dimnum, MaybeFirst(), args...)
+@inline function dimnum(a1, args...)
+    all(hasdim((a1, args...))) || _errorextradims()
+    _call_primitive(_dimnum, MaybeFirst(), a1, args...)
 end
 
 @inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple{Vararg{Int}})
@@ -241,7 +241,7 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(args...) = _call_primitive(_hasdim, MaybeFirst(), args...)
+@inline hasdim(a1, args...) = _call_primitive(_hasdim, MaybeFirst(), a1, args...)
 
 @inline _hasdim(f, dims, lookup) =
     map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
@@ -273,7 +273,7 @@ julia> otherdims(A, (Y, Z))
 X
 ```
 """
-@inline otherdims(args...) = _call_primitive(_otherdims_presort, AlwaysTuple(), args...)
+@inline otherdims(a1, args...) = _call_primitive(_otherdims_presort, AlwaysTuple(), a1, args...)
 
 @inline _otherdims_presort(f, ds, lookup) = _otherdims(f, ds, _sortdims(_rev_op(f), lookup, ds))
 # Work with a sorted lookup where the missing dims are `nothing`
@@ -565,18 +565,20 @@ struct AlwaysTuple end
 # Call the function f with stardardised args
 # This looks like HELL, but it removes this complexity
 # from every other method and makes sure they all behave the same way.
-@inline _call_primitive(f::Function, t, args...) = _call_primitive(f, t, <:, _wraparg(args...)...)
-@inline _call_primitive(f::Function, t, op::Function, args...) = _call_primitive1(f, t, op, _wraparg(args...)...)
+@inline _call_primitive(f::Function, t, a1, a2, args...) =
+    _call_primitive(f, t, <:, _wraparg(a1, a2, args...)...)
+@inline _call_primitive(f::Function, t, op::Function, a1, a2, args...) =
+    _call_primitive1(f, t, op, _wraparg(a1, a2, args...)...)
 
 @inline _call_primitive1(f, t, op::Function, x, l1, l2, ls...) = _call_primitive1(f, t, op, x, (l1, l2, ls...))
-@inline _call_primitive1(f, t, op::Function, x, lookup) = _call_primitive1(f, t, op, dims(x), lookup)
-@inline _call_primitive1(f, t, op::Function, x::Nothing, lookup) = _dimsnotdefinederror()
-@inline _call_primitive1(f, t, op::Function, d::Tuple, lookup) = _call_primitive1(f, t, op, d, dims(lookup))
-@inline _call_primitive1(f, t::AlwaysTuple, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
-    _call_primitive1(f, t, op, d, (lookup,))
-@inline _call_primitive1(f, t::MaybeFirst, op::Function, d::Tuple, lookup::Union{Dimension,DimType,Val,Integer}) =
-    _call_primitive1(f, t, op, d, (lookup,)) |> _maybefirst
-@inline _call_primitive1(f, t, op::Function, d::Tuple, lookup::Tuple) = map(unwrap, f(op, d, lookup))
+@inline _call_primitive1(f, t, op::Function, x, query) = _call_primitive1(f, t, op, dims(x), query)
+@inline _call_primitive1(f, t, op::Function, x::Nothing, query) = _dimsnotdefinederror()
+@inline _call_primitive1(f, t, op::Function, d::Tuple, query) = _call_primitive1(f, t, op, d, dims(query))
+@inline _call_primitive1(f, t::AlwaysTuple, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
+    _call_primitive1(f, t, op, d, (query,))
+@inline _call_primitive1(f, t::MaybeFirst, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
+    _call_primitive1(f, t, op, d, (query,)) |> _maybefirst
+@inline _call_primitive1(f, t, op::Function, d::Tuple, query::Tuple) = map(unwrap, f(op, d, query))
 
 
 _maybefirst(xs::Tuple) = first(xs)

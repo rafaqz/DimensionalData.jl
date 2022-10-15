@@ -147,7 +147,7 @@ const DimTuple = Tuple{<:Dimension,Vararg{<:Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{<:DimType,Vararg{<:DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
-const DimOrDimType = Union{Dimension,DimType,Symbol}
+const DimOrDimType = Union{Dimension,DimType,Symbol,Val{<:Dimension}}
 const AllDims = Union{Symbol,Dimension,DimTuple,SymbolTuple,DimType,DimTypeTuple,VectorOfDim}
 
 # DimensionalData interface methods

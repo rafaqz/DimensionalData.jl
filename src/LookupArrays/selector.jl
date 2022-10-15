@@ -762,7 +762,7 @@ function _inbounds(i::Int, lookup::LookupArray)
 end
 
 _sorttuple(sel::Between) = _sorttuple(val(sel))
-_sorttuple((a, b)) = a < b ? (a, b) : (b, a)
+_sorttuple((a, b)::Tuple{<:Any,<:Any}) = a < b ? (a, b) : (b, a)
 
 _lt(::Locus) = (<)
 _lt(::End) = (<=)

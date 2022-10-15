@@ -10,9 +10,7 @@ Tables.columnnames(A::AbstractDimArray) = _colnames(DimStack(A))
 Tables.columnnames(s::AbstractDimStack) = _colnames(s)
 
 Tables.schema(A::AbstractDimArray) = Tables.schema(DimStack(A))
-function Tables.schema(s::AbstractDimStack)
-    Tables.Schema(_colnames(s), (map(eltype, dims(s))..., map(eltype, data(s))...))
-end
+Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
 
 @inline Tables.getcolumn(x::DimTableSources, i::Int) = Tables.getcolumn(DimTable(x), i)
 @inline Tables.getcolumn(x::DimTableSources, key::Symbol) =
@@ -87,7 +85,7 @@ function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTuple) where T
     DimArrayColumn(A, dimstrides, dimlengths, len)
 end
 
-data(c::DimArrayColumn) = getfield(c, :data)
+Base.parent(c::DimArrayColumn) = getfield(c, :data)
 dimstrides(c::DimArrayColumn) = getfield(c, :dimstrides)
 dimlengths(c::DimArrayColumn) = getfield(c, :dimlengths)
 
@@ -97,7 +95,7 @@ Base.length(c::DimArrayColumn) = getfield(c, :length)
 @inline function Base.getindex(c::DimArrayColumn, i::Int)
     Base.@boundscheck checkbounds(c, i)
     I = map((s, l) -> _strideind(s, l, i), dimstrides(c), dimlengths(c))
-    data(c)[I...]
+    parent(c)[I...]
 end
 
 _strideind(stride, len, i) = mod((i - 1) ÷ stride, len) + 1
@@ -153,14 +151,15 @@ function DimTable(s::AbstractDimStack)
     DimTable{keys}(s, dimcolumns, dimarraycolumns)
 end
 
-stack(t::DimTable) = getfield(t, :stack)
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
-dims(t::DimTable) = dims(stack(t))
+dims(t::DimTable) = dims(parent(t))
+
+Base.parent(t::DimTable) = getfield(t, :stack)
 
 for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
              :locus, :name, :label, :units)
-    @eval $func(t::DimTable, args...) = $func(dataset(t), args...)
+    @eval $func(t::DimTable, args...) = $func(parent(t), args...)
 
 end
 
@@ -171,8 +170,9 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
 function Tables.schema(t::DimTable{Keys}) where Keys
-    s = stack(t)
-    Tables.Schema(Keys, (map(eltype, dims(s))..., map(eltype, data(s))...))
+    s = parent(t)
+    types = (map(eltype, dims(s))..., map(eltype, parent(s))...)
+    Tables.Schema(Keys, types)
 end
 
 @inline function Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys
