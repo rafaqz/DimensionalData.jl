@@ -78,8 +78,7 @@ can be used in `order`.
 """
 @inline sortdims(a1, args...) = _call_primitive(_sortdims, MaybeFirst(), a1, args...)
 
-@inline _sortdims(f, tosort::Tuple{Vararg{<:Any,N}}, order::Tuple{Vararg{N,<:Integer}}) where N =
-    map(p -> tosort[p], order)
+@inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) =map(p -> tosort[p], order)
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
 
 @generated _sortdims_gen(f, tosort::Tuple, order::Tuple) = begin
