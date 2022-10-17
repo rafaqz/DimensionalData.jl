@@ -1079,6 +1079,7 @@ end
     end
 
     da = DimArray(reshape(a, 3, 4, 1), dimz)
+    view(da, :, :, 1)
 
     @testset "Indexing with array dims indexes the array as usual" begin
         da2 = da[1:3, 1:1, 1:1]

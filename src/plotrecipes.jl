@@ -13,28 +13,28 @@ end
 
 @recipe function f(::DimensionalPlot, A::AbstractArray)
     A_fwd = reorder(A, ForwardOrdered())
-    sertype = get(plotattributes, :seriestype, :none)
-    if !(sertype in [:marginalhist])
+    sertype = get(plotattributes, :seriestype, :none)::Symbol
+    if !(sertype in (:marginalhist,))
         :title --> refdims_title(A_fwd)
     end
     if ndims(A) > 2
         parent(A)
-    elseif sertype in [:heatmap, :contour, :volume, :marginalhist,
-                       :surface, :contour3d, :wireframe, :scatter3d]
+    elseif sertype in (:heatmap, :contour, :volume, :marginalhist,
+                       :surface, :contour3d, :wireframe, :scatter3d)
         HeatMapLike(), A_fwd
-    elseif sertype in [:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram]
+    elseif sertype in (:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram)
         HistogramLike(), A_fwd
-    elseif sertype in [:hline]
+    elseif sertype in (:hline,)
         :yguide --> label(A_fwd)
         parent(A_fwd)
-    elseif sertype in [:vline, :andrews]
+    elseif sertype in (:vline, :andrews)
         :xguide --> label(A_fwd)
         parent(A_fwd)
-    elseif sertype in [:violin, :dotplot, :boxplot]
+    elseif sertype in (:violin, :dotplot, :boxplot)
         ViolinLike(), A_fwd
-    elseif sertype in [:plot, :histogram2d, :none, :line, :path, :shape, :steppre, 
+    elseif sertype in (:plot, :histogram2d, :none, :line, :path, :shape, :steppre, 
                        :steppost, :sticks, :scatter, :hexbin, :barbins, :scatterbins, 
-                       :stepbins, :bins2d, :bar]
+                       :stepbins, :bins2d, :bar)
         SeriesLike(), A_fwd
     else
         parent(A_fwd)
