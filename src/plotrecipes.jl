@@ -1,8 +1,9 @@
-struct HeatMapLike end
-struct WireframeLike end
-struct SeriesLike end
-struct HistogramLike end
-struct ViolinLike end
+abstract type DimPlotMode end
+struct HeatMapLike <: DimPlotMode seriestype::Symbol end
+struct WireframeLike <: DimPlotMode seriestype::Symbol end
+struct SeriesLike <: DimPlotMode seriestype::Symbol end
+struct HistogramLike <: DimPlotMode seriestype::Symbol end
+struct ViolinLike <: DimPlotMode seriestype::Symbol end
 
 struct DimensionalPlot end
 
@@ -21,9 +22,9 @@ end
         parent(A)
     elseif sertype in (:heatmap, :contour, :volume, :marginalhist,
                        :surface, :contour3d, :wireframe, :scatter3d)
-        HeatMapLike(), A_fwd
+        HeatMapLike(sertype), A_fwd
     elseif sertype in (:histogram, :stephist, :density, :barhist, :scatterhist, :ea_histogram)
-        HistogramLike(), A_fwd
+        HistogramLike(sertype), A_fwd
     elseif sertype in (:hline,)
         :yguide --> label(A_fwd)
         parent(A_fwd)
@@ -31,11 +32,11 @@ end
         :xguide --> label(A_fwd)
         parent(A_fwd)
     elseif sertype in (:violin, :dotplot, :boxplot)
-        ViolinLike(), A_fwd
+        ViolinLike(sertype), A_fwd
     elseif sertype in (:plot, :histogram2d, :none, :line, :path, :shape, :steppre, 
                        :steppost, :sticks, :scatter, :hexbin, :barbins, :scatterbins, 
                        :stepbins, :bins2d, :bar)
-        SeriesLike(), A_fwd
+        SeriesLike(sertype), A_fwd
     else
         parent(A_fwd)
     end
@@ -50,7 +51,7 @@ end
     _withaxes(dim, A)
 end
 @recipe function f(s::SeriesLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, _orderdims(A))
+    A = permutedims(A, _fwdorderdims(A))
     ind, dep = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
@@ -60,25 +61,16 @@ end
     _xticks!(plotattributes, s, ind)
     _withaxes(ind, A)
 end
-@recipe function f(s::SeriesLike, A::AbstractArray{T,3}) where T
-    A = permutedims(A, _orderdims(A))
-    ind, dep1, dep2 = dims(A)
-    :xguide --> label(ind)
-    :yguide --> label(A)
-    :legendtitle --> label(dep1)
-    :label --> permutedims(val(dep1))
-    :tickfontalign --> :left
-    _xticks!(plotattributes, s, ind)
-    _withaxes(ind, A)
-end
 
 @recipe function f(s::HistogramLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
+    display(ds)
     :xguide --> label(A)
     _withaxes(dim, A)
 end
 @recipe function f(s::HistogramLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, IndependentDim, XDim, TimeDim, IndependentDim, Dimension, Dimension), dims(A)))
+    ds = _revorderdims(A)
+    A = permutedims(A, ds)
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
@@ -92,8 +84,22 @@ end
     parent(A)
 end
 @recipe function f(s::ViolinLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, commondims(>:, (ZDim, YDim, DependentDim, XDim, TimeDim, IndependentDim, Dimension, Dimension), dims(A)))
+    ds = _revorderdims(A)
+    display(ds)
+    A = permutedims(A, ds)
     dep, ind = dims(A)
+    :xguide --> label(ind)
+    :yguide --> label(A)
+    :legendtitle --> label(ind)
+    :label --> permutedims(index(ind))
+    _xticks!(plotattributes, s, ind)
+    parent(A)
+end
+@recipe function f(s::ViolinLike, A::AbstractArray{T,3}) where T
+    ds = _revorderdims(A)
+    display(ds)
+    A = permutedims(A, ds)
+    dep2, dep1, ind = dims(A)
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(ind)
@@ -109,11 +115,10 @@ end
     _xticks!(plotattributes, s, dim)
     parent(A)
 end
-
-_orderdims(x) = commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension), dims(x))
-
 @recipe function f(s::HeatMapLike, A::AbstractArray{T,2}) where T
-    A = permutedims(A, reverse(_orderdims(A)))
+    ds = _revorderdims(A)
+    display(ds)
+    A = permutedims(A, ds)
     y, x = dims(A)
     :xguide --> label(x)
     :yguide --> label(y)
@@ -123,6 +128,12 @@ _orderdims(x) = commondims(>:, (TimeDim, XDim, IndependentDim, YDim, ZDim, Depen
     _yticks!(plotattributes, s, y)
     _withaxes(x, y, A)
 end
+@recipe function f(x::DimPlotMode, A::AbstractArray{T,N}) where {T,N}
+    throw(ArgumentError("$(x.seriestype) not implemented in $N dimensions"))
+end
+
+_fwdorderdims(x) = dims(dims(x), (TimeDim, XDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension))
+_revorderdims(x) = reverse(_fwdorderdims(reverse(dims(x))))
 
 _withaxes(dim::Dimension, A::AbstractDimArray) =
     _withaxes(lookup(dim), index(dim), parent(A))
