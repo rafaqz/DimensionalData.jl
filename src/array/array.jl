@@ -52,8 +52,9 @@ This method can also be used with keyword arguments in place of regular argument
     rebuild(A, data, dims, refdims, name, metadata(A))
 end
 
-@inline rebuildsliced(args...) = rebuildsliced(getindex, args...)
-@inline rebuildsliced(f::Function, A, data, I, name=name(A)) = rebuild(A, data, slicedims(f, A, I)..., name)
+@inline rebuildsliced(A::AbstractDimArray, args...) = rebuildsliced(getindex, A, args...)
+@inline rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A)) =
+    rebuild(A, data, slicedims(f, A, I)..., name)
 
 for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus)
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)

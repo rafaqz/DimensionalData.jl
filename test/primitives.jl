@@ -1,7 +1,9 @@
-using DimensionalData, Dates, Test, BenchmarkTools
+using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
+
+@dim Tst
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
@@ -25,8 +27,6 @@ using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFir
     @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
 end
-
-@dim Tst
 
 @testset "key2dim" begin
     @test key2dim(:test) == Dim{:test}()
@@ -200,6 +200,7 @@ end
 end
 
 @testset "dimnum" begin
+    dims(da)
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
     @test (@ballocated dimnum($da, Y())) == 0
     @test dimnum(da, X) == 1

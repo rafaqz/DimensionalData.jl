@@ -2,26 +2,26 @@
 # They are all type-stable recusive methods for performance and extensibility.
 
 """
-    dimsmatch([f], dim, lookup) => Bool
-    dimsmatch([f], dims::Tuple, lookups::Tuple) => Bool
+    dimsmatch([f], dim, query) => Bool
+    dimsmatch([f], dims::Tuple, query::Tuple) => Bool
 
 Compare 2 dimensions or `Tuple` of `Dimension` are of the same base type,
 or are at least rotations/transformations of the same type.
 
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
-@inline dimsmatch(dims, lookups) = dimsmatch(<:, dims, lookups)
-@inline function dimsmatch(f::Function, dims::Tuple, lookups::Tuple)
-    all(map((d, l) -> dimsmatch(f, d, l), dims, lookups))
+@inline dimsmatch(dims, query) = dimsmatch(<:, dims, query)
+@inline function dimsmatch(f::Function, dims::Tuple, query::Tuple)
+    all(map((d, l) -> dimsmatch(f, d, l), dims, query))
 end
-@inline dimsmatch(f::Function, dim, lookup) = dimsmatch(f, typeof(dim), typeof(lookup))
-@inline dimsmatch(f::Function, dim::Type, lookup) = dimsmatch(f, dim, typeof(lookup))
-@inline dimsmatch(f::Function, dim, lookup::Type) = dimsmatch(f, typeof(dim), lookup)
-@inline dimsmatch(f::Function, dim::Nothing, lookup::Type) = false
+@inline dimsmatch(f::Function, dim, query) = dimsmatch(f, typeof(dim), typeof(query))
+@inline dimsmatch(f::Function, dim::Type, query) = dimsmatch(f, dim, typeof(query))
+@inline dimsmatch(f::Function, dim, query::Type) = dimsmatch(f, typeof(dim), query)
+@inline dimsmatch(f::Function, dim::Nothing, query::Type) = false
 @inline dimsmatch(f::Function, dim::Type, ::Nothing) = false
-@inline dimsmatch(f::Function, dim, lookup::Nothing) = false
-@inline dimsmatch(f::Function, dim::Nothing, lookup) = false
-@inline dimsmatch(f::Function, dim::Nothing, lookup::Nothing) = false
+@inline dimsmatch(f::Function, dim, query::Nothing) = false
+@inline dimsmatch(f::Function, dim::Nothing, query) = false
+@inline dimsmatch(f::Function, dim::Nothing, query::Nothing) = false
 @inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
     # Compare regular dimension types
     f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) ||
@@ -43,6 +43,7 @@ All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 @inline key2dim(t::Tuple) = map(key2dim, t)
 @inline key2dim(s::Symbol) = key2dim(Val{s}())
 # Allow other things to pass through
+@inline key2dim(d::Val{<:Dimension}) = d
 @inline key2dim(d) = d
 
 # key2dim is defined for concrete instances in dimensions.jl
@@ -76,7 +77,8 @@ can be used in `order`.
 
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 """
-@inline sortdims(a1, args...) = _call_primitive(_sortdims, MaybeFirst(), a1, args...)
+@inline sortdims(a1, a2) = _call_primitive(_sortdims, MaybeFirst(), a1, a2)
+@inline sortdims(f::Function, a1, a2) = _call_primitive(_sortdims, MaybeFirst(), f, a1, a2)
 
 @inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) =map(p -> tosort[p], order)
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
@@ -105,17 +107,17 @@ can be used in `order`.
 end
 
 """
-    dims(x, lookup) => Tuple{Vararg{<:Dimension}}
-    dims(x, lookup...) => Tuple{Vararg{<:Dimension}}
+    dims(x, query) => Tuple{Vararg{<:Dimension}}
+    dims(x, query...) => Tuple{Vararg{<:Dimension}}
 
-Get the dimension(s) matching the type(s) of the lookup dimension.
+Get the dimension(s) matching the type(s) of the query dimension.
 
 LookupArray can be an Int or an Dimension, or a tuple containing
 any combination of either.
 
 ## Arguments
 - `x`: any object with a `dims` method, or a `Tuple` of `Dimension`.
-- `lookup`: Tuple or a single `Dimension` or `Dimension` `Type`.
+- `query`: Tuple or a single `Dimension` or `Dimension` `Type`.
 
 ## Example
 ```jldoctest
@@ -135,16 +137,16 @@ X, Y
 """
 @inline dims(a1, args...) = _call_primitive(_dims, MaybeFirst(), a1, args...)
 
-@inline _dims(f, dims, lookup) = _remove_nothing(_sortdims(f, dims, lookup))
+@inline _dims(f, dims, query) = _remove_nothing(_sortdims(f, dims, query))
 
 """
-    commondims([f], x, lookup) => Tuple{Vararg{<:Dimension}}
+    commondims([f], x, query) => Tuple{Vararg{<:Dimension}}
 
-This is basically `dims(x, lookup)` where the order of the original is kept,
-unlike [`dims`](@ref) where the lookup tuple determines the order
+This is basically `dims(x, query)` where the order of the original is kept,
+unlike [`dims`](@ref) where the query tuple determines the order
 
 Also unlike `dims`,`commondims` always returns a `Tuple`, no matter the input.
-No errors are thrown if dims are absent from either `x` or `lookup`.
+No errors are thrown if dims are absent from either `x` or `query`.
 
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 
@@ -166,20 +168,20 @@ julia> commondims(A, Ti)
 """
 @inline commondims(a1, args...) = _call_primitive(_commondims, AlwaysTuple(), a1, args...)
 
-_commondims(f, ds, lookup) = _dims(f, ds, _dims(_flip_subtype(f), lookup, ds))
+_commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
 
 """
-    dimnum(x, lookup::Tuple) => NTuple{Int}
-    dimnum(x, lookup) => Int
+    dimnum(x, query::Tuple) => NTuple{Int}
+    dimnum(x, query) => Int
 
 Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
-- `lookup`: Tuple, Array or single `Dimension` or dimension `Type`.
+- `query`: Tuple, Array or single `Dimension` or dimension `Type`.
 
 The return type will be a Tuple of `Int` or a single `Int`,
-depending on wether `lookup` is a `Tuple` or single `Dimension`.
+depending on wether `query` is a `Tuple` or single `Dimension`.
 
 ## Example
 
@@ -195,31 +197,31 @@ julia> dimnum(A, Y)
 2
 ```
 """
-@inline function dimnum(a1, args...)
-    all(hasdim((a1, args...))) || _errorextradims()
-    _call_primitive(_dimnum, MaybeFirst(), a1, args...)
+@inline function dimnum(x, q1, query...)
+    all(hasdim(x, q1, query...)) || _errorextradims()
+    _call_primitive(_dimnum, MaybeFirst(), x, q1, query...)
 end
 
-@inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple{Vararg{Int}})
-    lookups
+@inline function _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Int}})
+    query
 end
-@inline function _dimnum(f::Function, ds::Tuple, lookups::Tuple)
+@inline function _dimnum(f::Function, ds::Tuple, query::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
         rebuild(d, i)
     end
-    map(val, _dims(f, numbered, lookups))
+    map(val, _dims(f, numbered, query))
 end
 
 """
-    hasdim([f], x, lookup::Tuple) => NTUple{Bool}
-    hasdim([f], x, lookups...) => NTUple{Bool}
-    hasdim([f], x, lookup) => Bool
+    hasdim([f], x, query::Tuple) => NTUple{Bool}
+    hasdim([f], x, query...) => NTUple{Bool}
+    hasdim([f], x, query) => Bool
 
-Check if an object `x` has dimensions that match or inherit from the `lookup` dimensions.
+Check if an object `x` has dimensions that match or inherit from the `query` dimensions.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension` or a single `Dimension`.
-- `lookup`: Tuple or single `Dimension` or dimension `Type`.
+- `query`: Tuple or single `Dimension` or dimension `Type`.
 - `f`: `<:` by default, but can be `>:` to match abstract types to concrete types.
 
 Check if an object or tuple contains an `Dimension`, or a tuple of dimensions.
@@ -240,21 +242,22 @@ julia> hasdim(A, Ti)
 false
 ```
 """
-@inline hasdim(a1, args...) = _call_primitive(_hasdim, MaybeFirst(), a1, args...)
+@inline hasdim(x, a1, args...) =
+    _call_primitive(_hasdim, MaybeFirst(), x, a1, args...)
 
-@inline _hasdim(f, dims, lookup) =
-    map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, lookup), lookup))
-@inline _hasdim(f, dims, lookup::Tuple{Vararg{Int}}) =
-    map(l -> l in eachindex(dims), lookup)
+@inline _hasdim(f, dims, query) =
+    map(d -> !(d isa Nothing), _sortdims(f, _commondims(f, dims, query), query))
+@inline _hasdim(f, dims, query::Tuple{Vararg{Int}}) =
+    map(l -> l in eachindex(dims), query)
 
 """
-    otherdims(x, lookup) => Tuple{Vararg{<:Dimension,N}}
+    otherdims(x, query) => Tuple{Vararg{<:Dimension,N}}
 
-Get the dimensions of an object _not_ in `lookup`.
+Get the dimensions of an object _not_ in `query`.
 
 ## Arguments
 - `x`: any object with a `dims` method, a `Tuple` of `Dimension`.
-- `lookup`: Tuple or single `Dimension` or dimension `Type`.
+- `query`: Tuple or single `Dimension` or dimension `Type`.
 - `f`: `<:` by default, but can be `>:` to match abstract types to concrete types.
 
 A tuple holding the unmatched dimensions is always returned.
@@ -272,15 +275,17 @@ julia> otherdims(A, (Y, Z))
 X
 ```
 """
-@inline otherdims(a1, args...) = _call_primitive(_otherdims_presort, AlwaysTuple(), a1, args...)
+@inline otherdims(x, query) =
+    _call_primitive(_otherdims_presort, AlwaysTuple(), x, query)
+@inline otherdims(x) = ()
 
-@inline _otherdims_presort(f, ds, lookup) = _otherdims(f, ds, _sortdims(_rev_op(f), lookup, ds))
-# Work with a sorted lookup where the missing dims are `nothing`
-@inline _otherdims(f, ds::Tuple, lookup::Tuple) =
-    (_dimifmatching(f, first(ds), first(lookup))..., _otherdims(f, tail(ds), tail(lookup))...)
+@inline _otherdims_presort(f, ds, query) = _otherdims(f, ds, _sortdims(_rev_op(f), query, ds))
+# Work with a sorted query where the missing dims are `nothing`
+@inline _otherdims(f, ds::Tuple, query::Tuple) =
+    (_dimifmatching(f, first(ds), first(query))..., _otherdims(f, tail(ds), tail(query))...)
 @inline _otherdims(f, dims::Tuple{}, ::Tuple{}) = ()
 
-@inline _dimifmatching(f, dim, lookup) = dimsmatch(f, dim, lookup) ? () : (dim,)
+@inline _dimifmatching(f, dim, query) = dimsmatch(f, dim, query) ? () : (dim,)
 
 _rev_op(::typeof(<:)) = >:
 _rev_op(::typeof(>:)) = <:
@@ -308,6 +313,7 @@ wrapping: 'a':1:'j'
 ```
 """
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
+@inline setdims(x) = x
 @inline setdims(x, newdims::Dimension) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
 @inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
 @inline setdims(dims::Tuple, newdim::Dimension) = setdims(dims, (newdim,))
@@ -346,10 +352,11 @@ Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 ```
 """
 @inline swapdims(x, d1, d2, ds...) = swapdims(x, (d1, d2, ds...))
+@inline swapdims(x) = x
 @inline swapdims(x, newdims::Tuple) =
-rebuild(x; dims=format(swapdims(dims(x), newdims), x))
+    rebuild(x; dims=format(swapdims(dims(x), newdims), x))
 @inline swapdims(dims::DimTuple, newdims::Tuple) =
-map((d, nd) -> _swapdims(d, nd), dims, newdims)
+    map((d, nd) -> _swapdims(d, nd), dims, newdims)
 
 @inline _swapdims(dim::Dimension, newdim::DimType) = basetypeof(newdim)(val(dim))
 @inline _swapdims(dim::Dimension, newdim::Dimension) = newdim
@@ -564,13 +571,15 @@ struct AlwaysTuple end
 # Call the function f with stardardised args
 # This looks like HELL, but it removes this complexity
 # from every other method and makes sure they all behave the same way.
-@inline _call_primitive(f::Function, t, a1, a2, args...) =
-    _call_primitive(f, t, <:, _wraparg(a1, a2, args...)...)
-@inline _call_primitive(f::Function, t, op::Function, a1, a2, args...) =
-    _call_primitive1(f, t, op, _wraparg(a1, a2, args...)...)
+@inline _call_primitive(f::Function, t, a1, args...) =
+    _call_primitive(f, t, <:, _wraparg(a1, args...)...)
+@inline _call_primitive(f::Function, t, op::Function, a1, args...) =
+    _call_primitive1(f, t, op, _wraparg(a1, args...)...)
 
 @inline _call_primitive1(f, t, op::Function, x, l1, l2, ls...) = _call_primitive1(f, t, op, x, (l1, l2, ls...))
+@inline _call_primitive1(f, t, op::Function, x) = _call_primitive1(f, t, op, dims(x))
 @inline _call_primitive1(f, t, op::Function, x, query) = _call_primitive1(f, t, op, dims(x), query)
+@inline _call_primitive1(f, t, op::Function, x::Nothing) = _dimsnotdefinederror()
 @inline _call_primitive1(f, t, op::Function, x::Nothing, query) = _dimsnotdefinederror()
 @inline _call_primitive1(f, t, op::Function, d::Tuple, query) = _call_primitive1(f, t, op, d, dims(query))
 @inline _call_primitive1(f, t::AlwaysTuple, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
@@ -578,6 +587,7 @@ struct AlwaysTuple end
 @inline _call_primitive1(f, t::MaybeFirst, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
     _call_primitive1(f, t, op, d, (query,)) |> _maybefirst
 @inline _call_primitive1(f, t, op::Function, d::Tuple, query::Tuple) = map(unwrap, f(op, d, query))
+@inline _call_primitive1(f, t, op::Function, d::Tuple) = map(unwrap, f(op, d))
 
 
 _maybefirst(xs::Tuple) = first(xs)
