@@ -64,7 +64,6 @@ end
 
 @recipe function f(s::HistogramLike, A::AbstractArray{T,1}) where T
     dim = dims(A, 1)
-    display(ds)
     :xguide --> label(A)
     _withaxes(dim, A)
 end
@@ -85,7 +84,6 @@ end
 end
 @recipe function f(s::ViolinLike, A::AbstractArray{T,2}) where T
     ds = _revorderdims(A)
-    display(ds)
     A = permutedims(A, ds)
     dep, ind = dims(A)
     :xguide --> label(ind)
@@ -97,7 +95,6 @@ end
 end
 @recipe function f(s::ViolinLike, A::AbstractArray{T,3}) where T
     ds = _revorderdims(A)
-    display(ds)
     A = permutedims(A, ds)
     dep2, dep1, ind = dims(A)
     :xguide --> label(ind)
@@ -117,7 +114,6 @@ end
 end
 @recipe function f(s::HeatMapLike, A::AbstractArray{T,2}) where T
     ds = _revorderdims(A)
-    display(ds)
     A = permutedims(A, ds)
     y, x = dims(A)
     :xguide --> label(x)
