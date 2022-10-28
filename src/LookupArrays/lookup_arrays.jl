@@ -30,7 +30,7 @@ Base.last(l::LookupArray) = last(parent(l))
 Base.firstindex(l::LookupArray) = firstindex(parent(l))
 Base.lastindex(l::LookupArray) = lastindex(parent(l))
 function Base.:(==)(l1::LookupArray, l2::LookupArray)
-    typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
+    basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
 end
 
 ordered_first(l::LookupArray) = l[ordered_firstindex(l)]
@@ -167,6 +167,13 @@ metadata(lookup::AbstractSampled) = lookup.metadata
 locus(lookup::AbstractSampled) = locus(sampling(lookup))
 
 Base.step(lookup::AbstractSampled) = step(span(lookup))
+
+function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
+    order(l1) == order(l2) && 
+    span(l1) == span(l2) && 
+    sampling(l1) == sampling(l2) && 
+    parent(l1) == parent(l2)
+end
 
 for f in (:getindex, :view, :dotview)
     @eval begin
@@ -362,6 +369,10 @@ function rebuild(l::Categorical;
     data=parent(l), order=order(l), metadata=metadata(l), kw...
 )
     Categorical(data, order, metadata)
+end
+
+function Base.:(==)(l1::AbstractCategorical, l2::AbstractCategorical)
+    order(l1) == order(l2) && parent(l1) == parent(l2)
 end
 
 
