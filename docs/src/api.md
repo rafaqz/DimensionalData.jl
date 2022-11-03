@@ -147,6 +147,7 @@ LookupArrays.ArraySelector
 At
 Near
 Between
+Touches
 Contains
 Where
 All

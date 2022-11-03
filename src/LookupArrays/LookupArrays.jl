@@ -28,7 +28,7 @@ export order, sampling, span, bounds, locus, hasselection, transformdim,
     maybeshiftlocus
 
 export Selector
-export At, Between, Contains, Near, Where, All
+export At, Between, Touches, Contains, Near, Where, All
 export ..
 
 export LookupArrayTrait
