@@ -18,17 +18,20 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
       Unknown
 
 using Base: tail, OneTo, @propagate_inbounds
-      
+
 # Ecosystem
-import Adapt, 
+import Adapt,
        ArrayInterfaceCore,
-       ConstructionBase, 
+       ConstructionBase,
        Extents,
        IteratorInterfaceExtensions,
        RecipesBase,
        TableTraits,
        Tables
 
+@static if VERSION < v"1.9"
+    using JuliennedArrays
+end
 using RecipesBase: @recipe
 
 include("Dimensions/Dimensions.jl")
