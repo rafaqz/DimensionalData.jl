@@ -36,7 +36,7 @@ end
     @test l[2] === 4.0
     @test l[CartesianIndex((4,))] == 8.0
     @test l[CartesianIndices((1:3,))] isa Sampled
-    @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing)
+    @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
     l = NoLookup(1:100)
     l = NoLookup(1:100)
     @test l[100] == 100
@@ -57,7 +57,7 @@ end
     @test d[2] === 4.0
     @test d[CartesianIndex((4,))] == 8.0
     @test d[CartesianIndices((3:4,))] isa X{<:Sampled}
-    @test d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing))
+    @test d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(2.0), Points(), nothing))
     d = Y(NoLookup(1:100))
     @test d[100] == 100
     @test d[1:5] isa typeof(d)

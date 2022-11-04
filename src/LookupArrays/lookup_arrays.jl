@@ -30,7 +30,7 @@ Base.last(l::LookupArray) = last(parent(l))
 Base.firstindex(l::LookupArray) = firstindex(parent(l))
 Base.lastindex(l::LookupArray) = lastindex(parent(l))
 function Base.:(==)(l1::LookupArray, l2::LookupArray)
-    basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
+    typeof(l1) == typeof(l2) && parent(l1) == parent(l2)
 end
 
 ordered_first(l::LookupArray) = l[ordered_firstindex(l)]
@@ -167,13 +167,6 @@ metadata(lookup::AbstractSampled) = lookup.metadata
 locus(lookup::AbstractSampled) = locus(sampling(lookup))
 
 Base.step(lookup::AbstractSampled) = step(span(lookup))
-
-function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
-    order(l1) == order(l2) && 
-    span(l1) == span(l2) && 
-    sampling(l1) == sampling(l2) && 
-    parent(l1) == parent(l2)
-end
 
 for f in (:getindex, :view, :dotview)
     @eval begin
@@ -371,10 +364,6 @@ function rebuild(l::Categorical;
     Categorical(data, order, metadata)
 end
 
-function Base.:(==)(l1::AbstractCategorical, l2::AbstractCategorical)
-    order(l1) == order(l2) && parent(l1) == parent(l2)
-end
-
 
 """
     Unaligned <: LookupArray
@@ -476,13 +465,8 @@ function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::StandardIn
     first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : l[first(i) - 1], l[last(i)]
 end
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
-    if length(i) == 0
-        return map(zero, val(span))
-    else
-        f = first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2
-        l = last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
-        return f, l
-    end
+    first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2,
+    last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
 end
 # Have to special-case date/time so we work with seconds and add to the original
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
