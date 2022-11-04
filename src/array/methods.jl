@@ -8,7 +8,7 @@ end
 # Reducing methods
 
 # With a function arg version
-for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), 
+for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum),
                      (:Base, :extrema), (:Statistics, :mean))
     _f = Symbol('_', f)
     @eval begin
@@ -64,7 +64,7 @@ end
 function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
-@static if VERSION >= v"1.6" 
+@static if VERSION >= v"1.6"
     function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
         rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
     end
@@ -107,14 +107,23 @@ end
 # This is copied from base as we can't efficiently wrap this function
 # through the kw with a rebuild in the generator. Doing it this way
 # also makes it faster to use a dim than an integer.
-function Base.eachslice(A::AbstractDimArray; dims=1, kw...)
-    if dims isa Tuple && length(dims) != 1
-        throw(ArgumentError("only single dimensions are supported"))
-    end
-    dim = first(dimnum(A, dims))
-    dim <= ndims(A) || throw(DimensionMismatch("A doesn't have $dim dimensions"))
-    idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
-    return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
+JuliennedArrays.Slices(array::DimArray, dimensions::Symbol...) =
+    JuliennedArrays.Slices(array, dims(array, dimensions))
+JuliennedArrays.Slices(array::DimArray, dimensions::Int...) =
+    JuliennedArrays.Slices(array, dims(array, dimensions))
+
+function JuliennedArrays.Slices(array::DimArray, dimensions::DimensionalData.DimTuple)
+    nums = dimnum(array, dimensions)
+    sliced = invoke(
+        Slices,
+        Tuple{AbstractArray, Vararg{Int}},
+        array, nums...
+    )
+    return DimArray(
+        sliced,
+        otherdims(array, dimensions);
+        refdims=dims(array, dimensions)
+    )
 end
 
 # Duplicated dims
@@ -195,7 +204,7 @@ function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                # vcat the refdims 
+                # vcat the refdims
                 reduce(vcat, map(x -> refdims(x, catdim), Xin))
             else
                 # Use the catdim as the new dimension
@@ -252,7 +261,7 @@ function _vcat_lookups(::Intervals, ::Irregular, lookups...)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
     rebuild(lookups[1]; span=Irregular(newbounds))
 end
-_vcat_lookups(::Points, ::Irregular, lookups...) = 
+_vcat_lookups(::Points, ::Irregular, lookups...) =
     rebuild(first(lookups); span=Irregular(nothing, nothing))
 
 # Index vcat depends on lookup: NoLookup is always Colon()
@@ -288,8 +297,8 @@ Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
 end
 
 # Forward `replace` to parent objects
-function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDimArray, count::Int) 
-    Base._replace!(new, parent(res), parent(A), count) 
+function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDimArray, count::Int)
+    Base._replace!(new, parent(res), parent(A), count)
     return res
 end
 
