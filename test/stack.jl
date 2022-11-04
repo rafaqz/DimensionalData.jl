@@ -142,7 +142,7 @@ end
 
 @testset "methods with no arguments" begin
     @testset "permuting methods" begin
-        @test data(permutedims(s)) == 
+        @test data(permutedims(s)) ==
             (one=[1.0 4.0; 2.0 5.0; 3.0 6.0],
              two=[2.0 8.0; 4.0 10.0; 6.0 12.0],
              three=[3.0 12.0; 6.0 15.0; 9.0 18.0])
@@ -182,7 +182,7 @@ end
         @test sum_  == DimStack(sum(da1; dims=X), sum(da2; dims=X), sum(da3; dims=X))
         @test dims(sum_) == (X(Categorical([:combined]; order=ForwardOrdered())), dims(da1, Y))
         @test prod(s; dims=X) == DimStack(prod(da1; dims=X), prod(da2; dims=X), prod(da3; dims=X))
-        @test dims(maximum(s; dims=X)) == 
+        @test dims(maximum(s; dims=X)) ==
             dims(DimStack(maximum(da1; dims=X), maximum(da2; dims=X), maximum(da3; dims=X)))
         @test minimum(s; dims=X) == DimStack(minimum(da1; dims=X), minimum(da2; dims=X), minimum(da3; dims=X))
         @test mean(s; dims=X()) == DimStack(mean(da1; dims=X), mean(da2; dims=X), mean(da3; dims=X))
@@ -200,8 +200,8 @@ end
     end
 
     @testset "dim dropping methods" begin
-        @test DimensionalData.layers(dropdims(s[X([1])]; dims=X)) == 
-            (one=DimArray([1.0, 2.0, 3.0], dims(da1, Y)), 
+        @test DimensionalData.layers(dropdims(s[X([1])]; dims=X)) ==
+            (one=DimArray([1.0, 2.0, 3.0], dims(da1, Y)),
              two=DimArray([2.0, 4.0, 6.0], dims(da1, Y)),
              three=DimArray([3.0, 6.0, 9.0], dims(da1, Y)))
     end
@@ -209,7 +209,7 @@ end
 end
 
 @testset "permuting methods with an argument" begin
-    @test permutedims(s, (Y, X)) == 
+    @test permutedims(s, (Y, X)) ==
         DimStack(permutedims(da1, (Y, X)), permutedims(da2, (Y, X)), permutedims(da3, (Y, X)))
     @test PermutedDimsArray(s, (Y(), X())) ==
         DimStack(PermutedDimsArray(da1, (Y, X)), PermutedDimsArray(da2, (Y, X)), PermutedDimsArray(da3, (Y, X)))
@@ -227,7 +227,7 @@ end
 
 @testset "reducing methods that take a function" begin
     f = x -> 2x
-    @test data(minimum(f, s; dims=X)) == 
+    @test data(minimum(f, s; dims=X)) ==
         (one=[2.0 4.0 6.0], two=[4.0 8.0 12.0], three=[6.0 12.0 18.0])
     @test data(mean(x -> 2x, s; dims=X())) ==
         (one=mean(2da1; dims=X) , two=mean(2da2; dims=X), three=mean(2da3; dims=X))
@@ -244,4 +244,16 @@ end
     @test maximum(f, s) == (one=12.0, two=24.0, three=36.0)
     @test extrema(f, s) == (one=(2.0, 12.0), two=(4.0, 24.0), three=(6.0, 36.0))
     @test mean(f, s) == (one=7.0, two=14.0, three=21)
+end
+
+@testset "eachslice" begin
+    @test Slices(mixed, 1) isa DimStack
+    @test Slices(mixed, :X) isa DimStack
+    @test Slices(mixed, X) isa DimStack
+    @test eltype(eachslice(mixed; dims=Y)) <: DimArray
+    @test all(map(==, collect(Slices(mixed, Y)), eachslice(mixed; dims=:Y)))
+    @test all(map(==, collect(Slices(mixed, 2)), eachslice(mixed; dims=2)))
+    @static if VERSION ≥ v"1.9"
+        @test eachslice(mixed, X) isa DimStack
+    end
 end

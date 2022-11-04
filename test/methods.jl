@@ -130,7 +130,7 @@ end
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimArray{Int,0,Tuple{}}
-    @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) ==
         (X(Sampled(143:2:143, ForwardOrdered(), Regular(2), Points(), NoMetadata())),)
     dropped = dropdims(da[X(1:1)]; dims=X)
     @test dropped[1:2] == [1, 2]
@@ -161,6 +161,16 @@ end
     end
 
     @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
+
+    @test Slices(da, 1) isa DimArray
+    @test Slices(s, :X) isa DimArray
+    @test Slices(s, X) isa DimArray
+    @test eltype(eachslice(s; dims=Y)) <: DimArray
+    @test all(map(==, collect(Slices(s, Y)), eachslice(mixed; dims=:Y)))
+    @test all(map(==, collect(Slices(s, (1, 2))), eachslice(mixed; dims=(1, 2))))
+    @static if VERSION ≥ v"1.9"
+        @test eachslice(mixed, X) isa DimStack
+    end
 end
 
 @testset "simple dimension permuting methods" begin
@@ -169,7 +179,7 @@ end
     @test tda == transpose(parent(da))
     resultdims = (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                   Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
-    @test typeof(dims(tda)) == typeof(resultdims) 
+    @test typeof(dims(tda)) == typeof(resultdims)
     @test dims(tda) == resultdims
     @test size(tda) == (4, 5)
 
@@ -243,14 +253,14 @@ end
     for dims in xs
         cvda = cov(da; dims=X)
         @test cvda == cov(a; dims=2)
-        @test DimensionalData.dims(cvda) == 
+        @test DimensionalData.dims(cvda) ==
             (Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())),
              Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
     end
     for dims in ys
         crda = cor(da; dims)
         @test crda == cor(a; dims=1)
-        @test DimensionalData.dims(crda) == 
+        @test DimensionalData.dims(crda) ==
             (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
              X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())))
     end
@@ -260,7 +270,7 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    y = Y(Sampled(10:10:30; sampling=Intervals())) 
+    y = Y(Sampled(10:10:30; sampling=Intervals()))
     ti = Ti(Sampled(1:4; sampling=Intervals()))
     da = DimArray(a, (y, ti))
     ys = (1, Y, Y(), :Y, y)
@@ -268,7 +278,7 @@ end
     for dims in ys
         ms = mapslices(sum, da; dims)
         @test ms == [9 12 15 18]
-        @test DimensionalData.dims(ms) == 
+        @test DimensionalData.dims(ms) ==
             (Y(Sampled(10:10:30, ForwardOrdered(), Regular(10), Intervals(Center()), NoMetadata())),
              Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
         @test refdims(ms) == ()
@@ -305,7 +315,7 @@ end
 
     @testset "Irregular Sampled" begin
         @testset "Intervals" begin
-            iri_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())), 
+            iri_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())),
                            X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Intervals(), NoMetadata())))
             @test span(iri_dim) == Irregular(1, 9)
             @test index(iri_dim) == [1, 3, 4, 7, 8]
@@ -313,7 +323,7 @@ end
             @test bounds(lookup(iri_dim)) == (1, 9)
         end
         @testset "Points" begin
-            irp_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Points(), NoMetadata())), 
+            irp_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Points(), NoMetadata())),
                            X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Points(), NoMetadata())))
             @test span(irp_dim) == Irregular(nothing, nothing)
             @test index(irp_dim) == [1, 3, 4, 7, 8]
@@ -366,7 +376,7 @@ end
             @test diff(A; dims) == DimArray([111 93 -169 142; 98 -55 110 -131], (Y(['a', 'b']), ti))
         end
         for dims in tis
-            @test diff(A; dims) == 
+            @test diff(A; dims) ==
                 DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 1):Month(1):DateTime(2021, 3))))
         end
         @test_throws ErrorException diff(A; dims='X')

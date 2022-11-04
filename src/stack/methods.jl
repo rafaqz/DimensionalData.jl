@@ -58,7 +58,7 @@ function _maybestack(
 end
 
 _firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
+_firststack(arg1, args...) = _firststack(args...)
 _firststack() = nothing
 
 """
@@ -156,3 +156,14 @@ for fname in (:one, :oneunit, :zero, :copy, :deepcopy)
 end
 
 Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+
+Base.eachslice(A::AbstractDimStack; dims=1) = _slice(A, dims)
+_slice(A::AbstractDimStack, dim) = _slice(A, dims(A, tuple(dim)))
+function _slice(A::AbstractDimStack, dimensions::Tuple)
+    dimensions = dimnum(A, dimensions)
+    sliced = map(A) do array
+        array_dims = intersect(dimnum(array, dims(array)), dimensions)
+        Slices(array, array_dims...)
+    end
+    return sliced
+end

@@ -18,17 +18,20 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
       Unknown
 
 using Base: tail, OneTo, @propagate_inbounds
-      
+
 # Ecosystem
-import Adapt, 
+import Adapt,
        ArrayInterfaceCore,
-       ConstructionBase, 
+       ConstructionBase,
        Extents,
        IteratorInterfaceExtensions,
        RecipesBase,
        TableTraits,
        Tables
 
+@static if VERSION < v"1.9"
+    using JuliennedArrays
+end
 using RecipesBase: @recipe
 
 include("Dimensions/Dimensions.jl")
@@ -36,7 +39,7 @@ include("Dimensions/Dimensions.jl")
 using .Dimensions
 using .Dimensions.LookupArrays
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimType, AllDims
-import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
+import .LookupArrays: metadata, set, _set, rebuild, basetypeof,
     order, span, sampling, locus, val, index, bounds, hasselection, units, SelectorOrInterval
 import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
 
