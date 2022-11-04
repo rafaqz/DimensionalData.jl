@@ -213,8 +213,6 @@ Regular() = Regular(AutoStep())
 val(span::Regular) = span.step
 
 Base.step(span::Regular) = span.step
-Base.:(==)(l1::Regular, l2::Regular) = val(l1) == val(l2)
-
 
 """
     Irregular <: Span
@@ -236,8 +234,6 @@ Irregular(lowerbound, upperbound) = Irregular((lowerbound, upperbound))
 bounds(span::Irregular) = span.bounds
 val(span::Irregular) = span.bounds
 
-Base.:(==)(l1::Irregular, l2::Irregular) = val(l1) == val(l2)
-
 """
     Explicit(bounds::AbstractMatix)
 
@@ -252,7 +248,6 @@ end
 Explicit() = Explicit(AutoBounds())
 
 val(span::Explicit) = span.val
-Base.:(==)(l1::Explicit, l2::Explicit) = val(l1) == val(l2)
 
 """
     AutoIndex

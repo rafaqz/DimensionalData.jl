@@ -38,7 +38,7 @@ for da in (da1_regular, da1_noindex, da1_categorical, da1_z)
         dotplot(da1)
         boxplot(da1)
         violin(da1)
-        # broken in StatsPlots marginalhist(da1)
+        marginalhist(da1)
         ea_histogram(da1)
         density(da1)
     end

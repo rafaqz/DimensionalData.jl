@@ -3,28 +3,6 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
 
-
-@testset "equality" begin
-    ind = 10:14
-    n = NoLookup(ind)
-    c = Categorical(ind; order=ForwardOrdered())
-    cr = Categorical(reverse(ind); order=ReverseOrdered())
-    s = Sampled(ind; order=ForwardOrdered(), sampling=Points(), span=Regular(1))
-    si = Sampled(ind; order=ForwardOrdered(), sampling=Intervals(), span=Regular(1))
-    sir = Sampled(ind; order=ForwardOrdered(), sampling=Intervals(), span=Irregular())
-    sr = Sampled(reverse(ind); order=ReverseOrdered(), sampling=Points(), span=Regular(1))
-    @test n == n
-    @test c == c
-    @test s == s
-    @test n != s
-    @test n != c
-    @test c != s
-    @test sr != s
-    @test si != s
-    @test sir != s
-    @test cr != c
-end
-
 @testset "isrev" begin
     @test isrev(ForwardOrdered()) == false
     @test isrev(ForwardOrdered()) == false
