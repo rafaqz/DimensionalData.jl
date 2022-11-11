@@ -31,6 +31,7 @@ import Adapt,
 
 @static if VERSION < v"1.9"
     using JuliennedArrays
+    export JuliennedArrays
 end
 using RecipesBase: @recipe
 
