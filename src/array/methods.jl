@@ -104,18 +104,15 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-# This is copied from base as we can't efficiently wrap this function
-# through the kw with a rebuild in the generator. Doing it this way
-# also makes it faster to use a dim than an integer.
-JuliennedArrays.Slices(array::DimArray, dimensions::Symbol...) =
-    JuliennedArrays.Slices(array, dims(array, dimensions))
-JuliennedArrays.Slices(array::DimArray, dimensions::Int...) =
-    JuliennedArrays.Slices(array, dims(array, dimensions))
+eachslice(array::DimArray, dimensions::Symbol...) =
+    eachslice(array, dims(array, dimensions))
+eachslice(array::DimArray, dimensions::Int...) =
+    eachslice(array, dims(array, dimensions))
 
-function JuliennedArrays.Slices(array::DimArray, dimensions::DimensionalData.DimTuple)
+function eachslice(array::DimArray, dimensions::DimensionalData.DimTuple)
     nums = dimnum(array, dimensions)
     sliced = invoke(
-        Slices,
+        eachslice,
         Tuple{AbstractArray, Vararg{Int}},
         array, nums...
     )

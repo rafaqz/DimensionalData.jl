@@ -167,3 +167,4 @@ function _slice(A::AbstractDimStack, dimensions::Tuple)
     end
     return sliced
 end
+Slices(x::AbstractDimStack, args...) = eachslice(x; dims=args)

@@ -247,13 +247,13 @@ end
 end
 
 @testset "eachslice" begin
-    @test Slices(mixed, 1) isa DimStack
-    @test Slices(mixed, :X) isa DimStack
-    @test Slices(mixed, X) isa DimStack
     @test eltype(eachslice(mixed; dims=Y)) <: DimArray
-    @test all(map(==, collect(Slices(mixed, Y)), eachslice(mixed; dims=:Y)))
-    @test all(map(==, collect(Slices(mixed, 2)), eachslice(mixed; dims=2)))
+    @test all(map(==, collect(eachslice(mixed; dims=Y)), eachslice(mixed; dims=:Y)))
+    @test all(map(==, collect(eachslice(mixed; dims=2)), eachslice(mixed; dims=2)))
     @static if VERSION ≥ v"1.9"
-        @test eachslice(mixed, X) isa DimStack
+        @test eachslice(mixed; dims=1) isa DimStack
+        @test eachslice(mixed; dims=:X) isa DimStack
+        @test eachslice(mixed; dims=X) isa DimStack
+        @test eachslice(mixed; dims=X) isa DimStack
     end
 end

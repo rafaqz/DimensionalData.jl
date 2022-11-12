@@ -161,15 +161,13 @@ end
     end
 
     @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
-
-    @test Slices(da, 1) isa DimArray
-    @test Slices(s, :X) isa DimArray
-    @test Slices(s, X) isa DimArray
     @test eltype(eachslice(s; dims=Y)) <: DimArray
-    @test all(map(==, collect(Slices(s, Y)), eachslice(mixed; dims=:Y)))
-    @test all(map(==, collect(Slices(s, (1, 2))), eachslice(mixed; dims=(1, 2))))
+    @test all(map(==, collect(eachslice(s; dims=Y)), eachslice(mixed; dims=:Y)))
     @static if VERSION ≥ v"1.9"
         @test eachslice(mixed, X) isa DimStack
+        @test eachslice(da; dims=1) isa DimArray
+        @test eachslice(s; dims=:X) isa DimArray
+        @test eachslice(s; dims=X) isa DimArray
     end
 end
 
