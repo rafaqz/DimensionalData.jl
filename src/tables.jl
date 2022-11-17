@@ -76,7 +76,7 @@ struct DimArrayColumn{T,A<:AbstractDimArray{T},DS,DL,L} <: AbstractVector{T}
     dimlengths::DL
     length::L
 end
-function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTuple) where T
+function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTupleOrEmpty) where T
     # This is the apparent stride for indexing purposes,
     # it is not always the real array stride
     dimstrides = map(d -> dimstride(alldims, d), dims(A))
