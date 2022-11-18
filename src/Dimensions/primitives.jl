@@ -488,8 +488,8 @@ function comparedims end
 @inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}; kw...) =
     map(d -> comparedims(first(dims), d), dims; kw...) |> first
 
-@inline comparedims(a::DimTuple, ::Nothing; kw...) = a
-@inline comparedims(::Nothing, b::DimTuple; kw...) = b
+@inline comparedims(a::DimTupleOrEmpty, ::Nothing; kw...) = a
+@inline comparedims(::Nothing, b::DimTupleOrEmpty; kw...) = b
 @inline comparedims(::Nothing, ::Nothing; kw...) = nothing
 # Cant use `map` here, tuples may not be the same length
 @inline comparedims(a::DimTuple, b::DimTuple; kw...) =
