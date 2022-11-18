@@ -37,7 +37,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     _dims = _broadcasted_dims(bc)
     A = _firstdimarray(bc)
     data = copy(_unwrap_broadcasted(bc))
-    return if A isa Nothing || _dims isa Nothing
+    return if A isa Nothing || _dims isa Nothing || ndims(A) == 0
         data
     else
         rebuild(A, data, _dims, refdims(A), Symbol(""))
