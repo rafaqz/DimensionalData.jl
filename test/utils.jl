@@ -137,6 +137,13 @@ end
 
     @test_throws DimensionMismatch broadcast_dims!(+, db1, zeros(Z(3)))
     @test broadcast_dims(+, db1, ones(Z(3))) == [2.0 2.0 2.0; 3.0 3.0 3.0; 4.0 4.0 4.0]
+
+    @testset "works with 0-dimensional arrays" begin
+        da4 = DimArray(fill(4), ())
+        @test broadcast_dims(+, da4, da4) == DimArray(fill(8), ())
+        @test broadcast_dims(*, da4, da3) == parent(da4) .* parent(da3)
+        @test dims(broadcast_dims(*, da4, da3)) == dims(da3)
+    end
 end
 
 @testset "shiftlocus" begin
@@ -196,7 +203,7 @@ end
                                                         3.5 2.5 1.5]
     end
     @testset "Explicit span" begin
-        dim = X(Sampled(1.0:3.0, ForwardOrdered(), 
+        dim = X(Sampled(1.0:3.0, ForwardOrdered(),
                 Explicit([0.0 1.0 2.0; 1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
         @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                         1.0 2.0 3.0]
