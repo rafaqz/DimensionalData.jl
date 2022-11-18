@@ -121,6 +121,14 @@ end
     @test A == [1.0 1.0; 2.0 2.0; 7.0 7.0]
 end
 
+@testset "0-dimensional array broadcasting" begin
+    x = DimArray(fill(3), ())
+    y = DimArray(fill(4), ())
+    @test @inferred(x .- y) === -1
+    @test !(x ≈ y)
+    @test x ≈ x
+end
+
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))
