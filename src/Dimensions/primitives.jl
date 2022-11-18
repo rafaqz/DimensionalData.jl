@@ -458,6 +458,8 @@ cell step, sampling type and order.
 @inline _reducedims(dim::Dimension, ::Nothing) = dim
 @inline _reducedims(dim::Dimension, ::DimOrDimType) = rebuild(dim, reducelookup(lookup(dim)))
 
+const DimTupleOrEmpty = Union{DimTuple,Tuple{}}
+
 """
     comparedims(A::AbstractDimArray...; kw...)
     comparedims(A::Tuple...; kw...)
@@ -512,8 +514,6 @@ function comparedims end
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
     return a
 end
-
-const DimTupleOrEmpty = Union{DimTuple,Tuple{}}
 
 """
     combinedims(xs; check=true)
