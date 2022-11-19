@@ -22,6 +22,10 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     @test dims2indices(dimz, CartesianIndex(1, 1)) == (CartesianIndex(1, 1),)
     @test dims2indices(dimz[1], 1) == 1
     @test dims2indices(dimz[1], X(2)) == 2
+
+    da2 = DimArray(fill(3), ())
+    dimz2 = dims(da2)
+    @test dims2indices(dimz2, ()) === ()
 end
 
 @testset "lookup" begin
