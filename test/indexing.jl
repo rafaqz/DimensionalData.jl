@@ -203,7 +203,29 @@ end
             (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test bounds(v) == ((-38.0, -36.0),)
 
-        @test view(da, 1) == fill(1)
+        @testset "view with all dimensions indexed returns 0-dimensional DimArray" begin
+            da0 = DimArray(fill(3), ())
+            da1 = DimArray(randn(2), X(1:2))
+            da2 = DimArray(randn(2, 3), (X(1:2), Y(1:3)))
+
+            for inds in ((), (1,), (1, 1), (1, 1, 1), CartesianIndex(), CartesianIndices(da0))
+                @test view(da0, inds...) isa DimArray{eltype(da0),0}
+                @test typeof(parent(view(da0, inds...))) === typeof(view(parent(da0), inds...))
+                @test parent(view(da0, inds...)) == view(parent(da0), inds...)
+            end
+
+            for inds in ((1,), (1, 1), (2, 1, 1), (CartesianIndex(2),))
+                @test view(da1, inds...) isa DimArray{eltype(da1),0}
+                @test typeof(parent(view(da1, inds...))) === typeof(view(parent(da1), inds...))
+                @test parent(view(da1, inds...)) == view(parent(da1), inds...)
+            end
+
+            for inds in ((2,), (2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+                @test view(da2, inds...) isa DimArray{eltype(da2),0}
+                @test typeof(parent(view(da2, inds...))) === typeof(view(parent(da2), inds...))
+                @test parent(view(da2, inds...)) == view(parent(da2), inds...)
+            end
+        end
     end
 
     @testset "setindex!" begin
