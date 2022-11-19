@@ -132,3 +132,11 @@ end
     @test dims(ds) == dims(da)
     @test lookup(ds) == lookup(dims(da))
 end
+
+@testset "zero dimension tables" begin
+    a = DimArray(fill(1), (); name=:a);
+    b = DimArray(fill(2), (); name=:b);
+    ds = DimStack((a, b))
+    @test Tables.columntable(a) == (a = [1],)
+    @test Tables.columntable(ds) == (a = [1], b = [2])
+end
