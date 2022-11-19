@@ -379,6 +379,14 @@ end
             # Its not clear if this should work or not
             @test_broken linear1d isa DimStack
         end
+        @testset "0-dimensional return layers" begin
+            ds = view(s, X(1), Y(1))
+            @test ds isa DimStack
+            @test dims(ds) === ()
+            @test view(s, X(1), Y(2))[:one] == view(da1, X(1), Y(2))
+            @test view(s, X(1), Y(1))[:two] == view(da2, X(1), Y(1))
+            @test view(s, X(2), Y(3))[:three] == view(da3, X(2), Y(3))
+        end
     end
 
     @testset "setindex!" begin
