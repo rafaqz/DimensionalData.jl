@@ -14,6 +14,7 @@ jobs:
       matrix:
         version:
           - '1'
+          - 'alpha'
         os:
           - ubuntu-latest
           - macOS-latest
