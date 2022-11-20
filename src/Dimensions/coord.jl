@@ -8,6 +8,11 @@ CoordLookupArray(data, dims; metadata=NoMetadata()) = CoordLookupArray(data, dim
 dims(m::CoordLookupArray) = m.dims
 order(m::CoordLookupArray) = Unordered()
 
+function LookupArrays.show_properties(io::IO, mime, lookup::CoordLookupArray)
+    print(io, " ")
+    show(io, mime, dims(lookup))
+end
+
 """
     Coord <: Dimension
 
