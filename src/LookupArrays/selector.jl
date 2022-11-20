@@ -11,6 +11,7 @@ Selectors provided in DimensionalData are:
 
 - [`At`](@ref)
 - [`Between`](@ref)
+- [`Touches`](@ref)
 - [`Near`](@ref)
 - [`Where`](@ref)
 - [`Contains`](@ref)
@@ -427,55 +428,46 @@ function selectindices(lookup::LookupArray, sel::Between{<:AbstractVector})
     end
 end
 
+# between
+# returns a UnitRange from an Interval
 function between(l::LookupArray, sel::Between)
     a, b = _sorttuple(sel)
     return between(l, a..b)
 end
+# NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
     x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
     return ceil(Int, x.left):floor(Int, x.right) 
 end
-between(l::LookupArray, sel::Interval) = between(sampling(l), l, sel)
+between(l::LookupArray, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
-function between(sampling::Sampling, l::LookupArray, sel::Interval)
+function between(sampling::Sampling, l::LookupArray, interval::Interval)
     o = order(l)
     o isa Unordered && throw(ArgumentError("Cannot use an interval or `Between` with Unordered"))
-    between(sampling, o, l, sel)
+    between(sampling, o, l, interval)
 end
 
-_to_closed(T, i::Interval{:closed,:closed}) = i
-_to_closed(T, i::Interval{:open,:open}) = (i.left + _minstep(T))..(i.right - _minstep(T))
-_to_closed(T, i::Interval{:closed,:open}) = i.left..(i.right - _minstep(T))
-_to_closed(T, i::Interval{:open,:closed}) = (i.left + _minstep(T))..i.right
-
-# Maybe not the best way to do this but manipulating <= > etc
-# inside `searchsorted` is already too complicated.
-_minstep(T) = eps(T)
-_minstep(T::Type{<:Integer}) = one(T)
-_minstep(T::Type{<:Char}) = 1
-
-function between(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Interval)
-    between(Points(), o, l, sel)
+function between(sampling::NoSampling, o::Ordered, l::LookupArray, interval::Interval)
+    between(Points(), o, l, interval)
 end
 
-function between(sampling, o::Ordered, l::LookupArray, sel::Interval)
+function between(sampling, o::Ordered, l::LookupArray, interval::Interval)
     lowerbound, upperbound = bounds(l)
-    lowsel, highsel = endpoints(sel)
+    lowsel, highsel = endpoints(interval)
     a = if lowsel > upperbound
         ordered_lastindex(l) + _ordscalar(o)
     elseif lowsel < lowerbound
         ordered_firstindex(l)
     else
-        _between_side(_Lower(), o, span(l), sampling, l, sel, lowsel)
+        _between_side(_Lower(), o, span(l), sampling, l, interval, lowsel)
     end
     b = if highsel < lowerbound
         ordered_firstindex(l) - _ordscalar(o)
     elseif highsel > upperbound
         ordered_lastindex(l)
     else
-        _between_side(_Upper(), o, span(l), sampling, l, sel, highsel)
+        _between_side(_Upper(), o, span(l), sampling, l, interval, highsel)
     end
-    # Fix empty range values
     a, b = _maybeflipbounds(o, (a, b))
     # Fix empty range values
     if a > b
@@ -491,48 +483,51 @@ function between(sampling, o::Ordered, l::LookupArray, sel::Interval)
 end
 
 # Points -------------------------
-function _between_side(side::_Lower, o::Ordered, span, ::Points, l, sel, v)
+function _between_side(side::_Lower, o::Ordered, span, ::Points, l, interval, v)
     i = v <= bounds(l)[1] ? ordered_firstindex(l) : _searchfunc(side, o)(l, v)
-    return _close_interval(side, l, sel, l[i], i)
+    return _close_interval(side, l, interval, l[i], i)
 end
-function _between_side(side::_Upper, o::Ordered, span, ::Points, l, sel, v)
+function _between_side(side::_Upper, o::Ordered, span, ::Points, l, interval, v)
     i = v >= bounds(l)[2] ? ordered_lastindex(l) : _searchfunc(side, o)(l, v)
-    return _close_interval(side, l, sel, l[i], i)
+    return _close_interval(side, l, interval, l[i], i)
 end
 
 # Regular Intervals -------------------------
 # Adjust the value for the lookup locus before search
-function _between_side(side, o::Ordered, ::Regular, ::Intervals, l, sel, v)
+function _between_side(side, o::Ordered, ::Regular, ::Intervals, l, interval, v)
     adj = _locus_adjust(side, l)
     v1 = v + adj
-    s = _ordscalar(o)
     i = _searchfunc(side, o)(l, v1)
-    fi, li = firstindex(l), lastindex(l)
-    v2 = if i > li
-        l[li] + adj
-    elseif i < fi
-        l[fi] + adj
+    # Sideshift (1 or -1) expands the selection to the outside of any touched intervals
+    # We multiply by ordscalar (1 or -1) to allow for reversed lookups.
+    i1 = i # + _sideshift(side) * _ordscalar(o)
+    # Now find the edge of the cell and check that is not the edge of
+    # an open interval. If so shrink the selected range.
+    cellbound = if i > lastindex(l)
+        l[end] + adj
+    elseif i < firstindex(l)
+        l[begin] + adj
     else
         l[i] - adj
     end
-    return _close_interval(side, l, sel, v2, i)
+    return _close_interval(side, l, interval, cellbound, i)
 end
 
-_locus_adjust(side, l) = _locus_adjust(side, locus(l), abs(step(span(l))))
-_locus_adjust(::_Lower, locus::Start, step) = zero(step)
-_locus_adjust(::_Upper, locus::Start, step) = -step
-_locus_adjust(::_Lower, locus::Center, step) = step/2
-_locus_adjust(::_Upper, locus::Center, step) = -step/2
-_locus_adjust(::_Lower, locus::End, step) = step
-_locus_adjust(::_Upper, locus::End, step) = -zero(step)
-
 # Explicit Intervals -------------------------
-# Rebuild the lookup with the bounds matrix values before searching
-function _between_side(side, o::Ordered, span::Explicit, ::Intervals, l, sel, v)
+function _between_side(side, o::Ordered, span::Explicit, ::Intervals, l, interval, v)
+    # Rebuild the lookup with the lower or upper bounds matrix values before searching
     boundsvec = side isa _Lower ? view(val(span), 1, :) : view(val(span), 2, :)
     l1 = rebuild(l; data=boundsvec)
+    # Search for the cell boundary
     i = _searchfunc(side, o)(l1, v)
-    return checkbounds(Bool, l1, i) ? (@inbounds _close_interval(side, l1, sel, l1[i], i)) : i
+    # Add sideshift (1 or -1) to expand the selection to the outside of any touched intervals
+    # If i is in bounds, check the cell boundary is not the edge of an open interval
+    return if checkbounds(Bool, l1, i)
+        @inbounds cellbound = l1[i]
+        _close_interval(side, l1, interval, cellbound, i)
+    else
+        i
+    end
 end
 
 # Irregular Intervals -----------------------
@@ -543,22 +538,23 @@ end
 #
 # Find the inteval the value falls in.
 # We need to special-case Center locus for Irregular
-_between_side(side, o, span::Irregular, ::Intervals, l, sel, v) = _irreg_side(side, locus(l), o, l, sel, v)
+_between_side(side, o, span::Irregular, ::Intervals, l, interval, v) =
+    _between_irreg_side(side, locus(l), o, l, interval, v)
 
-function _irreg_side(side, locus::Union{Start,End}, o, l, sel, v)
-    s = _ordscalar(o)
+function _between_irreg_side(side, locus::Union{Start,End}, o, l, interval, v)
     if v == bounds(l)[1]
         i = ordered_firstindex(l)
-        v1 = v
+        cellbound = v
     elseif v == bounds(l)[2]
         i = ordered_lastindex(l)
-        v1 = v
+        cellbound = v
     else
+        s = _ordscalar(o) 
         # Search for the value and offset per order/locus/side
         i = _searchfunc(o)(l, v; lt=_lt(side))
-        i += - s * (_locscalar(locus) + _sideshift(side))
+        i -= s * (_locscalar(locus) + _sideshift(side))
         # Get the value on the interval edge
-        v1 = if i < firstindex(l)
+        cellbound = if i < firstindex(l)
             _maybeflipbounds(l, bounds(l))[1]
         elseif i > lastindex(l)
             _maybeflipbounds(l, bounds(l))[2]
@@ -570,15 +566,15 @@ function _irreg_side(side, locus::Union{Start,End}, o, l, sel, v)
             l[i]
         end
     end
-    return _close_interval(side, l, sel, v1, i)
+    return _close_interval(side, l, interval, cellbound, i)
 end
-function _irreg_side(side, locus::Center, o, l, sel, v)
+function _between_irreg_side(side, locus::Center, o, l, interval, v)
     if v == bounds(l)[1]
         i = ordered_firstindex(l)
-        v1 = v
+        cellbound = v
     elseif v == bounds(l)[2]
         i = ordered_lastindex(l)
-        v1 = v
+        cellbound = v
     else
         r = _ordscalar(o)
         sh = _sideshift(side)
@@ -593,19 +589,27 @@ function _irreg_side(side, locus::Center, o, l, sel, v)
             i - (1 + sh) * r
         end
         shift = side isa _Lower ? -half_step : half_step
-        v1 = l[i] + shift
+        cellbound = l[i] + shift
     end
-    return _close_interval(side, l, sel, v1, i)
+    return _close_interval(side, l, interval, cellbound, i)
 end
 
 
-_close_interval(side, l, sel, v, i) = i
-function _close_interval(side::_Lower, l, sel::Interval{:open,<:Any}, v, i)
-    v in sel ? i : i + _ordscalar(l)
+_close_interval(side, l, interval, cellbound, i) = i
+function _close_interval(side::_Lower, l, interval::Interval{:open,<:Any}, cellbound, i)
+    cellbound == interval.left ? i + _ordscalar(l) : i
 end
-function _close_interval(side::_Upper, l, sel::Interval{<:Any,:open}, v, i)
-    v in sel ? i : i - _ordscalar(l)
+function _close_interval(side::_Upper, l, interval::Interval{<:Any,:open}, cellbound, i)
+    cellbound == interval.right ? i - _ordscalar(l) : i
 end
+
+_locus_adjust(side, l) = _locus_adjust(side, locus(l), abs(step(span(l))))
+_locus_adjust(::_Lower, locus::Start, step) = zero(step)
+_locus_adjust(::_Upper, locus::Start, step) = -step
+_locus_adjust(::_Lower, locus::Center, step) = step/2
+_locus_adjust(::_Upper, locus::Center, step) = -step/2
+_locus_adjust(::_Lower, locus::End, step) = step
+_locus_adjust(::_Upper, locus::End, step) = -zero(step)
 
 _locscalar(::Start) = 1
 _locscalar(::End) = 0
@@ -622,6 +626,186 @@ _maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds)
 _maybeflipbounds(o::ForwardOrdered, (a, b)) = (a, b)
 _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
 _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
+
+"""
+    Touches <: ArraySelector
+
+    Touches(a, b)
+
+Selector that retreives all indices touching the closed interval 2 values,
+for the maximum possible area that could interact with the supplied range.
+
+This can be better than `..` when e.g. subsetting an area to rasterize, as
+you may wish to include pixels that just touch the area, rather than those
+that fall within it.
+
+Touches is different to using closed intervals when the lookups also
+contain intervals - if any of the intervals touch, they are included.
+With `..` they are discarded unless the whole cell interval falls inside
+the selector interval.
+
+## Example
+
+```jldoctest
+using DimensionalData
+
+A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
+A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
+
+# output
+
+```
+"""
+struct Touches{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
+    val::T
+end
+Touches(args...) = Touches(args)
+
+Base.first(sel::Touches) = first(val(sel))
+Base.last(sel::Touches) = last(val(sel))
+
+selectindices(l::LookupArray, sel::Touches) = touches(l, sel)
+function selectindices(lookup::LookupArray, sel::Touches{<:AbstractVector})
+    inds = Int[]
+    for v in val(sel)
+        append!(inds, selectindices(lookup, rebuild(sel; val=v)))
+    end
+end
+
+# touches for tuple intervals
+# returns a UnitRange like Touches/Interval but for cells contained
+# NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
+function touches(l::NoLookup, sel::Touches)
+    x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
+    return ceil(Int, x[1]):floor(Int, x[2]) 
+end
+touches(l::LookupArray, sel::Touches) = touches(sampling(l), l, sel)
+# This is the main method called above
+function touches(sampling::Sampling, l::LookupArray, sel::Touches)
+    o = order(l)
+    o isa Unordered && throw(ArgumentError("Cannot use an sel or `Between` with Unordered"))
+    touches(sampling, o, l, sel)
+end
+
+function touches(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Touches)
+    touches(Points(), o, l, sel)
+end
+
+function touches(sampling, o::Ordered, l::LookupArray, sel::Touches)
+    lowerbound, upperbound = bounds(l)
+    lowsel, highsel = val(sel)
+    a = if lowsel > upperbound
+        ordered_lastindex(l) + _ordscalar(o)
+    elseif lowsel < lowerbound
+        ordered_firstindex(l)
+    else
+        _touches(_Lower(), o, span(l), sampling, l, sel, lowsel)
+    end
+    b = if highsel < lowerbound
+        ordered_firstindex(l) - _ordscalar(o)
+    elseif highsel > upperbound
+        ordered_lastindex(l)
+    else
+        _touches(_Upper(), o, span(l), sampling, l, sel, highsel)
+    end
+    a, b = _maybeflipbounds(o, (a, b))
+    # Fix empty range values
+    if a > b
+        if b < firstindex(l)
+            return firstindex(l):(firstindex(l) - 1)
+        elseif a > lastindex(l)
+            return (lastindex(l) + 1):lastindex(l)
+        end
+    else
+        return a:b
+    end
+    return a:b
+end
+
+# Points -------------------------
+function _touches(side::_Lower, o::Ordered, span, ::Points, l, sel, v)
+    i = v <= bounds(l)[1] ? ordered_firstindex(l) : _searchfunc(side, o)(l, v)
+    return i
+end
+function _touches(side::_Upper, o::Ordered, span, ::Points, l, sel, v)
+    i = v >= bounds(l)[2] ? ordered_lastindex(l) : _searchfunc(side, o)(l, v)
+    return i
+end
+
+# Regular Intervals -------------------------
+# Adjust the value for the lookup locus before search
+function _touches(side, o::Ordered, ::Regular, ::Intervals, l, sel, v)
+    adj = _locus_adjust(side, l)
+    v1 = v + adj
+    i = _searchfunc(side, o)(l, v1)
+    # Sideshift (1 or -1) expands the selection to the outside of any touched sels
+    # We multiply by ordscalar (1 or -1) to allow for reversed lookups.
+    i1 = i + _sideshift(side) * _ordscalar(o)
+    # Finally we need to make sure i2 is still inbounds after adding sideshift
+    return min(max(i1, firstindex(l)), lastindex(l))
+end
+
+# Explicit Intervals -------------------------
+function _touches(side, o::Ordered, span::Explicit, ::Intervals, l, sel, v)
+    # Rebuild the lookup with the lower or upper bounds matrix values before searching
+    boundsvec = side isa _Lower ? view(val(span), 1, :) : view(val(span), 2, :)
+    l1 = rebuild(l; data=boundsvec)
+    # Search for the cell boundary
+    i = _searchfunc(side, o)(l1, v)
+    # Add sideshift (1 or -1) to expand the selection to the outside of any touched sels
+    i1 = i + _sideshift(side) * _ordscalar(o)
+    # Finally we need to make sure i2 is still inbounds after adding sideshift
+    return min(max(i1, firstindex(l)), lastindex(l))
+end
+
+# Irregular Intervals -----------------------
+#
+# This works a little differently to Regular variants, 
+# as we have to work with unequal step sizes, calculating them
+# as we find close values.
+#
+# Find the inteval the value falls in.
+# We need to special-case Center locus for Irregular
+_touches(side, o, span::Irregular, ::Intervals, l, sel, v) =
+    _touches_irreg_side(side, locus(l), o, l, sel, v)
+
+function _touches_irreg_side(side, locus::Union{Start,End}, o, l, sel, v)
+    i = if v == bounds(l)[1]
+        ordered_firstindex(l)
+    elseif v == bounds(l)[2]
+        ordered_lastindex(l)
+    else
+        # Search for the value and offset per order/locus/side
+        _searchfunc(o)(l, v; lt=_lt(side)) - _ordscalar(o) * _locscalar(locus)
+    end
+    return i
+end
+function _touches_irreg_side(side, locus::Center, o, l, sel, v)
+    if v == bounds(l)[1]
+        i = ordered_firstindex(l)
+    elseif v == bounds(l)[2]
+        i = ordered_lastindex(l)
+    else
+        i = _searchfunc(o)(l, v; lt=_lt(side))
+        i1 = i - _ordscalar(o)
+        # We are at the start or end, return i
+        if (i1 < firstindex(l) ||  i1 > lastindex(l)) 
+            i
+        else
+            # Calculate the size of the current step
+            half_step = abs(l[i] - l[i1]) / 2
+            distance = abs(l[i] - v)
+            # Use the correct less than </<= to match sel bounds
+            i = if _lt(side)(distance, half_step)
+                i
+            else
+                i1
+            end
+        end
+    end
+    return i
+end
+
 
 """
     Where <: ArraySelector

@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: between, at, near, contains
+using .LookupArrays: between, touches, at, near, contains
 
 a = [1 2  3  4
      5 6  7  8
@@ -149,6 +149,72 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endrev, Interval{:closed,:open}(12.1..15.0)) === 17:17
         end
 
+        # Essentially as `between` above but with smaller intervals
+        @testset "Start touches" begin
+            @test touches(startfwd, Touches(0, 10.9)) === 1:0
+            @test touches(startfwd, Touches(0, 11)) === 1:1
+            @test touches(startfwd, Touches(31, 31)) === 20:20
+            @test touches(startfwd, Touches(31, 50)) === 20:20
+            @test touches(startfwd, Touches(31.1, 50)) === 21:20
+            @test touches(startrev, Touches(0, 10.9)) === 21:20
+            @test touches(startrev, Touches(0, 11)) === 20:20
+            @test touches(startrev, Touches(31, 50)) === 1:1
+            @test touches(startrev, Touches(31.1, 50)) === 1:0
+            @test touches(startfwd, Touches(0, 40)) === 1:20
+            @test touches(startrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(startfwd, Touches(12.0, 30.0)) === 1:20
+            @test touches(startrev, Touches(12.0, 30.0)) === 1:20
+            # Intervals
+            @test touches(startfwd, Touches(13.0, 14.0)) === 2:4
+            @test touches(startfwd, Touches(13.1, 13.9)) === 3:3
+            @test touches(startrev, Touches(13.0, 14.0)) === 17:19
+            @test touches(startrev, Touches(13.1, 13.9)) === 18:18
+        end
+
+        @testset "Center touches" begin
+            @test touches(centerfwd, Touches(0, 10.4)) === 1:0
+            @test touches(centerfwd, Touches(0, 10.5)) === 1:1
+            @test touches(centerfwd, Touches(30.0, 30.0)) === 20:20
+            @test touches(centerfwd, Touches(30.5, 50.0)) === 20:20
+            @test touches(centerfwd, Touches(30.6, 50.0)) === 21:20
+            @test touches(centerrev, Touches(0, 10.4)) === 21:20
+            @test touches(centerrev, Touches(0, 10.5)) === 20:20
+            @test touches(centerrev, Touches(30.5, 50.0)) === 1:1
+            @test touches(centerrev, Touches(30.6, 50.0)) === 1:0
+            @test touches(centerfwd, Touches(0, 40)) === 1:20
+            @test touches(centerrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(centerrev, Touches(11.5, 29.5)) === 1:20
+            @test touches(centerrev, Touches(11.5, 29.5)) === 1:20
+
+            @test touches(centerfwd, Touches(12.5, 13.5)) === 2:4
+            @test touches(centerfwd, Touches(12.6, 13.4)) === 3:3
+            @test touches(centerrev, Touches(12.5, 13.5)) === 17:19
+            @test touches(centerrev, Touches(12.6, 13.4)) === 18:18
+        end
+
+        @testset "End touches" begin
+            @test touches(endfwd, Touches(0.0, 9.9)) === 1:0
+            @test touches(endfwd, Touches(0, 10)) === 1:1
+            @test touches(endfwd, Touches(30.0, 30.0)) === 20:20
+            @test touches(endfwd, Touches(30.1, 50.0)) === 21:20
+            @test touches(endrev, Touches(0.0, 9.9)) === 21:20
+            @test touches(endrev, Touches(0.0, 10.0)) === 20:20
+            @test touches(endrev, Touches(30.0, 50.0)) === 1:1
+            @test touches(endrev, Touches(30.1, 50.0)) === 1:0
+            @test touches(endfwd, Touches(0, 40)) === 1:20
+            @test touches(endrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(endfwd, Touches(11.0, 29.0)) === 1:20
+            @test touches(endrev, Touches(11.0, 29.0)) === 1:20
+
+            @test touches(endfwd, Touches(13.0, 14.0)) === 3:5
+            @test touches(endfwd, Touches(13.1, 13.9)) === 4:4
+            @test touches(endrev, Touches(13.0, 14.0)) === 16:18
+            @test touches(endrev, Touches(13.1, 13.9)) === 17:17
+        end
+
         @testset "Start contains" begin
             @test_throws BoundsError contains(startfwd, Contains(10.9))
             @test_throws BoundsError contains(startfwd, Contains(31))
@@ -241,7 +307,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(startfwd, At(30.1; atol=0.2)) == 20
             @test at(startrev, At(30.1; atol=0.2)) == 1
         end
-
         @testset "Start between" begin
             @test between(startfwd, 0..11.9) === 1:0
             @test between(startfwd, 0..12) === 1:1
@@ -339,6 +404,69 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endfwd, Interval{:closed,:open}(10.1..15.0)) === 2:4
             @test between(endrev, Interval{:closed,:open}(10.0..15.1)) === 16:20
             @test between(endrev, Interval{:closed,:open}(10.1..15.0)) === 17:19
+        end
+
+        @testset "Start touches" begin
+            @test touches(startfwd, Touches(0, 10.9)) === 1:0
+            @test touches(startfwd, Touches(0, 11)) === 1:1
+            @test touches(startfwd, Touches(31, 50)) === 20:20
+            @test touches(startfwd, Touches(31.1, 50)) === 21:20
+            @test touches(startrev, Touches(0, 10.9)) === 21:20
+            @test touches(startrev, Touches(0, 11)) === 20:20
+            @test touches(startrev, Touches(31, 50)) === 1:1
+            @test touches(startrev, Touches(31.1, 50)) === 1:0
+            @test touches(startfwd, Touches(0, 40)) === 1:20
+            @test touches(startrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(startfwd, Touches(11.0, 31.0)) === 1:20
+            @test touches(startrev, Touches(11.0, 31.0)) === 1:20
+
+            @test touches(startfwd, Touches(12.1, 12.9)) === 2:2
+            @test touches(startfwd, Touches(12.0, 13.0)) === 1:3
+            @test touches(startrev, Touches(12.1, 12.9)) === 19:19
+            @test touches(startrev, Touches(12.0, 13.0)) === 18:20
+        end
+
+        @testset "Center touches" begin
+            @test touches(centerfwd, Touches(0, 10.4)) === 1:0
+            @test touches(centerfwd, Touches(0, 10.5)) === 1:1
+            @test touches(centerfwd, Touches(30.5, 50.0)) === 20:20
+            @test touches(centerfwd, Touches(30.6, 50.0)) === 21:20
+            @test touches(centerrev, Touches(0, 10.4)) === 21:20
+            @test touches(centerrev, Touches(0, 10.5)) === 20:20
+            @test touches(centerrev, Touches(30.5, 50.0)) === 1:1
+            @test touches(centerrev, Touches(30.6, 50.0)) === 1:0
+            @test touches(centerfwd, Touches(0, 40)) === 1:20
+            @test touches(centerrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(centerrev, Touches(11.5, 29.5)) === 1:20
+            @test touches(centerrev, Touches(11.5, 29.5)) === 1:20
+
+            @test touches(centerfwd, Touches(11.5, 13.5)) === 1:4
+            @test touches(centerfwd, Touches(11.6, 13.4)) === 2:3
+            @test touches(centerrev, Touches(11.5, 13.5)) === 17:20
+            @test touches(centerrev, Touches(11.6, 13.4)) === 18:19
+        end
+
+        @testset "End touches" begin
+            @test touches(endfwd, Touches(0.0, 9.9)) === 1:0
+            @test touches(endfwd, Touches(0, 10)) === 1:1
+            @test touches(endfwd, Touches(30.0, 30.0)) === 20:20
+            @test touches(endfwd, Touches(30.1, 50.0)) === 21:20
+            @test touches(endrev, Touches(0.0, 9.9)) === 21:20
+            @test touches(endrev, Touches(0.0, 10.0)) === 20:20
+            @test touches(endrev, Touches(30.0, 50.0)) === 1:1
+            @test touches(endrev, Touches(30.1, 50.0)) === 1:0
+            @test touches(endfwd, Touches(0, 40)) === 1:20
+            @test touches(endrev, Touches(0, 40)) === 1:20
+            # Bounds
+            @test touches(endfwd, Touches(11.0, 29.0)) === 1:20
+            @test touches(endrev, Touches(11.0, 29.0)) === 1:20
+
+            @test touches(endfwd, Touches(11.0, 14.0)) === 1:5
+            @test touches(endfwd, Touches(11.1, 13.9)) === 2:4
+            @test touches(endrev, Touches(11.0, 14.0)) === 16:20
+            @test touches(endrev, Touches(11.1, 13.9)) === 17:19
         end
 
         @testset "Start contains" begin
@@ -600,6 +728,76 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(endrev, Interval{:closed,:open}(4.0..25.1)) === 6:8
             @test between(endfwd, Interval{:closed,:open}(4.1..25.0)) === 4:4
             @test between(endrev, Interval{:closed,:open}(4.1..25.0)) === 7:7
+        end
+
+        @testset "Start touches" begin
+            # Handle searchorted overflow
+            @test touches(startfwd, Touches(0, 0)) === 1:0
+            @test touches(startfwd, Touches(130, 130)) === 11:10
+            @test touches(startrev, Touches(0, 0)) === 11:10
+            @test touches(startrev, Touches(130, 130)) === 1:0
+            @test touches(startfwd, Touches(-100, 4)) === 1:2
+            @test touches(startfwd, Touches(99, 150)) === 9:10
+            @test touches(startrev, Touches(-100, 4)) === 9:10
+            @test touches(startrev, Touches(99, 150)) === 1:2
+            @test touches(startfwd, Touches(-200, 200)) === 1:10
+            @test touches(startrev, Touches(-200, 200)) === 1:10
+            # Bounds
+            @test touches(startfwd, Touches(4.0, 100.0)) === 1:10
+            @test touches(startrev, Touches(4.0, 100.0)) === 1:10
+
+            @test touches(startfwd, Touches(16, 25)) === 3:5
+            @test touches(startfwd, Touches(16.1, 24.9)) === 4:4
+            @test touches(startrev, Touches(16, 25)) === 6:8
+            @test touches(startrev, Touches(16.1, 24.9)) === 7:7
+        end
+
+
+        @testset "Center touches" begin
+            # Handle searchorted overflow
+            @test touches(centerfwd, Touches(0, 0)) === 1:0
+            @test touches(centerfwd, Touches(0, 0)) === 1:0
+            @test touches(centerfwd, Touches(-100, 3)) === 1:2
+            @test touches(centerfwd, Touches(72.6, 150)) === 9:10 # 72.5 ?
+            @test touches(centerfwd, Touches(130, 130)) === 11:10
+            @test touches(centerrev, Touches(0, 0)) === 11:10
+            @test touches(centerrev, Touches(-100, 4)) === 9:10
+            @test touches(centerrev, Touches(72.6, 150)) === 1:2
+            @test touches(centerrev, Touches(130, 130)) === 1:0
+            @test touches(centerfwd, Touches(-200, 200)) === 1:10
+            @test touches(centerrev, Touches(-200, 200)) === 1:10
+            # Bounds
+            @test touches(centerfwd, Touches(2.5, 90.5)) === 1:10
+            @test touches(centerrev, Touches(2.5, 90.5)) === 1:10
+            @test touches(centerfwd, Touches(2.6, 90.4)) === 2:9
+            @test touches(centerrev, Touches(2.6, 90.4)) === 2:9
+    
+            @test touches(centerfwd, Touches(12.5, 20.5)) === 3:5
+            @test touches(centerfwd, Touches(12.6, 20.4)) === 4:4
+            @test touches(centerrev, Touches(12.5, 20.5)) === 6:8
+            @test touches(centerrev, Touches(12.6, 20.4)) === 7:7
+        end
+
+        @testset "End touches" begin
+            # Handle searchorted overflow
+            @test touches(endfwd, Touches(-1 ,  -1)) === 1:0
+            @test touches(endfwd, Touches(130, 130)) === 11:10
+            @test touches(endrev, Touches(-1 ,  -1)) === 11:10
+            @test touches(endrev, Touches(130, 130)) === 1:0
+            @test touches(endfwd, Touches(-100, 1)) === 1:2
+            @test touches(endfwd, Touches(81, 150)) === 9:10
+            @test touches(endrev, Touches(-100, 1)) === 9:10
+            @test touches(endrev, Touches(81, 150)) === 1:2
+            @test touches(endfwd, Touches(-200, 200)) === 1:10
+            @test touches(endrev, Touches(-200, 200)) === 1:10
+            # Bounds
+            @test touches(endfwd, Touches(1.0, 81.0)) === 1:10
+            @test touches(endrev, Touches(1.0, 81.0)) === 1:10
+
+            @test touches(endfwd, Touches(9.0, 16.0)) === 3:5
+            @test touches(endrev, Touches(9.0, 16.0)) === 6:8
+            @test touches(endfwd, Touches(9.1, 15.9)) === 4:4
+            @test touches(endrev, Touches(9.1, 15.9)) === 7:7
         end
 
         @testset "Start contains" begin
