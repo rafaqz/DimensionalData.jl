@@ -43,6 +43,6 @@ include("format.jl")
 include("indexing.jl")
 include("set.jl")
 include("show.jl")
-include("coord.jl")
+include("merged.jl")
 
 end
