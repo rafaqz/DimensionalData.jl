@@ -134,6 +134,8 @@ Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
     Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
     rebuild(A; data=similar(parent(A), T, size(D)), dims=deepcopy(D), refdims=(), metadata=NoMetadata())
+Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
+    rebuild(A; data=similar(parent(A), T, ()), dims=(), refdims=(), metadata=NoMetadata())
 
 # Keep the same type in `similar`
 _noname(A::AbstractDimArray) = _noname(name(A))

@@ -35,8 +35,9 @@ include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.LookupArrays
-using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimType, AllDims
-import .LookupArrays: metadata, set, _set, rebuild, basetypeof,
+
+using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
+import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, hasselection, units, SelectorOrInterval
 import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
 
@@ -46,7 +47,7 @@ export LookupArrays, Dimensions
 export X, Y, Z, Ti, Dim, Coord
 
 # Selector
-export At, Between, Contains, Near, Where, All, ..
+export At, Between, Touches, Contains, Near, Where, All, ..
 
 export AbstractDimArray, DimArray
 
