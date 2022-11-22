@@ -818,24 +818,6 @@ end
         end
     end
 
-    @testset "single-arity views" begin
-        indices = [
-            3,
-            1:3,
-            [1, 2, 4],
-            4:-2:1,
-        ]
-        for idx in indices
-            idx = 3
-            from2d = view(da, idx)
-            @test from2d == view(parent(da), idx)
-            @test from2d isa SubArray
-            from1d = view(da[Y(At(10))], idx)
-            @test from1d == view(parent(da)[1, :], idx)
-            @test from1d isa SubArray
-        end
-    end
-
     @testset "single-arity setindex!" begin
         indices = [
             3,
