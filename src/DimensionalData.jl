@@ -31,12 +31,16 @@ import Adapt,
 
 using RecipesBase: @recipe
 
+@static if VERSION < v"1.9"
+    using JuliennedArrays
+end
+
 include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.LookupArrays
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
+import .LookupArrays: metadata, set, _set, rebuild, basetypeof,
     order, span, sampling, locus, val, index, bounds, hasselection, units, SelectorOrInterval
 import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
 

@@ -158,13 +158,23 @@ end
 Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
 
 Base.eachslice(A::AbstractDimStack; dims=1) = _slice(A, dims)
-_slice(A::AbstractDimStack, dim) = _slice(A, dims(A, tuple(dim)))
-function _slice(A::AbstractDimStack, dimensions::Tuple)
-    dimensions = dimnum(A, dimensions)
-    sliced = map(A) do array
-        array_dims = intersect(dimnum(array, dims(array)), dimensions)
-        Slices(array, array_dims...)
+_slice(A::AbstractDimStack, dim) = _slice(A, tuple(dim))
+@static if VERSION ≥ v"1.9.0"
+    function _slice(A::AbstractDimStack, dimensions::Tuple)
+        dimensions = dimnum(A, dimensions)
+        sliced = map(A) do array
+            array_dims = intersect(dimnum(array, dims(array)), dimensions)
+            eachslice(array; dims=array_dims)
+        end
+        return sliced
     end
-    return sliced
+else
+    function _slice(A::AbstractDimStack, dimensions::Tuple)
+        dimensions = dimnum(A, dimensions)
+        sliced = map(A) do array
+            array_dims = intersect(dimnum(array, dims(array)), dimensions)
+            eachslice(array; dims=array_dims)
+        end
+        return sliced
+    end
 end
-Slices(x::AbstractDimStack, args...) = eachslice(x; dims=args)

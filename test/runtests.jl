@@ -1,4 +1,4 @@
-using DimensionalData, Aqua, SafeTestsets 
+using DimensionalData, Aqua, SafeTestsets
 
 if VERSION >= v"1.5.0"
     # This is catching some unambiguous constructors for T<:Metadata.
@@ -6,11 +6,10 @@ if VERSION >= v"1.5.0"
     Aqua.test_unbound_args(DimensionalData)
     Aqua.test_undefined_exports(DimensionalData)
     Aqua.test_project_extras(DimensionalData)
-    Aqua.test_stale_deps(DimensionalData)
+    Aqua.test_stale_deps(DimensionalData; ignore=[:JuliennedArrays])
     Aqua.test_deps_compat(DimensionalData)
     Aqua.test_project_toml_formatting(DimensionalData)
     Aqua.test_project_extras(DimensionalData)
-    Aqua.test_stale_deps(DimensionalData)
 end
 
 # For coverage stats only

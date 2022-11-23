@@ -104,23 +104,40 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-eachslice(array::DimArray, dimensions::Symbol...) =
-    eachslice(array, dims(array, dimensions))
-eachslice(array::DimArray, dimensions::Int...) =
-    eachslice(array, dims(array, dimensions))
-
-function eachslice(array::DimArray, dimensions::DimensionalData.DimTuple)
-    nums = dimnum(array, dimensions)
-    sliced = invoke(
-        eachslice,
-        Tuple{AbstractArray, Vararg{Int}},
-        array, nums...
-    )
-    return DimArray(
-        sliced,
-        otherdims(array, dimensions);
-        refdims=dims(array, dimensions)
-    )
+Base.eachslice(array::DimArray; dims) = _slice(array, dims)
+_slice(array::DimArray, dims) = _slice(array::DimArray, (dims,))
+@static if VERSION ≤ v"1.9"
+    function _slice(array, dimensions)
+        refdims = DD.dims(array, dimensions)
+        dim_nmbr = dimnum(array, refdims)
+        sliced = invoke(
+            JuliennedArrays.Slices,
+            Tuple{AbstractArray, Vararg{Int}},
+            array,
+            dim_nmbr...
+        )
+        return DimArray(
+            sliced,
+            otherdims(array, refdims),
+            slicedims
+        )
+    end
+else
+    function Base.eachslice(array::DimArray; dimensions)
+        refdims = DD.dims(array, dimensions)
+        dim_nmbr = dimnum(array, refdims)
+        sliced = invoke(
+            eachslice,
+            Tuple{AbstractArray},
+            array;
+            dims=dim_nmbr
+        )
+        return DimArray(
+            sliced,
+            otherdims(array, refdims);
+            refdims
+        )
+    end
 end
 
 # Duplicated dims
