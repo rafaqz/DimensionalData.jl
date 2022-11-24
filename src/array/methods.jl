@@ -107,7 +107,7 @@ end
 Base.eachslice(array::DimArray; dims) = _slice(array, dims)
 _slice(array::DimArray, dims) = _slice(array::DimArray, (dims,))
 @static if VERSION ≤ v"1.9"
-    function _slice(array, dimensions)
+    function _slice(array::DimArray, dimensions::Tuple)
         refdims = DD.dims(array, dimensions)
         dim_nmbr = dimnum(array, refdims)
         sliced = invoke(
@@ -118,12 +118,12 @@ _slice(array::DimArray, dims) = _slice(array::DimArray, (dims,))
         )
         return DimArray(
             sliced,
-            otherdims(array, refdims),
-            slicedims
+            otherdims(array, refdims);
+            refdims
         )
     end
 else
-    function Base.eachslice(array::DimArray; dimensions)
+    function _slice(array::DimArray, dimensions::Tuple)
         refdims = DD.dims(array, dimensions)
         dim_nmbr = dimnum(array, refdims)
         sliced = invoke(
