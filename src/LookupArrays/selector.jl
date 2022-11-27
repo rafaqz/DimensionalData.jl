@@ -653,6 +653,11 @@ A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
 
 # output
+1×2 DimArray{Int64,2} with dimensions:
+  X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
+  Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
+     5  6
+ 20  4  5
 
 ```
 """
