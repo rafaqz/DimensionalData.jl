@@ -404,7 +404,7 @@ end
 
     @testset "Cartesian indices work as usual" begin
         @test s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s.data)
+        @test view(s, CartesianIndex(2, 2)).data == map(d -> view(d, 2, 2), s.data)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
         @test s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
