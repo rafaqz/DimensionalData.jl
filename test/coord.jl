@@ -42,13 +42,3 @@ end
 @testset "coord indexing with intervals" begin
     @test da[Coord(Z(At(1.0)), Y(1..3))] == [0.1]
 end
-
-@testset "show coord" begin
-    sprint(show, dim)
-    sp = sprint(show, MIME"text/plain"(), dim)
-    @test occursin("Coord", sp)
-    @test occursin("X, Y, Z", sp)
-    sp = sprint(show, MIME"text/plain"(), da)
-    @test occursin("Coord", sp)
-    @test occursin("X, Y, Z", sp)
-end
