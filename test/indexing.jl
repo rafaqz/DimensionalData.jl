@@ -208,7 +208,7 @@ end
             da1 = DimArray(randn(2), X(1:2))
             da2 = DimArray(randn(2, 3), (X(1:2), Y(1:3)))
 
-            for inds in ((), (1,), (1, 1), (1, 1, 1), CartesianIndex(), CartesianIndices(da0))
+            for inds in ((), (1,), (1, 1), (1, 1, 1), (CartesianIndex(),), (CartesianIndices(da0),))
                 @test view(da0, inds...) isa DimArray{eltype(da0),0}
                 @test typeof(parent(view(da0, inds...))) === typeof(view(parent(da0), inds...))
                 @test parent(view(da0, inds...)) == view(parent(da0), inds...)
