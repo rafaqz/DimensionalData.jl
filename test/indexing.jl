@@ -372,12 +372,11 @@ end
         @test slicedds.data == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = view(s, 1)
-            @test linear2d isa NamedTuple
-            @test linear2d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test linear2d isa DimStack
+            @test linear2d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear1d = view(s[X(1)], 1)
-            @test linear1d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
-            # Its not clear if this should work or not
-            @test_broken linear1d isa DimStack
+            @test linear1d isa DimStack
+            @test linear1d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         end
         @testset "0-dimensional return layers" begin
             ds = view(s, X(1), Y(1))
