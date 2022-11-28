@@ -661,10 +661,10 @@ A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
 
 ```
 """
-struct Touches{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
+struct Touches{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing,Extents.Extent}} <: ArraySelector{T}
     val::T
 end
-Touches(args...) = Touches(args)
+Touches(a, b) = Touches((a, b))
 
 Base.first(sel::Touches) = first(val(sel))
 Base.last(sel::Touches) = last(val(sel))
@@ -680,10 +680,7 @@ end
 # touches for tuple intervals
 # returns a UnitRange like Touches/Interval but for cells contained
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
-function touches(l::NoLookup, sel::Touches)
-    x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
-    return ceil(Int, x[1]):floor(Int, x[2]) 
-end
+touches(l::NoLookup, sel::Touches) = between(l, Interval(val(sel)...))
 touches(l::LookupArray, sel::Touches) = touches(sampling(l), l, sel)
 # This is the main method called above
 function touches(sampling::Sampling, l::LookupArray, sel::Touches)
