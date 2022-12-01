@@ -30,10 +30,7 @@ import Adapt,
        Tables
 
 using RecipesBase: @recipe
-
-@static if VERSION < v"1.9"
-    using JuliennedArrays
-end
+import JuliennedArrays
 
 include("Dimensions/Dimensions.jl")
 

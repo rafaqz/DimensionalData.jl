@@ -157,13 +157,14 @@ end
 
 Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
 
-Base.eachslice(A::AbstractDimStack; dims=1) = _slice(A, dims)
-_slice(A::AbstractDimStack, dim) = _slice(A, (dim,))
-function _slice(A::AbstractDimStack, dimensions::Tuple)
-    dimensions = dimnum(A, dimensions)
-    sliced = map(A) do array
-        array_dims = intersect(dimnum(array, dims(array)), dimensions)
-        eachslice(array; dims=array_dims)
-    end
-    return sliced
-end
+# Should eachslice be implemented? Appropriate interface is unclear
+# Base.eachslice(A::AbstractDimStack; dims=1) = _slice(A, dims)
+# _slice(A::AbstractDimStack, dim) = _slice(A, (dim,))
+# function _slice(A::AbstractDimStack, dimensions::Tuple)
+#     dimensions = dimnum(A, dimensions)
+#     sliced = map(A) do array
+#         array_dims = intersect(dimnum(array, dims(array)), dimensions)
+#         eachslice(array; dims=array_dims)
+#     end
+#     return sliced
+# end

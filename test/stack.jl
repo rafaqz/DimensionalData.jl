@@ -245,13 +245,3 @@ end
     @test extrema(f, s) == (one=(2.0, 12.0), two=(4.0, 24.0), three=(6.0, 36.0))
     @test mean(f, s) == (one=7.0, two=14.0, three=21)
 end
-
-@testset "eachslice" begin
-    @test eltype(eachslice(mixed; dims=Y)) <: DimArray
-    @test all(map(==, collect(eachslice(mixed; dims=Y)), eachslice(mixed; dims=:Y)))
-    @test all(map(==, collect(eachslice(mixed; dims=2)), eachslice(mixed; dims=2)))
-    @test eachslice(mixed; dims=1) isa DimStack
-    @test eachslice(mixed; dims=:X) isa DimStack
-    @test eachslice(mixed; dims=X) isa DimStack
-    @test eachslice(mixed; dims=X) isa DimStack
-end

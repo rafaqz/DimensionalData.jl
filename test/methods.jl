@@ -2,6 +2,8 @@ using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 using LinearAlgebra: Transpose
+using Random
+rng = Xoshiro(1776)
 
 xs = (1, X, X(), :X)
 ys = (2, Y, Y(), :Y)
@@ -138,39 +140,41 @@ end
 end
 
 @testset "eachslice" begin
-    a = [1 2 3 4
-         3 4 5 6
-         5 6 7 8]
-    y = Y(10:10:30)
+    a = rand(rng, (-12):12, 4, 4, 4)
+    x = X('a':'d')
+    y = Y(10:10:40)
     ti = Ti(1:4)
-    da = DimArray(a, (y, ti))
-    ys = (1, Y, Y(), :Y, y)
-    tis = (2, Ti, Ti(), :Ti, ti)
-    for dims in tis
-        @test [mean(s) for s in eachslice(da; dims)] == [3.0, 4.0, 5.0, 6.0]
-        slices = [s .* 2 for s in eachslice(da; dims=Ti)]
-        @test slices[1] == [2, 6, 10]
-        @test DimensionalData.dims(slices[1]) == (Y(10.0:10.0:30.0),)
+    da = DimArray(a, (x, y, ti))
+    pa = parent(da)
+    selectors = [(), (:X,), (:Y,), (:Ti,), (:X, :Y), (:X, :Ti), (:Y, :Ti), (:X, :Y, :Ti)]
+    all_selectors = [
+        selectors,
+        dims.((da,), selectors)
+    ]
+    for selectors in all_selectors
+        for sel in selectors
+            if length(sel) == 3 || length(sel) == 0
+                continue
+            end
+            daslice = eachslice(da; dims=sel)
+            @test daslice isa DimArray
+            @test eltype(daslice) <: AbstractDimArray
+            @inferred eachslice(da; dims=sel)
+            if VERSION ≥ v"1.9" || length(sel) == 1
+                paslice = collect(eachslice(pa; dims=dimnum(da, sel)))
+                @test all(≈, zip(paslice, daslice))
+            end
+            others = otherdims(da, sel)
+            _drop = x->dropdims(x; dims=dimnum(da, others))
+            @test map(mean, daslice) ≈ _drop(mean(da; dims=others))
+            @test map(var, daslice) ≈ _drop(mapslices(var, pa; dims=dimnum(da, others)))
+            @test DimensionalData.dims(daslice) == DimensionalData.dims(da, sel)
+            @test DimensionalData.dims(first(daslice)) == refdims(daslice)
+            @test allequal(name.(dims.(daslice)))
+        end
     end
-    for dims in ys
-        slices = [s .* 2 for s in eachslice(da; dims=Y)]
-        @test slices[1] == [2, 4, 6, 8]
-        @test slices[2] == [6, 8, 10, 12]
-        @test slices[3] == [10, 12, 14, 16]
-        @test DimensionalData.dims(slices[1]) == (Ti(1.0:1.0:4.0),)
-    end
-
-    @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
-    @test eltype(eachslice(s; dims=Y)) <: DimArray
-    @test all(map(==, collect(eachslice(s; dims=Y)), eachslice(mixed; dims=:Y)))
-    @static if VERSION ≥ v"1.9"
-        @test eachslice(mixed, X) isa DimStack
-        @test eachslice(da; dims=1) isa DimArray
-        @test eachslice(s; dims=:X) isa DimArray
-        @test eachslice(s; dims=X) isa DimArray
-    end
+    @test DimensionalData.dims(eachslice(da; dims=3)) == (Ti(1.0:1.0:4.0),)
 end
-
 @testset "simple dimension permuting methods" begin
     da = DimArray(zeros(5, 4), (Y(LinRange(10, 20, 5)), X(1:4)))
     tda = transpose(da)

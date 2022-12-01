@@ -104,38 +104,38 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-Base.eachslice(array::DimArray; dims) = _slice(array, dims)
-_slice(array::DimArray, dims) = _slice(array::DimArray, (dims,))
-@static if VERSION ≤ v"1.9"
-    function _slice(array::DimArray, dimensions::Tuple)
-        refdims = DD.dims(array, dimensions)
-        dim_nmbr = dimnum(array, refdims)
-        sliced = invoke(
-            JuliennedArrays.Slices,
-            Tuple{AbstractArray, Vararg{Int}},
-            array,
-            dim_nmbr...
-        )
+@static if VERSION < v"1.9"
+    Base.eachslice(da::AbstractDimArray; dims) = _slice(da, DD.dims(da, dims))
+    _slice(da::AbstractDimArray, dims) = _slice(da, (dims,))
+    function _slice(da::AbstractDimArray, sel::Tuple)
+        sel = dims(da, sel)
+        @assert length(sel) < ndims(da) "Cannot slice all dimensions"
+        @assert 0 < length(sel) "Cannot slice no dimensions"
+        new_dims = otherdims(da, sel)
+        dim_nmbr = dimnum(da, new_dims)
+        sliced = JuliennedArrays.Slices(da, dim_nmbr...)
         return DimArray(
             sliced,
-            otherdims(array, refdims);
-            refdims
+            sel,
+            new_dims,
+            da.name,
+            da.metadata
         )
     end
 else
-    function _slice(array::DimArray, dimensions::Tuple)
-        refdims = DD.dims(array, dimensions)
-        dim_nmbr = dimnum(array, refdims)
+    function Base.eachslice(da::AbstractDimArray; dims)
         sliced = invoke(
             eachslice,
             Tuple{AbstractArray},
-            array;
-            dims=dim_nmbr
+            parent(da);
+            dims
         )
         return DimArray(
             sliced,
-            otherdims(array, refdims);
-            refdims
+            dimensions,
+            otherdims(da, dimensions),
+            da.name,
+            da.metadata
         )
     end
 end
