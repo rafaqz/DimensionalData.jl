@@ -37,6 +37,12 @@ end
     @test typeof(da1x) === typeof(da1)
 end
 
+@testset "getproperty" begin
+    da1x = s.one
+    @test parent(da1x) === parent(da1)
+    @test typeof(da1x) === typeof(da1)
+end
+
 @testset "broadcast over layer" begin
     s[:one] .*= 2
     s[:one] ./= 2
