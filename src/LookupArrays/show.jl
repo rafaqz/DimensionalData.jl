@@ -14,7 +14,7 @@ end
 function Base.show(io::IO, mime::MIME"text/plain", lookup::LookupArray)
     show_compact(io, mime, lookup)
     get(io, :compact, false) && print_index(io, mime, parent(lookup))
-    show_properties(io, lookup)
+    show_properties(io, mime, lookup)
     if !get(io, :compact, false) 
         println(io)
         printstyled(io, "wrapping: "; color=:light_black)
@@ -22,6 +22,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::LookupArray)
     end
 end
 
+show_properties(io::IO, mime, lookup) = show_properties(io, lookup)
 function show_properties(io::IO, lookup::AbstractSampled)
     print(io, " ")
     print_order(io, lookup)
