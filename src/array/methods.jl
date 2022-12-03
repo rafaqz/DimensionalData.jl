@@ -105,7 +105,10 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
 end
 
 @static if VERSION < v"1.9"
-    Base.eachslice(da::AbstractDimArray; dims) = _slice(da, DD.dims(da, dims))
+    function Base.eachslice(da::AbstractDimArray; dims)
+        slicedims = DD.dimnum(da, DD.otherdims(da, dims))
+        return _slice(da, slicedims)
+    end
     _slice(da::AbstractDimArray, dims) = _slice(da, (dims,))
     function _slice(da::AbstractDimArray, sel::Tuple)
         sel = dims(da, sel)
@@ -122,22 +125,23 @@ end
             da.metadata
         )
     end
-else
-    function Base.eachslice(da::AbstractDimArray; dims)
-        sliced = invoke(
-            eachslice,
-            Tuple{AbstractArray},
-            parent(da);
-            dims
-        )
-        return DimArray(
-            sliced,
-            dimensions,
-            otherdims(da, dimensions),
-            da.name,
-            da.metadata
-        )
-    end
+# else
+#     function Base.eachslice(da::AbstractDimArray; dims, kwargs...)
+#         sliced = invoke(
+#             eachslice,
+#             Tuple{AbstractArray},
+#             parent(da);
+#             dims,
+#             kwargs...
+#         )
+#         return DimArray(
+#             sliced,
+#             DD.dims(da, dims),
+#             otherdims(da, dims),
+#             da.name,
+#             da.metadata
+#         )
+#     end
 end
 
 # Duplicated dims
