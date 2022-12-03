@@ -24,7 +24,7 @@ DimensionalData._precompile()
 @time @safetestset "lookup" begin include("lookup.jl") end
 @time @safetestset "selector" begin include("selector.jl") end
 
-@time @safetestset "coord" begin include("coord.jl") end
+@time @safetestset "coord" begin include("merged.jl") end
 @time @safetestset "dimension" begin include("dimension.jl") end
 @time @safetestset "primitives" begin include("primitives.jl") end
 @time @safetestset "format" begin include("format.jl") end
