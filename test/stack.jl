@@ -1,5 +1,4 @@
-using DimensionalData, Test, LinearAlgebra, Statistics, Setfield
-using ConstructionBase
+using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase
 
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
@@ -25,8 +24,10 @@ mixed = DimStack(da1, da2, da4)
 end
 
 @testset "ConstructionBase" begin
-    s_mod = @set s.three = da1
-    @test s_mod.three == s_mod.one
+    s1 = ConstructionBase.setproperties(s, (one=da1, two=da2, three=da1))
+    @test s1.three == s.one
+    @test s1.two == s.two
+    @test s1.one == s.one
 end
 
 @testset "interface methods" begin
