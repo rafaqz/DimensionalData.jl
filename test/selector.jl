@@ -1024,13 +1024,16 @@ end
             4:-2:1,
         ]
         for idx in indices
-            idx = 3
             from2d = view(da, idx)
             @test from2d == view(parent(da), idx)
-            @test from2d isa SubArray
+            if idx isa Integer
+                @test from2d isa DimArray
+            else
+                @test from2d isa SubArray
+            end
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(parent(da)[1, :], idx)
-            @test from1d isa SubArray
+            @test from1d isa DimArray
         end
     end
 

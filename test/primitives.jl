@@ -348,6 +348,9 @@ end
         @test slicedims(dimz, CartesianIndex(2, 3)) ==
             ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
                   Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))),)
+        @test slicedims(dimz, (CartesianIndex(2, 3),)) ==
+            ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+                  Y(Sampled(-22:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))),)
     end
 
     @testset "Regular Intervals" begin
