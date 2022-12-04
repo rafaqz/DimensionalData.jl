@@ -45,6 +45,8 @@ end
 end
 
 @testset "getproperty" begin
+    @test propertynames(s) == (:one, :two, :three)
+    @test hasproperty(s, :one)
     da1x = s.one
     @test parent(da1x) === parent(da1)
     @test typeof(da1x) === typeof(da1)

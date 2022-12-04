@@ -39,6 +39,7 @@ layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
 Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
+@inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))
 Base.first(s::AbstractDimStack) = s[first(keys(s))]
