@@ -104,44 +104,20 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-@static if VERSION < v"1.9"
-    function Base.eachslice(da::AbstractDimArray; dims)
-        slicedims = DD.dimnum(da, DD.otherdims(da, dims))
-        return _slice(da, slicedims)
-    end
-    _slice(da::AbstractDimArray, dims) = _slice(da, (dims,))
-    function _slice(da::AbstractDimArray, sel::Tuple)
-        sel = dims(da, sel)
-        @assert length(sel) < ndims(da) "Cannot slice all dimensions"
-        @assert 0 < length(sel) "Cannot slice no dimensions"
-        new_dims = otherdims(da, sel)
-        dim_nmbr = dimnum(da, new_dims)
-        sliced = JuliennedArrays.Slices(da, dim_nmbr...)
-        return DimArray(
-            sliced,
-            sel,
-            new_dims,
-            da.name,
-            da.metadata
-        )
-    end
-# else
-#     function Base.eachslice(da::AbstractDimArray; dims, kwargs...)
-#         sliced = invoke(
-#             eachslice,
-#             Tuple{AbstractArray},
-#             parent(da);
-#             dims,
-#             kwargs...
-#         )
-#         return DimArray(
-#             sliced,
-#             DD.dims(da, dims),
-#             otherdims(da, dims),
-#             da.name,
-#             da.metadata
-#         )
-#     end
+Base.eachslice(da::AbstractDimArray; dims, kwargs...) =
+    _slice(da, dims; kwargs...)
+_slice(da::AbstractDimArray, dims; kwargs...) = _slice(da, Tuple(dims); kwargs...)
+
+Base.@constprop :aggressive function _slice(da::AbstractDimArray, dims::Tuple; kwargs...)
+    dims, refdims = DD.slicedims(da, dimnum(da, dims))
+    sliced = invoke(
+        eachslice,
+        Tuple{AbstractArray},
+        da;
+        dims=dimnum.((da,), dims),
+        kwargs...
+    )
+    return rebuild(da, sliced, dims, refdims)
 end
 
 # Duplicated dims

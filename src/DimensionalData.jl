@@ -30,7 +30,6 @@ import Adapt,
        Tables
 
 using RecipesBase: @recipe
-import JuliennedArrays
 
 include("Dimensions/Dimensions.jl")
 

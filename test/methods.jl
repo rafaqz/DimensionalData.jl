@@ -145,7 +145,12 @@ end
     y = Y(10:10:40)
     ti = Ti(1:4)
     da = DimArray(a, (x, y, ti))
-    pa = parent(da)
+    @test try
+        @inferred eachslice(da; dims=(:X, :Y))
+        return true
+    catch
+        return false
+    end
     selectors = [(), (:X,), (:Y,), (:Ti,), (:X, :Y), (:X, :Ti), (:Y, :Ti), (:X, :Y, :Ti)]
     all_selectors = [
         selectors,
@@ -159,15 +164,12 @@ end
             daslice = eachslice(da; dims=sel)
             @test daslice isa DimArray
             @test eltype(daslice) <: AbstractDimArray
-            @inferred eachslice(da; dims=sel)
-            if VERSION ≥ v"1.9" || length(sel) == 1
-                paslice = collect(eachslice(pa; dims=dimnum(da, sel)))
-                @test all(≈, zip(paslice, daslice))
-            end
+            aslice = collect(eachslice(a; dims=dimnum(da, sel)))
+            @test all(≈, zip(aslice, daslice))
             others = otherdims(da, sel)
             _drop = x->dropdims(x; dims=dimnum(da, others))
             @test map(mean, daslice) ≈ _drop(mean(da; dims=others))
-            @test map(var, daslice) ≈ _drop(mapslices(var, pa; dims=dimnum(da, others)))
+            @test map(var, daslice) ≈ _drop(mapslices(var, a; dims=dimnum(da, others)))
             @test DimensionalData.dims(daslice) == DimensionalData.dims(da, sel)
             @test DimensionalData.dims(first(daslice)) == refdims(daslice)
             @test allequal(name.(dims.(daslice)))
