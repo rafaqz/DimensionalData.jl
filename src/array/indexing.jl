@@ -13,12 +13,20 @@ const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
 
 for f in (:getindex, :view, :dotview)
     @eval begin
-        #### Array getindex/view ###
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
-        # CartesianIndices 
-        @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
-            Base.$f(A, to_indices(A, (I,))...)
+        if Base.$f === Base.view
+            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Union{Integer,CartesianIndex,CartesianIndices})
+                I = to_indices(A, (i,))
+                x = Base.$f(parent(A), I...)
+                rebuildsliced(Base.$f, A, x, I)
+            end
+        else
+            #### Array getindex/view ###
+            @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
+            @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
+            # CartesianIndices
+            @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
+                Base.$f(A, to_indices(A, (I,))...)
+        end
         # Linear indexing forwards to the parent array as it will break the dimensions
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
             Base.$f(parent(A), i)
