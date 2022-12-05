@@ -169,6 +169,7 @@ LookupArrays.AbstractCategorical
 LookupArrays.Categorical
 LookupArrays.Unaligned
 LookupArrays.Transformed
+Dimensions.MergedLookup
 LookupArrays.NoLookup
 LookupArrays.AutoLookup
 LookupArrays.AutoIndex

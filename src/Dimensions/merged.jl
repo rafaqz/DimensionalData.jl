@@ -1,3 +1,24 @@
+"""
+    MergedLookup <: LookupArray
+
+    MergedLookup(data, dims; [metadata])
+
+A [`LookupArray`](@ref) that holds multiple combined dimensions.
+
+`MergedLookup` can be indexed with [`Selector`](@ref)s like `At`, 
+`Between`, and `Where` although `Near` has undefined meaning.
+
+# Arguments
+
+- `data`: A `Vector` of `Tuple`.
+- `dims`: A `Tuple` of [`Dimension`](@ref) indicating the dimensions in the tuples in `data`.
+
+
+# Keywords
+
+- `metadata`: a `Dict` or `Metadata` object to attach dimension metadata.
+
+"""
 struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: LookupArray{T,1}
     data::A
     dims::D
