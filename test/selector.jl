@@ -1124,7 +1124,7 @@ end
     da = DimArray(a, (Y(Sampled(10:10:30; sampling=Intervals())),
                       Ti(Sampled((1:4)u"s"; sampling=Intervals()))))
 
-    @testset "Extent indexing"
+    @testset "Extent indexing" begin
         # THese should be the same because da is the maximum size
         # we can index with `Touches`
         da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
