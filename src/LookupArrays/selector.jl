@@ -658,7 +658,6 @@ A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
   Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
      5  6
  20  4  5
-
 ```
 """
 struct Touches{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}

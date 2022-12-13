@@ -22,6 +22,10 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     @test dims2indices(dimz, CartesianIndex(1, 1)) == (CartesianIndex(1, 1),)
     @test dims2indices(dimz[1], 1) == 1
     @test dims2indices(dimz[1], X(2)) == 2
+
+    da2 = DimArray(fill(3), ())
+    dimz2 = dims(da2)
+    @test dims2indices(dimz2, ()) === ()
 end
 
 @testset "lookup" begin
@@ -199,7 +203,29 @@ end
             (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test bounds(v) == ((-38.0, -36.0),)
 
-        @test view(da, 1) == fill(1)
+        @testset "view with all dimensions indexed returns 0-dimensional DimArray" begin
+            da0 = DimArray(fill(3), ())
+            da1 = DimArray(randn(2), X(1:2))
+            da2 = DimArray(randn(2, 3), (X(1:2), Y(1:3)))
+
+            for inds in ((), (1,), (1, 1), (1, 1, 1), (CartesianIndex(),), (CartesianIndices(da0),))
+                @test view(da0, inds...) isa DimArray{eltype(da0),0}
+                @test typeof(parent(view(da0, inds...))) === typeof(view(parent(da0), inds...))
+                @test parent(view(da0, inds...)) == view(parent(da0), inds...)
+            end
+
+            for inds in ((1,), (1, 1), (2, 1, 1), (CartesianIndex(2),))
+                @test view(da1, inds...) isa DimArray{eltype(da1),0}
+                @test typeof(parent(view(da1, inds...))) === typeof(view(parent(da1), inds...))
+                @test parent(view(da1, inds...)) == view(parent(da1), inds...)
+            end
+
+            for inds in ((2,), (2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+                @test view(da2, inds...) isa DimArray{eltype(da2),0}
+                @test typeof(parent(view(da2, inds...))) === typeof(view(parent(da2), inds...))
+                @test parent(view(da2, inds...)) == view(parent(da2), inds...)
+            end
+        end
     end
 
     @testset "setindex!" begin
@@ -346,12 +372,19 @@ end
         @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = view(s, 1)
-            @test linear2d isa NamedTuple
-            @test linear2d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test linear2d isa DimStack
+            @test linear2d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear1d = view(s[X(1)], 1)
-            @test linear1d == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
-            # Its not clear if this should work or not
-            @test_broken linear1d isa DimStack
+            @test linear1d isa DimStack
+            @test linear1d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+        end
+        @testset "0-dimensional return layers" begin
+            ds = view(s, X(1), Y(1))
+            @test ds isa DimStack
+            @test dims(ds) === ()
+            @test view(s, X(1), Y(2))[:one] == view(da1, X(1), Y(2))
+            @test view(s, X(1), Y(1))[:two] == view(da2, X(1), Y(1))
+            @test view(s, X(2), Y(3))[:three] == view(da3, X(2), Y(3))
         end
     end
 

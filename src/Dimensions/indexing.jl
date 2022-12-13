@@ -33,6 +33,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 
 @inline dims2indices(x, I) = dims2indices(dims(x), I)
 @inline dims2indices(::Nothing, I) = _dimsnotdefinederror()
+@inline dims2indices(::Tuple{}, I) = ()
 @inline dims2indices(dims::DimTuple, I) = dims2indices(dims, (I,))
 # Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, I::Tuple{Vararg{<:StandardIndices}}) = I

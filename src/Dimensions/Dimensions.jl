@@ -33,7 +33,7 @@ export name, label, dimnum, hasdim, hasselection, otherdims, commondims, combine
     basetypeof, basedims, dimstride, dims2indices, slicedims, dimsmatch, comparedims, reducedims
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
-    X, Y, Z, Ti, Dim, AnonDim, Coord
+    X, Y, Z, Ti, Dim, AnonDim, Coord, MergedLookup
 
 export @dim
 
@@ -43,6 +43,6 @@ include("format.jl")
 include("indexing.jl")
 include("set.jl")
 include("show.jl")
-include("coord.jl")
+include("merged.jl")
 
 end

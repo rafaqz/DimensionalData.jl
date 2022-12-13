@@ -413,6 +413,9 @@ end
 
 @inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
 @inline _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
+@inline function _slicedims(f, dims::DimTuple, I::Tuple{<:CartesianIndex})
+    return _slicedims(f, dims, Tuple(I[1]))
+end
 @inline _slicedims(f, dims::DimTuple, I::Tuple) = begin
     d = _slicedims(f, first(dims), first(I))
     ds = _slicedims(f, tail(dims), tail(I))
