@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets
+using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets, Extents
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using .LookupArrays: between, touches, at, near, contains
 
@@ -1124,12 +1124,19 @@ end
     da = DimArray(a, (Y(Sampled(10:10:30; sampling=Intervals())),
                       Ti(Sampled((1:4)u"s"; sampling=Intervals()))))
 
+    @testset "Extent indexing"
+        # THese should be the same because da is the maximum size
+        # we can index with `Touches`
+        da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+    end
+
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
         @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.9u"s", 3.1u"s"]))) == [5, 7]
         @test @inferred view(da, Y(Between(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
+        @test @inferred view(da, Y(Touches(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8; 11 12]
     end
 
     @testset "without dim wrappers" begin
@@ -1140,6 +1147,7 @@ end
         @test @inferred view(da, Near(13), Near([1.3u"s", 3.3u"s"])) == [1, 3]
         @test @inferred view(da, Near([13]), Near([1.3u"s", 3.3u"s"])) == [1 3]
         @test @inferred view(da, Between(11, 26), At((2:3)u"s")) == [6 7]
+        @test @inferred view(da, Touches(11, 26), At((2:3)u"s")) == [2 3; 6 7; 10 11]
         # Between also accepts a tuple input
         @test @inferred view(da, Between((11, 26)), Between((2u"s", 4u"s"))) == [6 7]
     end
@@ -1205,6 +1213,7 @@ end
         @test @inferred view(da, Contains(13), Contains([1.3u"s", 3.3u"s"])) == [1, 3]
         @test @inferred view(da, Contains([13]), Contains([1.3u"s", 3.3u"s"])) == [1 3]
         @test @inferred view(da, Between(11, 26), At((2:3)u"s")) == [6 7]
+        @test @inferred view(da, Touches(11, 26), At((2:3)u"s")) == [2 3; 6 7; 10 11]
         # Between also accepts a tuple input
         @test @inferred view(da, Between((11, 26)), Between((1.4u"s", 4u"s"))) == [6 7]
     end
