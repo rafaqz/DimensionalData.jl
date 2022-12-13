@@ -373,10 +373,10 @@ end
         @testset "linear indices" begin
             linear2d = view(s, 1)
             @test linear2d isa DimStack
-            @test linear2d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear1d = view(s[X(1)], 1)
             @test linear1d isa DimStack
-            @test linear1d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         end
         @testset "0-dimensional return layers" begin
             ds = view(s, X(1), Y(1))
@@ -404,7 +404,7 @@ end
 
     @testset "Cartesian indices work as usual" begin
         @test s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), parent(s))
+        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
         @test s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
