@@ -1,4 +1,4 @@
-using DimensionalData, Test, LinearAlgebra, Statistics
+using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase
 
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
@@ -23,6 +23,13 @@ mixed = DimStack(da1, da2, da4)
     @test DimStack((one=da1, two=da2, three=da3), dimz) == s
 end
 
+@testset "ConstructionBase" begin
+    s1 = ConstructionBase.setproperties(s, (one=da1, two=da2, three=da1))
+    @test s1.three == s.one
+    @test s1.two == s.two
+    @test s1.one == s.one
+end
+
 @testset "interface methods" begin
     @test dims(s) == dims(da1)
     @test dims(s, X) == x
@@ -33,6 +40,14 @@ end
 
 @testset "symbol key indexing" begin
     da1x = s[:one]
+    @test parent(da1x) === parent(da1)
+    @test typeof(da1x) === typeof(da1)
+end
+
+@testset "getproperty" begin
+    @test propertynames(s) == (:one, :two, :three)
+    @test hasproperty(s, :one)
+    da1x = s.one
     @test parent(da1x) === parent(da1)
     @test typeof(da1x) === typeof(da1)
 end

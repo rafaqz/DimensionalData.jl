@@ -20,23 +20,26 @@ the first value of the iterator - the `DimArray` for the first layer.
 See [`DimStack`](@ref) for the concrete implementation.
 Most methods are defined on the abstract type.
 
-To extend `AbstractDimStack`, implement [`rebuild`](@ref) and
-[`rebuild_from_arrays`](@ref).
+To extend `AbstractDimStack`, implement argument and keyword version of 
+[`rebuild`](@ref) and also [`rebuild_from_arrays`](@ref).
+
+The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
 abstract type AbstractDimStack{L} end
 
-data(s::AbstractDimStack) = s.data
-dims(s::AbstractDimStack) = s.dims
-refdims(s::AbstractDimStack) = s.refdims
-metadata(s::AbstractDimStack) = s.metadata
+data(s::AbstractDimStack) = getfield(s, :data)
+dims(s::AbstractDimStack) = getfield(s, :dims)
+refdims(s::AbstractDimStack) = getfield(s, :refdims)
+metadata(s::AbstractDimStack) = getfield(s, :metadata)
 
-layerdims(s::AbstractDimStack) = s.layerdims
+layerdims(s::AbstractDimStack) = getfield(s, :layerdims)
 layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
-layermetadata(s::AbstractDimStack) = s.layermetadata
+layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
-Base.parent(s::AbstractDimStack) = s.data
+Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
+@inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))
 Base.first(s::AbstractDimStack) = s[first(keys(s))]
@@ -44,6 +47,7 @@ Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
+Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.length(s::AbstractDimStack) = length(keys(s))
 Base.size(s::AbstractDimStack) = map(length, dims(s))
 Base.size(s::AbstractDimStack, dims::DimOrDimType) = size(s, dimnum(s, dims))
@@ -77,8 +81,17 @@ Base.NamedTuple(s::AbstractDimStack) = layers(s)
 
 Extents.extent(A::AbstractDimStack, args...) = Extents.extent(dims(A), args...) 
 
+ConstructionBase.getproperties(s::AbstractDimStack) = layers(s)
+ConstructionBase.setproperties(s::AbstractDimStack, patch::NamedTuple) = 
+    ConstructionBase.constructorof(typeof(s))(ConstructionBase.setproperties(layers(s), patch))
+
 function rebuild(
     s::AbstractDimStack, data, dims=dims(s), refdims=refdims(s),
+    layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
+)
+    basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)
+end
+function rebuild(s::AbstractDimStack; data=data(s), dims=dims(s), refdims=refdims(s),
     layerdims=layerdims(s), metadata=metadata(s), layermetadata=layermetadata(s)
 )
     basetypeof(s)(data, dims, refdims, layerdims, metadata, layermetadata)

@@ -344,14 +344,14 @@ end
         @test s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
         slicedds = s[At(:a), :]
         @test slicedds[:one] == [1.0, 2.0, 3.0]
-        @test slicedds.data == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+        @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = s[1:2]
             @test linear2d isa NamedTuple
             @test linear2d == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
             linear1d = s[Y(1)][1:2]
             @test linear1d isa DimStack
-            @test linear1d.data == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+            @test parent(linear1d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
         end
     end
 
@@ -363,20 +363,20 @@ end
 
     @testset "view" begin
         sv = view(s, 1, 1)
-        @test sv.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+        @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         @test dims(sv) == ()
         sv = view(s, X(1:2), Y(3:3)) 
-        @test sv.data == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
+        @test parent(sv) == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
         slicedds = view(s, X=At(:a), Y=:)
         @test slicedds[:one] == [1.0, 2.0, 3.0]
-        @test slicedds.data == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+        @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
             linear2d = view(s, 1)
             @test linear2d isa DimStack
-            @test linear2d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear1d = view(s[X(1)], 1)
             @test linear1d isa DimStack
-            @test linear1d.data == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         end
         @testset "0-dimensional return layers" begin
             ds = view(s, X(1), Y(1))
@@ -404,7 +404,7 @@ end
 
     @testset "Cartesian indices work as usual" begin
         @test s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test view(s, CartesianIndex(2, 2)).data == map(d -> view(d, 2, 2), s.data)
+        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
         @test s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
