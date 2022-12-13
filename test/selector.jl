@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets, Extents
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: between, touches, at, near, contains
+using .LookupArrays: between, touches, at, near, contains, bounds
 
 a = [1 2  3  4
      5 6  7  8
