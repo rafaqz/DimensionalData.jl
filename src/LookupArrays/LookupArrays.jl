@@ -18,7 +18,7 @@ using .LookupArrays
 """
 module LookupArrays
 
-using Dates, IntervalSets
+using Dates, IntervalSets, Extents
 import Adapt, ConstructionBase
 
 using Base: tail, OneTo, @propagate_inbounds
