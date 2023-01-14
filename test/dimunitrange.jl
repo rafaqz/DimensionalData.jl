@@ -33,6 +33,20 @@ axdims = [
     @test dims(bigr) === dim
     @test bigr == ax
     @test DimUnitRange{eltype(r)}(r) === r
+    if VERSION >= v"1.6"
+        @test Base.OrdinalRange{Int,Int}(r) == r
+    end
+    @test AbstractUnitRange{BigInt}(r) isa DimUnitRange{BigInt}
+    @test parent(AbstractUnitRange{BigInt}(r)) === AbstractUnitRange{BigInt}(parent(r))
+    @test dims(AbstractUnitRange{BigInt}(r)) === dim
+end
+
+@testset "CartesianIndices/LinearIndices for BigInt ranges" begin
+    r = DimUnitRange(1:2, X(["x", "y"]))
+    rbig = DimUnitRange(big(1):big(2), X(["x", "y"]))
+    @test CartesianIndices(rbig) == CartesianIndices(r)
+    @test LinearIndices(rbig) == LinearIndices(r)
+    @test eachindex(rbig) == eachindex(r)
 end
 
 @testset "similar" begin
