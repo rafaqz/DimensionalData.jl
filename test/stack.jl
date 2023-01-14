@@ -67,9 +67,13 @@ end
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
-    @test axes(mixed) === (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
-    @test axes(mixed, X) === Base.OneTo(2)
-    @test axes(mixed, 2) === Base.OneTo(3)
+    @test axes(mixed) == (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
+    @test eltype(axes(mixed)) <: Dimensions.DimUnitRange
+    @test dims(axes(mixed)) == dims(mixed)
+    @test axes(mixed, X) == Base.OneTo(2)
+    @test dims(axes(mixed, X)) == dims(mixed, X)
+    @test axes(mixed, 2) == Base.OneTo(3)
+    @test dims(axes(mixed, 2)) == dims(mixed, 2)
     @test first(s) == da1 # first/last are for the NamedTuple
     @test last(s) == da3
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
