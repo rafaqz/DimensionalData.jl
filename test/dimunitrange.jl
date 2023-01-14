@@ -14,7 +14,7 @@ axdims = [
     @test parent(r) === ax
     @test dims(r) === r.dim
     @test dims((r, r2)) === (r.dim, r2.dim)
-    @test sprint(show, "text/plain", r) == "DimUnitRange$((r.range, r.dim))"
+    @test sprint(show, "text/plain", r) == "$(DimUnitRange)$((r.range, r.dim))"
     @test length(r) == length(ax)
     @test !isempty(r)
     @test first(r) == first(ax)
