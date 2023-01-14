@@ -29,6 +29,8 @@ axdims = [
     @test iterate(r, iterate(r)[2]) === iterate(ax, iterate(r)[2])
     @test r[begin] == ax[begin]
     @test r[1] == ax[1]
+    @test checkindex(Bool, r, 1)
+    @test checkindex(Bool, r, 0) == checkindex(Bool, ax, 0)
     bigr = DimUnitRange{BigInt}(r)
     @test eltype(bigr) === BigInt
     @test eltype(parent(bigr)) === BigInt
