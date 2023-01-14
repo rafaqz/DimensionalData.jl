@@ -26,6 +26,7 @@ DimensionalData._precompile()
 
 @time @safetestset "coord" begin include("merged.jl") end
 @time @safetestset "dimension" begin include("dimension.jl") end
+@time @safetestset "DimUnitRange" begin include("dimunitrange.jl") end
 @time @safetestset "primitives" begin include("primitives.jl") end
 @time @safetestset "format" begin include("format.jl") end
 
