@@ -209,21 +209,30 @@ end
             da2 = DimArray(randn(2, 3), (X(1:2), Y(1:3)))
 
             for inds in ((), (1,), (1, 1), (1, 1, 1), (CartesianIndex(),), (CartesianIndices(da0),))
-                @test view(da0, inds...) isa DimArray{eltype(da0),0}
                 @test typeof(parent(view(da0, inds...))) === typeof(view(parent(da0), inds...))
                 @test parent(view(da0, inds...)) == view(parent(da0), inds...)
+                a = view(da0, inds...)
+                @test a isa DimArray{eltype(da0),0}
+                @test length(dims(a)) == 0
+                @test length(refdims(a)) == 0
             end
 
             for inds in ((1,), (1, 1), (2, 1, 1), (CartesianIndex(2),))
-                @test view(da1, inds...) isa DimArray{eltype(da1),0}
                 @test typeof(parent(view(da1, inds...))) === typeof(view(parent(da1), inds...))
                 @test parent(view(da1, inds...)) == view(parent(da1), inds...)
+                a = view(da1, inds...) 
+                @test a isa DimArray{eltype(da1),0}
+                @test length(dims(a)) == 0
+                @test length(refdims(a)) == 1
             end
 
             for inds in ((2,), (2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
-                @test view(da2, inds...) isa DimArray{eltype(da2),0}
                 @test typeof(parent(view(da2, inds...))) === typeof(view(parent(da2), inds...))
                 @test parent(view(da2, inds...)) == view(parent(da2), inds...)
+                a = view(da2, inds...)
+                @test a isa DimArray{eltype(da2),0}
+                @test length(dims(a)) == 0
+                @test length(refdims(a)) == 2
             end
         end
     end
