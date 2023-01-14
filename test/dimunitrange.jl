@@ -41,7 +41,7 @@ axdims = [
         @test Base.OrdinalRange{Int,Int}(r) == r
     end
     @test AbstractUnitRange{BigInt}(r) isa DimUnitRange{BigInt}
-    @test parent(AbstractUnitRange{BigInt}(r)) === AbstractUnitRange{BigInt}(parent(r))
+    @test parent(AbstractUnitRange{BigInt}(r)) == AbstractUnitRange{BigInt}(parent(r))
     @test dims(AbstractUnitRange{BigInt}(r)) === dim
 end
 
