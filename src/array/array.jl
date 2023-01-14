@@ -66,7 +66,7 @@ Extents.extent(A::AbstractDimArray, args...) = Extents.extent(dims(A), args...)
 # Array interface methods ######################################################
 
 Base.size(A::AbstractDimArray) = size(parent(A))
-Base.axes(A::AbstractDimArray) = axes(parent(A))
+Base.axes(A::AbstractDimArray) = map(Dimensions.DimUnitRange, axes(parent(A)), dims(A))
 Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
