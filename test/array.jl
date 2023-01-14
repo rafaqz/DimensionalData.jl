@@ -33,13 +33,18 @@ end
     for dim in row_dims
         @test size(da2, dim) == 3
         @test axes(da2, dim) == 1:3
+        @test axes(da2, dim) isa Dimensions.DimUnitRange
+        @test dims(axes(da2, dim)) === dims(da2, dim)
         @test firstindex(da2, dim) == 1
         @test lastindex(da2, dim) == 3
     end
     @test size(da2, :column) == 4
     @test axes(da2, :column) == 1:4
+    @test axes(da2, :column) isa Dimensions.DimUnitRange
+    @test dims(axes(da2, :column)) === dims(da2, :column)
     @test size(da2) == (3, 4)
     @test axes(da2) == (1:3, 1:4)
+    @test axes(da2) isa Tuple{Dimensions.DimUnitRange, Dimensions.DimUnitRange}
     @test firstindex(da2) == 1
     @test lastindex(da2) == 12
     @inferred axes(da2, Dim{:column})
@@ -174,6 +179,67 @@ end
             @test metadata(A) == NoMetadata()
         end
     end
+
+    @testset "similar with DimArray and its axes" begin
+        da_all = similar(da, Bool, axes(da))
+        @test eltype(da_all) === Bool
+        @test size(da_all) == size(da)
+        @test dims(da_all) == dims(da)
+        @test dims(da_all) !== dims(da)
+        @test refdims(da_all) == ()
+        @test metadata(da_all) == NoMetadata()
+
+        da_first = similar(da, Missing, (axes(da, 1),))   
+        @test eltype(da_first) === Missing
+        @test size(da_first) == (size(da, 1),)
+        @test dims(da_first) == (dims(da, 1),)
+        @test dims(da_first) !== (dims(da, 1),)
+        @test refdims(da_first) == ()
+        @test metadata(da_first) == NoMetadata()
+
+        da_last = similar(da, Nothing, (axes(da, 2),))
+        @test eltype(da_last) === Nothing
+        @test size(da_last) == (size(da, 2),)
+        @test dims(da_last) == (dims(da, 2),)
+        @test dims(da_last) !== (dims(da, 2),)
+        @test refdims(da_last) == ()
+        @test metadata(da_last) == NoMetadata()
+    end
+
+    @testset "similar with DimArray and new axes" begin
+        ax = Dimensions.DimUnitRange(Base.OneTo(2), Dim{:foo}([:a, :b]))
+        da_sim = similar(da, ax)
+        @test eltype(da_sim) === eltype(da)
+        @test size(da_sim) == (2,)
+        @test dims(da_sim) == (dims(ax),)
+        @test dims(da_sim) !== (dims(ax),)
+        @test refdims(da_sim) == ()
+        @test metadata(da_sim) == NoMetadata()
+    end
+
+    @testset "similar with AbstractArray and DimUnitRange" begin
+        da_sim = @inferred similar(trues(2), axes(da))
+        @test da_sim isa DimArray{Bool,2}
+        @test size(da_sim) == size(da)
+        @test parent(da_sim) isa BitMatrix
+        @test dims(da_sim) == dims(da)
+        @test dims(da_sim) !== dims(da)
+
+        da_sim2 = @inferred similar(trues(2), Float64, axes(da))
+        @test da_sim2 isa DimArray{Float64,2}
+        @test size(da_sim2) == size(da)
+        @test dims(da_sim2) == dims(da)
+        @test dims(da_sim2) !== dims(da)
+    end
+
+    @testset "similar with AbstractArray type and DimUnitRange" begin
+        da_sim = similar(BitArray, axes(da))
+        @test da_sim isa DimArray{Bool,2}
+        @test size(da_sim) == size(da)
+        @test parent(da_sim) isa BitMatrix
+        @test dims(da_sim) == dims(da)
+        @test dims(da_sim) !== dims(da)
+    end
 end
 
 @testset "replace" begin
@@ -204,6 +270,9 @@ end
     # Should have linear index
     da = DimArray(ones(5, 2, 4), (Y(10:2:18), Ti(10:11), X(1:4)))
     @test eachindex(da) == eachindex(parent(da))
+    @test eachindex(da[:, 1, 1]) == eachindex(parent(da)[:, 1, 1])
+    @test eachindex(da[:, 1, 1]) isa Dimensions.DimUnitRange
+    @test dims(eachindex(da[:, 1, 1])) == dims(da,1)
     # Should have cartesian index
     sda = DimArray(sprand(10, 10, .1), (Y(1:10), X(1:10)))
     @test eachindex(sda) == eachindex(parent(sda))
