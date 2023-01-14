@@ -9,9 +9,11 @@ axdims = [
 ]
 @testset for (ax, dim) in axdims
     r = DimUnitRange(ax, dim)
+    r2 = DimUnitRange(Base.OneTo(5), Dim{:g}(6:10))
     @test r isa DimUnitRange
     @test parent(r) === ax
     @test dims(r) === r.dim
+    @test dims((r, r2)) === (r.dim, r2.dim)
     @test length(r) == length(ax)
     @test !isempty(r)
     @test first(r) == first(ax)
