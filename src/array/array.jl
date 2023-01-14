@@ -127,6 +127,23 @@ Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) w
     similar(A, T, (i, I...))
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
+# when the axes are DimUnitRanges we can return an `AbstractDimArray`
+function Base.similar(A::AbstractDimArray, T::Type, shape::Tuple{Dimensions.DimUnitRange,Vararg{Dimensions.DimUnitRange}})
+    data = similar(parent(A), T, map(parent, shape))
+    return rebuild(A; data=data, dims=deepcopy(dims(shape)), refdims=(), metadata=NoMetadata())
+end
+function Base.similar(
+    A::AbstractArray, T::Type, shape::Tuple{Dimensions.DimUnitRange,Vararg{Dimensions.DimUnitRange}}
+)
+    data = similar(parent(A), T, map(parent, shape))
+    return DimArray(data, deepcopy(dims(shape)))
+end
+function Base.similar(
+    ::Type{T}, shape::Tuple{Dimensions.DimUnitRange,Vararg{Dimensions.DimUnitRange}}
+) where {T<:AbstractArray}
+    data = similar(T, map(parent, shape))
+    return DimArray(data, deepcopy(dims(shape)))
+end
 # With Dimensions we can return an `AbstractDimArray`
 Base.similar(A::AbstractDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
 Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
