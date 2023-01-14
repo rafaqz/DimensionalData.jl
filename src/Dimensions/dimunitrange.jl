@@ -16,9 +16,7 @@ end
 # this is necessary to ensure that keyword syntax for DimArray works correctly
 Base.Slice(r::DimUnitRange) = Base.Slice(parent(r))
 
-function Base.show(io::IO, r::DimUnitRange)
-    return print(io, DimUnitRange, "(range=", r.range, ", dim=", r.dim, ")")
-end
+Base.show(io::IO, r::DimUnitRange) = print(io, DimUnitRange, (r.range, r.dim))
 
 # the below are adapted from OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/axes.jl
