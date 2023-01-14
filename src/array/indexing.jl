@@ -14,9 +14,14 @@ const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
 for f in (:getindex, :view, :dotview)
     @eval begin
         if Base.$f === Base.view
-            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Union{Integer,CartesianIndex,CartesianIndices})
+            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Union{CartesianIndex,CartesianIndices})
+                x = Base.$f(parent(A), i)
                 I = to_indices(A, (i,))
-                x = Base.$f(parent(A), I...)
+                rebuildsliced(Base.$f, A, x, I)
+            end
+            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Integer)
+                x = Base.$f(parent(A), i)
+                I = to_indices(A, (CartesianIndices(A)[i],))
                 rebuildsliced(Base.$f, A, x, I)
             end
         else
