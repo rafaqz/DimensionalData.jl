@@ -25,8 +25,10 @@ for f in [:length, :isempty, :first, :last]
     @eval @inline Base.$f(r::DimUnitRange) = Base.$f(parent(r))
 end
 @inline Base.axes(r::DimUnitRange) = (r,)
-@inline Base.axes1(r::DimUnitRange) = r
 if VERSION < v"1.8.2"
+    # On recent Julia versions, these don't need to be defined, and defining them may
+    # increase validations, see https://github.com/JuliaArrays/OffsetArrays.jl/pull/311
+    Base.axes1(r::DimUnitRange) = r
     for f in [:firstindex, :lastindex]
         @eval @inline Base.$f(r::DimUnitRange) = $f(parent(r))
     end
