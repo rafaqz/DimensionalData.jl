@@ -28,6 +28,12 @@ da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
     @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
 end
 
+@testset "rebuild" begin
+    @test rebuild(da2, parent(da2)) === da2
+    @test rebuild(da2; dims=dims(da2)) === da2
+    @test_throws ArgumentError rebuild(da2; dims=dims(da2, (Y,))) === da2
+end
+
 @testset "size and axes" begin
     row_dims = (1, Dim{:row}(), Dim{:row}, :row, dimz2[1])
     for dim in row_dims

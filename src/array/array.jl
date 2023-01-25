@@ -312,6 +312,12 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     refdims::R
     name::Na
     metadata::Me
+    function DimArray(
+        data::A, dims::D, refdims::R, name::Na, metadata::Me
+    ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me,Mi} where {T,N}
+        checkdims(A, dims)
+        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
+    end
 end
 # 2 arg version
 DimArray(data::AbstractArray, dims; kw...) = DimArray(data, (dims,); kw...)
@@ -340,6 +346,11 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+
+checkdims(A, dims) = length(dims) == ndims(A) || _dimlengtherror(ndims(A), length(dims))
+
+@noinline _dimlengtherror(na, nd) =
+    throw(ArgumentError("dimensions of the array ($na) do not match number of dimensions ($nd)")) 
 
 """
     rebuild(A::DimArray, data, dims, refdims, name, metadata) => DimArray
