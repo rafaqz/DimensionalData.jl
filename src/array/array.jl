@@ -315,7 +315,7 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
     function DimArray(
         data::A, dims::D, refdims::R, name::Na, metadata::Me
     ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} where {T,N}
-        checkdims(A, dims)
+        checkdims(data, dims)
         new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
     end
 end
