@@ -347,11 +347,12 @@ function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(
      DimArray(f.(val(dim)), (dim,); name)
 end
 
-checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N =
-    length(dims) == N || _dimlengtherror(N, length(dims))
+checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
+checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)
+checkdims(n::Integer, dims::Tuple) = length(dims) == n || _dimlengtherror(n, length(dims))
 
 @noinline _dimlengtherror(na, nd) =
-    throw(ArgumentError("dimensions of the array ($na) do not match number of dimensions ($nd)")) 
+    throw(ArgumentError("axes of the array ($na) do not match number of dimensions ($nd)")) 
 
 """
     rebuild(A::DimArray, data, dims, refdims, name, metadata) => DimArray
