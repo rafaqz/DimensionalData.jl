@@ -117,18 +117,16 @@ _format(locus::Locus, D::Type, index) = locus
 
 _order(index) = first(index) <= last(index) ? ForwardOrdered() : ReverseOrdered()
 
+checkaxis(lookup::Transformed, axis) = nothing
+checkaxis(lookup, axis) = first(axes(lookup)) == axis || _checkaxiserror(lookup, axis)
+
 @noinline _explicitpoints_error() =
     throw(ArgumentError("Cannot use Explicit span with Points sampling"))
 @noinline _steperror(index, span) =
     throw(ArgumentError("lookup step $(step(span)) does not match index step $(step(index))"))
 @noinline _arraynosteperror() =
     throw(ArgumentError("`Regular` must specify `step` size with an index other than `AbstractRange`"))
-
-checkaxis(lookup::Transformed, axis) = nothing
-function checkaxis(lookup, axis)
-    if !(first(axes(lookup)) == axis)
-        throw(DimensionMismatch(
-            "axes of $(basetypeof(lookup)) of $(first(axes(lookup))) do not match array axis of $axis"
-        ))
-    end
-end
+@noinline _checkaxiserror(lookup, axis) =
+    throw(DimensionMismatch(
+        "axes of $(basetypeof(lookup)) of $(first(axes(lookup))) do not match array axis of $axis"
+    ))
