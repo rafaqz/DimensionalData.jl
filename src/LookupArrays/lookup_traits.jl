@@ -134,8 +134,9 @@ or [`Intervals`](@ref).
 abstract type Sampling <: LookupArrayTrait end
 
 struct NoSampling <: Sampling end
-struct AutoSampling <: Sampling end
+locus(sampling::NoSampling) = Center()
 
+struct AutoSampling <: Sampling end
 locus(sampling::AutoSampling) = AutoLocus()
 
 """
