@@ -125,24 +125,19 @@ end
         da_sim = similar(da)
         @test eltype(da_sim) == eltype(da)
         @test size(da_sim) == size(da)
-        @test dims(da_sim) == dims(da)
-        @test dims(da_sim) !== dims(da)
-        @test refdims(da_sim) == refdims(da)
-        @test refdims(da_sim) !== refdims(da)
-        @test metadata(da_sim) == metadata(da)
-        @test metadata(da_sim) !== metadata(da)
+        @test dims(da_sim) === dims(da)
+        @test refdims(da_sim) === refdims(da)
+        @test refdims(da_sim) === refdims(da)
+        @test metadata(da_sim) === metadata(da)
     end
 
     @testset "similar with a type" begin
         da_float = similar(da, Float64)
         @test eltype(da_float) == Float64
         @test size(da_float) == size(da)
-        @test dims(da_float) == dims(da)
-        @test dims(da_float) !== dims(da)
-        @test refdims(da_float) == refdims(da)
-        @test refdims(da_float) !== refdims(da)
-        @test metadata(da_float) == metadata(da)
-        @test metadata(da_float) !== metadata(da)
+        @test dims(da_float) === dims(da)
+        @test refdims(da_float) === refdims(da)
+        @test metadata(da_float) === metadata(da)
     end
 
     @testset "similar with a size" begin
@@ -177,8 +172,7 @@ end
         for A in (da_sim_dims, da_sim_dims_splat)
             @test eltype(A) == eltype(da)
             @test size(A) == size(da)
-            @test dims(A) == dims(da)
-            @test dims(A) !== dims(da)
+            @test dims(A) === dims(da)
             @test refdims(A) == ()
         end
         da_sim_type_dims = similar(da2, Bool, dims(da))
@@ -186,8 +180,7 @@ end
         for A in (da_sim_type_dims, da_sim_type_dims_splat)
             @test eltype(A) == Bool
             @test size(A) == size(da)
-            @test dims(A) == dims(da)
-            @test dims(A) !== dims(da)
+            @test dims(A) === dims(da)
             @test refdims(A) == ()
             @test metadata(A) == NoMetadata()
         end
@@ -197,24 +190,21 @@ end
         da_all = similar(da, Bool, axes(da))
         @test eltype(da_all) === Bool
         @test size(da_all) == size(da)
-        @test dims(da_all) == dims(da)
-        @test dims(da_all) !== dims(da)
+        @test dims(da_all) === dims(da)
         @test refdims(da_all) == ()
         @test metadata(da_all) == NoMetadata()
 
         da_first = similar(da, Missing, (axes(da, 1),))   
         @test eltype(da_first) === Missing
         @test size(da_first) == (size(da, 1),)
-        @test dims(da_first) == (dims(da, 1),)
-        @test dims(da_first) !== (dims(da, 1),)
+        @test dims(da_first) === (dims(da, 1),)
         @test refdims(da_first) == ()
         @test metadata(da_first) == NoMetadata()
 
         da_last = similar(da, Nothing, (axes(da, 2),))
         @test eltype(da_last) === Nothing
         @test size(da_last) == (size(da, 2),)
-        @test dims(da_last) == (dims(da, 2),)
-        @test dims(da_last) !== (dims(da, 2),)
+        @test dims(da_last) === (dims(da, 2),)
         @test refdims(da_last) == ()
         @test metadata(da_last) == NoMetadata()
     end
@@ -224,8 +214,7 @@ end
         da_sim = similar(da, ax)
         @test eltype(da_sim) === eltype(da)
         @test size(da_sim) == (2,)
-        @test dims(da_sim) == (dims(ax),)
-        @test dims(da_sim) !== (dims(ax),)
+        @test dims(da_sim) === (dims(ax),)
         @test refdims(da_sim) == ()
         @test metadata(da_sim) == NoMetadata()
     end
@@ -235,14 +224,12 @@ end
         @test da_sim isa DimArray{Bool,2}
         @test size(da_sim) == size(da)
         @test parent(da_sim) isa BitMatrix
-        @test dims(da_sim) == dims(da)
-        @test dims(da_sim) !== dims(da)
+        @test dims(da_sim) === dims(da)
 
         da_sim2 = @inferred similar(trues(2), Float64, axes(da))
         @test da_sim2 isa DimArray{Float64,2}
         @test size(da_sim2) == size(da)
-        @test dims(da_sim2) == dims(da)
-        @test dims(da_sim2) !== dims(da)
+        @test dims(da_sim2) === dims(da)
     end
 
     @testset "similar with AbstractArray type and DimUnitRange" begin
@@ -250,8 +237,7 @@ end
         @test da_sim isa DimArray{Bool,2}
         @test size(da_sim) == size(da)
         @test parent(da_sim) isa BitMatrix
-        @test dims(da_sim) == dims(da)
-        @test dims(da_sim) !== dims(da)
+        @test dims(da_sim) === dims(da)
     end
 
     @testset "similar with mixed DimUnitRange and Base.OneTo" begin
