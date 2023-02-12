@@ -122,7 +122,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractDimArra
         end
     end
     od = map(A -> otherdims(dest, dims(A)), As)
+    return _broadcast_dims_inner!(f, dest, As, od)
+end
 
+# Function barrier
+function _broadcast_dims_inner!(f, dest, As, od)
     # Broadcast over b for each combination of dimensional indices D
     if all(map(isempty, od))
         dest .= f.(As...)
