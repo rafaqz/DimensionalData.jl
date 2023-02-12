@@ -3,12 +3,14 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 di = DimIndices(A)
+di[1]
 
 ci = CartesianIndices(A)
 @test val.(collect(di)) == Tuple.(collect(ci))
 
 @testset "DimIndices" begin
     @test di[4, 3] == (X(4), Y(3))
+    @test di[2] == (X(2), Y(1))
     @test di[X(1)] == [(X(1), Y(1),), (X(1), Y(2),), (X(1), Y(3),)]
     @test map(ds -> A[ds...] + 2, di) == fill(2.0, 4, 3)
     @test map(ds -> A[ds...], di[X(At(7.0))]) == [0.0, 0.0, 0.0]
@@ -22,6 +24,7 @@ end
 @testset "DimPoints" begin
     dp = DimPoints(A)
     @test dp[4, 3] == (7.0, 12.0)
+    @test dp[2] == (5.0, 10.0)
     @test dp[X(1)] == [(4.0, 10.0), (4.0, 11.0), (4.0, 12.0)]
     @test size(dp) == (4, 3)
     @test_throws ArgumentError DimPoints(zeros(2, 2))
@@ -35,6 +38,7 @@ end
     dk = DimKeys(A)
     @test size(dk) == (4, 3)
     @test dk[4, 3] == (X(At(7.0; atol=eps(Float64))), Y(At(12.0, atol=eps(Float64))))
+    @test dk[2] == (X(At(5.0; atol=eps(Float64))), Y(At(10.0, atol=eps(Float64))))
     @test dk[X(1)] ==  dk[X(At(4.0))] ==
         [(X(At(4.0; atol=eps(Float64))), Y(At(10.0; atol=eps(Float64))),),
          (X(At(4.0; atol=eps(Float64))), Y(At(11.0; atol=eps(Float64))),),

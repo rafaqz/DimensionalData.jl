@@ -50,8 +50,18 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{<:Dimension}}}
     DimIndices{T,N,typeof(dims)}(dims)
 end
 
-function Base.getindex(di::DimIndices, i1::Int, I::Int...)
-    map(dims(di), (i1, I...)) do d, i
+function Base.getindex(di::DimIndices, i1::Int, i2::Int, I::Int...)
+    map(dims(di), (i1, i2, I...)) do d, i
+        rebuild(d, axes(d, 1)[i])
+    end
+end
+function Base.getindex(di::DimIndices{<:Any,1}, i::Int)
+    d = dims(di, 1)
+    (rebuild(d, axes(d, 1)[i]),)
+end
+function Base.getindex(di::DimIndices{<:Any,N}, i::Int) where N
+    I = Tuple(CartesianIndices(di)[i])
+    map(dims(di), I) do d, i
         rebuild(d, axes(d, 1)[i])
     end
 end
@@ -87,14 +97,16 @@ function DimPoints(dims::DimTuple; order=dims)
     DimPoints{T,N,typeof(dims),typeof(order)}(dims, order)
 end
 
-function Base.getindex(dp::DimPoints, i1::Int, I::Int...)
+function Base.getindex(dp::DimPoints, i1::Int, i2::Int, I::Int...)
     # Get dim-wrapped point values at i1, I...
-    pointdims = map(dims(dp), (i1, I...)) do d, i
+    pointdims = map(dims(dp), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
     end
     # Return the unwrapped point sorted by `order
     return map(val, DD.dims(pointdims, dp.order))
 end
+Base.getindex(di::DimPoints{<:Any,1}, i::Int) = (dims(di, 1)[i],)
+Base.getindex(di::DimPoints, i::Int) = di[Tuple(CartesianIndices(di)[i])...]
 
 """
     DimKeys <: AbstractArray
@@ -144,8 +156,13 @@ end
 _atol(::Type, atol) = atol
 _atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
 
-function Base.getindex(di::DimKeys, i1::Int, I::Int...)
-    map(dims(di), di.selectors, (i1, I...)) do d, s, i
-        rebuild(d, rebuild(s; val=index(d)[i])) # At selector with the value at i
+function Base.getindex(di::DimKeys, i1::Int, i2::Int, I::Int...)
+    map(dims(di), di.selectors, (i1, i2, I...)) do d, s, i
+        rebuild(d, rebuild(s; val=d[i])) # At selector with the value at i
     end
 end
+function Base.getindex(di::DimKeys{<:Any,1}, i::Int) 
+    d = dims(di, 1)
+    (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
+end
+Base.getindex(di::DimKeys, i::Int) = di[Tuple(CartesianIndices(di)[i])...]
