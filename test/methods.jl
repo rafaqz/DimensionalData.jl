@@ -289,7 +289,7 @@ end
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
         testdims = (X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
                     Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
-        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
+        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X) ==
               cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
         @test val(cat(da, db; dims=X())) == val(testdims)
