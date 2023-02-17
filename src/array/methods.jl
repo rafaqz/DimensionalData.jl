@@ -179,7 +179,7 @@ end
 function Base._cat(_catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     catdims = map(_catdims) do d
         d isa DimType && return d(NoLookup())
-        d isa Integer && return dims(A1, d)
+        d isa Int && return dims(A1, d)
         return key2dim(d)
     end
     return _cat(catdims, A1, As...)
