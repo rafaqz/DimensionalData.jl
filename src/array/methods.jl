@@ -184,7 +184,7 @@ function Base._cat(_catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray..
     end
     return _cat(catdims, A1, As...)
 end
-function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
+function Base._cat(catdim::Union{Int,DimOrDimType}, Xin::AbstractDimArray...)
     Base._cat((catdim,), Xin...)
 end
 function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
