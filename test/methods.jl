@@ -302,6 +302,22 @@ end
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
     end
 
+    # https://github.com/rafaqz/DimensionalData.jl/issues/451
+    @testset "dims passed as Symbols" begin
+        Xcatdim = X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
+        da2 = DimArray(a, (X(4.0:5.0), :y))
+        db2 = DimArray(b, (X(6.0:7.0), :y))
+        @test cat(da2, db2; dims=:y) == cat(da2, db2; dims=Dim{:y}) ==
+        @inferred(cat(da2, db2; dims=Dim{:y}()))
+        @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
+        @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
+        @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
+            @inferred(cat(da2, db2; dims=(X(), Dim{:y}())))
+        @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
+            typeof((Xcatdim, dims(da2, :y)))
+        @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
+    end
+
     @testset "Irregular Sampled" begin
         @testset "Intervals" begin
             iri_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())), 
