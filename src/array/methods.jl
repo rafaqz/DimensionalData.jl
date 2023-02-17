@@ -176,10 +176,18 @@ for fname in [:permutedims, :PermutedDimsArray]
 end
 
 # Concatenation
-function Base._cat(catdims::Union{Int,Base.Dims}, A1::AbstractDimArray, As::AbstractDimArray...)
-    Base._cat(dims(A1, catdims), A1, As...)
+function Base._cat(_catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
+    catdims = map(_catdims) do d
+        d isa DimType && return d(NoLookup())
+        d isa Int && return dims(A1, d)
+        return key2dim(d)
+    end
+    return _cat(catdims, A1, As...)
 end
-function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
+function Base._cat(catdim::Union{Int,DimOrDimType}, Xin::AbstractDimArray...)
+    Base._cat((catdim,), Xin...)
+end
+function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     Xin = (A1, As...)
     comparedims(map(x -> otherdims(x, catdims), Xin)...)
     newcatdims = map(catdims) do catdim
@@ -217,12 +225,6 @@ function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...
     data = map(parent, Xin)
     newA = Base._cat_t(cat_dnums, T, data...)
     rebuild(A1, newA, format(newdims, newA), newrefdims)
-end
-function Base._cat(catdim::DimType, Xin::AbstractDimArray...)
-    Base._cat(catdim(NoLookup()), Xin...)
-end
-function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
-    Base._cat((catdim,), Xin...)
 end
 
 function Base.vcat(d1::Dimension, ds::Dimension...)
