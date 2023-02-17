@@ -297,7 +297,6 @@ end
         @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
         @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
         @test cat(da, db; dims=(Z(1:2), Ti(1:2))) == cat(a, b; dims=(3, 4))
-        cat(a, b; dims=(3, 4))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X(), Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
