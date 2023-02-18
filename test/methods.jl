@@ -337,6 +337,32 @@ end
     end
 end
 
+@testset "vcat" begin
+    a = [1 2 3; 4 5 6]
+    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+    b = [7 8 9; 10 11 12]
+    db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
+    c = [13 14 15; 16 17 18]
+    dc = DimArray(c, (X(8.0:9.0), Y(6.0:8.0)))
+
+    @test @inferred(vcat(da)) == da
+    @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
+    @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+end
+
+@testset "hcat" begin
+    a = [1 2 3; 4 5 6]
+    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+    b = [7 8 9; 10 11 12]
+    db = DimArray(b, (X(4.0:5.0), Y(9.0:11.0)))
+    c = [13 14 15; 16 17 18]
+    dc = DimArray(c, (X(4.0:5.0), Y(12.0:14.0)))
+
+    @test @inferred(hcat(da)) == da
+    @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
+    @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+end
+
 @testset "unique" begin
     a = [1 1 6; 1 1 6]
     xs = (X, X(), :X)
