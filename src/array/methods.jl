@@ -225,6 +225,22 @@ function Base._cat(catdim::DimOrDimType, Xin::AbstractDimArray...)
     Base._cat((catdim,), Xin...)
 end
 
+function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
+    A1 = first(As)
+    catdim = vcat(map(Base.Fix2(dims, 1), As)...)
+    newdims = (catdim, otherdims(dims(A1), catdim)...)
+    newA = vcat(map(parent, As)...)
+    rebuild(A1, newA, format(newdims, newA))
+end
+
+function Base.hcat(As::AbstractDimMatrix...)
+    A1 = first(As)
+    catdim = vcat(map(Base.Fix2(dims, 2), As)...)
+    newdims = (otherdims(dims(A1), catdim)..., catdim)
+    newA = hcat(map(parent, As)...)
+    rebuild(A1, newA, format(newdims, newA))
+end
+
 function Base.vcat(d1::Dimension, ds::Dimension...)
     newlookup = _vcat_lookups(lookup((d1, ds...))...)
     rebuild(d1, newlookup)
