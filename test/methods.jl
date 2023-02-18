@@ -289,7 +289,7 @@ end
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
         testdims = (X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
                     Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
-        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X)
+        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X) ==
               cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
         @test val(cat(da, db; dims=X())) == val(testdims)
@@ -297,10 +297,25 @@ end
         @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
         @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
         @test cat(da, db; dims=(Z(1:2), Ti(1:2))) == cat(a, b; dims=(3, 4))
-        cat(a, b; dims=(3, 4))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X(), Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
+    end
+
+    # https://github.com/rafaqz/DimensionalData.jl/issues/451
+    @testset "dims passed as Symbols" begin
+        Xcatdim = X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
+        da2 = DimArray(a, (X(4.0:5.0), :y))
+        db2 = DimArray(b, (X(6.0:7.0), :y))
+        @test cat(da2, db2; dims=:y) == cat(da2, db2; dims=Dim{:y}) ==
+        @inferred(cat(da2, db2; dims=Dim{:y}()))
+        @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
+        @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
+        @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
+            @inferred(cat(da2, db2; dims=(X(), Dim{:y}())))
+        @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
+            typeof((Xcatdim, dims(da2, :y)))
+        @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
     end
 
     @testset "Irregular Sampled" begin
