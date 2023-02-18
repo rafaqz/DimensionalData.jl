@@ -193,7 +193,7 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
 end
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T = copy!(dst, parent(src))
 
-ArrayInterfaceCore.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
+ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
 
 function Adapt.adapt_structure(to, A::AbstractDimArray)
     rebuild(A,
