@@ -91,4 +91,4 @@ There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDim
 [AxisKeys.jl](https://github.com/mcabbott/AxisKeys.jl) and [AbstractIndices.jl](https://github.com/Tokazama/AbstractIndices.jl) are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this [thread](https://github.com/JuliaCollections/AxisArraysFuture/issues/1).
 
 The main functionality is explained here, but the full list of features is
-listed at the [API](@ref) page.
+listed at the [API](https://rafaqz.github.io/DimensionalData.jl/stable/api/) page.

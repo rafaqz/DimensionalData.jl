@@ -261,6 +261,23 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     rebuild(A1, newA, format(newdims, newA), newrefdims)
 end
 
+function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
+    return _horvcat(Base.splat(vcat), As, Val(1))
+end
+
+function Base.hcat(As::AbstractDimMatrix...)
+    return _horvcat(Base.splat(hcat), As, Val(2))
+end
+
+function _horvcat(f, As, ::Val{I}) where {I}
+    A1 = first(As)
+    catdim = vcat(map(Base.Fix2(dims, I), As)...)
+    noncatdim = only(otherdims(dims(A1), catdim))
+    newdims = Base.setindex((noncatdim, noncatdim), catdim, I)
+    newA = f(map(parent, As))
+    rebuild(A1, newA, format(newdims, newA))
+end
+
 function Base.vcat(d1::Dimension, ds::Dimension...)
     newlookup = _vcat_lookups(lookup((d1, ds...))...)
     rebuild(d1, newlookup)
