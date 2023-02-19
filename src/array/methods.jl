@@ -104,18 +104,42 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-"""
-    Base.eachslice(A::AbstractDimArray; dims)
+if VERSION < v"1.9-alpha1"
+    """
+        Base.eachslice(A::AbstractDimArray; dims)
 
-Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
-select all the data from the other dimensions in `A` using views.
+    Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
+    select all the data from the other dimensions in `A` using views.
 
-The generator has `size` and `axes` equivalent to those of the provided `dims`.
-"""
-function Base.eachslice(A::AbstractDimArray; dims)
-    dimtuple = _astuple(dims)
-    all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-    _eachslice(A, dimtuple)
+    The generator has `size` and `axes` equivalent to those of the provided `dims`.
+    """
+    function Base.eachslice(A::AbstractDimArray; dims)
+        dimtuple = _astuple(dims)
+        all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+        _eachslice(A, dimtuple)
+    end
+else
+    @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
+        dimtuple = _astuple(dims)
+        all(hasdim(A, dimtuple...)) || throw(ArgumentError("A doesn't have all dimensions $dims"))
+        _eachslice(A, dimtuple, drop)
+    end
+    Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
+        slicedims = Dimensions.dims(A, dims)
+        Adims = Dimensions.dims(A)
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
+        end
+        if drop
+            ax = map(dim -> axes(A, dim), slicedims)
+            return Slices(A, slicemap, ax)
+        else
+            ax = map(Adims) do dim
+                hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
+            end
+            return Slices(A, slicemap, ax)
+        end
+    end
 end
 
 # works for arrays and for stacks
