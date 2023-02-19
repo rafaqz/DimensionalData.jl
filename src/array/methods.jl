@@ -104,7 +104,7 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-if VERSION < v"1.9-alpha1"
+@static if VERSION < v"1.9-alpha1"
     """
         Base.eachslice(A::AbstractDimArray; dims)
 
