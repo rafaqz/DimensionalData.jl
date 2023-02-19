@@ -148,6 +148,14 @@ end
     ys2 = (ys..., map(tuple, ys)...)
     tis = (2, Ti, Ti(), :Ti, ti)
     tis2 = (tis..., map(tuple, tis)...)
+    f(x, dims) = eachslice(x; dims=dims)
+    f2(x, dims) = eachslice(x; dims=dims, drop=false)
+
+    @testset for dims in (y, ti, (y,), (ti,), (y, ti), (ti, y))
+        @inferred f(da, dims)
+        VERSION ≥ v"1.9-alpha1" && @inferred f2(da, dims)
+    end
+
     @testset for dims in tis2
         da2 = map(mean, eachslice(da; dims=dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
         slices = map(x -> x*2, eachslice(da; dims=dims))

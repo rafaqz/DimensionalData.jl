@@ -156,6 +156,12 @@ end
     ys2 = (ys..., map(tuple, ys)...)
     zs = (Z, :Z, z, 3)
     zs2 = (zs..., map(tuple, zs)...)
+    f(x, dims) = eachslice(x; dims=dims)
+
+    @testset for dims in (x, y, z, (x,), (y,), (z,), (x, y), (y, z), (x, y, z))
+        @inferred f(mixed, dims)
+    end
+
     @testset for dims in xs2
         @test eachslice(mixed; dims=dims) isa Base.Generator
         slices = map(identity, eachslice(mixed; dims=dims))
