@@ -160,7 +160,7 @@ end
         @test DimensionalData.dims(slices[1]) == (Ti(1.0:1.0:4.0),)
     end
 
-    @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
+    @test [s .* 2 for s in eachslice(da; dims=(Y, Ti))] == da * 2
 end
 
 @testset "simple dimension permuting methods" begin
