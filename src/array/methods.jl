@@ -104,17 +104,24 @@ function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
     rebuild(A, data)
 end
 
-# This is copied from base as we can't efficiently wrap this function
-# through the kw with a rebuild in the generator. Doing it this way
-# also makes it faster to use a dim than an integer.
-function Base.eachslice(A::AbstractDimArray; dims=1, kw...)
-    if dims isa Tuple && length(dims) != 1
-        throw(ArgumentError("only single dimensions are supported"))
-    end
-    dim = first(dimnum(A, dims))
-    dim <= ndims(A) || throw(DimensionMismatch("A doesn't have $dim dimensions"))
-    idx1, idx2 = ntuple(d->(:), dim-1), ntuple(d->(:), ndims(A)-dim)
-    return (view(A, idx1..., i, idx2...) for i in axes(A, dim))
+"""
+    Base.eachslice(A::AbstractDimArray; dims)
+
+Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
+select all the data from the other dimensions in `A` using views.
+
+The generator has `size` and `axes` equivalent to those of the provided `dims`.
+"""
+function Base.eachslice(A::AbstractDimArray; dims)
+    dimtuple = _astuple(dims)
+    all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+    _eachslice(A, dimtuple)
+end
+
+# works for arrays and for stacks
+function _eachslice(x, dims::Tuple)
+    slicedims = Dimensions.dims(x, dims)
+    return (view(x, d...) for d in DimIndices(slicedims))
 end
 
 # Duplicated dims
