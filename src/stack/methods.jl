@@ -60,13 +60,11 @@ The generator has `size` and `axes` equivalent to those of the provided `dims`.
 
 # Examples
 
-```jldoctest; filter = [r"┌ Warning.*", r".*primitives\\.jl:[0-9]+"]
+```jldoctest; filter = r"┌ Warning:.*\\n.*"
 julia> ds = DimStack((
            x=DimArray(randn(2, 3, 4), (X([:x1, :x2]), Y(1:3), Z)),
            y=DimArray(randn(2, 3, 5), (X([:x1, :x2]), Y(1:3), Ti))
        ));
-
-julia> slice = eachslice(ds; dims=(Z, X));
 
 julia> slices = eachslice(ds; dims=(Z, X));
 
@@ -78,6 +76,8 @@ Z,
 X Categorical{Symbol} Symbol[x1, x2] ForwardOrdered
 
 julia> first(slices)
+┌ Warning: (Z,) dims were not found in object
+└ @ DimensionalData.Dimensions
 DimStack with dimensions:
   Y Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   Ti
