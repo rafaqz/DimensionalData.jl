@@ -127,15 +127,18 @@ else
     Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
         slicedims = Dimensions.dims(A, dims)
         Adims = Dimensions.dims(A)
-        slicemap = map(Adims) do dim
-            hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
-        end
         if drop
             ax = map(dim -> axes(A, dim), slicedims)
+            slicemap = map(Adims) do dim
+                hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
+            end
             return Slices(A, slicemap, ax)
         else
             ax = map(Adims) do dim
                 hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
+            end
+            slicemap = map(Adims) do dim
+                hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
             end
             return Slices(A, slicemap, ax)
         end
