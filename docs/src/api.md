@@ -54,6 +54,7 @@ reorder
 Base.cat
 Base.map
 Base.copy!
+Base.eachslice
 ```
 
 Most base methods work as expected, using `Dimension` wherever a `dims`
