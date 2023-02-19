@@ -50,6 +50,48 @@ Other values will be returned in a `NamedTuple`.
 Base.map(f, s::AbstractDimStack...) = _maybestack(s[1], map(f, map(NamedTuple, s)...))
 Base.map(f, s::Union{AbstractDimStack,NamedTuple}...) = _maybestack(_firststack(s...), map(f, map(NamedTuple, s)...))
 
+"""
+    Base.eachslice(stack::AbstractDimStack; dims)
+
+Create a generator that iterates over dimensions `dims` of `stack`, returning stacks that
+select all the data from the other dimensions in `stack` using views.
+
+The generator has `size` and `axes` equivalent to those of the provided `dims`.
+
+# Examples
+
+```jldoctest; filter = [r"┌ Warning.*", r".*primitives\\.jl:[0-9]+"]
+julia> ds = DimStack((
+           x=DimArray(randn(2, 3, 4), (X([:x1, :x2]), Y(1:3), Z)),
+           y=DimArray(randn(2, 3, 5), (X([:x1, :x2]), Y(1:3), Ti))
+       ));
+
+julia> slice = eachslice(ds; dims=(Z, X));
+
+julia> slices = eachslice(ds; dims=(Z, X));
+
+julia> size(slices)
+(4, 2)
+
+julia> map(dims, axes(slices))
+Z,
+X Categorical{Symbol} Symbol[x1, x2] ForwardOrdered
+
+julia> first(slices)
+DimStack with dimensions:
+  Y Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  Ti
+and 2 layers:
+  :x Float64 dims: Y (3)
+  :y Float64 dims: Y, Ti (3×5)
+```
+"""
+function Base.eachslice(s::AbstractDimStack; dims)
+    dimtuple = _astuple(dims)
+    all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
+    _eachslice(s, dimtuple)
+end
+
 _maybestack(s::AbstractDimStack, x::NamedTuple) = x
 function _maybestack(
     s::AbstractDimStack, das::NamedTuple{K,<:Tuple{Vararg{<:AbstractDimArray}}}
@@ -58,7 +100,7 @@ function _maybestack(
 end
 
 _firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
+_firststack(arg1, args...) = _firststack(args...)
 _firststack() = nothing
 
 """
