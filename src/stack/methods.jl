@@ -100,7 +100,7 @@ function _maybestack(
 end
 
 _firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...)
+_firststack(arg1, args...) = _firststack(args...) 
 _firststack() = nothing
 
 """
