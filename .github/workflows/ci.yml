@@ -20,6 +20,10 @@ jobs:
           - windows-latest
         arch:
           - x64
+        include:
+          - version: 'nightly'
+            os: ubuntu-latest
+            arch: x64
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
