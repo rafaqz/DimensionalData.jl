@@ -177,6 +177,10 @@ end
         @test map(first, slices) == permutedims(da * 3, dims)
         VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
     end
+
+    @test_throws DimensionMismatch eachslice(da; dims=3)
+    @test_throws DimensionMismatch eachslice(da; dims=X)
+    @test_throws DimensionMismatch eachslice(da; dims=(y, ti, Z))
 end
 
 @testset "simple dimension permuting methods" begin
