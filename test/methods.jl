@@ -145,19 +145,24 @@ end
     ti = Ti(1:4)
     da = DimArray(a, (y, ti))
     ys = (1, Y, Y(), :Y, y)
+    ys2 = (ys..., map(tuple, ys)...)
     tis = (2, Ti, Ti(), :Ti, ti)
-    for dims in tis
-        @test [mean(s) for s in eachslice(da; dims)] == [3.0, 4.0, 5.0, 6.0]
-        slices = [s .* 2 for s in eachslice(da; dims=Ti)]
-        @test slices[1] == [2, 6, 10]
-        @test DimensionalData.dims(slices[1]) == (Y(10.0:10.0:30.0),)
+    tis2 = (tis..., map(tuple, tis)...)
+    @testset for dims in tis2
+        da2 = map(mean, eachslice(da; dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
+        slices = map(x -> x*2, eachslice(da; dims=dims))
+        @test slices isa DimArray
+        @test Dimensions.dims(slices) == (ti,)
+        @test slices[1] == DimArray([2, 6, 10], y)
     end
-    for dims in ys
-        slices = [s .* 2 for s in eachslice(da; dims=Y)]
-        @test slices[1] == [2, 4, 6, 8]
-        @test slices[2] == [6, 8, 10, 12]
-        @test slices[3] == [10, 12, 14, 16]
-        @test DimensionalData.dims(slices[1]) == (Ti(1.0:1.0:4.0),)
+    @testset for dims in ys2
+        slices = map(x -> x*2, eachslice(da; dims=dims))
+        @test slices isa DimArray
+        @test Dimensions.dims(slices) == (y,)
+        @test slices[1] == DimArray([2, 4, 6, 8], ti)
+        @test slices[2] == DimArray([6, 8, 10, 12], ti)
+        @test slices[3] == DimArray([10, 12, 14, 16], ti)
+    end
     end
 
     @test [s .* 2 for s in eachslice(da; dims=(Y, Ti))] == da * 2
