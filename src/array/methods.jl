@@ -121,7 +121,7 @@ end
 else
     @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
         dimtuple = _astuple(dims)
-        all(hasdim(A, dimtuple...)) || throw(ArgumentError("A doesn't have all dimensions $dims"))
+        all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         _eachslice(A, dimtuple, drop)
     end
     Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
