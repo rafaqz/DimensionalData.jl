@@ -154,7 +154,14 @@ end
         @test slices isa DimArray
         @test Dimensions.dims(slices) == (ti,)
         @test slices[1] == DimArray([2, 6, 10], y)
-        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
+        if VERSION ≥ v"1.9-alpha1"
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+            @test slices[1] == DimArray([1, 3, 5], y)
+        end
     end
     @testset for dims in ys2
         slices = map(x -> x*2, eachslice(da; dims=dims))
@@ -163,7 +170,14 @@ end
         @test slices[1] == DimArray([2, 4, 6, 8], ti)
         @test slices[2] == DimArray([6, 8, 10, 12], ti)
         @test slices[3] == DimArray([10, 12, 14, 16], ti)
-        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
+        if VERSION ≥ v"1.9-alpha1"
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+            @test slices[1] == DimArray([1, 2, 3, 4], ti)
+        end
     end
     @testset for dims in Iterators.flatten((Iterators.product(ys, tis), Iterators.product(tis, ys)))
         # mixtures of integers and dimensions are not supported
@@ -175,7 +189,13 @@ end
         @test axes(slices) == map(x -> axes(da, x), dims)
         @test eltype(slices) <: DimArray{Int, 0}
         @test map(first, slices) == permutedims(da * 3, dims)
-        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
+        if VERSION ≥ v"1.9-alpha1"
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+        end
     end
 
     @test_throws DimensionMismatch eachslice(da; dims=3)
