@@ -149,11 +149,12 @@ end
     tis = (2, Ti, Ti(), :Ti, ti)
     tis2 = (tis..., map(tuple, tis)...)
     @testset for dims in tis2
-        da2 = map(mean, eachslice(da; dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
+        da2 = map(mean, eachslice(da; dims=dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
         slices = map(x -> x*2, eachslice(da; dims=dims))
         @test slices isa DimArray
         @test Dimensions.dims(slices) == (ti,)
         @test slices[1] == DimArray([2, 6, 10], y)
+        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
     end
     @testset for dims in ys2
         slices = map(x -> x*2, eachslice(da; dims=dims))
@@ -162,6 +163,7 @@ end
         @test slices[1] == DimArray([2, 4, 6, 8], ti)
         @test slices[2] == DimArray([6, 8, 10, 12], ti)
         @test slices[3] == DimArray([10, 12, 14, 16], ti)
+        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
     end
     @testset for dims in Iterators.flatten((Iterators.product(ys, tis), Iterators.product(tis, ys)))
         # mixtures of integers and dimensions are not supported
@@ -173,6 +175,7 @@ end
         @test axes(slices) == map(x -> axes(da, x), dims)
         @test eltype(slices) <: DimArray{Int, 0}
         @test map(first, slices) == permutedims(da * 3, dims)
+        VERSION ≥ v"1.9-alpha1" && @test eachslice(da; dims=dims) isa Slices
     end
 end
 
