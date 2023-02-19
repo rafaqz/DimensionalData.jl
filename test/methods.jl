@@ -163,9 +163,17 @@ end
         @test slices[2] == DimArray([6, 8, 10, 12], ti)
         @test slices[3] == DimArray([10, 12, 14, 16], ti)
     end
+    @testset for dims in Iterators.flatten((Iterators.product(ys, tis), Iterators.product(tis, ys)))
+        # mixtures of integers and dimensions are not supported
+        rem(sum(d -> isa(d, Int), dims), length(dims)) == 0 || continue
+        slices = map(x -> x*3, eachslice(da; dims=dims))
+        @test slices isa DimArray
+        @test Dimensions.dims(slices) == Dimensions.dims(da, dims)
+        @test size(slices) == map(x -> size(da, x), dims)
+        @test axes(slices) == map(x -> axes(da, x), dims)
+        @test eltype(slices) <: DimArray{Int, 0}
+        @test map(first, slices) == permutedims(da * 3, dims)
     end
-
-    @test [s .* 2 for s in eachslice(da; dims=(Y, Ti))] == da * 2
 end
 
 @testset "simple dimension permuting methods" begin
