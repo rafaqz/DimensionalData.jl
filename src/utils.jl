@@ -77,7 +77,7 @@ function modify(f, index::AbstractArray)
 end
 
 """
-    brodadcast_dims(f, sources::AbstractDimArray...) => AbstractDimArray
+    broadcast_dims(f, sources::AbstractDimArray...) => AbstractDimArray
 
 Broadcast function `f` over the `AbstractDimArray`s in `sources`, permuting and reshaping
 dimensions to match where required. The result will contain all the dimensions in 
@@ -97,7 +97,7 @@ function broadcast_dims(f, As::AbstractDimArray...)
 end
 
 """
-    brodadcast_dims!(f, dest::AbstractDimArray, sources::AbstractDimArray...) => dest
+    broadcast_dims!(f, dest::AbstractDimArray, sources::AbstractDimArray...) => dest
 
 Broadcast function `f` over the `AbstractDimArray`s in `sources`, writing to `dest`. 
 `sources` are permuting and reshaping dimensions to match where required.
