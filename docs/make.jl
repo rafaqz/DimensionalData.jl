@@ -5,6 +5,7 @@ using Documenter, DimensionalData, CoordinateTransformations, Dates, Unitful
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 CI = get(ENV, "CI", nothing) == "true" || get(ENV, "GITHUB_TOKEN", nothing) !== nothing
+DEPLOY_DOCS = get(ENV, "DEPLOY_DOCS", "$CI") == "true"
 
 docsetup = quote 
     using DimensionalData, Random, Dates
@@ -27,7 +28,7 @@ makedocs(
     strict=true,
 )
 
-if CI
+if DEPLOY_DOCS
     deploydocs(
         repo = "github.com/rafaqz/DimensionalData.jl.git",
         target = "build",
