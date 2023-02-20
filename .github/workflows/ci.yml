@@ -40,11 +40,15 @@ jobs:
   docs:
     name: Documentation
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: true
+      matrix:
+        version: ['1.6', '1']
     steps:
       - uses: actions/checkout@v2
       - uses: julia-actions/setup-julia@v1
         with:
-          version: '1'
+          version: ${{ matrix.version }}
       - run: |
           julia --project=docs -e '
             using Pkg
@@ -53,4 +57,5 @@ jobs:
       - run: julia --project=docs docs/make.jl
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          DEPLOY_DOCS: ${{ matrix.version == '1' }}
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }}
