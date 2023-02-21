@@ -47,8 +47,10 @@ Apply function `f` to each layer of the `stacks`.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-Base.map(f, s::AbstractDimStack...) = _maybestack(s[1], map(f, map(NamedTuple, s)...))
-Base.map(f, s::Union{AbstractDimStack,NamedTuple}...) = _maybestack(_firststack(s...), map(f, map(NamedTuple, s)...))
+Base.map(f, s1::AbstractDimStack, s::AbstractDimStack...) = 
+    _maybestack(s[1], map(f, map(NamedTuple, (s1, s...))...))
+Base.map(f, s::Union{AbstractDimStack,NamedTuple}...) =
+    _maybestack(_firststack(s...), map(f, map(NamedTuple, s)...))
 
 _maybestack(s::AbstractDimStack, x::NamedTuple) = x
 function _maybestack(
