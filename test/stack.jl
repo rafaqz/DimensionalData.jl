@@ -149,6 +149,73 @@ end
     @test s_cat[:one] == cat(parent(s[:one]), parent(s2[:one]); dims=1)
 end
 
+@testset "eachslice" begin
+    xs = (X, :X, x, 1)
+    xs2 = (xs..., map(tuple, xs)...)
+    ys = (Y, :Y, y, 2)
+    ys2 = (ys..., map(tuple, ys)...)
+    zs = (Z, :Z, z, 3)
+    zs2 = (zs..., map(tuple, zs)...)
+
+    @testset "type-inferrable due to const-propagation" begin
+        f(x, dims) = eachslice(x; dims=dims)
+        @testset for dims in (x, y, z, (x,), (y,), (z,), (x, y), (y, z), (x, y, z))
+            @inferred f(mixed, dims)
+        end
+    end
+
+    @testset "error thrown if dimensions invalid" begin
+        @test_throws DimensionMismatch eachslice(mixed; dims=4)
+        @test_throws DimensionMismatch eachslice(mixed; dims=Ti)
+        @test_throws DimensionMismatch eachslice(mixed; dims=Dim{:x})
+    end
+
+    @testset "slice over X dimension" begin
+        @testset for dims in xs2
+            @test eachslice(mixed; dims=dims) isa Base.Generator
+            slices = map(identity, eachslice(mixed; dims=dims))
+            @test slices isa DimArray{<:DimStack,1}
+            slices2 = map(l -> view(mixed, X(At(l))), lookup(Dimensions.dims(mixed, x)))
+            @test slices == slices2
+        end
+    end
+
+    @testset "slice over Y dimension" begin
+        @testset for dims in ys2
+            @test eachslice(mixed; dims=dims) isa Base.Generator
+            slices = map(identity, eachslice(mixed; dims=dims))
+            @test slices isa DimArray{<:DimStack,1}
+            slices2 = map(l -> view(mixed, Y(At(l))), lookup(y))
+            @test slices == slices2
+        end
+    end
+
+    @testset "slice over Z dimension" begin
+        @testset for dims in zs2
+            @test eachslice(mixed; dims=dims) isa Base.Generator
+            slices = map(identity, eachslice(mixed; dims=dims))
+            @test slices isa DimArray{<:DimStack,1}
+            slices2 = map(l -> view(mixed, Z(l)), axes(mixed, z))
+            @test slices == slices2
+        end
+    end
+
+    @testset "slice over combinations of Z and Y dimensions" begin
+        @testset for dims in Iterators.product(zs, ys)
+            # mixtures of integers and dimensions are not supported
+            rem(sum(d -> isa(d, Int), dims), length(dims)) == 0 || continue
+            @test eachslice(mixed; dims=dims) isa Base.Generator
+            slices = map(identity, eachslice(mixed; dims=dims))
+            @test slices isa DimArray{<:DimStack,2}
+            slices2 = map(
+                l -> view(mixed, Z(l[1]), Y(l[2])),
+                Iterators.product(axes(mixed, z), axes(mixed, y)),
+            )
+            @test slices == slices2
+        end
+    end
+end
+
 @testset "map" begin
     @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
     @test dims(map(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))

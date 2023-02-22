@@ -145,22 +145,84 @@ end
     ti = Ti(1:4)
     da = DimArray(a, (y, ti))
     ys = (1, Y, Y(), :Y, y)
+    ys2 = (ys..., map(tuple, ys)...)
     tis = (2, Ti, Ti(), :Ti, ti)
-    for dims in tis
-        @test [mean(s) for s in eachslice(da; dims)] == [3.0, 4.0, 5.0, 6.0]
-        slices = [s .* 2 for s in eachslice(da; dims=Ti)]
-        @test slices[1] == [2, 6, 10]
-        @test DimensionalData.dims(slices[1]) == (Y(10.0:10.0:30.0),)
-    end
-    for dims in ys
-        slices = [s .* 2 for s in eachslice(da; dims=Y)]
-        @test slices[1] == [2, 4, 6, 8]
-        @test slices[2] == [6, 8, 10, 12]
-        @test slices[3] == [10, 12, 14, 16]
-        @test DimensionalData.dims(slices[1]) == (Ti(1.0:1.0:4.0),)
+    tis2 = (tis..., map(tuple, tis)...)
+
+    @testset "type-inferrable due to const-propagation" begin
+        f(x, dims) = eachslice(x; dims=dims)
+        f2(x, dims) = eachslice(x; dims=dims, drop=false)
+        @testset for dims in (y, ti, (y,), (ti,), (y, ti), (ti, y))
+            @inferred f(da, dims)
+            VERSION ≥ v"1.9-alpha1" && @inferred f2(da, dims)
+        end
     end
 
-    @test_throws ArgumentError [s .* 2 for s in eachslice(da; dims=(Y, Ti))]
+    @testset "error thrown if dimensions invalid" begin
+        @test_throws DimensionMismatch eachslice(da; dims=3)
+        @test_throws DimensionMismatch eachslice(da; dims=X)
+        @test_throws DimensionMismatch eachslice(da; dims=(4,))
+        @test_throws DimensionMismatch eachslice(da; dims=(Z,))
+        @test_throws DimensionMismatch eachslice(da; dims=(y, ti, Z))
+    end
+
+    @testset "slice over last dimension" begin
+        @testset for dims in tis2
+            da2 = map(mean, eachslice(da; dims=dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
+            slices = map(x -> x*2, eachslice(da; dims=dims))
+            @test slices isa DimArray
+            @test Dimensions.dims(slices) == (ti,)
+            @test slices[1] == DimArray([2, 6, 10], y)
+            if VERSION ≥ v"1.9-alpha1"
+                @test eachslice(da; dims=dims) isa Slices
+                slices = eachslice(da; dims=dims, drop=false)
+                @test slices isa Slices
+                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+                @test slices[1] == DimArray([1, 3, 5], y)
+            end
+        end
+    end
+
+    @testset "slice over first dimension" begin
+        @testset for dims in ys2
+            slices = map(x -> x*2, eachslice(da; dims=dims))
+            @test slices isa DimArray
+            @test Dimensions.dims(slices) == (y,)
+            @test slices[1] == DimArray([2, 4, 6, 8], ti)
+            @test slices[2] == DimArray([6, 8, 10, 12], ti)
+            @test slices[3] == DimArray([10, 12, 14, 16], ti)
+            if VERSION ≥ v"1.9-alpha1"
+                @test eachslice(da; dims=dims) isa Slices
+                slices = eachslice(da; dims=dims, drop=false)
+                @test slices isa Slices
+                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+                @test slices[1] == DimArray([1, 2, 3, 4], ti)
+            end
+        end
+    end
+
+    @testset "slice over all permutations of both dimensions" begin
+        @testset for dims in Iterators.flatten((Iterators.product(ys, tis), Iterators.product(tis, ys)))
+            # mixtures of integers and dimensions are not supported
+            rem(sum(d -> isa(d, Int), dims), length(dims)) == 0 || continue
+            slices = map(x -> x*3, eachslice(da; dims=dims))
+            @test slices isa DimArray
+            @test Dimensions.dims(slices) == Dimensions.dims(da, dims)
+            @test size(slices) == map(x -> size(da, x), dims)
+            @test axes(slices) == map(x -> axes(da, x), dims)
+            @test eltype(slices) <: DimArray{Int, 0}
+            @test map(first, slices) == permutedims(da * 3, dims)
+            if VERSION ≥ v"1.9-alpha1"
+                @test eachslice(da; dims=dims) isa Slices
+                slices = eachslice(da; dims=dims, drop=false)
+                @test slices isa Slices
+                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+            end
+        end
+    end
 end
 
 @testset "simple dimension permuting methods" begin
