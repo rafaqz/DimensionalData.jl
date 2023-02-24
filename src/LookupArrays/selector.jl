@@ -103,16 +103,30 @@ function at(lookup::NoLookup, sel::At; kw...)
     return r
 end
 function at(lookup::LookupArray, sel::At; kw...)
-    at(order(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
+    at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
 function at(
-    ::Ordered, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing;
+    ::Ordered, span::Regular, lookup::LookupArray{<:Union{Integer,Dates.TimeType}}, selval, atol::Nothing, rtol::Nothing;
+    err=_True()
+)
+    x = unwrap(selval)
+    Δ = step(span)
+    i, remainder = divrem(x - first(lookup), Δ)
+    i += 1
+    if remainder == 0 && checkbounds(Bool, lookup, i)
+        return i
+    else
+        return _selnotfound_or_nothing(err, lookup, selval)
+    end
+end
+function at(
+    ::Ordered, ::Span, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
     i = searchsortedlast(lookup, x)
     # Try the current index
-    if i === 0
+    if i == 0
         i1 = i + 1
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1
@@ -132,7 +146,7 @@ function at(
     end
 end
 # catch-all for an unordered or non-number index
-function at(order, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
+function at(::Order, ::Span, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
         return _selnotfound_or_nothing(err, lookup, selval)
