@@ -12,8 +12,8 @@ If no axis reversal is required the same objects will be returned, without alloc
 """
 function reorder end
 
-reorder(x, p::Pair, ps::Vararg{<:Pair}) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{<:Pair}}) = reorder(x, Dimensions.pairdims(ps...))
+reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
+reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairdims(ps...))
 # Reorder specific dims.
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
@@ -152,10 +152,10 @@ end
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
-function uniquekeys(das::Tuple{AbstractDimArray,Vararg{<:AbstractDimArray}})
+function uniquekeys(das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}})
     uniquekeys(Symbol.(map(name, das)))
 end
-function uniquekeys(keys::Tuple{Symbol,Vararg{<:Symbol}})
+function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
     ids = ntuple(x -> x, length(keys))
     map(keys, ids) do k, id
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k

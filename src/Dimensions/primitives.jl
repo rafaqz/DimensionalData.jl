@@ -107,8 +107,8 @@ can be used in `order`.
 end
 
 """
-    dims(x, query) => Tuple{Vararg{<:Dimension}}
-    dims(x, query...) => Tuple{Vararg{<:Dimension}}
+    dims(x, query) => Tuple{Vararg{Dimension}}
+    dims(x, query...) => Tuple{Vararg{Dimension}}
 
 Get the dimension(s) matching the type(s) of the query dimension.
 
@@ -140,7 +140,7 @@ X, Y
 @inline _dims(f, dims, query) = _remove_nothing(_sortdims(f, dims, query))
 
 """
-    commondims([f], x, query) => Tuple{Vararg{<:Dimension}}
+    commondims([f], x, query) => Tuple{Vararg{Dimension}}
 
 This is basically `dims(x, query)` where the order of the original is kept,
 unlike [`dims`](@ref) where the query tuple determines the order
@@ -251,7 +251,7 @@ false
     map(l -> l in eachindex(dims), query)
 
 """
-    otherdims(x, query) => Tuple{Vararg{<:Dimension,N}}
+    otherdims(x, query) => Tuple{Vararg{Dimension,N}}
 
 Get the dimensions of an object _not_ in `query`.
 
@@ -292,7 +292,7 @@ _rev_op(::typeof(>:)) = <:
 
 """
     setdims(X, newdims) => AbstractArray
-    setdims(::Tuple, newdims) => Tuple{Vararg{<:Dimension,N}}
+    setdims(::Tuple, newdims) => Tuple{Vararg{Dimension,N}}
 
 Replaces the first dim matching `<: basetypeof(newdim)` with newdim,
 and returns a new object or tuple with the dimension updated.
@@ -322,7 +322,7 @@ wrapping: 'a':1:'j'
 
 """
     swapdims(x::T, newdims) => T
-    swapdims(dims::Tuple, newdims) => Tuple{Vararg{<:Dimension}}
+    swapdims(dims::Tuple, newdims) => Tuple{Vararg{Dimension}}
 
 Swap dimensions for the passed in dimensions, in the
 order passed.
@@ -438,7 +438,7 @@ function sliceunalligneddims(f, uI, udims...)
 end
 
 """
-    reducedims(x, dimstoreduce) => Tuple{Vararg{<:Dimension}}
+    reducedims(x, dimstoreduce) => Tuple{Vararg{Dimension}}
 
 Replace the specified dimensions with an index of length 1.
 This is usually to match a new array size where an axis has been
@@ -490,7 +490,7 @@ These are all `Bool` flags:
 function comparedims end
 @inline comparedims(x...; kw...) = comparedims(x; kw...)
 @inline comparedims(A::Tuple; kw...) = comparedims(map(dims, A)...; kw...)
-@inline comparedims(dims::Vararg{<:Tuple{Vararg{<:Dimension}}}; kw...) =
+@inline comparedims(dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
     map(d -> comparedims(first(dims), d), dims; kw...) |> first
 
 @inline comparedims(a::DimTupleOrEmpty, ::Nothing; kw...) = a

@@ -40,7 +40,7 @@ abstract type ArraySelector{T} <: Selector{T} end
 
 const SelectorOrInterval = Union{Selector,Interval}
 
-const SelTuple = Tuple{<:SelectorOrInterval,Vararg{<:SelectorOrInterval}}
+const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
 """
     At <: IntSelector
@@ -871,7 +871,7 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
  50.0    3    6    57    60
 ```
 """
-struct All{S<:Tuple{Vararg{<:SelectorOrInterval}}} <: Selector{S}
+struct All{S<:Tuple{Vararg{SelectorOrInterval}}} <: Selector{S}
     selectors::S
 end
 All(args::SelectorOrInterval...) = All(args)
@@ -912,11 +912,11 @@ end
 
 # We use the transformation from the first unalligned dim.
 # In practice the others could be empty.
-function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:IntSelector,Vararg{<:IntSelector}})
+function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
     transformed = transformfunc(lookups[1])(map(val, sel))
     map(_transform2int, lookups, sel, transformed)
 end
-function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
+function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{Selector,Vararg{Selector}})
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 

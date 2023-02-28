@@ -94,7 +94,7 @@ end
 
 _maybestack(s::AbstractDimStack, x::NamedTuple) = x
 function _maybestack(
-    s::AbstractDimStack, das::NamedTuple{K,<:Tuple{Vararg{<:AbstractDimArray}}}
+    s::AbstractDimStack, das::NamedTuple{K,<:Tuple{Vararg{AbstractDimArray}}}
 ) where K
     rebuild_from_arrays(s, das)
 end

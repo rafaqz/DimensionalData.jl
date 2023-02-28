@@ -12,7 +12,7 @@ or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
 
-const LookupArrayTuple = Tuple{<:LookupArray,Vararg{<:LookupArray}}
+const LookupArrayTuple = Tuple{LookupArray,Vararg{LookupArray}}
 
 span(lookup::LookupArray) = NoSpan() 
 sampling(lookup::LookupArray) = NoSampling()

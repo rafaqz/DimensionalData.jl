@@ -104,7 +104,7 @@ function rebuildsliced(f::Function, s::AbstractDimStack, layers, I)
 end
 
 """
-    rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}}; kw...)
+    rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
 
 Rebuild an `AbstractDimStack` from a `NamedTuple` of `AbstractDimArray`
 and an existing stack.
@@ -121,12 +121,12 @@ Keywords are simply the fields of the stack object:
 - `layermetadata`
 """
 function rebuild_from_arrays(
-    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{<:AbstractDimArray}}; kw...
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
 ) where Keys
     rebuild_from_arrays(s, NamedTuple{Keys}(das); kw...)
 end
 function rebuild_from_arrays(
-    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}};
+    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     refdims=refdims(s),
     metadata=DD.metadata(s),
     data=map(parent, das),
@@ -153,8 +153,8 @@ end
     DimStack <: AbstractDimStack
 
     DimStack(data::AbstractDimArray...)
-    DimStack(data::Tuple{Vararg{<:AbstractDimArray}})
-    DimStack(data::NamedTuple{Keys,Vararg{<:AbstractDimArray}})
+    DimStack(data::Tuple{Vararg{AbstractDimArray}})
+    DimStack(data::NamedTuple{Keys,Vararg{AbstractDimArray}})
     DimStack(data::NamedTuple, dims::DimTuple; metadata=NoMetadata())
 
 DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
@@ -234,10 +234,10 @@ struct DimStack{L,D<:Tuple,R<:Tuple,LD<:NamedTuple,M,LM<:NamedTuple} <: Abstract
     layermetadata::LM
 end
 DimStack(das::AbstractDimArray...; kw...) = DimStack(das; kw...)
-function DimStack(das::Tuple{Vararg{<:AbstractDimArray}}; kw...)
+function DimStack(das::Tuple{Vararg{AbstractDimArray}}; kw...)
     DimStack(NamedTuple{uniquekeys(das)}(das); kw...)
 end
-function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{<:AbstractDimArray}}};
+function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     data=map(parent, das), dims=combinedims(das...), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
@@ -253,4 +253,3 @@ function DimStack(data::NamedTuple, dims::Tuple;
 end
 
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
-
