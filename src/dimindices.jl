@@ -40,10 +40,10 @@ This can be used to view/index into arbitrary dimensions over an array, and
 is especially useful when combined with `otherdims`, to iterate over the
 indices of unknown dimension.
 """
-struct DimIndices{T,N,D<:Tuple{Vararg{<:Dimension}}} <: AbstractDimIndices{T,N}
+struct DimIndices{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractDimIndices{T,N}
     dims::D
 end
-function DimIndices(dims::D) where {D<:Tuple{Vararg{<:Dimension}}}
+function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     T = typeof(map(d -> rebuild(d, 1), dims))
     N = length(dims)
     dims = N > 0 ? _format(dims) : dims
@@ -119,7 +119,7 @@ Like `CartesianIndices`, but for the lookup values of Dimensions. Behaves as an
 `Array` of `Tuple` of `Dimension(At(lookupvalue))` for all combinations of the
 lookup values of `dims`.
 """
-struct DimKeys{T,N,D<:Tuple{<:Dimension,Vararg{<:Dimension}},S} <: AbstractDimIndices{T,N}
+struct DimKeys{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S} <: AbstractDimIndices{T,N}
     dims::D
     selectors::S
 end

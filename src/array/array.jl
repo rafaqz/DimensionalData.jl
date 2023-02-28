@@ -119,11 +119,11 @@ Base.similar(A::AbstractDimArray, ::Type{T}) where T =
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
-Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{<:Integer}) =
+Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}) =
     similar(A, eltype(A), (i, I...))
 Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}) = 
     similar(A, eltype(A), I)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{<:Integer}) where T =
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}) where T =
     similar(A, T, (i, I...))
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
@@ -299,7 +299,7 @@ end
 
 """
     Base.fill(x, dims::Dimension...; kw...) => DimArray
-    Base.fill(x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
+    Base.fill(x, dims::Tuple{Vararg{Dimension}}; kw...) => DimArray
 
 Create a [`DimArray`](@ref) with a fill value of `x`.
 
@@ -325,8 +325,8 @@ Base.fill
 
 """
     Base.rand(x, dims::Dimension...; kw...) => DimArray
-    Base.rand(x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
-    Base.rand(r::AbstractRNG, x, dims::Tuple{Vararg{<:Dimension}}; kw...) => DimArray
+    Base.rand(x, dims::Tuple{Vararg{Dimension}}; kw...) => DimArray
+    Base.rand(r::AbstractRNG, x, dims::Tuple{Vararg{Dimension}}; kw...) => DimArray
     Base.rand(r::AbstractRNG, x, dims::Dimension...; kw...) => DimArray
 
 Create a [`DimArray`](@ref) of random values.

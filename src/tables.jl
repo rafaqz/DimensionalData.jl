@@ -23,7 +23,7 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
 """
     DimColumn{T,D<:Dimension} <: AbstractVector{T}
 
-    DimColumn(dim::Dimension, dims::Tuple{Vararg{<:DimTuple}})
+    DimColumn(dim::Dimension, dims::Tuple{Vararg{DimTuple}})
     DimColumn(dim::DimColumn, length::Int, dimstride::Int)
 
 A table column based on a `Dimension` and it's relationship with other
@@ -140,7 +140,7 @@ end
 DimTable{K}(stack::S, dimcolumns::DC, strides::SD) where {K,S,DC,SD} = 
     DimTable{K,S,DC,SD}(stack, dimcolumns, strides)
 DimTable(A::AbstractDimArray, As::AbstractDimArray...) = DimTable((A, As...))
-function DimTable(As::Tuple{<:AbstractDimArray,Vararg{<:AbstractDimArray}}...)
+function DimTable(As::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}...)
     DimTable(DimStack(As...))
 end
 function DimTable(s::AbstractDimStack)

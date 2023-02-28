@@ -36,7 +36,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline dims2indices(::Tuple{}, I) = ()
 @inline dims2indices(dims::DimTuple, I) = dims2indices(dims, (I,))
 # Standard array indices are simply returned
-@inline dims2indices(dims::DimTuple, I::Tuple{Vararg{<:StandardIndices}}) = I
+@inline dims2indices(dims::DimTuple, I::Tuple{Vararg{StandardIndices}}) = I
 @inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as_intervals(first(I)))
 @inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as_touches(val(first(I))))
 
@@ -95,7 +95,7 @@ end
         isnothing(s) ? Colon() : s
     end
 end
-@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{<:Selector,Vararg{<:Selector}})
+@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{Selector,Vararg{Selector}})
     LookupArrays.select_unalligned_indices(lookup(dims), sel)
 end
 

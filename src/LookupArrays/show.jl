@@ -37,7 +37,7 @@ function show_properties(io::IO, lookup::AbstractCategorical)
     print_order(io, lookup)
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{<:LookupArray,Vararg{<:LookupArray}})
+function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{LookupArray,Vararg{LookupArray}})
     length(lookups) > 0 || return 0
     ctx = IOContext(io, :compact=>true)
     if all(l -> l isa NoLookup, lookups)

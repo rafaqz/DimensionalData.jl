@@ -24,7 +24,7 @@ The arguments required are defined for the abstract type that has a `rebuild` me
 function rebuild end
 
 """
-    dims(x, [dims::Tuple]) => Tuple{Vararg{<:Dimension}}
+    dims(x, [dims::Tuple]) => Tuple{Vararg{Dimension}}
     dims(x, dim) => Dimension
 
 Return a tuple of `Dimension`s for an object, in the order that matches
@@ -37,7 +37,7 @@ The default is to return `nothing`.
 function dims end
 
 """
-    refdims(x, [dims::Tuple]) => Tuple{Vararg{<:Dimension}}
+    refdims(x, [dims::Tuple]) => Tuple{Vararg{Dimension}}
     refdims(x, dim) => Dimension
 
 Reference dimensions for an array that is a slice or view of another
@@ -73,9 +73,9 @@ function val end
 # Dimension.
 
 """
-    index(x) => Tuple{Vararg{<:AbstractArray}}
-    index(x, dims::Tuple) => Tuple{Vararg{<:AbstractArray}}
-    index(dims::Tuple) => Tuple{Vararg{<:AbstractArray}}}
+    index(x) => Tuple{Vararg{AbstractArray}}
+    index(x, dims::Tuple) => Tuple{Vararg{AbstractArray}}
+    index(dims::Tuple) => Tuple{Vararg{AbstractArray}}}
     index(x, dim) => AbstractArray
     index(dim::Dimension) => AbstractArray
 
@@ -91,8 +91,8 @@ function index end
 
 """
     lookup(x::Dimension) => LookupArray
-    lookup(x, [dims::Tuple]) => Tuple{Vararg{<:LookupArray}}
-    lookup(x::Tuple) => Tuple{Vararg{<:LookupArray}}
+    lookup(x, [dims::Tuple]) => Tuple{Vararg{LookupArray}}
+    lookup(x::Tuple) => Tuple{Vararg{LookupArray}}
     lookup(x, dim) => LookupArray
 
 Returns the [`LookupArray`](@ref) of a dimension. This dictates
@@ -160,8 +160,8 @@ or `Symbols` for `Dim{Symbol}`.
 function label end
 
 """
-    bounds(xs, [dims::Tuple]) => Tuple{Vararg{<:Tuple{T,T}}}
-    bounds(xs::Tuple) => Tuple{Vararg{<:Tuple{T,T}}}
+    bounds(xs, [dims::Tuple]) => Tuple{Vararg{Tuple{T,T}}}
+    bounds(xs::Tuple) => Tuple{Vararg{Tuple{T,T}}}
     bounds(x, dim) => Tuple{T,T}
     bounds(dim::Union{Dimension,LookupArray}) => Tuple{T,T}
 
@@ -188,7 +188,7 @@ function order end
 """
     sampling(x, [dims::Tuple]) => Tuple
     sampling(x, dim) => Sampling
-    sampling(xs::Tuple) => Tuple{Vararg{<:Sampling}}
+    sampling(xs::Tuple) => Tuple{Vararg{Sampling}}
     sampling(x:Union{Dimension,LookupArray}) => Sampling
 
 Return the [`Sampling`](@ref) for each dimension.
@@ -201,7 +201,7 @@ function sampling end
 """
     span(x, [dims::Tuple]) => Tuple
     span(x, dim) => Span
-    span(xs::Tuple) => Tuple{Vararg{<:Span,N}}
+    span(xs::Tuple) => Tuple{Vararg{Span,N}}
     span(x::Union{Dimension,LookupArray}) => Span
 
 Return the [`Span`](@ref) for each dimension.
@@ -214,7 +214,7 @@ function span end
 """
     locus(x, [dims::Tuple]) => Tuple
     locus(x, dim) => Locus
-    locus(xs::Tuple) => Tuple{Vararg{<:Locus,N}}
+    locus(xs::Tuple) => Tuple{Vararg{Locus,N}}
     locus(x::Union{Dimension,LookupArray}) => Locus
 
 Return the [`Locus`](@ref) for each dimension.

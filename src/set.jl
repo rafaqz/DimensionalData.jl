@@ -4,7 +4,7 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
     set(x, val)
     set(x, args::Pairs...) => x with updated field/s
     set(x, args...; kw...) => x with updated field/s
-    set(x, args::Tuple{Vararg{<:Dimension}}; kw...) => x with updated field/s
+    set(x, args::Tuple{Vararg{Dimension}}; kw...) => x with updated field/s
 
     set(dim::Dimension, index::AbstractArray) => Dimension
     set(dim::Dimension, lookup::LookupArray) => Dimension

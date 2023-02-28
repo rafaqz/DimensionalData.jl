@@ -143,9 +143,9 @@ ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
 Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val(dim)))
 
 const DimType = Type{<:Dimension}
-const DimTuple = Tuple{<:Dimension,Vararg{<:Dimension}}
+const DimTuple = Tuple{Dimension,Vararg{Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
-const DimTypeTuple = Tuple{<:DimType,Vararg{<:DimType}}
+const DimTypeTuple = Tuple{DimType,Vararg{DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
 const DimOrDimType = Union{Dimension,DimType,Symbol}
 const AllDims = Union{Symbol,Dimension,DimTuple,SymbolTuple,DimType,DimTypeTuple,VectorOfDim}
