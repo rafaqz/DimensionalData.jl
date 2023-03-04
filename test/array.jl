@@ -240,6 +240,79 @@ end
         @test dims(da_sim) == dims(da)
         @test dims(da_sim) !== dims(da)
     end
+
+    @testset "similar with mixed DimUnitRange and Base.OneTo" begin
+        x = randn(10)
+        T = ComplexF64
+        for ax1 in (Base.OneTo(2), axes(X(1:2), 1))
+            s11 = @inferred(similar(x, (ax1,)))
+            s12 = @inferred(similar(x, T, (ax1,)))
+            s13 = @inferred(similar(BitArray, (ax1,)))
+            if ax1 isa Base.OneTo
+                @test s11 isa Vector{Float64}
+                @test s12 isa Vector{T}
+                @test s13 isa BitVector
+                @test size(s11) == size(s12) == size(s13) == (length(ax1),)
+            else
+                @test s11 isa DimArray{Float64,1}
+                @test s12 isa DimArray{T,1}
+                @test s13 isa DimArray{Bool,1}
+                @test parent(s13) isa BitVector
+                @test dims(s11) == dims(s12) == dims(s13) == (dims(ax1),)
+            end
+            for ax2 in (Base.OneTo(3), axes(Y(1:3), 1))
+                s21 = @inferred(similar(x, (ax1, ax2)))
+                s22 = @inferred(similar(x, T, (ax1, ax2)))
+                s23 = @inferred(similar(BitArray, (ax1, ax2)))
+                if ax1 isa Base.OneTo || ax2 isa Base.OneTo
+                    @test s21 isa Matrix{Float64}
+                    @test s22 isa Matrix{T}
+                    @test s23 isa BitMatrix
+                    @test size(s21) == size(s22) == size(s23) == (length(ax1), length(ax2))
+                else
+                    @test s21 isa DimArray{Float64,2}
+                    @test s22 isa DimArray{T,2}
+                    @test s23 isa DimArray{Bool,2}
+                    @test parent(s23) isa BitMatrix
+                    @test dims(s21) == dims(s22) == dims(s23) == (dims(ax1), dims(ax2))
+                end
+                for ax3 in (Base.OneTo(4), axes(Z(1:4), 1))
+                    s31 = @inferred(similar(x, (ax1, ax2, ax3)))
+                    s32 = @inferred(similar(x, T, (ax1, ax2, ax3)))
+                    s33 = @inferred(similar(BitArray, (ax1, ax2, ax3)))
+                    if ax1 isa Base.OneTo || ax2 isa Base.OneTo || ax3 isa Base.OneTo
+                        @test s31 isa Array{Float64,3}
+                        @test s32 isa Array{T,3}
+                        @test s33 isa BitArray{3}
+                        @test size(s31) == size(s32) == size(s33) == map(length, (ax1, ax2, ax3))
+                    else
+                        @test s31 isa DimArray{Float64,3}
+                        @test s32 isa DimArray{T,3}
+                        @test s33 isa DimArray{Bool,3}
+                        @test parent(s33) isa BitArray{3}
+                        @test dims(s31) == dims(s32) == dims(s33) == map(dims, (ax1, ax2, ax3))
+                    end
+                    for ax4 in (Base.OneTo(5), axes(Ti(1:5), 1))
+                        s41 = @inferred(similar(x, (ax1, ax2, ax3, ax4)))
+                        s42 = @inferred(similar(x, T, (ax1, ax2, ax3, ax4)))
+                        s43 = @inferred(similar(BitArray, (ax1, ax2, ax3, ax4)))
+                        if ax1 isa Base.OneTo || ax2 isa Base.OneTo || ax3 isa Base.OneTo || ax4 isa Base.OneTo
+                            @test s41 isa Array{Float64,4}
+                            @test s42 isa Array{T,4}
+                            @test s43 isa BitArray{4}
+                            @test size(s41) == size(s42) == size(s43) == map(length, (ax1, ax2, ax3, ax4))
+                        else
+                            @test s41 isa DimArray{Float64,4}
+                            @test s42 isa DimArray{T,4}
+                            @test s43 isa DimArray{Bool,4}
+                            @test parent(s43) isa BitArray{4}
+                            @test dims(s41) == dims(s42) == dims(s43) == map(dims, (ax1, ax2, ax3, ax4))
+                        end
+                    end
+                end
+            end
+        end
+    end
 end
 
 @testset "replace" begin
