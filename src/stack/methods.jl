@@ -55,8 +55,9 @@ function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractD
 end
 Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
 
-_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = true
-_same_names(::Union{AbstractDimStack{<:NamedTuple},NamedTuple}...) = false
+_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
+            ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = true
+_same_names(::Union{AbstractDimStack,NamedTuple{names}}, ::Union{AbstractDimStack{<:NamedTuple},NamedTuple}...) = false
 
 _firststack(s::AbstractDimStack, args...) = s
 _firststack(arg1, args...) = _firststack(args...) 
