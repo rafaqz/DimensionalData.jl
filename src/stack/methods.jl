@@ -47,11 +47,25 @@ Apply function `f` to each layer of the `stacks`.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-function Base.map(f, s::Union{AbstractDimStack,NamedTuple}...)
-    _maybestack(_firststack(s...), map(f, map(values, s)...))
+function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
+    stacks = (x1, xs...)
+    _same_names(stacks...) || throw(ArgumentError("Named tuple names do not match."))
+    vals = map(f, map(values, stacks)...)
+    return _maybestack(_firststack(stacks...), vals)
 end
-function Base.map(f, s::AbstractDimStack...)
-    _maybestack(s[1], map(f, map(values, s)...))
+
+_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = true
+_same_names(::Union{AbstractDimStack{<:NamedTuple},NamedTuple}...) = false
+
+_firststack(s::AbstractDimStack, args...) = s
+_firststack(arg1, args...) = _firststack(args...) 
+_firststack() = nothing
+
+_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, x::Tuple) where K = NamedTuple{K}(x)
+function _maybestack(
+    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{Vararg{AbstractDimArray}}
+) where K
+    rebuild_from_arrays(s, das)
 end
 
 """
@@ -93,17 +107,6 @@ function Base.eachslice(s::AbstractDimStack; dims)
     all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
     _eachslice(s, dimtuple)
 end
-
-_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, x::Tuple) where K = NamedTuple{K}(x)
-function _maybestack(
-    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{Vararg{AbstractDimArray}}
-) where K
-    rebuild_from_arrays(s, das)
-end
-
-_firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
-_firststack() = nothing
 
 """
     Base.cat(stacks::AbstractDimStack...; [keys=keys(stacks[1])], dims)
