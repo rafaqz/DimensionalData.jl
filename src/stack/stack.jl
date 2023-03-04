@@ -42,6 +42,7 @@ Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))
+Base.values(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys = map(K -> s[K], Keys)
 Base.first(s::AbstractDimStack) = s[first(keys(s))]
 Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
@@ -106,7 +107,7 @@ end
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
 
-Rebuild an `AbstractDimStack` from a `NamedTuple` of `AbstractDimArray`
+Rebuild an `AbstractDimStack` from a `Tuple` or `NamedTuple` of `AbstractDimArray`
 and an existing stack.
 
 # Keywords
@@ -121,9 +122,15 @@ Keywords are simply the fields of the stack object:
 - `layermetadata`
 """
 function rebuild_from_arrays(
-    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; 
+    refdims=refdims(s),
+    metadata=DD.metadata(s),
+    data=NamedTuple{Keys}(map(parent, das)),
+    dims=DD.combinedims(das...),
+    layerdims=NamedTuple{Keys}(map(DD.basedims, das)),
+    layermetadata=NamedTuple{Keys}(map(DD.metadata, das)),
 ) where Keys
-    rebuild_from_arrays(s, NamedTuple{Keys}(das); kw...)
+    rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
 end
 function rebuild_from_arrays(
     s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
@@ -233,12 +240,22 @@ struct DimStack{L,D<:Tuple,R<:Tuple,LD<:NamedTuple,M,LM<:NamedTuple} <: Abstract
     metadata::M
     layermetadata::LM
 end
-DimStack(das::AbstractDimArray...; kw...) = DimStack(das; kw...)
-function DimStack(das::Tuple{Vararg{AbstractDimArray}}; kw...)
-    DimStack(NamedTuple{uniquekeys(das)}(das); kw...)
+DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)
+DimStack(@nospecialize(das::Tuple{Vararg{AbstractDimArray}}); kw...) = DimStack(collect(das); kw...)
+function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
+    metadata=NoMetadata(), refdims=(),
+)
+    keys_vec = uniquekeys(das)
+    keys_tuple = ntuple(i -> keys_vec[i], length(keys_vec))
+    dims = DD.combinedims(das)
+    data = NamedTuple{keys_tuple}(map(parent, das))
+    layerdims = NamedTuple{keys_tuple}(map(basedims, das))
+    layermetadata = NamedTuple{keys_tuple}(map(DD.metadata, das))
+
+    DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
-    data=map(parent, das), dims=combinedims(das...), layerdims=map(basedims, das),
+    data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
