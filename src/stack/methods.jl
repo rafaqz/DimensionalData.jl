@@ -53,6 +53,7 @@ function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractD
     vals = map(f, map(values, stacks)...)
     return _maybestack(_firststack(stacks...), vals)
 end
+Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
 
 _same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = true
 _same_names(::Union{AbstractDimStack{<:NamedTuple},NamedTuple}...) = false
@@ -62,8 +63,10 @@ _firststack(arg1, args...) = _firststack(args...)
 _firststack() = nothing
 
 _maybestack(s::AbstractDimStack{<:NamedTuple{K}}, x::Tuple) where K = NamedTuple{K}(x)
+# Without the `@nospecialise` here this method is also compile with the above method
+# on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
 function _maybestack(
-    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{Vararg{AbstractDimArray}}
+    @nospecialize(s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}})
 ) where K
     rebuild_from_arrays(s, das)
 end
