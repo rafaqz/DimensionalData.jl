@@ -152,14 +152,20 @@ end
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
-function uniquekeys(das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}})
-    uniquekeys(Symbol.(map(name, das)))
-end
-function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
-    ids = ntuple(x -> x, length(keys))
-    map(keys, ids) do k, id
+uniquekeys(@nospecialize das::Tuple) = uniquekeys(collect(das)) 
+@noinline function uniquekeys(das::Vector{<:AbstractDimArray})
+    keys = Symbol.(map(name, das))
+    numbered_keys = map(enumerate(keys)) do (id, k)
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
+    return numbered_keys
 end
-uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
-uniquekeys(nt::NamedTuple) = keys(nt)
+# @noinline function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
+# @noinline function uniquekeys(keys::Vector{Symbol,Vararg{Symbol}})
+#     ids = ntuple(x -> x, length(keys))
+#     map(keys, ids) do k, id
+#         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+#     end
+# end
+# @noinline uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
+# @noinline uniquekeys(nt::NamedTuple) = keys(nt)
