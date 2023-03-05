@@ -1,11 +1,11 @@
 
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
-    @nospecialize dims
     ctx = IOContext(io, :compact=>true)
     if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
-        for d in dims[begin:end-1]
-            show(ctx, mime, d)
+        show(ctx, mime, first(dims))
+        map(Base.tail(dims)) do d
             print(io, ", ")
+            show(ctx, mime, d)
         end
         show(ctx, mime, dims[end])
         return 0
@@ -13,33 +13,32 @@ function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
         haskey(io, :inset) && print(io, "\n")
         inset = get(io, :inset, "")
         lines = 3
-        for d in dims[begin:end-1]
-            print(io, inset)
-            show(ctx, mime, d)
+        print(io, inset)
+        show(ctx, mime, first(dims))
+        lines += 2 # Often they wrap
+        map(Base.tail(dims)) do d
             print(io, ",")
             lines += 2 # Often they wrap
             print(io, "\n")
+            print(io, inset)
+            show(ctx, mime, d)
         end
-        print(io, inset)
-        show(ctx, mime, dims[end])
+        print(io, "\n")
         return lines
     end
 end
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
-    @nospecialize dim
     get(io, :compact, false) && return show_compact(io, mime, dim)
     print_dimname(io, dim)
     print_dimval(io, mime, val(dim))
 end
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension{Colon})
-    @nospecialize dim
     print_dimname(io, dim)
 end
 
 # compact version for dimensions
 show_compact(io::IO, mime, dim::Dimension{Colon}) = print_dimname(io, dim)
 function show_compact(io::IO, mime, dim::Dimension)
-    @nospecialize dim
     # Print to a buffer and count lengths
     buf = IOBuffer()
     print_dimname(buf, dim)
@@ -56,19 +55,19 @@ end
 dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
 
 # print dims with description string and inset
+function print_dims(io::IO, mime, dims::Tuple{})
+    @nospecialize io mime dims
+    print(io, ": ")
+    return 0
+end
 function print_dims(io::IO, mime, dims::Tuple)
-    @nospecialize dims
-    if isempty(dims) 
-        print(io, ": ")
-        return 0
-    end
+    @nospecialize io mime dims
     printstyled(io, " with dimensions: "; color=:light_black)
     ctx = IOContext(io, :inset => "  ")
     return show(ctx, mime, dims)
 end
 # print refdims with description string and inset
 function print_refdims(io::IO, mime, refdims::Tuple)
-    @nospecialize refdims
     if isempty(refdims) 
         return 0
     end
@@ -79,31 +78,26 @@ function print_refdims(io::IO, mime, refdims::Tuple)
 end
 # print a dimension name
 function print_dimname(io::IO, dim::Dim)
-    @nospecialize dim
     color = dimcolor(io)
     printstyled(io, "Dim{"; color=color)
     printstyled(io, string(":", name(dim)); color=:yellow)
     printstyled(io, "}"; color=color)
 end
 function print_dimname(io, dim::Dimension)
-    @nospecialize dim
     printstyled(io, dim2key(dim); color = dimcolor(io))
 end
 
 
 # print the dimension value
 function print_dimval(io, mime, val, nchars=0)
-    @nospecialize val
     val isa Colon || print(io, " ")
     printstyled(io, val; color=:cyan)
 end
 function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
-    @nospecialize lookup
     LookupArrays.print_index(io, mime, lookup, nchars)
 end
 print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")
 function print_dimval(io, mime, lookup::LookupArray, nchars=0)
-    @nospecialize lookup
     print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)
     show(ctx, mime, lookup)

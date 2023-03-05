@@ -247,7 +247,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
 )
     keys_vec = uniquekeys(das)
     keys_tuple = ntuple(i -> keys_vec[i], length(keys_vec))
-    dims = DD.combinedims(das)
+    dims = DD.combinedims(collect(das))
     data = NamedTuple{keys_tuple}(map(parent, das))
     layerdims = NamedTuple{keys_tuple}(map(basedims, das))
     layermetadata = NamedTuple{keys_tuple}(map(DD.metadata, das))
@@ -255,7 +255,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
-    data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
+    data=map(parent, das), dims=combinedims(das...), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)

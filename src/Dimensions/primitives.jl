@@ -65,6 +65,9 @@ All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 
 # dim2key is defined for concrete instances in dimensions.jl
 
+@inline _asfunc(::Type{typeof(<:)}) = <:
+@inline _asfunc(::Type{typeof(>:)}) = >:
+
 """
     sortdims([f], tosort, order) => Tuple
 
@@ -631,9 +634,6 @@ _maybefirst(::Tuple{}) = nothing
 @inline _w(x) = x
 @inline _w(s::Symbol) = key2dim(s)
 @inline _w(x::Type{T}) where T = Val{T}()
-
-@inline _asfunc(::Type{typeof(<:)}) = <:
-@inline _asfunc(::Type{typeof(>:)}) = >:
 
 @inline _flip_subtype(::typeof(<:)) = >:
 @inline _flip_subtype(::typeof(>:)) = <:
