@@ -524,15 +524,19 @@ end
 Combine the dimensions of each object in `xs`, in the order they are found.
 """
 function combinedims end
-# @inline combinedims(xs::Tuple) = combinedims(xs...)
-@inline combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
-@inline combinedims(dt1::DimTupleOrEmpty; kw...) = dt1
-@inline combinedims(dt1::DimTupleOrEmpty, dt2::DimTupleOrEmpty, dimtuples::DimTupleOrEmpty...; kw...) =
+function combinedims(xs::Vector; kw...)
+    reduce(xs; init=dims(first(xs))) do ds, A
+        _combinedims(ds, dims(A); kw...)
+    end
+end
+combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
+combinedims(dt1::DimTupleOrEmpty; kw...) = dt1
+combinedims(dt1::DimTupleOrEmpty, dt2::DimTupleOrEmpty, dimtuples::DimTupleOrEmpty...; kw...) =
     reduce((dt2, dimtuples...); init=dt1) do dims1, dims2
         _combinedims(dims1, dims2; kw...)
     end
 # Cant use `map` here, tuples may not be the same length
-@inline _combinedims(a::DimTupleOrEmpty, b::DimTupleOrEmpty; check=true, kw...) = begin
+_combinedims(a::DimTupleOrEmpty, b::DimTupleOrEmpty; check=true, kw...) = begin
     if check # Check the matching dims are the same
         common = commondims(a, b)
         comparedims(dims(a, common), dims(b, common); kw...)
