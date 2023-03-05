@@ -60,7 +60,7 @@ The generator has `size` and `axes` equivalent to those of the provided `dims`.
 
 # Examples
 
-```jldoctest; filter = r"┌ Warning.*\n.*"
+```jldoctest; filter = r"┌ Warning.*\\n.*"
 julia> ds = DimStack((
            x=DimArray(randn(2, 3, 4), (X([:x1, :x2]), Y(1:3), Z)),
            y=DimArray(randn(2, 3, 5), (X([:x1, :x2]), Y(1:3), Ti))
