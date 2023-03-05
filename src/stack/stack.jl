@@ -126,7 +126,7 @@ function rebuild_from_arrays(
     refdims=refdims(s),
     metadata=DD.metadata(s),
     data=NamedTuple{Keys}(map(parent, das)),
-    dims=DD.combinedims(das...),
+    dims=DD.combinedims(collect(das)),
     layerdims=NamedTuple{Keys}(map(DD.basedims, das)),
     layermetadata=NamedTuple{Keys}(map(DD.metadata, das)),
 ) where Keys
@@ -137,7 +137,7 @@ function rebuild_from_arrays(
     refdims=refdims(s),
     metadata=DD.metadata(s),
     data=map(parent, das),
-    dims=DD.combinedims(das...),
+    dims=DD.combinedims(collect(das)),
     layerdims=map(DD.basedims, das),
     layermetadata=map(DD.metadata, das),
 )
@@ -255,7 +255,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
-    data=map(parent, das), dims=combinedims(das...), layerdims=map(basedims, das),
+    data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
