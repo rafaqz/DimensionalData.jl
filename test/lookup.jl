@@ -4,6 +4,16 @@ using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
 
 
+@testset "locus" begin
+    @test locus(NoSampling()) == Center()
+    @test locus(NoLookup()) == Center()
+    @test locus(Categorical()) == Center()
+    @test locus(Sampled(; sampling=Points())) == Center()
+    @test locus(Sampled(; sampling=Intervals(Center()))) == Center()
+    @test locus(Sampled(; sampling=Intervals(Start()))) == Start()
+    @test locus(Sampled(; sampling=Intervals(End()))) == End()
+end
+
 @testset "equality" begin
     ind = 10:14
     n = NoLookup(ind)
