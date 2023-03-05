@@ -1,21 +1,73 @@
-using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase
-
-using DimensionalData: data
-using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
-    Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers
+using DimensionalData
+using ProfileView
+using SnoopCompile
+using Cthulhu
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
 x, y, z = X([:a, :b]), Y(10.0:10.0:30.0; metadata=Dict()), Z()
 dimz = x, y
-da1 = DimArray(A, (x, y); name=:one, metadata=Metadata())
+da1 = DimArray(A, (x, y); name=:one)
 da2 = DimArray(Float32.(2A), (x, y); name=:two)
 da3 = DimArray(Int.(3A), (x, y); name=:three)
 da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
-s = DimStack((da1, da2, da3))
-mixed = DimStack(da1, da2, da4)
+das = (da1, da2, da3, da4)
+many_das = Tuple(rand(das, 16))
+
+tinf = @time s = DimStack(many_das);
+  # 0.482320 seconds (1.01 M allocations: 69.009 MiB, 3.01% gc time, 157.43% compilation time)
+@time map(s) do A
+    sum(A)
+end
+  # 0.565357 seconds (674.34 k allocations: 45.357 MiB, 2.32% gc time, 130.99% compilation time)
+
+many_das = Tuple(rand(das, 8)); @time s = DimStack(many_das);
+  # 0.259755 seconds (450.82 k allocations: 31.062 MiB, 4.83% gc time, 133.79% compilation time)
+x = map(parent, values(s))
+tinf = @time @snoopi_deep map(s) do A
+    sum(A)
+end
+sg = flamegraph(tinf)
+ProfileView.view(fg)
+  # 0.144842 seconds (126.26 k allocations: 9.072 MiB, 114.77% compilation time)
+
+dzz = collect(Iterators.flatten([dz for _ in 1:19]))
+length(dzz)
+tinf = @snoopi_deep @time st = DimStack(das);
+@time st[1, 1, 1]
+tinf = @snoopi_deep @time map(st) do A
+    maximum(A)
+end
+  # 0.138895 seconds (92.19 k allocations: 6.354 MiB, 12.88% gc time, 135.70% compilation time)
+# InferenceTimingNode: 0.089137/0.138539 on Core.Compiler.Timings.ROOT() with 3 direct children
+tinf = @snoopi_deep @time map(st) do A
+    sum(A; dims=X())
+end
+  # 0.429301 seconds (701.74 k allocations: 44.261 MiB, 4.25% gc time, 137.08% compilation time)
+# InferenceTimingNode: 0.269546/0.427839 on Core.Compiler.Timings.ROOT() with 9 direct children
+
+# @time ak = DimensionalData.uniquekeys(dzz)
+# @time tk = ntuple(i -> ak[i], length(ak))
+@time v = Val{tk}()
+# f(::Val{K}, xs) where K = NamedTuple{K}(xs)
+# t = Tuple(dzz)
+# typeof(NamedTuple{tk,typeof(t)}(t))
+# tinf = @snoopi_deep @time f(v, t);
+# @time nt = NamedTuple{tk}(dzz);
+# @time DimStack(nt);
+@time DimStack(dzz);
+@time DimStack(Tuple(dzz));
+@descend DimStack(dzz);
+@profview DimStack(dzz);
+# tinf = @snoopi_deep DimStack(dzz);
+tinf = @snoopi_deep @time DimStack(nt);
+tinf = @snoopi_deep @time nt = NamedTuple{tk}(dzz);
+
+vals = ntuple(identity, 100)
+keys = map(i -> Symbol("k$i"), vals)
+@time NamedTuple{keys,typeof(vals)}(vals)
+
 
 @testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) == s
