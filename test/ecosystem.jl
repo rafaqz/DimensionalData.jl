@@ -49,9 +49,9 @@ end
         oda3 = DimArray(oa3, (z, odimz...))
         s = sprint(show, MIME("text/plain"), oda3)
         @test occursin("'d'", s)
-        s = sprint(show, MIME("text/plain"), oda3; context=:displaysize=>(15, 25))
         @test occursin("'a'", s)
         @test occursin("'j'", s)
+        s = sprint(show, MIME("text/plain"), oda3; context=:displaysize=>(15, 25))
         @test !occursin("'d'", s)
     end
 end

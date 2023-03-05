@@ -127,8 +127,7 @@ any combination of either.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
-2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z
-[:, :, 1]
+2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z[:, :, 1]
  1.0  1.0  1.0
  1.0  1.0  1.0
 [and 1 more slices...]
@@ -347,8 +346,7 @@ A = ones(X(2), Y(4), Z(2))
 Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 
 # output
-2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}
-[:, :, 1]
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}[:, :, 1]
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
 [and 1 more slices...]

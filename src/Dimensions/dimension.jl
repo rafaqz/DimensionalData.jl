@@ -55,6 +55,7 @@ x = A[X(2), Y(3)]
 
 12-element DimArray{Float64,1} with dimensions:
   Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+
 and reference dimensions:
   Y Categorical{Char} Char['c'] ForwardOrdered,
   X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points
@@ -62,11 +63,7 @@ and reference dimensions:
  2021-02-01T00:00:00  0.0
  2021-03-01T00:00:00  0.0
  2021-04-01T00:00:00  0.0
- 2021-05-01T00:00:00  0.0
- 2021-06-01T00:00:00  0.0
- 2021-07-01T00:00:00  0.0
- 2021-08-01T00:00:00  0.0
- 2021-09-01T00:00:00  0.0
+ ⋮
  2021-10-01T00:00:00  0.0
  2021-11-01T00:00:00  0.0
  2021-12-01T00:00:00  0.0
@@ -82,6 +79,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 1×12 DimArray{Float64,2} with dimensions:
   X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
   Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+
 and reference dimensions:
   Y Categorical{Char} Char['b'] ForwardOrdered
      2021-01-01T00:00:00  …   2021-12-01T00:00:00

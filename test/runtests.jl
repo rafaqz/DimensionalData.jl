@@ -13,9 +13,6 @@ if VERSION >= v"1.5.0"
     Aqua.test_stale_deps(DimensionalData)
 end
 
-# For coverage stats only
-DimensionalData._precompile()
-
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "metadata" begin include("metadata.jl") end
