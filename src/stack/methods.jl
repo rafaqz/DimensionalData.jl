@@ -47,28 +47,39 @@ Apply function `f` to each layer of the `stacks`.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
+@generated function Base.map(f, s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+    # This compiles faster than `map`
+    expr = Expr(:tuple)
+    for k in Keys
+        push!(expr.args, :(f(s[$(QuoteNode(k))])))
+    end
+    quote
+        _maybestack(s, $expr)
+    end
+end
 function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
     stacks = (x1, xs...)
-    _same_names(stacks...) || throw(ArgumentError("Named tuple names do not match."))
+    _check_same_names(stacks...)
     vals = map(f, map(values, stacks)...)
     return _maybestack(_firststack(stacks...), vals)
 end
-Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
 
-_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
-            ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = true
-_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) = false
+
+_check_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
+            ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = nothing
+_check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) = throw(ArgumentError("Named tuple names do not match."))
 
 _firststack(s::AbstractDimStack, args...) = s
 _firststack(arg1, args...) = _firststack(args...) 
 _firststack() = nothing
 
-_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, x::Tuple) where K = NamedTuple{K}(x)
+_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
 # Without the `@nospecialise` here this method is also compile with the above method
 # on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
 function _maybestack(
-    @nospecialize(s::AbstractDimStack{<:NamedTuple{K}}), @nospecialize(das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}})
+    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
 ) where K
+    # Avoid compiling this in the simple cases in the above method
     rebuild_from_arrays(s, das)
 end
 
