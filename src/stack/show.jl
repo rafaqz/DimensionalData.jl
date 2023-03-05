@@ -1,11 +1,12 @@
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
+    @nospecialize stack
     print(io, nameof(typeof(stack)))
     Dimensions.print_dims(io, mime, dims(stack))
     nlayers = length(keys(stack))
     layers_str = nlayers == 1 ? "layer" : "layers"
     printstyled(io, "\nand "; color=:light_black) 
     print(io, "$nlayers $layers_str:\n")
-    maxlen = reduce(max, map(length ∘ string, keys(stack)))
+    maxlen = reduce(max, map(length ∘ string, collect(keys(stack))))
     for key in keys(stack)
         layer = stack[key]
         pkey = rpad(key, maxlen)
