@@ -34,7 +34,7 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 # output
 
 3×5×12 DimArray{Float64,3} with dimensions:
-  Y Categorical{Char} Char[a, b, c] ForwardOrdered,
+  Y Categorical{Char} Char['a', 'b', 'c'] ForwardOrdered,
   X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
   Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 [:, :, 1]
@@ -56,7 +56,7 @@ x = A[X(2), Y(3)]
 12-element DimArray{Float64,1} with dimensions:
   Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 and reference dimensions:
-  Y Categorical{Char} Char[c] ForwardOrdered,
+  Y Categorical{Char} Char['c'] ForwardOrdered,
   X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points
  2021-01-01T00:00:00  0.0
  2021-02-01T00:00:00  0.0
@@ -83,7 +83,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
   X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
   Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 and reference dimensions:
-  Y Categorical{Char} Char[b] ForwardOrdered
+  Y Categorical{Char} Char['b'] ForwardOrdered
      2021-01-01T00:00:00  …   2021-12-01T00:00:00
  4  0.0                                  0.0
 ```
@@ -314,7 +314,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-Dim{:custom} Char[a, b, c]
+Dim{:custom} Char['a', 'b', 'c']
 ```
 """
 struct Dim{S,T} <: Dimension{T}

@@ -89,7 +89,7 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     elseif length(v) > 5
         "$(v[begin]), $(v[begin+1]), …, $(v[end-1]), $(v[end])"
     else
-        join((string(va) for va in v), ", ")
+        join((repr(va) for va in v), ", ")
     end
     printstyled(io, string(eltype(v), "[", vals, "]"); color=:cyan)
 end
