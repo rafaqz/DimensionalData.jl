@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
-using DimensionalData: layerdims
+using DimensionalData: layerdims, checkdims
 
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
@@ -26,6 +26,13 @@ da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
     checkbounds(da, X(2), Y(1))
     @test_throws BoundsError checkbounds(da, X(10), Y(20))
     @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+end
+
+@testset "checkdims" begin
+    @test checkdims(da2, dimz2)
+    @test checkdims(typeof(da2), dimz2)
+    @test checkdims(2, dimz2)
+    @test_throws ArgumentError checkdims(3, dimz2)
 end
 
 @testset "rebuild" begin
