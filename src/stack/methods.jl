@@ -47,16 +47,7 @@ Apply function `f` to each layer of the `stacks`.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-@generated function Base.map(f, s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
-    # This compiles faster than `map`
-    expr = Expr(:tuple)
-    for k in Keys
-        push!(expr.args, :(f(s[$(QuoteNode(k))])))
-    end
-    quote
-        _maybestack(s, $expr)
-    end
-end
+Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
 function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
     stacks = (x1, xs...)
     _check_same_names(stacks...)
@@ -80,7 +71,9 @@ function _maybestack(
     s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
 ) where K
     # Avoid compiling this in the simple cases in the above method
-    rebuild_from_arrays(s, das)
+    Base.invokelatest() do
+        rebuild_from_arrays(s, das)
+    end
 end
 
 """

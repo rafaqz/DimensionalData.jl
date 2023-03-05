@@ -1,4 +1,5 @@
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
+    @nospecialize A
     if N == 0  
         print(io, "0-dimensional ")
     elseif N == 1
@@ -10,6 +11,7 @@ function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
+    @nospecialize A
     lines = 0
     summary(io, A)
     print_name(io, name(A))
@@ -64,50 +66,55 @@ function print_name(io::IO, name)
 end
 
 # Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
-function Base.print_matrix(io::IO, A::AbstractDimArray)
+function Base.print_matrix(io::IO, A::AbstractDimArray{<:Any,1})
+    @nospecialize A
     h, w = displaysize(io)
     wn = w ÷ 3 # integers take 3 columns each when printed, floats more
+    f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
+    itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
+    ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
+    labels = vcat(ShowWith.(lookup(A, 1)[itop]), ShowWith.(lookup(A, 1))[ibottom])
+    vals = vcat(parent(A)[itop], parent(A)[ibottom])
+    A_dims = hcat(labels, vals)
+    Base.print_matrix(io, A_dims)
+    return nothing
+end
+function Base.print_matrix(io::IO, A::AbstractDimArray)
+    @nospecialize A
+    h, w = displaysize(io)
+    wn = w ÷ 3 # integers take 3 columns each when printed, floats more
+    f1, f2 = firstindex(A, 1), firstindex(A, 2)
+    l1, l2 = lastindex(A, 1), lastindex(A, 2)
+    s1, s2 = size(A)
+    itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
+    ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
+    ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
+    iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
 
-    A_dims = if ndims(A) == 1
-        f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
-        itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
-        ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
-        labels = vcat(ShowWith.(lookup(A, 1)[itop]), ShowWith.(lookup(A, 1))[ibottom])
-        vals = vcat(parent(A)[itop], parent(A)[ibottom])
-        hcat(labels, vals)
+    topleft = collect(A[itop, ileft])
+    bottomleft = collect(A[ibottom, ileft])
+    if !(lookup(A, 1) isa NoLookup)
+        topleft = hcat(ShowWith.(lookup(A,1)[itop]), topleft)
+        bottomleft = hcat(ShowWith.(lookup(A, 1)[ibottom]), bottomleft)
+    end
+
+    leftblock = vcat(topleft, bottomleft)
+    rightblock = vcat(collect(A[itop, iright]), collect(A[ibottom, iright]))
+    bottomblock = hcat(leftblock, rightblock)
+
+    A_dims = if lookup(A, 2) isa NoLookup
+        bottomblock
     else
-        f1, f2 = firstindex(A, 1), firstindex(A, 2)
-        l1, l2 = lastindex(A, 1), lastindex(A, 2)
-        s1, s2 = size(A)
-        itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
-        ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
-        ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
-        iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
-
-        topleft = collect(A[itop, ileft])
-        bottomleft = collect(A[ibottom, ileft])
-        if !(lookup(A, 1) isa NoLookup)
-            topleft = hcat(ShowWith.(lookup(A,1)[itop]), topleft)
-            bottomleft = hcat(ShowWith.(lookup(A, 1)[ibottom]), bottomleft)
-        end
-
-        leftblock = vcat(topleft, bottomleft)
-        rightblock = vcat(collect(A[itop, iright]), collect(A[ibottom, iright]))
-        bottomblock = hcat(leftblock, rightblock)
-
-        if lookup(A, 2) isa NoLookup
-            bottomblock
+        toplabels = ShowWith.(lookup(A, 2))[ileft], ShowWith.(lookup(A, 2))[iright]
+        toprow = if lookup(A, 1) isa NoLookup
+            vcat(toplabels...)
         else
-            toplabels = ShowWith.(lookup(A, 2))[ileft], ShowWith.(lookup(A, 2))[iright]
-            toprow = if lookup(A, 1) isa NoLookup
-                vcat(toplabels...)
-            else
-                vcat(ShowWith(0, hide=true), toplabels...)
-            end |> permutedims
-            vcat(toprow, bottomblock)
-        end
+            vcat(ShowWith(0, hide=true), toplabels...)
+        end |> permutedims
+        vcat(toprow, bottomblock)
     end
     Base.print_matrix(io, A_dims)
+    return nothing
 end
 
 struct ShowWith{T,NT} <: AbstractString
