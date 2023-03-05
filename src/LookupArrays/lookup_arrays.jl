@@ -352,8 +352,8 @@ Dimensions.lookup(A)
 
 # output
 
-Categorical{String} String[one, two, three] Unordered,
-Categorical{Symbol} Symbol[a, b, c, d] ForwardOrdered
+Categorical{String} String["one", "two", "three"] Unordered,
+Categorical{Symbol} Symbol[:a, :b, :c, :d] ForwardOrdered
 ```
 """
 struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O}

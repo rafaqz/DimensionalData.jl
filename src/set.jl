@@ -67,7 +67,7 @@ Change the lookup `Vector`:
 julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 3×4 DimArray{Float64,2} with dimensions:
   Dim{:custom} Sampled{Int64} Int64[4, 5, 6] ForwardOrdered Regular Points,
-  Z Sampled{Symbol} Symbol[a, b, c, d] ForwardOrdered Regular Points
+  Z Sampled{Symbol} Symbol[:a, :b, :c, :d] ForwardOrdered Regular Points
      :a   :b   :c   :d
  4  0.0  0.0  0.0  0.0
  5  0.0  0.0  0.0  0.0
