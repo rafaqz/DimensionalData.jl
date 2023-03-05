@@ -4,7 +4,6 @@ Base.show(io::IO, mime::MIME"text/plain", lookup::AutoLookup) = nothing
 Base.show(io::IO, mime::MIME"text/plain", lookup::NoLookup) = print(io, "NoLookup")
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
-    @nospecialize lookup
     show_compact(io, mime, lookup)
     show(io, mime, f(lookup))
     print(io, " ")
@@ -13,7 +12,6 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::LookupArray)
-    @nospecialize lookup
     show_compact(io, mime, lookup)
     get(io, :compact, false) && print_index(io, mime, parent(lookup))
     show_properties(io, mime, lookup)
@@ -26,7 +24,6 @@ end
 
 show_properties(io::IO, mime, lookup) = show_properties(io, lookup)
 function show_properties(io::IO, lookup::AbstractSampled)
-    @nospecialize lookup
     print(io, " ")
     print_order(io, lookup)
     print(io, " ")
@@ -36,13 +33,11 @@ function show_properties(io::IO, lookup::AbstractSampled)
 end
 
 function show_properties(io::IO, lookup::AbstractCategorical)
-    @nospecialize lookup
     print(io, " ")
     print_order(io, lookup)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{LookupArray,Vararg{LookupArray}})
-    @nospecialize lookups
     length(lookups) > 0 || return 0
     ctx = IOContext(io, :compact=>true)
     if all(l -> l isa NoLookup, lookups)

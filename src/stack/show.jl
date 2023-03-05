@@ -1,5 +1,4 @@
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    @nospecialize stack
     print(io, nameof(typeof(stack)))
     Dimensions.print_dims(io, mime, dims(stack))
     nlayers = length(keys(stack))
