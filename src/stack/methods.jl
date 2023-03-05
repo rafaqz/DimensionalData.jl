@@ -76,8 +76,6 @@ Z,
 X Categorical{Symbol} Symbol[x1, x2] ForwardOrdered
 
 julia> first(slices)
-┌ Warning: (Z,) dims were not found in object
-└ @ DimensionalData.Dimensions
 DimStack with dimensions:
   Y Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   Ti
