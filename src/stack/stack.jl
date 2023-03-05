@@ -42,13 +42,7 @@ Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))
-@generated function Base.values(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys 
-    expr = Expr(:tuple)
-    for k in Keys
-        push!(expr.args, :(s[$(QuoteNode(k))]))
-    end
-    return expr
-end
+Base.values(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys = map(K -> s[K], Keys)
 Base.first(s::AbstractDimStack) = s[first(keys(s))]
 Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
