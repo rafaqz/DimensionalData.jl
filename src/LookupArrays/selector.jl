@@ -106,7 +106,7 @@ function at(lookup::LookupArray, sel::At; kw...)
     at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
 function at(
-    ::Ordered, span::Regular, lookup::LookupArray{<:Union{Integer,Dates.TimeType}}, selval, atol::Nothing, rtol::Nothing;
+    ::Ordered, span::Regular, lookup::LookupArray{<:Integer}, selval, atol::Nothing, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
