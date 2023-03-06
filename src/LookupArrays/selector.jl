@@ -126,7 +126,7 @@ function at(
     x = unwrap(selval)
     i = searchsortedlast(lookup, x)
     # Try the current index
-    if i == firstindex(lookup)
+    if i == firstindex(lookup) - 1
         i1 = i + 1
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1
