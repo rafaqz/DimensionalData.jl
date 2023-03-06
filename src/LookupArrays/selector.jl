@@ -112,7 +112,7 @@ function at(
     x = unwrap(selval)
     Δ = step(span)
     i, remainder = divrem(x - first(lookup), Δ)
-    i += 1
+    i += firstindex(lookup)
     if remainder == 0 && checkbounds(Bool, lookup, i)
         return i
     else
@@ -126,7 +126,7 @@ function at(
     x = unwrap(selval)
     i = searchsortedlast(lookup, x)
     # Try the current index
-    if i == 0
+    if i == firstindex(lookup)
         i1 = i + 1
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1

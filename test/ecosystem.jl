@@ -22,6 +22,7 @@ end
         @test axes(oda) == (-1:1, 5:8)
         @test oda[-1, 5] == oa[-1, 5] == 1
         @test oda[Near(105), At(:a)] == oa[-1, 5] == 1
+        @test oda[At(200), At(:a)] == oa[0, 5] == 3
         @test oda[Between(100, 250), At(:a)] == oa[-1:0, 5] == [1, 3]
     end
     @testset "Subsetting reverts to a regular array and dims" begin
