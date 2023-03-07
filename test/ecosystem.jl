@@ -1,4 +1,5 @@
 using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterfaceCore, DimensionalData, Test
+using DimensionalData.LookupArrays
 
 @testset "ArrayInterface" begin
     a = [1 2; 3 4]
@@ -24,6 +25,13 @@ end
         @test oda[Near(105), At(:a)] == oa[-1, 5] == 1
         @test oda[At(200), At(:a)] == oa[0, 5] == 3
         @test oda[Between(100, 250), At(:a)] == oa[-1:0, 5] == [1, 3]
+    end
+    @testset "And when sampling is Regular" begin
+        odimz_r = (X(OffsetArray(100:100:300, -1:1); span=Regular(100)), Y(OffsetArray([1.0, 2.0, 3.0, 4.0], 5:8); span=Regular(1)))
+        oda_r = DimArray(oa, odimz_r)
+        @test oda_r[At(100), At(1.0)] == oa[-1, 5] == 1
+        @test oda_r[At(200), At(3.0)] == oa[0, 7] == 5
+        @test oda_r[Between(100, 250), At(1)] == oa[-1:0, 5] == [1, 3]
     end
     @testset "Subsetting reverts to a regular array and dims" begin
         @test axes(oda[0:1, 7:8]) == (1:2, 1:2)
