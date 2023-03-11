@@ -57,7 +57,6 @@ end
     rebuild(A, data, slicedims(f, A, I)..., name)
 
 for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus)
-    @eval ($func)(A::AbstractDimArray) = ($func)(dims(A))
     @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
 end
 
