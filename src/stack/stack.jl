@@ -33,7 +33,9 @@ refdims(s::AbstractDimStack) = getfield(s, :refdims)
 metadata(s::AbstractDimStack) = getfield(s, :metadata)
 
 layerdims(s::AbstractDimStack) = getfield(s, :layerdims)
-layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
+function layerdims(s::AbstractDimStack, key::Symbol)
+    isnothing(layerdims(s)) ? dims(s) : dims(s, layerdims(s)[key])
+end
 layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
@@ -136,11 +138,24 @@ function rebuild_from_arrays(
     s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     refdims=refdims(s),
     metadata=DD.metadata(s),
+    layerdims=nothing,
     data=map(parent, das),
-    dims=DD.combinedims(collect(das)),
-    layerdims=map(DD.basedims, das),
+    dims=nothing,
     layermetadata=map(DD.metadata, das),
 )
+    if isnothing(layerdims) && isnothing(layerdims(s))
+        if isnothing(dims)
+            dims = dims(first(das))
+        end
+    else
+        alldims = map(dims, das)
+        layerdims = map(DD.basedims, alldims)
+        if isnothing(dims)
+            Base.invokelatest() do
+                dims = DD.combinedims(collect(das))
+            end
+        end
+    end
     rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
@@ -232,7 +247,7 @@ true
 ```
 
 """
-struct DimStack{L,D<:Tuple,R<:Tuple,LD<:NamedTuple,M,LM<:NamedTuple} <: AbstractDimStack{L}
+struct DimStack{L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTuple} <: AbstractDimStack{L}
     data::L
     dims::D
     refdims::R
@@ -248,8 +263,10 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     keys_vec = uniquekeys(das)
     keys_tuple = ntuple(i -> keys_vec[i], length(keys_vec))
     dims = DD.combinedims(collect(das))
-    data = NamedTuple{keys_tuple}(map(parent, das))
-    layerdims = NamedTuple{keys_tuple}(map(basedims, das))
+    as = map(parent, das)
+    data = NamedTuple{keys_tuple}(as)
+    same_dims_layers = all(map(a -> ndims(a) == length(dims), as))
+    layerdims = same_dims_layers ? nothing : NamedTuple{keys_tuple}(map(basedims, das))
     layermetadata = NamedTuple{keys_tuple}(map(DD.metadata, das))
 
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
@@ -265,8 +282,10 @@ function DimStack(data::NamedTuple, dims::Tuple;
     refdims=(), metadata=NoMetadata(), layermetadata=map(_ -> NoMetadata(), data)
 )
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
-    layerdims = map(_ -> basedims(dims), data)
+    layerdims = nothing
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
 
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
+
+layerdims(s::DimStack{<:Any,<:Any,<:Any,Nothing}, key::Symbol) = dims(s)

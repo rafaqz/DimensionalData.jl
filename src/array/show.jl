@@ -50,7 +50,7 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,3}) where T
     println(io, "[:, :, $i3]")
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
     nremaining = size(A, 3) - 1
-    nremaining > 0 && printstyled(io, "\n[and ", nremaining," more slices...]"; color=:light_black)
+    nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
 end
 function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
@@ -59,7 +59,7 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
     println(io, "[:, :, $(onestring)]")
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
     nremaining = prod(size(A, d) for d=3:N) - 1
-    nremaining > 0 && printstyled(io, "\n[and ", nremaining," more slices...]"; color=:light_black)
+    nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
 end
 
 function _print_array_ctx(io, T)
@@ -81,8 +81,8 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
     itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
     ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
-    labels = vcat(map(ShowWith, parent(lu)[itop]), map(ShowWith, parent(lu))[ibottom])
-    vals = vcat(A[itop], A[ibottom])
+    labels = vcat(map(showblack, parent(lu)[itop]), map(showblack, parent(lu))[ibottom])
+    vals = map(showdefault, vcat(A[itop], A[ibottom]))
     A_dims = hcat(labels, vals)
     Base.print_matrix(io, A_dims)
     return nothing
@@ -99,11 +99,11 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
     iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
 
-    topleft = A[itop, ileft]
+    topleft = map(showdefault, A[itop, ileft])
     bottomleft = A[ibottom, ileft]
     if !(lookups[1] isa NoLookup)
-        topleft = hcat(map(ShowWith, parent(lu1)[itop]), topleft)
-        bottomleft = hcat(map(ShowWith, parent(lu1)[ibottom]), bottomleft)
+        topleft = hcat(map(showblack, parent(lu1)[itop]), topleft)
+        bottomleft = hcat(map(showblack, parent(lu1)[ibottom]), bottomleft)
     end
 
     leftblock = vcat(topleft, bottomleft)
@@ -111,15 +111,15 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     bottomblock = hcat(leftblock, rightblock)
 
     A_dims = if lu2 isa NoLookup
-        bottomblock
+        map(showdefault, bottomblock)
     else
-        toplabels = map(ShowWith, parent(lu2)[ileft]), map(ShowWith, parent(lu2)[iright])
+        toplabels = map(showblack, parent(lu2)[ileft]), map(showblack, parent(lu2)[iright])
         toprow = if lu1 isa NoLookup
             vcat(toplabels...)
         else
-            vcat(ShowWith(0, true), toplabels...)
+            vcat(showhide(nothing), toplabels...)
         end |> permutedims
-        vcat(toprow, bottomblock)
+        vcat(toprow, map(showdefault, bottomblock))
     end
     Base.print_matrix(io, A_dims)
     return nothing
@@ -128,13 +128,18 @@ end
 struct ShowWith <: AbstractString
     val::Any
     hide::Bool
+    color::Symbol
 end
-ShowWith(val) = ShowWith(val, false)
+ShowWith(val; hide=false, color=:light_black) = ShowWith(val; hide, color)
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     s = sprint(show, mime, x.val; context=io, kw...)
     s1 = x.hide ? " "^length(s) : s
-    printstyled(io, s1; color=:light_black)
+    printstyled(io, s1; color=x.color)
 end
+showdefault(x) = ShowWith(x, false, :default)
+showblack(x) = ShowWith(x, false, :light_black)
+showhide(x) = ShowWith(x, true, :nothing)
+
 Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
 Base.length(x::ShowWith) = length(string(x.val))
 Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))

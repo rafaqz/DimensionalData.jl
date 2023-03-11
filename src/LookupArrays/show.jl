@@ -65,7 +65,10 @@ function Base.show(io::IO, mime::MIME"text/plain", lookups::Tuple{LookupArray,Va
 end
 
 function show_compact(io, mime, lookup::LookupArray)
-    print(io, nameof(typeof(lookup)), "{", string(eltype(lookup)), "}")
+    print(io, nameof(typeof(lookup)))
+    print(io, "{")
+    print(io, string(eltype(lookup)))
+    print(io, "}")
 end
 
 print_order(io, lookup) = print(io, nameof(typeof(order(lookup))))
@@ -91,5 +94,5 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     else
         join((repr(va) for va in v), ", ")
     end
-    printstyled(io, string(eltype(v), "[", vals, "]"); color=:cyan)
+    printstyled(io, string(string(eltype(v)), "[", string(vals), "]"); color=:cyan)
 end
