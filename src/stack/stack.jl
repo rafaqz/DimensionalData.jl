@@ -136,25 +136,15 @@ function rebuild_from_arrays(
 end
 function rebuild_from_arrays(
     s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
+    data=map(parent, das),
     refdims=refdims(s),
     metadata=DD.metadata(s),
-    layerdims=nothing,
-    data=map(parent, das),
-    dims=nothing,
+    dims=DD.combinedims(collect(das)),
+    layerdims=map(DD.basedims, das),
     layermetadata=map(DD.metadata, das),
 )
-    if isnothing(layerdims) && isnothing(layerdims(s))
-        if isnothing(dims)
-            dims = dims(first(das))
-        end
-    else
-        alldims = map(dims, das)
-        layerdims = map(DD.basedims, alldims)
-        if isnothing(dims)
-            Base.invokelatest() do
-                dims = DD.combinedims(collect(das))
-            end
-        end
+    Base.invokelatest() do
+        dims = DD.combinedims(collect(das))
     end
     rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
 end
