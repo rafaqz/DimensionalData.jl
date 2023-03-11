@@ -22,6 +22,7 @@ val(l::LookupArray) = parent(l)
 index(l::LookupArray) = parent(l)
 locus(l::LookupArray) = Center()
 
+Base.eltype(l::LookupArray{T}) where T = T
 Base.parent(l::LookupArray) = l.data
 Base.size(l::LookupArray) = size(parent(l))
 Base.axes(l::LookupArray) = axes(parent(l))

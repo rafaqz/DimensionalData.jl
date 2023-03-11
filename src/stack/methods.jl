@@ -47,7 +47,9 @@ Apply function `f` to each layer of the `stacks`.
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-Base.map(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
+function Base.map(f, s::AbstractDimStack)
+    _maybestack(s,map(f, values(s)))
+end
 function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
     stacks = (x1, xs...)
     _check_same_names(stacks...)
@@ -204,7 +206,7 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
     end
 end
 
-for fname in (:one, :oneunit, :zero, :copy, :deepcopy)
+for fname in (:one, :oneunit, :zero, :copy)
     @eval function (Base.$fname)(s::AbstractDimStack, args...)
         map($fname, s)
     end
