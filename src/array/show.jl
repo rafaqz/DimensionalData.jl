@@ -12,18 +12,24 @@ function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
+    # We write to a buffer so we can precompile without writing to `stdout`
+    buffer = IOBuffer()
+    context = IOContext(buffer, :color=>true)
     lines = 0
-    summary(io, A)
-    print_name(io, name(A))
-    lines += Dimensions.print_dims(io, mime, dims(A))
-    !(isempty(dims(A)) || isempty(refdims(A))) && println(io)
-    lines += Dimensions.print_refdims(io, mime, refdims(A))
+    summary(context, A)
+    print_name(context, name(A))
+    lines += Dimensions.print_dims(context, mime, dims(A))
+    !(isempty(dims(A)) || isempty(refdims(A))) && println(context)
+    lines += Dimensions.print_refdims(context, mime, refdims(A))
 
     # Printing the array data is optional, subtypes can 
     # show other things here instead.
-    ds = displaysize(io)
-    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
+    ds = displaysize(context)
+    ioctx = IOContext(context, :displaysize => (ds[1] - lines, ds[2]))
     show_after(ioctx, mime, A)
+
+    seek(buffer, 0)
+    write(io, buffer)
 
     return nothing
 end
