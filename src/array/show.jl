@@ -117,7 +117,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
         toprow = if lu1 isa NoLookup
             vcat(toplabels...)
         else
-            vcat(showhide(nothing), toplabels...)
+            vcat(showhide(0), toplabels...)
         end |> permutedims
         vcat(toprow, map(showdefault, bottomblock))
     end
