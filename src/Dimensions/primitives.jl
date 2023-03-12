@@ -127,10 +127,10 @@ any combination of either.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
-2×3×2 DimArray{Float64,3}[90m with dimensions: [39m[31mX[39m, [31mY[39m, [31mZ[39m[:, :, 1]
- [39m[39m1.0  [39m[39m1.0  [39m[39m1.0
- [39m[39m1.0  [39m[39m1.0  [39m[39m1.0
-[90m[and 1 more slices...][39m
+2×3×2 DimArray{Float64,3} with dimensions: X, Y, Z[:, :, 1]
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+[and 1 more slices...]
 
 julia> dims(A, (X, Y))
 X, Y
@@ -346,10 +346,10 @@ A = ones(X(2), Y(4), Z(2))
 Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 
 # output
-2×4×2 DimArray{Float64,3}[90m with dimensions: [39m[31mDim{[39m[33m:a[39m[31m}[39m, [31mDim{[39m[33m:b[39m[31m}[39m, [31mDim{[39m[33m:c[39m[31m}[39m[:, :, 1]
- [39m[39m1.0  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0
- [39m[39m1.0  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0
-[90m[and 1 more slices...][39m
+2×4×2 DimArray{Float64,3} with dimensions: Dim{:a}, Dim{:b}, Dim{:c}[:, :, 1]
+ 1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0
+[and 1 more slices...]
 ```
 """
 @inline swapdims(x, d1, d2, ds...) = swapdims(x, (d1, d2, ds...))
