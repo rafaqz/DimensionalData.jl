@@ -33,9 +33,7 @@ refdims(s::AbstractDimStack) = getfield(s, :refdims)
 metadata(s::AbstractDimStack) = getfield(s, :metadata)
 
 layerdims(s::AbstractDimStack) = getfield(s, :layerdims)
-function layerdims(s::AbstractDimStack, key::Symbol)
-    isnothing(layerdims(s)) ? dims(s) : dims(s, layerdims(s)[key])
-end
+layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
 layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
@@ -255,8 +253,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     dims = DD.combinedims(collect(das))
     as = map(parent, das)
     data = NamedTuple{keys_tuple}(as)
-    same_dims_layers = all(map(a -> ndims(a) == length(dims), as))
-    layerdims = same_dims_layers ? nothing : NamedTuple{keys_tuple}(map(basedims, das))
+    layerdims = NamedTuple{keys_tuple}(map(basedims, das))
     layermetadata = NamedTuple{keys_tuple}(map(DD.metadata, das))
 
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
@@ -269,10 +266,11 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
 end
 # Same sized arrays
 function DimStack(data::NamedTuple, dims::Tuple;
-    refdims=(), metadata=NoMetadata(), layermetadata=map(_ -> NoMetadata(), data)
+    refdims=(), metadata=NoMetadata(), 
+    layermetadata=map(_ -> NoMetadata(), data),
+    layerdims = map(_ -> basedims(dims), data),
 )
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
-    layerdims = nothing
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
 

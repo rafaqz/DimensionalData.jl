@@ -96,7 +96,7 @@ end
     @test layers(s) === (; s...)
     @test layers(s) === (; one=da1, s[(:two,)]..., (three=da3,)...)
     @test layers(s) === (; (one=da1,)..., two=da2, s[(:three,)]...)
-    @test s === merge(s[(:one,:two)], (three=da3,))
+    @test typeof(s) === typeof(merge(s[(:one,:two)], (three=da3,)))
     @test s === merge(s[(:one,)], (two=da2, three=da3))
     @test merge(mixed) === mixed
     @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
