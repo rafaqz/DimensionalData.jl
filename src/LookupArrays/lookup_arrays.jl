@@ -260,15 +260,15 @@ y = Y(Sampled([1, 4, 7, 10]; span=Regular(3), sampling=Intervals(Start())))
 A = ones(x, y)
 
 # output
-5×4 DimArray{Float64,2} with dimensions:
-  X Sampled{Int64} 100:-20:20 ReverseOrdered Regular Intervals,
-  Y Sampled{Int64} Int64[1, 4, 7, 10] ForwardOrdered Regular Intervals
-      1    4    7    10
- 100  1.0  1.0  1.0   1.0
-  80  1.0  1.0  1.0   1.0
-  60  1.0  1.0  1.0   1.0
-  40  1.0  1.0  1.0   1.0
-  20  1.0  1.0  1.0   1.0
+5×4 DimArray{Float64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Int64} [36m100:-20:20[39m ReverseOrdered Regular Intervals,
+  [31mY[39m Sampled{Int64} [36mInt64[1, 4, 7, 10][39m ForwardOrdered Regular Intervals
+      [90m1[39m    [90m4[39m    [90m7[39m    [90m10[39m
+ [39m[90m100[39m  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0   [39m[39m1.0
+  [39m[90m80[39m  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0   [39m[39m1.0
+  [39m[90m60[39m  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0   [39m[39m1.0
+  [39m[90m40[39m  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0   [39m[39m1.0
+  [39m[90m20[39m  [39m[39m1.0  [39m[39m1.0  [39m[39m1.0   [39m[39m1.0
 ```
 """
 struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}

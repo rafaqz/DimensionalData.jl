@@ -33,16 +33,16 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-3×5×12 DimArray{Float64,3} with dimensions:
-  Y Categorical{Char} Char['a', 'b', 'c'] ForwardOrdered,
-  X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+3×5×12 DimArray{Float64,3}[90m with dimensions: [39m
+  [31mY[39m Categorical{Char} [36mChar['a', 'b', 'c'][39m ForwardOrdered,
+  [31mX[39m Sampled{Int64} [36m2:2:10[39m ForwardOrdered Regular Points,
+  [31mTi[39m Sampled{DateTime} [36mDateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")[39m ForwardOrdered Regular Points
 [:, :, 1]
-       2    4    6    8    10
-  'a'  0.0  0.0  0.0  0.0   0.0
-  'b'  0.0  0.0  0.0  0.0   0.0
-  'c'  0.0  0.0  0.0  0.0   0.0
-[and 11 more slices...]
+       [90m2[39m    [90m4[39m    [90m6[39m    [90m8[39m    [90m10[39m
+  [39m[90m'a'[39m  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0   [39m[39m0.0
+  [39m[90m'b'[39m  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0   [39m[39m0.0
+  [39m[90m'c'[39m  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0  [39m[39m0.0   [39m[39m0.0
+[90m[and 11 more slices...][39m
 ```
 
 For simplicity, the same `Dimension` types are also used as wrappers
@@ -53,20 +53,19 @@ x = A[X(2), Y(3)]
 
 # output
 
-12-element DimArray{Float64,1} with dimensions:
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-
-and reference dimensions:
-  Y Categorical{Char} Char['c'] ForwardOrdered,
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points
- 2021-01-01T00:00:00  0.0
- 2021-02-01T00:00:00  0.0
- 2021-03-01T00:00:00  0.0
- 2021-04-01T00:00:00  0.0
+12-element DimArray{Float64,1}[90m with dimensions: [39m
+  [31mTi[39m Sampled{DateTime} [36mDateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")[39m ForwardOrdered Regular Points
+[90mand reference dimensions: [39m
+  [35mY[39m Categorical{Char} [36mChar['c'][39m ForwardOrdered,
+  [35mX[39m Sampled{Int64} [36m4:2:4[39m ForwardOrdered Regular Points
+ [90m2021-01-01T00:00:00[39m  [39m0.0
+ [90m2021-02-01T00:00:00[39m  [39m0.0
+ [90m2021-03-01T00:00:00[39m  [39m0.0
+ [90m2021-04-01T00:00:00[39m  [39m0.0
  ⋮
- 2021-10-01T00:00:00  0.0
- 2021-11-01T00:00:00  0.0
- 2021-12-01T00:00:00  0.0
+ [90m2021-10-01T00:00:00[39m  [39m0.0
+ [90m2021-11-01T00:00:00[39m  [39m0.0
+ [90m2021-12-01T00:00:00[39m  [39m0.0
 ```
 
 A `Dimension` can also wrap [`Selector`](@ref).
@@ -76,14 +75,13 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-1×12 DimArray{Float64,2} with dimensions:
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-
-and reference dimensions:
-  Y Categorical{Char} Char['b'] ForwardOrdered
-     2021-01-01T00:00:00  …   2021-12-01T00:00:00
- 4  0.0                                  0.0
+1×12 DimArray{Float64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Int64} [36m4:2:4[39m ForwardOrdered Regular Points,
+  [31mTi[39m Sampled{DateTime} [36mDateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00")[39m ForwardOrdered Regular Points
+[90mand reference dimensions: [39m
+  [35mY[39m Categorical{Char} [36mChar['b'][39m ForwardOrdered
+     [90m2021-01-01T00:00:00[39m  …   [90m2021-12-01T00:00:00[39m
+ [39m[90m4[39m  [39m[39m0.0                                  [39m[39m0.0
 ```
 
 `Dimension` objects may have [`lookup`](@ref) and [`metadata`](@ref) fields

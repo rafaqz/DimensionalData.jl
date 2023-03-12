@@ -57,6 +57,7 @@ end
     sp = sprint(show, MIME"text/plain"(), dim)
     @test occursin("Coord", sp)
     @test occursin("X, Y, Z", sp)
+    da
     sp = sprint(show, MIME"text/plain"(), da)
     @test occursin("Coord", sp)
     @test occursin("X", sp)
