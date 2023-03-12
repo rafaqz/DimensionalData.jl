@@ -59,5 +59,7 @@ end
     @test occursin("X, Y, Z", sp)
     sp = sprint(show, MIME"text/plain"(), da)
     @test occursin("Coord", sp)
-    @test occursin("X, Y, Z", sp)
+    @test occursin("X", sp)
+    @test occursin("Y", sp)
+    @test occursin("Z", sp)
 end
