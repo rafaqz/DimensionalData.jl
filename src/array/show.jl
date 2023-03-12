@@ -12,18 +12,6 @@ function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
-    @nospecialize io mime stack
-    # We write to a buffer so we can precompile without writing to `stdout`
-    buffer = IOBuffer()
-    context = IOContext(buffer, :color=>true)
-    _show_inner(context, mime, A)
-    seek(buffer, 0)
-    write(io, buffer)
-
-    return nothing
-end
-
-@noinline function _show_inner(io::IO, mime, A::AbstractDimArray)
     lines = 0
     summary(io, A)
     print_name(io, name(A))
@@ -36,6 +24,7 @@ end
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
     show_after(ioctx, mime, A)
+    return nothing
 end
 
 

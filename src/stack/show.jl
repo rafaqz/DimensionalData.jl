@@ -1,14 +1,4 @@
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    @nospecialize io mime stack
-    buffer = IOBuffer()
-    context = IOContext(buffer, :color=>true)
-    _show_inner(context, mime, stack)
-    seek(buffer, 0)
-    write(io, buffer)
-    return nothing
-end
-
-@noinline function _show_inner(io::IO, mime, stack::AbstractDimStack)
     print(io, nameof(typeof(stack)))
     Dimensions.print_dims(io, mime, dims(stack))
     nlayers = length(keys(stack))
@@ -50,6 +40,7 @@ end
 
     # Show anything else subtypes want to append
     show_after(io, mime, stack)
+    return nothing
 end
 
 show_after(io, mime, stack::DimStack) = nothing

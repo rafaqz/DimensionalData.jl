@@ -401,11 +401,11 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 
 # output
 
-1×2 DimArray{Int64,2} with dimensions:
-  X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
-  Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
-     5  6
- 20  4  5
+1×2 DimArray{Int64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Int64} [36m20:10:20[39m ForwardOrdered Regular Points,
+  [31mY[39m Sampled{Int64} [36m5:6[39m ForwardOrdered Regular Points
+     [90m5[39m  [90m6[39m
+ [39m[90m20[39m  [39m[39m4  [39m[39m5
 ```
 """
 struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
@@ -653,11 +653,11 @@ A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
 
 # output
-1×2 DimArray{Int64,2} with dimensions:
-  X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
-  Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
-     5  6
- 20  4  5
+1×2 DimArray{Int64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Int64} [36m20:10:20[39m ForwardOrdered Regular Points,
+  [31mY[39m Sampled{Int64} [36m5:6[39m ForwardOrdered Regular Points
+     [90m5[39m  [90m6[39m
+ [39m[90m20[39m  [39m[39m4  [39m[39m5
 ```
 """
 struct Touches{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing,Extents.Extent}} <: ArraySelector{T}
@@ -826,11 +826,11 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 
 # output
 
-1×2 DimArray{Int64,2} with dimensions:
-  X Sampled{Int64} Int64[20] ForwardOrdered Regular Points,
-  Y Sampled{Int64} Int64[19, 21] ForwardOrdered Regular Points
-     19  21
- 20   4   6
+1×2 DimArray{Int64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Int64} [36mInt64[20][39m ForwardOrdered Regular Points,
+  [31mY[39m Sampled{Int64} [36mInt64[19, 21][39m ForwardOrdered Regular Points
+     [90m19[39m  [90m21[39m
+ [39m[90m20[39m   [39m[39m4   [39m[39m6
 ```
 """
 struct Where{T} <: ArraySelector{T}
@@ -863,12 +863,12 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 
 # output
 
-2×4 DimArray{Int64,2} with dimensions:
-  X Sampled{Float64} Float64[10.0, 50.0] ForwardOrdered Regular Points,
-  Ti Sampled{Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[1 s, 6 s, 91 s, 96 s] ForwardOrdered Regular Points
-       1 s  6 s  91 s  96 s
- 10.0    1    2    19    20
- 50.0    3    6    57    60
+2×4 DimArray{Int64,2}[90m with dimensions: [39m
+  [31mX[39m Sampled{Float64} [36mFloat64[10.0, 50.0][39m ForwardOrdered Regular Points,
+  [31mTi[39m Sampled{Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} [36mQuantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}[1 s, 6 s, 91 s, 96 s][39m ForwardOrdered Regular Points
+       [90m1 s[39m  [90m6 s[39m  [90m91 s[39m  [90m96 s[39m
+ [39m[90m10.0[39m    [39m[39m1    [39m[39m2    [39m[39m19    [39m[39m20
+ [39m[90m50.0[39m    [39m[39m3    [39m[39m6    [39m[39m57    [39m[39m60
 ```
 """
 struct All{S<:Tuple{Vararg{SelectorOrInterval}}} <: Selector{S}

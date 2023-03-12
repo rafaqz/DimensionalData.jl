@@ -7,10 +7,9 @@ function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
             print(io, ", ")
             show(ctx, mime, d)
         end
-        print(io, "\n")
         return 0
     else # Dims get a line each
-        haskey(io, :inset) && print(io, "\n")
+        haskey(io, :inset) && println(io)
         inset = get(io, :inset, "")
         lines = 3
         print(io, inset)
