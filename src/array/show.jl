@@ -16,7 +16,9 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
     summary(io, A)
     print_name(io, name(A))
     lines += Dimensions.print_dims(io, mime, dims(A))
+    !(isempty(dims(A)) || isempty(refdims(A))) && println(io)
     lines += Dimensions.print_refdims(io, mime, refdims(A))
+    println(io)
 
     # Printing the array data is optional, subtypes can 
     # show other things here instead.
