@@ -21,7 +21,9 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
     @test t[:data] isa DimArrayColumn
     @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
 
-    @test Tables.istable(t) == Tables.istable(da) == Tables.istable(ds) == true
+    @test Tables.istable(typeof(t)) == Tables.istable(t) ==
+          Tables.istable(typeof(da)) == Tables.istable(da) == 
+          Tables.istable(typeof(ds)) == Tables.istable(ds) == true
     @test Tables.columnaccess(t) == Tables.columnaccess(da) == Tables.columnaccess(ds) == true
     @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
     @test Tables.columnnames(t) == Tables.columnnames(da) == Tables.columnnames(ds) == (:X, :Y, :test, :data)
