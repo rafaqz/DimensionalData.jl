@@ -2,7 +2,7 @@
 
 DimTableSources = Union{AbstractDimStack,AbstractDimArray}
 
-Tables.istable(::DimTableSources) = true
+Tables.istable(::Type{<:DimTableSources}) = true
 Tables.columnaccess(::Type{<:DimTableSources}) = true
 Tables.columns(x::DimTableSources) = DimTable(x)
 
