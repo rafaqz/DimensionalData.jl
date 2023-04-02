@@ -201,12 +201,15 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
             rebuild(A, $pkg.$fname(parent(A)), (AnonDim(Base.OneTo(1)), dims(A)...))
     end
 end
-for fname in [:permutedims, :PermutedDimsArray]
-    @eval begin
-        @inline function Base.$fname(A::AbstractDimArray, perm)
-            rebuild(A, $fname(parent(A), dimnum(A, Tuple(perm))), sortdims(dims(A), Tuple(perm)))
-        end
-    end
+@inline function Base.permutedims(A::AbstractDimArray, perm)
+    rebuild(A, permutedims(parent(A), dimnum(A, Tuple(perm))), sortdims(dims(A), Tuple(perm)))
+end
+@inline function Base.PermutedDimsArray(A::AbstractDimArray{T,N}, perm) where {T,N}
+    perm_inds = dimnum(A, Tuple(perm))
+    iperm_inds = invperm(perm_inds)
+    data = parent(A)
+    data_perm = PermutedDimsArray{T,N,perm_inds,iperm_inds,typeof(data)}(data)
+    rebuild(A, data_perm, sortdims(dims(A), Tuple(perm)))
 end
 
 # Concatenation
