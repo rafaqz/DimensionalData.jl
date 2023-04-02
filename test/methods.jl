@@ -268,6 +268,11 @@ end
     dsp = PermutedDimsArray(da, (3, 1, 2))
     @test dsp == PermutedDimsArray(parent(da), (3, 1, 2))
     @test typeof(dsp) <: DimArray
+
+    dims_perm = dims(da, (3, 2, 1))
+    dsp2 = @inferred PermutedDimsArray(da, dims_perm)
+    @test dsp2 == PermutedDimsArray(parent(da), (3, 2, 1))
+    @test typeof(dsp2) <: DimArray
 end
 
 
