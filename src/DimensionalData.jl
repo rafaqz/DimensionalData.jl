@@ -64,7 +64,7 @@ export dims, refdims, metadata, name, lookup, bounds
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!
+export set, rebuild, reorder, mergedims, modify, broadcast_dims, broadcast_dims!
 
 const DD = DimensionalData
 
