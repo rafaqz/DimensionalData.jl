@@ -167,7 +167,7 @@ Return a new stack where `mergedims(A, dim_pairs...)` has been applied to each l
 """
 function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
     isempty(dim_pairs) && return ds
-    vals = map(da -> mergedims(da, dim_pairs...), layers(ds))
+    vals = map(A -> mergedims(A, dim_pairs...), values(ds))
     rebuild_from_arrays(ds, vals)
 end
 
