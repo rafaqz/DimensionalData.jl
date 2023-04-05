@@ -577,9 +577,8 @@ Return a dimension `new_dim` whose indices are a [`MergedLookup`](@ref) of the i
 `old_dims`.
 """
 function mergedims((old_dims, new_dim)::Pair)
-    dims_to_merge = dims(old_dims)
-    data = vec(DimPoints(dims_to_merge))
-    return rebuild(basedims(new_dim), MergedLookup(data, dims_to_merge))
+    data = vec(DimPoints(_astuple(old_dims)))
+    return rebuild(basedims(new_dim), MergedLookup(data, old_dims))
 end
 
 """
