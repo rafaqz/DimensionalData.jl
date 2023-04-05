@@ -640,14 +640,11 @@ Return a new array whose dimensions are the result of [`mergedims(dims(A), dim_p
 function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
     isempty(dim_pairs) && return A
     all_dims = dims(A)
-    dims_to_merge = map(Base.Fix1(dims, A), map(_astuple ∘ first, dim_pairs))
-    dims_to_leave = otherdims(all_dims, _cat_tuples(map(_astuple, dims_to_merge)...))
-    length(dims_to_leave) == ndims(A) && return A
-    sizes_unmerged = map(Base.Fix1(size, A), dims_to_leave)
-    sizes_merged = map(Base.Fix1(prod, Base.Fix1(size, A)), dims_to_merge)
     dims_new = mergedims(all_dims, dim_pairs...)
-    Aperm = PermutedDimsArray(A, _unmergedims(dims_new, map(last, dim_pairs)))
-    data_merged = reshape(data(Aperm), sizes_unmerged..., sizes_merged...)
+    dimsmatch(all_dims, dims_new) && return A
+    dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
+    Aperm = PermutedDimsArray(A, dims_perm)
+    data_merged = reshape(data(Aperm), map(length, dims_new))
     rebuild(A, data_merged, dims_new)
 end
 
