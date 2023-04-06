@@ -112,6 +112,14 @@ end
         @test order(set(uda, X=ReverseOrdered())) == (ReverseOrdered(), Unordered())
     end
 
+    @testset "issue #478" begin
+        @test set(Dim{:foo}(), :bar) === Dim{:bar}()
+        @test set(Dim{:foo}(2:11), :bar) === Dim{:bar}(2:11)
+        @test set(Dim{:foo}(), Dim{:bar}()) === Dim{:bar}()
+        @test set(Dim{:foo}(2:11), Dim{:bar}()) === Dim{:bar}(2:11)
+        @test set(Dim{:foo}(LookupArrays.Sampled(2:11)), Dim{:bar}(LookupArrays.Sampled(0:9))) ===
+            set(set(Dim{:foo}(LookupArrays.Sampled(2:11)), :bar), LookupArrays.Sampled(0:9))
+    end
 end
 
 @testset "metadata" begin
