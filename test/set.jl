@@ -119,6 +119,10 @@ end
         @test set(Dim{:foo}(2:11), Dim{:bar}()) === Dim{:bar}(2:11)
         @test set(Dim{:foo}(LookupArrays.Sampled(2:11)), Dim{:bar}(LookupArrays.Sampled(0:9))) ===
             set(set(Dim{:foo}(LookupArrays.Sampled(2:11)), :bar), LookupArrays.Sampled(0:9))
+        @test set((Dim{:foo}(),), :foo => :bar) === (Dim{:bar}(),)
+        @test set((Dim{:foo}(2:11),), :foo => :bar) === (Dim{:bar}(2:11),)
+        @test set(dimz, :X => :foo, :Y => :bar) ===
+            (set(dims(dimz, :X), :foo), set(dims(dimz, :Y), :bar))
     end
 end
 
