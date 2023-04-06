@@ -19,7 +19,8 @@ _set(dims::DimTuple, wrappers::DimTuple) = begin
 end
 
 # Set things wrapped in dims
-_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) = _set(dim::Dimension, val(wrapper))
+_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) =
+    _set(_set(dim, basetypeof(wrapper)), val(wrapper))
 # Set the dim, checking the lookup
 _set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim)))
 # Construct types

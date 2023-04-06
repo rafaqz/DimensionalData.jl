@@ -91,7 +91,9 @@ _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 # Index
 _set(index::AbstractArray, newindex::AbstractArray) = newindex
 _set(index::AbstractArray, newindex::AutoLookup) = index
+_set(index::AbstractArray, newindex::Colon) = index
 _set(index::Colon, newindex::AbstractArray) = newindex
+_set(index::Colon, newindex::Colon) = index
 
 _set(A, x) = _cantseterror(A, x)
 
