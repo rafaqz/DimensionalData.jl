@@ -1,6 +1,8 @@
 const DimSetters = Union{LookupArraySetters,Type,UnionAll,Dimension,Symbol}
 
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
+set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+    _set(dims_, args...; kw...)
 # Convert args/kw to dims and set
 _set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kwdims(kw)...))
 # Convert pairs to wrapped dims and set
@@ -19,7 +21,8 @@ _set(dims::DimTuple, wrappers::DimTuple) = begin
 end
 
 # Set things wrapped in dims
-_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) = _set(dim::Dimension, val(wrapper))
+_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) =
+    _set(_set(dim, basetypeof(wrapper)), val(wrapper))
 # Set the dim, checking the lookup
 _set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim)))
 # Construct types

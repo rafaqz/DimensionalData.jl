@@ -107,7 +107,7 @@ set(A::AbstractDimStack, x::LookupArray) = LookupArrays._cantseterror(A, x)
 set(A::AbstractDimArray, x::LookupArray) = LookupArrays._cantseterror(A, x)
 set(A, x) = LookupArrays._cantseterror(A, x)
 set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
-    rebuild(A, data(A), _set(dims(A), args...; kw...))
+    rebuild(A, data(A), set(dims(A), args...; kw...))
 set(A::AbstractDimArray, newdata::AbstractArray) = begin
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
