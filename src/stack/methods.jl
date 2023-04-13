@@ -78,6 +78,14 @@ function _maybestack(
         rebuild_from_arrays(s, das)
     end
 end
+function _maybestack(
+    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
+) where K
+    # Avoid compiling this in the simple cases in the above method
+    Base.invokelatest() do
+        rebuild_from_arrays(s, das)
+    end
+end
 
 """
     Base.eachslice(stack::AbstractDimStack; dims)
