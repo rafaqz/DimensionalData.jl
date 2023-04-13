@@ -514,6 +514,6 @@ end
 
 @testset "Base.dataids and mightalias" begin
     a = rand(X(3), Y(2))
-    Base.dataids(a) == Base.dataids(parent(a))
+    @test Base.dataids(a) == Base.dataids(parent(a))
     @test Base.mightalias(a, parent(a))
 end
