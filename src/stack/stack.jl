@@ -122,29 +122,27 @@ Keywords are simply the fields of the stack object:
 - `layermetadata`
 """
 function rebuild_from_arrays(
-    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; 
-    refdims=refdims(s),
-    metadata=DD.metadata(s),
-    data=NamedTuple{Keys}(map(parent, das)),
-    dims=DD.combinedims(collect(das)),
-    layerdims=NamedTuple{Keys}(map(DD.basedims, das)),
-    layermetadata=NamedTuple{Keys}(map(DD.metadata, das)),
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
 ) where Keys
-    rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
+    rebuild_from_arrays(s, NamedTuple{Keys}(das), kw...)
 end
 function rebuild_from_arrays(
     s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     data=map(parent, das),
     refdims=refdims(s),
     metadata=DD.metadata(s),
-    dims=DD.combinedims(collect(das)),
+    dims=nothing,
     layerdims=map(DD.basedims, das),
     layermetadata=map(DD.metadata, das),
 )
-    Base.invokelatest() do
-        dims = DD.combinedims(collect(das))
+    if isnothing(dims)
+        Base.invokelatest() do
+            dims = DD.combinedims(collect(das))
+        end
+        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
+    else
+        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
     end
-    rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
 layers(nt::NamedTuple) = nt
