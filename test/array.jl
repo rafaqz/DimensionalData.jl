@@ -511,3 +511,9 @@ end
     da3 = DimArray(a2, dimz2; refdims=refdimz, name=DimensionalData.Name(:test3))
     @test NamedTuple(da, da3) == (; test=da, test3=da3)
 end
+
+@testset "Base.dataids and mightalias" begin
+    a = rand(X(3), Y(2))
+    Base.dataids(a) == Base.dataids(parent(a))
+    @test Base.mightalias(a, parent(a))
+end

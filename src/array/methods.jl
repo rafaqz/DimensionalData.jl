@@ -361,3 +361,5 @@ _reverse(dim::Dimension) = reverse(dim)
 
 # Dimension
 Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))
+
+Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A)) 
