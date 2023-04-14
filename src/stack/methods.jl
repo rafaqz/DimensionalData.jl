@@ -67,8 +67,17 @@ _firststack(arg1, args...) = _firststack(args...)
 _firststack() = nothing
 
 _maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
+_maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
 # Without the `@nospecialise` here this method is also compile with the above method
 # on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
+function _maybestack(
+    s::AbstractDimStack, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
+)
+    # Avoid compiling this in the simple cases in the above method
+    Base.invokelatest() do
+        rebuild_from_arrays(s, das)
+    end
+end
 function _maybestack(
     s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
 ) where K
