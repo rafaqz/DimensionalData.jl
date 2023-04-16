@@ -591,7 +591,14 @@ struct AlwaysTuple end
 @inline _call_primitive1(f, t, op::Function, x, query) = _call_primitive1(f, t, op, dims(x), query)
 @inline _call_primitive1(f, t, op::Function, x::Nothing) = _dimsnotdefinederror()
 @inline _call_primitive1(f, t, op::Function, x::Nothing, query) = _dimsnotdefinederror()
-@inline _call_primitive1(f, t, op::Function, d::Tuple, query) = _call_primitive1(f, t, op, d, dims(query))
+@inline function _call_primitive1(f, t, op::Function, d::Tuple, query) 
+    ds = dims(query)
+    isnothing(ds) && _dims_are_not_dims()
+    _call_primitive1(f, t, op, d, ds)
+end
+
+_dims_are_not_dims() = throw(ArgumentError("`dims` are not `Dimension`s"))
+
 @inline _call_primitive1(f, t::AlwaysTuple, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
     _call_primitive1(f, t, op, d, (query,))
 @inline _call_primitive1(f, t::MaybeFirst, op::Function, d::Tuple, query::Union{Dimension,DimType,Val,Integer}) =
