@@ -477,7 +477,7 @@ end
             @test diff(A; dims) == 
                 DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 1):Month(1):DateTime(2021, 3))))
         end
-        @test_throws ErrorException diff(A; dims='X')
+        @test_throws ArgumentError diff(A; dims='X')
         @test_throws ArgumentError diff(A; dims=Z)
         @test_throws ArgumentError diff(A; dims=3)
     end
