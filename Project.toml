@@ -32,9 +32,6 @@ TableTraits = "1"
 Tables = "1"
 julia = "1.6"
 
-[extensions]
-DimensionalDataJuMPExt = "JuMP"
-
 [extras]
 Aqua = "4c88cf16-eb10-579e-8560-4a9242c79595"
 ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
@@ -55,7 +52,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [targets]
-test = ["Aqua", "ArrayInterface", "BenchmarkTools", "Combinatorics", "CoordinateTransformations", "DataFrames", "Distributions", "Documenter", "ImageFiltering", "ImageTransformations", "JuMP", "OffsetArrays", "Plots", "Random", "SafeTestsets", "StatsPlots", "Test", "Unitful"]
-
-[weakdeps]
-JuMP = "4076af6c-e467-56ae-b986-b466b2749572"
+test = ["Aqua", "ArrayInterface", "BenchmarkTools", "Combinatorics", "CoordinateTransformations", "DataFrames", "Distributions", "Documenter", "ImageFiltering", "ImageTransformations", "OffsetArrays", "Plots", "Random", "SafeTestsets", "StatsPlots", "Test", "Unitful"]
