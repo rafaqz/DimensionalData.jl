@@ -1,11 +1,11 @@
-using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterfaceCore, DimensionalData, Test
+using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterface, DimensionalData, Test
 using DimensionalData.LookupArrays
 
 @testset "ArrayInterface" begin
     a = [1 2; 3 4]
     dimz = X(143.0:2.0:145.0), Y(-38.0:2.0:-36.0)
     da = DimArray(a, dimz)
-    @test ArrayInterfaceCore.parent_type(typeof(da)) == Matrix{Int}
+    @test ArrayInterface.parent_type(typeof(da)) == Matrix{Int}
 end
 
 @testset "OffsetArray" begin

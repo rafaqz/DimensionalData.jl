@@ -21,12 +21,12 @@ using Base: tail, OneTo, @propagate_inbounds
       
 # Ecosystem
 import Adapt, 
-       ArrayInterfaceCore,
+       ArrayInterface,
        ConstructionBase, 
        Extents,
        IteratorInterfaceExtensions,
        RecipesBase,
-       SnoopPrecompile,
+       PrecompileTools,
        TableTraits,
        Tables
 
