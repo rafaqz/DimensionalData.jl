@@ -13,7 +13,7 @@ To load LookupArrays types and methods into scope:
 
 ```julia
 using DimensionalData
-using .LookupArrays
+using DimensionalData.LookupArrays
 ```
 """
 module LookupArrays

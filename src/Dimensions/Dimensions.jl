@@ -8,7 +8,7 @@ To load `Dimensions` types and methods into scope:
 
 ```julia
 using DimensionalData
-using .LookupArrays
+using DimensionalData.Dimensions
 ```
 """
 module Dimensions
