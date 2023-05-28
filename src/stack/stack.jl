@@ -37,6 +37,52 @@ layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
 layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
+layers(nt::NamedTuple) = nt
+function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+    NamedTuple{Keys}(map(K -> s[K], Keys))
+end
+
+"""
+    rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
+
+Rebuild an `AbstractDimStack` from a `Tuple` or `NamedTuple` of `AbstractDimArray`
+and an existing stack.
+
+# Keywords
+
+Keywords are simply the fields of the stack object:
+
+- `data`
+- `dims`
+- `refdims`
+- `metadata`
+- `layerdims`
+- `layermetadata`
+"""
+function rebuild_from_arrays(
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
+) where Keys
+    rebuild_from_arrays(s, NamedTuple{Keys}(das), kw...)
+end
+function rebuild_from_arrays(
+    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
+    data=map(parent, das),
+    refdims=refdims(s),
+    metadata=DD.metadata(s),
+    dims=nothing,
+    layerdims=map(DD.basedims, das),
+    layermetadata=map(DD.metadata, das),
+)
+    if isnothing(dims)
+        Base.invokelatest() do
+            dims = DD.combinedims(collect(das))
+        end
+        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
+    else
+        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
+    end
+end
+
 Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
@@ -102,52 +148,6 @@ function rebuildsliced(f::Function, s::AbstractDimStack, layers, I)
     layerdims = map(basedims, layers)
     dims, refdims = slicedims(f, s, I)
     rebuild(s; data=map(parent, layers), dims=dims, refdims=refdims, layerdims=layerdims)
-end
-
-"""
-    rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
-
-Rebuild an `AbstractDimStack` from a `Tuple` or `NamedTuple` of `AbstractDimArray`
-and an existing stack.
-
-# Keywords
-
-Keywords are simply the fields of the stack object:
-
-- `data`
-- `dims`
-- `refdims`
-- `metadata`
-- `layerdims`
-- `layermetadata`
-"""
-function rebuild_from_arrays(
-    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
-) where Keys
-    rebuild_from_arrays(s, NamedTuple{Keys}(das), kw...)
-end
-function rebuild_from_arrays(
-    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
-    data=map(parent, das),
-    refdims=refdims(s),
-    metadata=DD.metadata(s),
-    dims=nothing,
-    layerdims=map(DD.basedims, das),
-    layermetadata=map(DD.metadata, das),
-)
-    if isnothing(dims)
-        Base.invokelatest() do
-            dims = DD.combinedims(collect(das))
-        end
-        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
-    else
-        rebuild(s; data, dims, refdims, layerdims, metadata, layermetadata)
-    end
-end
-
-layers(nt::NamedTuple) = nt
-function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
-    NamedTuple{Keys}(map(K -> s[K], Keys))
 end
 
 Adapt.adapt_structure(to, s::AbstractDimStack) = map(A -> Adapt.adapt(to, A), s)
