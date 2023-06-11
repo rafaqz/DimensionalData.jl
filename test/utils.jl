@@ -202,7 +202,6 @@ end
         @test Dimensions.dim2boundsmatrix(dim) == [2.5 1.5 0.5
                                                    3.5 2.5 1.5]
         rnge = LinRange(59.95, -40.05, 1001)
-        rnge = 59.95:-0.1:-40.05
         dim = X(Sampled(rnge; order=ReverseOrdered(), span=Regular(step(rnge)), sampling=Intervals(Center())))
         @test Dimensions.selectindices(dim, Contains(7.35)) == 527
         mat = Dimensions.dim2boundsmatrix(dim) 
