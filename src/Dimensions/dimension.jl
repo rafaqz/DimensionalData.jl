@@ -284,9 +284,23 @@ end
 
 _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
-    starts = permutedims(LookupArrays._shiftindexlocus(Start(), lookup))
-    ends = permutedims(LookupArrays._shiftindexlocus(End(), lookup))
-    return vcat(starts, ends)
+    # Only offset starts and reuse them for ends, 
+    # so floating point error is the same.
+    starts = LookupArrays._shiftindexlocus(Start(), lookup)
+    dest = Array{eltype(starts),2}(undef, 2, length(starts))
+    # Use `bounds` as the start/end values
+    if order(lookup) isa ReverseOrdered
+        for i in 1:length(starts) - 1
+            dest[1, i] = dest[2, i + 1] = starts[i + firstindex(starts) - 1]
+        end
+        dest[1, end], dest[2, 1] = bounds(lookup)
+    else
+        for i in 1:length(starts) - 1
+            dest[1, i + 1] = dest[2, i] = starts[i + firstindex(starts)]
+        end
+        dest[1, 1], dest[2, end] = bounds(lookup)
+    end
+    return dest
 end
 @noinline _dim2boundsmatrix(::Center, span::Regular{Dates.TimeType}, lookupj) =
     error("Cannot convert a Center TimeType index to Explicit automatically: use a bounds matrix e.g. Explicit(bnds)")

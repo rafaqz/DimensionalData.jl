@@ -191,21 +191,27 @@ end
     @testset "Regular span" begin
         dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
         @test Dimensions.dim2boundsmatrix(dim) == [0.5 1.5 2.5
-                                                        1.5 2.5 3.5]
+                                                   1.5 2.5 3.5]
         dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Start()), NoMetadata()))
         @test Dimensions.dim2boundsmatrix(dim) == [1.0 2.0 3.0
-                                                        2.0 3.0 4.0]
-        dim = X(Sampled(1.0:3.0, ReverseOrdered(), Regular(1.0), Intervals(End()), NoMetadata()))
-        @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
-                                                        1.0 2.0 3.0]
-        dim = X(Sampled(3.0:-1:1.0, ReverseOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
+                                                   2.0 3.0 4.0]
+        dim = X(Sampled(3.0:-1:1.0, ReverseOrdered(), Regular(-1.0), Intervals(End()), NoMetadata()))
+        @test Dimensions.dim2boundsmatrix(dim) == [2.0 1.0 0.0
+                                                   3.0 2.0 1.0]
+        dim = X(Sampled(LinRange(3.0, 1.0, 3), ReverseOrdered(), Regular(-1.0), Intervals(Center()), NoMetadata()))
         @test Dimensions.dim2boundsmatrix(dim) == [2.5 1.5 0.5
-                                                        3.5 2.5 1.5]
+                                                   3.5 2.5 1.5]
+        rnge = LinRange(59.95, -40.05, 1001)
+        dim = X(Sampled(rnge; order=ReverseOrdered(), span=Regular(step(rnge)), sampling=Intervals(Center())))
+        @test Dimensions.selectindices(dim, Contains(7.35)) == 527
+        mat = Dimensions.dim2boundsmatrix(dim) 
+        dim = X(Sampled(rnge; order=ReverseOrdered(), span=Explicit(mat), sampling=Intervals(Center())))
+        @test Dimensions.selectindices(dim, Contains(7.35)) == 527
     end
     @testset "Explicit span" begin
         dim = X(Sampled(1.0:3.0, ForwardOrdered(),
                 Explicit([0.0 1.0 2.0; 1.0 2.0 3.0]), Intervals(End()), NoMetadata()))
         @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
-                                                        1.0 2.0 3.0]
+                                                   1.0 2.0 3.0]
     end
 end
