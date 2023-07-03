@@ -288,20 +288,37 @@ end
 
 # LookupArrays may need adjustment for `cat`
 function _vcat_lookups(lookups::LookupArray...)
-    newindex = _vcat_index(lookups[1], map(parent, lookups)...)
+    newindex = _vcat_index(lookups[1], lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
 function _vcat_lookups(lookups::AbstractSampled...)
-    newindex = _vcat_index(lookups[1], map(parent, lookups)...)
+    newindex = _vcat_index(lookups[1], lookups...)
     newlookup = _vcat_lookups(sampling(first(lookups)), span(first(lookups)), lookups...)
     return rebuild(newlookup; data=newindex)
 end
 function _vcat_lookups(::Any, ::Regular, lookups...)
-    _step = step(first(lookups))
-    map(lookups) do lookup
-        step(span(lookup)) == _step || error("Step sizes $(step(span(lookup))) and $_step do not match ")
+    s = step(first(lookups))
+    xl = last(first(lookups))
+    foreach(Base.tail(lookups)) do l
+        step(span(l)) == s || error("Step sizes $(step(span(l))) and $s do not match ")
+        xl = last(l)
     end
     first(lookups)
+end
+function _vcat_lookups(::Intervals, ::Explicit, lookups...)
+    len = mapreduce(+, lookups) do l
+        span(l) isa Explicit || error("Not all lookups have `Explicit` spans.") 
+        size(val(span(l)), 2) 
+    end
+    combined_span_mat = similar(val(span(first(lookups))), 2, len)
+    i = 1
+    foreach(lookups) do l
+        span_mat = val(span(l))
+        l = size(span_mat, 2)
+        combined_span_mat[:, i:i+l - 1] .= span_mat
+        i += l
+    end
+    rebuild(first(lookups); span=Explicit(combined_span_mat))
 end
 function _vcat_lookups(::Intervals, ::Irregular, lookups...)
     allbounds = map(bounds ∘ span, lookups)
@@ -311,12 +328,32 @@ end
 _vcat_lookups(::Points, ::Irregular, lookups...) = 
     rebuild(first(lookups); span=Irregular(nothing, nothing))
 
-# Index vcat depends on lookup: NoLookup is always Colon()
-_vcat_index(lookup::NoLookup, A...) = OneTo(sum(map(length, A)))
+_vcat_index(lookup::NoLookup, A...) = OneTo(mapreduce(length, +, A))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-_vcat_index(lookup::LookupArray, A...) = vcat(A...)
+# function _vcat_index(lookup::LookupArray, lookups...) 
+    # _vcat_index(span(lookup), lookup, lookups...) 
+# end
+function _vcat_index(lookup::LookupArray, lookups...)
+    xl = last(lookup)
+    foreach(Base.tail(lookups)) do l
+        if order(lookup) isa Ordered 
+            order(l) === order(lookup) || error("Lookups do not all have the same order")
+            if order(lookup) isa ForwardOrdered
+                first(l) > xl || _lookup_index_cat_error(l, xl)
+            else
+                first(l) < xl || _lookup_index_cat_error(l, xl)
+            end
+            xl = last(l)
+        end
+    end
+    shifted = map(lookups) do l
+        parent(maybeshiftlocus(locus(lookup), l))
+    end
+    return reduce(vcat, shifted)
+end
 
+_lookup_index_cat_error(lookup, xl) = error("Lookups overlap or are not in order at $(first(lookup)) and $xl")
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
