@@ -377,11 +377,11 @@ end
         da2 = DimArray(a, (X(4.0:5.0), :y))
         db2 = DimArray(b, (X(6.0:7.0), :y))
         @test cat(da2, db2; dims=:y) == cat(da2, db2; dims=Dim{:y}) ==
-            @inferred(cat(da2, db2; dims=Dim{:y}()))
+            cat(da2, db2; dims=Dim{:y}())
         @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
         @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
         @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
-            @inferred(cat(da2, db2; dims=(X(), Dim{:y}())))
+            cat(da2, db2; dims=(X(), Dim{:y}()))
         @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
             typeof((Xcatdim, dims(da2, :y)))
         @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
