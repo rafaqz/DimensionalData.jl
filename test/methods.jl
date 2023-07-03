@@ -381,7 +381,7 @@ end
         @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
         @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
         @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
-            cat(da2, db2; dims=(X(), Dim{:y}()))
+            @inferred(cat(da2, db2; dims=(X(), Dim{:y}())))
         @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
             typeof((Xcatdim, dims(da2, :y)))
         @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
@@ -430,6 +430,7 @@ end
         @test lookup(ni_dim) == NoLookup(Base.OneTo(20))
         # Order doesn't matter
         @test vcat(d2, d1) == ni_dim
+        @test vcat(d1, reverse(d2)) == ni_dim
     end
 
     @testset "rebuild dim index from refdims" begin
