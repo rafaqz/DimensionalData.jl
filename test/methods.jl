@@ -361,12 +361,14 @@ end
         @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
         @test val(cat(da, db; dims=X())) == val(testdims)
         @test lookup(cat(da, db; dims=X())) == lookup(testdims)
-        @test cat(da, db; dims=Y()) == [1 2 3 7 8 9; 4 5 6 10 11 12]
+        @test_throws ErrorException cat(da, db; dims=Y())
         @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
         @test cat(da, db; dims=(Z(1:2), Ti(1:2))) == cat(a, b; dims=(3, 4))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X(), Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
+        @test_throws ErrorException vcat(da, reverse(db; dims=X))
+        @test_throws ErrorException vcat(db, da)
     end
 
     # https://github.com/rafaqz/DimensionalData.jl/issues/451
@@ -375,11 +377,11 @@ end
         da2 = DimArray(a, (X(4.0:5.0), :y))
         db2 = DimArray(b, (X(6.0:7.0), :y))
         @test cat(da2, db2; dims=:y) == cat(da2, db2; dims=Dim{:y}) ==
-        @inferred(cat(da2, db2; dims=Dim{:y}()))
+            @inferred(cat(da2, db2; dims=Dim{:y}()))
         @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
         @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
         @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
-            @inferred(cat(da2, db2; dims=(X(), Dim{:y}())))
+            cat(da2, db2; dims=(X(), Dim{:y}()))
         @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
             typeof((Xcatdim, dims(da2, :y)))
         @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
@@ -387,26 +389,47 @@ end
 
     @testset "Irregular Sampled" begin
         @testset "Intervals" begin
-            iri_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())), 
-                           X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Intervals(), NoMetadata())))
+            d1 = X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())) 
+            d2 = X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Intervals(), NoMetadata()))
+            iri_dim = vcat(d1, d2)
             @test span(iri_dim) == Irregular(1, 9)
             @test index(iri_dim) == [1, 3, 4, 7, 8]
             @test lookup(iri_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(1, 9), Intervals(), NoMetadata())
             @test bounds(lookup(iri_dim)) == (1, 9)
+            @test_throws ErrorException vcat(d1, reverse(d2))
+            @test_throws ErrorException vcat(d2, d1)
         end
         @testset "Points" begin
-            irp_dim = vcat(X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Points(), NoMetadata())), 
-                           X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Points(), NoMetadata())))
+            d1 = X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Points(), NoMetadata()))
+            d2 = X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Points(), NoMetadata()))
+            irp_dim = vcat(d1, d2)
             @test span(irp_dim) == Irregular(nothing, nothing)
             @test index(irp_dim) == [1, 3, 4, 7, 8]
             @test lookup(irp_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
             @test bounds(irp_dim) == (1, 8)
+            @test_throws ErrorException vcat(d1, reverse(d2))
+            @test_throws ErrorException vcat(d2, d1)
         end
     end
 
+    @testset "Explicit" begin
+        d1 = X(Sampled([2, 3.5, 5], ForwardOrdered(), Explicit([1 3 4; 3 4 7]), Intervals(Center()), NoMetadata()))
+        d2 = X(Sampled([7.5, 9], ForwardOrdered(), Explicit([7 8; 8 10]), Intervals(Center()), NoMetadata()))
+        ed = vcat(d1, d2)
+        @test span(ed) == Explicit([1 3 4 7 8; 3 4 7 8 10])
+        @test index(ed) == [2, 3.5, 5, 7.5, 9] 
+        @test lookup(ed) == Sampled([2, 3.5, 5, 7.5, 9], ForwardOrdered(), Explicit([1 3 4 7 8; 3 4 7 8 10]), Intervals(Center()), NoMetadata())
+        @test_throws ErrorException vcat(d1, reverse(d2))
+        @test_throws ErrorException vcat(d2, d1)
+    end
+
     @testset "NoLookup" begin
-        ni_dim = vcat(X(NoLookup(Base.OneTo(10))), X(NoLookup(Base.OneTo(10))))
+        d1 = X(NoLookup(Base.OneTo(10)))
+        d2 = X(NoLookup(Base.OneTo(10)))
+        ni_dim = vcat(d1, d2)
         @test lookup(ni_dim) == NoLookup(Base.OneTo(20))
+        # Order doesn't matter
+        @test vcat(d2, d1) == ni_dim
     end
 
     @testset "rebuild dim index from refdims" begin
