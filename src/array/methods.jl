@@ -328,27 +328,31 @@ end
 _vcat_lookups(::Points, ::Irregular, lookups...) = 
     rebuild(first(lookups); span=Irregular(nothing, nothing))
 
-_vcat_index(A::NoLookup...) = OneTo(mapreduce(length, +, A))
+_vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
 # function _vcat_index(lookup::LookupArray, lookups...) 
     # _vcat_index(span(lookup), lookup, lookups...) 
 # end
-function _vcat_index(lookups::LookupArray...)
-    lookup1 = first(lookups)
-    xl = last(lookup1)
-    foreach(Base.tail(lookups)) do lookup
-        if order(lookup) isa Ordered 
+function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
+    xl = length(lookup1) > 0 ? last(lookup1) : nothing
+    if order(lookup1) isa Ordered 
+        foreach(lookups) do lookup
             order(lookup) === order(lookup1) || error("Lookups do not all have the same order")
-            if order(lookup) isa ForwardOrdered
-                first(lookup) > xl || _lookup_index_cat_error(lookup, xl)
-            else
-                first(lookup) < xl || _lookup_index_cat_error(lookup, xl)
+            if !isnothing(xl)
+                if order(lookup) isa ForwardOrdered
+                    length(lookup) == 0 || first(lookup) > xl || _lookup_index_cat_error(lookup, xl)
+                else
+                    length(lookup) == 0 || first(lookup) < xl || _lookup_index_cat_error(lookup, xl)
+                end
             end
-            xl = last(lookup)
+            if length(lookup) > 0
+                xl = last(lookup)
+            end
+            return nothing
         end
     end
-    shifted = map(lookups) do l
+    shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end
     return reduce(vcat, shifted)
