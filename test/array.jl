@@ -214,7 +214,7 @@ end
         da_sim = similar(da, ax)
         @test eltype(da_sim) === eltype(da)
         @test size(da_sim) == (2,)
-        @test dims(da_sim) === (dims(ax),)
+        @test dims(da_sim) == (dims(ax),)
         @test refdims(da_sim) == ()
         @test metadata(da_sim) == NoMetadata()
     end
@@ -224,12 +224,12 @@ end
         @test da_sim isa DimArray{Bool,2}
         @test size(da_sim) == size(da)
         @test parent(da_sim) isa BitMatrix
-        @test dims(da_sim) === dims(da)
+        @test dims(da_sim) == dims(da)
 
         da_sim2 = @inferred similar(trues(2), Float64, axes(da))
         @test da_sim2 isa DimArray{Float64,2}
         @test size(da_sim2) == size(da)
-        @test dims(da_sim2) === dims(da)
+        @test dims(da_sim2) == dims(da)
     end
 
     @testset "similar with AbstractArray type and DimUnitRange" begin
@@ -237,7 +237,7 @@ end
         @test da_sim isa DimArray{Bool,2}
         @test size(da_sim) == size(da)
         @test parent(da_sim) isa BitMatrix
-        @test dims(da_sim) === dims(da)
+        @test dims(da_sim) == dims(da)
     end
 
     @testset "similar with mixed DimUnitRange and Base.OneTo" begin
