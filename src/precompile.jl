@@ -1,6 +1,8 @@
 
+using DimensionalData
 PrecompileTools.@compile_workload begin
     buffer = IOContext(IOBuffer(), :color=>true)
+    f = zeros
     for f in (zeros, ones, falses, trues, rand)
         x, y, z = X([:a, :b]), Y(10.0:10.0:30.0), Z()
         dimz = x, y
