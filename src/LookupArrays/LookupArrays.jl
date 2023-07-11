@@ -25,7 +25,7 @@ using Base: tail, OneTo, @propagate_inbounds
 
 export order, sampling, span, bounds, locus, hasselection, transformdim,
     metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus,
-    maybeshiftlocus
+    maybeshiftlocus, intervalbounds
 
 export Selector
 export At, Between, Touches, Contains, Near, Where, All
