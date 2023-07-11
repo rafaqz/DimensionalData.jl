@@ -38,7 +38,8 @@ using .Dimensions
 using .Dimensions.LookupArrays
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
 import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, hasselection, units, SelectorOrInterval
+    order, span, sampling, locus, val, index, bounds, intervalbounds, 
+    hasselection, units, SelectorOrInterval
 import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
 
 export LookupArrays, Dimensions

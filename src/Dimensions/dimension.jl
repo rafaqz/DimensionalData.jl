@@ -210,7 +210,7 @@ for func in (:order, :span, :sampling, :locus)
 end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
-for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus,
+for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
         $f(ds::DimTuple) = map($f, ds)

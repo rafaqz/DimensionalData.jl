@@ -76,10 +76,12 @@ end
     @test order(da) == (ForwardOrdered(), ForwardOrdered())
     @test sampling(da) == (Points(), Points())
     @test span(da) == (Regular(2.0), Regular(2.0))
-    @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test locus(da) == (Center(), Center())
+    @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test layerdims(da) == (X(), Y())
     @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+    da_intervals = set(da, X => Intervals, Y => Intervals)
+    @test intervalbounds(da_intervals) == ([(142.0, 144.0), (144.0, 146.0)], [(-39.0, -37.0), (-37.0, -35.0)])
 end
 
 @testset "copy and friends" begin
