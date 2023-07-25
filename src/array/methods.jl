@@ -240,8 +240,13 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                # vcat the refdims 
-                reduce(vcat, map(x -> refdims(x, catdim), Xin))
+                if catdim isa Dimension && val(catdim) isa AbstractArray
+                    # Combine the refdims properties with the passed in catdim
+                    set(refdims(first(Xin), catdim), catdim)
+                else
+                    # vcat the refdims 
+                    reduce(vcat, map(x -> refdims(x, catdim), Xin))
+                end
             else
                 # Use the catdim as the new dimension
                 catdim

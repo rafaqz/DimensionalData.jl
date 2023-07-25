@@ -369,6 +369,14 @@ end
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
         @test_throws ErrorException vcat(da, reverse(db; dims=X))
         @test_throws ErrorException vcat(db, da)
+        @testset "lookup array in dims" begin
+            @test dims(cat(da, db; dims=Ti(1:2)), Ti) == Ti(Sampled(1:2, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
+            @test dims(cat(da, db; dims=Ti(Categorical(1:2))), Ti) == Ti(Categorical(1:2, ForwardOrdered(), NoMetadata()))
+            # Categorical is taken from refdims
+            dra = rebuild(da; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
+            drb = rebuild(db; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
+            @test dims(cat(dra, drb; dims=Z(1:2)), Z) == Z(Categorical(1:2, ForwardOrdered(), NoMetadata()))
+        end
     end
 
     # https://github.com/rafaqz/DimensionalData.jl/issues/451
