@@ -231,8 +231,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
             newcatdim = if lookup(A1, catdim) isa NoLookup
-                # Colon will be converted to array axis in `format`
-                rebuild(catdim; val=:)
+                rebuild(catdim, NoLookup())
             else
                 # vcat the index for the catdim in each of Xin
                 reduce(vcat, map(x -> dims(x, catdim), Xin))
@@ -240,8 +239,13 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                # vcat the refdims 
-                reduce(vcat, map(x -> refdims(x, catdim), Xin))
+                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoIndex})
+                    # Combine the refdims properties with the passed in catdim
+                    set(refdims(first(Xin), catdim), catdim)
+                else
+                    # vcat the refdims 
+                    reduce(vcat, map(x -> refdims(x, catdim), Xin))
+                end
             else
                 # Use the catdim as the new dimension
                 catdim
