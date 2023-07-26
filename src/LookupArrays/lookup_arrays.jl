@@ -453,8 +453,78 @@ Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1)
 
 # TODO Transformed bounds
 
-
 # Shared methods
+
+intervalbounds(l::LookupArray, args...) = _intervalbounds_no_interval_error()
+intervalbounds(l::AbstractSampled, args...) = intervalbounds(span(l), sampling(l), l, args...)
+intervalbounds(span::Span, ::Points, l::LookupArray, args...) = _intervalbounds_no_interval_error()
+intervalbounds(span::Span, sampling::Intervals, l::LookupArray, i::Int) =
+    intervalbounds(order(l), locus(sampling), span, l, i)
+function intervalbounds(order::ForwardOrdered, locus::Start, span::Span, l::LookupArray, i::Int)
+    if i == lastindex(l)
+        (l[i], bounds(l)[2])
+    else
+        (l[i], l[i+1])
+    end
+end
+function intervalbounds(order::ForwardOrdered, locus::End, span::Span, l::LookupArray, i::Int)
+    if i == firstindex(l)
+        (bounds(l)[1], l[i])
+    else
+        (l[i-1], l[i])
+    end
+end
+function intervalbounds(order::ReverseOrdered, locus::Start, span::Span, l::LookupArray, i::Int)
+    if i == firstindex(l)
+        (l[i], bounds(l)[2])
+    else
+        (l[i], l[i-1])
+    end
+end
+function intervalbounds(order::ReverseOrdered, locus::End, span::Span, l::LookupArray, i::Int)
+    if i == lastindex(l)
+        (bounds(l)[1], l[i])
+    else
+        (l[i+1], l[i])
+    end
+end
+# Regular Center
+function intervalbounds(order::Ordered, locus::Center, span::Regular, l::LookupArray, i::Int)
+    halfstep = step(span) / 2
+    x = l[i]
+    bounds = (x - halfstep, x + halfstep)
+    return _maybeflipbounds(order, bounds)
+end
+# Irregular Center
+function intervalbounds(order::ForwardOrdered, locus::Center, span::Irregular, l::LookupArray, i::Int)
+    x = l[i]
+    low  = i == firstindex(l) ? bounds(l)[1] : x + (l[i - 1] - x) / 2
+    high = i == lastindex(l)  ? bounds(l)[2] : x + (l[i + 1] - x) / 2
+    return (low, high)
+end
+function intervalbounds(order::ReverseOrdered, locus::Center, span::Irregular, l::LookupArray, i::Int)
+    x = l[i]
+    low  = i == firstindex(l) ? bounds(l)[2] : x + (l[i - 1] - x) / 2
+    high = i == lastindex(l)  ? bounds(l)[1] : x + (l[i + 1] - x) / 2
+    return (low, high)
+end
+function intervalbounds(span::Span, sampling::Intervals, l::LookupArray)
+    map(axes(l, 1)) do i
+        intervalbounds(span, sampling, l, i)
+    end
+end
+# Explicit
+function intervalbounds(span::Explicit, ::Intervals, l::LookupArray, i::Int)
+    return (l[1, i], l[2, i])
+end
+# We just reinterpret the bounds matrix rather than allocating
+function intervalbounds(span::Explicit, ::Intervals, l::LookupArray)
+    m = val(span)
+    T = eltype(m)
+    return reinterpret(reshape, Tuple{T,T}, m)
+end
+
+_intervalbounds_no_interval_error() = error("Lookup does not have Intervals, `intervalbounds` cannot be applied")
 
 slicespan(l::LookupArray, i::Colon) = span(l)
 slicespan(l::LookupArray, i) = _slicespan(span(l), l, i)
@@ -471,17 +541,17 @@ _slicespan(::Intervals, span::Irregular, l::LookupArray, i::StandardIndices) =
     Irregular(_maybeflipbounds(l, _slicebounds(locus(l), span, l, i)))
 
 function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::StandardIndices)
-    l[first(i)], last(i) >= lastindex(l) ? _maybeflipbounds(l, bounds(span))[2] : l[last(i) + 1]
+    l[first(i)], last(i) >= lastindex(l) ? _maybeflipbounds(l, bounds(l))[2] : l[last(i) + 1]
 end
 function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::StandardIndices)
-    first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : l[first(i) - 1], l[last(i)]
+    first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(l))[1] : l[first(i) - 1], l[last(i)]
 end
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
     if length(i) == 0
         return map(zero, val(span))
     else
-        f = first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(span))[1] : (l[first(i) - 1] + l[first(i)]) / 2
-        l = last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(span))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
+        f = first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(l))[1] : (l[first(i) - 1] + l[first(i)]) / 2
+        l = last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(l))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
         return f, l
     end
 end
@@ -489,7 +559,7 @@ end
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
     op = T === Date ? div : /
     frst = if first(i) <= firstindex(l)
-        _maybeflipbounds(l, bounds(span))[1]
+        _maybeflipbounds(l, bounds(l))[1]
     else
         if isrev(order(l))
             op(l[first(i)] - l[first(i) - 1], 2) + l[first(i) - 1]
@@ -498,7 +568,7 @@ function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::Stan
         end
     end
     lst = if last(i) >= lastindex(l)
-        _maybeflipbounds(l, bounds(span))[2]
+        _maybeflipbounds(l, bounds(l))[2]
     else
         if isrev(order(l))
             op(l[last(i)] - l[last(i) + 1], 2) + l[last(i) + 1]

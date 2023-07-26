@@ -173,20 +173,21 @@ lookuptype(dim::Dimension) = typeof(lookup(dim))
 lookuptype(::Type{<:Dimension{L}}) where L = L
 lookuptype(x) = NoLookup
 
-# LookupArrays methods
-metadata(dim::Dimension) = metadata(lookup(dim))
-
-index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
-
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 
 label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
 
-bounds(dim::Dimension) = bounds(val(dim))
-shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
-maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
+# LookupArrays methods
+LookupArrays.metadata(dim::Dimension) = metadata(lookup(dim))
+
+LookupArrays.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
+LookupArrays.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
+
+LookupArrays.bounds(dim::Dimension) = bounds(val(dim))
+LookupArrays.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
+LookupArrays.shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
+LookupArrays.maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
     hasselection(dims(x), selectors)
@@ -209,7 +210,7 @@ for func in (:order, :span, :sampling, :locus)
 end
 
 # Dipatch on Tuple{<:Dimension}, and map to single dim methods
-for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds, :locus,
+for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
         $f(ds::DimTuple) = map($f, ds)

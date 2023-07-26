@@ -3,7 +3,6 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
 
-
 @testset "locus" begin
     @test locus(NoSampling()) == Center()
     @test locus(NoLookup()) == Center()
@@ -102,16 +101,42 @@ end
 
 end
 
-@testset "bounds" begin
-
+@testset "bounds and intervalbounds" begin
     @testset "Intervals" begin
         @testset "Regular bounds are calculated from interval type and span value" begin
             @testset "forward ind" begin
                 ind = 10.0:10.0:50.0
                 dim = X(Sampled(ind, order=ForwardOrdered(), sampling=Intervals(Start()), span=Regular(10.0)))
                 @test bounds(dim) == (10.0, 60.0)
+                @test intervalbounds(dim, 2) == (20.0, 30.0)
+                @test intervalbounds(dim) == [
+                    (10.0, 20.0)
+                    (20.0, 30.0)
+                    (30.0, 40.0)
+                    (40.0, 50.0)
+                    (50.0, 60.0)
+                ]
                 dim = X(Sampled(ind, order=ForwardOrdered(), sampling=Intervals(End()), span=Regular(10.0)))
                 @test bounds(dim) == (0.0, 50.0)
+                @test intervalbounds(dim, 2) == (10.0, 20.0)
+                @test intervalbounds(dim) == [
+                    (0.0, 10.0)
+                    (10.0, 20.0)
+                    (20.0, 30.0)
+                    (30.0, 40.0)
+                    (40.0, 50.0)
+                ]
+                dim = X(Sampled(ind, order=ForwardOrdered(), sampling=Intervals(Center()), span=Regular(10.0)))
+                @test bounds(dim) == (5.0, 55.0)
+                @test intervalbounds(dim, 2) == (15.0, 25.0)
+                @test intervalbounds(dim) == [
+                    (5.0, 15.0)
+                    (15.0, 25.0)
+                    (25.0, 35.0)
+                    (35.0, 45.0)
+                    (45.0, 55.0)
+                ]
+                # Test non keyword constructors too
                 dim = X(Sampled(ind, ForwardOrdered(), Regular(10.0), Intervals(Start()), NoMetadata()))
                 @test bounds(dim) == (10.0, 60.0)                                        
                 dim = X(Sampled(ind, ForwardOrdered(), Regular(10.0), Intervals(End()), NoMetadata()))
@@ -121,29 +146,64 @@ end
             end
             @testset "reverse ind" begin
                 revind = [10.0, 9.0, 8.0, 7.0, 6.0]
-                dim = X(Sampled(revind, ; order=ReverseOrdered(), sampling=Intervals(Start()), span=Regular(-1.0)))
                 dim = X(Sampled(revind, ReverseOrdered(), Regular(-1.0), Intervals(Start()), NoMetadata()))
                 @test bounds(dim) == (6.0, 11.0)
-                dim = X(Sampled(revind, ; order=ReverseOrdered(), sampling=Intervals(End()), span=Regular(-1.0)))
+                @test intervalbounds(dim, 2) == (9.0, 10.0)
+                @test intervalbounds(dim) == [
+                    (10.0, 11.0)
+                    (9.0, 10.0)
+                    (8.0, 9.0)
+                    (7.0, 8.0)
+                    (6.0, 7.0)
+                ]
                 dim = X(Sampled(revind, ReverseOrdered(), Regular(-1.0), Intervals(End()), NoMetadata()))
                 @test bounds(dim) == (5.0, 10.0)
-                dim = X(Sampled(revind, ; order=ReverseOrdered(), sampling=Intervals(Center()), span=Regular(-1.0)))
+                @test intervalbounds(dim, 2) == (8.0, 9.0)
+                @test intervalbounds(dim) == [
+                    (9.0, 10.0)
+                    (8.0, 9.0)
+                    (7.0, 8.0)
+                    (6.0, 7.0)
+                    (5.0, 6.0)
+                ]
                 dim = X(Sampled(revind, ReverseOrdered(), Regular(-1.0), Intervals(Center()), NoMetadata()))
                 @test bounds(dim) == (5.5, 10.5)
+                @test intervalbounds(dim, 2) == (8.5, 9.5)
+                @test intervalbounds(dim) == [
+                    (9.5, 10.5)
+                    (8.5, 9.5)
+                    (7.5, 8.5)
+                    (6.5, 7.5)
+                    (5.5, 6.5)
+                ]
             end
         end
         @testset "Irregular bounds are whatever is stored in span" begin
             ind = 10.0:10.0:50.0
-            dim = X(Sampled(ind, ForwardOrdered(), Irregular(0.0, 50000.0), Intervals(Start()), NoMetadata()))
-            @test bounds(dim) == (0.0, 50000.0)
+            dim = X(Sampled(ind, ForwardOrdered(), Irregular(10.0, 50000.0), Intervals(Start()), NoMetadata()))
+            @test bounds(dim) == (10.0, 50000.0)
             @test bounds(getindex(dim, 2:3)) == (20.0, 40.0)
+            @test intervalbounds(dim) == [
+                (10.0, 20.0)
+                (20.0, 30.0)
+                (30.0, 40.0)
+                (40.0, 50.0)
+                (50.0, 50000.0)
+            ]
         end
         @testset "Explicit bounds are is stored in span matrix" begin
             ind = 10.0:10.0:50.0
-            bnds = vcat(ind', (ind .+ 10)')
+            bnds = vcat(ind', (20.0:10.0:60.0)')
             dim = X(Sampled(ind, ForwardOrdered(), Explicit(bnds), Intervals(Start()), NoMetadata()))
             @test bounds(dim) == (10.0, 60.0)
             @test bounds(_slicedims(getindex, dim, 2:3)[1][1]) == (20.0, 40.0)
+            @test intervalbounds(dim) == [
+                (10.0, 20.0)
+                (20.0, 30.0)
+                (30.0, 40.0)
+                (40.0, 50.0)
+                (50.0, 60.0)
+            ]
         end
     end
 
@@ -157,6 +217,7 @@ end
         @test bounds(dim) == (10, 15)
         dim = X(Sampled(ind; order=Unordered(), sampling=Points()))
         @test bounds(dim) == (nothing, nothing)
+        @test_throws ErrorException intervalbounds(dim)
     end
 
     @testset "Categorical" begin
@@ -175,6 +236,7 @@ end
         dim = X(Categorical(ind; order=Unordered()))
         @test bounds(dim) == (nothing, nothing)
         @test order(dim) == Unordered()
+        @test_throws ErrorException intervalbounds(dim)
     end
 
 end
