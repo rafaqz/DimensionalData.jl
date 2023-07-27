@@ -232,7 +232,7 @@ function Base._cat(catdim::Union{Int,DimOrDimType}, Xin::AbstractDimArray...)
 end
 function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     Xin = (A1, As...)
-    comparedims(map(x -> otherdims(x, catdims), Xin)...)
+    comparedims(map(x -> otherdims(x, catdims), Xin)...; val=true)
     newcatdims = map(catdims) do catdim
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
