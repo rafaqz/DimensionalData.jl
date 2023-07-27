@@ -482,7 +482,7 @@ returning the `Dimension` value if it exists.
 
 These are all `Bool` flags:
 
-- `type`: compare complete type, `true` by default.
+- `type`: compare dimension type, `true` by default.
 - `valtype`: compare wrapped value type, `false` by default. 
 - `val`: compare wrapped values, `false` by default.
 - `length`: compare lengths, `true` by default.

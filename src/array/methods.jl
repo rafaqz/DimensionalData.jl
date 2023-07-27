@@ -305,12 +305,16 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
 end
 
 function Base.vcat(d1::Dimension, ds::Dimension...)
+    map(ds) do d
+        d isa basetypeof(d1) || throw(DimensionMismatch("Mixed dimensions in `vcat`: $(basetypeof(d)) and $(basetypeof(d1))"))
+    end
     newlookup = _vcat_lookups(lookup((d1, ds...))...)
     rebuild(d1, newlookup)
 end
 
 # LookupArrays may need adjustment for `cat`
 function _vcat_lookups(lookups::LookupArray...)
+    comparedims(d1, ds...; length=false)
     newindex = _vcat_index(lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
@@ -321,10 +325,12 @@ function _vcat_lookups(lookups::AbstractSampled...)
 end
 function _vcat_lookups(::Any, ::Regular, lookups...)
     s = step(first(lookups))
-    xl = last(first(lookups))
+    lastval = last(first(lookups))
     foreach(Base.tail(lookups)) do l
-        step(span(l)) == s || error("Step sizes $(step(span(l))) and $s do not match ")
-        xl = last(l)
+        span(l) isa Regular || error("Not all lookups have `Regular` spans")
+        step(span(l)) == s || error("Step sizes $(step(span(l))) and $s do not match")
+        lastval + s ≈ first(l) || error("Regular lookups do not join with the correct step size. To cat anyway, set lookups to `Irregular` using `set`.")
+        lastval = last(l)
     end
     first(lookups)
 end
@@ -344,12 +350,20 @@ function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     rebuild(first(lookups); span=Explicit(combined_span_mat))
 end
 function _vcat_lookups(::Intervals, ::Irregular, lookups...)
+    len = mapreduce(+, lookups) do l
+        span(l) isa Irregular || error("Not all lookups have `Irregular` spans.") 
+        size(val(span(l)), 2) 
+    end
     allbounds = map(bounds ∘ span, lookups)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
     rebuild(lookups[1]; span=Irregular(newbounds))
 end
-_vcat_lookups(::Points, ::Irregular, lookups...) = 
+function _vcat_lookups(::Points, ::Irregular, lookups...)
+    map(lookups) do l
+        span(l) isa Irregular || error("Not all lookups have `Irregular` spans.") 
+    end
     rebuild(first(lookups); span=Irregular(nothing, nothing))
+end
 
 _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
