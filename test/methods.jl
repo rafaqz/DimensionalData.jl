@@ -493,6 +493,7 @@ end
         db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
         c = [13 14 15; 16 17 18]
         dc = DimArray(c, (X(8.0:9.0), Y(6.0:8.0)))
+        dd = DimArray(c, (X(8.0:9.0), Z(6.0:8.0)))
 
         @test @inferred(vcat(da)) == da
         @test dims(vcat(da)) == 
@@ -504,11 +505,13 @@ end
             dims(cat(da, db; dims=1)) ==
             (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, dd)
         @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
         @test dims(vcat(da, db, dc)) == 
             dims(cat(da, db, dc; dims=1)) ==
             (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, db, dd)
     end
 end
 
