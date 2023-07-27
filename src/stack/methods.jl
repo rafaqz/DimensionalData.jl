@@ -123,7 +123,7 @@ and 2 layers:
 """
 function Base.eachslice(s::AbstractDimStack; dims)
     dimtuple = _astuple(dims)
-    all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
+    all(hasdim(s, dimtuple)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
     _eachslice(s, dimtuple)
 end
 

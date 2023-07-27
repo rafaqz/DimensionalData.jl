@@ -9,9 +9,10 @@ Base.axes(di::AbstractDimIndices) = map(d -> axes(d, 1), dims(di))
 for f in (:getindex, :view, :dotview)
     @eval begin
         @propagate_inbounds Base.$f(A::AbstractDimIndices, i1::Selector, I::Selector...) =
-            Base.$f(A, dims2indices(A, i1, I)...)
-        @propagate_inbounds function Base.$f(A::AbstractDimIndices, i1::Dimension, I::Dimension...; kw...)
-            Base.$f(A, dims2indices(A, i1, I..., kwdims(values(kw))...)...)
+            Base.$f(A, dims2indices(A, (i1, I))...)
+        @propagate_inbounds function Base.$f(A::AbstractDimIndices, I::Dimension...; kw...)
+            dims2indices(A, (i1..., kwdims(values(kw))...))
+            Base.$f(A, dims2indices(A, (I..., kwdims(values(kw))...))...)
         end
     end
 end
@@ -65,7 +66,7 @@ function Base.getindex(di::DimIndices{<:Any,N}, i::Int) where N
         rebuild(d, axes(d, 1)[i])
     end
 end
-
+Base.getindex(di::DimIndices) = throw(BoundsError(di, ()))
 
 """
     DimPoints <: AbstractArray
@@ -107,6 +108,7 @@ function Base.getindex(dp::DimPoints, i1::Int, i2::Int, I::Int...)
 end
 Base.getindex(di::DimPoints{<:Any,1}, i::Int) = (dims(di, 1)[i],)
 Base.getindex(di::DimPoints, i::Int) = di[Tuple(CartesianIndices(di)[i])...]
+Base.getindex(di::DimPoints) = throw(BoundsError(di, ()))
 
 """
     DimKeys <: AbstractArray
@@ -166,3 +168,4 @@ function Base.getindex(di::DimKeys{<:Any,1}, i::Int)
     (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
 end
 Base.getindex(di::DimKeys, i::Int) = di[Tuple(CartesianIndices(di)[i])...]
+Base.getindex(di::DimIndices) = throw(BoundsError(di, ()))

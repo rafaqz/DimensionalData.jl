@@ -166,6 +166,10 @@ end
         @test_throws DimensionMismatch eachslice(da; dims=(y, ti, Z))
     end
 
+    @testset "allow slicing with an empty tuple" begin
+        @test eachslice(da; dims=()) == eachslice(parent(da); dims=())
+    end
+
     @testset "slice over last dimension" begin
         @testset for dims in tis2
             da2 = map(mean, eachslice(da; dims=dims)) == DimArray([3.0, 4.0, 5.0, 6.0], ti)
@@ -375,7 +379,11 @@ end
             # Categorical is taken from refdims
             dra = rebuild(da; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
             drb = rebuild(db; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
-            @test dims(cat(dra, drb; dims=Z(1:2)), Z) == Z(Categorical(1:2, ForwardOrdered(), NoMetadata()))
+            @test 
+            dims(
+                 cat(dra, drb; dims=Z(1:2))
+                 , Z)
+            == Z(Categorical(1:2, ForwardOrdered(), NoMetadata()))
         end
     end
 

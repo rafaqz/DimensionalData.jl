@@ -5,8 +5,7 @@ using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
     Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers
 
-A = [1.0 2.0 3.0;
-     4.0 5.0 6.0]
+A = [1.0 2.0 3.0; 4.0 5.0 6.0]
 x, y, z = X([:a, :b]), Y(10.0:10.0:30.0; metadata=Dict()), Z()
 dimz = x, y
 da1 = DimArray(A, (x, y); name=:one, metadata=Metadata())
@@ -14,8 +13,11 @@ da2 = DimArray(Float32.(2A), (x, y); name=:two)
 da3 = DimArray(Int.(3A), (x, y); name=:three)
 da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
+cat(rand(X(1:3)), rand(X(5:7)))
+
 s = DimStack((da1, da2, da3))
 mixed = DimStack(da1, da2, da4)
+mixed[]
 
 @testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) == s
@@ -166,6 +168,12 @@ end
         @test_throws DimensionMismatch eachslice(mixed; dims=4)
         @test_throws DimensionMismatch eachslice(mixed; dims=Ti)
         @test_throws DimensionMismatch eachslice(mixed; dims=Dim{:x})
+    end
+
+    @testset "allow slicing with an empty tuple" begin
+        @test 
+        DimensionalData.dims2indices(mixed, ())
+        eachslice(mixed; dims=())
     end
 
     @testset "slice over X dimension" begin
