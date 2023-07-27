@@ -483,18 +483,19 @@ returning the `Dimension` value if it exists.
 These are all `Bool` flags:
 
 - `type`: compare complete type, `true` by default.
-- `lookuptype`: compare wrapped `LookupArray` type, `false` by default. 
+- `valtype`: compare wrapped value type, `false` by default. 
+- `val`: compare wrapped values, `false` by default.
 - `length`: compare lengths, `true` by default.
 - `ignore_length_one`: ignore length `1` in comparisons, and return whichever
     dimension is not length 1, if any. This is useful in e.g. broadcasting comparisons.
     `false` by default.
-- `value`: compare all values in each `LookupArray` are identical, `false` by default.
 """
 function comparedims end
+@inline comparedims(ds::Dimension...; kw...) = map(d -> comparedims(first(ds), d; kw...), ds)
 @inline comparedims(x...; kw...) = comparedims(x; kw...)
 @inline comparedims(A::Tuple; kw...) = comparedims(map(dims, A)...; kw...)
 @inline comparedims(dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
-    map(d -> comparedims(first(dims), d), dims; kw...) |> first
+    map(d -> comparedims(first(dims), d; kw...), dims) |> first
 
 @inline comparedims(a::DimTupleOrEmpty, ::Nothing; kw...) = a
 @inline comparedims(::Nothing, b::DimTupleOrEmpty; kw...) = b
@@ -509,7 +510,7 @@ function comparedims end
 @inline comparedims(a::Dimension, b::AnonDim; kw...) = a
 @inline comparedims(a::AnonDim, b::Dimension; kw...) = b
 @inline function comparedims(a::Dimension, b::Dimension;
-    type=true, valtype=false, length=true, ignore_length_one=false, val=false,
+    type=true, valtype=false, val=false, length=true, ignore_length_one=false,
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)

@@ -216,7 +216,13 @@ end
 function Base._cat(_catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     catdims = map(_catdims) do d
         d isa DimType && return d(NoLookup())
-        d isa Int && return dims(A1, d)
+        if d isa Int 
+            if hasdim(A1, d)
+                return dims(A1, d)
+            else
+                return AnonDim(NoLookup())
+            end
+        end
         return key2dim(d)
     end
     return _cat(catdims, A1, As...)
@@ -268,21 +274,34 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     rebuild(A1, newA, format(newdims, newA), newrefdims)
 end
 
-function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
-    return _horvcat(Base.splat(vcat), As, Val(1))
-end
-
-function Base.hcat(As::AbstractDimMatrix...)
-    return _horvcat(Base.splat(hcat), As, Val(2))
-end
-
-function _horvcat(f, As, ::Val{I}) where {I}
+function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     A1 = first(As)
-    catdim = vcat(map(Base.Fix2(dims, I), As)...)
-    noncatdim = only(otherdims(dims(A1), catdim))
-    newdims = Base.setindex((noncatdim, noncatdim), catdim, I)
-    newA = f(map(parent, As))
-    rebuild(A1, newA, format(newdims, newA))
+    catdim = if A1 isa AbstractDimVector
+        AnonDim()
+    else
+        vcat(map(last ∘ dims, As)...)
+    end
+    noncatdim = dims(A1, 1)
+    # Make sure this is exactly the same dimension for all arrays
+    comparedims(map(x -> dims(x, 1), As)...; val=true)
+    newdims = (noncatdim, catdim)
+    newA = hcat(map(parent, As)...)
+    return rebuild(A1, newA, format(newdims, newA))
+end
+
+function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
+    A1 = first(As)
+    catdim = vcat(map(first ∘ dims, As)...)
+    newdims = if A1 isa AbstractDimVector
+        (catdim,)
+    else
+        noncatdim = dims(A1, 2)
+        # Make sure this is exactly the same dimension for all arrays
+        comparedims(map(x -> dims(x, 2), As)...; val=true)
+        (catdim, noncatdim)
+    end
+    newA = vcat(map(parent, As)...)
+    return rebuild(A1, newA, format(newdims, newA))
 end
 
 function Base.vcat(d1::Dimension, ds::Dimension...)
