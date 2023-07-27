@@ -305,16 +305,13 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
 end
 
 function Base.vcat(d1::Dimension, ds::Dimension...)
-    map(ds) do d
-        d isa basetypeof(d1) || throw(DimensionMismatch("Mixed dimensions in `vcat`: $(basetypeof(d)) and $(basetypeof(d1))"))
-    end
+    comparedims(d1, ds...; length=false)
     newlookup = _vcat_lookups(lookup((d1, ds...))...)
     rebuild(d1, newlookup)
 end
 
 # LookupArrays may need adjustment for `cat`
 function _vcat_lookups(lookups::LookupArray...)
-    comparedims(d1, ds...; length=false)
     newindex = _vcat_index(lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
