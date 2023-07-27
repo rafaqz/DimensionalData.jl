@@ -116,12 +116,12 @@ or `Symbols` for `Dim{Symbol}`.
 function metadata end
 
 """
-    name(x) => String
-    name(xs:Tuple) => NTuple{N,String}
-    name(x, dims::Tuple) => NTuple{N,String}
-    name(x, dim) => String
+    name(x) => Symbol
+    name(xs:Tuple) => NTuple{N,Symbol}
+    name(x, dims::Tuple) => NTuple{N,Symbol}
+    name(x, dim) => Symbol
 
-Get the name of an array or Dimension, or a tuple of of either.
+Get the name of an array or Dimension, or a tuple of of either as a Symbol.
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
 or `Symbols` for `Dim{Symbol}`.
