@@ -324,16 +324,16 @@ function _vcat_lookups(::Any, ::Regular, lookups...)
     s = step(first(lookups))
     lastval = last(first(lookups))
     foreach(Base.tail(lookups)) do l
-        span(l) isa Regular || error("Not all lookups have `Regular` spans")
-        step(span(l)) == s || error("Step sizes $(step(span(l))) and $s do not match")
-        lastval + s ≈ first(l) || error("Regular lookups do not join with the correct step size. To cat anyway, set lookups to `Irregular` using `set`.")
+        span(l) isa Regular || _mixed_span_error(Regular)
+        step(span(l)) == s || throw(DimensionMismatch("Step sizes $(step(span(l))) and $s do not match"))
+        lastval + s ≈ first(l) || throw(DimensionMismatch("Regular lookups do not join with the correct step size. To cat anyway, set lookups to `Irregular` using `set`."))
         lastval = last(l)
     end
     first(lookups)
 end
 function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     len = mapreduce(+, lookups) do l
-        span(l) isa Explicit || error("Not all lookups have `Explicit` spans.") 
+        span(l) isa Explicit || _mixed_span_error(Explicit)
         size(val(span(l)), 2) 
     end
     combined_span_mat = similar(val(span(first(lookups))), 2, len)
@@ -347,9 +347,8 @@ function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     rebuild(first(lookups); span=Explicit(combined_span_mat))
 end
 function _vcat_lookups(::Intervals, ::Irregular, lookups...)
-    len = mapreduce(+, lookups) do l
-        span(l) isa Irregular || error("Not all lookups have `Irregular` spans.") 
-        size(val(span(l)), 2) 
+    map(lookups) do l
+        span(l) isa Irregular || _mixed_span_error(Irregular)
     end
     allbounds = map(bounds ∘ span, lookups)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
@@ -357,7 +356,7 @@ function _vcat_lookups(::Intervals, ::Irregular, lookups...)
 end
 function _vcat_lookups(::Points, ::Irregular, lookups...)
     map(lookups) do l
-        span(l) isa Irregular || error("Not all lookups have `Irregular` spans.") 
+        span(l) isa Irregular || _mixed_span_error(Irregular)
     end
     rebuild(first(lookups); span=Irregular(nothing, nothing))
 end
@@ -372,7 +371,7 @@ function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
     xl = length(lookup1) > 0 ? last(lookup1) : nothing
     if order(lookup1) isa Ordered 
         foreach(lookups) do lookup
-            order(lookup) === order(lookup1) || error("Lookups do not all have the same order")
+            order(lookup) === order(lookup1) || throw(DimensionMismatch("Lookups do not all have the same order"))
             if !isnothing(xl)
                 if order(lookup) isa ForwardOrdered
                     length(lookup) == 0 || first(lookup) > xl || _lookup_index_cat_error(lookup, xl)
@@ -393,6 +392,7 @@ function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
 end
 
 _lookup_index_cat_error(lookup, xl) = error("Lookups overlap or are not in order at $(first(lookup)) and $xl")
+_mixed_span_error(T) = throw(DimensionMismatch("Not all lookups have `$T` spans."))
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
