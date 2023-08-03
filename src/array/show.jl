@@ -73,7 +73,7 @@ function print_name(io::IO, name)
     end
 end
 
-# Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lookup(A))
+Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lookup(A))
 # Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
 function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     h, w = displaysize(io)
