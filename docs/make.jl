@@ -3,8 +3,6 @@ using DimensionalData
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using CoordinateTransformations, Dates, Unitful
 
-DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, docsetup; recursive=true)
-
 makedocs(
     modules = [DimensionalData],
     clean=true,
