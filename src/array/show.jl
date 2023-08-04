@@ -88,6 +88,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     Base.print_matrix(io, A_dims)
     return nothing
 end
+_print_matrix(io::IO, A::AbstractDimArray, lookups::Tuple) = _print_matrix(io, parent(A), lookups) 
 function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     lu1, lu2 = lookups
     h, w = displaysize(io)
@@ -107,7 +108,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
         bottomleft = hcat(map(showblack, parent(lu1)[ibottom]), bottomleft)
     end
 
-    leftblock = vcat(topleft, bottomleft)
+    leftblock = vcat(parent(topleft), parent(bottomleft))
     rightblock = vcat(A[itop, iright], A[ibottom, iright])
     bottomblock = hcat(leftblock, rightblock)
 

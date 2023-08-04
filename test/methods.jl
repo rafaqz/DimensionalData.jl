@@ -351,9 +351,17 @@ end
     da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
     b = [7 8 9; 10 11 12]
     db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
+    dc = DimArray(b, (X(6.0:7.0), Y(10.0:12.0)))
+    dd = DimArray(b, (X(8.0:9.0), Y(6.0:8.0)))
+    de = DimArray(b, (Z(6.0:7.0), Y(6.0:8.0)))
 
     @testset "Regular Sampled" begin
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
+        @test_throws DimensionMismatch cat(da, dc; dims=X())
+        @test_throws DimensionMismatch cat(da, dd; dims=X())
+        @test_throws DimensionMismatch cat(da, de; dims=X())
+        @test_throws DimensionMismatch vcat(dims(da, 1), dims(de, 1))
+        # TODO define our own exception for this
         testdims = (X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
                     Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) == cat(da, db; dims=X) ==
@@ -361,21 +369,22 @@ end
         @test typeof(dims(cat(da, db; dims=X()))) == typeof(testdims)
         @test val(cat(da, db; dims=X())) == val(testdims)
         @test lookup(cat(da, db; dims=X())) == lookup(testdims)
-        @test_throws ErrorException cat(da, db; dims=Y())
-        @test cat(da, db; dims=Z(1:2)) == cat(a, b; dims=3)
-        @test cat(da, db; dims=(Z(1:2), Ti(1:2))) == cat(a, b; dims=(3, 4))
+        @test_throws DimensionMismatch cat(da, db; dims=Y())
+        @test cat(da, da; dims=Z(1:2)) == cat(a, a; dims=3)
+        @test cat(da, da; dims=(Z(1:2), Ti(1:2))) == cat(a, a; dims=(3, 4))
+        @test_throws DimensionMismatch cat(da, db; dims=(Z(1:2), Ti(1:2)))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X(), Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
-        @test_throws ErrorException vcat(da, reverse(db; dims=X))
+        @test_throws DimensionMismatch vcat(da, reverse(db; dims=X))
         @test_throws ErrorException vcat(db, da)
         @testset "lookup array in dims" begin
-            @test dims(cat(da, db; dims=Ti(1:2)), Ti) == Ti(Sampled(1:2, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
-            @test dims(cat(da, db; dims=Ti(Categorical(1:2))), Ti) == Ti(Categorical(1:2, ForwardOrdered(), NoMetadata()))
+            @test dims(cat(da, da; dims=Ti(1:2)), Ti) == Ti(Sampled(1:2, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
+            @test dims(cat(da, da; dims=Ti(Categorical(1:2))), Ti) == Ti(Categorical(1:2, ForwardOrdered(), NoMetadata()))
             # Categorical is taken from refdims
-            dra = rebuild(da; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
-            drb = rebuild(db; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
-            @test dims(cat(dra, drb; dims=Z(1:2)), Z) == Z(Categorical(1:2, ForwardOrdered(), NoMetadata()))
+            dr1 = rebuild(da; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
+            dr2 = rebuild(da; refdims=(Z(Categorical([1], ForwardOrdered(), NoMetadata())),))
+            @test dims(cat(dr1, dr2; dims=Z(1:2)), Z) == Z(Categorical(1:2, ForwardOrdered(), NoMetadata()))
         end
     end
 
@@ -383,16 +392,18 @@ end
     @testset "dims passed as Symbols" begin
         Xcatdim = X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
         da2 = DimArray(a, (X(4.0:5.0), :y))
-        db2 = DimArray(b, (X(6.0:7.0), :y))
+        db2 = DimArray(b, (X(4.0:5.0), :y))
         @test cat(da2, db2; dims=:y) == cat(da2, db2; dims=Dim{:y}) ==
             cat(da2, db2; dims=Dim{:y}())
         @test typeof(dims(cat(da2, db2; dims=:y))) === typeof(dims(da2))
-        @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], 1:6)
-        @test cat(da2, db2; dims=(X(), :y)) == cat(da2, db2; dims=(X, Dim{:y})) ==
-            cat(da2, db2; dims=(X(), Dim{:y}()))
-        @test typeof(dims(cat(da2, db2; dims=(X(), :y)))) ===
-            typeof((Xcatdim, dims(da2, :y)))
-        @test lookup(cat(da2, db2; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
+        @test lookup(cat(da2, db2; dims=:y)) == (lookup(da2)[1], NoLookup(1:6))
+        da3 = DimArray(a, (X(4.0:5.0), :y))
+        db3 = DimArray(b, (X(6.0:7.0), :y))
+        @test cat(da3, db3; dims=(X(), :y)) == cat(da3, db3; dims=(X, Dim{:y})) ==
+            cat(da3, db3; dims=(X(), Dim{:y}()))
+        @test typeof(dims(cat(da3, db3; dims=(X(), :y)))) ===
+            typeof((Xcatdim, dims(da3, :y)))
+        @test lookup(cat(da3, db3; dims=(X(), :y))) == (lookup(Xcatdim), 1:6)
     end
 
     @testset "Irregular Sampled" begin
@@ -404,7 +415,7 @@ end
             @test index(iri_dim) == [1, 3, 4, 7, 8]
             @test lookup(iri_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(1, 9), Intervals(), NoMetadata())
             @test bounds(lookup(iri_dim)) == (1, 9)
-            @test_throws ErrorException vcat(d1, reverse(d2))
+            @test_throws DimensionMismatch vcat(d1, reverse(d2))
             @test_throws ErrorException vcat(d2, d1)
         end
         @testset "Points" begin
@@ -415,7 +426,7 @@ end
             @test index(irp_dim) == [1, 3, 4, 7, 8]
             @test lookup(irp_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
             @test bounds(irp_dim) == (1, 8)
-            @test_throws ErrorException vcat(d1, reverse(d2))
+            @test_throws DimensionMismatch vcat(d1, reverse(d2))
             @test_throws ErrorException vcat(d2, d1)
         end
     end
@@ -427,7 +438,7 @@ end
         @test span(ed) == Explicit([1 3 4 7 8; 3 4 7 8 10])
         @test index(ed) == [2, 3.5, 5, 7.5, 9] 
         @test lookup(ed) == Sampled([2, 3.5, 5, 7.5, 9], ForwardOrdered(), Explicit([1 3 4 7 8; 3 4 7 8 10]), Intervals(Center()), NoMetadata())
-        @test_throws ErrorException vcat(d1, reverse(d2))
+        @test_throws DimensionMismatch vcat(d1, reverse(d2))
         @test_throws ErrorException vcat(d2, d1)
     end
 
@@ -452,29 +463,113 @@ end
 end
 
 @testset "vcat" begin
-    a = [1 2 3; 4 5 6]
-    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
-    b = [7 8 9; 10 11 12]
-    db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
-    c = [13 14 15; 16 17 18]
-    dc = DimArray(c, (X(8.0:9.0), Y(6.0:8.0)))
+    @testset "1d" begin
+        a = [1, 2]
+        da = DimArray(a, X(4.0:5.0))
+        b = [3, 4]
+        db = DimArray(b, X(6.0:7.0))
+        c = [5, 6]
+        dc = DimArray(c, X(8.0:9.0))
+        dd = DimArray(c, Y(8.0:9.0))
 
-    @test @inferred(vcat(da)) == da
-    @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
-    @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+        @test @inferred(vcat(da)) == da
+        @test dims(vcat(da)) == 
+            dims(cat(da; dims=1)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
+        @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
+        @test dims(vcat(da, db)) == 
+            dims(cat(da, db; dims=1)) ==
+            (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
+        @test_throws DimensionMismatch hcat(da, dd)
+        @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+        @test dims(vcat(da, db, dc)) == 
+            dims(cat(da, db, dc; dims=1)) ==
+            (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
+        @test_throws DimensionMismatch hcat(da, db, dd)
+    end
+
+    @testset "2d" begin
+        a = [1 2 3; 4 5 6]
+        da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+        dims(da)
+        b = [7 8 9; 10 11 12]
+        db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
+        c = [13 14 15; 16 17 18]
+        dc = DimArray(c, (X(8.0:9.0), Y(6.0:8.0)))
+        dd = DimArray(c, (X(8.0:9.0), Z(6.0:8.0)))
+
+        @test @inferred(vcat(da)) == da
+        @test dims(vcat(da)) == 
+            dims(cat(da; dims=1)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
+        @test dims(vcat(da, db)) == 
+            dims(cat(da, db; dims=1)) ==
+            (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, dd)
+        @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+        @test dims(vcat(da, db, dc)) == 
+            dims(cat(da, db, dc; dims=1)) ==
+            (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, db, dd)
+    end
 end
 
 @testset "hcat" begin
-    a = [1 2 3; 4 5 6]
-    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
-    b = [7 8 9; 10 11 12]
-    db = DimArray(b, (X(4.0:5.0), Y(9.0:11.0)))
-    c = [13 14 15; 16 17 18]
-    dc = DimArray(c, (X(4.0:5.0), Y(12.0:14.0)))
+    @testset "1d" begin
+        a = [1, 2]
+        da = DimArray(a, X(4.0:5.0))
+        b = [3, 4]
+        db = DimArray(b, X(4.0:5.0))
+        c = [5, 6]
+        dc = DimArray(c, X(4.0:5.0))
+        dd = DimArray(c, X(8.0:9.0))
 
-    @test @inferred(hcat(da)) == da
-    @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
-    @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+        @test @inferred(hcat(da)) == [1; 2;;]
+        @test dims(hcat(da)) == 
+            dims(cat(da; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(1))))
+        @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
+        @test dims(hcat(da, db)) == 
+            dims(cat(da, db; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(2))))
+        @test_throws DimensionMismatch hcat(da, dd)
+        @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+        @test dims(hcat(da, db, dc)) == 
+            dims(cat(da, db, dc; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(3))))
+        @test_throws DimensionMismatch hcat(da, db, dd)
+    end
+    @testset "2d" begin
+        a = [1 2 3; 4 5 6]
+        da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+        b = [7 8 9; 10 11 12]
+        db = DimArray(b, (X(4.0:5.0), Y(9.0:11.0)))
+        c = [13 14 15; 16 17 18]
+        dc = DimArray(c, (X(4.0:5.0), Y(12.0:14.0)))
+        dd = DimArray(c, (X(12.0:13.0), Y(12.0:14.0)))
+
+        @test @inferred(hcat(da)) == da
+        @test dims(hcat(da)) == 
+            dims(cat(da; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
+        @test dims(hcat(da, db)) == 
+            dims(cat(da, db; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:11.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, dd)
+        @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+        @test dims(hcat(da, db, dc)) == 
+            dims(cat(da, db, dc; dims=2)) ==
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
+             Y(Sampled(6.0:14.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+        @test_throws DimensionMismatch hcat(da, db, dd)
+    end
 end
 
 @testset "unique" begin
