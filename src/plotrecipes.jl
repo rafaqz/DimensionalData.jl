@@ -177,5 +177,11 @@ function refdims_title(lookup::AbstractSampled, refdim::Dimension; kw...)
          "$start to $stop"
     end
 end
-refdims_title(lookup::LookupArray, refdim::Dimension; kw...) = string(val(refdim))
+function refdims_title(lookup::LookupArray, refdim::Dimension; kw...)
+    if parent(refdim) isa AbstractArray
+        string(first(parent(refdim)))
+    else
+        string(parent(refdim))
+    end
+end
 
