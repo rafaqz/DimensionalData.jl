@@ -1,7 +1,9 @@
 [deps]
+BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
 CoordinateTransformations = "150eb455-5306-5404-9cee-2592286d6298"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DimensionalData = "0703355e-b756-11e9-17c0-8b28908087d0"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
-Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+DocumenterMarkdown = "997ab1e6-3595-5248-9280-8efb232c3433"
+Literate = "98b081ad-f1c9-55d3-8b20-4c87d4299306"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
