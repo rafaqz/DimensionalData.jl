@@ -289,7 +289,7 @@ end
           4 4 4 4]
 
     @testset "indexing into NoLookup dims is just regular indexing" begin
-        ida = imArray(a2, (X(), Y()))
+        ida = DimArray(a2, (X(), Y()))
         ida[Y(3:4), X(2:3)] = [5 6; 6 7]
     end
 
