@@ -235,6 +235,12 @@ end
                 @test length(refdims(a)) == 2
             end
         end
+
+        @testset "@views macro and maybeview work even with kw syntax" begin
+            v1 = @views da[Y(1:2), X(1)]
+            v2 = @views da[Y=1:2, X=1]
+            @test v1 == v2 == [1, 2]
+        end
     end
 
     @testset "setindex!" begin
@@ -283,7 +289,7 @@ end
           4 4 4 4]
 
     @testset "indexing into NoLookup dims is just regular indexing" begin
-        ida = DimArray(a2, (X(), Y()))
+        ida = imArray(a2, (X(), Y()))
         ida[Y(3:4), X(2:3)] = [5 6; 6 7]
     end
 
@@ -394,6 +400,11 @@ end
             @test view(s, X(1), Y(2))[:one] == view(da1, X(1), Y(2))
             @test view(s, X(1), Y(1))[:two] == view(da2, X(1), Y(1))
             @test view(s, X(2), Y(3))[:three] == view(da3, X(2), Y(3))
+        end
+        @testset "@views macro and maybeview work even with kw syntax" begin
+            sv1 = @views s[X(1:2), Y(3:3)]
+            sv2 = @views s[X=1:2, Y=3:3]
+            @test parent(sv1) == parent(sv2) == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
         end
     end
 
