@@ -38,3 +38,6 @@ end
 end
 
 @noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))
+
+# For @views macro to work with keywords
+Base.maybeview(A::AbstractDimStack, args...; kw...) = view(A, args...; kw...)
