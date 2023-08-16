@@ -213,27 +213,27 @@ end
 end
 
 # Concatenation
-function Base._cat(_catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
-    catdims = map(_catdims) do d
-        d isa DimType && return d(NoLookup())
-        if d isa Int 
-            if hasdim(A1, d)
-                return dims(A1, d)
+function Base._cat(catdim::Union{Int,Symbol,DimOrDimType}, A1::AbstractDimArray, As::AbstractDimArray...)
+    Base._cat((catdim,), A1, As...)
+end
+function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
+    Xin = (A1, As...)
+    newcatdims = map(catdims) do catdim
+        # Int
+        if catdim isa Dimension 
+            return catdim
+        end
+        if catdim isa Int 
+            if hasdim(A1, catdim)
+                catdim = basedims(dims(A1, catdim))
             else
                 return AnonDim(NoLookup())
             end
+        else
+            catdim = basedims(key2dim(catdim))
         end
-        return key2dim(d)
-    end
-    return _cat(catdims, A1, As...)
-end
-function Base._cat(catdim::Union{Int,DimOrDimType}, Xin::AbstractDimArray...)
-    Base._cat((catdim,), Xin...)
-end
-function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
-    Xin = (A1, As...)
-    comparedims(map(x -> otherdims(x, catdims), Xin)...; val=true)
-    newcatdims = map(catdims) do catdim
+        # Dimension
+        # Dimension Types and Symbols
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
             newcatdim = if lookup(A1, catdim) isa NoLookup
@@ -258,6 +258,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             end
         end
     end
+    comparedims(map(x -> otherdims(x, newcatdims), Xin)...; val=true)
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
     updated_dims = setdims(dims(A1), inserted_dims)
