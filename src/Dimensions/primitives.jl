@@ -466,6 +466,8 @@ cell step, sampling type and order.
 
 const DimTupleOrEmpty = Union{DimTuple,Tuple{}}
 
+struct _Throw end
+
 """
     comparedims(A::AbstractDimArray...; kw...)
     comparedims(A::Tuple...; kw...)
@@ -483,7 +485,7 @@ returning the `Dimension` value if it exists.
 These are all `Bool` flags:
 
 - `type`: compare dimension type, `true` by default.
-- `valtype`: compare wrapped value type, `false` by default. 
+- `valtype`: compare wrapped value type, `false` by default.
 - `val`: compare wrapped values, `false` by default.
 - `length`: compare lengths, `true` by default.
 - `ignore_length_one`: ignore length `1` in comparisons, and return whichever
@@ -491,35 +493,67 @@ These are all `Bool` flags:
     `false` by default.
 """
 function comparedims end
-@inline comparedims(ds::Dimension...; kw...) = map(d -> comparedims(first(ds), d; kw...), ds)
-@inline comparedims(x...; kw...) = comparedims(x; kw...)
-@inline comparedims(A::Tuple; kw...) = comparedims(map(dims, A)...; kw...)
-@inline comparedims(dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
-    map(d -> comparedims(first(dims), d; kw...), dims) |> first
 
-@inline comparedims(a::DimTupleOrEmpty, ::Nothing; kw...) = a
-@inline comparedims(::Nothing, b::DimTupleOrEmpty; kw...) = b
-@inline comparedims(::Nothing, ::Nothing; kw...) = nothing
+@inline comparedims(args...; kw...) = _comparedims(_Throw, args...; kw...) 
+@inline comparedims(T::Type, args...; kw...) = _comparedims(T::Type, args...; kw...) 
+
+@inline _comparedims(T::Type, ds::Dimension...; kw...) =
+    all(map(d -> _comparedims(T, first(ds), d; kw...), ds))
+@inline _comparedims(T::Type, A::Tuple; kw...) =
+    _comparedims(T, map(dims, A)...; kw...)
+@inline _comparedims(T::Type, dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
+    all(map(d -> _comparedims(T, first(dims), d; kw...), dims))
+@inline _comparedims(T::Type, a::DimTupleOrEmpty, ::Nothing; kw...) = true
+@inline _comparedims(T::Type, ::Nothing, b::DimTupleOrEmpty; kw...) = true
+@inline _comparedims(T::Type, ::Nothing, ::Nothing; kw...) = true
 # Cant use `map` here, tuples may not be the same length
-@inline comparedims(a::DimTuple, b::DimTuple; kw...) =
-    (comparedims(first(a), first(b); kw...), comparedims(tail(a), tail(b); kw...)...)
-@inline comparedims(a::DimTuple, b::Tuple{}; kw...) = a
-@inline comparedims(a::Tuple{}, b::DimTuple; kw...) = b
-@inline comparedims(a::Tuple{}, b::Tuple{}; kw...) = ()
-@inline comparedims(a::AnonDim, b::AnonDim; kw...) = nothing
-@inline comparedims(a::Dimension, b::AnonDim; kw...) = a
-@inline comparedims(a::AnonDim, b::Dimension; kw...) = b
-@inline function comparedims(a::Dimension, b::Dimension;
-    type=true, valtype=false, val=false, length=true, ignore_length_one=false,
+@inline _comparedims(T::Type, a::DimTuple, b::DimTuple; kw...) =
+    all((_comparedims(T, first(a), first(b); kw...), _comparedims(T, tail(a), tail(b); kw...)...))
+@inline _comparedims(T::Type, a::DimTuple, b::Tuple{}; kw...) = true
+@inline _comparedims(T::Type, a::Tuple{}, b::DimTuple; kw...) = true
+@inline _comparedims(T::Type, a::Tuple{}, b::Tuple{}; kw...) = true
+@inline _comparedims(T::Type, a::AnonDim, b::AnonDim; kw...) = true
+@inline _comparedims(T::Type, a::Dimension, b::AnonDim; kw...) = true
+@inline _comparedims(T::Type, a::AnonDim, b::Dimension; kw...) = true
+
+@inline function _comparedims(::Type{_Throw}, a::Dimension, b::Dimension;
+    type=true, valtype=false, val=false, length=true, order=false, ignore_length_one=false,
 )
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)
     val && parent(a) != parent(b) && _valerror(a, b)
+    order && order(a) != order(b) && _ordererror(a, b)
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
         return Base.length(b) == 1 ? a : b
     end
     length && Base.length(a) != Base.length(b) && _dimsizeerror(a, b)
     return a
+end
+@inline function _comparedims(::Type{Bool}, a::Dimension, b::Dimension;
+    type=true, valtype=false, val=false, length=true, order=false, ignore_length_one=false, warn=false,
+)
+    if type && basetypeof(a) != basetypeof(b)
+        warn && _typewarn(a, b)
+        return false
+    end
+    if valtype && typeof(parent(a)) != typeof(parent(b))
+        warn && _valtypewarn(a, b)
+        return false
+    end
+    if val && parent(a) != parent(b)
+        warn && _valwarn(a, b)
+        return false
+    end
+    if order && LookupArrays.order(a) != LookupArrays.order(b)
+        waren && _ordererror(a, b)
+        return false
+    end
+    ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1) && return true
+    if length && Base.length(a) != Base.length(b)
+        warn && _typewarn(a, b)
+        return false
+    end
+    return true
 end
 
 """
@@ -597,7 +631,7 @@ struct AlwaysTuple end
 @inline _call_primitive1(f, t, op::Function, x, query) = _call_primitive1(f, t, op, dims(x), query)
 @inline _call_primitive1(f, t, op::Function, x::Nothing) = _dimsnotdefinederror()
 @inline _call_primitive1(f, t, op::Function, x::Nothing, query) = _dimsnotdefinederror()
-@inline function _call_primitive1(f, t, op::Function, d::Tuple, query) 
+@inline function _call_primitive1(f, t, op::Function, d::Tuple, query)
     ds = dims(query)
     isnothing(ds) && _dims_are_not_dims()
     _call_primitive1(f, t, op, d, ds)
@@ -655,12 +689,26 @@ _astuple(t::Tuple) = t
 _astuple(x) = (x,)
 
 # Error methods. @noinline to avoid allocations.
+@noinline function _dimsmismatchwarn(a, b)
+    @warn "$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"
+end
+@noinline function _valwarn(a, b)
+    @warn "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match"
+end
+@noinline function _dimsizewarn(a, b)
+    @warn "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"
+end
+@noinline function _valtypewarn(a, b)
+    @warn "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match"
+end
 
+@noinline _dimordererror(a, b) =
+    throw(DimensionMismatch("Lookups do not all have the same order: $(order(a)), $(order(b))"))
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch("$(basetypeof(a)) and $(basetypeof(b)) for dims on the same axis"))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch("Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))"))
 @noinline _valtypeerror(a, b) = throw(DimensionMismatch("Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match"))
-@noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(metadata(b)) do not match"))
 @noinline _valerror(a, b) = throw(DimensionMismatch("Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match"))
+@noinline _metadataerror(a, b) = throw(DimensionMismatch("Metadata $(metadata(a)) and $(metadata(b)) do not match"))
 @noinline _warnextradims(extradims) = @warn "$(map(basetypeof, extradims)) dims were not found in object"
 @noinline _errorextradims() = throw(ArgumentError("Some dims were not found in object"))
