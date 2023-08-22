@@ -213,10 +213,12 @@ end
 end
 
 # Concatenation
-function Base._cat(catdim::Union{Int,Symbol,DimOrDimType}, A1::AbstractDimArray, As::AbstractDimArray...)
-    Base._cat((catdim,), A1, As...)
+Base.cat(A1::AbstractDimArray, As::AbstractDimArray...; dims) = _cat(dims, A1, As...)
+
+function _cat(catdim::Union{Int,Symbol,DimOrDimType}, A1::AbstractDimArray, As::AbstractDimArray...)
+    _cat((catdim,), A1, As...)
 end
-function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
+function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     Xin = (A1, As...)
     newcatdims = map(catdims) do catdim
         # Int
@@ -240,7 +242,8 @@ function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...
                 rebuild(catdim, NoLookup())
             else
                 # vcat the index for the catdim in each of Xin
-                reduce(vcat, map(x -> dims(x, catdim), Xin))
+                allcatdims = map(x -> dims(x, catdim), Xin)
+                reduce(vcat, allcatdims)
             end
         else
             # Concatenate new dims
@@ -258,21 +261,30 @@ function Base._cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...
             end
         end
     end
-    comparedims(map(x -> otherdims(x, newcatdims), Xin)...; val=true)
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
-    updated_dims = setdims(dims(A1), inserted_dims)
-    newdims = (updated_dims..., appended_dims...)
 
     inserted_dnums = dimnum(A1, inserted_dims)
     appended_dnums = ntuple(i -> i + length(dims(A1)), length(appended_dims))
     cat_dnums = (inserted_dnums..., appended_dnums...)
+    # Warn if dims or val do not match, and cat the parent
+    if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...; order=true, val=true, warn=true)
+        return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+    end
+    map(otherdims(first(Xin), newcatdims)) do dim
+        samedims = map(A -> dims(A, dim), Xin)
+        _check_cat_lookups(samedims...) || return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+    end
 
+    updated_dims = setdims(dims(A1), inserted_dims)
+    newdims = (updated_dims..., appended_dims...)
     newrefdims = otherdims(refdims(A1), newcatdims)
-    T = Base.promote_eltypeof(Xin...)
-    data = map(parent, Xin)
-    newA = Base._cat_t(cat_dnums, T, data...)
-    rebuild(A1, newA, format(newdims, newA), newrefdims)
+    newA = Base.cat(map(parent, Xin)...; dims=cat_dnums)
+    return rebuild(A1, newA, format(newdims, newA), newrefdims)
+end
+
+@noinline function _valwarn(x)
+    @warn "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match, parent type returned"
 end
 
 function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
@@ -283,12 +295,89 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         vcat(map(last ∘ dims, As)...)
     end
     noncatdim = dims(A1, 1)
-    # Make sure this is exactly the same dimension for all arrays
-    comparedims(map(x -> dims(x, 1), As)...; val=true)
+    # Make sure this is the same dimension for all arrays
+    if !comparedims(Bool, map(x -> dims(x, 1), As)...; val=true, warn=true)
+        return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+    end
     newdims = (noncatdim, catdim)
     newA = hcat(map(parent, As)...)
     return rebuild(A1, newA, format(newdims, newA))
 end
+
+check_cat_lookups(dims::Dimension...) = _check_cat_lookups(lookup(dims)...)
+# LookupArrays may need adjustment for `cat`
+function check_cat_lookups(lookups::LookupArray...)
+    L = basetypeof(first(lookup))
+    map(lookups) do l
+        L1 = basetypeof(l) 
+        if L1 == L 
+            @warn "Lookup types do not match: $L and $L1"  
+        else
+            true
+        end
+    end
+    if order(lookup1) isa Ordered 
+        foreach(lookups) do lookup
+            if !isnothing(xl)
+                if order(lookup) isa ForwardOrdered
+                    length(lookup) == 0 || first(lookup) > xl || _lookup_index_cat_error(lookup, xl)
+                else
+                    length(lookup) == 0 || first(lookup) < xl || _lookup_index_cat_error(lookup, xl)
+                end
+            end
+            if length(lookup) > 0
+                xl = last(lookup)
+            end
+            return nothing
+        end
+    end
+end
+
+function _check_cat_lookups(lookups::LookupArray...)
+    L = basetypeof(first(lookup))
+    map(lookups) do l
+        L1 = basetypeof(l) 
+        if L1 == L 
+            @warn "Lookup types do not match: $L and $L1"  
+            false
+        else
+            true
+        end
+    end |> all
+end
+_check_cat_lookups(lookups::AbstractSampled...) =
+    _check_cat_lookups(span(first(lookups)), lookups...)
+function _check_cat_lookups(::Regular, lookups...)
+    lastval = last(first(lookups))
+    s = step(first(lookups))
+    map(Base.tail(lookups)) do l
+        if span(l) isa Regular 
+            _mixed_span_warn(Regular)
+            return false
+        end
+        if step(span(l)) == s 
+            @warn "Step sizes $(step(span(l))) and $s do not match"
+            return false
+        end
+        if lastval + s ≈ first(l) 
+            @warn "Regular lookups do not join with the correct step size"
+            return false
+        end
+        lastval = last(l)
+    end
+    return true
+end
+function _check_cat_lookups(::Explicit, lookups...)
+    map(lookups) do l
+        span(l) isa Explicit || _mixed_span_warn(Explicit)
+    end |> all
+end
+function _check_cat_lookups(::Irregular, lookups...)
+    map(lookups) do l
+        span(l) isa Irregular || _mixed_span_warn(Irregular)
+    end |> all
+end
+
 
 function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     A1 = first(As)
@@ -297,8 +386,10 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         noncatdim = dims(A1, 2)
-        # Make sure this is exactly the same dimension for all arrays
-        comparedims(map(x -> dims(x, 2), As)...; val=true)
+        # Make sure this is the same dimension for all arrays
+        if !comparedims(Bool, map(x -> dims(x, 1), As)...; val=true, warn=true)
+            return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+        end
         (catdim, noncatdim)
     end
     newA = vcat(map(parent, As)...)
@@ -322,19 +413,10 @@ function _vcat_lookups(lookups::AbstractSampled...)
     return rebuild(newlookup; data=newindex)
 end
 function _vcat_lookups(::Any, ::Regular, lookups...)
-    s = step(first(lookups))
-    lastval = last(first(lookups))
-    foreach(Base.tail(lookups)) do l
-        span(l) isa Regular || _mixed_span_error(Regular)
-        step(span(l)) == s || throw(DimensionMismatch("Step sizes $(step(span(l))) and $s do not match"))
-        lastval + s ≈ first(l) || throw(DimensionMismatch("Regular lookups do not join with the correct step size. To cat anyway, set lookups to `Irregular` using `set`."))
-        lastval = last(l)
-    end
     first(lookups)
 end
 function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     len = mapreduce(+, lookups) do l
-        span(l) isa Explicit || _mixed_span_error(Explicit)
         size(val(span(l)), 2) 
     end
     combined_span_mat = similar(val(span(first(lookups))), 2, len)
@@ -348,17 +430,11 @@ function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     rebuild(first(lookups); span=Explicit(combined_span_mat))
 end
 function _vcat_lookups(::Intervals, ::Irregular, lookups...)
-    map(lookups) do l
-        span(l) isa Irregular || _mixed_span_error(Irregular)
-    end
     allbounds = map(bounds ∘ span, lookups)
     newbounds = minimum(map(first, allbounds)), maximum(map(last, allbounds))
     rebuild(lookups[1]; span=Irregular(newbounds))
 end
 function _vcat_lookups(::Points, ::Irregular, lookups...)
-    map(lookups) do l
-        span(l) isa Irregular || _mixed_span_error(Irregular)
-    end
     rebuild(first(lookups); span=Irregular(nothing, nothing))
 end
 
@@ -370,30 +446,19 @@ _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...
 # end
 function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
     xl = length(lookup1) > 0 ? last(lookup1) : nothing
-    if order(lookup1) isa Ordered 
-        foreach(lookups) do lookup
-            order(lookup) === order(lookup1) || throw(DimensionMismatch("Lookups do not all have the same order"))
-            if !isnothing(xl)
-                if order(lookup) isa ForwardOrdered
-                    length(lookup) == 0 || first(lookup) > xl || _lookup_index_cat_error(lookup, xl)
-                else
-                    length(lookup) == 0 || first(lookup) < xl || _lookup_index_cat_error(lookup, xl)
-                end
-            end
-            if length(lookup) > 0
-                xl = last(lookup)
-            end
-            return nothing
-        end
-    end
     shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end
     return reduce(vcat, shifted)
 end
 
-_lookup_index_cat_error(lookup, xl) = error("Lookups overlap or are not in order at $(first(lookup)) and $xl")
+
+_lookup_index_cat_error(lookup, xl) = error("Lookups overlap at $(first(lookup)) and $xl")
 _mixed_span_error(T) = throw(DimensionMismatch("Not all lookups have `$T` spans."))
+function _mixed_span_warn(T) 
+    @warn "Not all lookups have `$T` spans."
+    return false
+end
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))

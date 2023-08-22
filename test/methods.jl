@@ -357,8 +357,9 @@ end
 
     @testset "Regular Sampled" begin
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
-        @test_throws DimensionMismatch cat(da, dc; dims=X)
-        @test_throws DimensionMismatch cat(da, dd; dims=X)
+        @test_warn "Lookup values for Y" cat(da, dc; dims=X)
+        @test_throws DimensionMismatch 
+        cat(da, dd; dims=X)
         @test_throws DimensionMismatch cat(da, de; dims=X)
         @test_throws DimensionMismatch vcat(dims(da, 1), dims(de, 1))
         # TODO define our own exception for this
@@ -369,10 +370,10 @@ end
         @test typeof(dims(cat(da, db; dims=X))) == typeof(testdims)
         @test val(cat(da, db; dims=X)) == val(testdims)
         @test lookup(cat(da, db; dims=X)) == lookup(testdims)
-        @test_throws DimensionMismatch cat(da, db; dims=Y())
+        @test_warn "Lookup values for X" cat(da, db; dims=Y())
         @test cat(da, da; dims=Z(1:2)) == cat(a, a; dims=3)
         @test cat(da, da; dims=(Z(1:2), Ti(1:2))) == cat(a, a; dims=(3, 4))
-        @test_throws DimensionMismatch cat(da, db; dims=(Z(1:2), Ti(1:2)))
+        @test_warn "Lookup values for X" cat(da, db; dims=(Z(1:2), Ti(1:2)))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X, Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
