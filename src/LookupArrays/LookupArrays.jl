@@ -20,7 +20,9 @@ module LookupArrays
 
 using Dates, IntervalSets, Extents
 import Adapt, ConstructionBase
+import InvertedIndices
 
+using InvertedIndices: Not
 using Base: tail, OneTo, @propagate_inbounds
 
 export order, sampling, span, bounds, locus, hasselection, transformdim,
@@ -30,6 +32,7 @@ export order, sampling, span, bounds, locus, hasselection, transformdim,
 export Selector
 export At, Between, Touches, Contains, Near, Where, All
 export ..
+export Not
 
 export LookupArrayTrait
 export Order, Ordered, ForwardOrdered, ReverseOrdered, Unordered, AutoOrder
