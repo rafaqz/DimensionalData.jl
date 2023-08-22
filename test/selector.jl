@@ -1112,13 +1112,22 @@ end
         @test index(wda) == ([2u"s", 3u"s"], [30, 40])
     end
 
-    @testset "All " begin
+    @testset "All" begin
         dimz = X(10.0:20:200.0), Ti(1u"s":5u"s":100u"s")
         A = DimArray((1:10) * (1:20)', dimz)
         aA = A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
         @test parent(aA) == 
             [1  2  19  20
              3  6  57  60]
+    end
+
+    @testset "Not " begin
+        dimz = X(1.0:2:10.0), Ti(1u"s":5u"s":11u"s")
+        A = DimArray((1:5) * (1:3)', dimz)
+        A1 = A[X=Not(Near(5.1)), Ti=Not(1u"s" .. 10u"s")]
+        @test A1 == [3; 6; 12; 15;;] 
+        @test lookup(A1, Ti) == [11u"s"]
+        @test lookup(A1, X) == [1.0, 3.0, 7.0, 9.0]
     end
 
 end

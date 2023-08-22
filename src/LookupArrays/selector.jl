@@ -38,9 +38,15 @@ Abstract supertype for [`Selector`](@ref)s that return an `AbstractArray`.
 """
 abstract type ArraySelector{T} <: Selector{T} end
 
-const SelectorOrInterval = Union{Selector,Interval}
+const SelectorOrInterval = Union{Selector,Interval,Not}
 
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
+
+# `Not` form InvertedIndices.jl
+function selectindices(l::LookupArray, sel::Not; kw...)
+    indices = selectindices(l, sel.skip; kw...)
+    return collect(first(to_indices(l, axes(l), (Not(indices),))))
+end
 
 """
     At <: IntSelector
