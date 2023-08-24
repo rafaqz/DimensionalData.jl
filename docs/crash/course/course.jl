@@ -150,7 +150,7 @@ mean(A3; dims=Ti)
 
 A[X(12..35), Ti(Date(2001, 5)..Date(2001, 7))]
 
-# To select intervals in DimArrays (e.g. ```A2```) you need to specify ```Dim{:dimname}(a..b)```
+# To select intervals in DimArrays (e.g. ```A2```) you need to specify ```dimname=a .. b```:
 
 A2[distance=12 .. 35, time=Date(2001, 5) .. Date(2001, 7))]
 
