@@ -49,7 +49,7 @@ export LookupArrays, Dimensions
 export X, Y, Z, Ti, Dim, Coord
 
 # Selector
-export At, Between, Touches, Contains, Near, Where, All, ..
+export At, Between, Touches, Contains, Near, Where, All, .., Not
 
 export AbstractDimArray, DimArray
 
