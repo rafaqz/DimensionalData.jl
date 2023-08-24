@@ -152,7 +152,7 @@ A[X(12..35), Ti(Date(2001, 5)..Date(2001, 7))]
 
 # To select intervals in DimArrays (e.g. ```A2```) you need to specify ```dimname=a .. b```:
 
-A2[distance=12 .. 35, time=Date(2001, 5) .. Date(2001, 7))]
+A2[distance=12 .. 35, time=Date(2001, 5) .. Date(2001, 7)]
 
 # Selectors can be used in `getindex`, `setindex!` and
 # `view` to select indices matching the passed in value(s)
