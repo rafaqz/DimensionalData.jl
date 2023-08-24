@@ -1125,6 +1125,10 @@ end
         dimz = X(1.0:2:10.0), Ti(1u"s":5u"s":11u"s")
         A = DimArray((1:5) * (1:3)', dimz)
         A1 = A[X=Not(Near(5.1)), Ti=Not(1u"s" .. 10u"s")]
+        A2 = A[Ti=Not(At(1u"s"))]
+        A3 = A[X=Not(At([1.0,3.0]))]
+        @test lookup(A2, :Ti) == [6u"s", 11u"s"]
+        @test lookup(A3, :X) == [5.0,7.0,9.0]
         @test A1 == [3; 6; 12; 15;;] 
         @test lookup(A1, Ti) == [11u"s"]
         @test lookup(A1, X) == [1.0, 3.0, 7.0, 9.0]
