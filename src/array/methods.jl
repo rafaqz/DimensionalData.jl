@@ -248,6 +248,8 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
+                samedims = map(A -> dims(A, catdim), Xin)
+                check_cat_lookups(samedims...) || return nothing
                 if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoIndex})
                     # Combine the refdims properties with the passed in catdim
                     set(refdims(first(Xin), catdim), catdim)
@@ -261,6 +263,8 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             end
         end
     end
+    any(map(isnothing, newcatdims)) && return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
 
@@ -271,11 +275,6 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...; order=true, val=true, warn=true)
         return Base.cat(map(parent, Xin)...; dims=cat_dnums)
     end
-    can_cat_dim = map(otherdims(first(Xin), newcatdims)) do dim
-        samedims = map(A -> dims(A, dim), Xin)
-        check_cat_lookups(samedims...)
-    end
-    all(can_cat_dim) || return Base.cat(map(parent, Xin)...; dims=cat_dnums)
 
     updated_dims = setdims(dims(A1), inserted_dims)
     newdims = (updated_dims..., appended_dims...)

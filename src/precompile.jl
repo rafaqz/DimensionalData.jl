@@ -1,5 +1,3 @@
-
-using DimensionalData
 PrecompileTools.@compile_workload begin
     buffer = IOContext(IOBuffer(), :color=>true)
     f = zeros
@@ -10,8 +8,7 @@ PrecompileTools.@compile_workload begin
         da1 = DimArray(A, (x, y); name=:one)
         da2 = DimArray(Float32.(2A), (x, y); name=:two)
         da3 = DimArray(round.(Int, 3A), (x, y); name=:three)
-        cat(4A, 5A, 6A, 7A; dims=Z)
-        da4 = DimArray( ; name=:extradim);
+        da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=Z()); name=:extradim);
         show(buffer, MIME"text/plain"(), da1)
         show(buffer, MIME"text/plain"(), da2)
         show(buffer, MIME"text/plain"(), da3)
