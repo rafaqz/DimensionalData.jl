@@ -503,10 +503,9 @@ function comparedims end
     _comparedims(T, map(dims, A)...; kw...)
 @inline _comparedims(T::Type, dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
     all(map(d -> _comparedims(T, first(dims), d; kw...), dims))
-# Cant use `map` here, tuples may not be the same length
-@inline _comparedims(T::Type{Bool}, a::DimTuple, b::DimTuple; kw...) =
-    all((_comparedims(T, first(a), first(b); kw...), _comparedims(T, tail(a), tail(b); kw...)...))
 
+@inline _comparedims(T::Type{_Throw}, a::DimTuple, b::DimTuple; kw...) =
+    (_comparedims(T, first(a), first(b); kw...), _comparedims(T, tail(a), tail(b); kw...)...)
 @inline _comparedims(::Type{_Throw}, a::DimTupleOrEmpty, ::Nothing; kw...) = a
 @inline _comparedims(::Type{_Throw}, ::Nothing, b::DimTupleOrEmpty; kw...) = b
 @inline _comparedims(::Type{_Throw}, a::DimTuple, b::Tuple{}; kw...) = a
@@ -530,6 +529,8 @@ function comparedims end
     return a
 end
 
+@inline _comparedims(T::Type{Bool}, a::DimTuple, b::DimTuple; kw...) =
+    all((_comparedims(T, first(a), first(b); kw...), _comparedims(T, tail(a), tail(b); kw...)...))
 @inline _comparedims(T::Type{Bool}, a::DimTupleOrEmpty, ::Nothing; kw...) = true
 @inline _comparedims(T::Type{Bool}, ::Nothing, b::DimTupleOrEmpty; kw...) = true
 @inline _comparedims(T::Type{Bool}, ::Nothing, ::Nothing; kw...) = true
