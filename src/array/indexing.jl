@@ -33,12 +33,10 @@ for f in (:getindex, :view, :dotview)
                 Base.$f(A, to_indices(A, (I,))...)
         end
         # Linear indexing forwards to the parent array as it will break the dimensions
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractVector{<:Integer}}) =
-            Base.$f(parent(A), i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::AbstractArray{<:Bool}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i::Union{Colon,AbstractArray{<:Union{<:Integer,<:Bool}}}) =
             Base.$f(parent(A), i)
         # Except 1D DimArrays
-        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any,1}, i::Union{Colon,AbstractVector{<:Integer}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any,1}, i::Union{Colon,AbstractArray{<:Union{<:Integer,<:Bool}}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
         # Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, I::SelectorOrStandard...) =

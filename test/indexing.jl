@@ -29,25 +29,128 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
 end
 
 @testset "lookup" begin
-    l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
-    @test l[:] == l
-    @test l[1:5] == l
-    @test l[1:5] isa typeof(l)
-    @test l[Near(2.1)] == 2.0
-    # TODO properly handle index mashing arrays: here Regular should become Irregular
-    # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
-    # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
-    @test l[2] === 4.0
-    @test l[CartesianIndex((4,))] == 8.0
-    @test l[CartesianIndices((1:3,))] isa Sampled
-    @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing)
-    l = NoLookup(1:100)
-    l = NoLookup(1:100)
-    @test l[100] == 100
-    @test l[1:5] isa typeof(l)
-    @test l[CartesianIndex((1,))] == 1 
-    @test view(l, 50) === view(1:100, 50)
-    @test Base.dotview(l, 50) === 50
+    @testset "Points" begin
+        l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
+        @test l[:] == l
+        @test l[1:5] == l
+        @test l[1:5] isa typeof(l)
+        @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
+            Base.dotview(l, [1, 3, 4]) ==
+            Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 8.0), Points(), NoMetadata())
+        @test l[Int[]] == view(l, Int[]) == Base.dotview(l, Int[]) == 
+            Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
+        @test l[Near(2.1)] == Base.dotview(l, Near(2.1)) == 2.0
+        @test view(l, Near(2.1)) == fill(2.0)
+        @test l[[false, true, true, false, true]] == 
+            view(l, [false, true, true, false, true]) == 
+            Base.dotview(l, [false, true, true, false, true]) == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+        @test l[2] == Base.dotview(l, 2) === 4.0
+        @test view(l, 2) == fill(4.0)
+        @test l[CartesianIndex((4,))] === Base.dotview(l, CartesianIndex((4,))) === 8.0
+        @test view(l, CartesianIndex((4,))) == fill(8.0)
+        @test l[CartesianIndices((1:3,))] == 
+            view(l, CartesianIndices((1:3,))) == 
+            Base.dotview(l, CartesianIndices((1:3,))) == 
+            Sampled(2.0:2.0:6.0, ForwardOrdered(), Regular(2.0), Points(), NoMetadata())
+        @test l[2:2:4] == 
+            view(l, 2:2:4) == 
+            Base.dotview(l, 2:2:4) == 
+            Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing)
+        # End Locus
+        l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+        # Center Locus
+        l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+        # Center Locus DateTime
+        l = Sampled(DateTime(2001, 1, 1):Day(1):DateTime(2001, 1, 5), ForwardOrdered(), Regular(Day(1)), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([DateTime(2001, 1, 2), DateTime(2001, 1, 3), DateTime(2001, 1, 5)], ForwardOrdered(), Irregular(DateTime(2001, 1, 2), DateTime(2001, 1, 5)), Points(), nothing)
+        # Reverse
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
+        @test l[:] == l
+        @test l[1:5] == l
+        @test l[1:5] isa typeof(l)
+        @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+        @test l[Int[]] == Sampled(Float64[], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
+        @test l[Near(2.1)] == 2.0
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+        @test l[2] === 8.0
+        @test l[CartesianIndex((4,))] == 4.0
+        @test l[CartesianIndices((2:4,))] == Sampled(8.0:-2.0:4.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
+        @test l[2:2:4] == Sampled(8.0:-4.0:4.0, ReverseOrdered(), Regular(-4.0), Points(), nothing)
+        # End Locus
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+        # Center Locus
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+        # Center Locus DateTime
+        l = Sampled(DateTime(2001, 1, 5):Day(-1):DateTime(2001, 1, 1), ReverseOrdered(), Regular(Day(-1)), Points(), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([DateTime(2001, 1, 4), DateTime(2001, 1, 3), DateTime(2001, 1, 1)], ReverseOrdered(), Irregular(DateTime(2001, 1, 1), DateTime(2001, 1, 4)), Points(), nothing)
+    end
+
+    @testset "Intervals" begin
+        l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Intervals(Start()), nothing)
+        @test l[:] == l
+        @test l[1:5] == l
+        @test l[1:5] isa typeof(l)
+        @test l[[1, 3, 4]] == Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
+        @test l[Int[]] == Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Intervals(Start()), nothing)
+        @test l[Near(2.1)] == 2.0
+        @test l[[false, true, true, false, true]] == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 12.0), Intervals(Start()), nothing)
+        @test l[2] === 4.0
+        @test l[CartesianIndex((4,))] == 8.0
+        @test l[CartesianIndices((1:3,))] == 
+            Sampled(2.0:2.0:6.0, ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())
+        @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Intervals(Start()), nothing)
+        # End Locus
+        l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Intervals(End()), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(End()), nothing)
+        # Center Locus
+        l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Intervals(Center()), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(3.0, 11.0), Intervals(Center()), nothing)
+        # Reverse Start Locus
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(Start()), nothing)
+        @test l[:] == l
+        @test l[1:5] == l
+        @test l[1:5] isa typeof(l)
+        @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(4.0, 12.0), Intervals(Start()), nothing)
+        @test l[Near(2.1)] == 2.0
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
+        @test l[2] === 8.0
+        @test l[CartesianIndex((4,))] == 4.0
+        @test l[CartesianIndices((1:3,))] == 
+            Sampled(10.0:-2.0:6.0, ReverseOrdered(), Regular(-2.0), Intervals(Start()), nothing)
+        @test l[2:2:4] == Sampled(8.0:-4.0:4.0, ReverseOrdered(), Regular(-4.0), Intervals(Start()), nothing)
+        # End Locus
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(End()), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(0.0, 8.0), Intervals(End()), nothing)
+        # Center Locus
+        l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(Center()), nothing)
+        @test l[[false, true, true, false, true]] == 
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(1.0, 9.0), Intervals(Center()), nothing)
+    end
+    @testset "NoLookup" begin
+        nl = NoLookup(1:100)
+        @test nl[100] == 100
+        @test nl[1:5] isa typeof(nl)
+        @test nl[CartesianIndex((1,))] == 1 
+        @test view(nl, 50) === view(1:100, 50)
+        @test Base.dotview(nl, 50) === 50
+    end
 end
 
 @testset "dimension" begin
@@ -260,7 +363,7 @@ end
 
     @testset "logical indexing" begin
         A = DimArray(zeros(40, 50), (X, Y));
-        I = rand(40, 50) .< 0.5
+        I = rand(Bool, 40, 50)
         @test all(A[I] .== 0.0)
         A[I] .= 3
         @test all(A[I] .== 3.0)

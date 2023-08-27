@@ -65,6 +65,20 @@ Objects that don't define a `val` method are returned unaltered.
 """
 function val end
 
+"""
+    lookup(x::Dimension) => LookupArray
+    lookup(x, [dims::Tuple]) => Tuple{Vararg{LookupArray}}
+    lookup(x::Tuple) => Tuple{Vararg{LookupArray}}
+    lookup(x, dim) => LookupArray
+
+Returns the [`LookupArray`](@ref) of a dimension. This dictates
+properties of the dimension such as array axis and index order,
+and sampling properties.
+
+`dims` can be a `Dimension`, a dimension type, or a tuple of either.
+"""
+function lookup end
+
 # Methods to retreive Object/Dimension/LookupArray properties
 #
 # These work on AbstractDimStack, AbstractDimArray, Dimension
@@ -88,20 +102,6 @@ to return just the `Tuple`
 `dims` can be a `Dimension`, or a tuple of `Dimension`.
 """
 function index end
-
-"""
-    lookup(x::Dimension) => LookupArray
-    lookup(x, [dims::Tuple]) => Tuple{Vararg{LookupArray}}
-    lookup(x::Tuple) => Tuple{Vararg{LookupArray}}
-    lookup(x, dim) => LookupArray
-
-Returns the [`LookupArray`](@ref) of a dimension. This dictates
-properties of the dimension such as array axis and index order,
-and sampling properties.
-
-`dims` can be a `Dimension`, a dimension type, or a tuple of either.
-"""
-function lookup end
 
 """
     metadata(x) => (object metadata)
@@ -167,6 +167,8 @@ function label end
 
 Return the bounds of all dimensions of an object, of a specific dimension,
 or of a tuple of dimensions.
+
+If bounds are not known, one or both values may be `nothing`.
 
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
 """
