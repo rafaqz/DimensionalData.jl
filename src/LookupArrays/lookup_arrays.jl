@@ -6,7 +6,7 @@ Types defining the behaviour of a lookup index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
 A `LookupArray` may be [`NoLookup`](@ref) indicating that the index is just the
-underlying array axis, [`Categorical`](@ref) for ordered or unordered categories, 
+underlying array axis, [`Categorical`](@ref) for ordered or unordered categories,
 or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type LookupArray{T,N} <: AbstractArray{T,N} end
@@ -14,7 +14,7 @@ abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
 const LookupArrayTuple = Tuple{LookupArray,Vararg{LookupArray}}
 
-span(lookup::LookupArray) = NoSpan() 
+span(lookup::LookupArray) = NoSpan()
 sampling(lookup::LookupArray) = NoSampling()
 
 dims(::LookupArray) = nothing
@@ -107,7 +107,7 @@ order(lookup::Aligned) = lookup.order
 
     NoLookup()
 
-A [`LookupArray`](@ref) that is identical to the array axis. 
+A [`LookupArray`](@ref) that is identical to the array axis.
 [`Selector`](@ref)s can't be used on this lookup.
 
 ## Example
@@ -170,17 +170,19 @@ locus(lookup::AbstractSampled) = locus(sampling(lookup))
 Base.step(lookup::AbstractSampled) = step(span(lookup))
 
 function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
-    order(l1) == order(l2) && 
-    span(l1) == span(l2) && 
-    sampling(l1) == sampling(l2) && 
+    order(l1) == order(l2) &&
+    span(l1) == span(l2) &&
+    sampling(l1) == sampling(l2) &&
     parent(l1) == parent(l2)
 end
 
 for f in (:getindex, :view, :dotview)
     @eval begin
-        # Regular span may need its step size updated
-        @propagate_inbounds Base.$f(l::AbstractSampled, i::AbstractRange) = 
-            rebuild(l; data=Base.$f(parent(l), i), span=slicespan(l, i))
+        # span may need its step size or bounds updated
+        @propagate_inbounds function Base.$f(l::AbstractSampled, i::AbstractArray)
+            i1 = Base.to_indices(l, (i,))[1]
+            rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
+        end
     end
 end
 
@@ -189,15 +191,19 @@ function Adapt.adapt_structure(to, l::AbstractSampled)
 end
 
 # bounds
-bounds(lookup::AbstractSampled) = _bounds(sampling(lookup), span(lookup), lookup)
+bounds(l::AbstractSampled) = _bounds(order(l), sampling(l), l)
 
-_bounds(::Points, span, lookup::AbstractSampled) = _bounds(order(lookup), lookup)
+_bounds(order::Order, ::Points, l::AbstractSampled) = _bounds(order, l)
+_bounds(::Unordered, ::Intervals, l::AbstractSampled) = (nothing, nothing)
+_bounds(::Ordered, sampling::Intervals, l::AbstractSampled) =
+    _bounds(sampling, span(l), l)
+
 _bounds(::Intervals, span::Irregular, lookup::AbstractSampled) = bounds(span)
-_bounds(sampling::Intervals, span::Explicit, lookup::AbstractSampled) = 
+_bounds(sampling::Intervals, span::Explicit, lookup::AbstractSampled) =
     _bounds(order(lookup), sampling, span, lookup)
-_bounds(::ForwardOrdered, ::Intervals, span::Explicit, lookup::AbstractSampled) = 
+_bounds(::ForwardOrdered, ::Intervals, span::Explicit, ::AbstractSampled) =
     (val(span)[1, 1], val(span)[2, end])
-_bounds(::ReverseOrdered, ::Intervals, span::Explicit, lookup::AbstractSampled) = 
+_bounds(::ReverseOrdered, ::Intervals, span::Explicit, ::AbstractSampled) =
     (val(span)[1, end], val(span)[2, 1])
 _bounds(::Intervals, span::Regular, lookup::AbstractSampled) =
     _bounds(locus(lookup), order(lookup), span, lookup)
@@ -224,13 +230,13 @@ A concrete implementation of the [`LookupArray`](@ref)
 correct `bounds` and [`Selector`](@ref)s for points or intervals of regular,
 irregular, forward and reverse indexes.
 
-On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of 
+On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of
 `AbstractRange` not assigned to [`Categorical`](@ref).
 
 ## Arguments
 
 - `data`: An `AbstractVector` of index values, matching the length of the curresponding
-    array axis. 
+    array axis.
 - `order`: [`Order`](@ref)) indicating the order of the index,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
     to be [`ForwardOrdered`](@ref), [`ReverseOrdered`](@ref) or [`Unordered`](@ref).
@@ -238,7 +244,7 @@ On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups
 - `span`: indicates the size of intervals or distance between points, and will be set to
     [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
     unless assigned manually.
-- `sampling`: is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) manually. 
+- `sampling`: is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) manually.
     Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
     to take account for the full size of the interval, rather than the point alone.
 - `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
@@ -286,7 +292,7 @@ function Sampled(
     Sampled(data, order, span, sampling, metadata)
 end
 
-function rebuild(l::Sampled; 
+function rebuild(l::Sampled;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l), kw...
 )
     Sampled(data, order, span, sampling, metadata)
@@ -297,7 +303,7 @@ end
 
 [`LookupArray`](@ref)s where the values are categories.
 
-[`Categorical`](@ref) is the provided concrete implementation. 
+[`Categorical`](@ref) is the provided concrete implementation.
 but this can easily be extended - all methods are defined for `AbstractCategorical`.
 
 All `AbstractCategorical` must provide a `rebuild`
@@ -331,7 +337,7 @@ This will be automatically assigned if the index contains `AbstractString`,
 ## Arguments
 
 - `data`: An `AbstractVector` of index values, matching the length of the curresponding
-    array axis. 
+    array axis.
 - `order`: [`Order`](@ref)) indicating the order of the index,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
     to be `ForwardOrdered`, `ReverseOrdered` or `Unordered`.
@@ -366,7 +372,7 @@ function Categorical(data=AutoIndex(); order=AutoOrder(), metadata=NoMetadata())
     Categorical(data, order, metadata)
 end
 
-function rebuild(l::Categorical; 
+function rebuild(l::Categorical;
     data=parent(l), order=order(l), metadata=metadata(l), kw...
 )
     Categorical(data, order, metadata)
@@ -406,7 +412,7 @@ from CoordinateTransformations.jl may be useful.
 
 ## Keyword Arguments
 
-- `metdata`: 
+- `metdata`:
 
 ## Example
 
@@ -435,7 +441,7 @@ function Transformed(f, dim; metadata=NoMetadata())
     Transformed(AutoIndex(), f, basetypeof(dim)(), metadata)
 end
 
-function rebuild(l::Transformed; 
+function rebuild(l::Transformed;
     data=parent(l), f=f(l), dim=dim(l), metadata=metadata(l)
 )
     Transformed(data, f, dim, metadata)
@@ -526,37 +532,64 @@ end
 
 _intervalbounds_no_interval_error() = error("Lookup does not have Intervals, `intervalbounds` cannot be applied")
 
+# Slicespan should only be called after `to_indices` has simplified indices
 slicespan(l::LookupArray, i::Colon) = span(l)
 slicespan(l::LookupArray, i) = _slicespan(span(l), l, i)
 
-_slicespan(span::Regular, l::LookupArray, i::Int) = span
-_slicespan(span::Regular, l::LookupArray, i::AbstractRange) = Regular(step(l) * step(i))
-_slicespan(span::Regular, l::LookupArray, i::AbstractArray) = _slicespan(Irregular(bounds(l)), l, i) 
-_slicespan(span::Explicit, l::LookupArray, i::Int) = Explicit(val(span)[:, i])
+_slicespan(span::Regular, l::LookupArray, i::Union{AbstractRange,CartesianIndices}) = Regular(step(l) * step(i))
+_slicespan(span::Regular, l::LookupArray, i::AbstractArray) = _slicespan(Irregular(bounds(l)), l, i)
 _slicespan(span::Explicit, l::LookupArray, i::AbstractArray) = Explicit(val(span)[:, i])
-_slicespan(span::Irregular, l::LookupArray, i::StandardIndices) =
+_slicespan(span::Irregular, l::LookupArray, i::AbstractArray) =
     _slicespan(sampling(l), span, l, i)
-_slicespan(::Points, span::Irregular, l::LookupArray, i::StandardIndices) = span
-_slicespan(::Intervals, span::Irregular, l::LookupArray, i::StandardIndices) =
-    Irregular(_maybeflipbounds(l, _slicebounds(locus(l), span, l, i)))
+function _slicespan(span::Irregular, l::LookupArray, i::Base.LogicalIndex)
+    i1 = length(i) == 0 ? (1:0) : ((findfirst(i.mask)::Int):(findlast(i.mask)::Int))
+    _slicespan(sampling(l), span, l, i1)
+end
+function _slicespan(span::Irregular, l::LookupArray, i::InvertedIndices.InvertedIndexIterator)
+    i1 = collect(i) # We could do something more efficient here, but I'm not sure what
+    _slicespan(sampling(l), span, l, i1)
+end
+function _slicespan(::Points, span::Irregular, l::LookupArray, i::AbstractArray)
+    length(i) == 0 && return Irregular(nothing, nothing)
+    fi, la = first(i), last(i)
+    return Irregular(_maybeflipbounds(l, (l[fi], l[la])))
+end
+_slicespan(::Intervals, span::Irregular, l::LookupArray, i::AbstractArray) =
+    Irregular(_slicebounds(span, l, i))
 
-function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::StandardIndices)
-    l[first(i)], last(i) >= lastindex(l) ? _maybeflipbounds(l, bounds(l))[2] : l[last(i) + 1]
+function _slicebounds(span::Irregular, l::LookupArray, i::AbstractArray)
+    length(i) == 0 && return (nothing, nothing)
+    _slicebounds(locus(l), span, l, i)
 end
-function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::StandardIndices)
-    first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(l))[1] : l[first(i) - 1], l[last(i)]
-end
-function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::StandardIndices)
-    if length(i) == 0
-        return map(zero, val(span))
+function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::AbstractArray)
+    fi, la = first(i), last(i)
+    if order(l) isa ForwardOrdered
+        l[fi], la >= lastindex(l) ? bounds(l)[2] : l[la + 1]
     else
-        f = first(i) <= firstindex(l) ? _maybeflipbounds(l, bounds(l))[1] : (l[first(i) - 1] + l[first(i)]) / 2
-        l = last(i)  >= lastindex(l)  ? _maybeflipbounds(l, bounds(l))[2] : (l[last(i) + 1]  + l[last(i)]) / 2
-        return f, l
+        l[la], fi <= firstindex(l) ? bounds(l)[2] : l[fi - 1]
     end
 end
+function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::AbstractArray)
+    fi, la = first(i), last(i)
+    if order(l) isa ForwardOrdered
+        fi <= firstindex(l) ? bounds(l)[1] : l[fi - 1], l[la]
+    else
+        la >= lastindex(l) ? bounds(l)[1] : l[la + 1], l[fi]
+    end
+end
+function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::AbstractArray)
+    fi, la = first(i), last(i)
+    a, b = if order(l) isa ForwardOrdered
+        fi <= firstindex(l) ? bounds(l)[1] : (l[fi - 1] + l[fi]) / 2,
+        la >= lastindex(l)  ? bounds(l)[2] : (l[la + 1] + l[la]) / 2
+    else
+        la >= lastindex(l)  ? bounds(l)[1] : (l[la + 1] + l[la]) / 2,
+        fi <= firstindex(l) ? bounds(l)[2] : (l[fi - 1] + l[fi]) / 2
+    end
+    return a, b
+end
 # Have to special-case date/time so we work with seconds and add to the original
-function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::StandardIndices) where T<:Dates.AbstractTime
+function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::AbstractArray) where T<:Dates.AbstractTime
     op = T === Date ? div : /
     frst = if first(i) <= firstindex(l)
         _maybeflipbounds(l, bounds(l))[1]
@@ -564,7 +597,7 @@ function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::Stan
         if isrev(order(l))
             op(l[first(i)] - l[first(i) - 1], 2) + l[first(i) - 1]
         else
-            op(l[first(i) - 1] - l[first(i)], 2) + l[first(i)] 
+            op(l[first(i) - 1] - l[first(i)], 2) + l[first(i)]
         end
     end
     lst = if last(i) >= lastindex(l)
@@ -579,13 +612,12 @@ function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::Stan
     return (frst, lst)
 end
 
-
 # reducing methods
 @inline reducelookup(lookup::NoLookup) = NoLookup(OneTo(1))
 # TODO what should this do?
 @inline reducelookup(lookup::Unaligned) = NoLookup(OneTo(1))
 # Categories are combined.
-@inline reducelookup(lookup::Categorical{<:AbstractString}) = 
+@inline reducelookup(lookup::Categorical{<:AbstractString}) =
     rebuild(lookup; data=["combined"])
 @inline reducelookup(lookup::Categorical) = rebuild(lookup; data=[:combined])
 # Sampled is resampled
@@ -641,7 +673,7 @@ _mayberange(x, step::Nothing) = [x]
 @inline function centerval(index::AbstractArray{<:DateTime}, len)
     f = first(index)
     l = last(index)
-    if f <= l 
+    if f <= l
         return (l - f) / 2 + first(index)
     else
         return (f - l) / 2 + last(index)

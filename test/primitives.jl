@@ -372,11 +372,11 @@ end
                              Y(Sampled([40.0, 20.0, 10.0], ReverseOrdered(), Irregular(), Points(), NoMetadata())), ))
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
-        ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),),
-         (Y(Sampled([10.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),))
+        ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(140, 142), Points(), NoMetadata())),),
+         (Y(Sampled([10.0], ReverseOrdered(), Irregular(10.0, 10.0), Points(), NoMetadata())),))
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
-        ((X(Sampled([142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),
-          Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata()))), ())
+        ((X(Sampled([142.0], ForwardOrdered(), Irregular(142, 142), Points(), NoMetadata())),
+          Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(20.0, 40.0), Points(), NoMetadata()))), ())
         @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
     end
 
