@@ -87,9 +87,6 @@ function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
     Base.checkbounds(A, dims2indices(A, dims)...)
 end
 
-Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
-Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
-
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))
@@ -353,6 +350,9 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+
+Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
+Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
 
 checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)
