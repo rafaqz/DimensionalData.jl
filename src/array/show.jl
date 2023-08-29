@@ -145,6 +145,12 @@ showhide(x) = ShowWith(x, true, :nothing)
 Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
 Base.length(x::ShowWith) = length(string(x.val))
 Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
-Base.print(io::IO, x::ShowWith) = printstyled(io, string(x.val))
+function Base.print(io::IO, x::ShowWith)
+    printstyled(io, string(x.val); color = x.color, hidden = x.hide)
+end
+function Base.show(io::IO, x::ShowWith)
+    printstyled(io, string(x.val); color = x.color, hidden = x.hide)
+end
+
 Base.iterate(x::ShowWith) = iterate(string(x.val))
 Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)
