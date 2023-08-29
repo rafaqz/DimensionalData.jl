@@ -87,6 +87,9 @@ function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
     Base.checkbounds(A, dims2indices(A, dims)...)
 end
 
+Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
+Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
+
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))
@@ -338,6 +341,8 @@ function DimArray(A::AbstractDimArray;
 )
     DimArray(data, dims; refdims, name, metadata)
 end
+DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
+DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 """
     DimArray(f::Function, dim::Dimension; [name])
 
