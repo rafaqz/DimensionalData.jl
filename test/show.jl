@@ -102,6 +102,12 @@ end
     D = DimArray(ones(X(5), Y(5)); name=:vec)
     sv = sprint(show, MIME("text/plain"), D)
     @test occursin("1", sv)
+
+    # Test higher-dimensional data.
+    D = DimArray(rand(2, 2, 2), (x = [(1, 1), (1, 2)], y = ['a', 'b'], z = [2, "b"]))
+    sv = sprint(show, MIME("text/plain"), D)
+    @test occursin('a', sv) && occursin('b', sv)
+    @test occursin("(1, 1)", sv) && occursin("(1, 2)", sv)
 end
 
 @testset "stack" begin
