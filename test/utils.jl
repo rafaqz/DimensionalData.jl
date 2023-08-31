@@ -1,6 +1,7 @@
 using DimensionalData, Test, Dates
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 using .LookupArrays: shiftlocus, maybeshiftlocus
+using DimensionalData: uniquekeys
 
 @testset "reverse" begin
     @testset "dimension" begin
@@ -214,4 +215,16 @@ end
         @test Dimensions.dim2boundsmatrix(dim) == [0.0 1.0 2.0
                                                    1.0 2.0 3.0]
     end
+end
+
+@testset "uniquekeys" begin
+    da1 = rand(X(2), Y(2); name=:name1)
+    da2 = rand(X(2), Y(2); name=:name1)
+    da3 = rand(X(2), Y(2); name=:name2)
+    @test uniquekeys([da1, da2, da3]) == [:layer1, :layer2, :name2] # Should we keep thoe original name?
+    @test uniquekeys((da1, da2, da3)) == (:layer1, :layer2, :name2) # Should we keep thoe original name?
+    @test uniquekeys([:name1, :name1, :name2]) == [:layer1, :layer2, :name2] # Should we keep thoe original name?
+    @test uniquekeys((:name1, :name1, :name2)) == (:layer1, :layer2, :name2) 
+    @test uniquekeys(Symbol[]) == Symbol[]
+    @test uniquekeys(()) == ()
 end

@@ -24,7 +24,6 @@ mixed = DimStack(da1, da2, da4)
         DimStack((one=da1, two=da2, three=da3)) == s
     @test length(DimStack(NamedTuple())) == length(DimStack()) == 0
     @test dims(DimStack()) == dims(DimStack(NamedTuple())) == ()
-    DimStack(, ())
 end
 
 @testset "ConstructionBase" begin
