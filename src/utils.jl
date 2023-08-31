@@ -156,7 +156,7 @@ function uniquekeys(das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}})
     uniquekeys(map(Symbol ∘ name, das))
 end
 function uniquekeys(das::Vector{<:AbstractDimArray})
-    uniquekeys(Symbol.(name.(das)))
+    map(uniquekeys ∘ Symbol ∘ name, das)
 end
 function uniquekeys(keys::Vector{Symbol})
     map(enumerate(keys)) do (id, k)

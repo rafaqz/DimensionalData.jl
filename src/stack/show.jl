@@ -5,7 +5,11 @@ function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
     layers_str = nlayers == 1 ? "layer" : "layers"
     printstyled(io, "\nand "; color=:light_black) 
     print(io, "$nlayers $layers_str:\n")
-    maxlen = reduce(max, map(length ∘ string, collect(keys(stack))))
+    maxlen = if length(keys(stack)) == 0
+        0
+    else
+        reduce(max, map(length ∘ string, collect(keys(stack))))
+    end
     for key in keys(stack)
         layer = stack[key]
         pkey = rpad(key, maxlen)

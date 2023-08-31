@@ -529,8 +529,12 @@ Combine the dimensions of each object in `xs`, in the order they are found.
 """
 function combinedims end
 function combinedims(xs::Vector; kw...)
-    reduce(xs; init=dims(first(xs))) do ds, A
-        _combinedims(ds, dims(A); kw...)
+    if length(xs) > 0
+        reduce(xs; init=dims(first(xs))) do ds, A
+            _combinedims(ds, dims(A); kw...)
+        end
+    else
+        ()
     end
 end
 combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
