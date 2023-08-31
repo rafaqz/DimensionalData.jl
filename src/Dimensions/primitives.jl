@@ -537,7 +537,8 @@ function combinedims(xs::Vector; kw...)
         ()
     end
 end
-combinedims(xs...; kw...) = combinedims(map(dims, xs)...; kw...)
+combinedims(; kw...) = ()
+combinedims(x1, xs...; kw...) = combinedims(map(dims, (x1, xs...))...; kw...)
 combinedims(dt1::DimTupleOrEmpty; kw...) = dt1
 combinedims(dt1::DimTupleOrEmpty, dt2::DimTupleOrEmpty, dimtuples::DimTupleOrEmpty...; kw...) =
     reduce((dt2, dimtuples...); init=dt1) do dims1, dims2
