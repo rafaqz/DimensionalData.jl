@@ -359,7 +359,7 @@ end
     @test ac == a2
     # To DimArray
     @test all(convert(DimArray{Float32}, da) .=== Float32.(da))
-    @test convert(DimArray{eltype(da)}, da) === da
+    @test convert(DimArray{eltype(da)}, da) === convert(DimArray, da) === da
 end
 
 if VERSION > v"1.1-"
