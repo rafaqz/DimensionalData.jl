@@ -18,9 +18,13 @@ s = DimStack((da1, da2, da3))
 mixed = DimStack(da1, da2, da4)
 
 @testset "constructors" begin
-    @test DimStack((one=A, two=2A, three=3A), dimz) == s
-    @test DimStack(da1, da2, da3) == s
-    @test DimStack((one=da1, two=da2, three=da3), dimz) == s
+    @test DimStack((one=A, two=2A, three=3A), dimz) ==
+        DimStack(da1, da2, da3) ==
+        DimStack((one=da1, two=da2, three=da3), dimz) ==
+        DimStack((one=da1, two=da2, three=da3)) == s
+    @test length(DimStack(NamedTuple())) == length(DimStack()) == 0
+    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == ()
+    DimStack(, ())
 end
 
 @testset "ConstructionBase" begin
