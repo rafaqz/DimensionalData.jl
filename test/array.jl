@@ -20,10 +20,6 @@ da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
-@testset "convert" begin
-    @test all(convert(DimArray{Float32}, da) .=== Float32.(da))
-end
-
 @testset "checkbounds" begin
     @test checkbounds(Bool, da, X(2), Y(1)) == true
     @test checkbounds(Bool, da, X(10), Y(1)) == false
@@ -357,9 +353,13 @@ end
 end
 
 @testset "convert" begin
+    # To Array
     ac = convert(Array, da2)
     @test ac isa Array{Int,2}
     @test ac == a2
+    # To DimArray
+    @test all(convert(DimArray{Float32}, da) .=== Float32.(da))
+    @test convert(DimArray{eltype(da)}, da) === da
 end
 
 if VERSION > v"1.1-"
