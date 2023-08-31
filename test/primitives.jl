@@ -287,6 +287,7 @@ end
 
 @testset "combinedims" begin
     @test combinedims((X(1:10), Y(1:5)), (X(1:10), Z(3:10))) == (X(1:10), Y(1:5), Z(3:10))
+    @test combinedims([]) == combinedims() == ()
     @test_throws DimensionMismatch combinedims((X(1:2), Y(1:5)), (X(1:10), Z(3:10)))
 end
 
