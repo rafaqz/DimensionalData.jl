@@ -9,6 +9,7 @@ _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
 # 1d plots are scatter by default
 for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
+    f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(::AbstractDimArray{<:Any,1})
         
@@ -19,27 +20,38 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimArray{<:Any,1}; attributes...)
-            A1 = _prepare_for_makie(A)
-            d = DD.dims(A1, 1)
-            user_attributes = Makie.Attributes(; attributes...)
-            plot_attributes = Makie.Attributes(; 
-                axis=(; 
-                    xlabel=string(name(d)), 
-                    ylabel=DD.label(A),
-                    title=DD.refdims_title(A),
-                ),
-            )
-            # Convert categorical to Int
-            lookup_attributes, newdims = _split_attributes(A1)
-            A2 = _restore_dim_names(set(A1, d => newdims[1]), A)
-            args = Makie.convert_arguments(Makie.PointBased(), A2)
-            merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
+            args, merged_attributes = _pointbased1(A, attributes)
             Makie.$f2(args...; merged_attributes...)
+        end
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,1}; attributes...)
+            args, _ = _pointbased1(A, attributes)
+            Makie.$f2!(axis, args...; attributes...)
         end
     end
 end
 
+function _pointbased1(A, attributes)
+    A1 = _prepare_for_makie(A)
+    d = DD.dims(A1, 1)
+    user_attributes = Makie.Attributes(; attributes...)
+    plot_attributes = Makie.Attributes(; 
+        axis=(; 
+            xlabel=string(name(d)), 
+            ylabel=DD.label(A),
+            title=DD.refdims_title(A),
+        ),
+    )
+    # Convert categorical to Int
+    lookup_attributes, newdims = _split_attributes(A1)
+    A2 = _restore_dim_names(set(A1, d => newdims[1]), A)
+    args = Makie.convert_arguments(Makie.PointBased(), A2)
+    merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
+
+    return args, merged_attributes
+end
+
 for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy)
+    f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(::AbstractDimArray{<:Any,2})
         
@@ -57,28 +69,45 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
-            A1 = _prepare_for_makie(A, dims)
-            lookup_attributes, newdims = _split_attributes(A1)
-            A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
-
-            dx, dy = DD.dims(A2)
-            user_attributes = Makie.Attributes(; attributes...)
-            dd_attributes = Makie.Attributes(; 
-                axis=(; 
-                    xlabel=DD.label(dx),
-                    ylabel=DD.label(dy),
-                    title=DD.refdims_title(A),
-                ),
-            )
-            merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
-            args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
-            merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
-            Makie.$f2(args...; merged_attributes...)
+            args, merged_attributes = _surface2(A, attributes, dims)
+            p = Makie.$f2(args...; merged_attributes...)
+            if $(f1 in (:heatmap, :contourf)) 
+                Colorbar(p.figure[1, 2];
+                    label=DD.label(A),
+                ) 
+            end
+            p
+        end
+        function Makie.$f1!(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
+            args, _ = _surface2(A, attributes, dims)
+            Makie.$f2!(args...; attributes...)
         end
     end
 end
 
+function _surface2(A, attributes, dims)
+    A1 = _prepare_for_makie(A, dims)
+    lookup_attributes, newdims = _split_attributes(A1)
+    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+
+    dx, dy = DD.dims(A2)
+    user_attributes = Makie.Attributes(; attributes...)
+    dd_attributes = Makie.Attributes(; 
+        axis=(; 
+            xlabel=DD.label(dx),
+            ylabel=DD.label(dy),
+            title=DD.refdims_title(A),
+        ),
+    )
+    merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
+    args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
+    merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
+
+    return args, merged_attributes
+end
+
 for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
+    f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(::AbstractDimArray{<:Any,2})
         
@@ -96,19 +125,29 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
-            A1 = _prepare_for_makie(A, dims)
-            dx, dy, dz = DD.dims(A1)
-            user_attributes = Makie.Attributes(; attributes...)
-            plot_attributes = Makie.Attributes(; 
-                # axis=(; cant actually set anything here for LScene)
-            )
-            _, newdims = _split_attributes(A1)
-            merged_attributes = merge(user_attributes, plot_attributes)
-            A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
-            args = Makie.convert_arguments(Makie.VolumeLike(), A2)
+            args, merged_attributes = _volume3(A, attributes, dims)
             Makie.$f2(args...; merged_attributes...)
         end
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
+            args, _ = _volume3(A, attributes, dims)
+            Makie.$f2!(axis, args...; attributes...)
+        end
     end
+end
+
+function _volume3(A, attributes, dims)
+    A1 = _prepare_for_makie(A, dims)
+    dx, dy, dz = DD.dims(A1)
+    user_attributes = Makie.Attributes(; attributes...)
+    plot_attributes = Makie.Attributes(; 
+        # axis=(; cant actually set anything here for LScene)
+    )
+    _, newdims = _split_attributes(A1)
+    merged_attributes = merge(user_attributes, plot_attributes)
+    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+    args = Makie.convert_arguments(Makie.VolumeLike(), A2)
+
+    return args, merged_attributes
 end
 
 """
@@ -120,6 +159,17 @@ At least one dimension should have a `Categorical` `Lookup`, which
 will be used to assign categories to the values in the array.
 """
 function Makie.series(A::AbstractDimArray{<:Any,2}; attributes...)
+    args, merged_attributes = _series(A, attributes)
+    p = Makie.series(args...; merged_attributes...)
+    axislegend(p.axis)
+    p
+end
+function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; attributes...)
+    args, _ = _series(A, attributes)
+    Makie.series!(args...; attributes...)
+end
+
+function _series(A, attributes)
     categoricaldim = reduce(dims(A); init=nothing) do acc, x
         if isnothing(acc)
             lookup(x) isa AbstractCategorical ? x : nothing
@@ -142,10 +192,12 @@ function Makie.series(A::AbstractDimArray{<:Any,2}; attributes...)
         ),
     )
     merged_attributes = merge(user_attributes, dd_attributes)
-    Makie.series(vec(lookup(otherdim)), parent(A); merged_attributes...)
+
+    return args, merged_attributes
 end
 
-for f in (:violin, :boxplot, :rainclouds)
+for f in (:boxplot, :rainclouds, :violin)
+    f! = Symbol(f, '!')
     docstring = """
         $f(::AbstractDimArray{<:Any,2})
         
@@ -157,31 +209,42 @@ for f in (:violin, :boxplot, :rainclouds)
     @eval begin
         @doc $docstring
         function Makie.$f(A::AbstractDimArray{<:Any,2}; attributes...)
-            categoricaldim = reduce(dims(A); init=nothing) do acc, x
-                if isnothing(acc)
-                    lookup(x) isa AbstractCategorical ? x : nothing
-                else
-                    lookup(acc) isa AbstractCategorical ? acc : x
-                end
-            end
-            isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
-            categoricallookup = parent(categoricaldim)
-            otherdim = only(otherdims(A, categoricaldim))
-            categories = broadcast_dims((_, c) -> c, A, DimArray(eachindex(categoricaldim), categoricaldim))
-
-            user_attributes = Makie.Attributes(; attributes...)
-            dd_attributes = Makie.Attributes(; 
-                axis=(; 
-                    xlabel=DD.label(categoricaldim),
-                    xticks=axes(categoricallookup, 1),
-                    xtickformat=I -> map(string, categoricallookup[map(Int, I)]),
-                    ylabel=DD.label(A),
-                ),
-            )
-            merged_attributes = merge(user_attributes, dd_attributes)
-            Makie.$f(vec(categories), vec(A); merged_attributes...)
+            args, merged_attributes = _boxplot(A, attributes)
+            Makie.$f(args...; merged_attributes...)
+        end
+        function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; attributes...)
+            args, merged_attributes = _boxplot(A, attributes)
+            Makie.$f(axis, args...; merged_attributes...)
         end
     end
+end
+
+function _boxplot(A, attributes)
+    categoricaldim = reduce(dims(A); init=nothing) do acc, x
+        if isnothing(acc)
+            lookup(x) isa AbstractCategorical ? x : nothing
+        else
+            lookup(acc) isa AbstractCategorical ? acc : x
+        end
+    end
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
+    categoricallookup = parent(categoricaldim)
+    otherdim = only(otherdims(A, categoricaldim))
+    categories = broadcast_dims((_, c) -> c, A, DimArray(eachindex(categoricaldim), categoricaldim))
+
+    user_attributes = Makie.Attributes(; attributes...)
+    plot_attributes = Makie.Attributes(; 
+        axis=(; 
+            xlabel=DD.label(categoricaldim),
+            xticks=axes(categoricallookup, 1),
+            xtickformat=I -> map(string, categoricallookup[map(Int, I)]),
+            ylabel=DD.label(A),
+        ),
+    )
+    merged_attributes = merge(user_attributes, plot_attributes)
+    args = vec(lookup(otherdim)), parent(A)
+
+    return args, merged_attributes
 end
 
 Makie.plottype(A::AbstractDimArray{<:Any,1}) = Makie.Scatter
@@ -206,8 +269,9 @@ function Makie.convert_arguments(
     t::Makie.DiscreteSurface, A::AbstractDimArray{<:Any,2}
 )
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_edges, lookup(A1))
-    return Makie.convert_arguments(t, xs, ys, parent(A1))
+    # xs, ys = map(_lookup_edges, lookup(A1))
+    xs, ys = map(parent, lookup(A1))
+    return xs, ys, parent(A1)
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
     A1 = _prepare_for_makie(A)
@@ -221,26 +285,26 @@ function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<
 end
 
 # Calculate the edges 
-function _lookup_edges(l::LookupArray)
-    l = if l isa AbstractSampled 
-        set(l, Intervals())
-    else
-        set(l, Sampled(; sampling=Intervals()))
-    end
-    if l == 1
-        return [bounds(l)...]
-    else
-        ib = intervalbounds(l)
-        if order(l) isa ForwardOrdered
-            edges = first.(ib)
-            push!(edges, last(last(ib)))
-        else
-            edges = last.(ib)
-            push!(edges, first(last(ib)))
-        end
-        return edges
-    end
-end
+# function _lookup_edges(l::LookupArray)
+#     l = if l isa AbstractSampled 
+#         set(l, Intervals())
+#     else
+#         set(l, Sampled(; sampling=Intervals()))
+#     end
+#     if l == 1
+#         return [bounds(l)...]
+#     else
+#         ib = intervalbounds(l)
+#         if order(l) isa ForwardOrdered
+#             edges = first.(ib)
+#             push!(edges, last(last(ib)))
+#         else
+#             edges = last.(ib)
+#             push!(edges, first(last(ib)))
+#         end
+#         return edges
+#     end
+# end
 
 _split_attributes(A) = _split_attributes(dims(A))
 function _split_attributes(dims::DD.DimTuple)
