@@ -83,9 +83,13 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
 end
 
 function _pointbased1(A, attributes; set_axis_attributes=true)
+    # Array/Dimension manipulation
     A1 = _prepare_for_makie(A)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, newdims[1] => newdims[1]), A)
+    args = Makie.convert_arguments(Makie.PointBased(), A2)
+
+    # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
     axis_attributes = if set_axis_attributes 
         Attributes(; 
@@ -101,7 +105,6 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     plot_attributes = Attributes(; 
         label=DD.label(A),
     )
-    args = Makie.convert_arguments(Makie.PointBased(), A2)
     merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
 
     return args, merged_attributes
@@ -125,6 +128,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
         function Makie.$f1(A::AbstractDimArray{<:Any,2}; dims=(), colorbarkw=(;), attributes...)
             args, merged_attributes = _surface2(A, attributes, dims)
             p = Makie.$f2(args...; merged_attributes...)
+            # Add a Colorbar for heatmaps and contourf
             if $(f1 in (:heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2];
                     label=DD.label(A), colorbarkw...
@@ -134,16 +138,20 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
         end
         function Makie.$f1!(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
             args, _ = _surface2(A, attributes, dims)
+            # No ColourBar in the ! in-place versions
             return Makie.$f2!(args...; attributes...)
         end
     end
 end
 
 function _surface2(A, attributes, dims)
+    # Array/Dimension manipulation
     A1 = _prepare_for_makie(A, dims)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+    args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
 
+    # Plot attribute generation
     dx, dy = DD.dims(A2)
     user_attributes = Makie.Attributes(; attributes...)
     plot_attributes = Makie.Attributes(; 
@@ -154,7 +162,6 @@ function _surface2(A, attributes, dims)
         ),
     )
     merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
-    args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
 
     return args, merged_attributes
 end
@@ -187,16 +194,18 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
 end
 
 function _volume3(A, attributes, dims)
+    # Array/Dimension manipulation
     A1 = _prepare_for_makie(A, dims)
-    dx, dy, dz = DD.dims(A1)
+    _, newdims = _split_attributes(A1)
+    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+    args = Makie.convert_arguments(Makie.VolumeLike(), A2)
+
+    # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
     plot_attributes = Makie.Attributes(; 
         # axis=(; cant actually set much here for LScene)
     )
-    _, newdims = _split_attributes(A1)
     merged_attributes = merge(user_attributes, plot_attributes)
-    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
-    args = Makie.convert_arguments(Makie.VolumeLike(), A2)
 
     return A1, A2, args, merged_attributes
 end
@@ -222,11 +231,14 @@ function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; axislegendkw=(;), lab
 end
 
 function _series(A, attributes, labeldim)
+    # Array/Dimension manipulation
     categoricaldim = _categorical_or_dependent(A, labeldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
     categoricallookup = parent(categoricaldim)
     otherdim = only(otherdims(A, categoricaldim))
+    args = vec(lookup(otherdim1)), parent(permutedims(A, (categoricaldim, otherdim)))
 
+    # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
     lookup_attributes, otherdim1 = _split_attributes(X(lookup(otherdim)))
     plot_attributes = Makie.Attributes(; 
@@ -238,7 +250,6 @@ function _series(A, attributes, labeldim)
         ),
     )
     merged_attributes = merge(user_attributes, lookup_attributes, plot_attributes)
-    args = vec(lookup(otherdim1)), parent(permutedims(A, (categoricaldim, otherdim)))
 
     return args, merged_attributes
 end
@@ -269,11 +280,16 @@ for f in (:violin, :boxplot, :rainclouds)
 end
 
 function _boxplot(A, attributes, labeldim)
+    # Array/Dimension manipulation
     categoricaldim = _categorical_or_dependent(A, labeldim)
     categoricallookup = lookup(categoricaldim)
     otherdim = only(otherdims(A, categoricaldim))
-    categories = broadcast_dims((_, c) -> c, A, DimArray(eachindex(categoricaldim), categoricaldim))
+    # Create a new array with an `Int` category to match each value in `A`
+    indices = DimArray(eachindex(categoricaldim), categoricaldim)
+    category_ints = broadcast_dims((_, c) -> c, A, indices)
+    args = vec(category_ints), vec(A)
 
+    # Array/Dimension manipulation
     user_attributes = Makie.Attributes(; attributes...)
     plot_attributes = Makie.Attributes(; 
         axis=(; 
@@ -285,7 +301,6 @@ function _boxplot(A, attributes, labeldim)
         ),
     )
     merged_attributes = merge(user_attributes, plot_attributes)
-    args = vec(categories), vec(A)
 
     return args, merged_attributes
 end
