@@ -8,6 +8,7 @@ _set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kwdims(
 # Convert pairs to wrapped dims and set
 _set(dims_::DimTuple, p::Pair, ps::Vararg{Pair}) = _set(dims_, (p, ps...))
 _set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairdims(ps...))
+_set(dims_::DimTuple, ::Tuple{}) = dims_
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin
     # Check the dimension types match
