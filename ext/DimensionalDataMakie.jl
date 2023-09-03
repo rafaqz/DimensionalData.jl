@@ -8,7 +8,7 @@ const DD = DimensionalData
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
 # 1d plots are scatter by default
-for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :stem)
+for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
     docstring = """
         $f1(::AbstractDimArray{<:Any,1})
         
@@ -26,6 +26,7 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :stem)
                 axis=(; 
                     xlabel=string(name(d)), 
                     ylabel=DD.label(A),
+                    title=DD.refdims_title(A),
                 ),
             )
             # Convert categorical to Int
@@ -38,7 +39,7 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :stem)
     end
 end
 
-for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf)
+for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy)
     docstring = """
         $f1(::AbstractDimArray{<:Any,2})
         
@@ -66,7 +67,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 axis=(; 
                     xlabel=DD.label(dx),
                     ylabel=DD.label(dy),
-                    title=DD.label(A),
+                    title=DD.refdims_title(A),
                 ),
             )
             merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
@@ -98,11 +99,11 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
             A1 = _prepare_for_makie(A, dims)
             dx, dy, dz = DD.dims(A1)
             user_attributes = Makie.Attributes(; attributes...)
-            dd_attributes = Makie.Attributes(; 
+            plot_attributes = Makie.Attributes(; 
                 # axis=(; cant actually set anything here for LScene)
             )
             _, newdims = _split_attributes(A1)
-            merged_attributes = merge(user_attributes, dd_attributes)
+            merged_attributes = merge(user_attributes, plot_attributes)
             A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
             args = Makie.convert_arguments(Makie.VolumeLike(), A2)
             Makie.$f2(args...; merged_attributes...)
@@ -110,7 +111,41 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     end
 end
 
-for f in (:violin, :boxplot)
+"""
+    series(::AbstractDimArray{<:Any,2})
+    
+Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
+
+At least one dimension should have a `Categorical` `Lookup`, which
+will be used to assign categories to the values in the array.
+"""
+function Makie.series(A::AbstractDimArray{<:Any,2}; attributes...)
+    categoricaldim = reduce(dims(A); init=nothing) do acc, x
+        if isnothing(acc)
+            lookup(x) isa AbstractCategorical ? x : nothing
+        else
+            lookup(acc) isa AbstractCategorical ? acc : x
+        end
+    end
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
+    categoricallookup = parent(categoricaldim)
+    otherdim = only(otherdims(A, categoricaldim))
+    otherlookup = lookup(otherdim)
+
+    user_attributes = Makie.Attributes(; attributes...)
+    dd_attributes = Makie.Attributes(; 
+        labels=string.(parent(categoricallookup)),
+        axis=(; 
+            xlabel=DD.label(otherdim),
+            ylabel=DD.label(A),
+            title=DD.refdims_title(A),
+        ),
+    )
+    merged_attributes = merge(user_attributes, dd_attributes)
+    Makie.series(vec(lookup(otherdim)), parent(A); merged_attributes...)
+end
+
+for f in (:violin, :boxplot, :rainclouds)
     docstring = """
         $f(::AbstractDimArray{<:Any,2})
         
@@ -123,7 +158,11 @@ for f in (:violin, :boxplot)
         @doc $docstring
         function Makie.$f(A::AbstractDimArray{<:Any,2}; attributes...)
             categoricaldim = reduce(dims(A); init=nothing) do acc, x
-                lookup(acc) isa AbstractCategorical ? acc : x
+                if isnothing(acc)
+                    lookup(x) isa AbstractCategorical ? x : nothing
+                else
+                    lookup(acc) isa AbstractCategorical ? acc : x
+                end
             end
             isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
             categoricallookup = parent(categoricaldim)
@@ -248,7 +287,6 @@ function _restore_dim_names(A2, A1, replacements::Tuple=())
     inverted_replacements = map(all_replacements) do r
         basetypeof(val(r))(basetypeof(r)())
     end
-    @show replacements inverted_replacements
     # Set the dimensions back to the originals now they are in the right order
     return set(A2, inverted_replacements...) 
 end
