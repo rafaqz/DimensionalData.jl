@@ -7,80 +7,112 @@ const DD = DimensionalData
 
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
+const AXISLEGENDKW_DOC = """
+-`axislegendkw`: attributes to pass to `axislegend`.
+"""
+_keyword_heading_doc(f) = """
+# Keywords
+
+Keywords for $f work as usual.
+"""
+
+
 # 1d plots are scatter by default
 for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(::AbstractDimArray{<:Any,1})
+        $f1(A::AbstractDimArray{<:Any,1}; axislegendkw, attributes...)
         
     Plot a 1-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     The X axis will be labelled with the dimension name and and use ticks from its lookup.
+
+    $(_keyword_heading_doc(f1))
+    $AXISLEGENDKW_DOC     
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,1}; attributes...)
+        function Makie.$f1(A::AbstractDimArray{<:Any,1}; axislegendkw=(;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes)
-            Makie.$f2(args...; merged_attributes...)
+            p = Makie.$f2(args...; merged_attributes...)
+            axislegend(p.axis; merge=false, unique=false, axislegendkw...)
+            return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,1}; attributes...)
-            args, _ = _pointbased1(A, attributes)
-            Makie.$f2!(axis, args...; attributes...)
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,1}; axislegendkw=(;), attributes...)
+            args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
+            return Makie.$f2!(axis, args...; merged_attributes...)
         end
     end
 end
 
-function _pointbased1(A, attributes)
+function _pointbased1(A, attributes; set_axis_attributes=true)
     A1 = _prepare_for_makie(A)
-    d = DD.dims(A1, 1)
-    user_attributes = Makie.Attributes(; attributes...)
-    plot_attributes = Makie.Attributes(; 
-        axis=(; 
-            xlabel=string(name(d)), 
-            ylabel=DD.label(A),
-            title=DD.refdims_title(A),
-        ),
-    )
-    # Convert categorical to Int
     lookup_attributes, newdims = _split_attributes(A1)
-    A2 = _restore_dim_names(set(A1, d => newdims[1]), A)
+    A2 = _restore_dim_names(set(A1, newdims[1] => newdims[1]), A)
+    user_attributes = Makie.Attributes(; attributes...)
+    axis_attributes = if set_axis_attributes 
+        Attributes(; 
+            axis=(; 
+                xlabel=string(name(dims(A, 1))), 
+                ylabel=DD.label(A),
+                title=DD.refdims_title(A),
+            ),
+        )
+    else
+        Attributes()
+    end
+    plot_attributes = Attributes(; 
+        label=DD.label(A),
+    )
     args = Makie.convert_arguments(Makie.PointBased(), A2)
-    merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
+    merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
 
     return args, merged_attributes
+end
+
+_dims_doc(f) = """
+- `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
+    specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
+    of the plot. For example `$f(A, dims=:a => :X)` will use the `:a` dimension
+    as the `X` dimension in the plot.
+"""
+
+# Only `heatmap` and `contourf` get a colorbar
+function _maybe_colorbar_doc(f) 
+    if f in (:heatmap, :contourf)
+        """
+        - `colorbarkw`: keywords to pass to `Makie.Colorbar`.
+        """
+    else
+        ""
+    end
 end
 
 for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(::AbstractDimArray{<:Any,2})
+        $f1(A::AbstractDimArray{<:Any,2}; attributes...)
         
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
 
-    # Keywords
-    
-    Keywords for `$f1` work as usual.
-
-    - `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
-        specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
-        of the plot. For example `$f1(A, dims=:a => :X)` will use the `:a` dimension
-        as the `X` dimension in the plot.
+    $(_dims_doc(f1))
+    $(_maybe_colorbar_doc(f1))
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
+        function Makie.$f1(A::AbstractDimArray{<:Any,2}; dims=(), colorbarkw=(;), attributes...)
             args, merged_attributes = _surface2(A, attributes, dims)
             p = Makie.$f2(args...; merged_attributes...)
             if $(f1 in (:heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2];
-                    label=DD.label(A),
+                    label=DD.label(A), colorbarkw...
                 ) 
             end
-            p
+            return p
         end
         function Makie.$f1!(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
             args, _ = _surface2(A, attributes, dims)
-            Makie.$f2!(args...; attributes...)
+            return Makie.$f2!(args...; attributes...)
         end
     end
 end
@@ -92,16 +124,15 @@ function _surface2(A, attributes, dims)
 
     dx, dy = DD.dims(A2)
     user_attributes = Makie.Attributes(; attributes...)
-    dd_attributes = Makie.Attributes(; 
+    plot_attributes = Makie.Attributes(; 
         axis=(; 
             xlabel=DD.label(dx),
             ylabel=DD.label(dy),
             title=DD.refdims_title(A),
         ),
     )
-    merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
+    merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
     args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
-    merged_attributes = merge(user_attributes, dd_attributes, lookup_attributes)
 
     return args, merged_attributes
 end
@@ -109,28 +140,24 @@ end
 for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(::AbstractDimArray{<:Any,2})
+        $f1(A::AbstractDimArray{<:Any,3}; attributes...)
         
-    Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
+    Plot a 3-dimensional `AbstractDimArray` with `Makie.$f2`.
 
-    # Keywords
-    
-    Keywords for $f1 work as usual.
-
-    - `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
-        specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
-        of the plot. For example `$f1(A, dims=:a => :X)` will use the `:a` dimension
-        as the `X` dimension in the plot.
+    $(_keyword_heading_doc(f1))
+    $(_dims_doc(f1))
     """
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
-            args, merged_attributes = _volume3(A, attributes, dims)
-            Makie.$f2(args...; merged_attributes...)
+            A1, A2, args, merged_attributes = _volume3(A, attributes, dims)
+            p = Makie.$f2(args...; merged_attributes...)
+            p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+            return p
         end
         function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
-            args, _ = _volume3(A, attributes, dims)
-            Makie.$f2!(axis, args...; attributes...)
+            _, args, _ = _volume3(A, attributes, dims)
+            return Makie.$f2!(axis, args...; attributes...)
         end
     end
 end
@@ -140,50 +167,57 @@ function _volume3(A, attributes, dims)
     dx, dy, dz = DD.dims(A1)
     user_attributes = Makie.Attributes(; attributes...)
     plot_attributes = Makie.Attributes(; 
-        # axis=(; cant actually set anything here for LScene)
+        # axis=(; cant actually set much here for LScene)
     )
     _, newdims = _split_attributes(A1)
     merged_attributes = merge(user_attributes, plot_attributes)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
     args = Makie.convert_arguments(Makie.VolumeLike(), A2)
 
-    return args, merged_attributes
+    return A1, A2, args, merged_attributes
 end
 
+_labeldim_detection_doc(f) = """
+Labels are found automatically, following this logic:
+1. Use the `labeldim` keyword if it is passsed in.
+2. Find the first dimension with a `Categorical` lookup.
+3. Find the first `<: DependentDim` dimension, which will include
+    `Ti` (time), `X` and any other `<: XDim` dimensions.
+4. Fallback: just use the first dimension of the array for labels.
+
+$(_keyword_heading_doc(f))
+
+- `labeldim`: manual specify the dimension to use as series and get 
+    the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
-    series(::AbstractDimArray{<:Any,2})
+
+"""
+    series(A::AbstractDimArray{<:Any,2}; attributes...)
     
 Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 
-At least one dimension should have a `Categorical` `Lookup`, which
-will be used to assign categories to the values in the array.
+$(_labeldim_detection_doc(series))
 """
-function Makie.series(A::AbstractDimArray{<:Any,2}; attributes...)
-    args, merged_attributes = _series(A, attributes)
+function Makie.series(A::AbstractDimArray{<:Any,2}; axislegendkw=(;), labeldim=nothing, attributes...)
+    args, merged_attributes = _series(A, attributes, labeldim)
     p = Makie.series(args...; merged_attributes...)
-    axislegend(p.axis)
-    p
+    axislegend(p.axis; merge=true, unique=false, axislegendkw...)
+    return p
 end
-function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; attributes...)
-    args, _ = _series(A, attributes)
-    Makie.series!(args...; attributes...)
+function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; axislegendkw=(;), labeldim=nothing, attributes...)
+    args, _ = _series(A, attributes, labeldim)
+    return Makie.series!(args...; attributes...)
 end
 
-function _series(A, attributes)
-    categoricaldim = reduce(dims(A); init=nothing) do acc, x
-        if isnothing(acc)
-            lookup(x) isa AbstractCategorical ? x : nothing
-        else
-            lookup(acc) isa AbstractCategorical ? acc : x
-        end
-    end
+function _series(A, attributes, labeldim)
+    categoricaldim = _categorical_or_dependent(A, labeldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
     categoricallookup = parent(categoricaldim)
     otherdim = only(otherdims(A, categoricaldim))
-    otherlookup = lookup(otherdim)
 
     user_attributes = Makie.Attributes(; attributes...)
-    dd_attributes = Makie.Attributes(; 
+    lookup_attributes, otherdim1 = _split_attributes(X(lookup(otherdim)))
+    plot_attributes = Makie.Attributes(; 
         labels=string.(parent(categoricallookup)),
         axis=(; 
             xlabel=DD.label(otherdim),
@@ -191,7 +225,8 @@ function _series(A, attributes)
             title=DD.refdims_title(A),
         ),
     )
-    merged_attributes = merge(user_attributes, dd_attributes)
+    merged_attributes = merge(user_attributes, lookup_attributes, plot_attributes)
+    args = vec(lookup(otherdim1)), parent(permutedims(A, (categoricaldim, otherdim)))
 
     return args, merged_attributes
 end
@@ -199,36 +234,28 @@ end
 for f in (:violin, :boxplot, :rainclouds)
     f! = Symbol(f, '!')
     docstring = """
-        $f(::AbstractDimArray{<:Any,2})
+        $f(A::AbstractDimArray{<:Any,2}; attributes...)
         
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f`.
 
-    At least one dimension should have a `Categorical` `Lookup`, which
-    will be used to assign categories to the values in the array.
+    $(_labeldim_detection_doc(f))
     """
     @eval begin
         @doc $docstring
-        function Makie.$f(A::AbstractDimArray{<:Any,2}; attributes...)
-            args, merged_attributes = _boxplot(A, attributes)
-            Makie.$f(args...; merged_attributes...)
+        function Makie.$f(A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
+            args, merged_attributes = _boxplot(A, attributes, labeldim)
+            return Makie.$f(args...; merged_attributes...)
         end
-        function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; attributes...)
-            args, _ = _boxplot(A, attributes)
-            Makie.$f!(axis, args...; attributes...)
+        function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
+            args, _ = _boxplot(A, attributes, labeldim)
+            return Makie.$f!(axis, args...; attributes...)
         end
     end
 end
 
-function _boxplot(A, attributes)
-    categoricaldim = reduce(dims(A); init=nothing) do acc, x
-        if isnothing(acc)
-            lookup(x) isa AbstractCategorical ? x : nothing
-        else
-            lookup(acc) isa AbstractCategorical ? acc : x
-        end
-    end
-    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
-    categoricallookup = parent(categoricaldim)
+function _boxplot(A, attributes, labeldim)
+    categoricaldim = _categorical_or_dependent(A, labeldim)
+    categoricallookup = lookup(categoricaldim)
     otherdim = only(otherdims(A, categoricaldim))
     categories = broadcast_dims((_, c) -> c, A, DimArray(eachindex(categoricaldim), categoricaldim))
 
@@ -236,9 +263,10 @@ function _boxplot(A, attributes)
     plot_attributes = Makie.Attributes(; 
         axis=(; 
             xlabel=DD.label(categoricaldim),
-            xticks=axes(categoricallookup, 1),
+            xticks=axes(categoricaldim, 1),
             xtickformat=I -> map(string, categoricallookup[map(Int, I)]),
             ylabel=DD.label(A),
+            title=DD.refdims_title(A),
         ),
     )
     merged_attributes = merge(user_attributes, plot_attributes)
@@ -306,6 +334,31 @@ end
 #     end
 # end
 
+_categorical_or_dependent(A, labeldim) = dims(A, labeldim)
+function _categorical_or_dependent(A, ::Nothing)
+    categoricaldim = reduce(dims(A); init=nothing) do acc, d
+        if isnothing(acc)
+            lookup(d) isa AbstractCategorical ? d : nothing
+        else
+            acc
+        end
+    end
+    isnothing(categoricaldim) || return categoricaldim
+    dependentdim = reduce(dims(A); init=nothing) do acc, d
+        if isnothing(acc)
+            d isa DD.DependentDim ? d : nothing
+        else
+            acc
+        end
+    end
+    if isnothing(dependentdim)
+        return first(dims) # Fallback uses whatever is first
+    else
+        return dependentdim
+    end
+end
+
+
 _split_attributes(A) = _split_attributes(dims(A))
 function _split_attributes(dims::DD.DimTuple)
     reduce(dims; init=(Attributes(), ())) do (attr, ds), d  
@@ -326,7 +379,10 @@ function _split_attributes(dims::DD.DimTuple)
         end
     end
 end
-_split_attributes(dim::Dimension) = _split_attributes((dim,))
+function _split_attributes(dim::Dimension)
+    attributes, dims = _split_attributes((dim,))
+    return attributes, dims[1]
+end
 
 _prepare_for_makie(A, dims=()) = _permute(A, dims) |> _reorder |> _makie_eltype
 
@@ -355,22 +411,21 @@ function _restore_dim_names(A2, A1, replacements::Tuple=())
     return set(A2, inverted_replacements...) 
 end
 
+# This function replaces the existing dimensions with X/Y/Z so we have a 1-1 
+# relationship with Makie.jl plot axes. 
 function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
-    # Make sure destinations are X/Y/Z only
-    dest_dims = map(replacements) do d
-        d1 = basetypeof(val(d))()
-        d1 in xyz_dims || throw(ArgumentError("`dims` destinations must be in $(map(basetypeof, xyz_dims))"))
-        d1
+    replacements1 = map(replacements) do d
+        # Make sure replacements contain X/Y/Z only
+        d_dest = basedims(val(d))
+        d_dest in xyz_dims || throw(ArgumentError("`dims` destinations must be in $(map(basetypeof, xyz_dims))"))
+        rebuild(d, d_dest)
     end
-    replaced_dims = set(basedims(A), replacements...)
-    # Find remaining dims that are not X/Y/Z
-    other_source_dims = otherdims(replaced_dims, xyz_dims)
-    # Assign dest dims from whatever X/Y/Z remain
-    other_dest_dims = otherdims(xyz_dims, replaced_dims)
-    # Define the missing replacements
-    other_replacements = map(rebuild, other_source_dims, other_dest_dims)
-    return (replacements..., other_replacements...)
+    # Find and sort remaining dims
+    source_dims_remaining = dims(otherdims(A, replacements1), DD.PLOT_DIMENSION_ORDER)
+    xyz_remaining = otherdims(xyz_dims, replacements1)[1:length(source_dims_remaining)]
+    other_replacements = map(rebuild, source_dims_remaining, xyz_remaining)
+    return (replacements1..., other_replacements...)
 end
 
 _reorder(A) = reorder(A, DD.ForwardOrdered)
