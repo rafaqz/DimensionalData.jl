@@ -7,6 +7,9 @@ const DD = DimensionalData
 
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
+
+# Shared docstrings: keep things consistent.
+
 const AXISLEGENDKW_DOC = """
 -`axislegendkw`: attributes to pass to `axislegend`.
 """
@@ -16,6 +19,40 @@ _keyword_heading_doc(f) = """
 Keywords for $f work as usual.
 """
 
+_dims_doc(f) = """
+- `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
+    specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
+    of the plot. For example `$f(A, dims=:a => :X)` will use the `:a` dimension
+    as the `X` dimension in the plot.
+"""
+
+_labeldim_detection_doc(f) = """
+Labels are found automatically, following this logic:
+1. Use the `labeldim` keyword if it is passsed in.
+2. Find the first dimension with a `Categorical` lookup.
+3. Find the first `<: DependentDim` dimension, which will include
+    `Ti` (time), `X` and any other `<: XDim` dimensions.
+4. Fallback: just use the first dimension of the array for labels.
+
+$(_keyword_heading_doc(f))
+
+- `labeldim`: manual specify the dimension to use as series and get 
+    the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
+"""
+
+# Only `heatmap` and `contourf` get a colorbar
+function _maybe_colorbar_doc(f) 
+    if f in (:heatmap, :contourf)
+        """
+        - `colorbarkw`: keywords to pass to `Makie.Colorbar`.
+        """
+    else
+        ""
+    end
+end
+
+
+# 1d PointBased
 
 # 1d plots are scatter by default
 for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
@@ -70,23 +107,8 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     return args, merged_attributes
 end
 
-_dims_doc(f) = """
-- `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
-    specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
-    of the plot. For example `$f(A, dims=:a => :X)` will use the `:a` dimension
-    as the `X` dimension in the plot.
-"""
 
-# Only `heatmap` and `contourf` get a colorbar
-function _maybe_colorbar_doc(f) 
-    if f in (:heatmap, :contourf)
-        """
-        - `colorbarkw`: keywords to pass to `Makie.Colorbar`.
-        """
-    else
-        ""
-    end
-end
+# 2d SurfaceLike
 
 for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
@@ -137,6 +159,8 @@ function _surface2(A, attributes, dims)
     return args, merged_attributes
 end
 
+# 3d VolumeLike
+
 for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
@@ -177,19 +201,7 @@ function _volume3(A, attributes, dims)
     return A1, A2, args, merged_attributes
 end
 
-_labeldim_detection_doc(f) = """
-Labels are found automatically, following this logic:
-1. Use the `labeldim` keyword if it is passsed in.
-2. Find the first dimension with a `Categorical` lookup.
-3. Find the first `<: DependentDim` dimension, which will include
-    `Ti` (time), `X` and any other `<: XDim` dimensions.
-4. Fallback: just use the first dimension of the array for labels.
-
-$(_keyword_heading_doc(f))
-
-- `labeldim`: manual specify the dimension to use as series and get 
-    the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
-"""
+# series
 
 """
     series(A::AbstractDimArray{<:Any,2}; attributes...)
@@ -230,6 +242,9 @@ function _series(A, attributes, labeldim)
 
     return args, merged_attributes
 end
+
+
+# boxplot and friends
 
 for f in (:violin, :boxplot, :rainclouds)
     f! = Symbol(f, '!')
@@ -275,11 +290,12 @@ function _boxplot(A, attributes, labeldim)
     return args, merged_attributes
 end
 
+# Plot type definitions. Not sure they will ever get called?
 Makie.plottype(A::AbstractDimArray{<:Any,1}) = Makie.Scatter
 Makie.plottype(A::AbstractDimArray{<:Any,2}) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
-# then, define how they are to be converted to plottable data
+# Conversions
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = lookup(A, 1)
@@ -297,7 +313,6 @@ function Makie.convert_arguments(
     t::Makie.DiscreteSurface, A::AbstractDimArray{<:Any,2}
 )
     A1 = _prepare_for_makie(A)
-    # xs, ys = map(_lookup_edges, lookup(A1))
     xs, ys = map(parent, lookup(A1))
     return xs, ys, parent(A1)
 end
@@ -312,28 +327,10 @@ function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<
     return Makie.convert_arguments(t, parent(A))
 end
 
-# Calculate the edges 
-# function _lookup_edges(l::LookupArray)
-#     l = if l isa AbstractSampled 
-#         set(l, Intervals())
-#     else
-#         set(l, Sampled(; sampling=Intervals()))
-#     end
-#     if l == 1
-#         return [bounds(l)...]
-#     else
-#         ib = intervalbounds(l)
-#         if order(l) isa ForwardOrdered
-#             edges = first.(ib)
-#             push!(edges, last(last(ib)))
-#         else
-#             edges = last.(ib)
-#             push!(edges, first(last(ib)))
-#         end
-#         return edges
-#     end
-# end
 
+# Utility methods
+
+# Get Categorical lookups or DependentDim
 _categorical_or_dependent(A, labeldim) = dims(A, labeldim)
 function _categorical_or_dependent(A, ::Nothing)
     categoricaldim = reduce(dims(A); init=nothing) do acc, d
@@ -359,6 +356,7 @@ function _categorical_or_dependent(A, ::Nothing)
 end
 
 
+# Simplify dimension lookups and move information to axis attributes
 _split_attributes(A) = _split_attributes(dims(A))
 function _split_attributes(dims::DD.DimTuple)
     reduce(dims; init=(Attributes(), ())) do (attr, ds), d  
@@ -384,12 +382,13 @@ function _split_attributes(dim::Dimension)
     return attributes, dims[1]
 end
 
-_prepare_for_makie(A, dims=()) = _permute(A, dims) |> _reorder |> _makie_eltype
+_prepare_for_makie(A, replacements=()) = _permute_xyz(A, replacements) |> _reorder
 
-_permute(A, replacements::Pair) = _permute(A, (replacements,))
-_permute(A, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
-    _permute1(A, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
-function _permute(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
+# Permute the data after replacing the dimensions with X/Y/Z
+_permute_xyz(A, replacements::Pair) = _permute_xyz(A, (replacements,))
+_permute_xyz(A, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
+    _permute_xyz(A, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
+function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     all_replacements = _get_replacement_dims(A, replacements)
     A_replaced_dims = set(A, all_replacements...)
@@ -397,6 +396,7 @@ function _permute(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     permutedims(A_replaced_dims, xyz_dims)
 end
 
+# Give the data in A2 the names from A1 working backwards from what was replaced earlier
 _restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
 _restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
     _restore_dim_names(A2, A1, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
@@ -411,8 +411,8 @@ function _restore_dim_names(A2, A1, replacements::Tuple=())
     return set(A2, inverted_replacements...) 
 end
 
-# This function replaces the existing dimensions with X/Y/Z so we have a 1-1 
-# relationship with Makie.jl plot axes. 
+# Replace the existing dimensions with X/Y/Z so we have a 1:1 
+# relationship with the possible Makie.jl plot axes. 
 function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     replacements1 = map(replacements) do d
@@ -428,10 +428,7 @@ function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple
     return (replacements1..., other_replacements...)
 end
 
+# Get all lookups in ascending/forward order
 _reorder(A) = reorder(A, DD.ForwardOrdered)
-_makie_eltype(A) = _missing_or_float32.(A)
-
-_missing_or_float32(num::Number) = Float32(num)
-_mirssing_or_float32(::Missing) = missing
 
 end
