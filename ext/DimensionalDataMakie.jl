@@ -196,7 +196,7 @@ function _series(A, attributes)
     return args, merged_attributes
 end
 
-for f in (:boxplot, :rainclouds, :violin)
+for f in (:violin, :boxplot, :rainclouds)
     f! = Symbol(f, '!')
     docstring = """
         $f(::AbstractDimArray{<:Any,2})
@@ -213,8 +213,8 @@ for f in (:boxplot, :rainclouds, :violin)
             Makie.$f(args...; merged_attributes...)
         end
         function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; attributes...)
-            args, merged_attributes = _boxplot(A, attributes)
-            Makie.$f(axis, args...; merged_attributes...)
+            args, _ = _boxplot(A, attributes)
+            Makie.$f!(axis, args...; attributes...)
         end
     end
 end
@@ -242,7 +242,7 @@ function _boxplot(A, attributes)
         ),
     )
     merged_attributes = merge(user_attributes, plot_attributes)
-    args = vec(lookup(otherdim)), parent(A)
+    args = vec(categories), vec(A)
 
     return args, merged_attributes
 end
