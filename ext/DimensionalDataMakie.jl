@@ -136,7 +136,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             return p
         end
-        function Makie.$f1!(A::AbstractDimArray{<:Any,2}; dims=(), attributes...)
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,2}; dims=(), colorbarkw=(;), attributes...)
             args, _ = _surface2(A, attributes, dims)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(args...; attributes...)
@@ -236,11 +236,11 @@ function _series(A, attributes, labeldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
     categoricallookup = parent(categoricaldim)
     otherdim = only(otherdims(A, categoricaldim))
+    lookup_attributes, otherdim1 = _split_attributes(X(lookup(otherdim)))
     args = vec(lookup(otherdim1)), parent(permutedims(A, (categoricaldim, otherdim)))
 
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
-    lookup_attributes, otherdim1 = _split_attributes(X(lookup(otherdim)))
     plot_attributes = Makie.Attributes(; 
         labels=string.(parent(categoricallookup)),
         axis=(; 
