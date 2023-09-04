@@ -495,6 +495,11 @@ function intervalbounds(order::Ordered, locus::Center, span::Regular, l::LookupA
     bounds = (x - halfstep, x + halfstep)
     return _maybeflipbounds(order, bounds)
 end
+function intervalbounds(order::Ordered, locus::Center, span::Regular, l::LookupArray{<:Dates.AbstractDateTime}, i::Int)
+    x = l[i]
+    bounds = (x - (x - step(span))) / 2 + x, (x - (x + step(span))) / 2 + x
+    return _maybeflipbounds(order, bounds)
+end
 # Irregular Center
 function intervalbounds(order::ForwardOrdered, locus::Center, span::Irregular, l::LookupArray, i::Int)
     x = l[i]
