@@ -28,6 +28,12 @@ abstract type Selector{T} end
     IntSelector <: Selector
 
 Abstract supertype for [`Selector`](@ref)s that return a single `Int` index.
+
+IntSelectors provided by DimensionalData are:
+
+- [`At`](@ref)
+- [`Contains`](@ref)
+- [`Near`](@ref)
 """
 abstract type IntSelector{T} <: Selector{T} end
 
@@ -35,6 +41,12 @@ abstract type IntSelector{T} <: Selector{T} end
     ArraySelector <: Selector
 
 Abstract supertype for [`Selector`](@ref)s that return an `AbstractArray`.
+
+ArraySelectors provided by DimensionalData are:
+
+- [`Between`](@ref)
+- [`Touches`](@ref)
+- [`Where`](@ref)
 """
 abstract type ArraySelector{T} <: Selector{T} end
 
