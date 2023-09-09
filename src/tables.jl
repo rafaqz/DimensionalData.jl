@@ -155,10 +155,10 @@ end
 function DimTable(s::AbstractDimStack; mergedims=nothing)
     s = isnothing(mergedims) ? s : DimensionalData.mergedims(s, mergedims)
     dims_ = dims(s)
-    dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
-    dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims(s)), s))
-    keys = collect(_colnames(s))
-    return DimTable(keys, dimcolumns, dimarraycolumns)
+    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
+    dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
+    keys = _colnames(s)
+    return DimTable(collect(keys), collect(dimcolumns), collect(dimarraycolumns))
 end
 
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=nothing)
