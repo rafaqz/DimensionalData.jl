@@ -55,7 +55,7 @@ export AbstractDimArray, DimArray
 
 export AbstractDimStack, DimStack
 
-export AbstractDimTable, DimTable
+export AbstractDimTable, DimTable, WideDimTable
 
 export DimIndices, DimKeys, DimPoints
 

@@ -302,7 +302,7 @@ function WideDimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i
 end
 
 function WideDimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=false)
-    if (layersfrom <: Dimension) && (any(isa.(dims(x), layersfrom)))
+    if !isnothing(layersfrom) && (layersfrom <: Dimension) && (any(isa.(dims(x), layersfrom)))
         nlayers = size(x, layersfrom)
         layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
         layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
@@ -374,13 +374,6 @@ end
         return dimcolumns(t)
     else
         return dimarraycolumns(t)[i - 1]
-    end
-    n_dimcols = length(dimcolumns(t))
-    i = findfirst(==(key), keys)
-    if i <= n_dimcols
-        return dimcolumns(t)[i]
-    else
-        return dimarraycolumns(t)[i - n_dimcols]
     end
 end
 
