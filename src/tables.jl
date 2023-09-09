@@ -11,7 +11,7 @@ DimTableSources = Union{AbstractDimStack,AbstractDimArray}
 
 Tables.istable(::Type{<:DimTableSources}) = true
 Tables.columnaccess(::Type{<:DimTableSources}) = true
-Tables.columns(x::DimTableSources) = WideDimTable(x)
+Tables.columns(x::DimTableSources) = DimTable(x)
 
 Tables.columnnames(A::AbstractDimArray) = _colnames(DimStack(A))
 Tables.columnnames(s::AbstractDimStack) = _colnames(s)
@@ -26,6 +26,12 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
     Tables.getcolumn(DimTable(x), T, i, key)
 @inline Tables.getcolumn(t::DimTableSources, dim::DimOrDimType) =
     Tables.getcolumn(t, dimnum(t, dim))
+
+function _colnames(s::AbstractDimStack)
+    dimkeys = map(dim2key, (dims(s)))
+    # The data is always the last column/s
+    (dimkeys..., keys(s)...)
+end
 
 
 # DimColumn
@@ -145,7 +151,7 @@ Base.vec(c::DimArrayColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimArrayColumn) = vec(c)
 
 
-# DimTable
+#DimTable
 
 
 """
@@ -166,147 +172,42 @@ column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
-struct DimTable{Keys,S,DC,DAC} <: AbstractDimTable
-    stack::S
-    dimcolumns::DC
-    dimarraycolumns::DAC
-end
-DimTable{K}(stack::S, dimcolumns::DC, strides::SD) where {K,S,DC,SD} = 
-    DimTable{K,S,DC,SD}(stack, dimcolumns, strides)
-DimTable(A::AbstractDimArray, As::AbstractDimArray...) = DimTable((A, As...))
-function DimTable(As::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}...)
-    DimTable(DimStack(As...))
-end
-function DimTable(s::AbstractDimStack)
-    dims_ = dims(s)
-    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-    dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
-    keys = _colnames(s)
-    DimTable{keys}(s, dimcolumns, dimarraycolumns)
-end
-
-dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
-dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
-dims(t::DimTable) = dims(parent(t))
-
-Base.parent(t::DimTable) = getfield(t, :stack)
-
-for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
-             :locus, :name, :label, :units)
-    @eval $func(t::DimTable, args...) = $func(parent(t), args...)
-
-end
-
-Tables.istable(::DimTable) = true
-Tables.columnaccess(::Type{<:DimTable}) = true
-Tables.columns(t::DimTable) = t
-Tables.columnnames(c::DimTable{Keys}) where Keys = Keys
-function Tables.schema(t::DimTable{Keys}) where Keys
-    s = parent(t)
-    types = (map(eltype, dims(s))..., map(eltype, parent(s))...)
-    Tables.Schema(Keys, types)
-end
-
-@inline function Tables.getcolumn(t::DimTable{Keys}, i::Int) where Keys
-    nkeys = length(Keys)
-    if i > length(dims(t))
-        dimarraycolumns(t)[i - length(dims(t))]
-    elseif i > 0 && i < nkeys
-        dimcolumns(t)[i]
-    else
-        throw(ArgumentError("There is no table column $i"))
-    end
-end
-@inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)
-    dimcolumns(t)[dimnum(t, dim)]
-end
-# Retrieve a column by name
-@inline function Tables.getcolumn(t::DimTable{Keys}, key::Symbol) where Keys
-    if key in keys(dimarraycolumns(t))
-        dimarraycolumns(t)[key]
-    else
-        dimcolumns(t)[dimnum(dims(t), key)]
-    end
-end
-@inline function Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T
-    Tables.getcolumn(t, key)
-end
-
-function _colnames(s::AbstractDimStack)
-    dimkeys = map(dim2key, (dims(s)))
-    # The data is always the last column/s
-    (dimkeys..., keys(s)...)
-end
-
-
-# WideDimTable
-
-
-"""
-    WideDimTable <: AbstractDimTable
-
-    WideDimTable(A::AbstractDimArray)
-
-Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray`.
-
-This table will have a column for the array data and columns for each
-`Dimension` index, as a [`DimColumn`]. These are lazy, and generated
-as required.
-
-Column names are converted from the dimension types using
-[`DimensionalData.dim2key`](@ref). This means type `Ti` becomes the
-column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
-
-To get dimension columns, you can index with `Dimension` (`X()`) or
-`Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
-"""
-struct WideDimTable{DS} <: AbstractDimTable
+struct DimTable <: AbstractDimTable
     colnames::Vector{Symbol}
-    dimcolumns::DS
+    dimcolumns::Vector{DimColumn}
     dimarraycolumns::Vector{DimArrayColumn}
 end
 
-function WideDimTable(s::AbstractDimStack; mergedims=false)
+function DimTable(s::AbstractDimStack; mergedims=nothing)
+    s = isnothing(mergedims) ? s : DimensionalData.mergedims(s, mergedims)
     dims_ = dims(s)
     dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
-    dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims_), s))
+    dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims(s)), s))
 
-    if mergedims
-        dimcol = MergedDimColumn(Tuple(dimcolumns), :geometry)
-        keys = vcat([:geometry], collect(_colnames(s))[length(dims_)+1:end])
-        return WideDimTable(keys, [dimcol], dimarraycolumns)
-    else
-        keys = collect(_colnames(s))
-        return WideDimTable(keys, dimcolumns, dimarraycolumns)
-    end
+    keys = collect(_colnames(s))
+    return DimTable(keys, dimcolumns, dimarraycolumns)
 end
 
-function WideDimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=false)
+function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=nothing)
     # Construct DimColumns
+    xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
-    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
+    dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
     dimnames = collect(map(dim2key, dims_))
 
     # Construct DimArrayColumns
     dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims_), xs))
 
-    # Merge DimColumns
-    if mergedims
-        colnames = vcat([:geometry], layernames)
-        dimcol = MergedDimColumn(Tuple(dimcolumns), :geometry)
-        return WideDimTable{typeof(dimcol)}(colnames, dimcol, dimarraycolumns)
-    else
-        colnames = vcat(dimnames, layernames)
-        return WideDimTable{typeof(dimcolumns)}(colnames, dimcolumns, dimarraycolumns)
-    end
+    colnames = vcat(dimnames, layernames)
+    return DimTable(colnames, dimcolumns, dimarraycolumns)
 end
 
-function WideDimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=false)
+function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
     if !isnothing(layersfrom) && (layersfrom <: Dimension) && (any(isa.(dims(x), layersfrom)))
         nlayers = size(x, layersfrom)
         layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
         layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
-        return WideDimTable(layers..., layernames=layernames, mergedims=mergedims)
+        return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
         # Construct DimColumns
         dims_ = dims(x)
@@ -320,43 +221,37 @@ function WideDimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=false)
         if mergedims
             colnames = vcat([:geometry], [:value])
             dimcol = MergedDimColumn(Tuple(dimcolumns), :geometry)
-            return WideDimTable{typeof(dimcol)}(colnames, dimcol, [dimarraycolumn])
+            return DimTable{typeof(dimcol)}(colnames, dimcol, [dimarraycolumn])
         else
-            return WideDimTable{typeof(dimcolumns)}(vcat(dimnames, [:value]), dimcolumns, [dimarraycolumn])
+            return DimTable{typeof(dimcolumns)}(vcat(dimnames, [:value]), dimcolumns, [dimarraycolumn])
         end
     end
 end
 
-dimcolumns(t::WideDimTable) = getfield(t, :dimcolumns)
-dimarraycolumns(t::WideDimTable) = getfield(t, :dimarraycolumns)
-dims(t::WideDimTable) = dims(parent(t))
+dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
+dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
+dims(t::DimTable) = dims(parent(t))
 
-Base.parent(t::WideDimTable) = getfield(t, :colnames)
+Base.parent(t::DimTable) = getfield(t, :colnames)
 
 for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
              :locus, :name, :label, :units)
-    @eval $func(t::WideDimTable, args...) = $func(parent(t), args...)
+    @eval $func(t::DimTable, args...) = $func(parent(t), args...)
 
 end
 
-Tables.istable(::WideDimTable) = true
-Tables.columnaccess(::Type{<:WideDimTable}) = true
-Tables.columns(t::WideDimTable) = t
-Tables.columnnames(c::WideDimTable) = parent(c)
+Tables.istable(::DimTable) = true
+Tables.columnaccess(::Type{<:DimTable}) = true
+Tables.columns(t::DimTable) = t
+Tables.columnnames(c::DimTable) = parent(c)
 
-function Tables.schema(t::WideDimTable) 
+function Tables.schema(t::DimTable) 
     colnames = parent(t)
     types = vcat([map(eltype, dimcolumns(t))...], [map(eltype, dimarraycolumns(t))...])
     Tables.Schema(colnames, types)
 end
 
-function Tables.schema(t::WideDimTable{<:MergedDimColumn}) 
-    colnames = parent(t)
-    types = vcat([eltype(dimcolumns(t))], [map(eltype, dimarraycolumns(t))...])
-    Tables.Schema(colnames, types)
-end
-
-@inline function Tables.getcolumn(t::WideDimTable, key::Symbol)
+@inline function Tables.getcolumn(t::DimTable, key::Symbol)
     keys = parent(t)
     i = findfirst(==(key), keys)
     n_dimcols = length(dimcolumns(t))
@@ -367,17 +262,7 @@ end
     end
 end
 
-@inline function Tables.getcolumn(t::WideDimTable{<:MergedDimColumn}, key::Symbol)
-    keys = parent(t)
-    i = findfirst(==(key), keys)
-    if i == 1
-        return dimcolumns(t)
-    else
-        return dimarraycolumns(t)[i - 1]
-    end
-end
-
-@inline function Tables.getcolumn(t::WideDimTable, ::Type{T}, i::Int, key::Symbol) where T
+@inline function Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T
     Tables.getcolumn(t, key)
 end
 
@@ -396,9 +281,39 @@ function IteratorInterfaceExtensions.getiterator(t::DimTable)
 end
 IteratorInterfaceExtensions.isiterable(::DimTable) = true
 TableTraits.isiterabletable(::DimTable) = true
-function IteratorInterfaceExtensions.getiterator(t::WideDimTable)
-    return Tables.datavaluerows(Tables.dictcolumntable(t))
-end
-IteratorInterfaceExtensions.isiterable(::WideDimTable) = true
-TableTraits.isiterabletable(::WideDimTable) = true
 
+
+function fromtable(table, dims)
+    @time xlookup = enumerate(dims[1]) .|> reverse |> Dict
+    @time ylookup = enumerate(dims[2]) .|> reverse |> Dict
+
+    dst = zeros(Float32, size(dims))
+    geoms = collect(table.geometry)
+    vals = collect(table.band_1)
+    for i in eachindex(geoms)
+        (x, y) = geoms[i]
+        dst[xlookup[x],ylookup[y]] = vals[i]
+    end
+    return dst
+end
+
+function getindices(vals, ref)
+    i = 1
+    n = length(ref)
+    indices = Int64[]
+    for val in vals
+        while (i <= n) && (val != ref[i])
+            i += 1
+        end
+        push!(indices, i)
+    end
+    return indices
+end
+
+function fromtable(geoms, vals, dims)
+    @time dst = zeros(Float32, length(dims))
+    @time sortedvals = sort(zip(geoms, vals), by=(reverse ∘ first))
+    @time indices = DD.getindices(first.(sortedvals), dims)
+    @time dst[indices] .= last.(sortedvals)
+    return dst
+end

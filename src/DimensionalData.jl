@@ -66,7 +66,7 @@ export dims, refdims, metadata, name, lookup, bounds
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!
+export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims
 
 const DD = DimensionalData
 
@@ -88,6 +88,7 @@ include("stack/methods.jl")
 include("stack/show.jl")
 # Other
 include("dimindices.jl")
+include("mergedims.jl")
 include("tables.jl")
 # Combined (easier to work on these in one file)
 include("plotrecipes.jl")

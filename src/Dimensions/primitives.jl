@@ -12,6 +12,7 @@ or are at least rotations/transformations of the same type.
 """
 @inline dimsmatch(dims, query) = dimsmatch(<:, dims, query)
 @inline function dimsmatch(f::Function, dims::Tuple, query::Tuple)
+    length(dims) == length(query) || return false
     all(map((d, l) -> dimsmatch(f, d, l), dims, query))
 end
 @inline dimsmatch(f::Function, dim, query) = dimsmatch(f, typeof(dim), typeof(query))
