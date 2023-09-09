@@ -157,7 +157,6 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     dims_ = dims(s)
     dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
     dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims(s)), s))
-
     keys = collect(_colnames(s))
     return DimTable(keys, dimcolumns, dimarraycolumns)
 end
@@ -172,38 +171,25 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") f
     # Construct DimArrayColumns
     dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims_), xs))
 
+    # Return DimTable
     colnames = vcat(dimnames, layernames)
     return DimTable(colnames, dimcolumns, dimarraycolumns)
 end
 
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
-    if !isnothing(layersfrom) && (layersfrom <: Dimension) && (any(isa.(dims(x), layersfrom)))
+    if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
         nlayers = size(x, layersfrom)
         layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
         layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
-        # Construct DimColumns
-        dims_ = dims(x)
-        dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-        dimnames = collect(map(dim2key, dims_))
-
-        # Construct DimArrayColumn
-        dimarraycolumn = DimArrayColumn(x, dims_)
-
-        # Merge DimColumns
-        if mergedims
-            colnames = vcat([:geometry], [:value])
-            dimcol = MergedDimColumn(Tuple(dimcolumns), :geometry)
-            return DimTable{typeof(dimcol)}(colnames, dimcol, [dimarraycolumn])
-        else
-            return DimTable{typeof(dimcolumns)}(vcat(dimnames, [:value]), dimcolumns, [dimarraycolumn])
-        end
+        return DimTable(DimStack((;value=x)), mergedims=mergedims)
     end
 end
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
+colnames(t::DimTable) = getfield(t, :colnames)
 dims(t::DimTable) = dims(parent(t))
 
 Base.parent(t::DimTable) = getfield(t, :colnames)
