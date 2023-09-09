@@ -162,6 +162,9 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
 end
 
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=nothing)
+    # Check that dims are compatible
+    comparedims(xs...)
+
     # Construct DimColumns
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
