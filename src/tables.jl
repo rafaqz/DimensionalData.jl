@@ -86,32 +86,6 @@ Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimColumn) = vec(c)
 
 
-# MergedDimColumn
-
-
-struct MergedDimColumn{T,DS} <: AbstractVector{T}
-    colname::Symbol
-    dimcols::DS
-end
-function MergedDimColumn(dims::DS, name::Symbol) where DS
-    MergedDimColumn{Tuple{map(eltype, dims)...},DS}(name, dims)
-end
-
-colname(c::MergedDimColumn) = getfield(c, :colname)
-dimcols(c::MergedDimColumn) = getfield(c, :dimcols)
-
-Base.length(c::MergedDimColumn) = length(first(dimcols(c)))
-@inline function Base.getindex(c::MergedDimColumn{T}, i::Int) where T
-    return map(x -> x[i], dimcols(c))
-end
-Base.getindex(c::MergedDimColumn, ::Colon) = vec(c)
-Base.getindex(c::MergedDimColumn, A::AbstractArray) = [c[i] for i in A]
-Base.size(c::MergedDimColumn) = (length(c),)
-Base.axes(c::MergedDimColumn) = (Base.OneTo(length(c)),)
-Base.vec(c::MergedDimColumn{T}) where T = [c[i] for i in eachindex(c)]
-Base.Array(c::MergedDimColumn) = vec(c)
-
-
 # DimArrayColumn
 
 
@@ -281,39 +255,3 @@ function IteratorInterfaceExtensions.getiterator(t::DimTable)
 end
 IteratorInterfaceExtensions.isiterable(::DimTable) = true
 TableTraits.isiterabletable(::DimTable) = true
-
-
-function fromtable(table, dims)
-    @time xlookup = enumerate(dims[1]) .|> reverse |> Dict
-    @time ylookup = enumerate(dims[2]) .|> reverse |> Dict
-
-    dst = zeros(Float32, size(dims))
-    geoms = collect(table.geometry)
-    vals = collect(table.band_1)
-    for i in eachindex(geoms)
-        (x, y) = geoms[i]
-        dst[xlookup[x],ylookup[y]] = vals[i]
-    end
-    return dst
-end
-
-function getindices(vals, ref)
-    i = 1
-    n = length(ref)
-    indices = Int64[]
-    for val in vals
-        while (i <= n) && (val != ref[i])
-            i += 1
-        end
-        push!(indices, i)
-    end
-    return indices
-end
-
-function fromtable(geoms, vals, dims)
-    @time dst = zeros(Float32, length(dims))
-    @time sortedvals = sort(zip(geoms, vals), by=(reverse ∘ first))
-    @time indices = DD.getindices(first.(sortedvals), dims)
-    @time dst[indices] .= last.(sortedvals)
-    return dst
-end
