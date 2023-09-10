@@ -72,6 +72,35 @@ function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
     rebuild_from_arrays(ds, vals)
 end
 
+"""
+    unmergedims(merged_dims)
+Return the unmerged dimensions from a tuple of merged dimensions. However, the order of the original dimensions are not necessarily preserved.
+"""
+function unmergedims(merged_dims)
+    reduce(map(dims, merged_dims), init=Tuple([])) do acc, x
+        x isa Tuple ? (acc..., x...) : (acc..., x)
+    end
+end
+
+"""
+    unmergedims(A::AbstractDimArray, original_dims, merged_dims) => AbstractDimArray
+Return a new array whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
+"""
+function unmergedims(A::AbstractDimArray, original_dims, merged_dims)
+    unmerged_dims = unmergedims(merged_dims)
+    reshaped = reshape(data(A), size(unmerged_dims))
+    permuted = permutedims(reshaped, dimnum(unmerged_dims, original_dims))
+    return DimArray(permuted, original_dims)
+end
+
+"""
+    unmergedims(s::AbstractDimStack, original_dims, merged_dims) => AbstractDimStack
+Return a new stack whose dimensions are restored to their original prior to calling [`mergedims(s, dim_pairs)`](@ref).
+"""
+function unmergedims(s::AbstractDimStack, original_dims, merged_dims)
+    return map(A -> unmergedims(A, original_dims, merged_dims), s)
+end
+
 function _mergedims(all_dims, dim_pair::Pair, dim_pairs::Pair...)
     old_dims, new_dim = dim_pair
     dims_to_merge = dims(all_dims, _astuple(old_dims))

@@ -55,7 +55,7 @@ export AbstractDimArray, DimArray
 
 export AbstractDimStack, DimStack
 
-export AbstractDimTable, DimTable, WideDimTable
+export AbstractDimTable, DimTable
 
 export DimIndices, DimKeys, DimPoints
 
@@ -66,7 +66,7 @@ export dims, refdims, metadata, name, lookup, bounds
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims
+export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
 
 const DD = DimensionalData
 
