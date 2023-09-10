@@ -83,10 +83,11 @@ function unmergedims(merged_dims)
 end
 
 """
-    unmergedims(A::AbstractDimArray, original_dims, merged_dims) => AbstractDimArray
+    unmergedims(A::AbstractDimArray, original_dims) => AbstractDimArray
 Return a new array whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
 """
-function unmergedims(A::AbstractDimArray, original_dims, merged_dims)
+function unmergedims(A::AbstractDimArray, original_dims)
+    merged_dims = dims(A)
     unmerged_dims = unmergedims(merged_dims)
     reshaped = reshape(data(A), size(unmerged_dims))
     permuted = permutedims(reshaped, dimnum(unmerged_dims, original_dims))
@@ -94,11 +95,11 @@ function unmergedims(A::AbstractDimArray, original_dims, merged_dims)
 end
 
 """
-    unmergedims(s::AbstractDimStack, original_dims, merged_dims) => AbstractDimStack
+    unmergedims(s::AbstractDimStack, original_dims) => AbstractDimStack
 Return a new stack whose dimensions are restored to their original prior to calling [`mergedims(s, dim_pairs)`](@ref).
 """
-function unmergedims(s::AbstractDimStack, original_dims, merged_dims)
-    return map(A -> unmergedims(A, original_dims, merged_dims), s)
+function unmergedims(s::AbstractDimStack, original_dims)
+    return map(A -> unmergedims(A, original_dims), s)
 end
 
 function _mergedims(all_dims, dim_pair::Pair, dim_pairs::Pair...)
