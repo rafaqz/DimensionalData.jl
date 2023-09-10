@@ -186,7 +186,8 @@ function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
         layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
-        return DimTable(DimStack((;value=x)), mergedims=mergedims)
+        s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
+        return  DimTable(s, mergedims=mergedims)
     end
 end
 
