@@ -25,6 +25,7 @@ Dim{:space} MergedLookup{Tuple{Float64, Int64}} Tuple{Float64, Int64}[(0.0, 10),
 """
 function mergedims(all_dims, dim_pairs::Pair...)
     # filter out dims completely missing
+    dim_pairs = map(x -> _filter_dims(all_dims, first(x)) => last(x), dim_pairs)
     dim_pairs_complete = filter(dim_pairs) do (old_dims,)
         dims_present = dims(all_dims, _astuple(old_dims))
         isempty(dims_present) && return false
@@ -88,6 +89,9 @@ function _unmergedims(all_dims, merged_dims)
     end
     return _cat_tuples(unmerged_dims...)
 end
+
 _unmergedims(all_dims, dim_pairs::Pair...) = _cat_tuples(replace(all_dims, dim_pairs...))
 
 _cat_tuples(tuples...) = mapreduce(_astuple, (x, y) -> (x..., y...), tuples)
+
+_filter_dims(alldims, dims) = filter(dim -> hasdim(alldims, dim), dims)

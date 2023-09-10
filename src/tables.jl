@@ -125,7 +125,7 @@ Base.vec(c::DimArrayColumn{T}) where T = [c[i] for i in eachindex(c)]
 Base.Array(c::DimArrayColumn) = vec(c)
 
 
-#DimTable
+# DimTable
 
 
 """
