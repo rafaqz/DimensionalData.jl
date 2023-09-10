@@ -723,16 +723,16 @@ _valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
 _valtypemsg(a, b) = "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match."
 _extradimsmsg(extradims) = "$(map(basetypeof, extradims)) dims were not found in object."
-_extradimsmsg() = "Some dims were not found in object."
+_extradimsmsg(::Tuple{}) = "Some dims were not found in object."
 _metadatamsg(a, b) = "Metadata $(metadata(a)) and $(metadata(b)) do not match."
 _dimordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
 
 # Warning: @noinline to avoid allocations when it isn't used
-@noinline _dimsmismatchwarn(a, b, msg) = @warn _dimsmismatchmsg(a, b) * msg
-@noinline _valwarn(a, b, msg) = @warn _valmsg(a, b) * msg
-@noinline _dimsizewarn(a, b, msg) = @warn _dimsizemsg(a, b) * msg
-@noinline _valtypewarn(a, b, msg) = @warn _valtypemsg(a, b)  * msg
-@noinline _extradimswarn(a, b, msg) = @warn _extradimsmsg(a, b) * msg
+@noinline _dimsmismatchwarn(a, b, msg="") = @warn _dimsmismatchmsg(a, b) * msg
+@noinline _valwarn(a, b, msg="") = @warn _valmsg(a, b) * msg
+@noinline _dimsizewarn(a, b, msg="") = @warn _dimsizemsg(a, b) * msg
+@noinline _valtypewarn(a, b, msg="") = @warn _valtypemsg(a, b)  * msg
+@noinline _extradimswarn(dims, msg="") = @warn _extradimsmsg(dims) * msg
 
 # Error
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch(_dimsmismatchmsg(a, b)))
@@ -741,5 +741,5 @@ _dimordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(ord
 @noinline _valtypeerror(a, b) = throw(DimensionMismatch(_valtypemsg(a, b)))
 @noinline _valerror(a, b) = throw(DimensionMismatch(_valmsg(a, b)))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch(_metadatamsg(a, b)))
-@noinline _extradimserror(args...) = throw(ArgumentError(_extradimsmsg(args...)))
+@noinline _extradimserror(args...) = throw(ArgumentError(_extradimsmsg(args)))
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))

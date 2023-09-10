@@ -47,7 +47,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 # Otherwise attempt to convert dims to indices
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims)
-    length(extradims) > 0 && _warnextradims(extradims)
+    length(extradims) > 0 && _extradimswarn(extradims)
     _dims2indices(lookup(dims), dims, sortdims(I, dims))
 end
 
