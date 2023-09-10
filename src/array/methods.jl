@@ -8,7 +8,7 @@ end
 # Reducing methods
 
 # With a function arg version
-for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum), 
+for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum),
                      (:Base, :extrema), (:Statistics, :mean))
     _f = Symbol('_', f)
     @eval begin
@@ -64,7 +64,7 @@ end
 function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
-@static if VERSION >= v"1.6" 
+@static if VERSION >= v"1.6"
     function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
         rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
     end
@@ -221,11 +221,12 @@ end
 function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     Xin = (A1, As...)
     newcatdims = map(catdims) do catdim
-        # Int
-        if catdim isa Dimension 
+        # If catdim is already constructed, its the new dimension
+        if catdim isa Dimension
             return catdim
         end
-        if catdim isa Int 
+        # Otherwise build a new dimension/lookup
+        if catdim isa Int
             if hasdim(A1, catdim)
                 catdim = basedims(dims(A1, catdim))
             else
@@ -242,20 +243,21 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 rebuild(catdim, NoLookup())
             else
                 # vcat the index for the catdim in each of Xin
-                allcatdims = map(x -> dims(x, catdim), Xin)
-                reduce(vcat, allcatdims)
+                joindims = map(A -> dims(A, catdim), Xin)
+                if !check_cat_lookups(joindims...) 
+                    return Base.cat(map(parent, Xin)...; dims=dimnum(A1, catdims))
+                end
+                _vcat_dims(joindims...)
             end
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                samedims = map(A -> dims(A, catdim), Xin)
-                check_cat_lookups(samedims...) || return nothing
                 if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoIndex})
                     # Combine the refdims properties with the passed in catdim
                     set(refdims(first(Xin), catdim), catdim)
                 else
-                    # vcat the refdims 
-                    reduce(vcat, map(x -> refdims(x, catdim), Xin))
+                    # vcat the refdims
+                    _vcat_dims(map(x -> refdims(x, catdim), Xin)...)
                 end
             else
                 # Use the catdim as the new dimension
@@ -263,6 +265,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             end
         end
     end
+
     any(map(isnothing, newcatdims)) && return Base.cat(map(parent, Xin)...; dims=cat_dnums)
 
     inserted_dims = dims(newcatdims, dims(A1))
@@ -272,7 +275,9 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     appended_dnums = ntuple(i -> i + length(dims(A1)), length(appended_dims))
     cat_dnums = (inserted_dnums..., appended_dnums...)
     # Warn if dims or val do not match, and cat the parent
-    if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...; order=true, val=true, warn=true)
+    if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...;
+        order=true, val=true, warn=" Can't `cat` AbstractDimArray, applying to `parent` object."
+    )
         return Base.cat(map(parent, Xin)...; dims=cat_dnums)
     end
 
@@ -284,30 +289,68 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
 end
 
 function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
+    Base.cat(As; dims=2)
     A1 = first(As)
     catdim = if A1 isa AbstractDimVector
         AnonDim()
     else
-        vcat(map(last ∘ dims, As)...)
+        joindims = map(last ∘ dims, As)
+        check_cat_lookups(joindims...) || return Base.hcat(map(parent, As)...)
+        _vcat_dims(joindims...)
     end
     noncatdim = dims(A1, 1)
     # Make sure this is the same dimension for all arrays
-    if !comparedims(Bool, map(x -> dims(x, 1), As)...; val=true, warn=true)
-        return Base.cat(map(parent, Xin)...; dims=cat_dnums)
+    if !comparedims(Bool, map(x -> dims(x, 1), As)...;
+        val=true, warn=" Can't `hcat` AbstractDimArray, applying to `parent` object."
+    )
+        return Base.hcat(map(parent, As)...)
     end
     newdims = (noncatdim, catdim)
     newA = hcat(map(parent, As)...)
     return rebuild(A1, newA, format(newdims, newA))
 end
 
-check_cat_lookups(dims::Dimension...) = _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
+function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
+    A1 = first(As)
+    firstdims = map(first ∘ dims, As)
+    check_cat_lookups(firstdims...) || return Base.vcat(map(parent, As)...)
+    newdims = if A1 isa AbstractDimVector
+        catdim = _vcat_dims(firstdims...)
+        (catdim,)
+    else
+        # Make sure this is the same dimension for all arrays
+        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
+            val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
+        )
+            return Base.vcat(map(parent, As)...)
+        end
+        catdim = _vcat_dims(firstdims...)
+        noncatdim = dims(A1, 2)
+        (catdim, noncatdim)
+    end
+    newA = vcat(map(parent, As)...)
+    return rebuild(A1, newA, format(newdims, newA))
+end
+
+function Base.vcat(d1::Dimension, ds::Dimension...)
+    dims = (d1, ds...)
+    comparedims(dims...; length=false)
+    check_cat_lookups(dims...) || return Base.vcat(map(parent, dims)...)
+    return _vcat_dims(d1, ds...)
+end
+
+check_cat_lookups(dims::Dimension...) =
+    _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
 
 # LookupArrays may need adjustment for `cat`
 _check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
-_check_cat_lookups(D, lookups::AbstractSampled...) =
-    _check_cat_lookups(D, span(first(lookups)), lookups...)
-function _check_cat_lookups(D, ::Regular, lookups...)
+_check_cat_lookups(D, lookups::NoLookup...) = true
+function _check_cat_lookups(D, lookups::AbstractSampled...)
     _check_cat_lookup_order(D, lookups...) || return false
+    _check_cat_lookups(D, span(first(lookups)), lookups...)
+end
+function _check_cat_lookups(D, ::Regular, lookups...)
+    length(lookups) > 1 || return true
     lastval = last(first(lookups))
     s = step(first(lookups))
     map(Base.tail(lookups)) do l
@@ -324,6 +367,7 @@ function _check_cat_lookups(D, ::Regular, lookups...)
             return false
         end
         lastval = last(l)
+        return true
     end |> all
 end
 function _check_cat_lookups(D, ::Explicit, lookups...)
@@ -341,10 +385,13 @@ function _check_cat_lookup_order(D, lookups::LookupArray...)
     l1 = first(lookups)
     L = basetypeof(l1)
     x = last(l1)
-    if order(l1) isa Ordered 
-        map(lookups) do lookup
+    if order(l1) isa Ordered
+        map(Base.tail(lookups)) do lookup
             if order(lookup) isa ForwardOrdered
-                if length(lookup) == 0 || first(lookup) > x
+                if order(l1) isa ReverseOrdered
+                    _cat_mixed_ordered_warn(D)
+                    return false
+                elseif length(lookup) == 0 || first(lookup) > x
                     x = last(lookup)
                     return true
                 else
@@ -353,7 +400,10 @@ function _check_cat_lookup_order(D, lookups::LookupArray...)
                     return false
                 end
             else
-                if length(lookup) == 0 || first(lookup) < x 
+                if order(l1) isa ForwardOrdered
+                    _cat_mixed_ordered_warn(D)
+                    return false
+                elseif length(lookup) == 0 || first(lookup) < x
                     x = last(lookup)
                     return true
                 else
@@ -374,27 +424,10 @@ function _check_cat_lookup_order(D, lookups::LookupArray...)
     end
 end
 
-function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
-    A1 = first(As)
-    catdim = vcat(map(first ∘ dims, As)...)
-    newdims = if A1 isa AbstractDimVector
-        (catdim,)
-    else
-        noncatdim = dims(A1, 2)
-        # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 1), As)...; val=true, warn=true)
-            return Base.cat(map(parent, Xin)...; dims=cat_dnums)
-        end
-        (catdim, noncatdim)
-    end
-    newA = vcat(map(parent, As)...)
-    return rebuild(A1, newA, format(newdims, newA))
-end
-
-function Base.vcat(d1::Dimension, ds::Dimension...)
-    comparedims(d1, ds...; length=false)
-    newlookup = _vcat_lookups(lookup((d1, ds...))...)
-    rebuild(d1, newlookup)
+function _vcat_dims(d1::Dimension, ds::Dimension...)
+    dims = (d1, ds...)
+    newlookup = _vcat_lookups(lookup(dims)...)
+    return rebuild(d1, newlookup)
 end
 
 # LookupArrays may need adjustment for `cat`
@@ -412,7 +445,7 @@ function _vcat_lookups(::Any, ::Regular, lookups...)
 end
 function _vcat_lookups(::Intervals, ::Explicit, lookups...)
     len = mapreduce(+, lookups) do l
-        size(val(span(l)), 2) 
+        size(val(span(l)), 2)
     end
     combined_span_mat = similar(val(span(first(lookups))), 2, len)
     i = 1
@@ -436,28 +469,32 @@ end
 _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-# function _vcat_index(lookup::LookupArray, lookups...) 
-    # _vcat_index(span(lookup), lookup, lookups...) 
+# function _vcat_index(lookup::LookupArray, lookups...)
+    # _vcat_index(span(lookup), lookup, lookups...)
 # end
 function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
-    xl = length(lookup1) > 0 ? last(lookup1) : nothing
     shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end
     return reduce(vcat, shifted)
 end
 
-@noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups overlap at $x2 and $x1")
+@noinline _cat_mixed_ordered_warn(D) = @warn _cat_warn_string(D, "`Ordered` lookups are mixed `ForwardOrdered` and `ReverseOrdered`")
+@noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups are misaligned at $x2 and $x1")
 @noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unorderd` lookups share values: $intr")
 
 @noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(T, span)))
-@noinline function _mixed_span_warn(D, S, span) 
+@noinline function _mixed_span_warn(D, S, span)
     @warn _span_string(D, S, span)
     return false
 end
 _span_string(D, S, span) = _cat_warn_string(D, "not all lookups have `$S` spans. Found $(basetypeof(span))")
-_cat_warn_string(D, message) = "`cat` cannot retain named dimensions: $message on dimension $D. \nTo fix, pass a constructed $D with new lookup values as `dims` keyword or $D() for NoLookup."
+_cat_warn_string(D, message) = """
+`cat` cannot concatenate `Dimension`s, falling back to `parent` type:
+$message on dimension $D. 
 
+To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
+"""
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
@@ -485,8 +522,8 @@ Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
 end
 
 # Forward `replace` to parent objects
-function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDimArray, count::Int) 
-    Base._replace!(new, parent(res), parent(A), count) 
+function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDimArray, count::Int)
+    Base._replace!(new, parent(res), parent(A), count)
     return res
 end
 
@@ -503,4 +540,4 @@ _reverse(dim::Dimension) = reverse(dim)
 # Dimension
 Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))
 
-Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A)) 
+Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A))

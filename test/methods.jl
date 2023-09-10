@@ -358,16 +358,14 @@ end
     @testset "Regular Sampled" begin
         @test cat(da, db; dims=X()) == [1 2 3; 4 5 6; 7 8 9; 10 11 12]
         @test_warn "Lookup values for Y" cat(da, dc; dims=X)
-        @test_throws DimensionMismatch 
-        cat(da, dd; dims=X)
-        @test_throws DimensionMismatch cat(da, de; dims=X)
+        @test_warn "" cat(da, dd; dims=X)
+        @test_warn "Y and Z dims on the same axis" cat(da, de; dims=X)
         @test_throws DimensionMismatch vcat(dims(da, 1), dims(de, 1))
-        # TODO define our own exception for this
         testdims = (X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
                     Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) 
         @test cat(da, db; dims=X) == cat(da, db; dims=(X,)) == cat(da, db; dims=1) == cat(da, db; dims=(1,))
-        @test typeof(dims(cat(da, db; dims=X))) == typeof(testdims)
+        @test dims(cat(da, db; dims=X)) == testdims
         @test val(cat(da, db; dims=X)) == val(testdims)
         @test lookup(cat(da, db; dims=X)) == lookup(testdims)
         @test_warn "Lookup values for X" cat(da, db; dims=Y())
@@ -377,8 +375,8 @@ end
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X, Ti(1:2)))
         @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
-        @test_throws DimensionMismatch vcat(da, reverse(db; dims=X))
-        @test_throws ErrorException vcat(db, da)
+        @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(da, reverse(db; dims=X))
+        @test_warn "lookups are misaligned" vcat(db, da)
         @testset "lookup array in dims" begin
             @test dims(cat(da, da; dims=Ti(1:2)), Ti) == Ti(Sampled(1:2, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
             @test dims(cat(da, da; dims=Ti(Categorical(1:2))), Ti) == Ti(Categorical(1:2, ForwardOrdered(), NoMetadata()))
@@ -413,8 +411,8 @@ end
             @test index(iri_dim) == [1, 3, 4, 7, 8]
             @test lookup(iri_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(1, 9), Intervals(), NoMetadata())
             @test bounds(lookup(iri_dim)) == (1, 9)
-            @test_throws DimensionMismatch vcat(d1, reverse(d2))
-            @test_throws ErrorException vcat(d2, d1)
+            @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
+            @test_warn "lookups are misaligned" vcat(d2, d1)
         end
         @testset "Points" begin
             d1 = X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Points(), NoMetadata()))
@@ -424,8 +422,8 @@ end
             @test index(irp_dim) == [1, 3, 4, 7, 8]
             @test lookup(irp_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
             @test bounds(irp_dim) == (1, 8)
-            @test_throws DimensionMismatch vcat(d1, reverse(d2))
-            @test_throws ErrorException vcat(d2, d1)
+            @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
+            @test_warn "lookups are misaligned" vcat(d2, d1)
         end
     end
 
@@ -436,8 +434,8 @@ end
         @test span(ed) == Explicit([1 3 4 7 8; 3 4 7 8 10])
         @test index(ed) == [2, 3.5, 5, 7.5, 9] 
         @test lookup(ed) == Sampled([2, 3.5, 5, 7.5, 9], ForwardOrdered(), Explicit([1 3 4 7 8; 3 4 7 8 10]), Intervals(Center()), NoMetadata())
-        @test_throws DimensionMismatch vcat(d1, reverse(d2))
-        @test_throws ErrorException vcat(d2, d1)
+        @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
+        @test_warn "lookups are misaligned" vcat(d2, d1)
     end
 
     @testset "NoLookup" begin
@@ -460,7 +458,7 @@ end
     end
 
     @testset "use lookup from dims" begin
-        @test_throws ErrorException cat(da, db; dims=2)
+        @test_warn "lookups are misaligned" cat(da, db; dims=2)
         @test dims(cat(da, db; dims=X()), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(NoLookup())), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(1.0:4.0)), X) === X(Sampled(1.0:4.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
@@ -477,20 +475,21 @@ end
         dc = DimArray(c, X(8.0:9.0))
         dd = DimArray(c, Y(8.0:9.0))
 
-        @test @inferred(vcat(da)) == da
+        @test vcat(da) isa DimArray{Int,1}
+        @test vcat(da) == da
         @test dims(vcat(da)) == 
             dims(cat(da; dims=1)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
-        @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
+        @test vcat(da, db) == cat(da, db; dims=1)
         @test dims(vcat(da, db)) == 
             dims(cat(da, db; dims=1)) ==
             (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
-        @test_throws DimensionMismatch hcat(da, dd)
-        @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+        @test_warn "X and Y dims on the same axis" hcat(da, dd)
+        @test vcat(da, db, dc) == cat(da, db, dc; dims=1)
         @test dims(vcat(da, db, dc)) == 
             dims(cat(da, db, dc; dims=1)) ==
             (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
-        @test_throws DimensionMismatch hcat(da, db, dd)
+        @test_warn "do not match" hcat(da, db, dd)
     end
 
     @testset "2d" begin
@@ -503,23 +502,23 @@ end
         dc = DimArray(c, (X(8.0:9.0), Y(6.0:8.0)))
         dd = DimArray(c, (X(8.0:9.0), Z(6.0:8.0)))
 
-        @test @inferred(vcat(da)) == da
+        @test vcat(da) == da
         @test dims(vcat(da)) == 
             dims(cat(da; dims=1)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test @inferred(vcat(da, db)) == cat(da, db; dims=1)
+        @test vcat(da, db) == cat(da, db; dims=1)
         @test dims(vcat(da, db)) == 
             dims(cat(da, db; dims=1)) ==
             (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test_throws DimensionMismatch hcat(da, dd)
-        @test @inferred(vcat(da, db, dc)) == cat(da, db, dc; dims=1)
+        @test_warn "lookups are misaligned" hcat(da, dd)
+        @test vcat(da, db, dc) == cat(da, db, dc; dims=1)
         @test dims(vcat(da, db, dc)) == 
             dims(cat(da, db, dc; dims=1)) ==
             (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test_throws DimensionMismatch hcat(da, db, dd)
+        @test_warn "lookups are misaligned" hcat(da, db, dd)
     end
 end
 
@@ -533,20 +532,20 @@ end
         dc = DimArray(c, X(4.0:5.0))
         dd = DimArray(c, X(8.0:9.0))
 
-        @test @inferred(hcat(da)) == [1; 2;;]
+        @test hcat(da) == [1; 2;;]
         @test dims(hcat(da)) == 
             dims(cat(da; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(1))))
-        @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
+        @test hcat(da, db) == cat(da, db; dims=2)
         @test dims(hcat(da, db)) == 
             dims(cat(da, db; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(2))))
-        @test_throws DimensionMismatch hcat(da, dd)
-        @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+        @test_warn "do not match" hcat(da, dd)
+        @test hcat(da, db, dc) == cat(da, db, dc; dims=2)
         @test dims(hcat(da, db, dc)) == 
             dims(cat(da, db, dc; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(3))))
-        @test_throws DimensionMismatch hcat(da, db, dd)
+        @test_warn "do not match" hcat(da, db, dd)
     end
     @testset "2d" begin
         a = [1 2 3; 4 5 6]
@@ -557,22 +556,23 @@ end
         dc = DimArray(c, (X(4.0:5.0), Y(12.0:14.0)))
         dd = DimArray(c, (X(12.0:13.0), Y(12.0:14.0)))
 
-        @test @inferred(hcat(da)) == da
+        @test hcat(da) isa DimArray{Int,2}
+        @test hcat(da) == da
         @test dims(hcat(da)) == 
             dims(cat(da; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test @inferred(hcat(da, db)) == cat(da, db; dims=2)
+        @test hcat(da, db) == cat(da, db; dims=2)
         @test dims(hcat(da, db)) == 
             dims(cat(da, db; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:11.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test_throws DimensionMismatch hcat(da, dd)
-        @test @inferred(hcat(da, db, dc)) == cat(da, db, dc; dims=2)
+        @test_warn "do not join with the correct step size" hcat(da, dd)
+        @test hcat(da, db, dc) == cat(da, db, dc; dims=2)
         @test dims(hcat(da, db, dc)) == dims(cat(da, db, dc; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
              Y(Sampled(6.0:14.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
-        @test_throws DimensionMismatch hcat(da, db, dd)
+        @test_warn "do not match" hcat(da, db, dd)
     end
 end
 
