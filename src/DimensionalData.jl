@@ -88,7 +88,6 @@ include("stack/methods.jl")
 include("stack/show.jl")
 # Other
 include("dimindices.jl")
-include("mergedims.jl")
 include("tables.jl")
 # Combined (easier to work on these in one file)
 include("plotrecipes.jl")
