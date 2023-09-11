@@ -147,6 +147,7 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 """
 struct DimTable <: AbstractDimTable
+    parent::AbstractDimArray
     colnames::Vector{Symbol}
     dimcolumns::Vector{DimColumn}
     dimarraycolumns::Vector{DimArrayColumn}
@@ -158,7 +159,7 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
     dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
     keys = _colnames(s)
-    return DimTable(collect(keys), collect(dimcolumns), collect(dimarraycolumns))
+    return DimTable(first(s), collect(keys), collect(dimcolumns), collect(dimarraycolumns))
 end
 
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=nothing)
@@ -176,7 +177,7 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") f
 
     # Return DimTable
     colnames = vcat(dimnames, layernames)
-    return DimTable(colnames, dimcolumns, dimarraycolumns)
+    return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
 
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
@@ -193,10 +194,9 @@ end
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
-colnames(t::DimTable) = getfield(t, :colnames)
-dims(t::DimTable) = dims(parent(t))
+colnames(t::DimTable) = Tuple(getfield(t, :colnames))
 
-Base.parent(t::DimTable) = getfield(t, :colnames)
+Base.parent(t::DimTable) = getfield(t, :parent)
 
 for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
              :locus, :name, :label, :units)
@@ -207,16 +207,15 @@ end
 Tables.istable(::DimTable) = true
 Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
-Tables.columnnames(c::DimTable) = parent(c)
+Tables.columnnames(c::DimTable) = colnames(c)
 
 function Tables.schema(t::DimTable) 
-    colnames = parent(t)
     types = vcat([map(eltype, dimcolumns(t))...], [map(eltype, dimarraycolumns(t))...])
-    Tables.Schema(colnames, types)
+    Tables.Schema(colnames(t), types)
 end
 
 @inline function Tables.getcolumn(t::DimTable, key::Symbol)
-    keys = parent(t)
+    keys = colnames(t)
     i = findfirst(==(key), keys)
     n_dimcols = length(dimcolumns(t))
     if i <= n_dimcols
