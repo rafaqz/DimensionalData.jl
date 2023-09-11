@@ -214,21 +214,34 @@ function Tables.schema(t::DimTable)
     Tables.Schema(colnames(t), types)
 end
 
+@inline function Tables.getcolumn(t::DimTable, i::Int)
+    nkeys = length(colnames(t))
+    if i > length(dims(t))
+        dimarraycolumns(t)[i - length(dims(t))]
+    elseif i > 0 && i < nkeys
+        dimcolumns(t)[i]
+    else
+        throw(ArgumentError("There is no table column $i"))
+    end
+end
+
+@inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)
+    dimcolumns(t)[dimnum(t, dim)]
+end
+
 @inline function Tables.getcolumn(t::DimTable, key::Symbol)
     keys = colnames(t)
     i = findfirst(==(key), keys)
-    n_dimcols = length(dimcolumns(t))
-    if i <= n_dimcols
-        return dimcolumns(t)[i]
+    if isnothing(i)
+        throw(ArgumentError("There is no table column $key"))
     else
-        return dimarraycolumns(t)[i - n_dimcols]
+        return Tables.getcolumn(t, i)
     end
 end
 
 @inline function Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T
     Tables.getcolumn(t, key)
 end
-
 
 # TableTraits.jl interface
 
