@@ -11,7 +11,7 @@ _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 # Shared docstrings: keep things consistent.
 
 const AXISLEGENDKW_DOC = """
--`axislegendkw`: attributes to pass to `axislegend`.
+- `axislegendkw`: attributes to pass to `axislegend`.
 """
 _keyword_heading_doc(f) = """
 # Keywords
@@ -58,7 +58,7 @@ end
 for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(A::AbstractDimArray{<:Any,1}; axislegendkw, attributes...)
+        $f1(A::AbstractDimArray{<:Any,1}; attributes...)
         
     Plot a 1-dimensional `AbstractDimArray` with `Makie.$f2`.
 
@@ -120,6 +120,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
         
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
 
+    $(_keyword_heading_doc(f1))
     $(_dims_doc(f1))
     $(_maybe_colorbar_doc(f1))
     """
