@@ -400,8 +400,8 @@ end
 _prepare_for_makie(A, replacements=()) = _permute_xyz(A, replacements) |> _reorder
 
 # Permute the data after replacing the dimensions with X/Y/Z
-_permute_xyz(A, replacements::Pair) = _permute_xyz(A, (replacements,))
-_permute_xyz(A, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
+_permute_xyz(A::AbstractDimArray, replacements::Pair) = _permute_xyz(A, (replacements,))
+_permute_xyz(A::AbstractDimArray, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
     _permute_xyz(A, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
 function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
