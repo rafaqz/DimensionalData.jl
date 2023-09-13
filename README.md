@@ -46,6 +46,15 @@ and reference dimensions: X
  19.0  0.20442
 ```
 
+Plotting with Makie.jl is as easy as:
+
+```julia
+using GLMakie, DimensionalData
+boxplot(rand(X('a':'d'), Y(2:5:20)))
+```
+
+And the plot will have the right ticks and labels.
+
 [See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/stable)
 
 Some properties of DimensionalData.jl objects:
