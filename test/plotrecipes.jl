@@ -193,4 +193,8 @@ if !haskey(ENV, "CI")
     A3 = DimArray(rand(10, 10, 5), (:a, :b, :c); name=:stuff)
     volume(A3)
     volumeslices(A3)
+    # x/y/z can be specified
+    A2 = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
+    volume(A3; x=:c)
+    volumeslices(A3; z=:a)
 end
