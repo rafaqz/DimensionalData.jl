@@ -19,11 +19,12 @@ _keyword_heading_doc(f) = """
 Keywords for $f work as usual.
 """
 
-_dims_doc(f) = """
-- `dims`: A `Pair` or Tuple of Pair of `Dimension` or `Symbol`. Can be used to
-    specify dimensions that should be moved to the `X`, `Y` and `Z` dimensions
-    of the plot. For example `$f(A, dims=:a => :X)` will use the `:a` dimension
-    as the `X` dimension in the plot.
+_xy(f) = """
+- `x`: A `Dimension`, `Dimension` type or `Symbol` for the `Dimension` that should go on the x axis of the plot.
+- `y`: A `Dimension`, `Dimension` type or `Symbol` for the `Dimension` that should go on the y axis of the plot.
+"""
+_z(f) = """
+- `z`: A `Dimension`, `Dimension` type or `Symbol` for the `Dimension` that should go on the z axis of the plot.
 """
 
 _labeldim_detection_doc(f) = """
@@ -121,13 +122,16 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     $(_keyword_heading_doc(f1))
-    $(_dims_doc(f1))
+    $(_xy(f1))
     $(_maybe_colorbar_doc(f1))
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,2}; dims=(), colorbarkw=(;), attributes...)
-            args, merged_attributes = _surface2(A, attributes, dims)
+        function Makie.$f1(A::AbstractDimArray{<:Any,2}; 
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
+        )
+            replacements = _keywords2dimpairs(x, y)
+            args, merged_attributes = _surface2(A, attributes, replacements)
             p = Makie.$f2(args...; merged_attributes...)
             # Add a Colorbar for heatmaps and contourf
             if $(f1 in (:heatmap, :contourf)) 
@@ -137,19 +141,22 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,2}; dims=(), colorbarkw=(;), attributes...)
-            args, _ = _surface2(A, attributes, dims)
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,2}; 
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
+        )
+            replacements = _keywords2dimpairs(x, y)
+            args, _ = _surface2(A, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(args...; attributes...)
         end
     end
 end
 
-function _surface2(A, attributes, dims)
+function _surface2(A, attributes, replacements)
     # Array/Dimension manipulation
-    A1 = _prepare_for_makie(A, dims)
+    A1 = _prepare_for_makie(A, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
-    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
     args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
 
     # Plot attribute generation
@@ -177,28 +184,31 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     Plot a 3-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     $(_keyword_heading_doc(f1))
-    $(_dims_doc(f1))
+    $(_xy(f1))
+    $(_z(f1))
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
-            A1, A2, args, merged_attributes = _volume3(A, attributes, dims)
+        function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+            replacements = _keywords2dimpairs(x, y, z)
+            A1, A2, args, merged_attributes = _volume3(A, attributes, replacements)
             p = Makie.$f2(args...; merged_attributes...)
             p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; dims=(), attributes...)
-            _, args, _ = _volume3(A, attributes, dims)
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+            replacements = _keywords2dimpairs(x, y, z)
+            _, args, _ = _volume3(A, attributes, replacements)
             return Makie.$f2!(axis, args...; attributes...)
         end
     end
 end
 
-function _volume3(A, attributes, dims)
+function _volume3(A, attributes, replacements)
     # Array/Dimension manipulation
-    A1 = _prepare_for_makie(A, dims)
+    A1 = _prepare_for_makie(A, replacements)
     _, newdims = _split_attributes(A1)
-    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, dims)
+    A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
     args = Makie.convert_arguments(Makie.VolumeLike(), A2)
 
     # Plot attribute generation
@@ -439,12 +449,23 @@ function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple
     end
     # Find and sort remaining dims
     source_dims_remaining = dims(otherdims(A, replacements1), DD.PLOT_DIMENSION_ORDER)
-    xyz_remaining = otherdims(xyz_dims, replacements1)[1:length(source_dims_remaining)]
+    xyz_remaining = otherdims(xyz_dims, map(val, replacements1))[1:length(source_dims_remaining)]
     other_replacements = map(rebuild, source_dims_remaining, xyz_remaining)
     return (replacements1..., other_replacements...)
 end
 
 # Get all lookups in ascending/forward order
 _reorder(A) = reorder(A, DD.ForwardOrdered)
+
+function _keywords2dimpairs(x, y, z)
+    reduce((x => X, y => Y, z => Z); init=()) do acc, (source, dest)
+        isnothing(source) ? acc : (acc..., source => dest)
+    end
+end
+function _keywords2dimpairs(x, y)
+    reduce((x => X, y => Y); init=()) do acc, (source, dest)
+        isnothing(source) ? acc : (acc..., source => dest)
+    end
+end
 
 end
