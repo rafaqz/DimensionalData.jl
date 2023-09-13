@@ -114,7 +114,7 @@ end
 
 # 2d SurfaceLike
 
-for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy)
+for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy, :surface)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(A::AbstractDimArray{<:Any,2}; attributes...)
@@ -131,8 +131,16 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
-            args, merged_attributes = _surface2(A, attributes, replacements)
-            p = Makie.$f2(args...; merged_attributes...)
+            A1, A2, args, merged_attributes = _surface2(A, attributes, replacements)
+            p = if $(f1 == :surface)
+                # surface is an LScene so we cant pass attributes
+                p = Makie.$f2(args...; attributes...)
+                # And instead set axisnames manually
+                p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+                p
+            else
+                Makie.$f2(args...; merged_attributes...)
+            end
             # Add a Colorbar for heatmaps and contourf
             if $(f1 in (:plot, :heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2];
@@ -171,7 +179,7 @@ function _surface2(A, attributes, replacements)
     )
     merged_attributes = merge(user_attributes, plot_attributes, lookup_attributes)
 
-    return args, merged_attributes
+    return A1, A2, args, merged_attributes
 end
 
 # 3d VolumeLike
@@ -375,7 +383,7 @@ function _categorical_or_dependent(A, ::Nothing)
         end
     end
     if isnothing(dependentdim)
-        return first(dims) # Fallback uses whatever is first
+        return first(dims(A)) # Fallback uses whatever is first
     else
         return dependentdim
     end
