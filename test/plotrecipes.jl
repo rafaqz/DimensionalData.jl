@@ -156,3 +156,41 @@ nothing
 # im2 = RGB24.(rand(10, 10))
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
+
+if !haskey(ENV, "CI")
+    using GLMakie
+    # 1d
+    A1 = rand(X('a':'e'); name=:test)
+    plot(A1)
+    scatter(A1)
+    lines(A1)
+    scatterlines(A1)
+    stairs(A1)
+    stem(A1)
+    barplot(A1)
+    waterfall(A1)
+    # 2d
+    A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
+    A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
+    plot(A2)
+    # Categorical wins: it's on x, even though its Y
+    boxplot(A2)
+    boxplot(A2r)
+    violin(A2)
+    rainclouds(A2)
+    # Series also puts Categories in the legend no matter where they are
+    series(A2)
+    series(A2r)
+    # x/y can be specified
+    A2 = DimArray(rand(10, 10), (:a, :b); name=:stuff)
+    plot(A2)
+    contourf(A2; x=:a)
+    heatmap(A2; y=:b)
+    @test_throws ArgumentError plot(A2; y=:c)
+    # 3d
+    A3 = rand(X(7), Z(10), Y(5))
+    volume(A3)
+    A3 = DimArray(rand(10, 10, 5), (:a, :b, :c); name=:stuff)
+    volume(A3)
+    volumeslices(A3)
+end

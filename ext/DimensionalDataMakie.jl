@@ -134,7 +134,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             args, merged_attributes = _surface2(A, attributes, replacements)
             p = Makie.$f2(args...; merged_attributes...)
             # Add a Colorbar for heatmaps and contourf
-            if $(f1 in (:heatmap, :contourf)) 
+            if $(f1 in (:plot, :heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2];
                     label=DD.label(A), colorbarkw...
                 ) 
@@ -280,17 +280,17 @@ for f in (:violin, :boxplot, :rainclouds)
     @eval begin
         @doc $docstring
         function Makie.$f(A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
-            args, merged_attributes = _boxplot(A, attributes, labeldim)
+            args, merged_attributes = _boxplotlike(A, attributes, labeldim)
             return Makie.$f(args...; merged_attributes...)
         end
         function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
-            args, _ = _boxplot(A, attributes, labeldim)
+            args, _ = _boxplotlike(A, attributes, labeldim)
             return Makie.$f!(axis, args...; attributes...)
         end
     end
 end
 
-function _boxplot(A, attributes, labeldim)
+function _boxplotlike(A, attributes, labeldim)
     # Array/Dimension manipulation
     categoricaldim = _categorical_or_dependent(A, labeldim)
     categoricallookup = lookup(categoricaldim)
@@ -441,17 +441,15 @@ end
 # relationship with the possible Makie.jl plot axes. 
 function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
-    replacements1 = map(replacements) do d
+    map(replacements) do d
         # Make sure replacements contain X/Y/Z only
-        d_dest = basedims(val(d))
-        d_dest in xyz_dims || throw(ArgumentError("`dims` destinations must be in $(map(basetypeof, xyz_dims))"))
-        rebuild(d, d_dest)
+        hasdim(A, d) || throw(ArgumentError("object does not have a dimension $(basetypeof(d))"))
     end
     # Find and sort remaining dims
-    source_dims_remaining = dims(otherdims(A, replacements1), DD.PLOT_DIMENSION_ORDER)
-    xyz_remaining = otherdims(xyz_dims, map(val, replacements1))[1:length(source_dims_remaining)]
+    source_dims_remaining = dims(otherdims(A, replacements), DD.PLOT_DIMENSION_ORDER)
+    xyz_remaining = otherdims(xyz_dims, map(val, replacements))[1:length(source_dims_remaining)]
     other_replacements = map(rebuild, source_dims_remaining, xyz_remaining)
-    return (replacements1..., other_replacements...)
+    return (replacements..., other_replacements...)
 end
 
 # Get all lookups in ascending/forward order
