@@ -131,11 +131,13 @@ Base.Array(c::DimArrayColumn) = vec(c)
 """
     DimTable <: AbstractDimTable
 
-    DimTable(A::AbstractDimArray)
+    DimTable(s::AbstractDimStack; mergedims=nothing)
+    DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
+    DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
 
-Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray`.
+Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray` or `AbstractDimStack`.
 
-This table will have a column for the array data and columns for each
+This table will have columns for the array data and columns for each
 `Dimension` index, as a [`DimColumn`]. These are lazy, and generated
 as required.
 
@@ -145,6 +147,22 @@ column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
+
+# Keywords
+* `mergedims`: Combine two or more dimensions into a new dimension.
+* `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+
+# Example
+```jldoctest
+julia> a = DimArray(rand(32,32,3), (X,Y,Dim{:band}));
+
+julia> DimTable(a, layersfrom=Dim{:band}, mergedims=(X,Y)=>:geometry)
+DimTable with 1024 rows, 4 columns, and schema:
+ :geometry  Tuple{Int64, Int64}
+ :band_1    Float64
+ :band_2    Float64
+ :band_3    Float64
+```
 """
 struct DimTable <: AbstractDimTable
     parent::AbstractDimArray
@@ -162,9 +180,12 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     return DimTable(first(s), collect(keys), collect(dimcolumns), collect(dimarraycolumns))
 end
 
-function DimTable(xs::Vararg{AbstractDimArray}; layernames=[Symbol("layer_$i") for i in eachindex(xs)], mergedims=nothing)
+function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
     # Check that dims are compatible
     comparedims(xs...)
+
+    # Construct Layer Names
+    layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames
 
     # Construct DimColumns
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
