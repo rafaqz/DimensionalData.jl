@@ -579,6 +579,7 @@ dimconstructor(dims::Tuple{}) = DimArray
 
 """
     mergedims(old_dims => new_dim) => Dimension
+
 Return a dimension `new_dim` whose indices are a [`MergedLookup`](@ref) of the indices of
 `old_dims`.
 """
@@ -589,11 +590,13 @@ end
 
 """
     mergedims(dims, old_dims => new_dim, others::Pair...) => dims_new
+
 If dimensions `old_dims`, `new_dim`, etc. are found in `dims`, then return new `dims_new`
 where all dims in `old_dims` have been combined into a single dim `new_dim`.
 The returned dimension will keep only the name of `new_dim`. Its coords will be a
 [`MergedLookup`](@ref) of the coords of the dims in `old_dims`. New dimensions are always
 placed at the end of `dims_new`. `others` contains other dimension pairs to be merged.
+
 # Example
 ````jldoctest
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]));
@@ -628,6 +631,7 @@ end
 """
     mergedims(A::AbstractDimArray, dim_pairs::Pair...) => AbstractDimArray
     mergedims(A::AbstractDimStack, dim_pairs::Pair...) => AbstractDimStack
+
 Return a new array or stack whose dimensions are the result of [`mergedims(dims(A), dim_pairs)`](@ref).
 """
 function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
@@ -642,10 +646,11 @@ function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
 end
 
 """
-    unmergedims(merged_dims)
+    unmergedims(merged_dims::Tuple{Vararg{Dimension}}) => Tuple{Vararg{Dimension}}
+
 Return the unmerged dimensions from a tuple of merged dimensions. However, the order of the original dimensions are not necessarily preserved.
 """
-function unmergedims(merged_dims)
+function unmergedims(merged_dims::Tuple{Vararg{Dimension}})
     reduce(map(dims, merged_dims), init=Tuple([])) do acc, x
         x isa Tuple ? (acc..., x...) : (acc..., x)
     end
@@ -654,6 +659,7 @@ end
 """
     unmergedims(A::AbstractDimArray, original_dims) => AbstractDimArray
     unmergedims(A::AbstractDimStack, original_dims) => AbstractDimStack
+
 Return a new array or stack whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
 """
 function unmergedims(A::AbstractDimArray, original_dims)

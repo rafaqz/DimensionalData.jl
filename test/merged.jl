@@ -69,6 +69,7 @@ end
     a = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
     merged = mergedims(a, (X,Y)=>:geometry)
     unmerged = unmergedims(merged, dims(a))
+    perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
     
     # Test Merge
     @test hasdim(merged, Dim{:band})
@@ -84,5 +85,6 @@ end
     @test !hasdim(unmerged, Dim{:geometry})
     @test dims(unmerged) == dims(a)
     @test size(unmerged) == size(a)
-    @test all(a == unmerged)
+    @test all(a .== unmerged)
+    @test all(a .== perm_unmerged)
 end
