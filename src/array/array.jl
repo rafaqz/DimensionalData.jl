@@ -627,7 +627,8 @@ end
 
 """
     mergedims(A::AbstractDimArray, dim_pairs::Pair...) => AbstractDimArray
-Return a new array whose dimensions are the result of [`mergedims(dims(A), dim_pairs)`](@ref).
+    mergedims(A::AbstractDimStack, dim_pairs::Pair...) => AbstractDimStack
+Return a new array or stack whose dimensions are the result of [`mergedims(dims(A), dim_pairs)`](@ref).
 """
 function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
     isempty(dim_pairs) && return A
@@ -652,7 +653,8 @@ end
 
 """
     unmergedims(A::AbstractDimArray, original_dims) => AbstractDimArray
-Return a new array whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
+    unmergedims(A::AbstractDimStack, original_dims) => AbstractDimStack
+Return a new array or stack whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
 """
 function unmergedims(A::AbstractDimArray, original_dims)
     merged_dims = dims(A)

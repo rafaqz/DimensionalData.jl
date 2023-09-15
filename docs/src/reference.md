@@ -50,6 +50,8 @@ rebuild
 modify
 broadcast_dims
 broadcast_dims!
+mergedims
+unmergedims
 reorder
 Base.cat
 Base.map

@@ -142,3 +142,26 @@ end
     @test Tables.columntable(a) == (a = [1],)
     @test Tables.columntable(ds) == (a = [1], b = [2])
 end
+
+@testset "DimTable layersfrom" begin
+    a = DimArray(rand(32, 32, 5, 3), (X,Y,Dim{:band},Ti))
+    t1 = DimTable(a)
+    t2 = DimTable(a, layersfrom=Dim{:band})
+    @test Tables.columnnames(t1) == (:X, :Y, :band, :Ti, :value)
+    @test Tables.columnnames(t2) == (:X, :Y, :Ti, :band_1, :band_2, :band_3, :band_4, :band_5)
+    @test length(t1.X) == (32 * 32 * 5 * 3)
+    @test length(t2.X) == (32 * 32 * 3)
+end
+
+@testset "DimTable mergelayers" begin
+    a = DimStack([DimArray(rand(32, 32, 3), (X,Y,Ti)) for _ in 1:3])
+    b = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
+    t1 = DimTable(a, mergedims=(:X,:Y)=>:geometry)
+    t2 = DimTable(a, mergedims=(:X,:Y,:Z)=>:geometry) # Merge missing dimension
+    t3 = DimTable(a, mergedims=(X,:Y,Ti)=>:dimensions) # Mix symbols and dimensions
+    t4 = DimTable(b, mergedims=(:X,:Y)=>:geometry) # Test DimArray
+    @test Tables.columnnames(t1) == (:Ti, :geometry, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t2) == (:Ti, :geometry, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t3) == (:dimensions, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t4) == (:band, :geometry, :value)
+end

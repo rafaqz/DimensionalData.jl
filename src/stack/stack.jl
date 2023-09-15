@@ -157,21 +157,12 @@ for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :ord
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
-"""
-    mergedims(ds::AbstractDimStack, dim_pairs::Pair...) => AbstractDimStack
-Return a new stack where `mergedims(A, dim_pairs...)` has been applied to each layer `A` of
-`ds`.
-"""
 function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
     isempty(dim_pairs) && return ds
     vals = map(A -> mergedims(A, dim_pairs...), values(ds))
     rebuild_from_arrays(ds, vals)
 end
 
-"""
-    unmergedims(s::AbstractDimStack, original_dims) => AbstractDimStack
-Return a new stack whose dimensions are restored to their original prior to calling [`mergedims(s, dim_pairs)`](@ref).
-"""
 function unmergedims(s::AbstractDimStack, original_dims)
     return map(A -> unmergedims(A, original_dims), s)
 end
