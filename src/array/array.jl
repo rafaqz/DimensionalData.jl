@@ -651,7 +651,7 @@ end
 Return the unmerged dimensions from a tuple of merged dimensions. However, the order of the original dimensions are not necessarily preserved.
 """
 function unmergedims(merged_dims::Tuple{Vararg{Dimension}})
-    reduce(map(dims, merged_dims), init=Tuple([])) do acc, x
+    reduce(map(dims, merged_dims), init=()) do acc, x
         x isa Tuple ? (acc..., x...) : (acc..., x)
     end
 end
