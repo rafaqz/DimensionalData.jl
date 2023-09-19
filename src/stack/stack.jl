@@ -157,6 +157,17 @@ for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :ord
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
+function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
+    isempty(dim_pairs) && return ds
+    vals = map(A -> mergedims(A, dim_pairs...), values(ds))
+    rebuild_from_arrays(ds, vals)
+end
+
+function unmergedims(s::AbstractDimStack, original_dims)
+    return map(A -> unmergedims(A, original_dims), s)
+end
+
+
 """
     DimStack <: AbstractDimStack
 
