@@ -1,7 +1,7 @@
 name = "DimensionalData"
 uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
 authors = ["Rafael Schouten <rafaelschouten@gmail.com>"]
-version = "0.25.0
+version = "0.25.0"
 
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
