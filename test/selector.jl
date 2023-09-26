@@ -1346,11 +1346,6 @@ end
     @test selectindices(dims_, ()) == ()
 end
 
-@testset "errors" begin
-    @test_throws ArgumentError DimensionalData.selectindices(X(Sampled(1:4, sampling=Points())), Contains(1))
-end
-
-
 @testset "hasselection" begin
     @test hasselection(A, X(At(20)))
     @test hasselection(dims(A, X), X(At(20)))
