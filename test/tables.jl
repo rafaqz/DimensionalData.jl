@@ -14,7 +14,8 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
     ds = DimStack(da)
     t = Tables.columns(ds)
     @test t isa DimTable
-    @test dims(t) == dims(da)
+    @test dims(t) === dims(da)
+    @test parent(t) === ds
 
     @test Tables.columns(t) === t
     @test t[:X] isa DimColumn

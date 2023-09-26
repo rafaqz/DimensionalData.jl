@@ -28,7 +28,7 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
     Tables.getcolumn(t, dimnum(t, dim))
 
 function _colnames(s::AbstractDimStack)
-    dimkeys = map(dim2key, (dims(s)))
+    dimkeys = map(dim2key, dims(s))
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
@@ -165,7 +165,7 @@ DimTable with 1024 rows, 4 columns, and schema:
 ```
 """
 struct DimTable <: AbstractDimTable
-    parent::AbstractDimArray
+    parent::Union{AbstractDimArray,AbstractDimStack}
     colnames::Vector{Symbol}
     dimcolumns::Vector{DimColumn}
     dimarraycolumns::Vector{DimArrayColumn}
@@ -177,7 +177,7 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     dimcolumns = map(d -> DimColumn(d, dims_), dims_)
     dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
     keys = _colnames(s)
-    return DimTable(first(s), collect(keys), collect(dimcolumns), collect(dimarraycolumns))
+    return DimTable(s, collect(keys), collect(dimcolumns), collect(dimarraycolumns))
 end
 
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
