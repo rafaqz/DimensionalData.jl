@@ -140,6 +140,7 @@ X, Y
 ```
 """
 @inline dims(a1, args...) = _call_primitive(_dims, MaybeFirst(), a1, args...)
+@inline dims(::Tuple{}, ::Tuple{}) = ()
 
 @inline _dims(f, dims, query) = _remove_nothing(_sortdims(f, dims, query))
 
@@ -530,7 +531,7 @@ function comparedims end
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)
     val && parent(a) != parent(b) && _valerror(a, b)
-    order && order(a) != order(b) && _ordererror(a, b)
+    order && LA.order(a) != LA.order(b) && _ordererror(a, b)
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
         return Base.length(b) == 1 ? a : b
     end
@@ -555,14 +556,10 @@ end
 @inline _comparedims(T::Type{Bool}, a::Dimension, b::AnonDim; kw...) = true
 @inline _comparedims(T::Type{Bool}, a::AnonDim, b::Dimension; kw...) = true
 @inline function _comparedims(::Type{Bool}, a::Dimension, b::Dimension;
-    type=true, lookuptype=false, valtype=false, val=false, length=true, order=false, ignore_length_one=false, warn=nothing,
+    type=true, valtype=false, val=false, length=true, order=false, ignore_length_one=false, warn=nothing,
 )
     if type && basetypeof(a) != basetypeof(b)
         isnothing(warn) || _dimsmismatchwarn(a, b, warn)
-        return false
-    end
-    if lookuptype && basetypeof(lookup(a)) != basetypeof(lookup(b))
-        isnothing(warn) || _typewarn(lookup(a), lookup(b), warn)
         return false
     end
     if valtype && typeof(parent(a)) != typeof(parent(b))
@@ -728,7 +725,8 @@ _valtypemsg(a, b) = "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)
 _extradimsmsg(extradims) = "$(map(basetypeof, extradims)) dims were not found in object."
 _extradimsmsg(::Tuple{}) = "Some dims were not found in object."
 _metadatamsg(a, b) = "Metadata $(metadata(a)) and $(metadata(b)) do not match."
-_dimordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
+_ordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
+_typemsg(a, b) = "Lookups do not all have the same type: $(order(a)), $(order(b))."
 
 # Warning: @noinline to avoid allocations when it isn't used
 @noinline _dimsmismatchwarn(a, b, msg="") = @warn _dimsmismatchmsg(a, b) * msg
@@ -736,13 +734,14 @@ _dimordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(ord
 @noinline _dimsizewarn(a, b, msg="") = @warn _dimsizemsg(a, b) * msg
 @noinline _valtypewarn(a, b, msg="") = @warn _valtypemsg(a, b)  * msg
 @noinline _extradimswarn(dims, msg="") = @warn _extradimsmsg(dims) * msg
+@noinline _orderwarn(a, b, msg="") = @warn _ordermsg(a, b) * msg
 
 # Error
 @noinline _dimsmismatcherror(a, b) = throw(DimensionMismatch(_dimsmismatchmsg(a, b)))
-@noinline _dimordererror(a, b) = throw(DimensionMismatch(_dimsizemsg(a, b)))
 @noinline _dimsizeerror(a, b) = throw(DimensionMismatch(_dimsizemsg(a, b)))
 @noinline _valtypeerror(a, b) = throw(DimensionMismatch(_valtypemsg(a, b)))
 @noinline _valerror(a, b) = throw(DimensionMismatch(_valmsg(a, b)))
+@noinline _ordererror(a, b) = throw(DimensionMismatch(_ordermsg(a, b)))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch(_metadatamsg(a, b)))
 @noinline _extradimserror(args...) = throw(ArgumentError(_extradimsmsg(args)))
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))

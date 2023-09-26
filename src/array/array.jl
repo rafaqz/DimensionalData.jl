@@ -100,9 +100,12 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
 end
 
 # undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray} = A(x, dims; kw...)
+(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{<:Any}} = A(x, dims; kw...)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
+end
+function (::Type{A})(x::UndefInitializer, dims::Tuple{}; kw...) where {A<:AbstractDimArray{T}} where T
+    basetypeof(A)(Array{T}(undef, ()), dims; kw...)
 end
 
 # Dummy `read` methods that does nothing.
@@ -256,7 +259,7 @@ Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) whe
     copyto!(parent(dst), src)
 Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
     copyto!(parent(dst), src)
-Base.copyto!(::DimensionalData.AbstractDimArray, ::SparseArrays.CHOLMOD.Dense) =
+Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
     copyto!(parent(dst), src)
 Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
     copyto!(parent(dst), src)

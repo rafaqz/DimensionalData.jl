@@ -487,7 +487,7 @@ end
 @noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups are misaligned at $x2 and $x1")
 @noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unorderd` lookups share values: $intr")
 
-@noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(T, span)))
+@noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(D, S, span)))
 @noinline function _mixed_span_warn(D, S, span)
     @warn _span_string(D, S, span)
     return false

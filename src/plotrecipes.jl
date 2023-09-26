@@ -14,7 +14,7 @@ struct DimensionalPlot end
     DimensionalPlot(), A
 end
 
-@recipe function f(::DimensionalPlot, A::AbstractArray)
+@recipe function f(::DimensionalPlot, A::AbstractDimArray)
     A_fwd = reorder(A, ForwardOrdered())
     sertype = get(plotattributes, :seriestype, :none)::Symbol
     if !(sertype in (:marginalhist,))
@@ -44,7 +44,7 @@ end
     end
 end
 
-@recipe function f(s::SeriesLike, A::AbstractArray{T,1}) where T
+@recipe function f(s::SeriesLike, A::AbstractDimArray{T,1}) where T
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
@@ -52,7 +52,7 @@ end
     _xticks!(plotattributes, s, dim)
     _withaxes(dim, A)
 end
-@recipe function f(s::SeriesLike, A::AbstractArray{T,2}) where T
+@recipe function f(s::SeriesLike, A::AbstractDimArray{T,2}) where T
     A = permutedims(A, forward_order_plot_dims(A))
     ind, dep = dims(A)
     :xguide --> label(ind)
@@ -64,12 +64,12 @@ end
     _withaxes(ind, A)
 end
 
-@recipe function f(s::HistogramLike, A::AbstractArray{T,1}) where T
+@recipe function f(s::HistogramLike, A::AbstractDimArray{T,1}) where T
     dim = dims(A, 1)
     :xguide --> label(A)
     _withaxes(dim, A)
 end
-@recipe function f(s::HistogramLike, A::AbstractArray{T,2}) where T
+@recipe function f(s::HistogramLike, A::AbstractDimArray{T,2}) where T
     ds = reverse_order_plot_dims(A)
     A = permutedims(A, ds)
     ind, dep = dims(A)
@@ -79,12 +79,12 @@ end
     _withaxes(ind, A)
 end
 
-@recipe function f(::ViolinLike, A::AbstractArray{T,1}) where T
+@recipe function f(::ViolinLike, A::AbstractDimArray{T,1}) where T
     dim = dims(A, 1)
     :yguide --> label(A)
     parent(A)
 end
-@recipe function f(s::ViolinLike, A::AbstractArray{T,2}) where T
+@recipe function f(s::ViolinLike, A::AbstractDimArray{T,2}) where T
     ds = reverse_order_plot_dims(A)
     A = permutedims(A, ds)
     dep, ind = dims(A)
@@ -95,7 +95,7 @@ end
     _xticks!(plotattributes, s, ind)
     parent(A)
 end
-@recipe function f(s::ViolinLike, A::AbstractArray{T,3}) where T
+@recipe function f(s::ViolinLike, A::AbstractDimArray{T,3}) where T
     ds = reverse_order_plot_dims(A)
     A = permutedims(A, ds)
     dep2, dep1, ind = dims(A)
@@ -107,14 +107,14 @@ end
     parent(A)
 end
 
-@recipe function f(s::HeatMapLike, A::AbstractArray{T,1}) where T
+@recipe function f(s::HeatMapLike, A::AbstractDimArray{T,1}) where T
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
     _xticks!(plotattributes, s, dim)
     parent(A)
 end
-@recipe function f(s::HeatMapLike, A::AbstractArray{T,2}) where T
+@recipe function f(s::HeatMapLike, A::AbstractDimArray{T,2}) where T
     ds = reverse_order_plot_dims(A)
     A = permutedims(A, ds)
     y, x = dims(A)
@@ -126,7 +126,7 @@ end
     _yticks!(plotattributes, s, y)
     _withaxes(x, y, A)
 end
-@recipe function f(x::DimPlotMode, A::AbstractArray{T,N}) where {T,N}
+@recipe function f(x::DimPlotMode, A::AbstractDimArray{T,N}) where {T,N}
     throw(ArgumentError("$(x.seriestype) not implemented in $N dimensions"))
 end
 

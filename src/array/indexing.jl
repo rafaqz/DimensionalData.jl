@@ -84,5 +84,5 @@ end
 # For @views macro to work with keywords
 Base.maybeview(A::AbstractDimArray, args...; kw...) = 
     view(A, args...; kw...)
-Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}) = 
+Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) = 
     view(A, args...; kw...)
