@@ -64,6 +64,10 @@ end
 function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
+function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+end
+
 @static if VERSION >= v"1.6"
     function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
         rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
@@ -344,10 +348,10 @@ check_cat_lookups(dims::Dimension...) =
 
 # LookupArrays may need adjustment for `cat`
 _check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
-_check_cat_lookups(D, lookups::NoLookup...) = true
-function _check_cat_lookups(D, lookups::AbstractSampled...)
-    _check_cat_lookup_order(D, lookups...) || return false
-    _check_cat_lookups(D, span(first(lookups)), lookups...)
+_check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
+function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
+    _check_cat_lookup_order(D, l1, lookups...) || return false
+    _check_cat_lookups(D, span(l1), l1, lookups...)
 end
 function _check_cat_lookups(D, ::Regular, lookups...)
     length(lookups) > 1 || return true
@@ -541,3 +545,4 @@ _reverse(dim::Dimension) = reverse(dim)
 Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))
 
 Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A))
+

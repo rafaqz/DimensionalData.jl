@@ -940,9 +940,9 @@ function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{Selecto
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 
-_transform2int(lookup, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
-_transform2int(lookup, ::Contains, x) = round(Int, x)
-_transform2int(lookup, sel::At, x) = _transform2int(sel, x, atol(sel))
+_transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
+_transform2int(lookup::AbstractArray, ::Contains, x) = round(Int, x)
+_transform2int(lookup::AbstractArray, sel::At, x) = _transform2int(sel, x, atol(sel))
 _transform2int(::At, x, atol::Nothing) = convert(Int, x)
 function _transform2int(::At, x, atol)
     i = round(Int, x)

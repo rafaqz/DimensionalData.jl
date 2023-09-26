@@ -82,4 +82,7 @@ end
     setindex!(parent(A), x, i1, I...)
 
 # For @views macro to work with keywords
-Base.maybeview(A::AbstractDimArray, args...; kw...) = view(A, args...; kw...)
+Base.maybeview(A::AbstractDimArray, args...; kw...) = 
+    view(A, args...; kw...)
+Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}) = 
+    view(A, args...; kw...)
