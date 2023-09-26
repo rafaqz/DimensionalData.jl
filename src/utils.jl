@@ -28,11 +28,11 @@ _reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
 
-_reorder(neworder::Order, x, dim::DimOrDimType) = _reorder(basetypeof(neworder), x, dim)
+_reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
-_reorder(::Type{O}, x, dim::DimOrDimType) where O<:Ordered =
+_reorder(::Type{O}, x, dim::Dimension) where O<:Ordered =
     order(dim) isa O ? x : reverse(x; dims=dim)
-_reorder(ot::Type{Unordered}, x, dim::DimOrDimType) = x
+_reorder(ot::Type{Unordered}, x, dim::Dimension) = x
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray

@@ -40,7 +40,9 @@ _set(lookup::LookupArray, newlookup::NoLookup) = newlookup
 # Set the index
 _set(lookup::LookupArray, index::Val) = rebuild(lookup; data=index)
 _set(lookup::LookupArray, index::Colon) = lookup
+_set(lookup::LookupArray, index::AutoLookup) = lookup
 _set(lookup::LookupArray, index::AbstractArray) = rebuild(lookup; data=index)
+
 _set(lookup::LookupArray, index::AutoIndex) = lookup
 _set(lookup::LookupArray, index::AbstractRange) =
     rebuild(lookup; data=_set(parent(lookup), index), order=orderof(index))

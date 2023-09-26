@@ -64,6 +64,10 @@ end
 function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
+function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+end
+
 @static if VERSION >= v"1.6"
     function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
         rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
@@ -344,10 +348,10 @@ check_cat_lookups(dims::Dimension...) =
 
 # LookupArrays may need adjustment for `cat`
 _check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
-_check_cat_lookups(D, lookups::NoLookup...) = true
-function _check_cat_lookups(D, lookups::AbstractSampled...)
-    _check_cat_lookup_order(D, lookups...) || return false
-    _check_cat_lookups(D, span(first(lookups)), lookups...)
+_check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
+function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
+    _check_cat_lookup_order(D, l1, lookups...) || return false
+    _check_cat_lookups(D, span(l1), l1, lookups...)
 end
 function _check_cat_lookups(D, ::Regular, lookups...)
     length(lookups) > 1 || return true
@@ -483,7 +487,7 @@ end
 @noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups are misaligned at $x2 and $x1")
 @noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unorderd` lookups share values: $intr")
 
-@noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(T, span)))
+@noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(D, S, span)))
 @noinline function _mixed_span_warn(D, S, span)
     @warn _span_string(D, S, span)
     return false
@@ -541,3 +545,4 @@ _reverse(dim::Dimension) = reverse(dim)
 Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))
 
 Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A))
+

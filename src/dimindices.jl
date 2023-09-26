@@ -16,7 +16,7 @@ for f in (:getindex, :view, :dotview)
     end
 end
 
-(::Type{<:AbstractDimIndices})(::Nothing; kw...) = throw(ArgumentError("Object has no `dims` method"))
+(::Type{T})(::Nothing; kw...) where T<:AbstractDimIndices = throw(ArgumentError("Object has no `dims` method"))
 (::Type{T})(x; kw...) where T<:AbstractDimIndices = T(dims(x); kw...)
 (::Type{T})(dim::Dimension; kw...) where T<:AbstractDimIndices = T((dim,); kw...)
 
@@ -42,6 +42,10 @@ indices of unknown dimension.
 """
 struct DimIndices{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractDimIndices{T,N}
     dims::D
+    # Manual inner constructor for ambiguity only
+    function DimIndices{T,N,D}(dims::Tuple{Vararg{Dimension}}) where {T,N,D<:Tuple{Vararg{Dimension}}}
+        new{T,N,D}(dims)
+    end
 end
 function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     T = typeof(map(d -> rebuild(d, 1), dims))

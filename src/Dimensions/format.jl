@@ -86,6 +86,7 @@ _format(span::AutoSpan, D::Type, index::Union{AbstractArray,Val}) =
     _format(Irregular(), D, index)
 _format(span::AutoSpan, D::Type, index::AbstractRange) = Regular(step(index))
 _format(span::Regular{AutoStep}, D::Type, index::Union{AbstractArray,Val}) = _arraynosteperror()
+_format(span::Regular{AutoStep}, D::Type, index::LinRange) = Regular(step(index))
 _format(span::Regular{AutoStep}, D::Type, index::AbstractRange) = Regular(step(index))
 _format(span::Regular, D::Type, index::Union{AbstractArray,Val}) = span
 function _format(span::Regular, D::Type, index::AbstractRange)

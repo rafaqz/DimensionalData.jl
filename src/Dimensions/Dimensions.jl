@@ -20,6 +20,8 @@ include("../LookupArrays/LookupArrays.jl")
 
 using .LookupArrays
 
+const LA = LookupArrays
+
 import .LookupArrays: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
     shiftlocus, maybeshiftlocus, SelectorOrInterval, Interval
