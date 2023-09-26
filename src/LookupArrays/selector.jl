@@ -28,6 +28,12 @@ abstract type Selector{T} end
     IntSelector <: Selector
 
 Abstract supertype for [`Selector`](@ref)s that return a single `Int` index.
+
+IntSelectors provided by DimensionalData are:
+
+- [`At`](@ref)
+- [`Contains`](@ref)
+- [`Near`](@ref)
 """
 abstract type IntSelector{T} <: Selector{T} end
 
@@ -35,6 +41,12 @@ abstract type IntSelector{T} <: Selector{T} end
     ArraySelector <: Selector
 
 Abstract supertype for [`Selector`](@ref)s that return an `AbstractArray`.
+
+ArraySelectors provided by DimensionalData are:
+
+- [`Between`](@ref)
+- [`Touches`](@ref)
+- [`Where`](@ref)
 """
 abstract type ArraySelector{T} <: Selector{T} end
 
@@ -255,6 +267,8 @@ Selector that selects the interval the value is contained by. If the
 interval is not present in the index, an error will be thrown.
 
 Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
+For [`Categorical`](@ref) it falls back to using [`At`](@ref).
+`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` to check for if values are contain in categorical values like strings.
 
 ## Example
 
