@@ -268,7 +268,7 @@ interval is not present in the index, an error will be thrown.
 
 Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 For [`Categorical`](@ref) it falls back to using [`At`](@ref).
-Use `Where(contains(x))` to check for containment in the categorical values.
+`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` to check for if values are contain in categorical values like strings.
 
 ## Example
 
