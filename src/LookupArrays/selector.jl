@@ -288,12 +288,8 @@ function contains(::NoSampling, l::LookupArray, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
 # Points --------------------------------------
-function contains(::Points, l::LookupArray, sel::Contains; err=_True())
-    if err isa _True
-        throw(ArgumentError("Points LookupArray cannot use `Contains`, use `Near` or `At` for Points."))
-    else
-        nothing
-    end
+function contains(::Points, l::LookupArray, sel::Contains; kw...)
+    at(l, At(val(sel)); kw...)
 end
 # Intervals -----------------------------------
 function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())

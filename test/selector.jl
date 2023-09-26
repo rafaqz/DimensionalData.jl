@@ -917,6 +917,11 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(rev, At(30)) == 1
         end
 
+        @testset "contains" begin
+            @test contains(fwd, Contains(30)) == 26
+            @test contains(rev, Contains(30)) == 1
+        end
+
         @testset "near" begin
             @test near(fwd, Near(50))   == 26
             @test near(fwd, Near(0))    == 1
@@ -925,10 +930,6 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test near(rev, Near(29.4)) == 2
             @test near(rev, Near(30.1)) == 1
             @test_throws ArgumentError near(Sampled((5.0:30.0); order=Unordered(), sampling=Points()), Near(30.1))
-        end
-
-        @testset "contains" begin
-            @test_throws ArgumentError contains(fwd, Contains(50))
         end
 
     end
