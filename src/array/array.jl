@@ -255,7 +255,7 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 # Ambiguity
-@static if VERSION >= v"1.8.0"
+@static if VERSION >= v"1.9.0"
     Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
         copyto!(parent(dst), src)
     Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
