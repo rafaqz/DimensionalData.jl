@@ -278,9 +278,9 @@ end
     end
     Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
         copy!(dst, parent(src))
-    Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
-        copy!(dst, parent(src))
 end
+Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
+    copy!(dst, parent(src))
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     copyto!(dst, parent(src))
 
