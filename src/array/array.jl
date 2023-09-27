@@ -255,12 +255,14 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 # Ambiguity
-Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
-    copyto!(parent(dst), src)
+@static if VERSION >= v"1.8.0"
+    Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
+        copyto!(parent(dst), src)
+end
 Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
     copyto!(parent(dst), src)
 Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
