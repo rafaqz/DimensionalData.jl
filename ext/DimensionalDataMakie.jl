@@ -143,9 +143,9 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             # Add a Colorbar for heatmaps and contourf
             if $(f1 in (:plot, :heatmap, :contourf)) 
-                Colorbar(p.figure[1, 2];
+                Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
-                ) 
+                )
             end
             return p
         end
@@ -344,8 +344,8 @@ Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 # Conversions
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
-    xs = lookup(A, 1)
-    return Makie.convert_arguments(t, parent(xs), parent(A))
+    xs = parent(lookup(A, 1))
+    return Makie.convert_arguments(t, xs, _float32ornan(parent(A)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
@@ -353,19 +353,19 @@ end
 function Makie.convert_arguments(t::Makie.SurfaceLike, A::AbstractDimArray{<:Any,2})
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
-    return Makie.convert_arguments(t, xs, ys, parent(A1))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
     t::Makie.DiscreteSurface, A::AbstractDimArray{<:Any,2}
 )
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
-    return xs, ys, parent(A1)
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(parent, lookup(A1))
-    return xs, ys, zs, parent(A1)
+    return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
 # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
@@ -428,7 +428,9 @@ function _split_attributes(dim::Dimension)
     return attributes, dims[1]
 end
 
-_prepare_for_makie(A, replacements=()) = _permute_xyz(A, replacements) |> _reorder
+function _prepare_for_makie(A, replacements=()) 
+    A1 = _permute_xyz(A, replacements) |> _reorder
+end
 
 # Permute the data after replacing the dimensions with X/Y/Z
 _permute_xyz(A::AbstractDimArray, replacements::Pair) = _permute_xyz(A, (replacements,))
@@ -485,5 +487,9 @@ function _keywords2dimpairs(x, y)
         isnothing(source) ? acc : (acc..., source => dest)
     end
 end
+
+_float32ornan(A::AbstractArray{Float32}) = A
+_float32ornan(A::AbstractArray) = _float32ornan.(A)
+_float32ornan(x) = ismissing(x) ? NaN32 : Float32(x)
 
 end

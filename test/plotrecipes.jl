@@ -158,31 +158,52 @@ nothing
 # da_im2 |> plot
 
 if !haskey(ENV, "CI")
-    using GLMakie
+
+using GLMakie
+@testset "Makie" begin
     # 1d
     A1 = rand(X('a':'e'); name=:test)
+    A1m = rand([missing, (1:3)...], X('a':'e'); name=:test)
+    A1m[3] = missing
     plot(A1)
+    plot(A1m)
     scatter(A1)
+    scatter(A1m)
     lines(A1)
+    lines(A1m)
     scatterlines(A1)
+    scatterlines(A1m)
     stairs(A1)
+    stairs(A1m)
     stem(A1)
+    stem(A1m)
     barplot(A1)
+    barplot(A1m)
     waterfall(A1)
+    waterfall(A1m)
     # 2d
     A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
+    A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
+    A2m[3] = missing
     plot(A2)
+    plot(A2m)
     # Categorical wins: it's on x, even though its Y
     boxplot(A2)
     boxplot(A2r)
+    @test_throws ArgumentError boxplot(A2m)
     violin(A2)
+    violin(A2r)
+    @test_throws ArgumentError violin(A2m)
     rainclouds(A2)
+    @test_throws ErrorException rainclouds(A2m)
     surface(A2)
+    surface(A2m)
     # Series also puts Categories in the legend no matter where they are
     series(A2)
     series(A2r)
     series(A2r; labeldim=Y)
+    series(A2m)
     @test_throws ArgumentError plot(A2; y=:c)
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -199,10 +220,16 @@ if !haskey(ENV, "CI")
     series(A2ab; labeldim=:b)
     # 3d
     A3 = rand(X(7), Z(10), Y(5))
+    A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
+    A3m[3] = missing
     volume(A3)
+    volume(A3m)
     volumeslices(A3)
+    volumeslices(A3m)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     volume(A3abc; x=:c)
-    volumeslices(A3; z=:a)
+    volumeslices(A3abc; z=:a)
+end
+
 end
