@@ -549,7 +549,7 @@ end
     A2 = DimArray(p, (X, Y, t2))
     A3 = DimArray(p, (X, Y, t3))
 
-    @test view(A1, Ti(5)) == [5;;]
-    @test view(A2, Ti(5)) == [5;;]
-    @test view(A3, Ti(5)) == [5;;]
+    @test view(A1, Ti(5)) == permutedims([5])
+    @test view(A2, Ti(5)) == permutedims([5])
+    @test view(A3, Ti(5)) == permutedims([5])
 end
