@@ -1,6 +1,6 @@
 using DimensionalData, Aqua, SafeTestsets 
 
-if VERSION >= v"1.5.0"
+if VERSION >= v"1.9.0"
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)
     Aqua.test_undefined_exports(DimensionalData)

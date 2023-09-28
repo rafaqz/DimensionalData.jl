@@ -532,7 +532,7 @@ end
         dc = DimArray(c, X(4.0:5.0))
         dd = DimArray(c, X(8.0:9.0))
 
-        @test hcat(da) == [1; 2;;]
+        @test hcat(da) == permutedims([1 2])
         @test dims(hcat(da)) == 
             dims(cat(da; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(1))))

@@ -255,33 +255,34 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 # Ambiguity
-Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
-    copyto!(parent(dst), src)
-Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
-    copyto!(dst, parent(src))
-Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
-    copyto!(dst, parent(src))
-function Base.copyto!(
-    dst::AbstractDimArray{<:Any,2}, 
-    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
-    src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
-    src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
-)
-    copyto!(parent(dst), dst_i, src, src_i)
+@static if VERSION >= v"1.9.0"
+    Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
+        copyto!(dst, parent(src))
+    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
+        copyto!(parent(dst), src)
+    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
+        copyto!(parent(dst), src)
+    function Base.copyto!(
+        dst::AbstractDimArray{<:Any,2}, 
+        dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
+        src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
+        src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
+    )
+        copyto!(parent(dst), dst_i, src, src_i)
+    end
+    Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
+        copy!(dst, parent(src))
 end
-
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
     copy!(dst, parent(src))
-Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
-    copy!(dst, parent(src))
+Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
+    copyto!(dst, parent(src))
 
 ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
 

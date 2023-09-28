@@ -1130,7 +1130,7 @@ end
         A3 = A[X=Not(At([1.0,3.0]))]
         @test lookup(A2, :Ti) == [6u"s", 11u"s"]
         @test lookup(A3, :X) == [5.0,7.0,9.0]
-        @test A1 == [3; 6; 12; 15;;] 
+        @test A1 == permutedims([3 6 12 15]) 
         @test lookup(A1, Ti) == [11u"s"]
         @test lookup(A1, X) == [1.0, 3.0, 7.0, 9.0]
     end
