@@ -157,7 +157,7 @@ nothing
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
 
-if !haskey(ENV, "CI")
+#if !haskey(ENV, "CI")
 
 using Makie: Makie as M
 @testset "Makie" begin
@@ -279,4 +279,4 @@ using Makie: Makie as M
 end
 
 
-end
+#end
