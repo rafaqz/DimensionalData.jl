@@ -106,7 +106,6 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
         label=DD.label(A),
     )
     merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
-    #@show merged_attributes
     if !set_axis_attributes
         delete!(merged_attributes, :axis)
     end
