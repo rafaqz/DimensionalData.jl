@@ -13,7 +13,7 @@ Base.convert(T::Type{<:AbstractString}, name::AbstractName) = convert(T, string(
     NoName()
 
 NoName specifies an array is not named, and is the default `name`
-value for all `AAbstractDimArray`s.
+value for all `AbstractDimArray`s.
 """
 struct NoName <: AbstractName end
 
