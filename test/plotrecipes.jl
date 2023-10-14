@@ -157,8 +157,6 @@ nothing
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
 
-#if !haskey(ENV, "CI")
-
 using CairoMakie: CairoMakie as M
 @testset "Makie" begin
     # 1d
@@ -277,6 +275,3 @@ using CairoMakie: CairoMakie as M
     fig, ax, _ = M.volumeslices(A3abc; z=:a)
     @test_broken M.volumeslices!(ax, A3abc;z=:a)
 end
-
-
-#end
