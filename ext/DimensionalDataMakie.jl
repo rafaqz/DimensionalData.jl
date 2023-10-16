@@ -207,7 +207,7 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
         end
         function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
             replacements = _keywords2dimpairs(x, y, z)
-            _, args, _ = _volume3(A, attributes, replacements)
+            _, _, args, _ = _volume3(A, attributes, replacements)
             return Makie.$f2!(axis, args...; attributes...)
         end
     end

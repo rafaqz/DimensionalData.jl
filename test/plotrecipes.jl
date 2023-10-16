@@ -251,21 +251,21 @@ using CairoMakie: CairoMakie as M
     M.surface!(ax, A2ab)
     fig, ax, _ = M.series(A2ab)
     M.series!(ax, A2ab)
-    @test_broken fig, ax, _ = M.series(A2ab; labeldim=:a)
-    @test_broken M.series!(ax, A2ab; labeldim=:a)
-    @test_broken fig, ax, _ = M.series(A2ab; labeldim=:b)
-    @test_broken M.series!(ax, A2ab;labeldim=:b)
+    fig, ax, _ = M.series(A2ab; labeldim=:a)
+    M.series!(ax, A2ab; labeldim=:a)
+    #fig, ax, _ = M.series(A2ab; labeldim=:b)
+    #M.series!(ax, A2ab;labeldim=:b)
 
     # 3d
     A3 = rand(X(7), Z(10), Y(5))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
     fig, ax, _ = M.volume(A3)
-    @test_broken M.volume!(ax, A3)
-    @test_broken fig, ax, _ = M.volume(A3m)
-    @test_broken M.volume!(ax, A3m)
+    M.volume!(ax, A3)
+    fig, ax, _ = M.volume(A3m)
+    M.volume!(ax, A3m)
     fig, ax, _ = M.volumeslices(A3)
-    @test_broken M.volumeslices!(ax, A3)
+    M.volumeslices!(ax, A3)
     #fig, ax, _ = M.volumeslices(A3m)
     #M.volumeslices!(ax, A3m)
     # x/y/z can be specified
@@ -273,5 +273,5 @@ using CairoMakie: CairoMakie as M
     fig, ax, _ = M.volume(A3abc; x=:c)
     fig, ax, _ = M.volumeslices(A3abc; x=:c)
     fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    @test_broken M.volumeslices!(ax, A3abc;z=:a)
+    M.volumeslices!(ax, A3abc;z=:a)
 end
