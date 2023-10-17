@@ -3,7 +3,7 @@
 [![](https://img.shields.io/badge/docs-stable-blue.svg)](https://rafaqz.github.io/DimensionalData.jl/stable)
 [![](https://img.shields.io/badge/docs-dev-blue.svg)](https://rafaqz.github.io/DimensionalData.jl/dev)
 ![CI](https://github.com/rafaqz/DimensionalData.jl/workflows/CI/badge.svg)
-[![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl)
+[![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl/tree/main)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
 DimensionalData.jl provides tools and abstractions for working with datasets
