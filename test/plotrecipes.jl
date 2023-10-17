@@ -224,6 +224,7 @@ using CairoMakie: CairoMakie as M
     M.series!(ax, A2)
     fig, ax, _ = M.series(A2r)
     M.series!(ax, A2r)
+    #TODO: uncomment when the Makie version gets bumped
     #fig, ax, _ = M.series(A2r; labeldim=Y)
     #M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
@@ -253,6 +254,8 @@ using CairoMakie: CairoMakie as M
     M.series!(ax, A2ab)
     fig, ax, _ = M.series(A2ab; labeldim=:a)
     M.series!(ax, A2ab; labeldim=:a)
+    # TODO: this is currently broken in Makie 
+    # should be uncommented with the bump of the Makie version
     #fig, ax, _ = M.series(A2ab; labeldim=:b)
     #M.series!(ax, A2ab;labeldim=:b)
 
@@ -266,8 +269,8 @@ using CairoMakie: CairoMakie as M
     M.volume!(ax, A3m)
     fig, ax, _ = M.volumeslices(A3)
     M.volumeslices!(ax, A3)
-    #fig, ax, _ = M.volumeslices(A3m)
-    #M.volumeslices!(ax, A3m)
+    fig, ax, _ = M.volumeslices(A3m)
+    M.volumeslices!(ax, A3m)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
