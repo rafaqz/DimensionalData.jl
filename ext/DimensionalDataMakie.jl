@@ -89,7 +89,6 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, newdims[1] => newdims[1]), A)
     args = Makie.convert_arguments(Makie.PointBased(), A2)
-
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
     axis_attributes = if set_axis_attributes 
@@ -107,7 +106,9 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
         label=DD.label(A),
     )
     merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
-
+    if !set_axis_attributes
+        delete!(merged_attributes, :axis)
+    end
     return args, merged_attributes
 end
 
@@ -153,7 +154,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
-            args, _ = _surface2(A, attributes, replacements)
+            _, _, args, _ = _surface2(A, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(args...; attributes...)
         end
@@ -206,7 +207,7 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
         end
         function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
             replacements = _keywords2dimpairs(x, y, z)
-            _, args, _ = _volume3(A, attributes, replacements)
+            _, _, args, _ = _volume3(A, attributes, replacements)
             return Makie.$f2!(axis, args...; attributes...)
         end
     end
