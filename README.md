@@ -59,7 +59,7 @@ And the plot will have the right ticks and labels.
 
 Some properties of DimensionalData.jl objects:
 - broadcasting and most Base methods maintain and sync dimension context.
-- comprehensive plot recipes for Plots.jl.
+- comprehensive plot recipes for both Plots.jl and Makie.jl.
 - a Tables.jl interface with `DimTable`
 - multi-layered `DimStack`s that can be indexed together, 
     and have base methods applied to all layers.
