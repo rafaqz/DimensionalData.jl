@@ -156,7 +156,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, attributes, replacements)
             # No ColourBar in the ! in-place versions
-            return Makie.$f2!(args...; attributes...)
+            return Makie.$f2!(axis, args...; attributes...)
         end
     end
 end
@@ -259,7 +259,7 @@ function Makie.series(A::AbstractDimArray{<:Any,2};
 end
 function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; axislegendkw=(;), labeldim=nothing, attributes...)
     args, _ = _series(A, attributes, labeldim)
-    return Makie.series!(args...; attributes...)
+    return Makie.series!(axis, args...; attributes...)
 end
 
 function _series(A, attributes, labeldim)
