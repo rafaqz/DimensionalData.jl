@@ -78,10 +78,11 @@ end
 
     # reorder with dimension lookups
     rev = reverse(da, dims=Y)
-    reo = reorder(rev, dims(da))
+    reo = reorder(rev, da)
     @test rev != da
     @test reo == da
     @test dims(reo) == dims(da)
+    @test_throws ArgumentError reorder(rev, :test)
 end
 
 @testset "modify" begin

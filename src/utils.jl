@@ -12,6 +12,8 @@ If no axis reversal is required the same objects will be returned, without alloc
 """
 function reorder end
 
+reorder(x, A) = reorder(x, dims(A))
+reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
 reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
 reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairdims(ps...))
 # Reorder specific dims.
