@@ -75,6 +75,13 @@ end
     d = reorder(dims(da, Y), ForwardOrdered()) 
     @test order(d) isa ForwardOrdered
     @test index(d) == 100:100:300
+
+    # reorder with dimension lookups
+    rev = reverse(da, dims=Y)
+    reo = reorder(rev, dims(da))
+    @test rev != da
+    @test reo == da
+    @test dims(reo) == dims(da)
 end
 
 @testset "modify" begin

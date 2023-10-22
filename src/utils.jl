@@ -26,7 +26,8 @@ reorder(dim::Dimension, ot::Type{<:Order}) =
 _reorder(x, orderdims::DimTuple) = _reorder(reorder(x, orderdims[1]), tail(orderdims))
 _reorder(x, orderdims::Tuple{}) = x
 
-reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension{<:Order}) = _reorder(val(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension{<:LookupArray}) = _reorder(order(orderdim), x, dims(x, orderdim))
 
 _reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
