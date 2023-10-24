@@ -27,7 +27,7 @@ true
 """
 function reorder end
 
-reorder(x, A) = reorder(x, dims(A))
+reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = reorder(x, dims(A))
 reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
 reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
 reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairdims(ps...))
@@ -43,7 +43,7 @@ reorder(dim::Dimension, ot::Type{<:Order}) =
 _reorder(x, orderdims::DimTuple) = _reorder(reorder(x, orderdims[1]), tail(orderdims))
 _reorder(x, orderdims::Tuple{}) = x
 
-reorder(x, orderdim::Dimension{<:Order}) = _reorder(val(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
 reorder(x, orderdim::Dimension{<:LookupArray}) = _reorder(order(orderdim), x, dims(x, orderdim))
 
 _reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)

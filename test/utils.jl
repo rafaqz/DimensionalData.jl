@@ -82,7 +82,12 @@ end
     @test rev != da
     @test reo == da
     @test dims(reo) == dims(da)
-    @test_throws ArgumentError reorder(rev, :test)
+    @test_throws MethodError reorder(rev, :test)
+    rev_s = reverse(s, dims=Y)
+    reo_s = reorder(rev_s, da)
+    @test rev_s != s
+    @test reo_s == s
+    @test dims(reo_s) == dims(s)
 end
 
 @testset "modify" begin
