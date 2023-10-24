@@ -449,6 +449,7 @@ There are two kinds of `Dimension` value acepted:
 Keywords are the same as for [`DimArray`](@ref).
 
 # Example
+
 ```julia
 julia> using DimensionalData
 
@@ -483,6 +484,7 @@ There are two kinds of `Dimension` value acepted:
 Keywords are the same as for [`DimArray`](@ref).
 
 # Example
+
 ```@doctest
 julia> using DimensionalData
 
@@ -517,6 +519,7 @@ There are two kinds of `Dimension` value acepted:
 Keywords are the same as for [`DimArray`](@ref).
 
 # Example
+
 ```@doctest
 julia> using DimensionalData
 
@@ -636,6 +639,7 @@ The returned dimension will keep only the name of `new_dim`. Its coords will be 
 placed at the end of `dims_new`. `others` contains other dimension pairs to be merged.
 
 # Example
+
 ````jldoctest
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]));
 julia> mergedims(ds, Ti => :time, (X, Y) => :space)
