@@ -75,6 +75,19 @@ end
     d = reorder(dims(da, Y), ForwardOrdered()) 
     @test order(d) isa ForwardOrdered
     @test index(d) == 100:100:300
+
+    # reorder with dimension lookups
+    rev = reverse(da, dims=Y)
+    reo = reorder(rev, da)
+    @test rev != da
+    @test reo == da
+    @test dims(reo) == dims(da)
+    @test_throws MethodError reorder(rev, :test)
+    rev_s = reverse(s, dims=Y)
+    reo_s = reorder(rev_s, da)
+    @test rev_s != s
+    @test reo_s == s
+    @test dims(reo_s) == dims(s)
 end
 
 @testset "modify" begin
