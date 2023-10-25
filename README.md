@@ -21,6 +21,12 @@ The basic syntax is:
 ```julia
 julia> using DimensionalData
 
+julia> A = DimArray(rand(50, 31), (X(), Y(10.0:40.0)));
+```
+
+Or just use `rand` directly, which also works for `zeros`, `ones` and `fill`:
+
+```julia
 julia> A = rand(X(50), Y(10.0:40.0))
 50×31 DimArray{Float64,2} with dimensions: 
   X,
@@ -31,7 +37,10 @@ julia> A = rand(X(50), Y(10.0:40.0))
   ⋮                                                         ⋮                                ⋱                                     ⋮                                                        ⋮
   0.720404     0.388392   0.635609   0.430277   0.943823    0.661993   0.650442    0.91391   …   0.299713   0.518607    0.411973   0.410308   0.438817    0.580232   0.751231    0.519257   0.598583
   0.00602102   0.270036   0.696129   0.139551   0.924883    0.190963   0.164888    0.13436       0.717962   0.0452556   0.230943   0.848782   0.0362465   0.363868   0.709489    0.644131   0.801824
+```
 
+Subsetting by index is easy:
+```
 julia> A[Y=1:10, X=1]
 10-element DimArray{Float64,1} with dimensions: 
   Y Sampled{Float64} 10.0:1.0:19.0 ForwardOrdered Regular Points
@@ -45,6 +54,27 @@ and reference dimensions: X
  18.0  0.472306
  19.0  0.20442
 ```
+
+We can also subset by lookup, using a `Selector`, lets try `At`: 
+
+```julia
+julia> A[Y(At(25))]
+50-element DimArray{Float64,1} with dimensions: X
+and reference dimensions:
+  Y Sampled{Float64} 25.0:1.0:25.0 ForwardOrdered Regular Points
+  1  0.459012
+  2  0.829744
+  3  0.633234
+  4  0.971626
+  ⋮
+ 47  0.454685
+ 48  0.912836
+ 49  0.906528
+ 50  0.36339
+```
+
+There is also `Near` (for inexact/nearest selection), `Contains` (for `Intervals` containing values), 
+`Between` or `..` for range selection, and `Where` for queries, among others.
 
 Plotting with Makie.jl is as easy as:
 
