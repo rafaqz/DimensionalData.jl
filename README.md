@@ -40,7 +40,8 @@ julia> A = rand(X(50), Y(10.0:40.0))
 ```
 
 Subsetting by index is easy:
-```
+
+```julia
 julia> A[Y=1:10, X=1]
 10-element DimArray{Float64,1} with dimensions: 
   Y Sampled{Float64} 10.0:1.0:19.0 ForwardOrdered Regular Points
