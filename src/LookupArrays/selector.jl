@@ -138,7 +138,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::LookupArray{<:Union{Number,Dates.TimeType}}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::LookupArray{<:Union{Number,Dates.TimeType,AbstractString}}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -163,7 +163,7 @@ function at(
         end
     end
 end
-# catch-all for an unordered or non-number index
+# catch-all for an unordered index
 function at(::Order, ::Span, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
