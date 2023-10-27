@@ -1,3 +1,18 @@
+struct SelectorError{L,S} <: Exception 
+    lookup::L
+    selector::S
+end
+
+function Base.showerror(io::IO, ex::SelectorError)
+    if order(ex.lookup) isa Ordered
+        println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with bounds $(bounds(ex.lookup))")
+    else
+        println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with values $(ex.lookup)")
+    end
+end
+Base.showerror(io::IO, ex::SelectorError{<:Categorical}) = 
+    println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with categories $(ex.lookup)")
+
 """
     Selector
 
@@ -117,7 +132,7 @@ function at(lookup::NoLookup, sel::At; kw...)
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=at) || _selvalnotfound(lookup, v)
     end
-    r in lookup || throw(BoundsError(lookup, r))
+    r in lookup || throw(SelectorError(lookup, sel))
     return r
 end
 function at(lookup::LookupArray, sel::At; kw...)
@@ -293,7 +308,7 @@ selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, s
 
 function contains(l::NoLookup, sel::Contains; kw...) 
     i = Int(val(sel))
-    i in l || throw(BoundsError(l, i))
+    i in l || throw(SelectorError(l, i))
     return i
 end
 contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
@@ -307,7 +322,7 @@ function contains(::Points, l::LookupArray, sel::Contains; kw...)
 end
 # Intervals -----------------------------------
 function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())
-    _locus_checkbounds(locus(l), l, sel) || return _boundserror_or_nothing(err)
+    _locus_checkbounds(locus(l), l, sel) || return _boundserror_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 # Regular Intervals ---------------------------
@@ -377,8 +392,8 @@ function contains(
     return i
 end
 
-_boundserror_or_nothing(err::_True) = throw(BoundsError())
-_boundserror_or_nothing(err::_False) = nothing
+_boundserror_or_nothing(err::_True, l, i) = throw(SelectorError(l, i))
+_boundserror_or_nothing(err::_False, l, i) = nothing
 
 _notcontained_or_nothing(err::_True, selval) = _notcontainederror(selval)
 _notcontained_or_nothing(err::_False, selval) = nothing

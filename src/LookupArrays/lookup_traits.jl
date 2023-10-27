@@ -187,6 +187,8 @@ abstract type Span <: LookupArrayTrait end
 
 struct NoSpan <: Span end
 
+Adapt.adapt_structure(to, s::Span) = s
+
 """
     AutoSpan <: Span
 
@@ -254,6 +256,8 @@ Explicit() = Explicit(AutoBounds())
 
 val(span::Explicit) = span.val
 Base.:(==)(l1::Explicit, l2::Explicit) = val(l1) == val(l2)
+
+Adapt.adapt_structure(to, s::Explicit) = Explicit(Adapt.adapt_structure(to, val(s)))
 
 """
     AutoIndex
