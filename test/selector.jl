@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets, Extents
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: between, touches, at, near, contains, bounds
+using .LookupArrays: between, touches, at, near, contains, bounds, SelectorError
 
 a = [1 2  3  4
      5 6  7  8
@@ -216,10 +216,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start contains" begin
-            @test_throws BoundsError contains(startfwd, Contains(10.9))
-            @test_throws BoundsError contains(startfwd, Contains(31))
-            @test_throws BoundsError contains(startrev, Contains(31))
-            @test_throws BoundsError contains(startrev, Contains(10.9))
+            @test_throws SelectorError contains(startfwd, Contains(10.9))
+            @test_throws SelectorError contains(startfwd, Contains(31))
+            @test_throws SelectorError contains(startrev, Contains(31))
+            @test_throws SelectorError contains(startrev, Contains(10.9))
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
@@ -234,10 +234,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Center contains" begin
-            @test_throws BoundsError contains(centerfwd, Contains(10.4))
-            @test_throws BoundsError contains(centerfwd, Contains(30.5))
-            @test_throws BoundsError contains(centerrev, Contains(10.4))
-            @test_throws BoundsError contains(centerrev, Contains(30.5))
+            @test_throws SelectorError contains(centerfwd, Contains(10.4))
+            @test_throws SelectorError contains(centerfwd, Contains(30.5))
+            @test_throws SelectorError contains(centerrev, Contains(10.4))
+            @test_throws SelectorError contains(centerrev, Contains(30.5))
             @test contains(centerfwd, Contains(10.5)) == 1
             @test contains(centerfwd, Contains(30.4)) == 20
             @test contains(centerfwd, Contains(29.5)) == 20
@@ -249,10 +249,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "End contains" begin
-            @test_throws BoundsError contains(endfwd, Contains(10))
-            @test_throws BoundsError contains(endfwd, Contains(30.1))
-            @test_throws BoundsError contains(endrev, Contains(10))
-            @test_throws BoundsError contains(endrev, Contains(30.1))
+            @test_throws SelectorError contains(endfwd, Contains(10))
+            @test_throws SelectorError contains(endfwd, Contains(30.1))
+            @test_throws SelectorError contains(endrev, Contains(10))
+            @test_throws SelectorError contains(endrev, Contains(30.1))
             @test contains(endfwd, Contains(10.1)) == 1
             @test contains(endfwd, Contains(11.0)) == 1
             @test contains(endfwd, Contains(11.1)) == 2
@@ -470,8 +470,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start contains" begin
-            @test_throws BoundsError contains(startfwd, Contains(10.9))
-            @test_throws BoundsError contains(startrev, Contains(31))
+            @test_throws SelectorError contains(startfwd, Contains(10.9))
+            @test_throws SelectorError contains(startrev, Contains(31))
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
@@ -485,10 +485,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Center contains" begin
-            @test_throws BoundsError contains(centerfwd, Contains(10.4))
-            @test_throws BoundsError contains(centerfwd, Contains(30.5))
-            @test_throws BoundsError contains(centerrev, Contains(10.4))
-            @test_throws BoundsError contains(centerrev, Contains(30.5))
+            @test_throws SelectorError contains(centerfwd, Contains(10.4))
+            @test_throws SelectorError contains(centerfwd, Contains(30.5))
+            @test_throws SelectorError contains(centerrev, Contains(10.4))
+            @test_throws SelectorError contains(centerrev, Contains(30.5))
             @test contains(centerfwd, Contains(10.5)) == 1
             @test contains(centerfwd, Contains(30.4)) == 20
             @test contains(centerfwd, Contains(29.5)) == 20
@@ -500,10 +500,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "End contains" begin
-            @test_throws BoundsError contains(endfwd, Contains(10))
-            @test_throws BoundsError contains(endfwd, Contains(30.1))
-            @test_throws BoundsError contains(endrev, Contains(10))
-            @test_throws BoundsError contains(endrev, Contains(30.1))
+            @test_throws SelectorError contains(endfwd, Contains(10))
+            @test_throws SelectorError contains(endfwd, Contains(30.1))
+            @test_throws SelectorError contains(endrev, Contains(10))
+            @test_throws SelectorError contains(endrev, Contains(30.1))
             @test contains(endfwd, Contains(10.1)) == 1
             @test contains(endfwd, Contains(11.0)) == 1
             @test contains(endfwd, Contains(11.1)) == 2
@@ -577,22 +577,22 @@ A = DimArray([1 2 3; 4 5 6], dims_)
     @testset "Regular Intervals with array" begin
         startfwd = Sampled([1, 3, 4, 5], ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())
         startrev = Sampled([5, 4, 3, 1], ReverseOrdered(), Regular(-1), Intervals(Start()), NoMetadata())
-        @test_throws BoundsError contains(startfwd, Contains(0.9))
+        @test_throws SelectorError contains(startfwd, Contains(0.9))
         @test contains(startfwd, Contains(1.0)) == 1
         @test contains(startfwd, Contains(1.9)) == 1
         @test_throws ArgumentError contains(startfwd, Contains(2))
         @test_throws ArgumentError contains(startfwd, Contains(2.9))
         @test contains(startfwd, Contains(3)) == 2
         @test contains(startfwd, Contains(5.9)) == 4
-        @test_throws BoundsError contains(startfwd, Contains(6))
-        @test_throws BoundsError contains(startrev, Contains(0.9))
+        @test_throws SelectorError contains(startfwd, Contains(6))
+        @test_throws SelectorError contains(startrev, Contains(0.9))
         @test contains(startrev, Contains(1.0)) == 4
         @test contains(startrev, Contains(1.9)) == 4
         @test_throws ArgumentError contains(startrev, Contains(2))
         @test_throws ArgumentError contains(startrev, Contains(2.9))
         @test contains(startrev, Contains(3)) == 3
         @test contains(startrev, Contains(5.9)) == 1
-        @test_throws BoundsError contains(startrev, Contains(6))
+        @test_throws SelectorError contains(startrev, Contains(6))
     end
 
     @testset "Irregular Intervals with array" begin
@@ -801,15 +801,15 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Start contains" begin
-            @test_throws BoundsError contains(startfwd, Contains(0.9))
-            @test_throws BoundsError contains(startfwd, Contains(121.1))
+            @test_throws SelectorError contains(startfwd, Contains(0.9))
+            @test_throws SelectorError contains(startfwd, Contains(121.1))
             @test contains(startfwd, Contains(1)) == 1
             @test contains(startfwd, Contains(3.9)) == 1
             @test contains(startfwd, Contains(4.0)) == 2
             @test contains(startfwd, Contains(100.0)) == 10
             @test contains(startfwd, Contains(99.9)) == 9
-            @test_throws BoundsError contains(startrev, Contains(0.9))
-            @test_throws BoundsError contains(startrev, Contains(121.1))
+            @test_throws SelectorError contains(startrev, Contains(0.9))
+            @test_throws SelectorError contains(startrev, Contains(121.1))
             @test contains(startrev, Contains(3.9)) == 10
             @test contains(startrev, Contains(4.0)) == 9
             @test contains(startrev, Contains(120.9)) == 1
@@ -818,14 +818,14 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "Center contains" begin
-            @test_throws BoundsError contains(centerfwd, Contains(0.4))
-            @test_throws BoundsError contains(centerfwd, Contains(111.5))
+            @test_throws SelectorError contains(centerfwd, Contains(0.4))
+            @test_throws SelectorError contains(centerfwd, Contains(111.5))
             @test contains(centerfwd, Contains(0.5)) == 1
             @test contains(centerfwd, Contains(111.4)) == 10
             @test contains(centerfwd, Contains(90.5)) == 10
             @test contains(centerfwd, Contains(90.4)) == 9
-            @test_throws BoundsError contains(centerrev, Contains(0.4))
-            @test_throws BoundsError contains(centerrev, Contains(111.5))
+            @test_throws SelectorError contains(centerrev, Contains(0.4))
+            @test_throws SelectorError contains(centerrev, Contains(111.5))
             @test contains(centerrev, Contains(72.5)) == 2
             @test contains(centerrev, Contains(72.4)) == 3
             @test contains(centerrev, Contains(0.5)) == 10
@@ -835,10 +835,10 @@ A = DimArray([1 2 3; 4 5 6], dims_)
         end
 
         @testset "End contains" begin
-            @test_throws BoundsError contains(endfwd, Contains(-0.1))
-            @test_throws BoundsError contains(endfwd, Contains(100.1))
-            @test_throws BoundsError contains(endrev, Contains(-0.1))
-            @test_throws BoundsError contains(endrev, Contains(100.1))
+            @test_throws SelectorError contains(endfwd, Contains(-0.1))
+            @test_throws SelectorError contains(endfwd, Contains(100.1))
+            @test_throws SelectorError contains(endrev, Contains(-0.1))
+            @test_throws SelectorError contains(endrev, Contains(100.1))
             @test contains(endfwd, Contains(0.1)) == 1
             @test contains(endfwd, Contains(1.0)) == 1
             @test contains(endfwd, Contains(1.1)) == 2
@@ -1328,16 +1328,16 @@ end
 
 @testset "NoIndex" begin
     l = NoLookup(1:100)
-    @test_throws BoundsError selectindices(l, At(0))
-    @test_throws BoundsError selectindices(l, At(200))
+    @test_throws SelectorError selectindices(l, At(0))
+    @test_throws SelectorError selectindices(l, At(200))
     @test selectindices(l, At(50)) == 50
     @test selectindices(l, At(50.1; atol=0.3)) == 50
     @test selectindices(l, Near(200.1)) == 100
     @test selectindices(l, Near(-200.1)) == 1
     @test selectindices(l, Contains(20)) == 20
     @test_throws InexactError selectindices(l, Contains(20.1))
-    @test_throws BoundsError selectindices(l, Contains(0)) 
-    @test_throws BoundsError selectindices(l, Contains(200)) 
+    @test_throws SelectorError selectindices(l, Contains(0)) 
+    @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
 end
 
