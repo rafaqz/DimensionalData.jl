@@ -23,6 +23,13 @@ end
     @test parent(parent(l1)) isa CustomArray
     @test parent(parent(l1)).arr == [1:10...]
     @test metadata(l1) == NoMetadata()
+    E = permutedims(cat(1:10, 2:11; dims=2))
+    l = Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2"), span=Explicit(E))
+    l1 = Adapt.adapt(CustomArray, l)
+    @test parent(parent(l1)) isa CustomArray
+    @test parent(parent(l1)).arr == [1:10...]
+    @test DimensionalData.span(l1) == Explicit(CustomArray(E))
+    @test metadata(l1) == NoMetadata()
     l = Categorical('a':1:'n'; metadata=Metadata(:a=>"1", :b=>"2"))
     l1 = Adapt.adapt(CustomArray, l)
     @test parent(parent(l1)) isa StepRange
