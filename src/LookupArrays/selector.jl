@@ -322,7 +322,7 @@ function contains(::Points, l::LookupArray, sel::Contains; kw...)
 end
 # Intervals -----------------------------------
 function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())
-    _locus_checkbounds(locus(l), l, sel) || return _boundserror_or_nothing(err, l, sel)
+    _locus_checkbounds(locus(l), l, sel) || return _selector_error_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 # Regular Intervals ---------------------------
@@ -392,8 +392,8 @@ function contains(
     return i
 end
 
-_boundserror_or_nothing(err::_True, l, i) = throw(SelectorError(l, i))
-_boundserror_or_nothing(err::_False, l, i) = nothing
+_selector_error_or_nothing(err::_True, l, i) = throw(SelectorError(l, i))
+_selector_error_or_nothing(err::_False, l, i) = nothing
 
 _notcontained_or_nothing(err::_True, selval) = _notcontainederror(selval)
 _notcontained_or_nothing(err::_False, selval) = nothing
