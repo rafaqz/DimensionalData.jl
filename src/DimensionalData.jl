@@ -57,7 +57,7 @@ export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
 
-export DimIndices, DimKeys, DimPoints, DimSelectors
+export DimIndices, DimKeys, DimPoints
 
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds

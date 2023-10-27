@@ -187,7 +187,7 @@ for f in (:getindex, :view, :dotview)
 end
 
 function Adapt.adapt_structure(to, l::AbstractSampled)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata(), span=Adapt.adapt(to, span(l)))
+    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
 end
 
 # bounds
