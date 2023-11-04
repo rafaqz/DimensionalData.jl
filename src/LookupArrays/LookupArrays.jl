@@ -44,7 +44,7 @@ export AutoStep, AutoBounds, AutoIndex
 
 export LookupArray
 export AutoLookup, NoLookup
-export Aligned, AbstractSampled, Sampled, AbstractCategorical, Categorical
+export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
 export Unaligned, Transformed
 
 const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex,CartesianIndices}

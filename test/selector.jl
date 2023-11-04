@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets, Extents
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: between, touches, at, near, contains, bounds, SelectorError
+using .LookupArrays: between, touches, at, near, contains, bounds, SelectorError, cycle_val
 
 a = [1 2  3  4
      5 6  7  8
@@ -1326,7 +1326,61 @@ end
 
 end
 
-@testset "NoIndex" begin
+@testset "Cyclic lookup" begin
+    lookups = (
+        day=Cyclic(DateTime(2001):Day(1):DateTime(2002, 12, 31); cycle=Year(1), order=ForwardOrdered(), span=Regular(Day(1)), sampling=Intervals(Start())),
+        week=Cyclic(DateTime(2001):Week(1):DateTime(2002, 12, 31); cycle=Year(1), order=ForwardOrdered(), span=Regular(Week(1)), sampling=Intervals(Start())),
+        month=Cyclic(DateTime(2001):Month(1):DateTime(2002, 12, 31); cycle=Year(1), order=ForwardOrdered(), span=Regular(Month(1)), sampling=Intervals(Start())),
+        month_month=Cyclic(DateTime(2001):Month(1):DateTime(2002, 1, 31); cycle=Month(1), order=ForwardOrdered(), span=Regular(Month(1)), sampling=Intervals(Start())),
+    )
+    lookup = lookups[1]
+
+    for lookup in lookups 
+        # Test exact cycles
+        @test at(lookup, At(DateTime(1))) == 1
+        @test at(lookup, At(DateTime(1999))) == 1
+        @test at(lookup, At(DateTime(2000))) == 1
+        @test at(lookup, At(DateTime(2001))) == 1
+        @test at(lookup, At(DateTime(4000))) == 1
+        @test near(lookup, Near(DateTime(1))) == 1
+        @test near(lookup, Near(DateTime(1999))) == 1
+        @test near(lookup, Near(DateTime(2000))) == 1
+        @test near(lookup, Near(DateTime(2001))) == 1
+        @test near(lookup, Near(DateTime(4000))) == 1
+        @test contains(lookup, Contains(DateTime(1))) == 1
+        @test contains(lookup, Contains(DateTime(1999))) == 1
+        @test contains(lookup, Contains(DateTime(2000))) == 1
+        @test contains(lookup, Contains(DateTime(2001))) == 1
+        @test contains(lookup, Contains(DateTime(4000))) == 1
+    end
+
+    lookup = lookups.month
+    @test at(lookup, At(DateTime(1, 12))) == 12
+    @test at(lookup, At(DateTime(1999, 12))) == 12
+    @test at(lookup, At(DateTime(2000, 12))) == 12
+    @test at(lookup, At(DateTime(2001, 12))) == 12
+    @test at(lookup, At(DateTime(3000, 12))) == 12
+    lookup = lookups.day
+    @test at(lookup, At(DateTime(1, 12, 31))) == 365 
+    @test at(lookup, At(DateTime(1999, 12, 31))) == 365
+    # This is kinda wrong, as there are 366 days in 2000
+    # But our lookup has 365. Leap years would be handled
+    # properly with a four year cycle
+    @test at(lookup, At(DateTime(2000, 12, 31))) == 365
+    @test at(lookup, At(DateTime(2001, 12, 31))) == 365
+    @test at(lookup, At(DateTime(3000, 12, 31))) == 365
+
+    @testset "Leap years are correct with four year cycles" begin
+        lookup = Cyclic(DateTime(2000):Day(1):DateTime(2003, 12, 31); cycle=Year(4), order=ForwardOrdered(), span=Regular(Day(1)), sampling=Intervals(Start()))
+        @test at(lookup, At(DateTime(1, 12, 31))) == findfirst(==(DateTime(2001, 12, 31)), lookup)
+        @test at(lookup, At(DateTime(1999, 12, 31))) == findfirst(==(DateTime(1999 + 4, 12, 31)), lookup)
+        @test at(lookup, At(DateTime(2000, 12, 31))) == 366 == findfirst(==(DateTime(2000, 12, 31)), lookup)
+        @test at(lookup, At(DateTime(2007, 12, 31))) == findfirst(==(DateTime(2007 - 4, 12, 31)), lookup)
+        @test at(lookup, At(DateTime(3000, 12, 31))) == 366 == findfirst(==(DateTime(3000 - 250 * 4, 12, 31)), lookup)
+    end
+end
+
+@testset "NoLookup" begin
     l = NoLookup(1:100)
     @test_throws SelectorError selectindices(l, At(0))
     @test_throws SelectorError selectindices(l, At(200))

@@ -269,4 +269,3 @@ change the `LookupArray` type without changing the index values.
 struct AutoIndex <: AbstractVector{Int} end
 
 Base.size(::AutoIndex) = (0,)
-

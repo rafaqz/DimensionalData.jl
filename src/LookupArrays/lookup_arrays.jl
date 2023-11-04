@@ -284,8 +284,7 @@ struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
     sampling::Sa
     metadata::M
 end
-function Sampled(
-    data=AutoIndex();
+function Sampled(data=AutoIndex();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata()
 )
@@ -296,6 +295,80 @@ function rebuild(l::Sampled;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l), kw...
 )
     Sampled(data, order, span, sampling, metadata)
+end
+
+abstract type CycleStatus end
+struct Cycling <: CycleStatus end
+struct NotCycling <: CycleStatus end
+
+abstract type AbstractCyclic{X,T,O,Sp,Sa} <: AbstractSampled{T,O,Sp,Sa} end
+
+cycle(l::AbstractCyclic) = l.cycle
+cycle_status(l::AbstractCyclic) = l.cycle_status
+
+no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())
+
+function cycle_val(l::AbstractCyclic, val)
+    cycle_start = ordered_first(l)
+    # This formulation is necessary for dates
+    ncycles = (val - cycle_start) ÷ (cycle_start + cycle(l) - cycle_start)
+    res = val - ncycles * cycle(l)
+    # Catch precision errors
+    @show val res ncycles cycle(l)
+    if (cycle_start + (ncycles + 1) * cycle(l)) <= val
+        @show "higher"
+        i = 1
+        while i < 10000
+            if (cycle_start + (ncycles + i) * cycle(l)) > val
+                res = val - (ncycles + i - 1) * cycle(l) 
+                @show res i
+                return res
+            end
+            i += 1
+        end
+    elseif res < cycle_start
+        @show "lower"
+        i = 1
+        while i < 10000
+            res = val - (ncycles - i + 1) * cycle(l)
+            if res >= cycle_start
+                res = val - (ncycles - i + 1) * cycle(l)
+                @show res i val 
+                return res 
+            end
+            i += 1
+        end
+    else
+        @show "no change"
+        return res
+    end
+    error("`Cyclic` lookup too innacurate, value not found")
+end
+
+
+struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
+    data::A
+    order::O
+    span::Sp
+    sampling::Sa
+    metadata::M
+    cycle::C
+    cycle_status::X
+end
+function Cyclic(data=AutoIndex();
+    order=AutoOrder(), span=AutoSpan(),
+    sampling=AutoSampling(), metadata=NoMetadata(),
+    cycle, # Mandatory keyword, there are too many possible bugs with auto detection
+)
+    cycle_status = Cycling() # Not use-facing
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
+end
+
+function rebuild(l::Cyclic; 
+    data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
+    cycle=cycle(l), _cycle_status=cycle_status(l), kw...
+)
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
 end
 
 """
