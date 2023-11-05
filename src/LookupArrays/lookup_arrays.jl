@@ -414,6 +414,7 @@ function Cyclic(data=AutoIndex();
     sampling=AutoSampling(), metadata=NoMetadata(),
     cycle, # Mandatory keyword, there are too many possible bugs with auto detection
 )
+    cycle_status = Cycling()
     Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
 end
 

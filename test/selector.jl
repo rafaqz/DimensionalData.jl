@@ -1333,57 +1333,56 @@ end
         month=Cyclic(DateTime(2001):Month(1):DateTime(2002, 12, 31); cycle=Year(1), order=ForwardOrdered(), span=Regular(Month(1)), sampling=Intervals(Start())),
         month_month=Cyclic(DateTime(2001):Month(1):DateTime(2002, 1, 31); cycle=Month(1), order=ForwardOrdered(), span=Regular(Month(1)), sampling=Intervals(Start())),
     )
-    lookup = lookups[1]
 
-    for lookup in lookups 
+    for l in lookups 
         # Test exact cycles
-        @test at(lookup, At(DateTime(1))) == 1
-        @test at(lookup, At(DateTime(1999))) == 1
-        @test at(lookup, At(DateTime(2000))) == 1
-        @test at(lookup, At(DateTime(2001))) == 1
-        @test at(lookup, At(DateTime(4000))) == 1
-        @test near(lookup, Near(DateTime(1))) == 1
-        @test near(lookup, Near(DateTime(1999))) == 1
-        @test near(lookup, Near(DateTime(2000))) == 1
-        @test near(lookup, Near(DateTime(2001))) == 1
-        @test near(lookup, Near(DateTime(4000))) == 1
-        @test contains(lookup, Contains(DateTime(1))) == 1
-        @test contains(lookup, Contains(DateTime(1999))) == 1
-        @test contains(lookup, Contains(DateTime(2000))) == 1
-        @test contains(lookup, Contains(DateTime(2001))) == 1
-        @test contains(lookup, Contains(DateTime(4000))) == 1
+        @test at(l, At(DateTime(1))) == 1
+        @test at(l, At(DateTime(1999))) == 1
+        @test at(l, At(DateTime(2000))) == 1
+        @test at(l, At(DateTime(2001))) == 1
+        @test at(l, At(DateTime(4000))) == 1
+        @test near(l, Near(DateTime(1))) == 1
+        @test near(l, Near(DateTime(1999))) == 1
+        @test near(l, Near(DateTime(2000))) == 1
+        @test near(l, Near(DateTime(2001))) == 1
+        @test near(l, Near(DateTime(4000))) == 1
+        @test contains(l, Contains(DateTime(1))) == 1
+        @test contains(l, Contains(DateTime(1999))) == 1
+        @test contains(l, Contains(DateTime(2000))) == 1
+        @test contains(l, Contains(DateTime(2001))) == 1
+        @test contains(l, Contains(DateTime(4000))) == 1
     end
 
-    lookup = lookups.month
-    @test at(lookup, At(DateTime(1, 12))) == 12
-    @test at(lookup, At(DateTime(1999, 12))) == 12
-    @test at(lookup, At(DateTime(2000, 12))) == 12
-    @test at(lookup, At(DateTime(2001, 12))) == 12
-    @test at(lookup, At(DateTime(3000, 12))) == 12
-    lookup = lookups.day
-    @test at(lookup, At(DateTime(1, 12, 31))) == 365 
-    @test at(lookup, At(DateTime(1999, 12, 31))) == 365
+    l = lookups.month
+    @test at(l, At(DateTime(1, 12))) == 12
+    @test at(l, At(DateTime(1999, 12))) == 12
+    @test at(l, At(DateTime(2000, 12))) == 12
+    @test at(l, At(DateTime(2001, 12))) == 12
+    @test at(l, At(DateTime(3000, 12))) == 12
+    l = lookups.day
+    @test at(l, At(DateTime(1, 12, 31))) == 365 
+    @test at(l, At(DateTime(1999, 12, 31))) == 365
     # This is kinda wrong, as there are 366 days in 2000
-    # But our lookup has 365. Leap years would be handled
+    # But our l has 365. Leap years would be handled
     # properly with a four year cycle
-    @test at(lookup, At(DateTime(2000, 12, 31))) == 365
-    @test at(lookup, At(DateTime(2001, 12, 31))) == 365
-    @test at(lookup, At(DateTime(3000, 12, 31))) == 365
+    @test at(l, At(DateTime(2000, 12, 31))) == 365
+    @test at(l, At(DateTime(2001, 12, 31))) == 365
+    @test at(l, At(DateTime(3000, 12, 31))) == 365
 
     @testset "Leap years are correct with four year cycles" begin
-        lookup = Cyclic(DateTime(2000):Day(1):DateTime(2003, 12, 31); cycle=Year(4), order=ForwardOrdered(), span=Regular(Day(1)), sampling=Intervals(Start()))
-        @test at(lookup, At(DateTime(1, 12, 31))) == findfirst(==(DateTime(2001, 12, 31)), lookup)
-        @test at(lookup, At(DateTime(1999, 12, 31))) == findfirst(==(DateTime(1999 + 4, 12, 31)), lookup)
-        @test at(lookup, At(DateTime(2000, 12, 31))) == 366 == findfirst(==(DateTime(2000, 12, 31)), lookup)
-        @test at(lookup, At(DateTime(2007, 12, 31))) == findfirst(==(DateTime(2007 - 4, 12, 31)), lookup)
-        @test at(lookup, At(DateTime(3000, 12, 31))) == 366 == findfirst(==(DateTime(3000 - 250 * 4, 12, 31)), lookup)
+        l = Cyclic(DateTime(2000):Day(1):DateTime(2003, 12, 31); cycle=Year(4), order=ForwardOrdered(), span=Regular(Day(1)), sampling=Intervals(Start()))
+        @test at(l, At(DateTime(1, 12, 31))) == findfirst(==(DateTime(2001, 12, 31)), l)
+        @test at(l, At(DateTime(1999, 12, 31))) == findfirst(==(DateTime(1999 + 4, 12, 31)), l)
+        @test at(l, At(DateTime(2000, 12, 31))) == 366 == findfirst(==(DateTime(2000, 12, 31)), l)
+        @test at(l, At(DateTime(2007, 12, 31))) == findfirst(==(DateTime(2007 - 4, 12, 31)), l)
+        @test at(l, At(DateTime(3000, 12, 31))) == 366 == findfirst(==(DateTime(3000 - 250 * 4, 12, 31)), l)
     end
 
-    @testset "Leap years are correct with four year cycles" begin
-        lookup = Cyclic(-180.0:1:179.0; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
-        @test contains(lookup, Contains(360)) == 181
-        @test contains(lookup, Contains(-360)) == 181
-        @test contains(lookup, Contains(180)) == 1
+    @testset "Cycling works with floats too" begin
+        l = Cyclic(-180.0:1:179.0; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
+        @test contains(l, Contains(360)) == 181
+        @test contains(l, Contains(-360)) == 181
+        @test contains(l, Contains(180)) == 1
     end
 end
 
