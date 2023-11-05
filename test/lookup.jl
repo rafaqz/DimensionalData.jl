@@ -246,8 +246,8 @@ end
     end
 
     @testset "Cyclic" begin
-        ind = -180.0:1:179.0
-        l = Cyclic(index; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
+        inds = -180.0:1:179.0
+        l = Cyclic(inds; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
         dim = X(l)
         @test order(dim) == ForwardOrdered()
         @test step(dim) == 1.0
@@ -261,7 +261,7 @@ end
         end
         # TODO clarify intervalbounds - we cant return the whole set to typemax, so we return onecycle?
         # @test intervalbounds(dim) 
-        dim = X(Cyclic(index; cycle=360.0, order=ReverseOrdered(), span=Regular(1.0), sampling=Intervals(Start())))
+        dim = X(Cyclic(reverse(inds); cycle=360.0, order=ReverseOrdered(), span=Regular(1.0), sampling=Intervals(Start())))
         @test bounds(dim) == (typemin(Float64), typemax(Float64))
         @test order(dim) == ReverseOrdered()
         @test bounds(dim) == (-Inf, Inf)
