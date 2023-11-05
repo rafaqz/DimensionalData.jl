@@ -73,7 +73,7 @@ end
 
 print_order(io, lookup) = print(io, nameof(typeof(order(lookup))))
 print_span(io, lookup) = print(io, nameof(typeof(span(lookup))))
-print_sampling(io, lookup) = print(io, nameof(typeof(sampling(lookup))))
+print_sampling(io, lookup) = print(io, typeof(sampling(lookup)))
 function print_metadata(io, lookup)
     metadata(lookup) isa NoMetadata && return nothing
     print(io, nameof(typeof(metadata(lookup))))

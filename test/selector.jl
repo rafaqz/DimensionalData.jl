@@ -1378,6 +1378,13 @@ end
         @test at(lookup, At(DateTime(2007, 12, 31))) == findfirst(==(DateTime(2007 - 4, 12, 31)), lookup)
         @test at(lookup, At(DateTime(3000, 12, 31))) == 366 == findfirst(==(DateTime(3000 - 250 * 4, 12, 31)), lookup)
     end
+
+    @testset "Leap years are correct with four year cycles" begin
+        lookup = Cyclic(-180.0:1:179.0; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
+        @test contains(lookup, Contains(360)) == 181
+        @test contains(lookup, Contains(-360)) == 181
+        @test contains(lookup, Contains(180)) == 1
+    end
 end
 
 @testset "NoLookup" begin

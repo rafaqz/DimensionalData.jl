@@ -245,6 +245,25 @@ end
         @test_throws ErrorException intervalbounds(dim)
     end
 
+    @testset "Cyclic" begin
+        ind = -180.0:1:179.0
+        l = Cyclic(index; cycle=360.0, order=ForwardOrdered(), span=Regular(1.0), sampling=Intervals(Start()))
+        dim = X(l)
+        @test order(dim) == ForwardOrdered()
+        @test step(dim) == 1.0
+        @test span(dim) == Regular(1.0)
+        @test sampling(dim) == Intervals(Start())
+        @test locus(dim) == Start()
+        @test bounds(dim) == (-Inf, Inf)
+        # TODO clarify intervalbounds - we cant return the whole set to typemax, so we return onecycle?
+        # @test intervalbounds(dim) 
+        dim = X(Cyclic(index; cycle=360.0, order=ReverseOrdered(), span=Regular(1.0), sampling=Intervals(Start())))
+        @test bounds(dim) == (typemin(Float64), typemax(Float64))
+        @test order(dim) == ReverseOrdered()
+        @test bounds(dim) == (-Inf, Inf)
+        @test_throws ArgumentError Cyclic(ind; cycle=360, order=Unordered())
+    end
+
 end
 
 @testset "dims2indices with Transformed" begin

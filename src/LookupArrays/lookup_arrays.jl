@@ -6,7 +6,7 @@ Types defining the behaviour of a lookup index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
 A `LookupArray` may be [`NoLookup`](@ref) indicating that the index is just the
-underlying array axis, [`Categorical`](@ref) for ordered or unordered categories, 
+underlying array axis, [`Categorical`](@ref) for ordered or unordered categories,
 or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type LookupArray{T,N} <: AbstractArray{T,N} end
@@ -14,7 +14,7 @@ abstract type LookupArray{T,N} <: AbstractArray{T,N} end
 
 const LookupArrayTuple = Tuple{LookupArray,Vararg{LookupArray}}
 
-span(lookup::LookupArray) = NoSpan() 
+span(lookup::LookupArray) = NoSpan()
 sampling(lookup::LookupArray) = NoSampling()
 
 dims(::LookupArray) = nothing
@@ -107,7 +107,7 @@ order(lookup::Aligned) = lookup.order
 
     NoLookup()
 
-A [`LookupArray`](@ref) that is identical to the array axis. 
+A [`LookupArray`](@ref) that is identical to the array axis.
 [`Selector`](@ref)s can't be used on this lookup.
 
 ## Example
@@ -170,9 +170,9 @@ locus(lookup::AbstractSampled) = locus(sampling(lookup))
 Base.step(lookup::AbstractSampled) = step(span(lookup))
 
 function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
-    order(l1) == order(l2) && 
-    span(l1) == span(l2) && 
-    sampling(l1) == sampling(l2) && 
+    order(l1) == order(l2) &&
+    span(l1) == span(l2) &&
+    sampling(l1) == sampling(l2) &&
     parent(l1) == parent(l2)
 end
 
@@ -216,11 +216,30 @@ _bounds(::Center, ::ReverseOrdered, span, lookup) =
 _bounds(::End, ::ForwardOrdered, span, lookup) = first(lookup) - step(span), last(lookup)
 _bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), first(lookup)
 
+
+const SAMPLED_ARGUMENTS_DOC = """
+- `data`: An `AbstractVector` of index values, matching the length of the curresponding
+    array axis.
+- `order`: [`Order`](@ref)) indicating the order of the index,
+    [`AutoOrder`](@ref) by default, detected from the order of `data`
+    to be [`ForwardOrdered`](@ref), [`ReverseOrdered`](@ref) or [`Unordered`](@ref).
+    These can be provided explicitly if they are known and performance is important.
+- `span`: indicates the size of intervals or distance between points, and will be set to
+    [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
+    unless assigned manually.
+- `sampling`: is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) manually.
+    Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
+    to take account for the full size of the interval, rather than the point alone.
+- `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
+    information about the array axis - useful for extending DimensionalData for specific
+    contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
+"""
+
 """
     Sampled <: AbstractSampled
 
     Sampled(data::AbstractVector, order::Order, span::Span, sampling::Sampling, metadata)
-    Sampled(; data=AutoIndex(), order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
+    Sampled(data=AutoIndex(); order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
 
 A concrete implementation of the [`LookupArray`](@ref)
 [`AbstractSampled`](@ref). It can be used to represent
@@ -230,26 +249,12 @@ A concrete implementation of the [`LookupArray`](@ref)
 correct `bounds` and [`Selector`](@ref)s for points or intervals of regular,
 irregular, forward and reverse indexes.
 
-On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of 
+On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of
 `AbstractRange` not assigned to [`Categorical`](@ref).
 
 ## Arguments
 
-- `data`: An `AbstractVector` of index values, matching the length of the curresponding
-    array axis. 
-- `order`: [`Order`](@ref)) indicating the order of the index,
-    [`AutoOrder`](@ref) by default, detected from the order of `data`
-    to be [`ForwardOrdered`](@ref), [`ReverseOrdered`](@ref) or [`Unordered`](@ref).
-    These can be provided explicitly if they are known and performance is important.
-- `span`: indicates the size of intervals or distance between points, and will be set to
-    [`Regular`](@ref) for `AbstractRange` and [`Irregular`](@ref) for `AbstractArray`,
-    unless assigned manually.
-- `sampling`: is assigned to [`Points`](@ref), unless set to [`Intervals`](@ref) manually. 
-    Using [`Intervals`](@ref) will change the behaviour of `bounds` and `Selectors`s
-    to take account for the full size of the interval, rather than the point alone.
-- `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
-    information about the array axis - useful for extending DimensionalData for specific
-    contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
+$SAMPLED_ARGUMENTS_DOC
 
 ## Example
 
@@ -291,20 +296,42 @@ function Sampled(data=AutoIndex();
     Sampled(data, order, span, sampling, metadata)
 end
 
-function rebuild(l::Sampled; 
+function rebuild(l::Sampled;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l), kw...
 )
     Sampled(data, order, span, sampling, metadata)
 end
 
+# These are used to specialise dispatch:
+# When Cycling, we need to modify any `Selector`. after that
+# we swicth to `NotCycling` and use `AbstractSampled` fallbacks.
+# We could switch to `Sampled` ata that point, but its less extensible.
 abstract type CycleStatus end
+
 struct Cycling <: CycleStatus end
 struct NotCycling <: CycleStatus end
 
+"""
+    AbstractCyclic <: AbstractSampled end
+
+An abstract supertype for cyclic lookups.
+
+These are `AbstractSampled` lookups that are cyclic for `Selectors`.
+"""
 abstract type AbstractCyclic{X,T,O,Sp,Sa} <: AbstractSampled{T,O,Sp,Sa} end
 
 cycle(l::AbstractCyclic) = l.cycle
 cycle_status(l::AbstractCyclic) = l.cycle_status
+
+bounds(l::AbstractCyclic{<:Any,T}) where T = (typemin(T), typemax(T))
+
+# Indexing with `AbstractArray` must rebuild the lookup as
+# `Sampled` as we no longer have the whole cycle.
+for f in (:getindex, :view, :dotview)
+    @eval @propagate_inbounds Base.$f(l::AbstractCyclic, i::AbstractArray) =
+        Sampled(rebuild(l; data=Base.$f(parent(l), i)))
+end
+
 
 no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())
 
@@ -318,7 +345,7 @@ function cycle_val(l::AbstractCyclic, val)
         i = 1
         while i < 10000
             if (cycle_start + (ncycles + i) * cycle(l)) > val
-                return val - (ncycles + i - 1) * cycle(l) 
+                return val - (ncycles + i - 1) * cycle(l)
             end
             i += 1
         end
@@ -336,6 +363,36 @@ function cycle_val(l::AbstractCyclic, val)
 end
 
 
+
+"""
+    Cyclic <: AbstractCyclic
+
+    Cyclic(data; order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata(), cycle)
+
+A `Cyclic` lookup is similar to `Sampled` but out of range `Selectors` `At`, 
+`Near`, `Contains` will cycle the values to typemin/typemax over the
+ length of `cycle`. `Where` and `..` work as for `Sampled`.
+
+This is useful when we are using mean annual datasets over a real time-span,
+or for wrapping longitudes so that `-360` and `360` are the same.
+
+## Arguments
+
+$SAMPLED_ARGUMENTS_DOC
+- `cycle`: the length of the cycle. This does not have to exactly match the data, 
+   the `step` size is `Week(1)` the cycle can be Years(1)`.
+
+## Notes
+
+1. If you use dates and e.g. cycle over a `Year`, every year will have the 
+number and spacing of `Week`s and `Day`s as the cycle year. Using `At` may not be reliable
+in terms of exact dates, as it will be applied to the specified date plus or minus `n` years.
+2. Indexing into a `Cycled` with any `AbstractArray` or `AbstractRange` will return a `Sampled`
+as the full cycle is likely no longer available.
+3. `..` or `Between` selectors do not yet work in a cycled way: they work as for `Sampled`. 
+This may change in future to return cycled values, but there are problems with this, such as
+leap years breaking correct date cycling.
+"""
 struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
     data::A
     order::O
@@ -345,16 +402,24 @@ struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,S
     cycle::C
     cycle_status::X
 end
+function Cyclic(
+    data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X
+) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X} where T
+    _check_ordered_cyclic(order)
+    Cyclic{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
+end
 function Cyclic(data=AutoIndex();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata(),
     cycle, # Mandatory keyword, there are too many possible bugs with auto detection
 )
-    cycle_status = Cycling() # Not use-facing
     Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
 end
 
-function rebuild(l::Cyclic; 
+_check_ordered_cyclic(order::Ordered) = nothing
+_check_ordered_cyclic(order::Unordered) = throw(ArgumentError("Cyclic lookups must be `Ordered`"))
+
+function rebuild(l::Cyclic;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
     cycle=cycle(l), _cycle_status=cycle_status(l), kw...
 )
@@ -366,7 +431,7 @@ end
 
 [`LookupArray`](@ref)s where the values are categories.
 
-[`Categorical`](@ref) is the provided concrete implementation. 
+[`Categorical`](@ref) is the provided concrete implementation.
 but this can easily be extended - all methods are defined for `AbstractCategorical`.
 
 All `AbstractCategorical` must provide a `rebuild`
@@ -400,7 +465,7 @@ This will be automatically assigned if the index contains `AbstractString`,
 ## Arguments
 
 - `data`: An `AbstractVector` of index values, matching the length of the curresponding
-    array axis. 
+    array axis.
 - `order`: [`Order`](@ref)) indicating the order of the index,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
     to be `ForwardOrdered`, `ReverseOrdered` or `Unordered`.
@@ -435,7 +500,7 @@ function Categorical(data=AutoIndex(); order=AutoOrder(), metadata=NoMetadata())
     Categorical(data, order, metadata)
 end
 
-function rebuild(l::Categorical; 
+function rebuild(l::Categorical;
     data=parent(l), order=order(l), metadata=metadata(l), kw...
 )
     Categorical(data, order, metadata)
@@ -475,7 +540,7 @@ from CoordinateTransformations.jl may be useful.
 
 ## Keyword Arguments
 
-- `metdata`: 
+- `metdata`:
 
 ## Example
 
@@ -504,7 +569,7 @@ function Transformed(f, dim; metadata=NoMetadata())
     Transformed(AutoIndex(), f, basetypeof(dim)(), metadata)
 end
 
-function rebuild(l::Transformed; 
+function rebuild(l::Transformed;
     data=parent(l), f=f(l), dim=dim(l), metadata=metadata(l)
 )
     Transformed(data, f, dim, metadata)
@@ -660,7 +725,7 @@ function _slicebounds(locus::Center, span::Irregular, l::LookupArray{T}, i::Abst
         if isrev(order(l))
             op(l[first(i)] - l[first(i) - 1], 2) + l[first(i) - 1]
         else
-            op(l[first(i) - 1] - l[first(i)], 2) + l[first(i)] 
+            op(l[first(i) - 1] - l[first(i)], 2) + l[first(i)]
         end
     end
     lst = if last(i) >= lastindex(l)
@@ -680,7 +745,7 @@ end
 # TODO what should this do?
 @inline reducelookup(lookup::Unaligned) = NoLookup(OneTo(1))
 # Categories are combined.
-@inline reducelookup(lookup::Categorical{<:AbstractString}) = 
+@inline reducelookup(lookup::Categorical{<:AbstractString}) =
     rebuild(lookup; data=["combined"])
 @inline reducelookup(lookup::Categorical) = rebuild(lookup; data=[:combined])
 # Sampled is resampled
@@ -736,7 +801,7 @@ _mayberange(x, step::Nothing) = [x]
 @inline function centerval(index::AbstractArray{<:DateTime}, len)
     f = first(index)
     l = last(index)
-    if f <= l 
+    if f <= l
         return (l - f) / 2 + first(index)
     else
         return (f - l) / 2 + last(index)
