@@ -402,12 +402,12 @@ struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,S
     metadata::M
     cycle::C
     cycle_status::X
-end
-function Cyclic(
-    data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X
-) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X} where T
-    _check_ordered_cyclic(order)
-    Cyclic{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
+    function Cyclic(
+        data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X
+    ) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X} where T
+        _check_ordered_cyclic(order)
+        new{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
+    end
 end
 function Cyclic(data=AutoIndex();
     order=AutoOrder(), span=AutoSpan(),
