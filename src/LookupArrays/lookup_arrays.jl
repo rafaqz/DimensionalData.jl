@@ -314,32 +314,22 @@ function cycle_val(l::AbstractCyclic, val)
     ncycles = (val - cycle_start) ÷ (cycle_start + cycle(l) - cycle_start)
     res = val - ncycles * cycle(l)
     # Catch precision errors
-    @show val res ncycles cycle(l)
     if (cycle_start + (ncycles + 1) * cycle(l)) <= val
-        @show "higher"
         i = 1
         while i < 10000
             if (cycle_start + (ncycles + i) * cycle(l)) > val
-                res = val - (ncycles + i - 1) * cycle(l) 
-                @show res i
-                return res
+                return val - (ncycles + i - 1) * cycle(l) 
             end
             i += 1
         end
     elseif res < cycle_start
-        @show "lower"
         i = 1
         while i < 10000
             res = val - (ncycles - i + 1) * cycle(l)
-            if res >= cycle_start
-                res = val - (ncycles - i + 1) * cycle(l)
-                @show res i val 
-                return res 
-            end
+            res >= cycle_start && return res
             i += 1
         end
     else
-        @show "no change"
         return res
     end
     error("`Cyclic` lookup too innacurate, value not found")
