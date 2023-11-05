@@ -255,6 +255,10 @@ end
         @test sampling(dim) == Intervals(Start())
         @test locus(dim) == Start()
         @test bounds(dim) == (-Inf, Inf)
+        # Indexing with AbstractArray returns Sampled
+        for f in (getindex, view, Base.dotview)
+            @test f(l, 1:10) isa Sampled
+        end
         # TODO clarify intervalbounds - we cant return the whole set to typemax, so we return onecycle?
         # @test intervalbounds(dim) 
         dim = X(Cyclic(index; cycle=360.0, order=ReverseOrdered(), span=Regular(1.0), sampling=Intervals(Start())))
