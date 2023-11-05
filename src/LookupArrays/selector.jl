@@ -122,6 +122,10 @@ selectindices(l::LookupArray, sel::At{<:AbstractVector}) = _selectvec(l, sel)
 
 _selectvec(l, sel) = [selectindices(l, rebuild(sel; val=v)) for v in val(sel)]
 
+function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...) 
+    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    return at(no_cycling(lookup), cycled_sel; kw...) 
+end
 function at(lookup::NoLookup, sel::At; kw...) 
     v = val(sel)
     r = round(Int, v)
@@ -226,6 +230,10 @@ end
 selectindices(l::LookupArray, sel::Near) = near(l, sel)
 selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
 
+function near(lookup::AbstractCyclic{Cycling}, sel::Near) 
+    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    near(no_cycling(lookup), cycled_sel) 
+end
 near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
 function near(lookup::LookupArray, sel::Near)
     span(lookup) isa Union{Irregular,Explicit} && locus(lookup) isa Union{Start,End} &&
@@ -306,6 +314,10 @@ end
 selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
 selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel)
 
+function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...) 
+    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    return contains(no_cycling(lookup), cycled_sel; kw...) 
+end
 function contains(l::NoLookup, sel::Contains; kw...) 
     i = Int(val(sel))
     i in l || throw(SelectorError(l, i))
@@ -484,6 +496,11 @@ function between(l::NoLookup, sel::Interval)
     x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
     return ceil(Int, x.left):floor(Int, x.right) 
 end
+# function between(l::AbstractCyclic{Cycling}, sel::Interval) 
+#     cycle_val(l, sel.x)..cycle_val(l, sel.x)
+#     cycled_sel = rebuild(sel; val=)
+#     near(no_cycling(lookup), cycled_sel; kw...) 
+# end
 between(l::LookupArray, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
 function between(sampling::Sampling, l::LookupArray, interval::Interval)

@@ -168,6 +168,8 @@ LookupArrays.LookupArray
 LookupArrays.Aligned
 LookupArrays.AbstractSampled
 LookupArrays.Sampled
+LookupArrays.AbstractCyclic
+LookupArrays.Cyclic
 LookupArrays.AbstractCategorical
 LookupArrays.Categorical
 LookupArrays.Unaligned
