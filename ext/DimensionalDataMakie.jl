@@ -128,9 +128,9 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,2}; 
+        function Makie.$f1(A::AbstractDimArray{T,2}; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
-        )
+        ) where T
             replacements = _keywords2dimpairs(x, y)
             A1, A2, args, merged_attributes = _surface2(A, attributes, replacements)
             p = if $(f1 == :surface)
@@ -143,7 +143,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 Makie.$f2(args...; merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
-            if $(f1 in (:plot, :heatmap, :contourf)) 
+            if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
                 )
@@ -346,7 +346,7 @@ Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
-    return Makie.convert_arguments(t, xs, _float32ornan(parent(A)))
+    return Makie.convert_arguments(t, xs, parent(A))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
@@ -488,9 +488,5 @@ function _keywords2dimpairs(x, y)
         isnothing(source) ? acc : (acc..., source => dest)
     end
 end
-
-_float32ornan(A::AbstractArray{Float32}) = A
-_float32ornan(A::AbstractArray) = _float32ornan.(A)
-_float32ornan(x) = ismissing(x) ? NaN32 : Float32(x)
 
 end

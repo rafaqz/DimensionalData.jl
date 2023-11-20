@@ -158,12 +158,16 @@ nothing
 # da_im2 |> plot
 
 using CairoMakie: CairoMakie as M
+using GLMakie: GLMakie as M
+using DimensionalData
+using Colors
 @testset "Makie" begin
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
     A1m .= A1
     A1m[3] = missing
+    A1 = rand(X('a':'e'); name=:test)
     fig, ax, _ = M.plot(A1)
     M.plot!(ax, A1)
     fig, ax, _ = M.plot(A1m)
@@ -201,10 +205,25 @@ using CairoMakie: CairoMakie as M
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
     A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
     A2m[3] = missing
+    A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
     M.plot!(ax, A2m)
+    fig, ax, _ = M.plot(A2rgb)
+    M.plot!(ax, A2rgb)
+    fig, ax, _ = M.heatmap(A2)
+    M.heatmap!(ax, A2)
+    fig, ax, _ = M.heatmap(A2m)
+    M.heatmap!(ax, A2m)
+    fig, ax, _ = M.heatmap(A2rgb)
+    M.heatmap!(ax, A2rgb)
+    fig, ax, _ = M.image(A2)
+    M.image!(ax, A2)
+    fig, ax, _ = M.image(A2m)
+    M.image!(ax, A2m)
+    fig, ax, _ = M.image(A2rgb)
+    M.image!(ax, A2rgb)
     fig, ax, _ = M.violin(A2r)
     M.violin!(ax, A2r)
     @test_throws ArgumentError M.violin(A2m)
@@ -263,14 +282,21 @@ using CairoMakie: CairoMakie as M
     A3 = rand(X(7), Z(10), Y(5))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
+    A3rgb = rand(RGB, X(7), Z(10), Y(5))
     fig, ax, _ = M.volume(A3)
     M.volume!(ax, A3)
     fig, ax, _ = M.volume(A3m)
     M.volume!(ax, A3m)
+    # Broken in Makie ?
+    fig, ax, _ = M.volumeslices(A3rgb)
+    M.volumeslices!(ax, A3rgb)
     fig, ax, _ = M.volumeslices(A3)
     M.volumeslices!(ax, A3)
-    fig, ax, _ = M.volumeslices(A3m)
-    M.volumeslices!(ax, A3m)
+    # colorrange isn't detected here
+    fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
+    M.volumeslices!(ax, A3m; colorrange=(1, 7))
+    # fig, ax, _ = M.volumeslices(A3rgb)
+    # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
