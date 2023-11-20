@@ -103,7 +103,7 @@ Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
 Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
 Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
 Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
-Base.eltype(s::AbstractDimStack, args...) = map(eltype, s)
+Base.eltype(s::AbstractDimStack, args...) = NamedTuple{keys(s),Tuple{map(eltype, s)...}}
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
 # `merge` for AbstractDimStack and NamedTuple.

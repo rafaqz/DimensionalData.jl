@@ -16,8 +16,15 @@ end
     map(A -> Base.getindex(A, i, I...), data(s))
 for f in (:getindex, :view, :dotview)
     @eval begin
+
         @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
-            newlayers = map(A -> Base.$f(A, I...; kw...), layers(s))
+            indexdims = (I..., kwdims(values(kw))...)
+            extradims = otherdims(indexdims, dims(s))
+            length(extradims) > 0 && Dimensions._extradimswarn(extradims)
+            newlayers = map(layers(s)) do A
+                layerdims = dims(indexdims, dims(A))
+                Base.$f(A, layerdims...)
+            end
             if all(map(v -> v isa AbstractDimArray, newlayers))
                 rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), (I..., kwdims(values(kw))...))))
             else
