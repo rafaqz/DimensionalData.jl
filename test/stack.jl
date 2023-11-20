@@ -1,4 +1,4 @@
-using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase
+using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
@@ -331,4 +331,11 @@ end
     @test maximum(f, s) == (one=12.0, two=24.0, three=36.0)
     @test extrema(f, s) == (one=(2.0, 12.0), two=(4.0, 24.0), three=(6.0, 36.0))
     @test mean(f, s) == (one=7.0, two=14.0, three=21)
+end
+
+@testset "rand sampling" begin
+    @test rand(s) isa @NamedTuple{one::Float64, two::Float32, three::Int}
+    @test rand(Xoshiro(), s) isa @NamedTuple{one::Float64, two::Float32, three::Int}
+    @test rand(mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+    @test rand(MersenneTwister(), mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
 end
