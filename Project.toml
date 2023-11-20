@@ -30,7 +30,7 @@ DimensionalDataMakie = "Makie"
 [compat]
 Adapt = "2, 3.0"
 ArrayInterface = "7"
-Aqua = "1"
+Aqua = "0.8"
 BenchmarkTools = "1"
 CairoMakie = "0.10"
 ConstructionBase = "1"
