@@ -341,12 +341,15 @@ struct Dim{S,T} <: Dimension{T}
         end
         new{S,typeof(val)}(val)
     end
-end
-function Dim{S}(val::AbstractArray; kw...) where S
-    if length(kw) > 0
-        val = AutoLookup(val, values(kw))
+    function Dim{S}(val::AbstractArray; kw...) where S
+        if length(kw) > 0
+            val = AutoLookup(val, values(kw))
+        end
+        Dim{S,typeof(val)}(val)
     end
-    Dim{S,typeof(val)}(val)
+    function Dim{S,T}(val::T) where {S,T}
+        new{S,T}(val)
+    end
 end
 Dim{S}() where S = Dim{S}(:)
 
