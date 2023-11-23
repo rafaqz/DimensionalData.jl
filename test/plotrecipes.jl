@@ -167,7 +167,6 @@ using Colors
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
     A1m .= A1
     A1m[3] = missing
-    A1 = rand(X('a':'e'); name=:test)
     fig, ax, _ = M.plot(A1)
     M.plot!(ax, A1)
     fig, ax, _ = M.plot(A1m)
