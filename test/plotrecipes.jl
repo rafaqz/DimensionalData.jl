@@ -70,7 +70,7 @@ for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY
         boxplot(da2)
         sticks(da2)
         histogram(da2)
-       a stephist(da2)
+        stephist(da2)
         barhist(da2)
         scatterhist(da2)
         histogram2d(da2)
@@ -160,6 +160,7 @@ nothing
 using CairoMakie: CairoMakie as M
 using ColorTypes
 @testset "Makie" begin
+
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
