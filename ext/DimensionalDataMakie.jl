@@ -346,7 +346,7 @@ Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
-    return Makie.convert_arguments(t, xs, parent(A))
+    return Makie.convert_arguments(t, _floatornan(parent(A)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
@@ -488,5 +488,11 @@ function _keywords2dimpairs(x, y)
         isnothing(source) ? acc : (acc..., source => dest)
     end
 end
+
+_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan32.(A)
+_floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
+_floatornan(A) = A
+_floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
+_floatornan64(x) = ismissing(x) ? NaN64 : Float64(x)
 
 end
