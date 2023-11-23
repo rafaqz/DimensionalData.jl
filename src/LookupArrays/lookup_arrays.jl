@@ -423,7 +423,7 @@ _check_ordered_cyclic(order::Unordered) = throw(ArgumentError("Cyclic lookups mu
 
 function rebuild(l::Cyclic;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
-    cycle=cycle(l), _cycle_status=cycle_status(l), kw...
+    cycle=cycle(l), cycle_status=cycle_status(l), kw...
 )
     Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
 end
