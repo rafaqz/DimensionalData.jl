@@ -70,7 +70,7 @@ for da in (da2_regular, da2_noindex, da2_ni_r, da2_r_ni, da2_c_c, da2_YX, da2_XY
         boxplot(da2)
         sticks(da2)
         histogram(da2)
-        stephist(da2)
+       a stephist(da2)
         barhist(da2)
         scatterhist(da2)
         histogram2d(da2)
@@ -163,11 +163,13 @@ using ColorTypes
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
+
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = M.plot(A1)
     M.plot!(ax, A1)
     fig, ax, _ = M.plot(A1m)
+    fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
@@ -203,6 +205,7 @@ using ColorTypes
     A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
     A2m[3] = missing
     A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
+
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
@@ -285,8 +288,8 @@ using ColorTypes
     fig, ax, _ = M.volume(A3m)
     M.volume!(ax, A3m)
     # Broken in Makie ?
-    fig, ax, _ = M.volumeslices(A3rgb)
-    M.volumeslices!(ax, A3rgb)
+    # fig, ax, _ = M.volumeslices(A3rgb)
+    # M.volumeslices!(ax, A3rgb)
     fig, ax, _ = M.volumeslices(A3)
     M.volumeslices!(ax, A3)
     # colorrange isn't detected here
