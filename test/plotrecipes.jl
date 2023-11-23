@@ -158,7 +158,6 @@ nothing
 # da_im2 |> plot
 
 using CairoMakie: CairoMakie as M
-using GLMakie: GLMakie as M
 using DimensionalData
 using Colors
 @testset "Makie" begin
