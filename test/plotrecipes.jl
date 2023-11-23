@@ -158,8 +158,7 @@ nothing
 # da_im2 |> plot
 
 using CairoMakie: CairoMakie as M
-using DimensionalData
-using Colors
+using ColorTypes
 @testset "Makie" begin
     # 1d
     A1 = rand(X('a':'e'); name=:test)
