@@ -117,6 +117,13 @@ end
     @test sortdims(dimz, (X, X)) === dimz
 end
 
+@testset "constructing with keywords" begin
+    @test X(1; foo=:bar) == X(DimensionalData.AutoVal(1, (; foo=:bar)))
+    @test X(1:10; foo=:bar) == X(DimensionalData.AutoLookup(1:10, (; foo=:bar)))
+    @test Dim{:x}(1; foo=:bar) == Dim{:x}(DimensionalData.AutoVal(1, (; foo=:bar)))
+    @test Dim{:x}(1:10; foo=:bar) == Dim{:x}(DimensionalData.AutoLookup(1:10, (; foo=:bar)))
+end
+
 @testset "applying function on a dimension" begin
     d = X(0:0.01:2π)
     a = DimArray(cos, d)

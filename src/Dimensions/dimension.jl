@@ -148,6 +148,12 @@ const AllDims = Union{Symbol,Dimension,DimTuple,SymbolTuple,DimType,DimTypeTuple
 
 # DimensionalData interface methods
 
+struct AutoVal{T,K}
+    val::T
+    kw::K
+end
+val(av::AutoVal) = av.val
+
 """
     rebuild(dim::Dimension, val) => Dimension
     rebuild(dim::Dimension; val=val(dim)) => Dimension
@@ -329,13 +335,21 @@ Dim{:custom} Char['a', 'b', 'c']
 """
 struct Dim{S,T} <: Dimension{T}
     val::T
-end
-Dim{S}(val::T) where {S,T} = Dim{S,T}(val)
-function Dim{S}(val::AbstractArray; kw...) where S
-    if length(kw) > 0
-        val = AutoLookup(val, values(kw))
+    function Dim{S}(val; kw...) where {S}
+        if length(kw) > 0
+            val = AutoVal(val, values(kw))
+        end
+        new{S,typeof(val)}(val)
     end
-    Dim{S,typeof(val)}(val)
+    function Dim{S}(val::AbstractArray; kw...) where S
+        if length(kw) > 0
+            val = AutoLookup(val, values(kw))
+        end
+        Dim{S,typeof(val)}(val)
+    end
+    function Dim{S,T}(val::T) where {S,T}
+        new{S,T}(val)
+    end
 end
 Dim{S}() where S = Dim{S}(:)
 
@@ -393,6 +407,13 @@ function dimmacro(typ, supertype, name::String=string(typ))
     quote
         Base.@__doc__ struct $typ{T} <: $supertype{T}
             val::T
+            function $typ(val; kw...)
+                if length(kw) > 0
+                    val = AutoVal(val, values(kw))
+                end
+                new{typeof(val)}(val)
+            end
+            $typ{T}(val::T; kw...) where T = new(val::T)
         end
         function $typ(val::AbstractArray; kw...)
             if length(kw) > 0

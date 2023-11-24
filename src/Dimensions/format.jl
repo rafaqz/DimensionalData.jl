@@ -37,6 +37,8 @@ end
 
 format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), D, val, axis)
 format(m::LookupArray, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
+format(v::AutoVal, D::Type, axis::AbstractRange) = _valformaterror(val(v), D)
+format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D) 
 
 # Format LookupArrays
 # No more identification required for NoLookup
@@ -130,4 +132,8 @@ checkaxis(lookup, axis) = first(axes(lookup)) == axis || _checkaxiserror(lookup,
 @noinline _checkaxiserror(lookup, axis) =
     throw(DimensionMismatch(
         "axes of $(basetypeof(lookup)) of $(first(axes(lookup))) do not match array axis of $axis"
+    ))
+@noinline _valformaterror(v, D::Type) =
+    throw(ArgumentError(
+        "Lookup value of `$v` for dimension $D cannot be converted to a `LookupArray`. Did you mean to pass a range or array?"
     ))
