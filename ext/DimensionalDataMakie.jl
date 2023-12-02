@@ -6,7 +6,7 @@ using DimensionalData.Dimensions, DimensionalData.LookupArrays
 const DD = DimensionalData
 
 # Handle changes between Makie 0.19 and 0.20
-const SurfaceLike = isdefined(Makie, :SurfaceLike) ? Makie.SurfaceLike : Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}
+const SurfaceLikeCompat = isdefined(Makie, :SurfaceLike) ? Makie.SurfaceLike : Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}
 
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
@@ -354,7 +354,7 @@ end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
 end
-function Makie.convert_arguments(t::Makie.SurfaceLike, A::AbstractDimArray{<:Any,2})
+function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimArray{<:Any,2})
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
