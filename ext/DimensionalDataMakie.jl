@@ -351,7 +351,8 @@ end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
 end
-function Makie.convert_arguments(t::Makie.SurfaceLike, A::AbstractDimArray{<:Any,2})
+
+function Makie.convert_arguments(t::Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}, A::AbstractDimArray{<:Any,2})
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
