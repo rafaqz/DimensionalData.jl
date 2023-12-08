@@ -346,6 +346,11 @@ Makie.plottype(A::AbstractDimArray{<:Any,2}) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
+function Makie.convert_arguments(t::Type{<:Makie.Image}, A::AbstractDimArray{<:Any,2})
+    A1 = _prepare_for_makie(A)
+    xs, ys = map(parent, lookup(A1))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
