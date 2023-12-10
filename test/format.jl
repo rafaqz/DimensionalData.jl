@@ -94,4 +94,9 @@ end
         @test format(l, X, Base.OneTo(2)) === Sampled(l, ForwardOrdered(), Regular(0.0), Points(), NoMetadata())
     end
 
+    @testset "LookupArray conversion errors" begin
+        @test_throws ArgumentError DimArray(rand(5, 4), (X(1), Y(1:4)))
+        @test_throws ArgumentError DimArray(rand(5), X(1; foo=:bar))
+    end
+
 end
