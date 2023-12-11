@@ -25,7 +25,7 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{L} end
+abstract type AbstractDimStack{T,N,L} <: AbstractArray{T,N} end
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
@@ -86,11 +86,9 @@ end
 Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
-Base.haskey(s::AbstractDimStack, k) = k in keys(s)
+Base.haskey(s::AbstractDimStack{<:NamedTuple{Keys}}, k) = k in Keys
 Base.values(s::AbstractDimStack) = values(layers(s))
 Base.values(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys = map(K -> s[K], Keys)
-Base.first(s::AbstractDimStack) = s[first(keys(s))]
-Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)

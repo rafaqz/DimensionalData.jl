@@ -40,17 +40,17 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
 end
 
 """
-    Base.map(f, stacks::AbstractDimStack...)
+    maplayers(f, stacks::AbstractDimStack...)
 
 Apply function `f` to each layer of the `stacks`.
 
 If `f` returns `DimArray`s the result will be another `DimStack`.
 Other values will be returned in a `NamedTuple`.
 """
-function Base.map(f, s::AbstractDimStack)
-    _maybestack(s,map(f, values(s)))
+function maplayers(f, s::AbstractDimStack)
+    _maybestack(s, map(f, values(s)))
 end
-function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
+function maplayers(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
     stacks = (x1, xs...)
     _check_same_names(stacks...)
     vals = map(f, map(values, stacks)...)
@@ -154,14 +154,14 @@ end
 for (mod, fnames) in
     (:Base => (:inv, :adjoint, :transpose), :LinearAlgebra => (:Transpose,))
     for fname in fnames
-        @eval ($mod.$fname)(s::AbstractDimStack) = map(A -> ($mod.$fname)(A), s)
+        @eval ($mod.$fname)(s::AbstractDimStack) = maplayers(A -> ($mod.$fname)(A), s)
     end
 end
 
 # Methods with an argument that return a DimStack
 for fname in (:rotl90, :rotr90, :rot180, :PermutedDimsArray, :permutedims)
     @eval (Base.$fname)(s::AbstractDimStack, args...) =
-        map(A -> (Base.$fname)(A, args...), s)
+        maplayers(A -> (Base.$fname)(A, args...), s)
 end
 
 # Methods with keyword arguments that return a DimStack
@@ -170,7 +170,7 @@ for (mod, fnames) in
      :Statistics => (:mean, :median, :std, :var))
     for fname in fnames
         @eval function ($mod.$fname)(s::AbstractDimStack; dims=:, kw...)
-            map(s) do A
+            maplayers(s) do A
                 # Ignore dims not found in layer
                 if dims isa Union{Colon,Int}
                     ($mod.$fname)(A; dims, kw...)
@@ -185,7 +185,7 @@ for (mod, fnames) in
 end
 for fname in (:cor, :cov)
     @eval function (Statistics.$fname)(s::AbstractDimStack; dims=1, kw...)
-        map(s) do A
+        maplayers(s) do A
             if dims isa Int
                 (Statistics.$fname)(A; dims, kw...)
             else
@@ -202,7 +202,7 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
     for fname in fnames
         _fname = Symbol(:_, fname)
         @eval function ($mod.$fname)(f::Function, s::AbstractDimStack; dims=Colon())
-            map(A -> ($mod.$fname)(f, A; dims=dims), s)
+            maplayers(A -> ($mod.$fname)(f, A; dims=dims), s)
         end
                 # ($_fname)(f, s, dims)
             # Colon returns a NamedTuple
@@ -217,15 +217,15 @@ end
 
 for fname in (:one, :oneunit, :zero, :copy)
     @eval function (Base.$fname)(s::AbstractDimStack, args...)
-        map($fname, s)
+        maplayers($fname, s)
     end
 end
 
-Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+Base.reverse(s::AbstractDimStack; dims=1) = maplayers(A -> reverse(A; dims=dims), s)
 
 # Random
-Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =
-    Random.SamplerSimple(st, Random.Sampler(RNG, DimIndices(st), n))
+# Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =
+#     Random.SamplerSimple(st, Random.Sampler(RNG, DimIndices(st), n))
 
-Random.rand(rng::AbstractRNG, sp::Random.SamplerSimple{<:AbstractDimStack,<:Random.Sampler}) =
-    @inbounds return sp[][rand(rng, sp.data)...]
+# Random.rand(rng::AbstractRNG, sp::Random.SamplerSimple{<:AbstractDimStack,<:Random.Sampler}) =
+#     @inbounds return sp[][rand(rng, sp.data)...]
