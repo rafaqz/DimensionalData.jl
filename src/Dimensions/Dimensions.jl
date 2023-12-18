@@ -47,5 +47,6 @@ include("indexing.jl")
 include("set.jl")
 include("show.jl")
 include("merged.jl")
+include("utils.jl")
 
 end
