@@ -192,8 +192,16 @@ LookupArrays.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
 LookupArrays.bounds(dim::Dimension) = bounds(val(dim))
 LookupArrays.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
-LookupArrays.shiftlocus(locus::Locus, dim::Dimension) = rebuild(dim, shiftlocus(locus, lookup(dim)))
-LookupArrays.maybeshiftlocus(locus::Locus, d::Dimension) = rebuild(d, maybeshiftlocus(locus, lookup(d)))
+for f in (:shiftlocus, :maybeshiftlocus)
+    @eval function LookupArrays.$f(locus::Locus, x; dims=Dimensions.dims(x))
+        newdims = map(Dimensions.dims(x, dims)) do d
+            LookupArrays.$f(locus, d)
+        end
+        return setdims(x, newdims)
+    end
+    @eval LookupArrays.$f(locus::Locus, d::Dimension) =
+        rebuild(d, LookupArrays.$f(locus, lookup(d)))
+end
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
     hasselection(dims(x), selectors)

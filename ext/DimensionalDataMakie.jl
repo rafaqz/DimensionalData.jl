@@ -346,6 +346,11 @@ Makie.plottype(A::AbstractDimArray{<:Any,2}) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
+function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimArray{<:Any,2})
+    A1 = _prepare_for_makie(A)
+    xs, ys = map(parent, lookup(A1))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
@@ -432,8 +437,8 @@ function _split_attributes(dim::Dimension)
     return attributes, dims[1]
 end
 
-function _prepare_for_makie(A, replacements=()) 
-    A1 = _permute_xyz(A, replacements) |> _reorder
+function _prepare_for_makie(A, replacements=())
+    _permute_xyz(maybeshiftlocus(Center(), A; dims=(XDim, YDim)), replacements) |> _reorder
 end
 
 # Permute the data after replacing the dimensions with X/Y/Z
