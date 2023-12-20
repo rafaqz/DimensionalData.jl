@@ -2,6 +2,7 @@ using DimensionalData, Aqua, SafeTestsets
 
 if VERSION >= v"1.9.0"
     Aqua.test_ambiguities([DimensionalData, Base, Core])
+    Aqua.test_piracy(DimensionalData)
     Aqua.test_unbound_args(DimensionalData)
     Aqua.test_undefined_exports(DimensionalData)
     Aqua.test_project_extras(DimensionalData)
@@ -11,6 +12,7 @@ if VERSION >= v"1.9.0"
     Aqua.test_stale_deps(DimensionalData)
 end
 
+@time @safetestset "stack" begin include("stack.jl") end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "metadata" begin include("metadata.jl") end
@@ -22,11 +24,9 @@ end
 @time @safetestset "coord" begin include("merged.jl") end
 @time @safetestset "dimension" begin include("dimension.jl") end
 @time @safetestset "DimUnitRange" begin include("dimunitrange.jl") end
-@time @safetestset "primitives" begin include("primitives.jl") end
 @time @safetestset "format" begin include("format.jl") end
 
 @time @safetestset "array" begin include("array.jl") end
-@time @safetestset "stack" begin include("stack.jl") end
 @time @safetestset "indexing" begin include("indexing.jl") end
 @time @safetestset "methods" begin include("methods.jl") end
 @time @safetestset "broadcast" begin include("broadcast.jl") end
@@ -45,3 +45,5 @@ if Sys.islinux()
     # Maybe ram use of all the plots on the small CI machine? idk
     @time @safetestset "plotrecipes" begin include("plotrecipes.jl") end
 end
+
+@time @safetestset "primitives" begin include("primitives.jl") end

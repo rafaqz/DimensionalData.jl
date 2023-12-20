@@ -93,6 +93,6 @@ include("tables.jl")
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
-include("precompile.jl")
+# include("precompile.jl")
 
 end

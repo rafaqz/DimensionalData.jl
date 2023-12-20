@@ -38,7 +38,7 @@ layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
 layers(nt::NamedTuple) = nt
-function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+Base.@assume_effects :foldable function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
 
@@ -86,7 +86,7 @@ end
 Base.parent(s::AbstractDimStack) = data(s)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
-Base.haskey(s::AbstractDimStack{<:NamedTuple{Keys}}, k) = k in Keys
+Base.haskey(::AbstractDimStack{<:NamedTuple{Keys}}, k) where Keys = k in Keys
 Base.values(s::AbstractDimStack) = values(layers(s))
 Base.values(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys = map(K -> s[K], Keys)
 # Only compare data and dim - metadata and refdims can be different
@@ -100,10 +100,10 @@ Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
 Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
 Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
 Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
-Base.eltype(s::AbstractDimStack, args...) = NamedTuple{keys(s),Tuple{map(eltype, s)...}}
+Base.IndexStyle(::Type{<:AbstractDimStack}) = IndexCartesian()
+Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(map(first ∘ axes, lookup(s)))
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
-Base.read(s::AbstractDimStack) = map(read, s)
+Base.read(s::AbstractDimStack) = maplayers(read, s)
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
@@ -163,6 +163,15 @@ end
 
 function unmergedims(s::AbstractDimStack, original_dims)
     return map(A -> unmergedims(A, original_dims), s)
+end
+
+function _similar(st::AbstractDimStack, T::Type, shape::Tuple)
+    # Use the first layer as a template array type
+    template_layer = parent(first(layers(st)))
+    data = similar(template_layer, T, map(_parent_range, shape))
+    shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
+    C = dimconstructor(dims(shape))
+    return C(data, dims(shape))
 end
 
 
@@ -242,13 +251,18 @@ true
 ```
 
 """
-struct DimStack{L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTuple} <: AbstractDimStack{L}
+struct DimStack{T,N,L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTuple} <: AbstractDimStack{T,N,L}
     data::L
     dims::D
     refdims::R
     layerdims::LD
     metadata::M
     layermetadata::LM
+end
+function DimStack(data::L, dims::D, refdims::R, layerdims::LD, metadata::M, layermetadata::LM) where {L<:NamedTuple{K},D<:Tuple,R<:Tuple,LD,M,LM<:NamedTuple} where K
+    T = NamedTuple{K,Tuple{map(eltype, data)...}}
+    N = length(dims)
+    DimStack{T,N,L,D,R,LD,M,LM}(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)
 DimStack(@nospecialize(das::Tuple{Vararg{AbstractDimArray}}); kw...) = DimStack(collect(das); kw...)
@@ -283,4 +297,4 @@ end
 
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
 
-layerdims(s::DimStack{<:Any,<:Any,<:Any,Nothing}, key::Symbol) = dims(s)
+layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, key::Symbol) = dims(s)

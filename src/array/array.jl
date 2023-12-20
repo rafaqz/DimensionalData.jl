@@ -35,7 +35,7 @@ metadata(A::AbstractDimArray) = A.metadata
 layerdims(A::AbstractDimArray) = basedims(A)
 
 """
-    rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
+    rebuild(A::AbstractDimArray, datk, [dims, refdims, name, metadata]) => AbstractDimArray
     rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
 
 Rebuild and `AbstractDimArray` with some field changes. All types
@@ -75,6 +75,8 @@ Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
 @inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
 @inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+# This is too slow using the default, as it calls `axes` and makes DimUnitRanges
+Base.CartesianIndices(s::AbstractDimArray) = CartesianIndices(map(first ∘ axes, lookup(s)))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)

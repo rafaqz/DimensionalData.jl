@@ -66,8 +66,8 @@ _firststack(s::AbstractDimStack, args...) = s
 _firststack(arg1, args...) = _firststack(args...) 
 _firststack() = nothing
 
-_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
-_maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
+_maybestack(::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
+# _maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
 # Without the `@nospecialise` here this method is also compile with the above method
 # on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
 function _maybestack(
@@ -159,8 +159,14 @@ for (mod, fnames) in
 end
 
 # Methods with an argument that return a DimStack
-for fname in (:rotl90, :rotr90, :rot180, :PermutedDimsArray, :permutedims)
-    @eval (Base.$fname)(s::AbstractDimStack, args...) =
+for fname in (:rotl90, :rotr90, :rot180)
+    @eval (Base.$fname)(s::AbstractDimStack, k::Integer) =
+        maplayers(A -> (Base.$fname)(A, k), s)
+    @eval (Base.$fname)(s::AbstractDimStack, args...; kw...) =
+        maplayers(A -> (Base.$fname)(A, args...; kw...), s)
+end
+for fname in (:PermutedDimsArray, :permutedims)
+    @eval (Base.$fname)(s::AbstractDimStack, args...; kw...) =
         maplayers(A -> (Base.$fname)(A, args...), s)
 end
 
@@ -204,16 +210,13 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
         @eval function ($mod.$fname)(f::Function, s::AbstractDimStack; dims=Colon())
             maplayers(A -> ($mod.$fname)(f, A; dims=dims), s)
         end
-                # ($_fname)(f, s, dims)
-            # Colon returns a NamedTuple
-            # ($_fname)(f::Function, s::AbstractDimStack, dims::Colon) =
-                # map(A -> ($mod.$fname)(f, A), data(s))
-            # Otherwise maybe return a DimStack
-            # function ($_fname)(f::Function, s::AbstractDimStack, dims) =
-            # end
-        # end
     end
 end
+
+Base.reduce(::typeof(vcat), A::DimensionalData.AbstractDimStack{<:AbstractVecOrMat, 1}) =
+    maplayers(A -> reduce(vcat, A), s)
+Base.reduce(::typeof(hcat), A::DimensionalData.AbstractDimStack{<:AbstractVecOrMat,1}) =
+    maplayers(A -> reduce(hcat, A), s)
 
 for fname in (:one, :oneunit, :zero, :copy)
     @eval function (Base.$fname)(s::AbstractDimStack, args...)
