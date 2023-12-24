@@ -389,10 +389,10 @@ function _check_cat_lookup_order(D, lookups::LookupArray...)
     l1 = first(lookups)
     L = basetypeof(l1)
     x = last(l1)
-    if order(l1) isa Ordered
+    if isordered(l1)
         map(Base.tail(lookups)) do lookup
-            if order(lookup) isa ForwardOrdered
-                if order(l1) isa ReverseOrdered
+            if isforward(lookup)
+                if isreverse(l1)
                     _cat_mixed_ordered_warn(D)
                     return false
                 elseif length(lookup) == 0 || first(lookup) > x
@@ -404,7 +404,7 @@ function _check_cat_lookup_order(D, lookups::LookupArray...)
                     return false
                 end
             else
-                if order(l1) isa ForwardOrdered
+                if isforward(l1)
                     _cat_mixed_ordered_warn(D)
                     return false
                 elseif length(lookup) == 0 || first(lookup) < x

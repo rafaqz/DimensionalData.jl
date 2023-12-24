@@ -4,7 +4,7 @@ struct SelectorError{L,S} <: Exception
 end
 
 function Base.showerror(io::IO, ex::SelectorError)
-    if order(ex.lookup) isa Ordered
+    if isordered(ex.lookup)
         println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with bounds $(bounds(ex.lookup))")
     else
         println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with values $(ex.lookup)")
@@ -236,7 +236,7 @@ function near(lookup::AbstractCyclic{Cycling}, sel::Near)
 end
 near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
 function near(lookup::LookupArray, sel::Near)
-    span(lookup) isa Union{Irregular,Explicit} && locus(lookup) isa Union{Start,End} &&
+    !isregular(lookup) && !iscenter(lookup) &&
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End loci. Use Contains"))
     near(order(lookup), sampling(lookup), lookup, sel)
 end
@@ -504,9 +504,8 @@ end
 between(l::LookupArray, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
 function between(sampling::Sampling, l::LookupArray, interval::Interval)
-    o = order(l)
-    o isa Unordered && throw(ArgumentError("Cannot use an interval or `Between` with Unordered"))
-    between(sampling, o, l, interval)
+    isordered(l) || throw(ArgumentError("Cannot use an interval or `Between` with `Unordered`"))
+    between(sampling, order(l), l, interval)
 end
 
 function between(sampling::NoSampling, o::Ordered, l::LookupArray, interval::Interval)
@@ -1031,5 +1030,5 @@ hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === n
 hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
 # Otherwise Near returns the nearest index, and Between an empty range
-hasselection(lookup::LookupArray, selnear::Near) = order(lookup) isa Unordered ? false : true
-hasselection(lookup::LookupArray, selnear::Union{Interval,Between}) = order(lookup) isa Unordered ? false : true
+hasselection(lookup::LookupArray, ::Near) = isordered(lookup) ? true : false
+hasselection(lookup::LookupArray, ::Union{Interval,Between}) = isordered(lookup) ? true : false
