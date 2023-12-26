@@ -12,6 +12,7 @@ iscyclic(::LookupArray) = false
 isstart(::Start) = true
 isstart(::Locus) = false
 iscenter(::Center) = true
+iscenter(::Locus) = true
 iscenter(::Locus) = false
 isend(::End) = true
 isend(::Locus) = false
@@ -33,10 +34,12 @@ end
 for f in (:isintervals, :ispoints)
     @eval $f(l::LookupArray) = $f(sampling(l))
 end
-for f in (:isstart, :iscenter, :isend)
+for f in (:isstart, :isend)
     @eval $f(l::AbstractSampled) = $f(locus(l))
     @eval $f(l::LookupArray) = false
 end
+iscenter(l::AbstractSampled) = iscenter(locus(l))
+iscenter(l::LookupArray) = true
 
 for f in (:isordered, :isforward, :isreverse)
     @eval $f(l::LookupArray) = $f(order(l))
