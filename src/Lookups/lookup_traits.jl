@@ -104,6 +104,8 @@ in the direction of the lookup index order.
 """
 struct Start <: Locus end
 
+const Begin = Start
+
 """
     End <: Locus
 
@@ -263,3 +265,36 @@ change the `Lookup` type without changing the index values.
 struct AutoIndex <: AbstractVector{Int} end
 
 Base.size(::AutoIndex) = (0,)
+
+# Ranges
+struct BeginEndRange{A<:Union{Int,Begin,End},B<:Union{Int,Begin,End}} <: AbstractUnitRange{Int}
+    start::A
+    stop::B
+end
+struct BeginEndStepRange{A<:Union{Int,Begin,End},B<:Union{Int,Begin,End}} <: AbstractUnitRange{Int}
+    start::A
+    step::Int
+    stop::B
+end
+Colon(a::Int, b::Union{Begin,End}) = BeginEndRange(a, b)
+Colon(a::Union{Begin,End}, b::Int) = BeginEndRange(a, b)
+Colon(a::Union{Begin,End}, b::Union{Begin,End}) = BeginEndRange(a, b)
+Colon(a::Union{Int,Begin,End}, b::Union{Type{Begin},Type{End}}) = BeginEndRange(a, b())
+Colon(a::Union{Type{Begin},Type{End}}, b::Union{Int,Begin,End}) = BeginEndRange(a(), b)
+Colon(a::Union{Type{Begin},Type{End}}, b::Union{Type{Begin},Type{End}}) = BeginEndRange(a(), b())
+
+Colon(a::Int, step::Int, b::Union{Begin,End}) = BeginEndStepRange(a, step, b)
+Colon(a::Union{Begin,End}, step::Int, b::Int) = BeginEndStepRange(a, step, b)
+Colon(a::Union{Begin,End}, step::Int, b::Union{Begin,End}) = BeginEndStepRange(a, step, b)
+Colon(a::Union{Int,Begin,End}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a, step, b())
+Colon(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Int,Begin,End}) = BeginEndStepRange(a(), step, b)
+Colon(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a(), step, b())
+
+Base.to_indices(r::BeginEndRange, inds) = _to_indices(r.a, inds):_to_indices(r.b, inds)
+Base.to_indices(r::BeginEndStepRange, inds) = _to_indices(r.a, inds)::r.step:_to_indices(r.b, inds)
+
+_to_indices(a::Int, inds) = a
+_to_indices(::Begin, inds) = first(inds)
+_to_indices(::End, inds) = last(inds)
+
+
