@@ -19,11 +19,16 @@ function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
     end
 end
 
+# AbstractBasicDimArray may not wrap anything so use DefaultArrayStyle as the inner style
+function BroadcastStyle(::Type{<:AbstractBasicDimArray{T,N,D}}) where {T,N,D}
+    inner_style = Base.Broadcast.DefaultArrayStyle{N}
+    return DimensionalStyle{inner_style}()
+end
+# AbstractDimArray has the A paramter specifically for the inner style
 function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
     inner_style = typeof(BroadcastStyle(A))
     return DimensionalStyle{inner_style}()
 end
-
 BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
 BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
 BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
@@ -54,7 +59,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
         rebuild(A, dest, _dims, refdims(A))
     end
 end
-function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+function Base.copyto!(dest::AbstractBasicDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
     _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true)
     copyto!(parent(dest), _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
@@ -78,11 +83,11 @@ function _unwrap_broadcasted(bc::Broadcasted{DimensionalStyle{S}}) where S
     return Broadcasted{S}(bc.f, innerargs)
 end
 _unwrap_broadcasted(x) = x
-_unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
+_unwrap_broadcasted(nda::AbstractBasicDimArray) = parent(nda)
 
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
-_firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
+_firstdimarray(x::Tuple{<:AbstractBasicDimArray,Vararg}) = x[1]
 _fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
 function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
     found = _firstdimarray(x[1])
@@ -98,5 +103,5 @@ _firstdimarray(x::Tuple{}) = nothing
 # Make sure all arrays have the same dims, and return them
 _broadcasted_dims(bc::Broadcasted) = _broadcasted_dims(bc.args...)
 _broadcasted_dims(a, bs...) = comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true)
-_broadcasted_dims(a::AbstractDimArray) = dims(a)
+_broadcasted_dims(a::AbstractBasicDimArray) = dims(a)
 _broadcasted_dims(a) = nothing

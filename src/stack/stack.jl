@@ -25,7 +25,7 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{T,N,L} <: AbstractArray{T,N} end
+abstract type AbstractDimStack{T,N,L,D} <: AbstractBasicDimArray{T,N,D} end
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
@@ -251,7 +251,7 @@ true
 ```
 
 """
-struct DimStack{T,N,L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTuple} <: AbstractDimStack{T,N,L}
+struct DimStack{T,N,L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTuple} <: AbstractDimStack{T,N,L,D}
     data::L
     dims::D
     refdims::R

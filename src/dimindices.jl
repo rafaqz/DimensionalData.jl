@@ -1,10 +1,5 @@
 
-abstract type AbstractDimIndices{T,N} <: AbstractArray{T,N} end
-
-dims(di::AbstractDimIndices) = di.dims
-
-Base.size(di::AbstractDimIndices) = map(length, dims(di))
-Base.axes(di::AbstractDimIndices) = map(d -> axes(d, 1), dims(di))
+abstract type AbstractDimIndices{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
 for f in (:getindex, :view, :dotview)
     @eval begin
@@ -40,7 +35,7 @@ This can be used to view/index into arbitrary dimensions over an array, and
 is especially useful when combined with `otherdims`, to iterate over the
 indices of unknown dimension.
 """
-struct DimIndices{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractDimIndices{T,N}
+struct DimIndices{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractDimIndices{T,N,D}
     dims::D
     # Manual inner constructor for ambiguity only
     function DimIndices{T,N,D}(dims::Tuple{Vararg{Dimension}}) where {T,N,D<:Tuple{Vararg{Dimension}}}
@@ -89,7 +84,7 @@ Either a `Dimension`, a `Tuple` of `Dimension` or an object that defines a
 
 - `order`: determines the order of the points, the same as the order of `dims` by default.
 """
-struct DimPoints{T,N,D<:DimTuple,O} <: AbstractDimIndices{T,N}
+struct DimPoints{T,N,D<:DimTuple,O} <: AbstractDimIndices{T,N,D}
     dims::D
     order::O
 end
@@ -123,7 +118,7 @@ Like `CartesianIndices`, but for the lookup values of Dimensions. Behaves as an
 `Array` of `Tuple` of `Dimension(At(lookupvalue))` for all combinations of the
 lookup values of `dims`.
 """
-struct DimKeys{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S} <: AbstractDimIndices{T,N}
+struct DimKeys{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S} <: AbstractDimIndices{T,N,D}
     dims::D
     selectors::S
 end

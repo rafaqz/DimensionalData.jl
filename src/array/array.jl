@@ -1,5 +1,28 @@
+
 """
-    AbstractDimArray <: AbstractArray
+    AbstractBasicDimArray <: AbstractArray
+
+The abstract supertype for all arrays with named lookup `dims`.
+"""
+abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+
+Base.size(A::AbstractBasicDimArray) = map(length, dims(A))
+Base.size(A::AbstractBasicDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+Base.axes(A::AbstractBasicDimArray) = map(d -> axes(d, 1), dims(A))
+Base.axes(A::AbstractBasicDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
+# This is too slow using the default, as it calls `axes` and makes DimUnitRanges
+Base.CartesianIndices(s::AbstractBasicDimArray) = CartesianIndices(map(first ∘ axes, lookup(s)))
+
+const IDim = Dimension{<:StandardIndices}
+function Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, dims::IDim...)
+    Base.checkbounds(Bool, A, dims2indices(A, dims)...)
+end
+function Base.checkbounds(A::AbstractBasicDimArray, dims::IDim...)
+    Base.checkbounds(A, dims2indices(A, dims)...)
+end
+
+"""
+    AbstractDimArray <: AbstractSimpleDimArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -17,16 +40,15 @@ A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
-abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
+abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractBasicDimArray{T,N,D} end
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
 
-
 # DimensionalData.jl interface methods ####################################################
 
 # Standard fields
-dims(A::AbstractDimArray) = A.dims
+dims(di::AbstractDimArray) = di.dims
 refdims(A::AbstractDimArray) = A.refdims
 data(A::AbstractDimArray) = A.data
 name(A::AbstractDimArray) = A.name
@@ -73,21 +95,9 @@ Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
-@inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
-# This is too slow using the default, as it calls `axes` and makes DimUnitRanges
-Base.CartesianIndices(s::AbstractDimArray) = CartesianIndices(map(first ∘ axes, lookup(s)))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
-const IDim = Dimension{<:StandardIndices}
-function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(Bool, A, dims2indices(A, dims)...)
-end
-function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(A, dims2indices(A, dims)...)
-end
 
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
