@@ -12,7 +12,6 @@ iscyclic(::LookupArray) = false
 isstart(::Start) = true
 isstart(::Locus) = false
 iscenter(::Center) = true
-iscenter(::Locus) = true
 iscenter(::Locus) = false
 isend(::End) = true
 isend(::Locus) = false
