@@ -12,7 +12,8 @@ function interp(A::AbstractDimArray;
     isempty(otherdims(to, dims(A))) || throw(DimensionMismatch("Cannot interpolate over dimensions not in the source array"))
     # TODO handle permutations
     shared_dims = commondims(A, to)
-    dest_dims = dims(Rasters._extent2dims(commondims(to, shared_dims); size, res, crs=crs(A)), shared_dims)
+    # TODO move `_extent2dims` to DimensionalData`
+    dest_dims = dims(Rasters._extent2dims(commondims(to, shared_dims); size, res), shared_dims)
     other_dims = otherdims(A, to)
     degrees = if isnothing(degree) 
         map(_ -> Linear(), dims(A))
@@ -41,7 +42,7 @@ function interp(A::AbstractDimArray;
         error("interpolate is only implemented for regular grids")
     end
 
-    return Raster(data, dest_dims)
+    return DimArray(data, dest_dims)
 end
 
 end
