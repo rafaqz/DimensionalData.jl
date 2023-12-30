@@ -693,7 +693,7 @@ function _slicebounds(span::Irregular, l::LookupArray, i::AbstractArray)
 end
 function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::AbstractArray)
     fi, la = first(i), last(i)
-    if order(l) isa ForwardOrdered
+    if isforward(l)
         l[fi], la >= lastindex(l) ? bounds(l)[2] : l[la + 1]
     else
         l[la], fi <= firstindex(l) ? bounds(l)[2] : l[fi - 1]
@@ -701,7 +701,7 @@ function _slicebounds(locus::Start, span::Irregular, l::LookupArray, i::Abstract
 end
 function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::AbstractArray)
     fi, la = first(i), last(i)
-    if order(l) isa ForwardOrdered
+    if isforward(l)
         fi <= firstindex(l) ? bounds(l)[1] : l[fi - 1], l[la]
     else
         la >= lastindex(l) ? bounds(l)[1] : l[la + 1], l[fi]
@@ -709,7 +709,7 @@ function _slicebounds(locus::End, span::Irregular, l::LookupArray, i::AbstractAr
 end
 function _slicebounds(locus::Center, span::Irregular, l::LookupArray, i::AbstractArray)
     fi, la = first(i), last(i)
-    a, b = if order(l) isa ForwardOrdered
+    a, b = if isforward(l)
         fi <= firstindex(l) ? bounds(l)[1] : (l[fi - 1] + l[fi]) / 2,
         la >= lastindex(l)  ? bounds(l)[2] : (l[la + 1] + l[la]) / 2
     else

@@ -29,6 +29,9 @@ export order, sampling, span, bounds, locus, hasselection, transformdim,
     metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus,
     maybeshiftlocus, intervalbounds
 
+export issampled, iscategorical, iscyclic, isintervals, ispoints, isregular,
+    isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse
+
 export Selector
 export At, Between, Touches, Contains, Near, Where, All
 export ..
@@ -54,6 +57,7 @@ rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 include("metadata.jl")
 include("lookup_traits.jl")
 include("lookup_arrays.jl")
+include("predicates.jl")
 include("selector.jl")
 include("indexing.jl")
 include("methods.jl")

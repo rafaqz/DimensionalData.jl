@@ -40,6 +40,7 @@ export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
 export @dim
 
 include("dimension.jl")
+include("predicates.jl")
 include("dimunitrange.jl")
 include("primitives.jl")
 include("format.jl")
