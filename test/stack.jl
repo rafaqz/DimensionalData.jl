@@ -63,7 +63,7 @@ end
 @testset "low level base methods" begin
     @test keys(data(s)) == (:one, :two, :three)
     @test keys(data(mixed)) == (:one, :two, :extradim)
-    @test eltype(mixed) === (one=Float64, two=Float32, extradim=Float64)
+    @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
     @test length(s) == 3 # length is as for NamedTuple
@@ -86,11 +86,11 @@ end
     @test all(map(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
-    @test all(map(==(Int), eltype(similar(s, Int))))
+    @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
     st2 = similar(mixed, Bool, x, y)
     @test dims(st2) === (x, y)
     @test dims(st2[:one]) === (x, y)
-    @test all(map(==(Bool), eltype(st2)))
+    @test eltype(st2) === @NamedTuple{one::Bool, two::Bool, extradim::Bool}
 end
 
 @testset "merge" begin

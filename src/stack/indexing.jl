@@ -12,24 +12,57 @@ end
 end
 
 # Array-like indexing
-@propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
-    map(A -> Base.getindex(A, i, I...), data(s))
 for f in (:getindex, :view, :dotview)
     @eval begin
-
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, I...; kw...)
-            indexdims = (I..., kwdims(values(kw))...)
-            extradims = otherdims(indexdims, dims(s))
+        @propagate_inbounds function Base.$f(
+            s::AbstractDimStack, i1::Union{Integer,CartesianIndex}, Is::Union{Integer,CartesianIndex}...
+        )
+            # Convert to Dimension wrappers to handle mixed size layers
+            Base.$f(s, DimIndices(s)[i1, Is...]...)
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1, Is...)
+            I = (i1, Is...)
+            if length(dims(s)) > length(I)
+                throw(BoundsError(dims(s), I))
+            elseif length(dims(s)) < length(I)
+                # Allow trailing ones
+                if all(i -> i isa Integer && i == 1, I[length(dims(s)):end])
+                    I = I[1:length(dims)]
+                else
+                    throw(BoundsError(dims(s), I))
+                end
+            end
+            # Convert to Dimension wrappers to handle mixed size layers
+            Base.$f(s, map(rebuild, dims(s), I)...)
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::AbstractArray)
+            # Multidimensional: return vectors of values
+            if length(dims(s)) > 1
+                Ds = DimIndices(s)[i]
+                map(s) do A
+                    map(D -> A[D...], Ds)
+                end
+            else
+                map(A -> A[i], s)
+            end
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, D::Dimension...; kw...)
+            alldims = (D..., kwdims(values(kw))...)
+            extradims = otherdims(alldims, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
             newlayers = map(layers(s)) do A
-                layerdims = dims(indexdims, dims(A))
-                Base.$f(A, layerdims...)
+                layerdims = dims(alldims, dims(A))
+                I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
+                Base.$f(A, I...)
             end
             if all(map(v -> v isa AbstractDimArray, newlayers))
-                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), (I..., kwdims(values(kw))...))))
+                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), alldims)))
             else
                 newlayers
             end
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack)
+            map($f, s)
         end
     end
 end
