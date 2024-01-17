@@ -3,7 +3,7 @@ using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
 # Base show
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
     print_ndims(io, size(A))
-    print(io, string(nameof(typeof(A)), "{$T,$N}"))
+    print_type(io, A)
     print_name(io, name(A))
 end
 
@@ -69,26 +69,34 @@ function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
 end
 
 
-function print_ndims(io, size::Tuple)
+function print_ndims(io, size::Tuple; 
+    colors=map(dimcolors, ntuple(identity, length(size)))
+)
     if length(size) > 1
-        print_sizes(io, size)
+        print_sizes(io, size; colors)
         print(io, ' ')
+    elseif length(size) == 1
+        printstyled(io, Base.dims2string(size), " "; color=first(colors))
     else
         print(io, Base.dims2string(size), " ")
     end
 end
 
+print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T,$N}"))
+print_type(io, x) = print(io, string(nameof(typeof(x))))
+
 function print_top(io, mime, A)
     lines = 4
     _, width = displaysize(io)
-    maxlen = min(width - 2, length(sprint(summary, A)) + 2)
+    maxlen = min(width - 2, textwidth(sprint(summary, A)) + 2)
     printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
     println(io)
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
+    println(io)
     n, maxlen = print_dims_block(io, mime, dims(A); width, maxlen)
-    lines += n
+    lines += n + 1
     return lines, maxlen, width
 end
 
@@ -104,18 +112,16 @@ function print_sizes(io, size;
     end
 end
 
-function print_dims_block(io, mime, dims; width, maxlen)
+function print_dims_block(io, mime, dims; width, maxlen, label="dims", kw...)
     lines = 0
     if isempty(dims)
-        println(io)
         printed = false
         newmaxlen = maxlen
     else
-        println(io)
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
-        newmaxlen = min(width - 2, max(maxlen, maximum(length, dim_lines)))
-        print_block_top(io, "dims", maxlen, newmaxlen)
-        lines += print_dims(io, mime, dims)
+        newmaxlen = min(width - 2, max(maxlen, maximum(textwidth, dim_lines)))
+        print_block_top(io, label, maxlen, newmaxlen)
+        lines += print_dims(io, mime, dims; kw...)
         println(io)
         lines += 2
         printed = true
@@ -135,7 +141,7 @@ function print_metadata_block(io, mime, metadata; maxlen=0, width, firstblock=fa
         print(io, "  ")
         show(io, mime, metadata)
         println(io)
-        lines += length(metadata_lines) + 3
+        lines += length(metadata_lines) + 2
     end
     return lines, newmaxlen
 end
@@ -145,9 +151,9 @@ end
 function print_block_top(io, label, prevmaxlen, newmaxlen)
     corner = (newmaxlen > prevmaxlen) ? '┐' : '┤'
     block_line = if newmaxlen > prevmaxlen
-        string('─'^(prevmaxlen), '┴', '─'^max(0, (newmaxlen - length(label) - 3 - prevmaxlen)), ' ', label, ' ')
+        string('─'^(prevmaxlen), '┴', '─'^max(0, (newmaxlen - textwidth(label) - 3 - prevmaxlen)), ' ', label, ' ')
     else
-        string('─'^max(0, newmaxlen - length(label) - 2), ' ', label, ' ')
+        string('─'^max(0, newmaxlen - textwidth(label) - 2), ' ', label, ' ')
     end
     printstyled(io, '├', block_line, corner; color=:light_black)
     println(io)
@@ -155,7 +161,7 @@ end
 
 function print_block_separator(io, label, prevmaxlen, newmaxlen)
     corner = (newmaxlen > prevmaxlen) ? '┐' : '┤'
-    printstyled(io, '├', '─'^max(0, newmaxlen - length(label) - 2), ' ', label, ' ', corner; color=:light_black)
+    printstyled(io, '├', '─'^max(0, newmaxlen - textwidth(label) - 2), ' ', label, ' ', corner; color=:light_black)
 end
 
 function print_block_close(io, maxlen)
@@ -259,7 +265,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     # A bit convoluted so it plays nice with GPU arrays
     topleft = Matrix{eltype(A)}(undef, map(length, (itop, ileft)))
     copyto!(topleft, CartesianIndices(topleft), A, CartesianIndices((itop, ileft)))
-    bottomleft= Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
+    bottomleft = Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
     copyto!(bottomleft, CartesianIndices(bottomleft), A, CartesianIndices((ibottom, ileft)))
     if !(lu1 isa NoLookup)
         topleft = hcat(map(show1, parent(lu1)[itop]), topleft)
@@ -274,7 +280,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     bottomblock = hcat(leftblock, rightblock)
 
     A_dims = if lu2 isa NoLookup
-        map(showdefault, bottomblock)
+        bottomblock
     else
         toplabels = map(show2, parent(lu2)[ileft]), map(show2, parent(lu2)[iright])
         toprow = if lu1 isa NoLookup
@@ -282,7 +288,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
         else
             vcat(showarrows(), toplabels...)
         end |> permutedims
-        vcat(toprow, map(showdefault, bottomblock))
+        vcat(toprow, bottomblock)
     end
 
     Base.print_matrix(io, A_dims)
@@ -313,8 +319,17 @@ show2(x) = ShowWith(x, :nothing, dimcolors(2))
 showhide(x) = ShowWith(x, :hide, :nothing)
 showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
+function Base.alignment(io::IO, x::ShowWith)
+    # Base bug measn we need to special-case this...
+    if x.val isa DateTime
+        0, textwidth(sprint(print, x.val))
+    else
+        Base.alignment(io, x.val)
+    end
+end
 Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
 Base.length(x::ShowWith) = length(string(x.val))
+Base.textwidth(x::ShowWith) = textwidth(string(x.val))
 Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
 function Base.print(io::IO, x::ShowWith)
     printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)

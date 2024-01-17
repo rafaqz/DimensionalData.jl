@@ -42,6 +42,8 @@ function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
 
+const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
+
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
 

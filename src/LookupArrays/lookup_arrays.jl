@@ -46,11 +46,11 @@ ordered_lastindex(o::ForwardOrdered, l::LookupArray) = lastindex(parent(l))
 ordered_lastindex(o::ReverseOrdered, l::LookupArray) = firstindex(parent(l))
 ordered_lastindex(o::Unordered, l::LookupArray) = lastindex(parent(l))
 
-function Base.searchsortedfirst(lookup::LookupArray, val; lt=<)
-    searchsortedfirst(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
+function Base.searchsortedfirst(lookup::LookupArray, val; lt=<, kw...)
+    searchsortedfirst(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt, kw...)
 end
-function Base.searchsortedlast(lookup::LookupArray, val; lt=<)
-    searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt)
+function Base.searchsortedlast(lookup::LookupArray, val; lt=<, kw...)
+    searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt, kw...)
 end
 
 function Adapt.adapt_structure(to, l::LookupArray)
@@ -593,7 +593,8 @@ Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1)
 
 intervalbounds(l::LookupArray, args...) = _intervalbounds_no_interval_error()
 intervalbounds(l::AbstractSampled, args...) = intervalbounds(span(l), sampling(l), l, args...)
-intervalbounds(span::Span, ::Points, l::LookupArray, args...) = _intervalbounds_no_interval_error()
+intervalbounds(span::Span, ::Points, ls::LookupArray) = map(l -> (l, l), ls) 
+intervalbounds(span::Span, ::Points, ls::LookupArray, i::Int) = ls[i], ls[i]
 intervalbounds(span::Span, sampling::Intervals, l::LookupArray, i::Int) =
     intervalbounds(order(l), locus(sampling), span, l, i)
 function intervalbounds(order::ForwardOrdered, locus::Start, span::Span, l::LookupArray, i::Int)
