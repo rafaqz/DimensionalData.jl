@@ -40,7 +40,10 @@ reorder(dim::Dimension, ot::Type{<:Order}) =
     ot <: basetypeof(order(dim)) ? dim : reverse(dim)
 
 # Recursive reordering. x may be reversed here
-_reorder(x, orderdims::DimTuple) = _reorder(reorder(x, orderdims[1]), tail(orderdims))
+function _reorder(x, orderdims::DimTuple)
+    ods = commondims(orderdims, dims(x))
+    _reorder(reorder(x, ods[1]), tail(ods))
+end
 _reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
