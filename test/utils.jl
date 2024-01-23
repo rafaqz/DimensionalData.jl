@@ -88,6 +88,12 @@ end
     @test rev_s != s
     @test reo_s == s
     @test dims(reo_s) == dims(s)
+
+
+    @testset "reorder handles extra dimensions" begin
+        @test reorder(da[X=1], X=>ReverseOrdered(), Y=>ForwardOrdered()) == rev[X=1]
+        @test reorder(rev_s[X=1], da) == s[X=1]
+    end
 end
 
 @testset "modify" begin
