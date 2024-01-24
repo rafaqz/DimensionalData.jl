@@ -1,13 +1,5 @@
-function Base.summary(io::IO, A::AbstractDimArray{T,0}) where {T}
-    print(io, "0-dimensional ")
-    print(io, string(nameof(typeof(A)), "{$T,0}"))
-end
-function Base.summary(io::IO, A::AbstractDimArray{T,1}) where {T}
-    print(io, size(A, 1), "-element ")
-    print(io, string(nameof(typeof(A)), "{$T,1}"))
-end
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
-    print(io, join(size(A), "×"), " ")
+    print(io, Base.dims2string(ndims(A)), " ")
     print(io, string(nameof(typeof(A)), "{$T,$N}"))
 end
 
