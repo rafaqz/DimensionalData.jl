@@ -22,7 +22,9 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
 
     # Printing the array data is optional, subtypes can 
     # show other things here instead.
-    show_after(io, mime, A)
+    ds = displaysize(io)
+    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
+    show_after(ioctx, mime, A)
     return nothing
 end
 
@@ -76,7 +78,7 @@ Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lo
 function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
     if get(io, :limit, false)
-        h, _ = displaysize(io)
+        h, _ = displaysize(io) 
         itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
         ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
     else
