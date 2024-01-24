@@ -297,4 +297,13 @@ _to_indices(a::Int, inds) = a
 _to_indices(::Begin, inds) = first(inds)
 _to_indices(::End, inds) = last(inds)
 
+struct Lazy{T,F}
+    f::F
+end
 
+for f in (:+, :-, :*, :÷, :|, :&, :mod, :rem)
+    @eval Base.$f(::Type{T}, i::Int) where T <: Union{Begin,End} = Lazy{T}(Fix1($f, i))
+    @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = Lazy{T}(Fix2($f, i))
+    @eval Base.$f(x::Lazy{T}, i::Int) where T = Lazy{T}(Fix1(x.f ∘ $f, i))
+    @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = Lazy{T}(Fix2($f, i))
+end
