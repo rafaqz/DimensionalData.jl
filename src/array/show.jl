@@ -22,9 +22,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
 
     # Printing the array data is optional, subtypes can 
     # show other things here instead.
-    ds = displaysize(io)
-    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
-    show_after(ioctx, mime, A)
+    show_after(io, mime, A)
     return nothing
 end
 
@@ -64,7 +62,7 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
 end
 
 function _print_array_ctx(io, T)
-    IOContext(io, :compact=>true, :limit=>true, :typeinfo=>T)
+    IOContext(io, :compact=>true, :typeinfo=>T)
 end
 # print a name of something, in yellow
 function print_name(io::IO, name)
@@ -76,12 +74,16 @@ end
 Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lookup(A))
 # Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
 function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
-    h, w = displaysize(io)
-    lu = lookups[1]
-    wn = w ÷ 3 # integers take 3 columns each when printed, floats more
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
-    itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
-    ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
+    if get(io, :limit, false)
+        h, _ = displaysize(io)
+        itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
+        ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
+    else
+        itop    = f1:l1
+        ibottom = 1:0
+    end
+    lu = lookups[1]
     labels = vcat(map(showblack, parent(lu)[itop]), map(showblack, parent(lu))[ibottom])
     vals = map(showdefault, vcat(A[itop], A[ibottom]))
     A_dims = hcat(labels, vals)
@@ -91,15 +93,22 @@ end
 _print_matrix(io::IO, A::AbstractDimArray, lookups::Tuple) = _print_matrix(io, parent(A), lookups) 
 function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     lu1, lu2 = lookups
-    h, w = displaysize(io)
-    wn = w ÷ 3 # integers take 3 columns each when printed, floats more
     f1, f2 = firstindex(lu1), firstindex(lu2)
     l1, l2 = lastindex(lu1), lastindex(lu2)
-    s1, s2 = size(A)
-    itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
-    ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
-    ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
-    iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
+    if get(io, :limit, false)
+        h, w = displaysize(io)
+        wn = w ÷ 3 # integers take 3 columns each when printed, floats more
+        s1, s2 = size(A)
+        itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
+        ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
+        ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
+        iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
+    else
+        itop    = f1:l1
+        ibottom = f1:f1-1
+        ileft   = f2:l2
+        iright  = f2:f2-1
+    end
 
     topleft = map(showdefault, A[itop, ileft])
     bottomleft = A[ibottom, ileft]
