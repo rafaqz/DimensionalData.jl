@@ -1,5 +1,7 @@
-using DimensionalData, Test, Plots, Dates, StatsPlots, Unitful
+using DimensionalData, Test, Plots, Dates, StatsPlots, Unitful, ColorTypes
 import Distributions
+
+using CairoMakie: CairoMakie as M
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
     Sampled, Categorical, NoLookup, Transformed,
@@ -157,8 +159,6 @@ nothing
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
 
-using CairoMakie: CairoMakie as M
-using ColorTypes
 @testset "Makie" begin
 
     # 1d
@@ -244,9 +244,8 @@ using ColorTypes
     M.series!(ax, A2)
     fig, ax, _ = M.series(A2r)
     M.series!(ax, A2r)
-    #TODO: uncomment when the Makie version gets bumped
-    #fig, ax, _ = M.series(A2r; labeldim=Y)
-    #M.series!(ax, A2r; labeldim=Y)
+    fig, ax, _ = M.series(A2r; labeldim=Y)
+    M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
     M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
