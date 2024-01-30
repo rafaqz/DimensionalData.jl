@@ -405,7 +405,7 @@ using DimensionalData: @dim, YDim, XDim
 """
 macro dim end
 macro dim(typ::Symbol, args...)
-    dimmacro(typ::Symbol, :(DimensionalData.Dimension), args...)
+    dimmacro(typ::Symbol, Dimension, args...)
 end
 macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
@@ -417,7 +417,7 @@ function dimmacro(typ, supertype, name::String=string(typ))
             val::T
             function $typ(val; kw...)
                 if length(kw) > 0
-                    val = AutoVal(val, values(kw))
+                    val = $Dimensions.AutoVal(val, values(kw))
                 end
                 new{typeof(val)}(val)
             end
@@ -425,13 +425,13 @@ function dimmacro(typ, supertype, name::String=string(typ))
         end
         function $typ(val::AbstractArray; kw...)
             if length(kw) > 0
-                val = AutoLookup(val, values(kw))
+                val = $Dimensions.AutoLookup(val, values(kw))
             end
             $typ{typeof(val)}(val)
         end
         $typ() = $typ(:)
-        Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
-        Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
+        $Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
     end |> esc
 end
 
