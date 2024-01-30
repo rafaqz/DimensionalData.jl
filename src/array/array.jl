@@ -421,6 +421,7 @@ There are two kinds of `Dimension` value acepted:
 Keywords are the same as for [`DimArray`](@ref).
 
 # Example
+
 ```@doctest
 julia> using DimensionalData
 
