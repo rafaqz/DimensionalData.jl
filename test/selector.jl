@@ -1186,8 +1186,8 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
             @test @inferred da[Near(Date(2001, 4, 7))] == 4
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
-            @test @inferred da[Between(Date(2001, 4, 7), Date(2001, 8, 30))] == [5, 6, 7]
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
 
             timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(Start())
@@ -1197,8 +1197,8 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
             @test @inferred da[Near(Date(2001, 4, 7))] == 4
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
-            @test @inferred da[Between(Date(2001, 4, 7), Date(2001, 8, 30))] == [5, 6, 7]
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
         end
         @testset "End locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
@@ -1209,8 +1209,8 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
             @test @inferred da[Near(Date(2001, 4, 7))] == 5
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [6, 7, 8]
-            @test @inferred da[Between(Date(2001, 4, 7), Date(2001, 8, 30))] == [6, 7, 8]
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
 
             timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(End()))
@@ -1220,8 +1220,8 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
             @test @inferred da[Near(Date(2001, 4, 7))] == 5
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [6, 7, 8]
-            @test @inferred da[Between(Date(2001, 4, 7), Date(2001, 8, 30))] == [6, 7, 8]
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
         end
     end
 
