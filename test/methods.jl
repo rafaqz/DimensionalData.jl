@@ -463,6 +463,29 @@ end
         @test dims(cat(da, db; dims=X(NoLookup())), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(1.0:4.0)), X) === X(Sampled(1.0:4.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
     end
+
+    @testset "cat empty dimarrays" begin
+        a = rand(X([1, 2, 3]))
+        b = rand(X(Int64[]))
+        c = cat(a, b; dims=X)
+        @test c == a
+        @test dims(c) == dims(a)
+        a = rand(X(Int64[]; order=DimensionalData.ForwardOrdered()))
+        b = rand(X([1, 2, 3]))
+        c = cat(a, b; dims=X)
+        @test c == b
+        @test dims(c) == dims(b)
+        a = rand(X(1:3))
+        b = rand(X(4:0))
+        c = cat(a, b; dims=X)
+        @test c == a
+        @test dims(c) == dims(a)
+        a = rand(X(1:0))
+        b = rand(X(1:3))
+        c = cat(a, b; dims=X)
+        @test c == b
+        @test dims(c) == dims(b)
+    end
 end
 
 @testset "vcat" begin

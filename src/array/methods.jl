@@ -234,12 +234,11 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             if hasdim(A1, catdim)
                 catdim = basedims(dims(A1, catdim))
             else
-                return AnonDim(NoLookup())
+                return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
             end
         else
             catdim = basedims(key2dim(catdim))
         end
-        # Dimension
         # Dimension Types and Symbols
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
@@ -249,7 +248,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
                 if !check_cat_lookups(joindims...) 
-                    return Base.cat(map(parent, Xin)...; dims=dimnum(A1, catdims))
+                    return rebuild(catdim, NoLookup())
                 end
                 _vcat_dims(joindims...)
             end
@@ -270,14 +269,13 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         end
     end
 
-    any(map(isnothing, newcatdims)) && return Base.cat(map(parent, Xin)...; dims=cat_dnums)
-
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
 
     inserted_dnums = dimnum(A1, inserted_dims)
     appended_dnums = ntuple(i -> i + length(dims(A1)), length(appended_dims))
     cat_dnums = (inserted_dnums..., appended_dnums...)
+
     # Warn if dims or val do not match, and cat the parent
     if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...;
         order=true, val=true, warn=" Can't `cat` AbstractDimArray, applying to `parent` object."
@@ -350,6 +348,7 @@ check_cat_lookups(dims::Dimension...) =
 _check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
 _check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
 function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
+    length(lookups) > 0 || return true
     _check_cat_lookup_order(D, l1, lookups...) || return false
     _check_cat_lookups(D, span(l1), l1, lookups...)
 end
@@ -387,10 +386,12 @@ end
 
 function _check_cat_lookup_order(D, lookups::LookupArray...)
     l1 = first(lookups)
+    length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)
     x = last(l1)
     if isordered(l1)
         map(Base.tail(lookups)) do lookup
+            length(lookup) > 0 || return true
             if isforward(lookup)
                 if isreverse(l1)
                     _cat_mixed_ordered_warn(D)
