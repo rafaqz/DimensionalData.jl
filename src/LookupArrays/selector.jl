@@ -245,6 +245,9 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, se
     # Unwrap the selector value and adjust it for
     # inderval locus if neccessary
     v = unwrap(val(sel))
+    if v isa Dates.TimeType
+        v = eltype(lookup)(v)
+    end
     v_adj = _locus_adjust(locus(lookup), v, lookup)
     # searchsortedfirst or searchsortedlast
     searchfunc = _searchfunc(order)
@@ -278,8 +281,10 @@ end
 _locus_adjust(locus::Center, v, lookup) = v
 _locus_adjust(locus::Start, v, lookup) = v - abs(step(lookup)) / 2
 _locus_adjust(locus::End, v, lookup) = v + abs(step(lookup)) / 2
-_locus_adjust(locus::Start, v::DateTime, lookup) = v - (v - (v - abs(step(lookup)))) / 2
-_locus_adjust(locus::End, v::DateTime, lookup) = v + (v + abs(step(lookup)) - v) / 2
+_locus_adjust(locus::Start, v::Dates.TimeType, lookup) = v - (v - (v - abs(step(lookup)))) / 2
+_locus_adjust(locus::End, v::Dates.TimeType, lookup) = v + (v + abs(step(lookup)) - v) / 2
+_locus_adjust(locus::Start, v::Dates.Date, lookup) = v - (v - (v - abs(step(lookup)))) ÷ 2
+_locus_adjust(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - v) ÷ 2
 
 """
     Contains <: IntSelector
