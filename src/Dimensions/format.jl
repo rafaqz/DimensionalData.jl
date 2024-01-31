@@ -20,7 +20,7 @@ function format(dims::NamedTuple, A::AbstractArray)
     end
     return format(dims, A)
 end
-function format(dims::Tuple{Vararg{Pair}}, A::AbstractArray)
+function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     dims = map(dims) do (k, v)
         rebuild(basedims(k), v)
     end
