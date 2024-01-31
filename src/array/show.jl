@@ -1,5 +1,5 @@
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
-    print(io, Base.dims2string(ndims(A)), " ")
+    print(io, Base.dims2string(size(A)), " ")
     print(io, string(nameof(typeof(A)), "{$T,$N}"))
 end
 
