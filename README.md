@@ -17,14 +17,13 @@ to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
 written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
 > [!IMPORTANT]
-
-The basic syntax is:
-
-```julia
-julia> using DimensionalData
-
-julia> A = DimArray(rand(50, 31), (X(), Y(10.0:40.0)));
-```
+> The basic syntax is:
+>
+> ```julia
+> julia> using DimensionalData
+>
+> julia> A = DimArray(rand(50, 31), (X(), Y(10.0:40.0)));
+> ```
 
 Or just use `rand` directly, which also works for `zeros`, `ones` and `fill`:
 
