@@ -415,6 +415,10 @@ end
     da_reconstructed = DimArray(da)
     @test da == da_reconstructed
     @test dims(da) == dims(da_reconstructed)
+    @test DimArray(zeros(5, 4), (X(1:5), Y(1:4))) ==
+        DimArray(zeros(5, 4), (X => 1:5, Y => 1:4)) ==
+        DimArray(zeros(5, 4), (:X => 1:5, :Y => 1:4)) ==
+        DimArray(zeros(5, 4), (X = 1:5, Y = 1:4))
 end
 
 @testset "fill constructor" begin

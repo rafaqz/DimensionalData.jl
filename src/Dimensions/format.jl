@@ -18,7 +18,13 @@ function format(dims::NamedTuple, A::AbstractArray)
     dims = map(keys(dims), values(dims)) do k, v
         rebuild(key2dim(k), v)
     end
-    return format(dims, axes(A))
+    return format(dims, A)
+end
+function format(dims::Tuple{Vararg{Pair}}, A::AbstractArray)
+    dims = map(dims) do (k, v)
+        rebuild(basedims(k), v)
+    end
+    return format(dims, A)
 end
 format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N =
     format(dims, axes(A))
