@@ -13,17 +13,17 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A::AbstractDimArray, dims; kw...)
-        $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A::AbstractDimArray, dims; kw...)
+        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A, dims; kw...)
+        Base.@constprop :aggressive $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
-        $_f(A::AbstractDimArray, dims; kw...) =
+        @inline $_f(A::AbstractDimArray, dims; kw...) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
-        $_f(f, A::AbstractDimArray, dims; kw...) =
+        @inline $_f(f, A::AbstractDimArray, dims; kw...) =
             rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
         # - Return a scalar
-        $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
-        $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
+        @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
+        @inline $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
     end
 end
 # With no function arg version
@@ -31,13 +31,13 @@ for (m, f) in ((:Statistics, :std), (:Statistics, :var))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        $m.$f(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
+        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
             $_f(A, corrected, mean, dims)
         # Local dispatch methods - Returns a reduced array
-        $_f(A::AbstractDimArray, corrected, mean, dims) =
+        @inline $_f(A::AbstractDimArray, corrected, mean, dims) =
             rebuild(A, $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
-        $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
+        @inline $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
             $m.$f(parent(A); corrected=corrected, mean=mean, dims=:)
     end
 end
@@ -45,12 +45,12 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
+        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
         # Local dispatch methods - Returns a reduced array
-        $_f(A::AbstractDimArray, dims) =
+        @inline $_f(A::AbstractDimArray, dims) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
-        $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
+        @inline $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
     end
 end
 

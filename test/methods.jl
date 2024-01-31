@@ -108,9 +108,9 @@ end
     a = [1 2 3; 4 5 6]
     dimz = X(143:2:145), Y(-38:-36)
     da = DimArray(a, dimz)
-    @test median(da) == 3.5
-    @test median(da; dims=X()) == [2.5 3.5 4.5]
-    @test median(da; dims=2) == [2.0 5.0]'
+    @test @inferred median(da) == 3.5
+    @test @inferred median(da; dims=X()) == [2.5 3.5 4.5]
+    @test @inferred median(da; dims=2) == [2.0 5.0]'
 
     a = Bool[0 1 1; 0 0 0]
     da = DimArray(a, dimz)
