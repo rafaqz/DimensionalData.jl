@@ -281,7 +281,3 @@ using .LookupArrays
 # However, indexing with sorted vectors of `Int` can be useful, so it's allowed.
 # But it may do strange things to interval sizes for [`Intervals`](@ref) that are
 # not [`Explicit`](@ref).
-
-# This selects the first 5 entries of the underlying array. In the case that `A`
-# has only one dimension, it will be retained. Multidimensional `AbstracDimArray`
-# indexed this way will return a regular array.
