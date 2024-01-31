@@ -223,6 +223,10 @@ end
             end
         end
     end
+    @testset "eachslice with empty tuple dims" begin
+        A = rand(X(10))
+        @test ndims(eachslice(A; dims=())) == 0
+    end
 end
 
 @testset "simple dimension permuting methods" begin
