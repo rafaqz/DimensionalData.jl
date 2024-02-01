@@ -67,7 +67,7 @@ end
 
 @testset "AnonDim" begin
     @test val(AnonDim()) == Colon()
-    @test lookup(AnonDim()) == NoLookup()
+    @test lookup(AnonDim(NoLookup())) == NoLookup()
     @test metadata(AnonDim()) == NoMetadata()
     @test name(AnonDim()) == :Anon
 end

@@ -380,7 +380,6 @@ end
 AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
-lookup(::AnonDim) = NoLookup()
 metadata(::AnonDim) = NoMetadata()
 name(::AnonDim) = :Anon
 
