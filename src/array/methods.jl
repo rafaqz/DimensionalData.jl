@@ -13,8 +13,8 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A, dims; kw...)
-        Base.@constprop :aggressive $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
+        @inline $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A, dims; kw...)
+        @inline $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
         @inline $_f(A::AbstractDimArray, dims; kw...) =
@@ -31,7 +31,7 @@ for (m, f) in ((:Statistics, :std), (:Statistics, :var))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
+        $m.$f(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
             $_f(A, corrected, mean, dims)
         # Local dispatch methods - Returns a reduced array
         @inline $_f(A::AbstractDimArray, corrected, mean, dims) =
@@ -44,8 +44,7 @@ end
 for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     _f = Symbol('_', f)
     @eval begin
-        # Base methods
-        Base.@constprop :aggressive $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
+        @inline $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
         # Local dispatch methods - Returns a reduced array
         @inline $_f(A::AbstractDimArray, dims) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims))), reducedims(A, dims))

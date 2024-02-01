@@ -120,6 +120,11 @@ end
     @test all(da; dims=Y) == reshape([false, false], 2, 1)
     @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
 
+    @testset "inference" begin
+        x = DimArray(randn(2, 3, 4), (X, Y, Z));
+        foo(x) = maximum(x; dims=(1, 2))
+        @inferred foo(x)
+    end
 end
 
 @testset "dimension dropping methods" begin
