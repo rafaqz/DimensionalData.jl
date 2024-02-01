@@ -27,6 +27,8 @@ The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
 abstract type AbstractDimStack{L} end
 
+InterfacesCore.@interface_type DimStackInterface AbstractDimStack
+
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
 refdims(s::AbstractDimStack) = getfield(s, :refdims)
@@ -96,6 +98,7 @@ Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
 Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.length(s::AbstractDimStack) = length(keys(s))
+Base.ndims(s::AbstractDimStack) = length(dims(s))
 Base.size(s::AbstractDimStack) = map(length, dims(s))
 Base.size(s::AbstractDimStack, dims::DimOrDimType) = size(s, dimnum(s, dims))
 Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
