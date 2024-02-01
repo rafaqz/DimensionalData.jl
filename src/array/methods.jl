@@ -101,10 +101,22 @@ function Base.map(f, As::AbstractDimArray...)
     rebuild(first(As); data=newdata)
 end
 
-function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+
+@inline function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+    # Run `mapslices` on the parent array
     dimnums = dimnum(A, _astuple(dims))
-    data = mapslices(f, parent(A); dims=dimnums, kw...)
-    rebuild(A, data)
+    newdata = mapslices(f, parent(A); dims=dimnums, kw...)
+    # Run one slice with dimensions to get the transformed dim
+    d_inds = map(d -> rebuild(d, 1), DD.dims(A, _astuple(dims)))
+    example_dims = DD.dims(f(view(A, d_inds...)))
+    newdims = if isnothing(example_dims) || size(example_dims) != size(dims(A, d_inds))
+        replacement_dims = map(d -> rebuild(d, NoLookup()), d_inds)
+        newdims = format(setdims(DD.dims(A), replacement_dims), newdata)
+    else
+        example_dims
+    end
+
+    return rebuild(A, newdata, newdims)
 end
 
 @static if VERSION < v"1.9-alpha1"

@@ -353,6 +353,15 @@ end
         ms = mapslices(sum, da; dims)
         @test parent(ms) == [10 18 26]'
     end
+
+    @testset "size changes" begin
+        x = DimArray(randn(4, 100, 2), (:chain, :draw, :x_dim_1));
+        y = mapslices(vec, x; dims=(:chain, :draw))
+        @test size(y) == size(dims(y))
+        x = rand(X(1:10), Y([:a, :b, :c]), Ti(10))
+        y = mapslices(sum, x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+    end
 end
 
 @testset "cat" begin
