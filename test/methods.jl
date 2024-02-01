@@ -355,6 +355,22 @@ end
     end
 end
 
+@testset "cumsum" begin
+    v = DimArray([10:-1:1...], X)
+    @test cumsum(v) == cumsum(parent(v))
+    @teet dims(cumsum(v)) == dims(v)
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test cumsum(A; dims=X) == cumsum(parent(A); dims=1)
+    @test dims(cumsum(A; dims=X)) == dims(A)
+end
+
+@testset "cumsum!" begin
+    v = DimArray([10:-1:1...], X)
+    @test cumsum!(copy(v), v) == cumsum(parent(v))
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test cumsum!(copy(A), A; dims=X) == cumsum(parent(A); dims=1)
+end
+
 @testset "cat" begin
     a = [1 2 3; 4 5 6]
     da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
