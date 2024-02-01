@@ -27,7 +27,7 @@ The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
 abstract type AbstractDimStack{L} end
 
-InterfacesCore.@interface_type DimStackInterface AbstractDimStack
+InterfacesCore.@interface_core DimStackInterface AbstractDimStack
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)

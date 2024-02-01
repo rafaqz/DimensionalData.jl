@@ -19,7 +19,7 @@ on the `Dimension` index. Use forward-ordered arrays only"
 """
 abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
-InterfacesCore.@interface_type DimArrayInterface AbstractDimArray
+InterfacesCore.@interface_core DimArrayInterface AbstractDimArray
 
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
