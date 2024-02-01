@@ -361,6 +361,11 @@ end
         x = rand(X(1:10), Y([:a, :b, :c]), Ti(10))
         y = mapslices(sum, x; dims=(X, Y))
         @test size(y) == size(dims(y))
+        @test dims(y) == (X(NoLookup(Base.OneTo(1))), Y(NoLookup(Base.OneTo(1))), Ti(NoLookup(Base.OneTo(10))))
+
+        y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+        @test dims(y) == dims(A
     end
 end
 

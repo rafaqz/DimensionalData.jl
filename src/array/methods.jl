@@ -106,15 +106,16 @@ end
     # Run `mapslices` on the parent array
     dimnums = dimnum(A, _astuple(dims))
     newdata = mapslices(f, parent(A); dims=dimnums, kw...)
+    ds = DD.dims(A, _astuple(dims))
     # Run one slice with dimensions to get the transformed dim
-    d_inds = map(d -> rebuild(d, 1), DD.dims(A, _astuple(dims)))
+    d_inds = map(d -> rebuild(d, 1), otherdims(A, ds))
     example_dims = DD.dims(f(view(A, d_inds...)))
-    newdims = if isnothing(example_dims) || size(example_dims) != size(dims(A, d_inds))
-        replacement_dims = map(d -> rebuild(d, NoLookup()), d_inds)
-        newdims = format(setdims(DD.dims(A), replacement_dims), newdata)
+    replacement_dims = if isnothing(example_dims) || length(example_dims) != length(ds)
+        map(d -> rebuild(d, NoLookup()), ds)
     else
         example_dims
     end
+    newdims = format(setdims(DD.dims(A), replacement_dims), newdata)
 
     return rebuild(A, newdata, newdims)
 end
