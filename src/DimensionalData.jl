@@ -97,5 +97,6 @@ include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
 include("precompile.jl")
+include("interface_tests.jl")
 
 end

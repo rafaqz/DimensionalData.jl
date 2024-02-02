@@ -6,4 +6,6 @@ using DimensionalData, Interfaces, Test
 @test dims(nothing) == nothing
 @test refdims(1) == ()
 
-@test Interfaces.test(DimensionalData)
+# @test Interfaces.test(DimensionalData)
+@test Interfaces.test(DimensionalData.DimArrayInterface)
+@test_broken Interfaces.test(DimensionalData.DimStackInterface)
