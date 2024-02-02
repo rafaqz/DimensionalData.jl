@@ -9,7 +9,7 @@ ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 Extents = "411431e0-e8b7-467b-b5e0-f676ba4f2910"
-InterfacesCore = "a94bad63-e719-4205-a4a7-d6d26991555a"
+Interfaces = "85a1e053-f937-4924-92a5-1367d23b7b87"
 IntervalSets = "8197267c-284f-5f27-9208-e0e47529a953"
 InvertedIndices = "41ab1584-1d38-5bbf-9106-f11c6c58b48f"
 IteratorInterfaceExtensions = "82899510-4779-5014-852e-03e436cf321d"
@@ -24,11 +24,9 @@ Tables = "bd369af6-aec1-5ad0-b16a-f7cc5008161c"
 
 [weakdeps]
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
-Interfaces = "85a1e053-f937-4924-92a5-1367d23b7b87"
 
 [extensions]
-DimensionalDataInterfacesExt = "Interfaces"
-DimensionalDataMakieExt = "Makie"
+DimensionalDataMakie = "Makie"
 
 [compat]
 Adapt = "2, 3.0, 4"
@@ -47,7 +45,7 @@ Documenter = "1"
 Extents = "0.1"
 ImageFiltering = "0.7"
 ImageTransformations = "0.10"
-InterfacesCore = "0.1"
+Interfaces = "0.3"
 IntervalSets = "0.5, 0.6, 0.7"
 InvertedIndices = "1"
 IteratorInterfaceExtensions = "1"
