@@ -15,12 +15,11 @@ function rebuild_all(A)
         name(A) === name(A1) === name(A2)
 end
 
-
 array_tests = (;
     mandatory = (
         dims = (
             "defines a `dims` method" => A -> dims(A) isa Tuple{Vararg{Dimension}},
-            # "dims are updated on getindex" => A -> dims(view(A, rebuild(first(dims(A)), 1))),
+            "dims are updated on getindex" => A -> dims(view(A, rebuild(first(dims(A)), 1))) == Base.tail(dims(A)),
         ),
         refdims_base = "`refdims` returns a tuple of Dimension or empty" => A -> refdims(A) isa Tuple{Vararg{Dimension}},
         ndims = "number of dims matches dimensions of array" => A -> length(dims(A)) == ndims(A),
@@ -60,7 +59,7 @@ stack_tests = (;
     mandatory = (
         dims = (
             "defines a `dims` method" => A -> dims(A) isa Tuple{Vararg{Dimension}},
-            # "dims are updated on getindex" => A -> dims(view(A, rebuild(first(dims(A)), 1))),
+            "dims are updated on getindex" => A -> dims(view(A, rebuild(first(dims(A)), 1))) == Base.tail(dims(A)),
         ),
         refdims_base = "`refdims` returns a tuple of Dimension or empty" => A -> refdims(A) isa Tuple{Vararg{Dimension}},
         ndims = "number of dims matches dimensions of array" => A -> length(dims(A)) == ndims(A),
