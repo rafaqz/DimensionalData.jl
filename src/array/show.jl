@@ -23,10 +23,10 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     bottom_border = metadata(A) isa Union{Nothing,NoMetadata}
     p = sprint((args...) -> print_dims_block(args...; upchar=maxlen, bottom_border, width), mime, dims(A))
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
-    p = sprint((args...) -> print_metadata_block(args...; maxlen), mime, metadata(A))
+    p = sprint((args...) -> print_metadata_block(args...; width, maxlen), mime, metadata(A))
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
     n, _ = print_dims_block(io, mime, dims(A); upchar, width, bottom_border)
-    m, _ = print_metadata_block(io, mime, metadata(A); maxlen=min(width, maxlen))
+    m, _ = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
     lines += n + m
 
     # Printing the array data is optional, subtypes can 
