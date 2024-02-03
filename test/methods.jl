@@ -364,7 +364,7 @@ end
 
         y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
         @test size(y) == size(dims(y))
-        @test dims(y) == Y(NoLookup((Base.OneTo(8))))
+        @test dims(y) == dims(x[2:9, :, :])
     end
 end
 
