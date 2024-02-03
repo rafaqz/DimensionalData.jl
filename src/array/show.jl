@@ -29,7 +29,7 @@ function print_top(io, mime, A; bottom_border=metadata(A) isa Union{Nothing,NoMe
     _, width = displaysize(io)
     upchar = maxlen = min(width, length(sprint(summary, A)) + 2)
     printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
-    println()
+    println(io)
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
@@ -62,11 +62,27 @@ function print_dims_block(io, mime, dims; bottom_border=true, upchar, width, max
             dim_string = sprint(print_dims, mime, dims)
             maxlen = min(width - 2, max(maxlen, maximum(length, split(dim_string, '\n'))))
             println(io)
-            printstyled(io, '├', '─'^(upchar), '┴', '─'^(maxlen - 7 - upchar), " dims ┐"; color=:light_black)
+            printstyled(io, '├', '─'^(upchar), '┴', '─'^max(0, (maxlen - 7 - upchar)), " dims ┐"; color=:light_black)
             lines += print_dims(io, mime, dims)
             println(io)
             lines += 2
         end
+    end
+    return lines, maxlen
+end
+
+function print_metadata_block(io, mime, metadata; maxlen=0, width)
+    lines = 0
+    if !(metadata isa NoMetadata)
+        metadata_print = split(sprint(show, mime, metadata), "\n")
+        maxlen = min(width-2, max(maxlen, maximum(length, metadata_print)))
+        printstyled(io, '├', '─'^max(0, maxlen - 10), " metadata ┤"; color=:light_black)
+        println(io)
+        print(io, "  ")
+        show(io, mime, metadata)
+        println(io)
+        println(io)
+        lines += length(metadata_print) + 3
     end
     return lines, maxlen
 end
@@ -94,7 +110,7 @@ printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
 """
 function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
     printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
-    println()
+    println(io)
     print_array(io, mime, A)
 end
 

@@ -14,22 +14,6 @@ function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
     return nothing
 end
 
-function print_metadata_block(io, mime, metadata; maxlen=0, width)
-    lines = 0
-    if !(metadata isa NoMetadata)
-        metadata_print = split(sprint(show, mime, metadata), "\n")
-        maxlen = min(width-2, max(maxlen, maximum(length, metadata_print)))
-        printstyled(io, '├', '─'^(maxlen - 10), " metadata ┤"; color=:light_black)
-        println(io)
-        print(io, "  ")
-        show(io, mime, metadata)
-        println(io)
-        println(io)
-        lines += length(metadata_print) + 3
-    end
-    return lines, maxlen
-end
-
 function print_layers_block(io, mime, stack; maxlen, width, bottom_border=true)
     roundedtop = maxlen == 0
     layers = DD.layers(stack)
@@ -43,9 +27,9 @@ function print_layers_block(io, mime, stack; maxlen, width, bottom_border=true)
         maxlen = min(width - 2, max(maxlen, length(sprint(print_layer, stack, key, keylen))))
     end
     if roundedtop
-        printstyled(io, '┌', '─'^(maxlen - 8), " layers ┐"; color=:light_black)
+        printstyled(io, '┌', '─'^max(0, maxlen - 8), " layers ┐"; color=:light_black)
     else
-        printstyled(io, '├', '─'^(maxlen - 8), " layers ┤"; color=:light_black)
+        printstyled(io, '├', '─'^max(0, maxlen - 8), " layers ┤"; color=:light_black)
     end
     println(io)
     for key in keys(layers)
