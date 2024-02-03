@@ -365,7 +365,7 @@ end
 
         y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
         @test size(y) == size(dims(y))
-        @test dims(y) == dims(A
+        @test dims(y) == dims(A)
     end
 end
 
