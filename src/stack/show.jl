@@ -5,39 +5,27 @@ function Base.summary(io::IO, stack::AbstractDimStack)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    _, width = displaysize(io)
-    maxlen = min(width-2, length(sprint(summary, stack)) + 2)
-    printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
-    println()
-    printstyled(io, "│ "; color=:light_black)
-    summary(io, stack)
-    printstyled(io, " │"; color=:light_black)
-    lines, maxlen = print_dims_block(io, mime, dims(stack); upchar=maxlen, width, bottom_border=false)
-    bottom_border = metadata(stack) isa Union{Nothing,NoMetadata}
-    print_layers_block(io, mime, stack; maxlen, width, bottom_border)
+    lines, maxlen, width = print_top(io, mime, stack; bottom_border=false)
+    print_layers_block(io, mime, stack; maxlen, width, bottom_border=metadata(stack) isa Union{Nothing,NoMetadata})
     print_metadata_block(io, mime, metadata(stack); width, maxlen=min(width-2, maxlen))
 
     # Show anything else subtypes want to append
-    show_after(io, mime, stack)
+    show_after(io, mime, stack; maxlen)
     return nothing
 end
 
 function print_metadata_block(io, mime, metadata; maxlen=0, width)
     lines = 0
     if !(metadata isa NoMetadata)
-        n_metadata = length(metadata)
-        if n_metadata > 0
-            metadata_print = split(sprint(show, mime, metadata), "\n")
-            maxlen = min(width-2, max(maxlen, maximum(length, metadata_print)))
-            printstyled(io, '├', '─'^(maxlen - 10), " metadata ┤"; color=:light_black)
-            println(io)
-            print(io, "  ")
-            show(io, mime, metadata)
-            println(io)
-            printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
-            println(io)
-            lines += length(metadata_print) + 3
-        end
+        metadata_print = split(sprint(show, mime, metadata), "\n")
+        maxlen = min(width-2, max(maxlen, maximum(length, metadata_print)))
+        printstyled(io, '├', '─'^(maxlen - 10), " metadata ┤"; color=:light_black)
+        println(io)
+        print(io, "  ")
+        show(io, mime, metadata)
+        println(io)
+        println(io)
+        lines += length(metadata_print) + 3
     end
     return lines, maxlen
 end
@@ -63,17 +51,13 @@ function print_layers_block(io, mime, stack; maxlen, width, bottom_border=true)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)
     end
-    if bottom_border
-        printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
-        println(io)
-    end
     return lines
 end
 
 function print_layer(io, stack, key, keylen)
     layer = stack[key]
     pkey = rpad(key, keylen)
-    printstyled(io, "  :$pkey", color=:yellow)
+    printstyled(io, "  :$pkey", color=dimcolors(100))
     print(io, string(" ", eltype(layer)))
     field_dims = DD.dims(layer)
     n_dims = length(field_dims)
@@ -91,4 +75,6 @@ function print_layer(io, stack, key, keylen)
     print(io, '\n')
 end
 
-show_after(io, mime, stack::DimStack) = nothing
+function show_after(io, mime, stack::DimStack; maxlen)
+    printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
+end

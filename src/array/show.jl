@@ -12,6 +12,19 @@ function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
+    lines, maxlen, width = print_top(io, mime, A)
+    m, _ = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
+    lines += m
+
+    # Printing the array data is optional, subtypes can 
+    # show other things here instead.
+    ds = displaysize(io)
+    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
+    show_after(ioctx, mime, A; maxlen)
+    return nothing
+end
+
+function print_top(io, mime, A; bottom_border=metadata(A) isa Union{Nothing,NoMetadata})
     lines = 0
     _, width = displaysize(io)
     upchar = maxlen = min(width, length(sprint(summary, A)) + 2)
@@ -20,21 +33,13 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
-    bottom_border = metadata(A) isa Union{Nothing,NoMetadata}
-    p = sprint((args...) -> print_dims_block(args...; upchar=maxlen, bottom_border, width), mime, dims(A))
+    p = sprint((args...) -> print_dims_block(args...; upchar=maxlen, bottom_border, width, maxlen), mime, dims(A))
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
     p = sprint((args...) -> print_metadata_block(args...; width, maxlen), mime, metadata(A))
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
-    n, _ = print_dims_block(io, mime, dims(A); upchar, width, bottom_border)
-    m, _ = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
-    lines += n + m
-
-    # Printing the array data is optional, subtypes can 
-    # show other things here instead.
-    ds = displaysize(io)
-    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
-    show_after(ioctx, mime, A)
-    return nothing
+    n, maxlen = print_dims_block(io, mime, dims(A); upchar, width, bottom_border, maxlen)
+    lines += n
+    return lines, maxlen, width 
 end
 
 function print_sizes(io, size; 
@@ -47,8 +52,7 @@ function print_sizes(io, size;
     printstyled(io, last(size); color=colors[length(size)])
 end
 
-function print_dims_block(io, mime, dims; bottom_border=true, upchar, width)
-    maxlen = width - 2
+function print_dims_block(io, mime, dims; bottom_border=true, upchar, width, maxlen)
     lines = 0
     if !isempty(dims)
         if all(l -> l isa NoLookup, lookup(dims))
@@ -56,27 +60,34 @@ function print_dims_block(io, mime, dims; bottom_border=true, upchar, width)
             lines += print_dims(io, mime, dims)
         else
             dim_string = sprint(print_dims, mime, dims)
-            maxlen = min(width-2, maximum(length, split(dim_string, '\n')))
+            maxlen = min(width - 2, max(maxlen, maximum(length, split(dim_string, '\n'))))
             println(io)
             printstyled(io, '├', '─'^(upchar), '┴', '─'^(maxlen - 7 - upchar), " dims ┐"; color=:light_black)
             lines += print_dims(io, mime, dims)
             println(io)
             lines += 2
-            if bottom_border
-                printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
-                println(io)
-                lines += 1
-            end
         end
     end
     return lines, maxlen
 end
 
 
-# Semi-interface methods for adding addional `show` text
-# for AbstractDimArray/AbstractDimStack subtypes
-# TODO actually document in the interface
-show_after(io::IO, mime, A::AbstractDimArray) = print_array(io, mime, A)
+"""
+    show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
+    show_after(io::IO, mime, A::AbstractDimStack; maxlen, kw...) 
+
+Interface methods for adding addional `show` text
+for AbstractDimArray/AbstractDimStack subtypes.
+
+*Always include `kw` to avoid future breaking changes*
+
+Additional keywords may be added at any time.
+"""
+function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
+    printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
+    println()
+    print_array(io, mime, A)
+end
 
 # Showing the array is optional for AbstractDimArray
 # `print_array` must be called from `show_after`.
@@ -122,7 +133,7 @@ end
 # print a name of something, in yellow
 function print_name(io::IO, name)
     if !(name == Symbol("") || name isa NoName)
-        printstyled(io, string(" ", name); color=220)
+        printstyled(io, string(" ", name); color=dimcolors(100))
     end
 end
 

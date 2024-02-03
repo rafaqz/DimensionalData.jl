@@ -71,9 +71,9 @@ function show_compact(io, mime, lookup::LookupArray)
     print(io, "}")
 end
 
-print_order(io, lookup) = printstyled(io, nameof(typeof(order(lookup))); color=245)
-print_span(io, lookup) = printstyled(io, nameof(typeof(span(lookup))); color=245)
-print_sampling(io, lookup) = printstyled(io, typeof(sampling(lookup)); color=245)
+print_order(io, lookup) = printstyled(io, nameof(typeof(order(lookup))); color=244)
+print_span(io, lookup) = printstyled(io, nameof(typeof(span(lookup))); color=244)
+print_sampling(io, lookup) = printstyled(io, typeof(sampling(lookup)); color=244)
 function print_metadata(io, lookup)
     metadata(lookup) isa NoMetadata && return nothing
     print(io, nameof(typeof(metadata(lookup))))

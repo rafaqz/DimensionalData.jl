@@ -253,3 +253,9 @@ DimensionalData.AbstractName
 DimensionalData.Name
 DimensionalData.NoName
 ```
+
+## Show methods for packages extending DimensionalData.jl
+
+```@docs
+show_after
+```
