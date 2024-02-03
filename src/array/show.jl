@@ -1,16 +1,33 @@
+using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
+
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
-    print(io, Base.dims2string(size(A)), " ")
+    if N > 1
+        print_sizes(io, size(A))
+        print(io, ' ')
+    else
+        print(io, Base.dims2string(size(A)), " ")
+    end
     print(io, string(nameof(typeof(A)), "{$T,$N}"))
+    print_name(io, name(A))
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
+function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
     lines = 0
+    _, width = displaysize(io)
+    upchar = maxlen = min(width, length(sprint(summary, A)) + 2)
+    printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
+    println()
+    printstyled(io, "│ "; color=:light_black)
     summary(io, A)
-    print_name(io, name(A))
-    lines += Dimensions.print_dims(io, mime, dims(A))
-    !(isempty(dims(A)) || isempty(refdims(A))) && println(io)
-    lines += Dimensions.print_refdims(io, mime, refdims(A))
-    println(io)
+    printstyled(io, " │"; color=:light_black)
+    bottom_border = metadata(A) isa Union{Nothing,NoMetadata}
+    p = sprint((args...) -> print_dims_block(args...; upchar=maxlen, bottom_border, width), mime, dims(A))
+    maxlen = max(maxlen, maximum(length, split(p, '\n')))
+    p = sprint((args...) -> print_metadata_block(args...; maxlen), mime, metadata(A))
+    maxlen = max(maxlen, maximum(length, split(p, '\n')))
+    n, _ = print_dims_block(io, mime, dims(A); upchar, width, bottom_border)
+    m, _ = print_metadata_block(io, mime, metadata(A); maxlen=min(width, maxlen))
+    lines += n + m
 
     # Printing the array data is optional, subtypes can 
     # show other things here instead.
@@ -18,6 +35,41 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
     show_after(ioctx, mime, A)
     return nothing
+end
+
+function print_sizes(io, size; 
+    colors=map(dimcolors, ntuple(identity, length(size)))
+)
+    foreach(enumerate(size[1:end-1])) do (n, s)
+        printstyled(io, s; color=colors[n])
+        print(io, '×')
+    end
+    printstyled(io, last(size); color=colors[length(size)])
+end
+
+function print_dims_block(io, mime, dims; bottom_border=true, upchar, width)
+    maxlen = width - 2
+    lines = 0
+    if !isempty(dims)
+        if all(l -> l isa NoLookup, lookup(dims))
+            print(io, ' ')
+            lines += print_dims(io, mime, dims)
+        else
+            dim_string = sprint(print_dims, mime, dims)
+            maxlen = min(width-2, maximum(length, split(dim_string, '\n')))
+            println(io)
+            printstyled(io, '├', '─'^(upchar), '┴', '─'^(maxlen - 7 - upchar), " dims ┐"; color=:light_black)
+            lines += print_dims(io, mime, dims)
+            println(io)
+            lines += 2
+            if bottom_border
+                printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
+                println(io)
+                lines += 1
+            end
+        end
+    end
+    return lines, maxlen
 end
 
 
@@ -40,19 +92,34 @@ end
 function print_array(io::IO, mime, A::AbstractDimArray{T,3}) where T
     i3 = firstindex(A, 3)
     frame = view(parent(A), :, :, i3)
-    println(io, "[:, :, $i3]")
+
+    _print_indices_vec(io, i3)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
+
     nremaining = size(A, 3) - 1
     nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
 end
 function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
     frame = view(A, :, :, o...)
-    onestring = join(o, ", ")
-    println(io, "[:, :, $(onestring)]")
+
+    _print_indices_vec(io, o...)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
+
     nremaining = prod(size(A, d) for d=3:N) - 1
     nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
+end
+
+function _print_indices_vec(io, o...)
+    print(io, "[")
+    printstyled(io, ":"; color=dimcolors(1))
+    print(io, ", ")
+    printstyled(io, ":"; color=dimcolors(2))
+    foreach(enumerate(o)) do (i, fi)
+        print(io, ", ")
+        printstyled(io, fi; color=dimcolors(i + 2))
+    end
+    println(io, "]")
 end
 
 function _print_array_ctx(io, T)
@@ -61,7 +128,7 @@ end
 # print a name of something, in yellow
 function print_name(io::IO, name)
     if !(name == Symbol("") || name isa NoName)
-        printstyled(io, string(" ", name); color=:yellow)
+        printstyled(io, string(" ", name); color=220)
     end
 end
 
@@ -106,9 +173,9 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
 
     topleft = map(showdefault, A[itop, ileft])
     bottomleft = A[ibottom, ileft]
-    if !(lookups[1] isa NoLookup)
-        topleft = hcat(map(showblack, parent(lu1)[itop]), topleft)
-        bottomleft = hcat(map(showblack, parent(lu1)[ibottom]), bottomleft)
+    if !(lu1 isa NoLookup)
+        topleft = hcat(map(show1, parent(lu1)[itop]), topleft)
+        bottomleft = hcat(map(show1, parent(lu1)[ibottom]), bottomleft)
     end
 
     leftblock = vcat(parent(topleft), parent(bottomleft))
@@ -118,11 +185,11 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     A_dims = if lu2 isa NoLookup
         map(showdefault, bottomblock)
     else
-        toplabels = map(showblack, parent(lu2)[ileft]), map(showblack, parent(lu2)[iright])
+        toplabels = map(show2, parent(lu2)[ileft]), map(show2, parent(lu2)[iright])
         toprow = if lu1 isa NoLookup
             vcat(toplabels...)
         else
-            vcat(showhide(0), toplabels...)
+            vcat(showarrows(), toplabels...)
         end |> permutedims
         vcat(toprow, map(showdefault, bottomblock))
     end
@@ -132,27 +199,37 @@ end
 
 struct ShowWith <: AbstractString
     val::Any
-    hide::Bool
-    color::Symbol
+    mode::Symbol
+    color::Union{Int,Symbol}
 end
-ShowWith(val; hide=false, color=:light_black) = ShowWith(val; hide, color)
+ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
-    s = sprint(show, mime, x.val; context=io, kw...)
-    s1 = x.hide ? " "^length(s) : s
-    printstyled(io, s1; color=x.color)
+    if x.mode == :print_arrows
+        printstyled(io, dimsymbols(1); color=dimcolors(1))
+        print(io, " ")
+        printstyled(io, dimsymbols(2); color=dimcolors(2))
+    elseif x.mode == :hide 
+        print(io, " ")
+    else
+        s = sprint(show, mime, x.val; context=io, kw...)
+        printstyled(io, s; color=x.color)
+    end
 end
-showdefault(x) = ShowWith(x, false, :default)
-showblack(x) = ShowWith(x, false, :light_black)
-showhide(x) = ShowWith(x, true, :nothing)
+showdefault(x) = ShowWith(x, :nothing, :default)
+showblack(x) = ShowWith(x, :nothing, 242)
+show1(x) = ShowWith(x, :nothing, dimcolors(1))
+show2(x) = ShowWith(x, :nothing, dimcolors(2))
+showhide(x) = ShowWith(x, :hide, :nothing)
+showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
 Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
 Base.length(x::ShowWith) = length(string(x.val))
 Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
 function Base.print(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.hide)
+    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
 end
 function Base.show(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.hide)
+    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
 end
 
 Base.iterate(x::ShowWith) = iterate(string(x.val))

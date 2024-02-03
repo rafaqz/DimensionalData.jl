@@ -1,26 +1,42 @@
+function dimsymbols(i) 
+    symbols = ['↓', '→', '↗', '⬔', '◩', '⬒', '⬓']
+    symbols[min(i, length(symbols))]
+end
+function dimcolors(i)
+    colors = [203, 37, 162, 106, 67, 173, 91]
+    colors[min(i, length(colors))]
+end
 
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
-    ctx = IOContext(io, :compact=>true)
+    ctx = IOContext(io, :compact => true)
     if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
-        show(ctx, mime, first(dims))
-        map(Base.tail(dims)) do d
+        printstyled(io, dimsymbols(1), ' '; color=dimcolors(1))
+        show(IOContext(ctx, :dimcolor => dimcolors(1)), mime, first(dims))
+        foreach(enumerate(Base.tail(dims))) do (i, d)
+            n = i + 1
             print(io, ", ")
-            show(ctx, mime, d)
+            printstyled(io, dimsymbols(n), ' '; color=dimcolors(n))
+            show(IOContext(ctx, :dimcolor => dimcolors(n)), mime, d)
         end
+        println()
         return 0
     else # Dims get a line each
         haskey(io, :inset) && println(io)
         inset = get(io, :inset, "")
         lines = 3
         print(io, inset)
-        show(ctx, mime, first(dims))
+        printstyled(io, dimsymbols(1), ' '; color=dimcolors(1))
+        maxname = maximum(length ∘ string ∘ dim2key, dims) 
+        dim_ctx = IOContext(ctx, :dimcolor => dimcolors(1), :dimname_len=> maxname)
+        show(dim_ctx, mime, first(dims))
         lines += 2 # Often they wrap
-        map(Base.tail(dims)) do d
-            print(io, ",")
-            lines += 2 # Often they wrap
-            print(io, "\n")
-            print(io, inset)
-            show(ctx, mime, d)
+        map(Base.tail(dims), ntuple(x -> x + 1, length(dims) - 1)) do d, n
+            lines += 3 # Often they wrap
+            s = dimsymbols(n)
+            print(io, ",\n", inset)
+            printstyled(io, s, ' '; color=dimcolors(n))
+            dim_ctx = IOContext(ctx, :dimcolor => dimcolors(n), :dimname_len => maxname)
+            show(dim_ctx, mime, d)
         end
         return lines
     end
@@ -50,7 +66,7 @@ function show_compact(io::IO, mime, dim::Dimension)
     end
 end
 
-dimcolor(io) = get(io, :is_ref_dim, false) ? :magenta : :red
+dimcolor(io) = get(io, :dimcolor, dimcolors(1))
 
 # print dims with description string and inset
 function print_dims(io::IO, mime, dims::Tuple{})
@@ -59,8 +75,6 @@ function print_dims(io::IO, mime, dims::Tuple{})
     return 0
 end
 function print_dims(io::IO, mime, dims::Tuple)
-    @nospecialize io mime dims
-    printstyled(io, " with dimensions: "; color=:light_black)
     ctx = IOContext(io, :inset => "  ")
     return show(ctx, mime, dims)
 end
@@ -75,21 +89,16 @@ function print_refdims(io::IO, mime, refdims::Tuple)
     return lines
 end
 # print a dimension name
-function print_dimname(io::IO, dim::Dim)
-    color = dimcolor(io)
-    printstyled(io, "Dim{"; color=color)
-    printstyled(io, string(":", name(dim)); color=:yellow)
-    printstyled(io, "}"; color=color)
-end
 function print_dimname(io, dim::Dimension)
-    printstyled(io, dim2key(dim); color = dimcolor(io))
+    dimname_len = get(io, :dimname_len, 0)
+    printstyled(io, rpad(dim2key(dim), dimname_len); color=dimcolor(io))
 end
 
 
 # print the dimension value
 function print_dimval(io, mime, val, nchars=0)
     val isa Colon || print(io, " ")
-    printstyled(io, val; color=:cyan)
+    printstyled(io, val; color=get(io, :dimcolor, 1))
 end
 function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
     LookupArrays.print_index(io, mime, lookup, nchars)

@@ -71,9 +71,9 @@ function show_compact(io, mime, lookup::LookupArray)
     print(io, "}")
 end
 
-print_order(io, lookup) = print(io, nameof(typeof(order(lookup))))
-print_span(io, lookup) = print(io, nameof(typeof(span(lookup))))
-print_sampling(io, lookup) = print(io, typeof(sampling(lookup)))
+print_order(io, lookup) = printstyled(io, nameof(typeof(order(lookup))); color=245)
+print_span(io, lookup) = printstyled(io, nameof(typeof(span(lookup))); color=245)
+print_sampling(io, lookup) = printstyled(io, typeof(sampling(lookup)); color=245)
 function print_metadata(io, lookup)
     metadata(lookup) isa NoMetadata && return nothing
     print(io, nameof(typeof(metadata(lookup))))
@@ -81,7 +81,7 @@ end
 
 function print_index(io, mime, A::AbstractRange, nchars=0)
     print(io, " ")
-    printstyled(io, A; color=:cyan)
+    printstyled(io, repr(A); color=get(io, :dimcolor, :white))
 end
 function print_index(io, mime, v::AbstractVector, nchars=0)
     print(io, " ")
@@ -94,5 +94,5 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     else
         join((repr(va) for va in v), ", ")
     end
-    printstyled(io, string(string(eltype(v)), "[", string(vals), "]"); color=:cyan)
+    printstyled(io, "[", string(vals), "]"; color=get(io, :dimcolor, :white))
 end
