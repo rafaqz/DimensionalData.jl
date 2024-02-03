@@ -345,13 +345,26 @@ end
         ms = mapslices(sum, da; dims)
         @test ms == [9 12 15 18]
         @test DimensionalData.dims(ms) == 
-            (Y(Sampled(10:10:30, ForwardOrdered(), Regular(10), Intervals(Center()), NoMetadata())),
-             Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
+            (Y(NoLookup(Base.OneTo(1))), Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
         @test refdims(ms) == ()
     end
     for dims in tis
         ms = mapslices(sum, da; dims)
         @test parent(ms) == [10 18 26]'
+    end
+
+    @testset "size changes" begin
+        x = DimArray(randn(4, 100, 2), (:chain, :draw, :x_dim_1));
+        y = mapslices(vec, x; dims=(:chain, :draw))
+        @test size(y) == size(dims(y))
+        x = rand(X(1:10), Y([:a, :b, :c]), Ti(10))
+        y = mapslices(sum, x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+        @test dims(y) == (X(NoLookup(Base.OneTo(1))), Y(NoLookup(Base.OneTo(1))), Ti(NoLookup(Base.OneTo(10))))
+
+        y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+        @test dims(y) == dims(x[2:9, :, :])
     end
 end
 
