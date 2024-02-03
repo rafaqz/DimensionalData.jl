@@ -3,7 +3,10 @@ function dimsymbols(i)
     symbols[min(i, length(symbols))]
 end
 function dimcolors(i)
-    colors = [203, 37, 162, 106, 67, 173, 91]
+    # colors = [203, 37, 162, 106, 67, 173, 91]
+    # colors = [209, 32, 81, 204, 37, 166, 249]
+    # colors = [110, 216, 223, 218, 153, 79, 185, 142, 253]
+    colors = reverse([61, 153, 73, 29, 143, 186, 174, 132, 133])
     colors[min(i, length(colors))]
 end
 

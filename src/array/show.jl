@@ -95,9 +95,6 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,3}) where T
 
     _print_indices_vec(io, i3)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
-
-    nremaining = size(A, 3) - 1
-    nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
 end
 function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
@@ -105,9 +102,6 @@ function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
 
     _print_indices_vec(io, o...)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
-
-    nremaining = prod(size(A, d) for d=3:N) - 1
-    nremaining > 0 && printstyled(io, "\n[and $nremaining more slices...]"; color=:light_black)
 end
 
 function _print_indices_vec(io, o...)
