@@ -52,6 +52,7 @@ export Unaligned, Transformed
 
 const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex,CartesianIndices}
 
+# As much as possible keyword rebuild is automatic
 rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 
 include("metadata.jl")

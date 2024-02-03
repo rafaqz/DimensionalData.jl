@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
-using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
+using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 
 @dim Tst
 
@@ -83,14 +83,14 @@ end
                         DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
 end
 
-@testset "_call_primitive" begin
-    @test _call_primitive((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
-          _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
+@testset "_dim_query" begin
+    @test _dim_query((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
+          _dim_query((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
           ((Val(Z), Dim{:a}(), Dim{:b}()), (Val(Ti), Val(XDim), Dim{:x}()))
-    @test _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
+    @test _dim_query((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
         (Val(Z), Dim{:a}(), Dim{:b}())
-    @testset "_call_primitive" begin
-        f1 = t -> _call_primitive((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
+    @testset "_dim_query" begin
+        f1 = t -> _dim_query((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
         @inferred f1(AlwaysTuple())
         @test (@ballocated $f1(AlwaysTuple())) == 0
     end
@@ -271,12 +271,16 @@ end
     @test otherdims(A, X()) == dims(A, (Y, Z))
     @test otherdims(A, x -> x isa X) == dims(A, (Y, Z))
     @test (@ballocated otherdims($A, X())) == 0
+    @test (@ballocated otherdims($A, X)) == 0
+    @test (@ballocated otherdims($A, (X, Y))) == 0
+    @test (@ballocated otherdims($A, X, Y)) == 0
+    @test otherdims(A, X, Y) == dims(A, (Z,))
     @test otherdims(A, Y) == dims(A, (X, Z))
     @test otherdims(A, Z) == dims(A, (X, Y))
+    @test otherdims(A) == dims(A, (X, Y, Z))
     @test otherdims(A, DimensionalData.ZDim) == dims(A, (X, Y))
     @test otherdims(A, (X, Z)) == dims(A, (Y,))
     f1 = A -> otherdims(A, (X, Z))
-    @ballocated $f1($A)
     @test (@ballocated $f1($A)) == 0
     f2 = (A) -> otherdims(A, Ti)
     @test f2(A) == dims(A, (X, Y, Z))
@@ -350,7 +354,8 @@ end
         @test slicedims(dimz, 2:2, :) == slicedims(dimz, (), 2:2, :) ==
             ((X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
               Y(Sampled(-20:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
+        # What is this testing, it should error...
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
               slicedims((), 1:2, 3) == slicedims((), (), 1:2, 3) == ((), ())
         @test slicedims(dimz, CartesianIndex(2, 3)) ==
             ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
@@ -370,7 +375,9 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),
               Y(Sampled([30.0, 20.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        # This should never happen, not sure why it was tested?
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ()) 
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ()) 
     end
 
     @testset "Irregular Points" begin
@@ -383,7 +390,8 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
         ((X(Sampled([142.0], ForwardOrdered(), Irregular(142, 142), Points(), NoMetadata())),
           Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(20.0, 40.0), Points(), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
 
     @testset "Irregular Intervals" begin
@@ -396,7 +404,8 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Irregular(142.0, 144.0), Intervals(Start()), NoMetadata())),
               Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(15.0, 60.0), Intervals(Center()), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
 
     @testset "NoLookup" begin

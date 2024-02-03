@@ -256,7 +256,7 @@ Base.parent(d::Dimension) = val(d)
 Base.eltype(d::Type{<:Dimension{T}}) where T = T
 Base.eltype(d::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(d::Dimension, args...) = size(val(d), args...)
-Base.axes(d::Dimension) = (Dimensions.DimUnitRange(axes(val(d), 1), d),)
+Base.axes(d::Dimension) = (val(d) isa DimUnitRange ? val(d) : DimUnitRange(axes(val(d), 1), d),)
 Base.axes(d::Dimension, i) = axes(d)[i]
 Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
@@ -278,6 +278,7 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
 end
 
 Base.size(dims::DimTuple) = map(length, dims)
+Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
 # Extents.jl
 function Extents.extent(ds::DimTuple, args...)

@@ -38,6 +38,7 @@ val(sel::Selector) = sel.val
 rebuild(sel::Selector, val) = basetypeof(sel)(val)
 
 Base.parent(sel::Selector) = sel.val
+Base.to_index(sel::Selector) = sel
 
 abstract type Selector{T} end
 
@@ -71,7 +72,7 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
-# `Not` form InvertedIndices.jl
+# `Not` form InvertedIndices.jr
 function selectindices(l::LookupArray, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
@@ -113,9 +114,12 @@ struct At{T,A,R} <: IntSelector{T}
 end
 At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
 
-rebvuild(sel::At, val) = At(val, sel.atol, sel.rtol)
+rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
+
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
+
+Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")  
 
 struct _True end
 struct _False end
@@ -134,10 +138,10 @@ function at(lookup::NoLookup, sel::At; kw...)
     r = round(Int, v)
     at = atol(sel)
     if isnothing(at)
-        v == r || _selvalnotfound(lookup, v)
+        v == r || _atnotfound(lookup, v)
     else
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
-        isapprox(v, r; atol=at) || _selvalnotfound(lookup, v)
+        isapprox(v, r; atol=at) || _atnotfound(lookup, v)
     end
     r in lookup || throw(SelectorError(lookup, sel))
     return r
@@ -156,7 +160,7 @@ function at(
     if remainder == 0 && checkbounds(Bool, lookup, i)
         return i
     else
-        return _selnotfound_or_nothing(err, lookup, selval)
+        return _atnotfound_or_nothing(err, lookup, selval)
     end
 end
 function at(
@@ -180,7 +184,7 @@ function at(
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1
         else
-            return _selnotfound_or_nothing(err, lookup, selval)
+            return _atnotfound_or_nothing(err, lookup, selval)
         end
     elseif _is_at(x, lookup[i], atol)
         return i
@@ -190,7 +194,7 @@ function at(
         if checkbounds(Bool, lookup, i1) && _is_at(x, lookup[i1], atol)
             return i1
         else
-            return _selnotfound_or_nothing(err, lookup, selval)
+            return _atnotfound_or_nothing(err, lookup, selval)
         end
     end
 end
@@ -198,7 +202,7 @@ end
 function at(::Order, ::Span, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
-        return _selnotfound_or_nothing(err, lookup, selval)
+        return _atnotfound_or_nothing(err, lookup, selval)
     else
         return i
     end
@@ -207,9 +211,9 @@ end
 @inline _is_at(x, y, atol) = x == y
 @inline _is_at(x::Real, y::Real, atol::Real) = abs(x - y) <= atol
 
-_selnotfound_or_nothing(err::_True, lookup, selval) = _selvalnotfound(lookup, selval)
-_selnotfound_or_nothing(err::_False, lookup, selval) = nothing
-@noinline _selvalnotfound(lookup, selval) = throw(ArgumentError("$selval not found in $lookup"))
+_atnotfound_or_nothing(err::_True, lookup, selval) = _atnotfound(lookup, selval)
+_atnotfound_or_nothing(err::_False, lookup, selval) = nothing
+@noinline _atnotfound(lookup, selval) = throw(ArgumentError("At($selval) for not found in $lookup"))
 
 """
     Near <: IntSelector
@@ -241,6 +245,8 @@ end
 
 selectindices(l::LookupArray, sel::Near) = near(l, sel)
 selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
+
+Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near) 
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -331,6 +337,8 @@ end
 # Filter based on sampling and selector -----------------
 selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
 selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel)
+
+Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...) 
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -524,6 +532,7 @@ struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothin
 end
 Between(args...) = Between(args)
 
+Base.show(io::IO, x::Between) = print(io, "Between(", val(x), ")")
 Base.first(sel::Between) = first(val(sel))
 Base.last(sel::Between) = last(val(sel))
 
@@ -954,6 +963,8 @@ end
 
 val(sel::Where) = sel.f
 
+Base.show(io::IO, x::Where) = print(io, "Where(", repr(val(x)), ")")
+
 # Yes this is everything. `Where` doesn't need lookup specialisation
 @inline function selectindices(lookup::LookupArray, sel::Where)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
@@ -991,10 +1002,13 @@ struct All{S<:Tuple{Vararg{SelectorOrInterval}}} <: Selector{S}
 end
 All(args::SelectorOrInterval...) = All(args)
 
+Base.show(io::IO, x::All) = print(io, "All(", x.selectors, ")")
+
 @inline function selectindices(lookup::LookupArray, sel::All)
     results = map(s -> selectindices(lookup, s), sel.selectors)
     sort!(union(results...))
 end
+
 
 # selectindices ==========================================================================
 

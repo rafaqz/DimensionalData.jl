@@ -1,5 +1,37 @@
+const IDim = Dimension{<:StandardIndices}
+
 """
-    AbstractDimArray <: AbstractArray
+    AbstractBasicDimArray <: AbstractArray
+
+The abstract supertype for all arrays with a `dims` method that 
+returns a `Tuple` of `Dimension`
+
+Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
+"""
+abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+
+# DimensionalData.jl interface methods ####################################################
+
+for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
+    @eval ($func)(A::AbstractBasicDimArray, args...) = ($func)(dims(A), args...)
+end
+
+Extents.extent(A::AbstractBasicDimArray, args...) = Extents.extent(dims(A), args...) 
+
+Base.size(A::AbstractBasicDimArray) = map(length, dims(A))
+Base.size(A::AbstractBasicDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+Base.axes(A::AbstractBasicDimArray) = map(d -> axes(d, 1), dims(A))
+Base.axes(A::AbstractBasicDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
+# This is too slow using the default, as it calls `axes` and makes DimUnitRanges
+Base.CartesianIndices(s::AbstractBasicDimArray) = CartesianIndices(map(first ∘ axes, lookup(s)))
+
+Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
+    Base.checkbounds(Bool, A, dims2indices(A, (d1, dims...))...)
+Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
+    Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
+
+"""
+    AbstractDimArray <: AbstractBasicArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -17,24 +49,14 @@ A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
-abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
+abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractBasicDimArray{T,N,D} end
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
 const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
 
-
 # DimensionalData.jl interface methods ####################################################
-
-# Standard fields
-dims(A::AbstractDimArray) = A.dims
-refdims(A::AbstractDimArray) = A.refdims
-data(A::AbstractDimArray) = A.data
-name(A::AbstractDimArray) = A.name
-metadata(A::AbstractDimArray) = A.metadata
-
-layerdims(A::AbstractDimArray) = basedims(A)
-
+ 
 """
     rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
     rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
@@ -55,16 +77,20 @@ For readability it is preferable to use keyword versions for any more than a few
     rebuild(A, data, dims, refdims, name, metadata(A))
 end
 
-@inline rebuildsliced(A::AbstractDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A)) =
-    rebuild(A, data, slicedims(f, A, I)..., name)
+# Standard fields
+dims(A::AbstractDimArray) = A.dims
+refdims(A::AbstractDimArray) = A.refdims
+data(A::AbstractDimArray) = A.data
+name(A::AbstractDimArray) = A.name
+metadata(A::AbstractDimArray) = A.metadata
 
-for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
-    @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
+layerdims(A::AbstractDimArray) = basedims(A)
+
+@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
+    rebuild(A, data, slicedims(f, A, I1)..., name)
 end
-
-Extents.extent(A::AbstractDimArray, args...) = Extents.extent(dims(A), args...) 
- 
 
 # Array interface methods ######################################################
 
@@ -74,19 +100,9 @@ Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
-@inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
-const IDim = Dimension{<:StandardIndices}
-function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(Bool, A, dims2indices(A, dims)...)
-end
-function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(A, dims2indices(A, dims)...)
-end
 
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
@@ -120,6 +136,12 @@ Base.similar(A::AbstractDimArray) =
     rebuild(A; data=similar(parent(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
     rebuild(A; data=similar(parent(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+
+# We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
+Base.similar(A::AbstractBasicDimArray{T}) where T =
+    rebuild(A; data=similar(typeof(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+Base.similar(A::AbstractBasicDimArray, ::Type{T}) where T =
+    rebuild(A; data=similar(typeof(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 # We can't resize the dims or add missing dims, so return the unwraped Array type?
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
@@ -142,13 +164,13 @@ const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
     s1 === :MaybeDimUnitRange || @eval begin
         function Base.similar(
-            A::AbstractArray, T::Type, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
-        )
+            A::AbstractArray, ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+        ) where T
             _similar(A, T, shape)
         end
         function Base.similar(
-            T::Type{<:AbstractArray}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
-        )
+            ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+        ) where T<:AbstractArray
             _similar(T, shape)
         end
     end
@@ -659,6 +681,12 @@ Dim{:time} MergedLookup{Tuple{Int64}} Tuple{Int64}[(0,), (3,), (4,)] Ti,
 Dim{:space} MergedLookup{Tuple{Float64, Int64}} Tuple{Float64, Int64}[(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] X, Y
 ````
 """
+function mergedims(x, dt1::Tuple, dts::Tuple...)
+    pairs = map((dt1, dts...)) do ds
+        ds => Dim{Symbol(map(dim2key, ds)...)}()
+    end
+    mergedims(x, pairs...)
+end
 function mergedims(all_dims, dim_pairs::Pair...)
     # filter out dims completely missing
     dim_pairs = map(x -> _filter_dims(all_dims, first(x)) => last(x), dim_pairs)

@@ -121,10 +121,20 @@ and 2 layers:
   :y Float64 dims: Y, Ti (3×5)
 ```
 """
-function Base.eachslice(s::AbstractDimStack; dims)
-    dimtuple = _astuple(dims)
-    all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
-    _eachslice(s, dimtuple)
+@static if VERSION < v"1.9-alpha1"
+    function Base.eachslice(s::AbstractDimStack; dims)
+        dimtuple = _astuple(dims)
+        all(hasdim(s, dimtuple)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
+        _eachslice(s, dimtuple)
+    end
+else
+    function Base.eachslice(s::AbstractDimStack; dims, drop=true)
+        dimtuple = _astuple(dims)
+        if !(dimtuple == ()) 
+            all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+        end
+        DimSlices(s; dims, drop)
+    end
 end
 
 """

@@ -1,15 +1,15 @@
 using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
 
 # Base show
-function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
+function Base.summary(io::IO, A::AbstractBasicDimArray{T,N}) where {T,N}
     print_ndims(io, size(A))
     print_type(io, A)
     print_name(io, name(A))
 end
 
 # Fancy show for text/plain
-function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
-    lines, maxlen = show_main(io, mime, A::AbstractDimArray)
+function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}) where {T,N}
+    lines, maxlen = show_main(io, mime, A::AbstractBasicDimArray)
     # Printing the array data is optional, subtypes can
     # show other things here instead.
     ds = displaysize(io)
@@ -34,7 +34,7 @@ print_top(io, mime, A)
 
 But read the DimensionalData.jl `show.jl` code for details.
 """
-function show_main(io, mime, A::AbstractDimArray)
+function show_main(io, mime, A::AbstractBasicDimArray)
     lines_t, maxlen, width = print_top(io, mime, A)
     lines_m, maxlen = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
     return lines_t + lines_m, maxlen
@@ -62,7 +62,7 @@ print_block_close(io, maxlen)
 
 But read the DimensionalData.jl `show.jl` code for details.
 """
-function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
+function show_after(io::IO, mime, A::AbstractBasicDimArray; maxlen, kw...)
     print_block_close(io, maxlen)
     ndims(A) > 0 && println(io)
     print_array(io, mime, A)
@@ -170,23 +170,23 @@ end
 
 # Showing the array is optional for AbstractDimArray
 # `print_array` must be called from `show_after`.
-function print_array(io::IO, mime, A::AbstractDimArray{T,0}) where T
+function print_array(io::IO, mime, A::AbstractBasicDimArray{T,0}) where T
     print(_print_array_ctx(io, T), "\n", A[])
 end
-function print_array(io::IO, mime, A::AbstractDimArray{T,1}) where T
+function print_array(io::IO, mime, A::AbstractBasicDimArray{T,1}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime, A::AbstractDimArray{T,2}) where T
+function print_array(io::IO, mime, A::AbstractBasicDimArray{T,2}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime, A::AbstractDimArray{T,3}) where T
+function print_array(io::IO, mime, A::AbstractBasicDimArray{T,3}) where T
     i3 = firstindex(A, 3)
     frame = view(parent(A), :, :, i3)
 
     _print_indices_vec(io, i3)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
 end
-function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
+function print_array(io::IO, mime, A::AbstractBasicDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
     frame = view(A, :, :, o...)
 

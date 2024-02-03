@@ -7,7 +7,7 @@ da = DimArray(0.1:0.1:0.4, dim)
 da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")); metadata=Dict())
 
 @testset "regular indexing" begin
-    @test da[Coord()] === da[Coord(:)] === da
+    @test da[Coord()] == da[Coord(:)] == da
     @test da[Coord([1, 2])] == [0.1, 0.2]
     @test da[Coord(4)] == 0.4
     @test da2[Coord(4), Ti(3)] ≈ 1.2

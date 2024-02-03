@@ -81,9 +81,14 @@ end
     da = DimArray(a, (X(LinRange(140, 148, 5)), Y(LinRange(2, 11, 4))))
     dimz = dims(da)
 
-    for args in ((dimz,), (dimz, (X(), Y())), (dimz, X(), Y()), 
-                 (dimz, (X, Y)), (dimz, X, Y), 
-                 (dimz, (1, 2)), (dimz, 1, 2))
+    for args in ((dimz,), 
+                 (dimz, (X(), Y())), 
+                 (dimz, X(), Y()), 
+                 (dimz, (X, Y)) , 
+                 (dimz, X, Y), 
+                 (dimz, (1, 2)), 
+                 (dimz, 1, 2)
+        )
         @test index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
         @test name(args...) == (:X, :Y)
         @test units(args...) == (nothing, nothing)

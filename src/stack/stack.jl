@@ -44,6 +44,10 @@ end
 
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
+Base.@assume_effects :foldable function hassamedims(s::AbstractDimStack) 
+    all(map(==(first(layerdims(s))), layerdims(s)))
+end
+
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
 
@@ -109,6 +113,7 @@ Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
 Base.eltype(s::AbstractDimStack, args...) = NamedTuple{keys(s),Tuple{map(eltype, s)...}}
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
+Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
@@ -160,10 +165,19 @@ for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :ord
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
-function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
-    isempty(dim_pairs) && return ds
-    vals = map(A -> mergedims(A, dim_pairs...), values(ds))
-    rebuild_from_arrays(ds, vals)
+function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
+    isempty(dim_pairs) && return st
+    # vals = map(A -> mergedims(A, dim_pairs...), values(ds))
+    # rebuild_from_arrays(ds, vals)
+    all_dims = dims(st)
+    dims_new = mergedims(all_dims, dim_pairs...)
+    dimsmatch(all_dims, dims_new) && return st
+    # dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
+    # perm = map(st) do layer
+    #     ds = dims(layer, dims_perm)
+    #     length(ds) > 0 ? PermutedDimsArray(layer, ds) : layer
+    # end
+    view(DimIndices(st), :)
 end
 
 function unmergedims(s::AbstractDimStack, original_dims)
