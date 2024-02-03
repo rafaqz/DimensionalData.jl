@@ -1,4 +1,4 @@
-module DimensionalDataMakieExt
+module DimensionalDataMakie
 
 using DimensionalData, Makie
 using DimensionalData.Dimensions, DimensionalData.LookupArrays
