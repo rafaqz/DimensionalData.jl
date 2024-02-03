@@ -16,7 +16,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
     m, _ = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
     lines += m
 
-    # Printing the array data is optional, subtypes can 
+    # Printing the array data is optional, subtypes can
     # show other things here instead.
     ds = displaysize(io)
     ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
@@ -25,7 +25,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) whe
 end
 
 function print_top(io, mime, A; bottom_border=metadata(A) isa Union{Nothing,NoMetadata})
-    lines = 0
+    lines = 4
     _, width = displaysize(io)
     upchar = maxlen = min(width, length(sprint(summary, A)) + 2)
     printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
@@ -33,16 +33,20 @@ function print_top(io, mime, A; bottom_border=metadata(A) isa Union{Nothing,NoMe
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
-    p = sprint((args...) -> print_dims_block(args...; upchar=maxlen, bottom_border, width, maxlen), mime, dims(A))
+    p = sprint(mime, dims(A)) do args...
+        print_dims_block(args...; upchar=maxlen, bottom_border, width, maxlen)
+    end
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
-    p = sprint((args...) -> print_metadata_block(args...; width, maxlen), mime, metadata(A))
+    p = sprint(mime, metadata(A)) do args...
+        print_metadata_block(args...; width, maxlen)
+    end
     maxlen = max(maxlen, maximum(length, split(p, '\n')))
     n, maxlen = print_dims_block(io, mime, dims(A); upchar, width, bottom_border, maxlen)
     lines += n
-    return lines, maxlen, width 
+    return lines, maxlen, width
 end
 
-function print_sizes(io, size; 
+function print_sizes(io, size;
     colors=map(dimcolors, ntuple(identity, length(size)))
 )
     foreach(enumerate(size[1:end-1])) do (n, s)
@@ -55,18 +59,20 @@ end
 function print_dims_block(io, mime, dims; bottom_border=true, upchar, width, maxlen)
     lines = 0
     if !isempty(dims)
-        if all(l -> l isa NoLookup, lookup(dims))
-            print(io, ' ')
-            lines += print_dims(io, mime, dims)
-        else
+        # if all(l -> l isa NoLookup, lookup(dims))
+            # printstyled(io, '├', '─'^(upchar), '┴', '─'^max(0, (maxlen - 7 - upchar)), " dims ┐"; color=:light_black)
+            # print(io, ' ')
+            # lines += print_dims(io, mime, dims)
+        # else
             dim_string = sprint(print_dims, mime, dims)
             maxlen = min(width - 2, max(maxlen, maximum(length, split(dim_string, '\n'))))
             println(io)
             printstyled(io, '├', '─'^(upchar), '┴', '─'^max(0, (maxlen - 7 - upchar)), " dims ┐"; color=:light_black)
+            println(io)
             lines += print_dims(io, mime, dims)
             println(io)
             lines += 2
-        end
+        # end
     end
     return lines, maxlen
 end
@@ -89,8 +95,8 @@ end
 
 
 """
-    show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
-    show_after(io::IO, mime, A::AbstractDimStack; maxlen, kw...) 
+    show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
+    show_after(io::IO, mime, A::AbstractDimStack; maxlen, kw...)
 
 Interface methods for adding addional `show` text
 for AbstractDimArray/AbstractDimStack subtypes.
@@ -102,13 +108,13 @@ Additional keywords may be added at any time.
 Note - a anssi box is left unclosed. This method needs to close it,
 or add more. `maxlen` is the maximum length of the inner text.
 
-Most likely you always want to close the box with: 
+Most likely you always want to close the box with:
 
 '''julia
 printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
 '''
 """
-function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
+function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
     printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
     println(io)
     print_array(io, mime, A)
@@ -167,7 +173,7 @@ Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lo
 function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
     if get(io, :limit, false)
-        h, _ = displaysize(io) 
+        h, _ = displaysize(io)
         itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
         ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
     else
@@ -181,7 +187,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     Base.print_matrix(io, A_dims)
     return nothing
 end
-_print_matrix(io::IO, A::AbstractDimArray, lookups::Tuple) = _print_matrix(io, parent(A), lookups) 
+_print_matrix(io::IO, A::AbstractDimArray, lookups::Tuple) = _print_matrix(io, parent(A), lookups)
 function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     lu1, lu2 = lookups
     f1, f2 = firstindex(lu1), firstindex(lu2)
@@ -238,7 +244,7 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
         printstyled(io, dimsymbols(1); color=dimcolors(1))
         print(io, " ")
         printstyled(io, dimsymbols(2); color=dimcolors(2))
-    elseif x.mode == :hide 
+    elseif x.mode == :hide
         print(io, " ")
     else
         s = sprint(show, mime, x.val; context=io, kw...)
