@@ -82,6 +82,15 @@ for AbstractDimArray/AbstractDimStack subtypes.
 *Always include `kw` to avoid future breaking changes*
 
 Additional keywords may be added at any time.
+
+Note - a anssi box is left unclosed. This method needs to close it,
+or add more. `maxlen` is the maximum length of the inner text.
+
+Most likely you always want to close the box with: 
+
+'''julia
+printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
+'''
 """
 function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...) 
     printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
