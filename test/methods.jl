@@ -358,7 +358,7 @@ end
 @testset "cumsum" begin
     v = DimArray([10:-1:1...], X)
     @test cumsum(v) == cumsum(parent(v))
-    @teet dims(cumsum(v)) == dims(v)
+    @test dims(cumsum(v)) == dims(v)
     A = rand((X(5:-1:1), Y(11:15)))
     @test cumsum(A; dims=X) == cumsum(parent(A); dims=1)
     @test dims(cumsum(A; dims=X)) == dims(A)
