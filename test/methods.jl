@@ -384,6 +384,24 @@ end
     @test cumsum!(copy(A), A; dims=X) == cumsum(parent(A); dims=1)
 end
 
+@testset "sort" begin
+    v = DimArray([10:-1:1...], X)
+    @test sort(v) == sort(parent(v))
+    @test dims(sort(v)) == (X(NoLookup(Base.OneTo(10))),)
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test sort(A; dims=X) == sort(parent(A); dims=1)
+    @test dims(sort(A; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(A, Y)) 
+end
+
+@testset "sortslices" begin
+    M = rand((X(5:-1:1), Y(11:15)))
+    @test sortslices(M; dims=X) == sortslices(parent(M); dims=1)
+    @test dims(sort(M; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(M, Y)) 
+    M = rand((X(5:-1:1), Y(11:15), Ti(3:10)))
+    @test sortslices(M; dims=(X, Y)) == sortslices(parent(M); dims=(1, 2))
+    @test dims(sortslices(M; dims=(X, Y))) == (X(NoLookup(Base.OneTo(5))), Y(NoLookup(Base.OneTo(5))), dims(M, Ti))
+end
+
 @testset "cat" begin
     a = [1 2 3; 4 5 6]
     da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
