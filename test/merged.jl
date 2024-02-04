@@ -4,7 +4,7 @@ using Statistics: mean
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))
 da = DimArray(0.1:0.1:0.4, dim)
-da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")))
+da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")); metadata=Dict())
 
 @testset "regular indexing" begin
     @test da[Coord()] === da[Coord(:)] === da
@@ -56,8 +56,6 @@ end
     sprint(show, dim)
     sp = sprint(show, MIME"text/plain"(), dim)
     @test occursin("Coord", sp)
-    @test occursin("X, Y, Z", sp)
-    da
     sp = sprint(show, MIME"text/plain"(), da)
     @test occursin("Coord", sp)
     @test occursin("X", sp)

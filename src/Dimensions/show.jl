@@ -14,33 +14,35 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
     ctx = IOContext(io, :compact => true)
+    inset = get(io, :inset, "")
+    print(io, inset)
     if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
-        printstyled(io, dimsymbols(1), ' '; color=dimcolors(1))
-        show(IOContext(ctx, :dimcolor => dimcolors(1)), mime, first(dims))
+        dc = get(ctx, :dimcolor, dimcolors(1))
+        printstyled(io, dimsymbols(1), ' '; color=dc)
+        show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, first(dims))
         foreach(enumerate(Base.tail(dims))) do (i, d)
             n = i + 1
             print(io, ", ")
-            printstyled(io, dimsymbols(n), ' '; color=dimcolors(n))
-            show(IOContext(ctx, :dimcolor => dimcolors(n)), mime, d)
+            dc = get(ctx, :dimcolor, dimcolors(n))
+            printstyled(io, dimsymbols(n), ' '; color=dc)
+            show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, d)
         end
-        println()
         return 0
     else # Dims get a line each
-        haskey(io, :inset) && println(io)
-        inset = get(io, :inset, "")
         lines = 3
-        print(io, inset)
-        printstyled(io, dimsymbols(1), ' '; color=dimcolors(1))
+        dc = get(ctx, :dimcolor, dimcolors(1))
+        printstyled(io, dimsymbols(1), ' '; color=dc)
         maxname = maximum(length ∘ string ∘ dim2key, dims) 
-        dim_ctx = IOContext(ctx, :dimcolor => dimcolors(1), :dimname_len=> maxname)
+        dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len=> maxname)
         show(dim_ctx, mime, first(dims))
-        lines += 2 # Often they wrap
+        lines += 1
         map(Base.tail(dims), ntuple(x -> x + 1, length(dims) - 1)) do d, n
-            lines += 3 # Often they wrap
+            lines += 1
             s = dimsymbols(n)
             print(io, ",\n", inset)
-            printstyled(io, s, ' '; color=dimcolors(n))
-            dim_ctx = IOContext(ctx, :dimcolor => dimcolors(n), :dimname_len => maxname)
+            dc = get(ctx, :dimcolor, dimcolors(n))
+            printstyled(io, s, ' '; color=dc)
+            dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len => maxname)
             show(dim_ctx, mime, d)
         end
         return lines

@@ -87,7 +87,6 @@ function print_metadata_block(io, mime, metadata; maxlen=0, width)
         print(io, "  ")
         show(io, mime, metadata)
         println(io)
-        println(io)
         lines += length(metadata_print) + 3
     end
     return lines, maxlen
