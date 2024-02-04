@@ -47,13 +47,12 @@ using DimensionalData.Dimensions, DimensionalData.LookupArrays
 
 function Interpolations.linear_interpolation(A::AbstractDimArray)
 
-    raw_dims = [dim.val.data for dim in dims(A)]
 
     isrange(vec) = typeof(vec) <: AbstractRange 
 
-    if all(isrange.(raw_dims))
+    if all(DD.isregular, dims(A))
         itp = interpolate(A, BSpline(Linear()))
-        sitp = scale(itp, raw_dims...)        
+        sitp = scale(itp, DD.index(dims(A))...)        
     else
         sitp = interpolate(Tuple(raw_dims),A,Gridded(Linear()))
     end
