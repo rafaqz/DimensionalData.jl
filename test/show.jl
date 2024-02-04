@@ -14,7 +14,6 @@ z = Z('a':'d')
 ds = (x, y, z, t, n)
 A = DimArray(rand(length.(ds)...), ds; refdims=(Dim{:refdim}(1),), name=:test)
 ds = dims(A)
-st = DimStack(A, rand(x, n, y), rand(t, x, y))
 
 @testset "dims" begin
     sv = sprint(show, MIME("text/plain"), X())
