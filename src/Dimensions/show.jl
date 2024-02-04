@@ -1,5 +1,5 @@
 function dimsymbols(i) 
-    symbols = ['↓', '→', '↗', '⬔', '◩', '⬒', '⬓']
+    symbols = ['↓', '→', '↗', '⬔', '◩', '⬒', '⬓', '■']
     symbols[min(i, length(symbols))]
 end
 function dimcolors(i)
