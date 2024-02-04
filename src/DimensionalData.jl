@@ -53,6 +53,8 @@ export At, Between, Touches, Contains, Near, Where, All, .., Not
 
 export AbstractDimArray, DimArray
 
+export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, DimMatrix, DimVecOrMat
+
 export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
