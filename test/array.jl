@@ -421,6 +421,21 @@ end
         DimArray(zeros(5, 4), (X = 1:5, Y = 1:4))
 end
 
+@testset "DimVector and DimMatrix" begin
+    dv = DimVector([1, 2, 3], X);
+    @test dv isa DimArray{Int,1}
+    @test dv isa DimVector
+    @test dv isa DimVecOrMat
+    @test dv isa AbstractDimVector
+    @test dv isa AbstractDimVecOrMat
+    dm = DimMatrix(zeros(3, 4), (X(), Y()));
+    @test dm isa DimArray{Float64,2}
+    @test dm isa DimMatrix
+    @test dm isa DimVecOrMat
+    @test dm isa AbstractDimMatrix
+    @test dm isa AbstractDimVecOrMat
+end
+
 @testset "fill constructor" begin
     da = fill(5.0, X(4), Y(40.0:10.0:80.0))
     @test parent(da) == fill(5.0, (4, 5))

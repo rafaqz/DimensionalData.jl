@@ -21,6 +21,7 @@ abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
+const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
 
 
 # DimensionalData.jl interface methods ####################################################
@@ -381,6 +382,15 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+
+const DimVector = DimArray{T,1} where T
+const DimMatrix = DimArray{T,2} where T
+const DimVecOrMat = Union{DimVector,DimMatrix}
+
+DimVector(A::AbstractVector, dim::Dimension, args...; kw...) = 
+    DimArray(A, (dim,), args...; kw...)
+DimVector(A::AbstractVector, args...; kw...) = DimArray(A, args...; kw...)
+DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
