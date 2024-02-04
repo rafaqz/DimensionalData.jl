@@ -165,6 +165,11 @@ else
     end
 end
 
+Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
+Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
+Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
+Base.cumsum!(B::AbstractArray, A::AbstractDimArray; dims) = cumsum!(B, parent(A); dims=dimnum(A, dims))
+
 # works for arrays and for stacks
 function _eachslice(x, dims::Tuple)
     slicedims = Dimensions.dims(x, dims)
