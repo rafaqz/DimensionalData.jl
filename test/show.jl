@@ -47,11 +47,13 @@ end
     @test occursin("X", sv)
     nds = (X(NoLookup(Base.OneTo(10))), Y(NoLookup(Base.OneTo(5))))
     sv = sprint(show, MIME("text/plain"), nds)
-    @test sv == "X, Y"
+    @test sv == "↓ X, → Y"
 end
 
 @testset "arrays" begin
-    for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, ":n"), (Z(), "Z")) s1 = sprint(show, MIME("text/plain"), A)
+    d, str = Lat(), "Lat"
+    for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, "n"), (Z(), "Z")) 
+        s1 = sprint(show, MIME("text/plain"), A)
         s2 = sprint(show, MIME("text/plain"), dims(A, ds))
         s3 = sprint(show, MIME("text/plain"), dims(A, ds))
         @test occursin("DimArray", s1)

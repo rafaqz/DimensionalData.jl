@@ -59,7 +59,7 @@ end
 
 function LookupArrays.show_properties(io::IO, mime, lookup::MergedLookup)
     print(io, " ")
-    show(io, mime, basedims(lookup))
+    show(IOContext(io, :inset => "", :dimcolor => 244), mime, basedims(lookup))
 end
 
 # Dimension methods
