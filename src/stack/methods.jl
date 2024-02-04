@@ -222,3 +222,10 @@ for fname in (:one, :oneunit, :zero, :copy)
 end
 
 Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+
+# Random
+Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =
+    Random.SamplerSimple(st, Random.Sampler(RNG, DimIndices(st), n))
+
+Random.rand(rng::AbstractRNG, sp::Random.SamplerSimple{<:AbstractDimStack,<:Random.Sampler}) =
+    @inbounds return sp[][rand(rng, sp.data)...]
