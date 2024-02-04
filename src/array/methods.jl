@@ -101,10 +101,23 @@ function Base.map(f, As::AbstractDimArray...)
     rebuild(first(As); data=newdata)
 end
 
-function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+
+@inline function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+    # Run `mapslices` on the parent array
     dimnums = dimnum(A, _astuple(dims))
-    data = mapslices(f, parent(A); dims=dimnums, kw...)
-    rebuild(A, data)
+    newdata = mapslices(f, parent(A); dims=dimnums, kw...)
+    ds = DD.dims(A, _astuple(dims))
+    # Run one slice with dimensions to get the transformed dim
+    d_inds = map(d -> rebuild(d, 1), otherdims(A, ds))
+    example_dims = DD.dims(f(view(A, d_inds...)))
+    replacement_dims = if isnothing(example_dims) || length(example_dims) != length(ds)
+        map(d -> rebuild(d, NoLookup()), ds)
+    else
+        example_dims
+    end
+    newdims = format(setdims(DD.dims(A), replacement_dims), newdata)
+
+    return rebuild(A, newdata, newdims)
 end
 
 @static if VERSION < v"1.9-alpha1"
@@ -175,6 +188,12 @@ function Base.sortslices(A::AbstractDimArray; dims, kw...)
     newdims = setdims(DD.dims(A), replacement_dims)
     return rebuild(A, newdata, newdims)
 end
+
+                
+Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
+Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
+Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
+Base.cumsum!(B::AbstractArray, A::AbstractDimArray; dims) = cumsum!(B, parent(A); dims=dimnum(A, dims))
 
 # works for arrays and for stacks
 function _eachslice(x, dims::Tuple)
