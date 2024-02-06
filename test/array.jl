@@ -1,5 +1,6 @@
 using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
+using LinearAlgebra
 
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
@@ -370,11 +371,11 @@ if VERSION > v"1.1-"
         db = DimArray(deepcopy(A), dimz)
         dc = DimArray(deepcopy(A), dimz)
 
-        copy!(A, da2)
+        @test copy!(A, da2) isa Matrix
         @test A == parent(da2)
-        copy!(db, da2)
+        @test copy!(db, da2) isa DimMatrix
         @test parent(db) == parent(da2)
-        copy!(dc, a2)
+        @test copy!(dc, a2) isa DimMatrix
         @test parent(db) == a2
         # Sparse vector has its own method for ambiguity
         copy!(sp, da2[1, :])
@@ -383,29 +384,35 @@ if VERSION > v"1.1-"
         @testset "vector copy! (ambiguity fix)" begin
             v = zeros(3)
             dv = DimArray(zeros(3), X)
-            copy!(v, DimArray([1.0, 2.0, 3.0], X))
+            @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
             @test v == [1.0, 2.0, 3.0]
-            copy!(dv, DimArray([9.9, 9.9, 9.9], X))
+            @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
             @test dv == [9.9, 9.9, 9.9]
-            copy!(dv, [5.0, 5.0, 5.0])
+            @test copy!(dv, [5.0, 5.0, 5.0] isa DimVector
             @test dv == [5.0, 5.0, 5.0]
         end
-
     end
 end
 
 @testset "copyto!" begin
     A = zero(a2)
     da = DimArray(ones(size(A)), dims(da2))
-    copyto!(A, da)
+    @test copyto!(A, da) isa Matrix
     @test all(A .== 1)
-    copyto!(da, 1, zeros(5, 5), 1, 12)
+    @test copyto!(da, 1, zeros(5, 5), 1, 12) isa DimMatrix
     @test all(da .== 0)
     x = reshape(10:10:40, 1, 4)
-    copyto!(da, CartesianIndices(view(da, 1:1, 1:4)), x, CartesianIndices(x))
+    @test copyto!(da, CartesianIndices(view(da, 1:1, 1:4)), x, CartesianIndices(x)) isa DimMatrix
     @test da[1, 1:4] == 10:10:40
-    copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x))
+    @test copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x)) isa Matrix
     @test A[1, 1:4] == 10:10:40
+end
+
+@testset "copy_similar" begin
+    A = rand(Float32, X(10), Y(5))
+    cp = LinearAlgebra.copy_similar(A, Float64)
+    @test cp isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
+    @test A == cp
 end
 
 @testset "constructor" begin
