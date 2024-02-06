@@ -1,19 +1,23 @@
 using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
 
 function Base.summary(io::IO, A::AbstractDimArray{T,N}) where {T,N}
-    if N > 1
-        print_sizes(io, size(A))
-        print(io, ' ')
-    else
-        print(io, Base.dims2string(size(A)), " ")
-    end
+    print_ndims(io, size(A))
     print(io, string(nameof(typeof(A)), "{$T,$N}"))
     print_name(io, name(A))
 end
 
+function print_ndims(io, size::Tuple)
+    if length(size) > 1
+        print_sizes(io, size)
+        print(io, ' ')
+    else
+        print(io, Base.dims2string(size), " ")
+    end
+end
+
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
     lines, maxlen, width = print_top(io, mime, A)
-    m, _ = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
+    m, maxlen = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
     lines += m
 
     # Printing the array data is optional, subtypes can
@@ -27,21 +31,13 @@ end
 function print_top(io, mime, A; bottom_border=metadata(A) isa Union{Nothing,NoMetadata})
     lines = 4
     _, width = displaysize(io)
-    upchar = maxlen = min(width, length(sprint(summary, A)) + 2)
+    maxlen = min(width, length(sprint(summary, A)) + 2)
     printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
     println(io)
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
-    p = sprint(mime, dims(A)) do args...
-        print_dims_block(args...; upchar=maxlen, bottom_border, width, maxlen)
-    end
-    maxlen = max(maxlen, maximum(length, split(p, '\n')))
-    p = sprint(mime, metadata(A)) do args...
-        print_metadata_block(args...; width, maxlen)
-    end
-    maxlen = max(maxlen, maximum(length, split(p, '\n')))
-    n, maxlen = print_dims_block(io, mime, dims(A); upchar, width, bottom_border, maxlen)
+    n, maxlen = print_dims_block(io, mime, dims(A); width, bottom_border, maxlen)
     lines += n
     return lines, maxlen, width
 end
@@ -49,47 +45,58 @@ end
 function print_sizes(io, size;
     colors=map(dimcolors, ntuple(identity, length(size)))
 )
-    foreach(enumerate(size[1:end-1])) do (n, s)
-        printstyled(io, s; color=colors[n])
-        print(io, '×')
+    if !isempty(size)
+        foreach(enumerate(size[1:end-1])) do (n, s)
+            printstyled(io, s; color=colors[n])
+            print(io, '×')
+        end
+        printstyled(io, last(size); color=colors[length(size)])
     end
-    printstyled(io, last(size); color=colors[length(size)])
 end
 
-function print_dims_block(io, mime, dims; bottom_border=true, upchar, width, maxlen)
+function print_dims_block(io, mime, dims; bottom_border=true, width, maxlen)
     lines = 0
-    if !isempty(dims)
-        # if all(l -> l isa NoLookup, lookup(dims))
-            # printstyled(io, '├', '─'^(upchar), '┴', '─'^max(0, (maxlen - 7 - upchar)), " dims ┐"; color=:light_black)
-            # print(io, ' ')
-            # lines += print_dims(io, mime, dims)
-        # else
-            dim_string = sprint(print_dims, mime, dims)
-            maxlen = min(width - 2, max(maxlen, maximum(length, split(dim_string, '\n'))))
-            println(io)
-            printstyled(io, '├', '─'^(upchar), '┴', '─'^max(0, (maxlen - 7 - upchar)), " dims ┐"; color=:light_black)
-            println(io)
-            lines += print_dims(io, mime, dims)
-            println(io)
-            lines += 2
-        # end
+    if isempty(dims)
+        println(io)
+        printed = false
+        newmaxlen = maxlen
+    else
+        println(io)
+        dim_lines = split(sprint(print_dims, mime, dims), '\n')
+        newmaxlen = min(width - 2, max(maxlen, maximum(length, dim_lines)))
+        block_line = if newmaxlen > maxlen
+            string('─'^(maxlen), '┴', '─'^max(0, (newmaxlen - 6 - maxlen)), " dims ")
+        else
+            string('─'^max(0, newmaxlen - 6), " dims ")
+        end
+        newmaxlen = min(width - 2, max(maxlen, length(block_line)))
+        corner = (newmaxlen > maxlen) ? '┐' : '┤'
+        printstyled(io, '├', block_line, corner; color=:light_black)
+        println(io)
+        lines += print_dims(io, mime, dims)
+        println(io)
+        lines += 2
+        printed = true
     end
-    return lines, maxlen
+    return lines, newmaxlen, printed
 end
 
-function print_metadata_block(io, mime, metadata; maxlen=0, width)
+function print_metadata_block(io, mime, metadata; maxlen=0, width, firstblock=false)
     lines = 0
-    if !(metadata isa NoMetadata)
-        metadata_print = split(sprint(show, mime, metadata), "\n")
-        maxlen = min(width-2, max(maxlen, maximum(length, metadata_print)))
-        printstyled(io, '├', '─'^max(0, maxlen - 10), " metadata ┤"; color=:light_black)
+    if metadata isa NoMetadata
+        newmaxlen = maxlen
+    else
+        metadata_lines = split(sprint(show, mime, metadata), "\n")
+        newmaxlen = min(width-2, max(maxlen, maximum(length, metadata_lines)))
+        corner = (newmaxlen > maxlen) ? '┐' : '┤'
+        printstyled(io, '├', '─'^max(0, newmaxlen - 10), " metadata $corner"; color=:light_black)
         println(io)
         print(io, "  ")
         show(io, mime, metadata)
         println(io)
-        lines += length(metadata_print) + 3
+        lines += length(metadata_lines) + 3
     end
-    return lines, maxlen
+    return lines, newmaxlen
 end
 
 
@@ -115,7 +122,7 @@ printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
 """
 function show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
     printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
-    println(io)
+    ndims(A) > 0 && println(io)
     print_array(io, mime, A)
 end
 
@@ -180,7 +187,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
         ibottom = 1:0
     end
     lu = lookups[1]
-    labels = vcat(map(showblack, parent(lu)[itop]), map(showblack, parent(lu))[ibottom])
+    labels = vcat(map(show1, parent(lu)[itop]), map(showblack, parent(lu))[ibottom])
     vals = map(showdefault, vcat(A[itop], A[ibottom]))
     A_dims = hcat(labels, vals)
     Base.print_matrix(io, A_dims)
