@@ -1,13 +1,13 @@
 function Base.summary(io::IO, stack::AbstractDimStack)
-    print_sizes(io, size(stack))
-    print(io, ' ')
+    print_ndims(io, size(stack))
     print(io, nameof(typeof(stack)))
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    lines, maxlen, width = print_top(io, mime, stack; bottom_border=false)
-    print_layers_block(io, mime, stack; maxlen, width, bottom_border=metadata(stack) isa Union{Nothing,NoMetadata})
-    print_metadata_block(io, mime, metadata(stack); width, maxlen=min(width-2, maxlen))
+    lines, maxlen, width= print_top(io, mime, stack; bottom_border=false)
+    bottom_border = metadata(stack) isa Union{Nothing,NoMetadata}
+    maxlen = print_layers_block(io, mime, stack; maxlen, width, bottom_border)
+    _, maxlen = print_metadata_block(io, mime, metadata(stack); width, maxlen=min(width-2, maxlen))
 
     # Show anything else subtypes want to append
     show_after(io, mime, stack; maxlen)
@@ -15,27 +15,24 @@ function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
 end
 
 function print_layers_block(io, mime, stack; maxlen, width, bottom_border=true)
-    roundedtop = maxlen == 0
     layers = DD.layers(stack)
-    lines = 0
     keylen = if length(keys(layers)) == 0
         0
     else
         reduce(max, map(length ∘ string, collect(keys(layers))))
     end
+    newmaxlen = maxlen
     for key in keys(layers)
-        maxlen = min(width - 2, max(maxlen, length(sprint(print_layer, stack, key, keylen))))
+        newmaxlen = min(width - 2, max(maxlen, length(sprint(print_layer, stack, key, keylen))))
     end
-    if roundedtop
-        printstyled(io, '┌', '─'^max(0, maxlen - 8), " layers ┐"; color=:light_black)
-    else
-        printstyled(io, '├', '─'^max(0, maxlen - 8), " layers ┤"; color=:light_black)
-    end
+    # Round the corner if this block is larger and sticks out further
+    corner = newmaxlen > maxlen ? '┐' : '┤'
+    printstyled(io, '├', '─'^max(0, newmaxlen - 8), " layers $corner"; color=:light_black)
     println(io)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)
     end
-    return lines
+    return newmaxlen
 end
 
 function print_layer(io, stack, key, keylen)

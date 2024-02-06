@@ -5,7 +5,7 @@ Base.show(io::IO, mime::MIME"text/plain", lookup::NoLookup) = print(io, "NoLooku
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
     show_compact(io, mime, lookup)
-    show(io, mime, f(lookup))
+    show(io, mime, lookup.f)
     print(io, " ")
     ctx = IOContext(io, :compact=>true)
     show(ctx, mime, dim(lookup))

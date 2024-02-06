@@ -9,7 +9,8 @@ function dimcolors(i)
     # colors = [61, 153, 73, 29, 143, 186, 174, 132, 133]
     # colors = [67, 210, 71, 185, 117, 132, 249]
     colors = [209, 32, 81, 204, 249, 166, 37]
-    colors[min(i, length(colors))]
+    c = rem(i - 1, length(colors)) + 1
+    colors[c]
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple)
