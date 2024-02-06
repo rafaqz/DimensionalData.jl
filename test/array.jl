@@ -388,7 +388,7 @@ if VERSION > v"1.1-"
             @test v == [1.0, 2.0, 3.0]
             @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
             @test dv == [9.9, 9.9, 9.9]
-            @test copy!(dv, [5.0, 5.0, 5.0] isa DimVector
+            @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
             @test dv == [5.0, 5.0, 5.0]
         end
     end
