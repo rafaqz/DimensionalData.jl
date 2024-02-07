@@ -13,7 +13,13 @@ build
 
 docs/docs
 docs/site
+docs/docs_site
 docs/build
 docs/var
 deps/build.jl
 Manifest.toml
+docs/.vitepress/dist
+docs/.vitepress/cache
+docs/src/.vitepress/dist
+docs/src/.vitepress/cache
+node_modules
