@@ -24,13 +24,8 @@ end
 @inline dimsmatch(f::Function, dim, query::Nothing) = false
 @inline dimsmatch(f::Function, dim::Nothing, query) = false
 @inline dimsmatch(f::Function, dim::Nothing, query::Nothing) = false
-@inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
-    # Compare regular dimension types
-    f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) ||
-    # Compare the transformed dimensions, if they exist
-    f(basetypeof(unwrap(D)), basetypeof(transformdim(lookuptype(unwrap(M))))) ||
-    f(basetypeof(transformdim(lookuptype(unwrap(D)))), basetypeof(unwrap(M)))
-end
+@inline dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M} =
+    f(basetypeof(unwrap(D)), basetypeof(unwrap(M)))
 
 """
     key2dim(s::Symbol) => Dimension
