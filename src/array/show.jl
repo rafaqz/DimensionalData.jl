@@ -164,23 +164,23 @@ end
 
 # Showing the array is optional for AbstractDimArray
 # `print_array` must be called from `show_after`.
-function print_array(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,0}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,0}) where T
     print(_print_array_ctx(io, T), "\n", A[])
 end
-function print_array(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,1}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,1}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,2}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,2}) where T
     Base.print_matrix(_print_array_ctx(io, T), A)
 end
-function print_array(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,3}) where T
+function print_array(io::IO, mime, A::AbstractDimArray{T,3}) where T
     i3 = firstindex(A, 3)
     frame = view(parent(A), :, :, i3)
 
     _print_indices_vec(io, i3)
     _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
 end
-function print_array(io::IO, mime::MIME"text/plain", A::AbstractDimArray{T,N}) where {T,N}
+function print_array(io::IO, mime, A::AbstractDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
     frame = view(A, :, :, o...)
 
