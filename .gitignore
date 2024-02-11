@@ -18,8 +18,13 @@ docs/build
 docs/var
 deps/build.jl
 Manifest.toml
+<<<<<<< HEAD
 docs/.vitepress/dist
 docs/.vitepress/cache
 docs/src/.vitepress/dist
 docs/src/.vitepress/cache
 node_modules
+=======
+node_modules
+docs_site
+>>>>>>> ea9b0786 (distinguish points and intervals in plots)

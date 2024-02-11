@@ -158,6 +158,7 @@ nothing
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
 
+using DimensionalData
 using CairoMakie: CairoMakie as M
 using ColorTypes
 @testset "Makie" begin
@@ -201,6 +202,11 @@ using ColorTypes
     M.waterfall!(ax, A1)
     fig, ax, _ = M.waterfall(A1m)
     M.waterfall!(ax, A1m)
+
+    A1intervals = rand(X(1.0:10.0; sampling=Intervals(Start())); name=:test)
+    A1intervals
+    M.plot(set(A1intervals, X=>Points()))
+    M.plot(A1intervals)
     # 2d
     A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
@@ -252,6 +258,10 @@ using ColorTypes
     M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
     @test_throws ArgumentError M.plot!(ax, A2; y=:c)
+    A2intervals1 = rand(X(10:10:100; sampling=Intervals(Start())), Z(1:3))
+    M.plot(A2intervals1)
+    A2intervals2 = rand(X(10:10:100; sampling=Intervals(Start())), Z(1:3; sampling=Intervals(Start())))
+    M.plot(A2intervals2)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -282,6 +292,7 @@ using ColorTypes
 
     # 3d
     A3 = rand(X(7), Z(10), Y(5))
+    M.plot(A3)
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
     A3rgb = rand(RGB, X(7), Z(10), Y(5))
@@ -305,4 +316,12 @@ using ColorTypes
     fig, ax, _ = M.volumeslices(A3abc; x=:c)
     fig, ax, _ = M.volumeslices(A3abc; z=:a)
     M.volumeslices!(ax, A3abc;z=:a)
+
+    A3intervals1 = rand(X(10:1:15; sampling=Intervals(Start())), Y(1:3), Dim{:C}(10:15))
+    M.plot(A3intervals1; z=:C)
+    # Broken from here
+    A3intervals2 = rand(X(10:1:15; sampling=Intervals(Start())), Y(1:3), Z(10:15; sampling=Intervals(Start())))
+    M.plot(A3intervals2)
+    A3intervals2a = rand(X(10:1:10; sampling=Intervals(Start())), Y(1:1; sampling=Intervals(Start())), Z(10:20))
+    M.plot(A3intervals2a)
 end
