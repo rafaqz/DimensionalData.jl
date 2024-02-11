@@ -139,6 +139,8 @@ end
     @test (@ballocated $f1($dimz)) == 0
 
     @test dims(da, X()) isa X
+    @test dims(da, isforward) isa Tuple{<:X,<:Y}
+    @test dims(da, !isforward) isa Tuple{}
     @test dims(da, Z()) isa Nothing
     @test (@inferred dims(da, XDim, YDim)) isa Tuple{<:X,<:Y}
     @test (@ballocated dims($da, XDim, YDim)) == 0
@@ -171,6 +173,7 @@ end
 
 @testset "commondims" begin
     @test commondims(da, X) == (dims(da, X),)
+    @test commondims(da, x -> x isa X) == (dims(da, X),)
     # Dims are always in the base order
     @test (@inferred commondims(da, (Y(), X()))) == dims(da, (X, Y))
     @test (@ballocated commondims($da, (Y(), X()))) == 0
@@ -205,6 +208,7 @@ end
 @testset "dimnum" begin
     dims(da)
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
+    @test dimnum(da, Base.Fix2(isa,Y)) == (2,)
     @test (@ballocated dimnum($da, Y())) == 0
     @test dimnum(da, X) == 1
     @test (@ballocated dimnum($da, X)) == 0
@@ -228,6 +232,7 @@ end
 
 @testset "hasdim" begin
     @test hasdim(da, X()) == true
+    @test hasdim(da, isforward) == (true, true) 
     @test (@ballocated hasdim($da, X())) == 0
     @test hasdim(da, Ti) == false
     @test (@ballocated hasdim($da, Ti)) == 0
@@ -264,6 +269,7 @@ end
 @testset "otherdims" begin
     A = DimArray(ones(5, 10, 15), (X, Y, Z));
     @test otherdims(A, X()) == dims(A, (Y, Z))
+    @test otherdims(A, x -> x isa X) == dims(A, (Y, Z))
     @test (@ballocated otherdims($A, X())) == 0
     @test otherdims(A, Y) == dims(A, (X, Z))
     @test otherdims(A, Z) == dims(A, (X, Y))

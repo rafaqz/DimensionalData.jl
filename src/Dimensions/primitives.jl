@@ -206,10 +206,10 @@ julia> dimnum(A, Y)
     all(hasdim(x, q1, query...)) || _extradimserror()
     _call_primitive(_dimnum, MaybeFirst(), x, q1, query...)
 end
+@inline dimnum(x, query::Function) =
+    _call_primitive(_dimnum, MaybeFirst(), x, query)
 
-@inline function _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Int}})
-    query
-end
+@inline _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Int}}) = query
 @inline function _dimnum(f::Function, ds::Tuple, query::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
         rebuild(d, i)
@@ -659,6 +659,12 @@ struct AlwaysTuple end
 @inline _call_primitive1(f, t, op::Function, x, query) = _call_primitive1(f, t, op, dims(x), query)
 @inline _call_primitive1(f, t, op::Function, x::Nothing) = _dimsnotdefinederror()
 @inline _call_primitive1(f, t, op::Function, x::Nothing, query) = _dimsnotdefinederror()
+@inline function _call_primitive1(f, t, op::Function, ds::Tuple, query::Function) 
+    selection = foldl(ds; init=()) do acc, d
+        query(d) ? (acc..., d) : acc
+    end
+    _call_primitive1(f, t, op, ds, selection)
+end
 @inline function _call_primitive1(f, t, op::Function, d::Tuple, query)
     ds = dims(query)
     isnothing(ds) && _dims_are_not_dims()
