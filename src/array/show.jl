@@ -223,7 +223,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
         ibottom = 1:0
     end
     lu = lookups[1]
-    labels = vcat(map(show1, parent(lu)[itop]), map(showblack, parent(lu))[ibottom])
+    labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu))[ibottom])
     vals = map(showdefault, vcat(A[itop], A[ibottom]))
     A_dims = hcat(labels, vals)
     Base.print_matrix(io, A_dims)
@@ -294,7 +294,6 @@ function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     end
 end
 showdefault(x) = ShowWith(x, :nothing, :default)
-showblack(x) = ShowWith(x, :nothing, 242)
 show1(x) = ShowWith(x, :nothing, dimcolors(1))
 show2(x) = ShowWith(x, :nothing, dimcolors(2))
 showhide(x) = ShowWith(x, :hide, :nothing)
