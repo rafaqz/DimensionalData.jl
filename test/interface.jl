@@ -8,4 +8,4 @@ using DimensionalData, Interfaces, Test
 
 # @test Interfaces.test(DimensionalData)
 @test Interfaces.test(DimensionalData.DimArrayInterface)
-@test_broken Interfaces.test(DimensionalData.DimStackInterface)
+@test Interfaces.test(DimensionalData.DimStackInterface)
