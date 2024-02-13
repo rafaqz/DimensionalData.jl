@@ -199,10 +199,6 @@ end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
 uniquekeys(nt::NamedTuple) = keys(nt)
 
-
-_firststack(st::AbstractDimStack, As...) = st
-_firststack(A, As...) = _firststack(As...)
-
 _as_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_nts(nt, As...)...)
 _as_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K = 
