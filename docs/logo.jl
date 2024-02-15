@@ -1,9 +1,7 @@
 using Colors
 using CairoMakie
 CairoMakie.activate!()
-# using GLMakie
-# GLMakie.activate!()
-
+mkpath(joinpath(@__DIR__, "./src/public/"))
 
 rpyz = [Rect3f(Vec3f(0, j-0.8,k), Vec3f(0.1, 0.8,0.8))
     for j in 1:7 for k in 1:7]
@@ -30,21 +28,9 @@ meshscatter!(ax, Point3f(4,4,-0.01); color=:transparent)
 meshscatter!(ax, [Point3f(0.1,0.1,8), Point3f(0.1+7,0.1,8), Point3f(0.1,0.1+7,8), Point3f(0.1+7,0.1+7,8)]; color = colors[2], markersize=0.2, shading=FastShading)
 
 lines!(ax, [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8), 
-    Point3f(0.1,0.1+7,8),# Point3f(0.1,0.1,0.8)
+    Point3f(0.1,0.1+7,8),
     ];
     color = colors[2],
     linewidth=2, transparency=true)
-    
-# text!(ax, "D", position = Point3f(6,3,3.75),
-#     fontsize=150, font=:bold,
-#     align= (:center, :center),
-#     color=colors[2],
-#     )
-# text!(ax, "D", position = Point3f(3,6,3.75),
-#     fontsize=150, align= (:center, :center),
-#     font=:bold,
-#     color=colors[1],
-#     #rotation=Vec3f(1,0,1)
-#     )
 save(joinpath(@__DIR__, "./src/public/logoDD.png"), fig)
 fig
