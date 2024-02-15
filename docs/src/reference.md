@@ -1,5 +1,5 @@
 
-# API
+# API Reference
 
 ## Arrays
 
@@ -98,7 +98,6 @@ Ti
 Dim
 Coord
 Dimensions.AnonDim
-@dim
 ```
 
 ### Exported methods
@@ -257,5 +256,5 @@ DimensionalData.NoName
 ## Show methods for packages extending DimensionalData.jl
 
 ```@docs
-show_after
+DimensionalData.show_after
 ```
