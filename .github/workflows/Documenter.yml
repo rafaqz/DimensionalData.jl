@@ -56,6 +56,7 @@ jobs:
         run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
       - name: generating examples md files
         run: |
+          julia --project=docs/ --color=yes docs/logo.jl
           julia --project=docs/ --color=yes docs/make.jl
       - name: Build with VitePress
         run: |
