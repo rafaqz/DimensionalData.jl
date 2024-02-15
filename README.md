@@ -5,16 +5,15 @@
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl/tree/main)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-> [!INFO]
-> DimensionalData is a pluggable, generalised version of
-> [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
-> syntax, and additional functionality found in NamedDims.jl. It has similar goals
-> to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
-> written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
-
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions, and optionally a lookup index. It provides no-cost
 abstractions for named indexing, and fast index lookups.
+
+DimensionalData is a pluggable, generalised version of
+[AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
+syntax, and additional functionality found in NamedDims.jl. It has similar goals
+to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
+written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
 > [!IMPORTANT]
 > INSTALLATION
