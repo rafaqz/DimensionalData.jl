@@ -15,13 +15,21 @@ using DimensionalData: uniquekeys
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
-    rev = reverse(da; dims=Y)
-    @test rev == [3 2 1; 6 5 4]
-    @test index(rev, X) == 10:10:20
-    @test index(rev, Y) == 100:100:300
-    @test span(rev, Y) == Regular(100)
-    @test order(rev, Y) == ForwardOrdered()
-    @test order(rev, X) == ForwardOrdered()
+    rev_y = reverse(da; dims=Y)
+    @test rev_y == [3 2 1; 6 5 4]
+    @test index(rev_y, X) == 10:10:20
+    @test index(rev_y, Y) == 100:100:300
+    @test span(rev_y, Y) == Regular(100)
+    @test order(rev_y, Y) == ForwardOrdered()
+    @test order(rev_y, X) == ForwardOrdered()
+
+    rev = reverse(da; dims=:)
+    @test parent(rev) == reverse(parent(da))
+    @test all(index(rev, d) == reverse(index(da, d)) for d in (X,Y))
+    @test all(span(rev, d) == reverse(span(da, d)) for d in (X,Y))
+    @test all(order(rev, d) == reverse(order(da, d)) for d in (X,Y))
+    @test rev == reverse(da; dims=(X,Y))
+
 
     @testset "NoLookup dim index is not reversed" begin
         da = DimArray(A, (X(), Y()))
