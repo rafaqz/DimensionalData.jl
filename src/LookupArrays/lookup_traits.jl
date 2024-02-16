@@ -169,12 +169,6 @@ end
 Intervals() = Intervals(AutoLocus())
 
 locus(sampling::Intervals) = sampling.locus
-
-"""
-    rebuild(::Intervals, locus::Locus) => Intervals
-
-Rebuild `Intervals` with a new Locus.
-"""
 rebuild(::Intervals, locus) = Intervals(locus)
 
 """
@@ -217,7 +211,6 @@ val(span::Regular) = span.step
 
 Base.step(span::Regular) = span.step
 Base.:(==)(l1::Regular, l2::Regular) = val(l1) == val(l2)
-
 
 """
     Irregular <: Span

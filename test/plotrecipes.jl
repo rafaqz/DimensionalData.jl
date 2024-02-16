@@ -10,12 +10,13 @@ ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Po
 da1_regular = DimArray(A1, X(1:50:1000); name=:Normal, refdims=ref)
 da1_noindex = DimArray(A1, X(); name=:Normal, refdims=ref)
 da1_categorical = DimArray(A1, X('A':'T'); name=:Normal, refdims=ref)
+da1_categorical_symbol = DimArray(A1, X(Symbol.('A':'T')); name=:Normal, refdims=ref)
 da1_z = DimArray(A1, Z(1:50:1000); name=:Normal, refdims=ref)
 
 # For manual testing
-da1 = da1_z
+da1 = da1_categorical
 
-for da in (da1_regular, da1_noindex, da1_categorical, da1_z)
+for da in (da1_regular, da1_noindex, da1_categorical, da1_categorical_symbol, da1_z)
     for da1 in (da, reverse(da))
         # Plots
         plot(da1)
