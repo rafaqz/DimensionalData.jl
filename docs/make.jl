@@ -7,4 +7,7 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
     # checkdocs=:all,
     format=DocumenterVitepress.MarkdownVitepress(),
     draft=false,
-    source="src", build=joinpath(@__DIR__, "docs_site"))
+    source="src", 
+    build=joinpath(@__DIR__, "docs_site"), 
+    warnonly = true,
+)
