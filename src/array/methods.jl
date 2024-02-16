@@ -586,7 +586,6 @@ function _reverse(A::AbstractDimArray, ::Colon)
     # Use setdims here because newdims is not all the dims
     setdims(rebuild(A, newdata), newdims)
 end
-
 function _reverse(A::AbstractDimArray, dims)
     newdims = _reverse(DD.dims(A, dims))
     newdata = reverse(parent(A); dims=dimnum(A, dims))
