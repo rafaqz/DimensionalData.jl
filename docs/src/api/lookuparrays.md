@@ -40,7 +40,6 @@ LookupArrays.order
 LookupArrays.locus
 LookupArrays.shiftlocus
 ```
-```
 
 ## Selectors
 

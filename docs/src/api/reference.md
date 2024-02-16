@@ -17,6 +17,15 @@ Base.zeros
 Base.ones
 ```
 
+Functions for getting information from objects:
+
+```@docs
+dims
+refdims
+metadata
+name
+```
+
 ## Multi-array datasets
 
 ```@docs
@@ -40,18 +49,9 @@ DimTable
 DimensionalData.DimColumn
 ```
 
-## Common methods
+# Utility methods
 
-Common functions for obtaining information from objects:
-
-```@docs
-dims
-refdims
-metadata
-name
-```
-
-Utility methods for transforming DimensionalData objects:
+For transforming DimensionalData objects:
 
 ```@docs
 set
@@ -66,7 +66,7 @@ reorder
 
 Base methods
 
-```
+```@docs
 Base.cat
 Base.map
 Base.copy!

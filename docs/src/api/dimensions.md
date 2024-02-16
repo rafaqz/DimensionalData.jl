@@ -29,15 +29,19 @@ Dimensions.AnonDim
 
 ### Exported methods
 
+These are widely useful methods for working with dimensions.
+
 ```@docs
-hasdim
+dims
 dimnum
+hasdim
+otherdims
+val
 ```
 
 ### Non-exported methods
 
 ```@docs
-Dimensions.lookup
 Dimensions.label
 DimensionalData.format
 DimensionalData.dims2indices
@@ -52,7 +56,6 @@ can be useful for writing dimensional algorithms.
 They are not guaranteed to keep their interface, but usually will.
 
 ```@docs
-DimensionalData.otherdims
 DimensionalData.commondims
 DimensionalData.dim2key
 DimensionalData.key2dim

@@ -18,17 +18,18 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
 Objects extending DimensionalData.jl that have dimensions must return 
 a `Tuple` of constructed `Dimension`s from `dims(obj)`. 
 
-### Dimension axes
+### `Dimension` axes
 
 Dimensions return from `dims` should hold a `LookupArray` or in some cases 
-just an `AbstractArray`. When attached to mullti-dimensional objects, 
-lookups must be the _same length_ as the axis of the array it represents, 
-and `eachindex(A, i)` and `eachindex(dim)` must return the same values. 
+just an `AbstractArray` (like wiht `DimIndices`). When attached to 
+mullti-dimensional objects, lookups must be the _same length_ as the axis 
+of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
+return the same values. 
 
 This means that if the array has OffsetArrays.jl axes, the array the dimension 
 wraps must also have OffsetArrays.jl axes.
 
-## `dims` keywords
+### `dims` keywords
 
 To any `dims` keyword argument that only marks the dimension name,
 objects should accept any `Dimension`, `Type{<:Dimension}`, `Symbol`,
@@ -41,7 +42,7 @@ implemented.
 
 ## `rebuild`
 
-Rebuild methods are used to rebuild immuatble objects with new field values,
+Rebuild methods are used to rebuild immutable objects with new field values,
 in a way that is more flexible and extensible than just using ConstructionBase.jl
 reconstruction. Developers can choose to ignore some of the fields passed
 by `rebuild`.
