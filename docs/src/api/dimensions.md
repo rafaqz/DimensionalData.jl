@@ -36,7 +36,6 @@ dims
 dimnum
 hasdim
 otherdims
-# val
 ```
 
 ### Non-exported methods
