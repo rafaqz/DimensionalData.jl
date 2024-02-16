@@ -592,7 +592,6 @@ function _reverse(A::AbstractDimArray, dims)
     # Use setdims here because newdims is not all the dims
     setdims(rebuild(A, newdata), newdims)
 end
-
 _reverse(dims::Tuple{Vararg{Dimension}}) = map(d -> reverse(d), dims)
 _reverse(dim::Dimension) = reverse(dim)
 
