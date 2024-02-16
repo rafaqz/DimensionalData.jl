@@ -100,7 +100,6 @@ We can index with `Vector` of `Tuple{Vararg(Dimension}}` like vectors of
 
 ```@ansi dimensions
 # TODO not merged yet A3[[(X(3), Z(5)), (X(7), Z(x)), (X(8), Z(2))]]
-nothing # hide
 ```
 
 `DimIndices` can be used like `CartesianIndices` but again, without the 
@@ -108,7 +107,6 @@ constraint of consecutive dimensions or known order.
 
 ```@ansi dimensions
 # TODO not merged yet A3[DimIndices(dims(A3, (X, Z))), Y(3)]
-nothing # hide
 ```
 
 All of this indexing can be combined arbitrarily.
@@ -121,7 +119,6 @@ dimensions into a lookup of tuples:
 A4 = DimArray(rand(10, 9, 8, 7, 6, 5), (:a, :b, :c, :d, :e, :f))
 
 # TODO not merged yet A4[e=6, DimIndices(dims(A4, (:d, :b))), a=3, collect(DimIndices(dims(A4, (:c, :f))))] 
-nothing # hide
 ```
 
 The `Dimension` indexing layer sits on top of regular indexing and _can not_ be combined 
@@ -129,9 +126,9 @@ with it! Regular indexing specifies order, so doesn't mix well with our dimensio
 
 Mixing them will throw an error:
 
-```@example dimensions
+```@example dimension
 A1[X(3), 4]
-# ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
+ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
 ```
 
 ::: info Indexing
