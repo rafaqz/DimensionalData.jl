@@ -635,6 +635,14 @@ although it will be for `Array`.
 @inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
 
 
+"""
+    basedims(ds::Tuple)
+    basedims(d::Union{Dimension,Symbol,Type})
+
+Returns `basetypeof(d)()` or a `Tuple` of called on a `Tuple`.
+
+See [`basetypeof`](@ref)
+"""
 @inline basedims(x) = basedims(dims(x))
 @inline basedims(ds::Tuple) = map(basedims, ds)
 @inline basedims(d::Dimension) = basetypeof(d)()
