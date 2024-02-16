@@ -160,6 +160,15 @@ function at(
     end
 end
 function at(
+    ::Ordered, ::Span, lookup::LookupArray{<:IntervalSets.Interval}, selval, atol, rtol::Nothing;
+    err=_True()
+)
+    x = unwrap(selval)
+    i = searchsortedlast(lookup, x; lt=(a, b) -> a.left < b.left)
+    lookup[i].left == x.left && lookup[i].right == x.right || _selvalnotfound(lookup, selval)
+    return i
+end
+function at(
     ::Ordered, ::Span, lookup::LookupArray{<:Union{Number,Dates.TimeType,AbstractString}}, selval, atol, rtol::Nothing;
     err=_True()
 )
@@ -246,7 +255,7 @@ end
 near(order::Order, ::NoSampling, lookup::LookupArray, sel::Near) = at(lookup, At(val(sel)))
 function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
     # Unwrap the selector value and adjust it for
-    # inderval locus if neccessary
+    # interval locus if neccessary
     v = unwrap(val(sel))
     if v isa Dates.TimeType
         v = eltype(lookup)(v)
@@ -257,16 +266,14 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, se
     # Search for the value
     found_i = _inbounds(searchfunc(lookup, v_adj), lookup)
 
-    # Check if this is the lowest possible value allready,
-    # and return if so
+    # Check if this is the lowest possible value allready, and return if so
     if order isa ForwardOrdered
         found_i <= firstindex(lookup) && return found_i
     elseif order isa ReverseOrdered
         found_i >= lastindex(lookup) && return found_i
     end
 
-    # Find which index is nearest,
-    # the found index or previous index
+    # Find which index is nearest, the found index or previous index
     prev_i = found_i - _ordscalar(order)
     dist_to_prev = abs(v_adj - lookup[prev_i])
     dist_to_found = abs(v_adj - lookup[found_i])
@@ -277,8 +284,11 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, se
 
     return closest_i
 end
+function near(order::Ordered, ::Intervals, lookup::LookupArray{<:IntervalSets.Interval}, sel::Near)
+    throw(ArgumentError("`Near` is not yet implemented for lookups of `IntervalSets.Interval`"))
+end
 function near(::Unordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
-    throw(ArgumentError("`Near` has no meaning in an `Unordered` `Sampled` index"))
+    throw(ArgumentError("`Near` has no meaning in an `Unordered` lookup"))
 end
 
 _locus_adjust(locus::Center, v, lookup) = v
@@ -340,20 +350,56 @@ end
 function contains(::Points, l::LookupArray, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
+function contains(::Points, l::LookupArray{<:AbstractArray}, sel::Contains; kw...)
+    x = unwrap(val(sel))
+    i = searchsortedlast(l, x; by=_by)
+    i >= firstindex(l) && x in l[i] || _selvalnotfound(l, val(sel))
+    return i
+end
+function contains(
+    ::Points, l::LookupArray{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
+    kw...
+)
+    at(l, At(val(sel)); kw...)
+end
 # Intervals -----------------------------------
 function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())
     _locus_checkbounds(locus(l), l, sel) || return _selector_error_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
+function contains(
+    sampling::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains; 
+    err=_True()
+)
+    v = val(sel)
+    interval_sel = Contains(Interval{:closed,:open}(v, v))
+    contains(sampling, l, interval_sel; err)
+end
+function contains(
+    ::Intervals, 
+    l::LookupArray{<:IntervalSets.Interval}, 
+    sel::Contains{<:IntervalSets.Interval}; 
+    err=_True()
+)
+    v = val(sel)
+    i = searchsortedlast(l, v; by=_by)
+    if _in(v, l[i])
+        return i
+    else
+        return _notcontained_or_nothing(err, v)
+    end
+end
 # Regular Intervals ---------------------------
-function contains(o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
+function contains(
+    o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
     err=_True()
 )
     v = val(sel)
     i = _searchfunc(locus, o)(l, v)
     return check_regular_contains(span, locus, l, v, i, err)
 end
-function contains(o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
+function contains(
+    o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
     err=_True()
 )
     v = val(sel) + abs(val(span)) / 2
@@ -1033,6 +1079,21 @@ _searchfunc(::_Lower, ::ForwardOrdered) = searchsortedfirst
 _searchfunc(::_Lower, ::ReverseOrdered) = searchsortedlast
 _searchfunc(::_Upper, ::ForwardOrdered) = searchsortedlast
 _searchfunc(::_Upper, ::ReverseOrdered) = searchsortedfirst
+
+# by helpers so sort and searchsorted works on more types
+_by(x::Pair) = _by(x[1])
+_by(x::Tuple) = map(_by, x)
+_by(x::AbstractRange) = first(x)
+_by(x::IntervalSets.Interval) = x.left
+_by(x) = x
+
+_in(needle::Dates.TimeType, haystack::Dates.TimeType) = needle == haystack
+_in(needle, haystack) = needle in haystack
+_in(needles::Tuple, haystacks::Tuple) = all(map(_in, needles, haystacks))
+_in(needle::Interval, haystack::ClosedInterval) = needle.left in haystack && needle.right in haystack
+_in(needle::Interval{<:Any,:open}, haystack::Interval{:closed,:open}) = needle.left in haystack && needle.right in haystack
+_in(needle::Interval{:open,<:Any}, haystack::Interval{:open,:closed}) = needle.left in haystack && needle.right in haystack
+_in(needle::OpenInterval, haystack::OpenInterval) = needle.left in haystack && needle.right in haystack
 
 hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
 hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true

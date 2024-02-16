@@ -1,4 +1,4 @@
-const LookupArraySetters = Union{AllMetadata,LookupArray,LookupArrayTrait,Nothing}
+const LookupArraySetters = Union{AllMetadata,LookupArray,LookupArrayTrait,Nothing,AbstractArray}
 set(lookup::LookupArray, x::LookupArraySetters) = _set(lookup, x)
 
 # _set(lookup::LookupArray, newlookup::LookupArray) = lookup

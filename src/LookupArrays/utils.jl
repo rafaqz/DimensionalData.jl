@@ -89,6 +89,11 @@ unwrap(x) = x
 # Detect the order of an abstract array
 orderof(A::AbstractUnitRange) = ForwardOrdered()
 orderof(A::AbstractRange) = _order(A)
+function orderof(A::AbstractArray{<:IntervalSets.Interval})
+    indord = _order(A)
+    sorted = issorted(A; rev=LookupArrays.isrev(indord), by=x -> x.left)
+    return sorted ? indord : Unordered()
+end
 function orderof(A::AbstractArray)
     local sorted, indord
     # This is awful. But we don't know if we can
@@ -104,3 +109,4 @@ function orderof(A::AbstractArray)
 end
 
 _order(A) = first(A) <= last(A) ? ForwardOrdered() : ReverseOrdered()
+_order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).left ? ForwardOrdered() : ReverseOrdered()

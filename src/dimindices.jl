@@ -112,6 +112,30 @@ end
 Base.getindex(di::DimPoints{<:Any,1}, i::Int) = (dims(di, 1)[i],)
 Base.getindex(di::DimPoints, i::Int) = di[Tuple(CartesianIndices(di)[i])...]
 
+struct DimViews{T,N,D<:DimTuple,A} <: AbstractDimIndices{T,N}
+    data::A
+    dims::D
+    function DimViews(data::A, dims::D) where {A,D<:DimTuple}
+        T = typeof(view(data, map(rebuild, dims, map(first, dims))...))
+        N = length(dims)
+        new{T,N,D,A}(data, dims)
+    end
+end
+
+function Base.getindex(dv::DimViews, i1::Int, i2::Int, I::Int...)
+    # Get dim-wrapped point values at i1, I...
+    D = map(dims(dv), (i1, i2, I...)) do d, i
+        rebuild(d, d[i])
+    end
+    # Return the unwrapped point sorted by `order
+    return view(dv.data, D...)
+end
+function Base.getindex(dv::DimViews{<:Any,1}, i::Int) 
+    d = dims(dv, 1)
+    return view(dv.data, rebuild(d, d[i]))
+end
+Base.getindex(dv::DimViews, i::Int) = dv[Tuple(CartesianIndices(dv)[i])...]
+
 """
     DimKeys <: AbstractArray
 

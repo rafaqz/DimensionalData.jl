@@ -58,10 +58,8 @@ function print_layer(io, stack, key, keylen)
             Dimensions.print_dimname(IOContext(io, :dimcolor => color), dim)
             i != length(field_dims) && print(io, ", ")
         end
-        # print(io, " (")
         printstyled(io, " size: "; color=:light_black)
         print_sizes(io, size(field_dims); colors)
-        # print(io, ')')
     end
     print(io, '\n')
 end
