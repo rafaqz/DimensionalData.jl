@@ -67,7 +67,6 @@ end
         end
     end
     @test all(collect(mean.(gb)) .=== manualmeans)
-    # TODO Unrelated bug in similar
-    @test_broken all(mean.(gb) .=== manualmeans)
+    @test all(mean.(gb) .=== manualmeans)
 end
 

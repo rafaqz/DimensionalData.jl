@@ -383,7 +383,7 @@ function contains(
 )
     v = val(sel)
     i = searchsortedlast(l, v; by=_by)
-    if _in(l[i], v)
+    if _in(v, l[i])
         return i
     else
         return _notcontained_or_nothing(err, v)
@@ -1088,7 +1088,7 @@ _by(x::IntervalSets.Interval) = x.left
 _by(x) = x
 
 _in(needle::Dates.TimeType, haystack::Dates.TimeType) = needle == haystack
-# _in(needle, haystack) = needle in haystack
+_in(needle, haystack) = needle in haystack
 _in(needles::Tuple, haystacks::Tuple) = all(map(_in, needles, haystacks))
 _in(needle::Interval, haystack::ClosedInterval) = needle.left in haystack && needle.right in haystack
 _in(needle::Interval{<:Any,:open}, haystack::Interval{:closed,:open}) = needle.left in haystack && needle.right in haystack
