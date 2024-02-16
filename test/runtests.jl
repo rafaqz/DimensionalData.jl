@@ -38,6 +38,7 @@ end
 @time @safetestset "show" begin include("show.jl") end
 @time @safetestset "tables" begin include("tables.jl") end
 @time @safetestset "utils" begin include("utils.jl") end
+@time @safetestset "groupby" begin include("groupby.jl") end
 
 
 if Sys.islinux()

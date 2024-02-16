@@ -13,7 +13,7 @@ objects to [`set`](@ref) without ambiguity about where to put them.
 """
 abstract type AbstractMetadata{X,T} end
 
-const _MetadataContents =Union{AbstractDict,NamedTuple}
+const _MetadataContents = Union{AbstractDict,NamedTuple}
 const AllMetadata = Union{AbstractMetadata,AbstractDict}
 
 Base.get(m::AbstractMetadata, args...) = get(val(m), args...)

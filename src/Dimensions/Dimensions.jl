@@ -13,7 +13,7 @@ using DimensionalData.Dimensions
 """
 module Dimensions
 
-import Adapt, ConstructionBase, Extents
+import Adapt, ConstructionBase, Extents, IntervalSets
 using Dates 
 
 include("../LookupArrays/LookupArrays.jl")

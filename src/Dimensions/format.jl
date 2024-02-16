@@ -26,11 +26,12 @@ function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     end
     return format(dims, A)
 end
-format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N =
-    format(dims, axes(A))
+format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
 format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N = map(_format, dims, axes)
+format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
+format(d::Dimension, axis::AbstractRange) = _format(d, axis)
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))
@@ -110,7 +111,12 @@ _format(span::Irregular{<:Tuple}, D, index) = span
 _format(span::Explicit, D, index) = span
 # Sampling
 _format(sampling::AutoSampling, span::Span, D::Type, index) = Points()
+_format(::AutoSampling, ::Span, D::Type, ::AbstractArray{<:IntervalSets.Interval}) =
+    Intervals(Start())
 _format(sampling::AutoSampling, span::Explicit, D::Type, index) =
+    Intervals(_format(locus(sampling), D, index))
+# For ambiguity, not likely to happen in practice
+_format(::AutoSampling, ::Explicit, D::Type, ::AbstractArray{<:IntervalSets.Interval}) =
     Intervals(_format(locus(sampling), D, index))
 _format(sampling::Points, span::Span, D::Type, index) = sampling
 _format(sampling::Points, span::Explicit, D::Type, index) = _explicitpoints_error() 

@@ -17,14 +17,16 @@ using Dates,
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
 
-using Base: tail, OneTo, @propagate_inbounds
+using Base: tail, OneTo, Callable, @propagate_inbounds
       
 # Ecosystem
 import Adapt, 
        ArrayInterface,
        ConstructionBase, 
+       DataAPI,
        Extents,
        Interfaces,
+       IntervalSets,
        InvertedIndices,
        IteratorInterfaceExtensions,
        RecipesBase,
@@ -34,15 +36,19 @@ import Adapt,
 
 using RecipesBase: @recipe
 
+# using IntervalSets: .., Interval
+
 include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.LookupArrays
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
 import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, intervalbounds, 
+    order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval
 import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
+
+import DataAPI.groupby
 
 export LookupArrays, Dimensions
 
@@ -50,7 +56,7 @@ export LookupArrays, Dimensions
 export X, Y, Z, Ti, Dim, Coord
 
 # Selector
-export At, Between, Touches, Contains, Near, Where, All, .., Not
+export At, Between, Touches, Contains, Near, Where, All, .., Not, Bins
 
 export AbstractDimArray, DimArray
 
@@ -70,6 +76,8 @@ export dimnum, hasdim, hasselection, otherdims
 
 # utils
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
+
+export groupby, season, months, hours, yeardays, monthdays, intervals, ranges
 
 const DD = DimensionalData
 
@@ -96,6 +104,7 @@ include("tables.jl")
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
+include("groupby.jl")
 include("precompile.jl")
 include("interface_tests.jl")
 
