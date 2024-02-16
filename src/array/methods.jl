@@ -578,14 +578,21 @@ function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDi
     return res
 end
 
-function Base.reverse(A::AbstractDimArray; dims=1)
+Base.reverse(A::AbstractDimArray; dims=:) = _reverse(A, dims)
+
+function _reverse(A::AbstractDimArray, ::Colon)
+    newdims = _reverse(DD.dims(A))
+    newdata = reverse(parent(A))
+    # Use setdims here because newdims is not all the dims
+    setdims(rebuild(A, newdata), newdims)
+end
+function _reverse(A::AbstractDimArray, dims)
     newdims = _reverse(DD.dims(A, dims))
     newdata = reverse(parent(A); dims=dimnum(A, dims))
     # Use setdims here because newdims is not all the dims
     setdims(rebuild(A, newdata), newdims)
 end
-
-_reverse(dims::Tuple) = map(d -> reverse(d), dims)
+_reverse(dims::Tuple{Vararg{Dimension}}) = map(d -> reverse(d), dims)
 _reverse(dim::Dimension) = reverse(dim)
 
 # Dimension
