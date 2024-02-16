@@ -53,7 +53,7 @@ jobs:
       - name: Julia cache
         uses: julia-actions/cache@v1
       - name: Install documentation dependencies
-        run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/asinghvi17/DocumenterVitepress.jl.git#as/insecticide"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
+        run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
       - name: generating examples md files
         run: |
           julia --project=docs/ --color=yes docs/logo.jl
