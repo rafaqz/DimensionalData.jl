@@ -115,6 +115,9 @@ _format(::AutoSampling, ::Span, D::Type, ::AbstractArray{<:IntervalSets.Interval
     Intervals(Start())
 _format(sampling::AutoSampling, span::Explicit, D::Type, index) =
     Intervals(_format(locus(sampling), D, index))
+# For ambiguity, not likely to happen in practice
+_format(::AutoSampling, ::Explicit, D::Type, ::AbstractArray{<:IntervalSets.Interval}) =
+    Intervals(_format(locus(sampling), D, index))
 _format(sampling::Points, span::Span, D::Type, index) = sampling
 _format(sampling::Points, span::Explicit, D::Type, index) = _explicitpoints_error() 
 _format(sampling::Intervals, span::Span, D::Type, index) =

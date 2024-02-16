@@ -320,14 +320,13 @@ showhide(x) = ShowWith(x, :hide, :nothing)
 showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
 function Base.alignment(io::IO, x::ShowWith)
-    # Base bug measn we need to special-case this...
+    # Base bug means we need to special-case this...
     if x.val isa DateTime
         0, textwidth(sprint(print, x.val))
     else
         Base.alignment(io, x.val)
     end
 end
-Base.alignment(io::IO, x::ShowWith) = Base.alignment(io, x.val)
 Base.length(x::ShowWith) = length(string(x.val))
 Base.textwidth(x::ShowWith) = textwidth(string(x.val))
 Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))

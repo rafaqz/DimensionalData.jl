@@ -356,13 +356,10 @@ function contains(::Points, l::LookupArray{<:AbstractArray}, sel::Contains; kw..
     i >= firstindex(l) && x in l[i] || _selvalnotfound(l, val(sel))
     return i
 end
-function contains(::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains{<:IntervalSets.Interval}; kw...)
-    x = unwrap(val(sel))
-    i = searchsortedlast(l, x; by=_by)
-    i >= firstindex(l) && _in(x, l[i]) || _selvalnotfound(l, val(sel))
-    return i
-end
-function contains(::Points, l::LookupArray{<:AbstractArray}, sel::Contains{<:AbstractArray}; kw...)
+function contains(
+    ::Points, l::LookupArray{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
+    kw...
+)
     at(l, At(val(sel)); kw...)
 end
 # Intervals -----------------------------------
@@ -370,26 +367,39 @@ function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True(
     _locus_checkbounds(locus(l), l, sel) || return _selector_error_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
-function contains(sampling::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains; err=_True())
+function contains(
+    sampling::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains; 
+    err=_True()
+)
     v = val(sel)
     interval_sel = Contains(Interval{:closed,:open}(v, v))
     contains(sampling, l, interval_sel; err)
 end
-function contains(sampling::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains{<:IntervalSets.Interval}; err=_True())
-    x = val(sel)
-    i = searchsortedlast(l, x; lt=(a, b) -> a.left < b.left)
-    l[i].left == x.left && l[i].right >= x.right || _selvalnotfound(l, sel)
-    return i
+function contains(
+    ::Intervals, 
+    l::LookupArray{<:IntervalSets.Interval}, 
+    sel::Contains{<:IntervalSets.Interval}; 
+    err=_True()
+)
+    v = val(sel)
+    i = searchsortedlast(l, v; by=_by)
+    if _in(l[i], v)
+        return i
+    else
+        return _notcontained_or_nothing(err, v)
+    end
 end
 # Regular Intervals ---------------------------
-function contains(o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
+function contains(
+    o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
     err=_True()
 )
     v = val(sel)
     i = _searchfunc(locus, o)(l, v)
     return check_regular_contains(span, locus, l, v, i, err)
 end
-function contains(o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
+function contains(
+    o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
     err=_True()
 )
     v = val(sel) + abs(val(span)) / 2
