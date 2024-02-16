@@ -58,7 +58,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(dep)
-    :label --> permutedims(val(dep))
+    :label --> string.(permutedims(val(dep)))
     :tickfontalign --> :left
     _xticks!(plotattributes, s, ind)
     _withaxes(ind, A)
@@ -75,7 +75,7 @@ end
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
-    :label --> permutedims(index(dep))
+    :label --> string.(permutedims(index(dep)))
     _withaxes(ind, A)
 end
 
@@ -91,7 +91,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(ind)
-    :label --> permutedims(index(ind))
+    :label --> string.(permutedims(index(ind)))
     _xticks!(plotattributes, s, ind)
     parent(A)
 end
@@ -102,7 +102,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(ind)
-    :label --> permutedims(index(ind))
+    :label --> string.(permutedims(index(ind)))
     _xticks!(plotattributes, s, ind)
     parent(A)
 end

@@ -249,15 +249,21 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
         iright  = f2:f2-1
     end
 
-    topleft = map(showdefault, A[itop, ileft])
-    bottomleft = A[ibottom, ileft]
+    # A bit convoluted so it plays nice with GPU arrays
+    topleft = Matrix{eltype(A)}(undef, map(length, (itop, ileft)))
+    copyto!(topleft, CartesianIndices(topleft), A, CartesianIndices((itop, ileft)))
+    bottomleft= Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
+    copyto!(bottomleft, CartesianIndices(bottomleft), A, CartesianIndices((ibottom, ileft)))
     if !(lu1 isa NoLookup)
         topleft = hcat(map(show1, parent(lu1)[itop]), topleft)
         bottomleft = hcat(map(show1, parent(lu1)[ibottom]), bottomleft)
     end
-
-    leftblock = vcat(parent(topleft), parent(bottomleft))
-    rightblock = vcat(A[itop, iright], A[ibottom, iright])
+    leftblock = vcat(topleft, bottomleft)
+    topright = Matrix{eltype(A)}(undef, map(length, (itop, iright)))
+    copyto!(topright, CartesianIndices(topright), A, CartesianIndices((itop, iright)))
+    bottomright= Matrix{eltype(A)}(undef, map(length, (ibottom, iright))) 
+    copyto!(bottomright, CartesianIndices(bottomright), A, CartesianIndices((ibottom, iright)))
+    rightblock = vcat(topright, bottomright)
     bottomblock = hcat(leftblock, rightblock)
 
     A_dims = if lu2 isa NoLookup
@@ -271,6 +277,7 @@ function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
         end |> permutedims
         vcat(toprow, map(showdefault, bottomblock))
     end
+
     Base.print_matrix(io, A_dims)
     return nothing
 end

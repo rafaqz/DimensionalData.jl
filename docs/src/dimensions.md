@@ -1,44 +1,67 @@
 # Dimensions
 
-````@example dimensions
+Dimensions are "wrapper types" that can be used to wrap any 
+object to associate it with a named dimension.
+
+The abstract supertype is [`Dimension`](@ref), and the types
+that inherit from it aare `Ti`, `X`, `Y`, `Z`, the generic `Dim{:x}`, 
+or others that you define manually using the [`@dim`](@ref) macro.
+
+DimensionalData.jl uses `Dimensions` pretty much everywhere: 
+
+- `Dimension` are returned from `dims` to specify the names of the dimensions of an object
+- they wrap [`LookupArrays`](@ref) to associate the lookups with those names
+- to index into these objects, they can wrap indices like `Int` or a `Selector` 
+
+This symmetry means we can just ignore how data is organised, and
+just label and access it by name, letting DD work out the details for us.
+
+Dimensions are defined in the [`Dimensions`](@ref) submodule, some 
+Dimension-specific methods can be brought into scope with:
+
+```julia
+using DimensionalData.Dimensions
+```
+
+## Examples
+
+## Use in AbstractDimArray
+
+We can use dimensions without a `LookupArray` - to simply label the axis.
+A `DimArray` with labelled dimensions can be constructed by:
+
+````@ansi dimensions
 using DimensionalData
+
+A1 = zeros(X(5), Y(5:10))
 ````
 
-The core type of DimensionalData.jl is the [`Dimension`](@ref) and the types
-that inherit from it, such as `Ti`, `X`, `Y`, `Z`, the generic `Dim{:x}`, or
-others that you define manually using the [`@dim`](@ref) macro.
-
-`Dimension`s are primarily used in [`DimArray`](@ref), other
-[`AbstractDimArray`](@ref).
-
-## DimArray
-We can use dimensions without a value index - these simply label the axis.
-A `DimArray` with labelled dimensions is constructed by:
+And we can acces a value with:
 
 ````@ansi dimensions
-A = rand(X(5), Y(5))
+A1[Y(1), X(2)]
 ````
 
-get a value
-
-````@ansi dimensions
-A[Y(1), X(2)]
-````
-
-As shown above, `Dimension`s can be used to construct arrays in `rand`, `ones`,
-`zeros` and `fill` with either a range for a lookup index or a number for the
+As shown above, `Dimension`s can be used to construct arrays in `rand`, `zeros`,
+`ones` and `fill`, with either a range for a lookup index or a number for the
 dimension length.
 
-Or we can use the `Dim{X}` dims by using `Symbol`s, and indexing with keywords:
+We can also use the `Dim{:name}` dims by using `Symbol`s, and indexing with keywords:
 
 ````@ansi dimensions
-A = DimArray(rand(5, 5), (:a, :b))
+A2 = DimArray(rand(5, 5), (:a, :b))
 ````
 
-get value
+and get a value:
 
 ````@ansi dimensions
-A[a=3, b=5]
+A2[a=3, b=5]
+````
+
+Keywords also work with our first example:
+
+````@ansi dimensions
+A1[X=3]
 ````
 
 ## What is a dimension?
@@ -56,7 +79,8 @@ A = rand(X(x), Ti(t));
 ````
 
 Here both `X` and `Ti` are dimensions from `DimensionalData`. The currently
-exported dimensions are `X, Y, Z, Ti` (`Ti` is shortening of `Time`).
+exported dimensions are `X, Y, Z, Ti` (`Ti` is shortening of `Time` to avoid
+the existing `Time` object and the very common `T` type).
 
 The length of each dimension index has to match the size of the corresponding
 array axis. 
@@ -68,6 +92,7 @@ A2 = DimArray(rand(12, 10), (time=t, distance=x))
 ````
 
 ## Dimensional Indexing
+
 Dimensions can be used to index the array by name, without having to worry
 about the order of the dimensions.
 
@@ -95,7 +120,7 @@ Indexing `AbstractDimArray`s works with `getindex`, `setindex!` and
 
 ### Indexing Performance
 
-Indexing with `Dimension` has no runtime cost:
+Indexing with `Dimension`s has no runtime cost:
 
 ````@ansi dimensions
 A2 = ones(X(3), Y(3))
@@ -111,18 +136,21 @@ using BenchmarkTools
 @benchmark $A2[X(1), Y(2)]
 ````
 
-and
+this is the same as accessing the parent array directly:
 
 ````@ansi dimensions
-@btime parent($A2)[1, 2]
+@benchmark parent($A2)[1, 2]
 ````
 
-In many Julia functions like `size` or `sum`, you can specify the dimension
+
+## `dims` keywords
+
+In many Julia functions like, `size` or `sum`, you can specify the dimension
 along which to perform the operation as an `Int`. It is also possible to do this
 using [`Dimension`](@ref) types with `AbstractDimArray`:
 
 ````@ansi dimensions
-A3 = rand(X(3), Y(4), Ti(5));
+A3 = rand(X(3), Y(4), Ti(5))
 sum(A3; dims=Ti)
 ````
 
@@ -136,7 +164,7 @@ using Statistics
 mean(A3; dims=Ti)
 ````
 
-::: info
+::: info Dims keywords
 
 Methods where dims, dim types, or `Symbol`s can be used to indicate the array dimension:
 
@@ -151,7 +179,6 @@ Methods where dims, dim types, or `Symbol`s can be used to indicate the array di
 :::
 
 
-## Dimensions
 ## DimIndices
 ## Vectors of Dimensions
 

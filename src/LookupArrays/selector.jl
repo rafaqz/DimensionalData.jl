@@ -35,6 +35,8 @@ Selectors provided in DimensionalData are:
 abstract type Selector{T} end
 
 val(sel::Selector) = sel.val
+rebuild(sel::Selector, val) = basetypeof(sel)(val)
+
 Base.parent(sel::Selector) = sel.val
 
 abstract type Selector{T} end
@@ -111,6 +113,7 @@ struct At{T,A,R} <: IntSelector{T}
 end
 At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
 
+rebvuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
@@ -120,10 +123,10 @@ struct _False end
 selectindices(l::LookupArray, sel::At; kw...) = at(l, sel; kw...)
 selectindices(l::LookupArray, sel::At{<:AbstractVector}) = _selectvec(l, sel)
 
-_selectvec(l, sel) = [selectindices(l, rebuild(sel; val=v)) for v in val(sel)]
+_selectvec(l, sel) = [selectindices(l, rebuild(sel, v)) for v in val(sel)]
 
 function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...) 
-    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     return at(no_cycling(lookup), cycled_sel; kw...) 
 end
 function at(lookup::NoLookup, sel::At; kw...) 
@@ -231,7 +234,7 @@ selectindices(l::LookupArray, sel::Near) = near(l, sel)
 selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near) 
-    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     near(no_cycling(lookup), cycled_sel) 
 end
 near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
@@ -320,7 +323,7 @@ selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel)
 selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel)
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...) 
-    cycled_sel = rebuild(sel; val=cycle_val(lookup, val(sel)))
+    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     return contains(no_cycling(lookup), cycled_sel; kw...) 
 end
 function contains(l::NoLookup, sel::Contains; kw...) 
@@ -486,7 +489,7 @@ selectindices(l::LookupArray, sel::Union{Between{<:Tuple},Interval}) = between(l
 function selectindices(lookup::LookupArray, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
-        append!(inds, selectindices(lookup, rebuild(sel; val=v)))
+        append!(inds, selectindices(lookup, rebuild(sel, v)))
     end
 end
 
@@ -738,7 +741,7 @@ selectindices(l::LookupArray, sel::Touches) = touches(l, sel)
 function selectindices(lookup::LookupArray, sel::Touches{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
-        append!(inds, selectindices(lookup, rebuild(sel; val=v)))
+        append!(inds, selectindices(lookup, rebuild(sel, v)))
     end
 end
 

@@ -43,10 +43,11 @@ export default defineConfig({
       { text: 'Selectors', link: '/selectors' },
       { text: 'Integrations',
         items: [
-          {text: 'Dependants', link: '/integrations' },
+          { text: 'Integrations', link: '/integrations' },
           { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'Plots with Makie', link: '/plots' },
-          { text: 'CUDA & GPUs', link: '/cuda.md' },
+          { text: 'CUDA & GPUs', link: '/cuda' },
+          { text: 'DiskArrays', link: '/diskarrays' },
           { text: 'Extending DimensionalData', link: '/ext_dd' },
         ],
       },
@@ -69,7 +70,13 @@ export default defineConfig({
           { text: 'Extending DimensionalData', link: '/ext_dd' },
           { text: 'Plots with Makie', link: '/plots' },
           { text: 'CUDA & GPUs', link: '/cuda' },
-          { text: 'API Reference', link: '/reference' },
+          { text: 'API Reference',
+            items: [
+              { text: 'General Reference', link: '/api/reference' },
+              { text: 'Dimensions Reference', link: '/api/dimensions' },
+              { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
+            ],
+          },
         ]
       }
     ],
