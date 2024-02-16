@@ -223,7 +223,7 @@ end
         @test bounds(dim) == (10, 15)
         dim = X(Sampled(ind; order=Unordered(), sampling=Points()))
         @test bounds(dim) == (nothing, nothing)
-        @test_throws ErrorException intervalbounds(dim)
+        @test intervalbounds(dim) == collect(zip(15:-1:10, 15:-1:10))
     end
 
     @testset "Categorical" begin
