@@ -15,7 +15,7 @@ fig = Figure(; size=(500,500),
 ax = LScene(fig[1,1]; show_axis=false)
 
 wireframe!.(ax, rpyz; color = colors[3], transparency=true) # shading=NoShading # bug!
-mesh!.(ax, rmyz; color=colors[1], transparency=true, shading=NoShading)
+poly!.(ax, rmyz; color=colors[1], transparency=true, shading=NoShading)
 
 meshscatter!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8),
     Point3f(0.1,0.1+7,0.8), Point3f(0.1+7,0.1+7,0.8)]; color = colors[4],
@@ -32,5 +32,7 @@ lines!(ax, [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8),
     ];
     color = colors[2],
     linewidth=2, transparency=true)
-save(joinpath(@__DIR__, "./src/public/logoDD.png"), fig)
+
+save(joinpath(@__DIR__, "src", "public", "logoDD.svg"), fig; pt_per_unit=0.75)
+save(joinpath(@__DIR__, "src", "public", "logoDD.png"), fig; px_per_unit=2)
 fig

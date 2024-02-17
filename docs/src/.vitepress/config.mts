@@ -11,7 +11,7 @@ const VERSIONS: DefaultTheme.NavItemWithLink[] = [
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: '/DimensionalData.jl/',
+  base: 'REPLACE_ME_WITH_DOCUMENTER_VITEPRESS_BASE_URL_WITH_TRAILING_SLASH',
   title: "DimensionalData",
   description: "Datasets with named dimensions",
   lastUpdated: true,
