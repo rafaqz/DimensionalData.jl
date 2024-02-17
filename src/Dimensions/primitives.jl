@@ -203,7 +203,7 @@ julia> dimnum(A, Y)
 ```
 """
 @inline function dimnum(x, q1, query...)
-    all(hasdim(x, q1, query...)) || _extradimserror()
+    all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query)))
     _call_primitive(_dimnum, MaybeFirst(), x, q1, query...)
 end
 @inline dimnum(x, query::Function) =
@@ -757,5 +757,5 @@ _typemsg(a, b) = "Lookups do not all have the same type: $(order(a)), $(order(b)
 @noinline _valerror(a, b) = throw(DimensionMismatch(_valmsg(a, b)))
 @noinline _ordererror(a, b) = throw(DimensionMismatch(_ordermsg(a, b)))
 @noinline _metadataerror(a, b) = throw(DimensionMismatch(_metadatamsg(a, b)))
-@noinline _extradimserror(args...) = throw(ArgumentError(_extradimsmsg(args)))
+@noinline _extradimserror(args) = throw(ArgumentError(_extradimsmsg(args)))
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
