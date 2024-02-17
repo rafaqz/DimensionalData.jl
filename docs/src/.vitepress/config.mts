@@ -66,7 +66,7 @@ export default defineConfig({
           { text: 'Selectors', link: '/selectors' },
           { text: 'Stacks', link: '/stacks' },
           { text: 'Tables and DataFrames', link: '/tables' },
-          { text: 'Lookup customazation', link: '/lookup_customazation' },
+          { text: 'Lookup customazation', link: '/lookup_customization' },
           { text: 'Extending DimensionalData', link: '/ext_dd' },
           { text: 'Plots with Makie', link: '/plots' },
           { text: 'CUDA & GPUs', link: '/cuda' },
