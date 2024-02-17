@@ -20,7 +20,7 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
 deploy_config = Documenter.auto_detect_deploy_system()
 deploy_decision = Documenter.deploy_folder(
     deploy_config;
-    repo="rafaqz/DimensionalData.jl",
+    repo="github.com/rafaqz/DimensionalData.jl",
     devbranch="main",
     devurl = "dev",
     push_preview=true,
@@ -46,7 +46,7 @@ end
 touch(joinpath(@__DIR__, "build", ".vitepress", "dist", ".nojekyll"))
 
 deploydocs(; 
-    repo="rafaqz/DimensionalData.jl",
+    repo="github.com/rafaqz/DimensionalData.jl",
     target="build/.vitepress/dist", # this is where Vitepress stores its output
     branch = "gh-pages",
     devbranch = "main",
