@@ -6,9 +6,9 @@ on:
   # Runs on pushes targeting the `main` branch. Change this to `master` if you're
   # using the `master` branch as the default branch.
   push:
-    branches: [main]
+    branches:
+      - main
   pull_request:
-    branches: [main]
   tags: ['*']
 
   # Allows you to run this workflow manually from the Actions tab
