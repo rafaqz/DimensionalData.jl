@@ -68,17 +68,33 @@ for f in (:getindex, :view, :dotview)
                 map(A -> A[i], s)
             end
         end
-        # Handle zero-argument getindex, this will error unless all layers are zero dimensional
-        @propagate_inbounds function Base.$f(s::AbstractDimStack)
-            map($f, s)
-        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, D::DimensionalIndices...; kw...)
             $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
         end
+        # Ambiguities
+        @propagate_inbounds function Base.$f(
+            s::AbstractDimStack, 
+            d1::Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}, 
+            D::Vararg{Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}}
+        )
+            $_f(s, _simplify_dim_indices(d1, D...))
+        end
+        @propagate_inbounds function Base.$f(
+            s::AbstractDimStack, 
+            D::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
+        )
+            $_f(s, _simplify_dim_indices(D...))
+        end
+
+
         @propagate_inbounds function $_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
             return merge_and_index($f, A, (a1, args...))
+        end
+        # Handle zero-argument getindex, this will error unless all layers are zero dimensional
+        @propagate_inbounds function $_f(s::AbstractDimStack)
+            map($f, s)
         end
         @propagate_inbounds function $_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
             D = (d1, ds...)

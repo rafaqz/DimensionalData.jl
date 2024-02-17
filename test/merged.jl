@@ -65,7 +65,7 @@ end
 
 @testset "unmerge" begin
     a = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
-    merged = mergedims(a, (X,Y)=>:geometry)
+    merged = mergedims(a, (X, Y) => :geometry)
     unmerged = unmergedims(merged, dims(a))
     perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
     

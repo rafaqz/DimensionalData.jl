@@ -1,23 +1,25 @@
 
-abstract type AbstractDimIndices{T,N,D} <: AbstractBasicDimArray{T,N,D} end
+abstract type AbstractDimGenerators{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
-dims(di::AbstractDimIndices) = di.dims
+dims(dg::AbstractDimGenerators) = dg.dims
 
-Base.size(di::AbstractDimIndices) = map(length, dims(di))
-Base.axes(di::AbstractDimIndices) = map(d -> axes(d, 1), dims(di))
+Base.size(dg::AbstractDimGenerators) = map(length, dims(dg))
+Base.axes(dg::AbstractDimGenerators) = map(d -> axes(d, 1), dims(dg))
 
-# Indexing that returns a new AbstractDimIndices
+# Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
     T = Union{Colon,AbstractUnitRange}
-    @eval function Base.$f(di::AbstractDimIndices, i1::$T, i2::$T, Is::$T...)
+    @eval function Base.$f(di::AbstractDimGenerators, i1::$T, i2::$T, Is::$T...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(di), I)
         rebuild(di; dims=newdims)
     end
-    @eval function Base.$f(di::AbstractDimIndices{<:Any,1}, i::$T)
+    @eval function Base.$f(di::AbstractDimGenerators{<:Any,1}, i::$T)
         rebuild(di; dims=dims(di, 1)[i])
     end
 end
+
+abstract type AbstractDimIndices{T,N,D} <: AbstractDimGenerators{T,N,D} end
 
 (::Type{T})(::Nothing; kw...) where T<:AbstractDimIndices = throw(ArgumentError("Object has no `dims` method"))
 (::Type{T})(x; kw...) where T<:AbstractDimIndices = T(dims(x); kw...)
@@ -37,7 +39,7 @@ This can be used to view/index into arbitrary dimensions over an array, and
 is especially useful when combined with `otherdims`, to iterate over the
 indices of unknown dimension.
 
-`DimIndices` can be used directly in `getindex` like `CartesianIndices`, 
+`DimIndices` can be used directly in `getindex` like `CartesianIndices`,
 and freely mixed with individual `Dimension`s or tuples of `Dimension`.
 
 ## Example
@@ -122,39 +124,6 @@ _dimindices_axis(x::LookupArray) = axes(x, 1)
 _dimindices_axis(x) =
     throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `LookupArray` (the `axes` will be used)"))
 
-struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimIndices{T,N,D}
-    parent::P
-    dims::D
-    # Manual inner constructor for ambiguity only
-    function DimSlices{T,N,D,P}(parent::P, dims::D) where {T,N,D,P}
-        new{T,N,D,P}(parent)
-    end
-end
-function DimSlices(x; dims, drop=true)
-    dims = basedims(DD.dims(x, dims))
-    inds = map(d -> rebuild(d, firstindex(d)), dims)
-    T = DimStack#typeof(view(x, map(d -> rebuild(d, first(axes(x, d))), dims)...))
-    N = length(dims)
-    D = typeof(dims)
-    DimSlices{T,N,D,typeof(x)}(x, dims)
-end
-
-Base.parent(ds::DimSlices) = ds.parent
-dims(ds::DimSlices) = dims(parent(ds))
-
-function Base.getindex(ds::DimSlices, i1::Int, i2::Int, I::Int...)
-    D = map(dims(ds), (i1, i2, I...)) do d, i
-        rebuild(d, axes(d, 1)[i])
-    end
-    @show D
-    view(parent(ds), D...)
-end
-# Dispatch to avoid linear indexing in multidimensionsl DimIndices
-function Base.getindex(ds::DimSlices{<:Any,1}, i::Int)
-    d = dims(ds, 1)
-    view(parent(ds), rebuild(d, d[i]))
-end
-
 
 """
     DimPoints <: AbstractArray
@@ -163,7 +132,7 @@ end
     DimPoints(dims::Tuple; order)
     DimPoints(dims::Dimension; order)
 
-Like `CartesianIndices`, but for the point values of the dimension index. 
+Like `CartesianIndices`, but for the point values of the dimension index.
 Behaves as an `Array` of `Tuple` lookup values (whatever they are) for all
 combinations of the lookup values of `dims`.
 
@@ -197,37 +166,11 @@ function Base.getindex(dp::DimPoints, i1::Int, i2::Int, I::Int...)
 end
 Base.getindex(di::DimPoints{<:Any,1}, i::Int) = (dims(di, 1)[i],)
 
-_format(dims::Tuple{}) = ()
+_format(::Tuple{}) = ()
 function _format(dims::Tuple)
     ax = map(d -> axes(val(d), 1), dims)
     return format(dims, ax)
 end
-
-# struct Indices{T} <: AbstractSampled{T,O,Regular{Int},Points}
-
-struct DimViews{T,N,D<:DimTuple,A} <: AbstractDimIndices{T,N}
-    data::A
-    dims::D
-    function DimViews(data::A, dims::D) where {A,D<:DimTuple}
-        T = typeof(view(data, map(rebuild, dims, map(first, dims))...))
-        N = length(dims)
-        new{T,N,D,A}(data, dims)
-    end
-end
-
-function Base.getindex(dv::DimViews, i1::Int, i2::Int, I::Int...)
-    # Get dim-wrapped point values at i1, I...
-    D = map(dims(dv), (i1, i2, I...)) do d, i
-        rebuild(d, d[i])
-    end
-    # Return the unwrapped point sorted by `order
-    return view(dv.data, D...)
-end
-function Base.getindex(dv::DimViews{<:Any,1}, i::Int) 
-    d = dims(dv, 1)
-    return view(dv.data, rebuild(d, d[i]))
-end
-Base.getindex(dv::DimViews, i::Int) = dv[Tuple(CartesianIndices(dv)[i])...]
 
 """
     DimSelectors <: AbstractArray
@@ -237,21 +180,21 @@ Base.getindex(dv::DimViews, i::Int) = dv[Tuple(CartesianIndices(dv)[i])...]
     DimSelectors(dims::Dimension; selectors, atol...)
 
 Like [`DimIndices`](@ref), but returns `Dimensions` holding
-the chosen [`Selector`](@ref)s. 
+the chosen [`Selector`](@ref)s.
 
-Indexing into another `AbstractDimArray` with `DimSelectors` 
+Indexing into another `AbstractDimArray` with `DimSelectors`
 is similar to doing an interpolation.
 
 ## Keywords
 
-- `selectors`: `Near`, `At` or `Contains`, or a mixed tuple of these. 
+- `selectors`: `Near`, `At` or `Contains`, or a mixed tuple of these.
     `At` is the default, meaning only exact or within `atol` values are used.
 - `atol`: used for `At` selectors only, as the `atol` value.
 
 ## Example
 
 Here we can interpolate a `DimArray` to the lookups of another `DimArray`
-using `DimSelectors` with `Near`. This is essentially equivalent to 
+using `DimSelectors` with `Near`. This is essentially equivalent to
 nearest neighbour interpolation.
 
 ```julia
@@ -273,7 +216,7 @@ julia> A[DimSelectors(target; selectors=Near), Ti=2]
 ```
 
 Using `At` would make sure we only use exact interpolation,
-while `Contains` with sampleing of `Intervals` would make sure that 
+while `Contains` with sampleing of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
 struct DimSelectors{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
@@ -316,10 +259,56 @@ _atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
         rebuild(d, rebuild(s; val=d[i])) # At selector with the value at i
     end
 end
-@propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Int) 
+@propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Int)
     d = dims(di, 1)
     (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
 end
 
 # Depricated
-const DimKeys = DimSelectors 
+const DimKeys = DimSelectors
+
+struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimGenerator{T,N,D}
+    data::P
+    dims::D
+end
+function DimSlices(x; dims, drop=true)
+    sourcedims = length(newdims) > 0 ? newdims : dims(x)
+    inds = map(d -> rebuild(d, first(d)), sourcedims)
+    T = typeof(view(x, inds...))
+    N = length(newdims)
+    D = typeof(newdims)
+    return DimSlices{T,N,D,typeof(x)}(x, newdims)
+end
+
+function Base.summary(io::IO, A::DimSlices{T,N}) where {T,N}
+    print_ndims(io, size(A))
+    print(io, string(nameof(typeof(A)), "{$(nameof(T)),$N}"))
+end
+
+@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Int, i2::Int, Is::Int...)
+    I = (i1, i2, Is...)
+    @boundscheck checkbounds(ds, I...)
+    D = map(dims(ds), I) do d, i
+        rebuild(d, d[i])
+    end
+    return view(ds.data, D...)
+end
+# Dispatch to avoid linear indexing in multidimensionsl DimIndices
+@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Int)
+    d = dims(ds, 1)
+    return view(ds.data, rebuild(d, d[i]))
+end
+
+# function Base.show(io::IO, mime, A::DimSlices)
+#     parentdims = otherdims(A.data, dims(A))
+#     _, width = displaysize(io)
+#     sorteddims = (dims(A)..., otherdims(parentdims, dims(A))...)
+#     colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
+#     colors = collect(map(val, colordims))
+#     print_dims_block(io, mime, basedims(first(A)); width, maxlen, label="group dims", colors)
+#     length(A) > 0 || return nothing
+#     A1 = map(x -> DimSummariser(x, colors), A)
+#     show_after(io, mime, A1; maxlen)
+#     map(x -> DimSummariser(x, colors), A)
+#     Base.printmatrix(io, A)
+# end

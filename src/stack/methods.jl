@@ -39,6 +39,13 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
     end
 end
 
+function Base.copyto!(
+    dst::Array{<:DimStack,3}, dstI::CartesianIndices, 
+    src::DimSlices{<:DimStack}, srcI::CartesianIndices
+)
+    dst[dstI] = src[srcI]
+end
+
 """
     Base.map(f, stacks::AbstractDimStack...)
 
@@ -133,7 +140,10 @@ else
         if !(dimtuple == ()) 
             all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
-        DimSlices(s; dims, drop)
+        axisdims = map(basedims(dims)) do d
+            rebuild(d, axes(lookup(x, d), 1))
+        end
+        DimSlices(s; dims=axisdims, drop)
     end
 end
 

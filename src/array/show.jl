@@ -68,7 +68,6 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray; maxlen, kw...)
     print_array(io, mime, A)
 end
 
-
 function print_ndims(io, size::Tuple; 
     colors=map(dimcolors, ntuple(identity, length(size)))
 )

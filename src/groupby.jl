@@ -110,7 +110,8 @@ end
 Bins(bins; labels=nothing, pad=0.001) = Bins(identity, bins, labels, pad)
 Bins(f, bins; labels=nothing, pad=0.001) = Bins(f, bins, labels, pad)
 
-Base.show(io::IO, bins::Bins) = println(io, nameof(typeof(bins)), "(", bins.f, ", ", bins.bins, ")")
+Base.show(io::IO, bins::Bins) = 
+    println(io, nameof(typeof(bins)), "(", bins.f, ", ", bins.bins, ")")
 
 abstract type AbstractCyclicBins end
 struct CyclicBins{F,C,Sta,Ste,L} <: AbstractBins
@@ -123,7 +124,7 @@ end
 CyclicBins(f; cycle, step, start=1, labels=nothing) = CyclicBins(f, cycle, start, step, labels)
 
 Base.show(io::IO, bins::CyclicBins) = 
-println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
+    println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
 
 yearhour(x) = year(x), hour(x)
 
@@ -267,7 +268,7 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
     group_dims = map(first, dim_groups_indices) 
     indices = map(rebuild, dimfuncs, map(last, dim_groups_indices))
 
-    views = DimViews(A, indices)
+    views = DimSlices(A, indices)
     # Put the groupby query in metadata
     meta = map(d -> dim2key(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
