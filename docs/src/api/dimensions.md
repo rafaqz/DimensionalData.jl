@@ -31,12 +31,11 @@ Dimensions.AnonDim
 
 These are widely useful methods for working with dimensions.
 
-```@docs
+```@docs; canonical=false
 dims
 dimnum
 hasdim
 otherdims
-val
 ```
 
 ### Non-exported methods

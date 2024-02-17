@@ -7,12 +7,6 @@ behaviour as much as possible.
 This will plot a line plot with 'a', 'b' and 'c' in the legend,
 and values 1-10 on the labelled X axis:
 
-```@example Plots
-using DimensionalData, Plots
-
-A = rand(X(1:10), Y([:a, :b, :c]))
-Plots.plot(A)
-```
 
 Plots.jl support is deprecated, as development is moving to Makie.jl
 
