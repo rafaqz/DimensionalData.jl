@@ -3,19 +3,19 @@
 name: Deploy documentation
 
 on:
+  # Runs on pushes targeting the `main` branch. Change this to `master` if you're
+  # using the `master` branch as the default branch.
   push:
-    branches: 
-      - main
+    branches:
+      - master
+    tags: ['*']
   pull_request:
-  tags: 
-    - '*'
 
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
 # Sets permissions of the GITHUB_TOKEN to allow deployment to GitHub Pages
 permissions:
-  actions: write # useful to delete gh cache
   contents: write
   pages: write
   id-token: write
@@ -32,29 +32,25 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Not needed if lastUpdated is not enabled
-      # - uses: pnpm/action-setup@v2 # Uncomment this if you're using pnpm
-      # - uses: oven-sh/setup-bun@v1 # Uncomment this if you're using Bun
-      - name: Set up Node
-        uses: actions/setup-node@v4
+        uses: actions/checkout@4
+        with: # Fetches the last commit only
+          fetch-depth: 0
+      - name: Setup Node
+        uses: actions/setup-node@v3
         with:
             node-version: 20
             cache: npm # or pnpm / yarn
-            cache-dependency-path: 'package-lock.json' # this should be a package-lock.json file
-      - name: Install dependencies
-        run: cd docs; npm install; cd .. # or pnpm install / yarn install / bun install
-      - name: Set up Julia
+            cache-dependency-path: 'docs/package-lock.json' # this should be a package-lock.json file
+      - name: Setup Julia
         uses: julia-actions/setup-julia@v1
       - name: Pull Julia cache
         uses: julia-actions/cache@v1
-      - name: Install documentation dependencies
-        run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
-      - name: Generate example md files
-        run: |
-          julia --project=docs/ --color=yes docs/logo.jl
-          julia --project=docs/ --color=yes docs/make.jl
+      - name: Install custom documentation dependencies
+        run: julia --project=docs -e 'using Pkg; pkg"dev ."; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
+      - name: Instantiate NPM
+        run: cd docs/; npm i; cd ..
+      - name: Generate logo
+        run: julia --project=docs/ --color=yes docs/make.jl
       - name: Build and deploy
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
