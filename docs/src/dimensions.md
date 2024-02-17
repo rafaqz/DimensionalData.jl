@@ -126,7 +126,7 @@ with it! Regular indexing specifies order, so doesn't mix well with our dimensio
 
 Mixing them will throw an error:
 
-```@example dimension
+```@example dimensions
 A1[X(3), 4]
 ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
 ```
