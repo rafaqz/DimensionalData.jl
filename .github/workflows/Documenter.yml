@@ -46,7 +46,7 @@ jobs:
       - name: Pull Julia cache
         uses: julia-actions/cache@v1
       - name: Install custom documentation dependencies
-        run: julia --project=docs -e 'using Pkg; pkg"dev ."; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
+        run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
       - name: Instantiate NPM
         run: cd docs/; npm i; cd ..
       - name: Generate logo
