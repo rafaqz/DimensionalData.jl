@@ -50,11 +50,9 @@ jobs:
       - name: Instantiate NPM
         run: cd docs/; npm i; cd ..
       - name: Generate logo
-        run: julia --project=docs/ --color=yes docs/make.jl
+        run: julia --project=docs/ --color=yes docs/logo.jl
       - name: Build and deploy
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
-          DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
           JULIA_DEBUG: "Documenter"
           DATADEPS_ALWAYS_ACCEPT: true
         run: |
