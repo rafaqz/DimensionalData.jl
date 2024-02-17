@@ -64,6 +64,7 @@ export default defineConfig({
           { text: 'Getting Started', link: '/basics' },
           { text: 'Dimensions', link: '/dimensions' },
           { text: 'Selectors', link: '/selectors' },
+          { text: 'GroupBy', link: '/groupby' },
           { text: 'Stacks', link: '/stacks' },
           { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'Lookup customazation', link: '/lookup_customization' },
