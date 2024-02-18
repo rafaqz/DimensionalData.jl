@@ -728,7 +728,7 @@ end
 
 Return a new array or stack whose dimensions are the result of [`mergedims(dims(A), dim_pairs)`](@ref).
 """
-function mergedims(A::AbstractBasicDimArray, dim_pairs::Pair...)
+function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
     isempty(dim_pairs) && return A
     all_dims = dims(A)
     dims_new = mergedims(all_dims, dim_pairs...)

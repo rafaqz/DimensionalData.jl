@@ -217,7 +217,7 @@ end
 
 Base.print_matrix(io::IO, A::AbstractBasicDimArray) = _print_matrix(io, parent(A), lookup(A))
 # Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
-function _print_matrix(io::IO, A::AbstractBasicDimArray{<:Any,1}, lookups::Tuple)
+function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
     if get(io, :limit, false)
         h, _ = displaysize(io)
@@ -241,7 +241,7 @@ function _print_matrix(io::IO, A::AbstractBasicDimArray{<:Any,1}, lookups::Tuple
     end
     return nothing
 end
-function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
+function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
     lu1, lu2 = lookups
     f1, f2 = firstindex(lu1), firstindex(lu2)
     l1, l2 = lastindex(lu1), lastindex(lu2)

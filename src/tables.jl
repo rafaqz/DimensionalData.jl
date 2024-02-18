@@ -33,100 +33,7 @@ function _colnames(s::AbstractDimStack)
     (dimkeys..., keys(s)...)
 end
 
-
-# DimColumn
-
-
-"""
-    DimColumn{T,D<:Dimension} <: AbstractVector{T}
-
-    DimColumn(dim::Dimension, dims::Tuple{Vararg{DimTuple}})
-    DimColumn(dim::DimColumn, length::Int, dimstride::Int)
-
-A table column based on a `Dimension` and it's relationship with other
-`Dimension`s in `dims`.
-
-`length` is the product of all dim lengths (usually the length of the corresponding
-array data), while stride is the product of the preceding dimension lengths, which
-may or may not be the real stride of the corresponding array depending on the data type.
-For `A isa Array`, the `dimstride` will match the `stride`.
-
-When the second argument is a `Tuple` of `Dimension`, the `length` and `dimstride`
-fields are calculated from the dimensions, relative to the column dimension `dim`.
-
-
-This object will be returned as a column of [`DimTable`](@ref).
-"""
-struct DimColumn{T,D<:Dimension} <: AbstractVector{T}
-    dim::D
-    dimstride::Int
-    length::Int
-end
-function DimColumn(dim::D, alldims::DimTuple) where D<:Dimension
-    # This is the apparent stride for indexing purposes,
-    # it is not always the real array stride
-    stride = dimstride(alldims, dim)
-    len = prod(map(length, alldims))
-    DimColumn{eltype(dim),D}(dim, stride, len)
-end
-
-dim(c::DimColumn) = getfield(c, :dim)
-dimstride(c::DimColumn) = getfield(c, :dimstride)
-
-Base.length(c::DimColumn) = getfield(c, :length)
-@inline function Base.getindex(c::DimColumn, i::Int)
-    Base.@boundscheck checkbounds(c, i)
-    dim(c)[mod((i - 1) ÷ dimstride(c), length(dim(c))) + 1]
-end
-Base.getindex(c::DimColumn, ::Colon) = vec(c)
-Base.getindex(c::DimColumn, A::AbstractArray) = [c[i] for i in A]
-Base.size(c::DimColumn) = (length(c),)
-Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
-Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
-Base.Array(c::DimColumn) = vec(c)
-
-
-# DimArrayColumn
-
-
-struct DimArrayColumn{T,A<:AbstractDimArray{T},DS,DL,L} <: AbstractVector{T}
-    data::A
-    dimstrides::DS
-    dimlengths::DL
-    length::L
-end
-function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTupleOrEmpty) where T
-    # This is the apparent stride for indexing purposes,
-    # it is not always the real array stride
-    dimstrides = map(d -> dimstride(alldims, d), dims(A))
-    dimlengths = map(length, dims(A))
-    len = prod(map(length, alldims))
-    DimArrayColumn(A, dimstrides, dimlengths, len)
-end
-
-Base.parent(c::DimArrayColumn) = getfield(c, :data)
-dimstrides(c::DimArrayColumn) = getfield(c, :dimstrides)
-dimlengths(c::DimArrayColumn) = getfield(c, :dimlengths)
-
-Base.length(c::DimArrayColumn) = getfield(c, :length)
-@inline function Base.getindex(c::DimArrayColumn, i::Int)
-    Base.@boundscheck checkbounds(c, i)
-    I = map((s, l) -> _strideind(s, l, i), dimstrides(c), dimlengths(c))
-    parent(c)[I...]
-end
-
-_strideind(stride, len, i) = mod((i - 1) ÷ stride, len) + 1
-
-Base.getindex(c::DimArrayColumn, ::Colon) = vec(c)
-Base.getindex(c::DimArrayColumn, A::AbstractArray) = [c[i] for i in A]
-Base.size(c::DimArrayColumn) = (length(c),)
-Base.axes(c::DimArrayColumn) = (Base.OneTo(length(c)),)
-Base.vec(c::DimArrayColumn{T}) where T = [c[i] for i in eachindex(c)]
-Base.Array(c::DimArrayColumn) = vec(c)
-
-
 # DimTable
-
 
 """
     DimTable <: AbstractDimTable
@@ -167,17 +74,26 @@ DimTable with 1024 rows, 4 columns, and schema:
 struct DimTable <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
     colnames::Vector{Symbol}
-    dimcolumns::Vector{DimColumn}
-    dimarraycolumns::Vector{DimArrayColumn}
+    dimcolumns::Vector{AbstractVector}
+    dimarraycolumns::Vector{AbstractVector}
 end
 
 function DimTable(s::AbstractDimStack; mergedims=nothing)
-    s = isnothing(mergedims) ? s : DimensionalData.mergedims(s, mergedims)
-    dims_ = dims(s)
-    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-    dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
-    keys = _colnames(s)
-    return DimTable(s, collect(keys), collect(dimcolumns), collect(dimarraycolumns))
+    s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
+    dimcolumns = collect(_dimcolumns(s))
+    dimarraycolumns = if hassamedims(s)
+        map(vec, layers(s))
+    else
+        map(A -> vec(DimExtensionArray(A, dims(s))), layers(s))
+    end |> collect
+    keys = collect(_colnames(s))
+    return DimTable(s, keys, dimcolumns, dimarraycolumns)
+end
+
+_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
+function _dimcolumn(x, d::Dimension)
+    dim_as_dimarray = DimArray(index(d), d)
+    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
 end
 
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
@@ -187,17 +103,15 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Construct Layer Names
     layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames
 
-    # Construct DimColumns
+    # Construct dimwnsion and array columns with DimExtensionArray
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
-    dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
+    dimcolumns = collect(_dimcolumns(dims_))
     dimnames = collect(map(dim2key, dims_))
-
-    # Construct DimArrayColumns
-    dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims_), xs))
+    dimarraycolumns = collect(map(vec ∘ parent, xs))
+    colnames = vcat(dimnames, layernames)
 
     # Return DimTable
-    colnames = vcat(dimnames, layernames)
     return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
 

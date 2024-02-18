@@ -17,7 +17,22 @@ for f in (:getindex, :dotview, :view)
     @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
         rebuild(di; dims=dims(di, 1)[i])
     end
-    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Int) = Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Int) = 
+        Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+end
+
+@inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
+    rebuild(A; dims=reverse(dims(A)))
+@inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
+    rebuild(A; dims=(AnonDim(Base.OneTo(1)), dims(A)...))
+@inline function Base.permutedims(A::AbstractDimArrayGenerator, perm)
+    length(perm) == length(dims(A) || throw(ArgumentError("permutation must be same length as dims")))
+    rebuild(A; dim=sortdims(dims(A), Tuple(perm)))
+end
+
+@inline function Base.PermutedDimsArray(A::AbstractDimArrayGenerator{T,N}, perm) where {T,N}
+    perm_inds = dimnum(A, Tuple(perm))
+    rebuild(A; dims=dims(dims(A), Tuple(perm)))
 end
 
 abstract type AbstractDimIndices{T,N,D} <: AbstractDimArrayGenerator{T,N,D} end
@@ -320,19 +335,19 @@ end
 # as if the array assigned into a larger array accross all dimensions,
 # but without the copying. Theres is a cost for linear indexing these objects
 # as we need to convert to cartesian.
-struct DimExtensionArray{T,N,D<:Tuple{Dimension,Vararg{Dimension}},R,A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
+struct DimExtensionArray{T,N,D<:Tuple{Vararg{Dimension}},R<:Tuple{Vararg{Dimension}},A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
     _data::A
     dims::D
     refdims::R
-    function DimExtensionArray(A::AbstractBasicDimArray{T}, dims::DimTuple, refdims::Tuple) where T
+    function DimExtensionArray(A::AbstractBasicDimArray{T}, dims::Tuple, refdims::Tuple) where T
         all(hasdim(dims, DD.dims(A))) || throw(ArgumentError("all dim in array must also be in `dims`"))
-        comparedims(A, DD.dims(A, dims))
+        comparedims(A, DD.dims(dims, DD.dims(A)))
         fdims = format(dims, CartesianIndices(map(length, dims)))
         N = length(dims)
         new{T,N,typeof(fdims),typeof(refdims),typeof(A)}(A, fdims, refdims)
     end
 end
-DimExtensionArray(A::AbstractBasicDimArray, dims::DimTuple; refdims=refdims(A)) =
+DimExtensionArray(A::AbstractBasicDimArray, dims::Tuple; refdims=refdims(A)) =
     DimExtensionArray(A, dims, refdims)
 
 name(A::DimExtensionArray) = name(A._data)
@@ -371,7 +386,7 @@ for f in (:getindex, :dotview, :view)
                 x isa AbstractArray ? x : fill(x)
             end
             newrealdims = dims(newdims, realdims)
-            newdata = rebuild(A; _data=newrealparent, dims=newrealdims)
+            newdata = rebuild(A; data=newrealparent, dims=newrealdims)
             rebuild(de; _data=newdata, dims=newdims, refdims=newrefdims)
         end
     end
@@ -390,4 +405,14 @@ for f in (:getindex, :dotview)
         return $f(A, dims(D, dims(A))...)
     end
     @eval $__f(de::DimExtensionArray{<:Any,1}, i::Int) = $f(de._data, rebuild(dims(de, 1), i))
+end
+
+function mergedims(A::DimExtensionArray, dim_pairs::Pair...)
+    all_dims = dims(A)
+    dims_new = mergedims(all_dims, dim_pairs...)
+    dimsmatch(all_dims, dims_new) && return A
+    dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
+    Aperm = PermutedDimsArray(A, dims_perm)
+    data_merged = reshape(parent(Aperm), map(length, dims_new))
+    return DimArray(data_merged, dims_new)
 end

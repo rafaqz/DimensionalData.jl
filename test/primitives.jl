@@ -232,6 +232,7 @@ end
 
 @testset "hasdim" begin
     @test hasdim(da, X()) == true
+    @test hasdim(da, :X) == true
     @test hasdim(da, isforward) == (true, true) 
     @test (@ballocated hasdim($da, X())) == 0
     @test hasdim(da, Ti) == false
@@ -240,6 +241,7 @@ end
     @ballocated hasdim(dims($da), Y)
     @test (@ballocated hasdim(dims($da), Y)) == 0
     @test hasdim(dims(da), (X, Y)) == (true, true)
+    @test hasdim(dims(da), (:X, :Y)) == (true, true)
     f1 = (da) -> hasdim(dims(da), (X, Ti, Y, Z))
     @test @inferred f1(da) == (true, false, true, false)
     @test (@ballocated $f1($da)) == 0

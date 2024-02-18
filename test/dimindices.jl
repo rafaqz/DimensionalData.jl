@@ -138,8 +138,8 @@ end
     @test @inferred DimArray(ex[X=1, Y=1]) isa DimArray{Int,2,<:Tuple{<:Z,<:Ti},<:Tuple,Array{Int,2}}
     @test @inferred all(DimArray(ex[X=4, Y=2]) .=== A[X=4, Y=2])
     @test @inferred ex[Z=At(10), Ti=At(DateTime(2000))] == A
-    @btime $ex[Z=At(10), Ti=At(DateTime(2000))]
-    using ProfileView
-    @profview for i in 1:100000 @inbounds ex[Z=1, Ti=1] end
+    @test @inferred vec(ex) == mapreduce(_ -> vec(A), vcat, 1:prod(size(ex[X=1, Y=1])))
+    ex1 = DimensionalData.DimExtensionArray(A, (Z(1:10), dims(A)..., Ti(DateTime(2000):Month(1):DateTime(2000, 12); sampling=Intervals(Start()))))
+    @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
 end
 
