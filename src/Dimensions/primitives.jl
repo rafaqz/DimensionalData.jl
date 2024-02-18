@@ -281,8 +281,9 @@ julia> otherdims(A, (Y, Z))
 X
 ```
 """
-@inline otherdims(x, query) =
+@inline otherdims(x, query) = begin
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
+end
 @inline otherdims(x, query...) =
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
 
@@ -699,7 +700,6 @@ struct AlwaysTuple <: QueryMode end
 end
 @inline function _dim_query1(f, op::Function, t, d::Tuple, query)
     ds = dims(query)
-    @show ds
     isnothing(ds) && _dims_are_not_dims()
     _dim_query1(f, op, t, d, ds)
 end

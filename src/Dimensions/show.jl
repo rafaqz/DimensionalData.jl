@@ -14,7 +14,7 @@ function dimcolors(i)
 end
 
 function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
-    colors=map(x -> get(io, :dimcolo, dimcolors(x)), ntuple(identity, length(dims)))
+    colors=map(x -> get(io, :dimcolor, dimcolors(x)), ntuple(identity, length(dims)))
 )
     ctx = IOContext(io, :compact => true)
     inset = get(io, :inset, "")

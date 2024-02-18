@@ -138,10 +138,10 @@ else
     function Base.eachslice(s::AbstractDimStack; dims, drop=true)
         dimtuple = _astuple(dims)
         if !(dimtuple == ()) 
-            all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+            all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
-        axisdims = map(basedims(dims)) do d
-            rebuild(d, axes(lookup(x, d), 1))
+        axisdims = map(DD.dims(s, dimtuple)) do d
+            rebuild(d, axes(lookup(d), 1))
         end
         DimSlices(s; dims=axisdims, drop)
     end

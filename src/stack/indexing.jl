@@ -4,52 +4,54 @@
 
 # Symbol key
 for f in (:getindex, :view, :dotview)
-    @eval @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
+    @eval Base.@assume_effects :foldable @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
         DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
 end
 @propagate_inbounds function Base.getindex(s::AbstractDimStack, keys::Tuple)
     rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
 end
 
-# Array-like indexing
-# @propagate_inbounds Base.getindex(s::AbstractDimStack, i::Int, I::Int...) =
-#     map(A -> Base.getindex(A, i, I...), data(s))
-# @propagate_inbounds function Base.getindex(
-#     s::AbstractDimStack, i::Union{Integer,AbstractArray,Colon}
-# )
-#     if hassamedims(s)
-#         if ndims(first(layers(s))) == 1
-#             map(A -> getindex(A, i), s)
-#         else
-#             map(A -> getindex(A, i), layers(s))
-#         end
-#     else
-#         _getindex_mixed(s, xs, i)
-#     end
-# end
-# @propagate_inbounds _getindex_mixed(s::AbstractDimStack, i::AbstractArray) =
-#     map(A -> getindex(A, DimIndices(dims(s))[i]), layers(s))
-# @propagate_inbounds _getindex_mixed(s::AbstractDimStack, i::Int) =
-#     map(A -> getindex(A, DimIndices(dims(s))[i]), layers(s))
-# @propagate_inbounds _getindex_mixed(s::AbstractDimStack, i::Colon) =
-#     map(A -> getindex(A, i), layers(s))
-
 for f in (:getindex, :view, :dotview)
     _f = Symbol(:_, f)
     @eval begin
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::StandardIndices)
-            $f(s, view(DimIndices(s), i))
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Integer)
+            if hassamedims(s)
+                map(l -> Base.$f(l, i), s)
+            else
+                Base.$f(s, DimIndices(s)[i])
+            end
         end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1::SelectorOrStandard, Is::SelectorOrStandard...)
-            I = to_indices(CartesianIndices(s), (i1, Is...))
-            @show I CartesianIndices(s)
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{CartesianIndices,CartesianIndex})
+            I = to_indices(CartesianIndices(s), (i,))
+            Base.$f(s, I...)
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{AbstractArray,Colon})
+            if length(dims(s)) > 1
+                Base.$f(s, view(DimIndices(s), i))
+            elseif length(dims(s)) == 1
+                Base.$f(s, rebuild(only(dims(s)), i))
+            else 
+                checkbounds(s, i)
+            end
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{AbstractArray,Colon})
+            if length(dims(s)) > 1
+                Base.$f(s, view(DimIndices(s), i))
+            elseif length(dims(s)) == 1
+                Base.$f(s, rebuild(only(dims(s)), i))
+            else 
+                checkbounds(s, i)
+            end
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1::SelectorOrStandard, i2, Is::SelectorOrStandard...)
+            I = to_indices(CartesianIndices(s), (i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
                 throw(BoundsError(dims(s), I))
             elseif length(dims(s)) < length(I)
                 # Allow trailing ones
-                if all(i -> i isa Integer && i == 1, I[length(dims(s)):end])
-                    I = I[1:length(dims)]
+                if all(i -> i isa Integer && i == 1, I[length(dims(s))+1:end])
+                    I = I[1:length(dims(s))]
                 else
                     throw(BoundsError(dims(s), I))
                 end
@@ -57,18 +59,9 @@ for f in (:getindex, :view, :dotview)
             # Convert to Dimension wrappers to handle mixed size layers
             Base.$f(s, map(rebuild, dims(s), I)...)
         end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::AbstractArray)
-            # Multidimensional: return vectors of values
-            if length(dims(s)) > 1
-                Ds = DimIndices(s)[i]
-                map(s) do A
-                    map(D -> A[D...], Ds)
-                end
-            else
-                map(A -> A[i], s)
-            end
-        end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, D::DimensionalIndices...; kw...)
+        @propagate_inbounds function Base.$f(
+            s::AbstractDimStack, D::DimensionalIndices...; kw...
+        )
             $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
         end
         # Ambiguities
@@ -90,11 +83,11 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function $_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
-            return merge_and_index($f, A, (a1, args...))
+            return merge_and_index(Base.$f, A, (a1, args...))
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
         @propagate_inbounds function $_f(s::AbstractDimStack)
-            map($f, s)
+            map(Base.$f, s)
         end
         @propagate_inbounds function $_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
             D = (d1, ds...)
@@ -122,6 +115,7 @@ for f in (:getindex, :view, :dotview)
         end
     end
 end
+
 
 #### setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
@@ -161,3 +155,21 @@ end
 
 # For @views macro to work with keywords
 Base.maybeview(A::AbstractDimStack, args...; kw...) = view(A, args...; kw...)
+
+function merge_and_index(f, s::AbstractDimStack, ds)
+    ds, inds_arrays = _separate_dims_arrays(_simplify_dim_indices(ds...)...)
+    # No arrays here, so abort (dispatch is tricky...)
+    length(inds_arrays) == 0 && return f(s, ds...)
+    inds = first(inds_arrays)
+
+    V = length(ds) > 0 ? view(s, ds...) : s
+    if !(length(dims(first(inds))) == length(dims(V)))
+        throw(ArgumentError("When indexing an AbstractDimStack with an Array all dimensions must be used")) 
+    end
+    mdim = only(mergedims(dims(V),  dims(V)))
+    newlayers = map(layers(V)) do l
+        l1 = all(hasdim(l, dims(V))) ? l : DimExtension(l, dims(V))
+        view(l1, inds)
+    end
+    return rebuild_from_arrays(s, newlayers)
+end

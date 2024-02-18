@@ -1,25 +1,26 @@
 
-abstract type AbstractDimGenerators{T,N,D} <: AbstractBasicDimArray{T,N,D} end
+abstract type AbstractDimArrayGenerator{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
-dims(dg::AbstractDimGenerators) = dg.dims
+dims(dg::AbstractDimArrayGenerator) = dg.dims
 
-Base.size(dg::AbstractDimGenerators) = map(length, dims(dg))
-Base.axes(dg::AbstractDimGenerators) = map(d -> axes(d, 1), dims(dg))
+Base.size(dg::AbstractDimArrayGenerator) = map(length, dims(dg))
+Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
     T = Union{Colon,AbstractUnitRange}
-    @eval function Base.$f(di::AbstractDimGenerators, i1::$T, i2::$T, Is::$T...)
+    @eval function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(di), I)
         rebuild(di; dims=newdims)
     end
-    @eval function Base.$f(di::AbstractDimGenerators{<:Any,1}, i::$T)
+    @eval function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
         rebuild(di; dims=dims(di, 1)[i])
     end
+    @eval Base.$f(dg::AbstractDimArrayGenerator, i::Int) = Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
 end
 
-abstract type AbstractDimIndices{T,N,D} <: AbstractDimGenerators{T,N,D} end
+abstract type AbstractDimIndices{T,N,D} <: AbstractDimArrayGenerator{T,N,D} end
 
 (::Type{T})(::Nothing; kw...) where T<:AbstractDimIndices = throw(ArgumentError("Object has no `dims` method"))
 (::Type{T})(x; kw...) where T<:AbstractDimIndices = T(dims(x); kw...)
@@ -119,7 +120,7 @@ _dimindices_format(dims::Tuple) = map(rebuild, dims, map(_dimindices_axis, dims)
 _dimindices_axis(x::Integer) = Base.OneTo(x)
 _dimindices_axis(x::AbstractRange{<:Integer}) = x
 # And LookupArray, which we take the axes from
-_dimindices_axis(x::Dimension) = parent(axes(x, 1))
+_dimindices_axis(x::Dimension) = _dimindices_axis(val(x))
 _dimindices_axis(x::LookupArray) = axes(x, 1)
 _dimindices_axis(x) =
     throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `LookupArray` (the `axes` will be used)"))
@@ -223,7 +224,7 @@ struct DimSelectors{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S<:Tuple} <: Abstr
     dims::D
     selectors::S
 end
-function DimSelectors(dims::DimTuple; atol=nothing, selectors=At)
+function DimSelectors(dims::DimTuple; atol=nothing, selectors=At())
     s = _format_selectors(dims, selectors, atol)
     DimSelectors(dims, s)
 end
@@ -241,11 +242,12 @@ end
 @inline _format_selectors(dims::Tuple, selectors::Tuple, atol::Tuple) =
     map(_format_selectors, dims, selectors, atol)
 
-@inline _format_selectors(d::Dimension, ::Type{Near}, atol) =
+_format_selectors(d::Dimension, T::Type, atol) = _format_selectors(d, T(), atol)
+@inline _format_selectors(d::Dimension, ::Near, atol) =
     Near(zero(eltype(d)))
-@inline _format_selectors(d::Dimension, ::Type{Contains}, atol) =
+@inline _format_selectors(d::Dimension, ::Contains, atol) =
     Contains(zero(eltype(d)))
-@inline function _format_selectors(d::Dimension, ::Type{At}, atol)
+@inline function _format_selectors(d::Dimension, ::At, atol)
     atolx = _atol(eltype(d), atol)
     v = first(val(d))
     At{typeof(v),typeof(atolx),Nothing}(v, atolx, nothing)
@@ -267,13 +269,14 @@ end
 # Depricated
 const DimKeys = DimSelectors
 
-struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimGenerator{T,N,D}
+struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator{T,N,D}
     data::P
     dims::D
 end
-function DimSlices(x; dims, drop=true)
-    sourcedims = length(newdims) > 0 ? newdims : dims(x)
-    inds = map(d -> rebuild(d, first(d)), sourcedims)
+DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
+function DimSlices(x, dims; drop=true)
+    newdims = length(dims) == 0 ? map(d  -> rebuild(d, :), DD.dims(x)) : dims
+    inds = map(d -> rebuild(d, first(d)), newdims)
     T = typeof(view(x, inds...))
     N = length(newdims)
     D = typeof(newdims)
@@ -312,3 +315,80 @@ end
 #     map(x -> DimSummariser(x, colors), A)
 #     Base.printmatrix(io, A)
 # end
+#
+
+struct DimExtension{T,N,D<:Tuple{Dimension,Vararg{Dimension}},A<:AbstractBasicDimArray} <: AbstractDimArrayGenerator{T,N,D}
+    data::A
+    dims::D
+end
+function DimExtension(data::AbstractBasicDimArray{T}, dims::DimTuple) where T
+    all(hasdim(dims, DD.dims(data))) || throw(ArgumentError("all dim in array must also be in `dims`"))
+    comparedims(data, DD.dims(data, dims))
+    N = length(dims)
+    DimExtension{T,N,typeof(dims),typeof(data)}(data, dims)
+end
+
+# Indexing that returns a new object with the same number of dims
+for f in (:getindex, :dotview, :view)
+    _f = Symbol(:_, f)
+    T = Union{Colon,AbstractRange}
+    # For ambiguity
+    @eval function Base.$f(de::DimExtension, i1::$T, i2::$T, Is::$T...)
+        $_f(de, i1, i2, Is...)
+    end
+    @eval function Base.$f(de::DimExtension, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
+        $_f(de, i1, i2, Is...)
+    end
+    @eval function $_f(de::DimExtension, i1, i2, Is...)
+        I = (i1, i2, Is...)
+        newdims, _ = slicedims(dims(de), I)
+        D = map(rebuild, dims(de), I)
+        A = de.data
+        realdims = dims(D, dims(A))
+        if all(map(d -> val(d) isa Colon, realdims))
+            rebuild(de; dims=newdims)
+        else
+            newrealparent = begin
+                x = parent(A)[dims2indices(A, realdims)...]
+                x isa AbstractArray ? x : fill(x)
+            end
+            newrealdims = dims(newdims, realdims)
+            newdata = rebuild(A; data=newrealparent, dims=newrealdims)
+            rebuild(de; data=newdata, dims=newdims)
+        end
+    end
+    @eval function $_f(de::DimExtension{<:Any,1}, i::$T)
+        newdims, _ = slicedims(dims(de), (i,))
+        A = de.data
+        D = rebuild(only(dims(de)), i)
+        rebuild(de; dims=newdims, data=A[D...])
+    end
+end
+
+for f in (:getindex, :dotview)
+    _f = Symbol(:_, f)
+    @eval function $_f(de::AbstractDimArrayGenerator, i1::Int, i2::Int, Is::Int...)
+        D = map(rebuild, dims(de), (i1, i2, Is...))
+        A = de.data
+        return $f(A, dims(D, dims(A))...)
+    end
+    @eval $_f(de::DimExtension{<:Any,1}, i::Int) = $f(de.data, rebuild(dims(de, 1), i))
+end
+
+for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
+                     (:Base, :transpose), (:LinearAlgebra, :Transpose)]
+    @eval begin
+        @inline $pkg.$fname(A::AbstractDimArrayGenerator{<:Any,2}) =
+            rebuild(A; dims=reverse(dims(A)))
+        @inline $pkg.$fname(A::AbstractDimArrayGenerator{<:Any,1}) =
+            rebuild(A; dims=(AnonDim(Base.OneTo(1)), dims(A)...))
+    end
+end
+@inline function Base.permutedims(A::AbstractDimArrayGenerator, perm)
+    rebuild(A; dim=sortdims(dims(A), Tuple(perm)))
+end
+
+@inline function Base.PermutedDimsArray(A::AbstractDimArrayGenerator{T,N}, perm) where {T,N}
+    perm_inds = dimnum(A, Tuple(perm))
+    rebuild(A; dims=sortdims(dims(A), Tuple(perm)))
+end

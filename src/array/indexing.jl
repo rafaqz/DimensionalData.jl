@@ -61,8 +61,9 @@ for f in (:getindex, :view, :dotview)
                 Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}}) = $_f(A, i1, I...)
 
         # Use underscore methods to minimise ambiguities
-        @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
+        @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) = begin
             Base.$f(A, dims2indices(A, (d1, ds...))...)
+        end
         @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_f(
@@ -79,8 +80,8 @@ for f in (:getindex, :view, :dotview)
             rebuildsliced(Base.$f, A, x, I)
         end
     else
-        @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, I::StandardIndices...)
-            I = to_indices(A, (i1, i2, I...))
+        @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
+            I = to_indices(A, (i1, i2, Is...))
             x = Base.$f(parent(A), I...)
             all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)
         end
@@ -89,7 +90,7 @@ end
 
 
 function merge_and_index(f, A, dims)
-    dims, inds_arrays = _separate_dims_arrays(dims...)
+    dims, inds_arrays = _separate_dims_arrays(_simplify_dim_indices(dims...)...)
     # No arrays here, so abort (dispatch is tricky...)
     length(inds_arrays) == 0 && return f(A, dims...)
 
@@ -169,14 +170,17 @@ function _separate_dims_arrays(a::AbstractArray, ds...)
 end
 _separate_dims_arrays() = (), ()
 
-Base.@assume_effects :foldable _simplify_dim_indices(d::Dimension, ds...) = (d, _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::Tuple, ds...) = (d..., _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:Dimension}, ds...) = (d, _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:DimTuple}, ds...) = (d, _simplify_dim_indices(ds)...)
+Base.@assume_effects :foldable _simplify_dim_indices(d::Dimension, ds...) =
+    (d, _simplify_dim_indices(ds)...)
+Base.@assume_effects :foldable _simplify_dim_indices(d::Tuple, ds...) =
+    (d..., _simplify_dim_indices(ds)...)
+Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:Dimension}, ds...) =
+    (d, _simplify_dim_indices(ds)...)
+Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:DimTuple}, ds...) =
+    (d, _simplify_dim_indices(ds)...)
 Base.@assume_effects :foldable _simplify_dim_indices(::Tuple{}) = ()
-Base.@assume_effects :foldable function _simplify_dim_indices(d::DimIndices, ds...)
+Base.@assume_effects :foldable _simplify_dim_indices(d::DimIndices, ds...) =
     (dims(d)..., _simplify_dim_indices(ds)...)
-end
 Base.@assume_effects :foldable function _simplify_dim_indices(d::DimSelectors, ds...)
     seldims = map(dims(d), d.selectors) do d, s
         # But the dimension values inside selectors

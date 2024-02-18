@@ -228,7 +228,7 @@ for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :b
           :name, :label, :units)
     @eval begin
         $f(ds::DimTuple) = map($f, ds)
-        $f(ds::Tuple{}) = ()
+        $f(::Tuple{}) = ()
         $f(ds::DimTuple, i1, I...) = $f(ds, (i1, I...))
         $f(ds::DimTuple, I) = $f(dims(ds, key2dim(I)))
     end

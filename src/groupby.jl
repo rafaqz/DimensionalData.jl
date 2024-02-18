@@ -295,8 +295,8 @@ function _group_indices(dim::Dimension, group_lookup::LookupArray; labels=nothin
     orig_lookup = lookup(dim)
     indices = map(_ -> Int[], 1:length(group_lookup))
     for (i, v) in enumerate(orig_lookup)
-        n = selectindices(group_lookup, Contains(v))
-        push!(indices[n], i)
+        n = selectindices(group_lookup, Contains(v); err=LookupArrays._False())
+        isnothing(n) || push!(indices[n], i)
     end
     group_dim = if isnothing(labels)
         rebuild(dim, group_lookup)

@@ -650,7 +650,7 @@ end
 # Allow customising constructors based on dimension types
 # Thed default constructor is DimArray
 dimconstructor(dims::DimTuple) = dimconstructor(tail(dims)) 
-dimconstructor(dims::Tuple{}) = DimArray 
+dimconstructor(::Tuple{}) = DimArray 
 
 """
     mergedims(old_dims => new_dim) => Dimension
@@ -716,7 +716,7 @@ end
 
 Return a new array or stack whose dimensions are the result of [`mergedims(dims(A), dim_pairs)`](@ref).
 """
-function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
+function mergedims(A::AbstractBasicDimArray, dim_pairs::Pair...)
     isempty(dim_pairs) && return A
     all_dims = dims(A)
     dims_new = mergedims(all_dims, dim_pairs...)
@@ -724,7 +724,7 @@ function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
     dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
     Aperm = PermutedDimsArray(A, dims_perm)
     data_merged = reshape(data(Aperm), map(length, dims_new))
-    rebuild(A, data_merged, dims_new)
+    return rebuild(A, data_merged, dims_new)
 end
 
 """
@@ -744,7 +744,7 @@ end
 
 Return a new array or stack whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
 """
-function unmergedims(A::AbstractDimArray, original_dims)
+function unmergedims(A::AbstractBasicDimArray, original_dims)
     merged_dims = dims(A)
     unmerged_dims = unmergedims(merged_dims)
     reshaped = reshape(data(A), size(unmerged_dims))
