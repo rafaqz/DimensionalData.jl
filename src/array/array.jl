@@ -10,6 +10,10 @@ Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
 abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
 
+const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
+const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
+const AbstractBasicDimVecOrMat = Union{AbstractBasicDimVector,AbstractBasicDimMatrix}
+
 # DimensionalData.jl interface methods ####################################################
 
 for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)

@@ -8,7 +8,7 @@ Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
-    T = Union{Colon,AbstractUnitRange}
+    T = Union{Colon,AbstractRange}
     @eval function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(di), I)
@@ -317,6 +317,10 @@ end
 # end
 #
 
+# Extends the dimensions of any `AbstractBasicDimArray`
+# as if the array assigned into a larger array accross all dimensions,
+# but without the copying. Theres is a cost for linear indexing these objects
+# as we need to convert to cartesian.
 struct DimExtension{T,N,D<:Tuple{Dimension,Vararg{Dimension}},A<:AbstractBasicDimArray} <: AbstractDimArrayGenerator{T,N,D}
     data::A
     dims::D
@@ -330,16 +334,24 @@ end
 
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
-    _f = Symbol(:_, f)
+    __f = Symbol(:__, f)
     T = Union{Colon,AbstractRange}
     # For ambiguity
     @eval function Base.$f(de::DimExtension, i1::$T, i2::$T, Is::$T...)
-        $_f(de, i1, i2, Is...)
+        $__f(de, i1, i2, Is...)
     end
     @eval function Base.$f(de::DimExtension, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
-        $_f(de, i1, i2, Is...)
+        $__f(de, i1, i2, Is...)
     end
-    @eval function $_f(de::DimExtension, i1, i2, Is...)
+    @eval function Base.$f(
+        de::DimensionalData.DimExtension, 
+        i1::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
+        i2::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
+        Is::Vararg{Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}}
+    )
+        $__f(de, i1, i2, Is...)
+    end
+    @eval function $__f(de::DimExtension, i1, i2, Is...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(de), I)
         D = map(rebuild, dims(de), I)
@@ -357,38 +369,19 @@ for f in (:getindex, :dotview, :view)
             rebuild(de; data=newdata, dims=newdims)
         end
     end
-    @eval function $_f(de::DimExtension{<:Any,1}, i::$T)
+    @eval function $__f(de::DimExtension{<:Any,1}, i::$T)
         newdims, _ = slicedims(dims(de), (i,))
         A = de.data
         D = rebuild(only(dims(de)), i)
         rebuild(de; dims=newdims, data=A[D...])
     end
 end
-
 for f in (:getindex, :dotview)
-    _f = Symbol(:_, f)
-    @eval function $_f(de::AbstractDimArrayGenerator, i1::Int, i2::Int, Is::Int...)
+    __f = Symbol(:__, f)
+    @eval function $__f(de::DimExtension, i1::Int, i2::Int, Is::Int...)
         D = map(rebuild, dims(de), (i1, i2, Is...))
         A = de.data
         return $f(A, dims(D, dims(A))...)
     end
-    @eval $_f(de::DimExtension{<:Any,1}, i::Int) = $f(de.data, rebuild(dims(de, 1), i))
-end
-
-for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
-                     (:Base, :transpose), (:LinearAlgebra, :Transpose)]
-    @eval begin
-        @inline $pkg.$fname(A::AbstractDimArrayGenerator{<:Any,2}) =
-            rebuild(A; dims=reverse(dims(A)))
-        @inline $pkg.$fname(A::AbstractDimArrayGenerator{<:Any,1}) =
-            rebuild(A; dims=(AnonDim(Base.OneTo(1)), dims(A)...))
-    end
-end
-@inline function Base.permutedims(A::AbstractDimArrayGenerator, perm)
-    rebuild(A; dim=sortdims(dims(A), Tuple(perm)))
-end
-
-@inline function Base.PermutedDimsArray(A::AbstractDimArrayGenerator{T,N}, perm) where {T,N}
-    perm_inds = dimnum(A, Tuple(perm))
-    rebuild(A; dims=sortdims(dims(A), Tuple(perm)))
+    @eval $__f(de::DimExtension{<:Any,1}, i::Int) = $f(de.data, rebuild(dims(de, 1), i))
 end

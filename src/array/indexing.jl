@@ -12,6 +12,7 @@
 const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
 const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
 const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
+const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
 
 for f in (:getindex, :view, :dotview)
     _f = Symbol(:_, f)
@@ -56,14 +57,12 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimSelectors) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimIndices) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimSelectors) = $_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimVector, i::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}) = $_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}, I::Vararg{Union{AbstractArray{
-                Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}}) = $_f(A, i1, I...)
+        @propagate_inbounds Base.$f(A::AbstractDimVector, i::_DimIndicesAmb) = $_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::_DimIndicesAmb, I::_DimIndicesAmb...) = $_f(A, i1, I...)
 
         # Use underscore methods to minimise ambiguities
-        @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) = begin
+        @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
             Base.$f(A, dims2indices(A, (d1, ds...))...)
-        end
         @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...; kw...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_f(

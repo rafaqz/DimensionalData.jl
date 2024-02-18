@@ -34,15 +34,6 @@ for f in (:getindex, :view, :dotview)
                 checkbounds(s, i)
             end
         end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{AbstractArray,Colon})
-            if length(dims(s)) > 1
-                Base.$f(s, view(DimIndices(s), i))
-            elseif length(dims(s)) == 1
-                Base.$f(s, rebuild(only(dims(s)), i))
-            else 
-                checkbounds(s, i)
-            end
-        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i1::SelectorOrStandard, i2, Is::SelectorOrStandard...)
             I = to_indices(CartesianIndices(s), (i1, i2, Is...))
             # Check we have the right number of dimensions
@@ -65,6 +56,14 @@ for f in (:getindex, :view, :dotview)
             $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
         end
         # Ambiguities
+        @propagate_inbounds function Base.$f(
+            ::AbstractDimStack, 
+            ::_DimIndicesAmb,
+            ::Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension},
+            ::_DimIndicesAmb...
+        )
+            $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
+        end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 
             d1::Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}, 
