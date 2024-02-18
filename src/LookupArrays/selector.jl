@@ -344,7 +344,7 @@ Contains() = Contains(nothing)
 
 # Filter based on sampling and selector -----------------
 selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel; kw...)
-selectindices(l::LookupArray, sel::Contains{<:AbstractVector}) = _selectvec(l, sel; kw...)
+selectindices(l::LookupArray, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
