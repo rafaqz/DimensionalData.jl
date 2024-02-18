@@ -1,4 +1,4 @@
-using DimensionalData, Aqua, SafeTestsets 
+using DimensionalData, Test, Aqua, SafeTestsets
 
 @testset "DimensionalData" begin
     if VERSION >= v"1.9.0"
