@@ -124,7 +124,7 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
     lines = 0
     if isempty(dims)
         printed = false
-        newblockwidth = blockwidth
+        new_blockwidth = blockwidth
     else
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
         new_blockwidth = min(displaywidth - 2, max(blockwidth, maximum(textwidth, dim_lines)))
