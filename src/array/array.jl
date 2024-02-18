@@ -84,7 +84,7 @@ end
 # Standard fields
 dims(A::AbstractDimArray) = A.dims
 refdims(A::AbstractDimArray) = A.refdims
-data(A::AbstractDimArray) = A.data
+data(A::AbstractDimArray) = A.data # Don't use this method directly, use `parent`
 name(A::AbstractDimArray) = A.name
 metadata(A::AbstractDimArray) = A.metadata
 
@@ -393,12 +393,20 @@ function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata()
 end
 # Construct from another AbstractDimArray
 function DimArray(A::AbstractDimArray;
-    data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+    data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
     DimArray(data, dims; refdims, name, metadata)
 end
 DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
+# We collect other kinds of AbstractBasicDimArray 
+# to avoid complicated nesting of dims
+function DimArray(A::AbstractBasicDimArray;
+    data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+)
+    newdata = collect(data)
+    DimArray(newdata, format(dims, newdata); refdims, name, metadata)
+end
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -727,7 +735,7 @@ function mergedims(A::AbstractBasicDimArray, dim_pairs::Pair...)
     dimsmatch(all_dims, dims_new) && return A
     dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
     Aperm = PermutedDimsArray(A, dims_perm)
-    data_merged = reshape(data(Aperm), map(length, dims_new))
+    data_merged = reshape(parent(Aperm), map(length, dims_new))
     return rebuild(A, data_merged, dims_new)
 end
 
@@ -751,7 +759,7 @@ Return a new array or stack whose dimensions are restored to their original prio
 function unmergedims(A::AbstractBasicDimArray, original_dims)
     merged_dims = dims(A)
     unmerged_dims = unmergedims(merged_dims)
-    reshaped = reshape(data(A), size(unmerged_dims))
+    reshaped = reshape(parent(A), size(unmerged_dims))
     permuted = permutedims(reshaped, dimnum(unmerged_dims, original_dims))
     return DimArray(permuted, original_dims)
 end

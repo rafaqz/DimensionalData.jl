@@ -391,17 +391,17 @@ previous reference dims attached to the array.
 - `I`: A tuple of `Integer`, `Colon` or `AbstractArray`
 """
 function slicedims end
-@inline slicedims(args...) = slicedims(getindex, args...)
-@inline slicedims(f::Function, x, i1, i2, I...) = slicedims(f, x, (i1, i2, I...))
-@inline slicedims(f::Function, x, I::CartesianIndex) = slicedims(f, x, Tuple(I))
-@inline slicedims(f::Function, x, I::Tuple) = _slicedims(f, dims(x), refdims(x), I)
-@inline slicedims(f::Function, dims::Tuple, I::Tuple) = _slicedims(f, dims, I)
-@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
-@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
-@inline slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) =
+@propagate_inbounds slicedims(args...) = slicedims(getindex, args...)
+@propagate_inbounds slicedims(f::Function, x, i1, i2, I...) = slicedims(f, x, (i1, i2, I...))
+@propagate_inbounds slicedims(f::Function, x, I::CartesianIndex) = slicedims(f, x, Tuple(I))
+@propagate_inbounds slicedims(f::Function, x, I::Tuple) = _slicedims(f, dims(x), refdims(x), I)
+@propagate_inbounds slicedims(f::Function, dims::Tuple, I::Tuple) = _slicedims(f, dims, I)
+@propagate_inbounds slicedims(f::Function, dims::Tuple, refdims::Tuple, i1, I...) = slicedims(f, dims, refdims, (i1, I...))
+@propagate_inbounds slicedims(f::Function, dims::Tuple, refdims::Tuple, I) = _slicedims(f, dims, refdims, I)
+@propagate_inbounds slicedims(f::Function, dims::Tuple, refdims::Tuple, I::CartesianIndex) =
     slicedims(f, dims, refdims, Tuple(I))
 
-@inline function _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple)
+@propagate_inbounds function _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple)
     # Unnaligned may need grouped slicing
     newdims, newrefdims = if any(map(d -> lookup(d) isa Unaligned, dims))
         # Separate out unalligned dims
@@ -419,29 +419,29 @@ function slicedims end
     return newdims, (refdims..., newrefdims...)
 end
 
-@inline _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
-@inline _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
-@inline function _slicedims(f, dims::DimTuple, I::Tuple{<:CartesianIndex})
+@propagate_inbounds _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple{}) = dims, refdims
+@propagate_inbounds _slicedims(f, dims::DimTuple, I::Tuple{}) = dims, ()
+@propagate_inbounds function _slicedims(f, dims::DimTuple, I::Tuple{<:CartesianIndex})
     return _slicedims(f, dims, Tuple(I[1]))
 end
-@inline _slicedims(f, dims::DimTuple, I::Tuple) = begin
+@propagate_inbounds _slicedims(f, dims::DimTuple, I::Tuple) = begin
     d = _slicedims(f, first(dims), first(I))
     ds = _slicedims(f, tail(dims), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
 # Return an AnonDim where e.g. a trailing Colon was passed
-@inline function _slicedims(f, dims::Tuple{}, I::Tuple{Base.Slice,Vararg})
+@propagate_inbounds function _slicedims(f, dims::Tuple{}, I::Tuple{Base.Slice,Vararg})
     d = (AnonDim(_unwrapinds(first(I))),), ()
     ds = _slicedims(f, (), tail(I))
     (d[1]..., ds[1]...), (d[2]..., ds[2]...)
 end
 # Drop trailing Integers
-@inline _slicedims(f, dims::Tuple{}, I::Tuple{Integer,Vararg}) = _slicedims(f, (), tail(I))
-@inline _slicedims(f, dims::Tuple{}, I::Tuple{CartesianIndices{0,Tuple{}},Vararg}) = _slicedims(f, (), tail(I))
-@inline _slicedims(f, dims::Tuple{}, I::Tuple{}) = (), ()
-@inline _slicedims(f, d::Dimension, i::Colon) = (d,), ()
-@inline _slicedims(f, d::Dimension, i::Integer) = (), (f(d, i:i),)
-@inline _slicedims(f, d::Dimension, i) = (f(d, i),), ()
+@propagate_inbounds _slicedims(f, dims::Tuple{}, I::Tuple{Integer,Vararg}) = _slicedims(f, (), tail(I))
+@propagate_inbounds _slicedims(f, dims::Tuple{}, I::Tuple{CartesianIndices{0,Tuple{}},Vararg}) = _slicedims(f, (), tail(I))
+@propagate_inbounds _slicedims(f, dims::Tuple{}, I::Tuple{}) = (), ()
+@propagate_inbounds _slicedims(f, d::Dimension, i::Colon) = (d,), ()
+@propagate_inbounds _slicedims(f::F, d::Dimension, i::Integer) where F = (), (f(d, i:i),)
+@propagate_inbounds _slicedims(f::F, d::Dimension, i) where F = (f(d, i),), ()
 
 _unwrapinds(s::Base.Slice) = s.indices
 _unwrapinds(x) = x # Not sure this can ever be hit? but just in case

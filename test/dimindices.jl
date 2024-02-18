@@ -1,4 +1,4 @@
-using DimensionalData, Test
+using DimensionalData, Test, Dates
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
@@ -128,3 +128,18 @@ end
         @test @inferred broadcast(ds -> D[ds...] + 2, dsa2) == fill(2.0, 4, 3)
     end
 end
+
+@testset "DimExtensionArray" begin
+    A = DimArray(((1:4) * (1:3)'), (X(4.0:7.0), Y(10.0:12.0)); name=:foo)
+    ex = DimensionalData.DimExtensionArray(A, (dims(A)..., Z(1:10), Ti(DateTime(2000):Month(1):DateTime(2000, 12); sampling=Intervals(Start()))))
+    @test isintervals(dims(ex, Ti))
+    @test ispoints(dims(ex, (X, Y, Z)))
+    @test DimArray(ex) isa DimArray{Int,4,<:Tuple{<:X,<:Y,<:Z,<:Ti},<:Tuple,Array{Int,4}}
+    @test @inferred DimArray(ex[X=1, Y=1]) isa DimArray{Int,2,<:Tuple{<:Z,<:Ti},<:Tuple,Array{Int,2}}
+    @test @inferred all(DimArray(ex[X=4, Y=2]) .=== A[X=4, Y=2])
+    @test @inferred ex[Z=At(10), Ti=At(DateTime(2000))] == A
+    @btime $ex[Z=At(10), Ti=At(DateTime(2000))]
+    using ProfileView
+    @profview for i in 1:100000 @inbounds ex[Z=1, Ti=1] end
+end
+

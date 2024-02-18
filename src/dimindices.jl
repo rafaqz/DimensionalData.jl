@@ -9,15 +9,15 @@ Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
     T = Union{Colon,AbstractRange}
-    @eval function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
+    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(di), I)
         rebuild(di; dims=newdims)
     end
-    @eval function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
+    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
         rebuild(di; dims=dims(di, 1)[i])
     end
-    @eval Base.$f(dg::AbstractDimArrayGenerator, i::Int) = Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Int) = Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
 end
 
 abstract type AbstractDimIndices{T,N,D} <: AbstractDimArrayGenerator{T,N,D} end
@@ -270,7 +270,7 @@ end
 const DimKeys = DimSelectors
 
 struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator{T,N,D}
-    data::P
+    _data::P
     dims::D
 end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
@@ -294,12 +294,12 @@ end
     D = map(dims(ds), I) do d, i
         rebuild(d, d[i])
     end
-    return view(ds.data, D...)
+    return view(ds._data, D...)
 end
 # Dispatch to avoid linear indexing in multidimensionsl DimIndices
 @propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Int)
     d = dims(ds, 1)
-    return view(ds.data, rebuild(d, d[i]))
+    return view(ds._data, rebuild(d, d[i]))
 end
 
 # function Base.show(io::IO, mime, A::DimSlices)
@@ -315,73 +315,79 @@ end
 #     map(x -> DimSummariser(x, colors), A)
 #     Base.printmatrix(io, A)
 # end
-#
 
 # Extends the dimensions of any `AbstractBasicDimArray`
 # as if the array assigned into a larger array accross all dimensions,
 # but without the copying. Theres is a cost for linear indexing these objects
 # as we need to convert to cartesian.
-struct DimExtension{T,N,D<:Tuple{Dimension,Vararg{Dimension}},A<:AbstractBasicDimArray} <: AbstractDimArrayGenerator{T,N,D}
-    data::A
+struct DimExtensionArray{T,N,D<:Tuple{Dimension,Vararg{Dimension}},R,A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
+    _data::A
     dims::D
+    refdims::R
+    function DimExtensionArray(A::AbstractBasicDimArray{T}, dims::DimTuple, refdims::Tuple) where T
+        all(hasdim(dims, DD.dims(A))) || throw(ArgumentError("all dim in array must also be in `dims`"))
+        comparedims(A, DD.dims(A, dims))
+        fdims = format(dims, CartesianIndices(map(length, dims)))
+        N = length(dims)
+        new{T,N,typeof(fdims),typeof(refdims),typeof(A)}(A, fdims, refdims)
+    end
 end
-function DimExtension(data::AbstractBasicDimArray{T}, dims::DimTuple) where T
-    all(hasdim(dims, DD.dims(data))) || throw(ArgumentError("all dim in array must also be in `dims`"))
-    comparedims(data, DD.dims(data, dims))
-    N = length(dims)
-    DimExtension{T,N,typeof(dims),typeof(data)}(data, dims)
-end
+DimExtensionArray(A::AbstractBasicDimArray, dims::DimTuple; refdims=refdims(A)) =
+    DimExtensionArray(A, dims, refdims)
+
+name(A::DimExtensionArray) = name(A._data)
+metadata(A::DimExtensionArray) = metadata(A._data)
 
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
     __f = Symbol(:__, f)
     T = Union{Colon,AbstractRange}
     # For ambiguity
-    @eval function Base.$f(de::DimExtension, i1::$T, i2::$T, Is::$T...)
+    @eval @propagate_inbounds function Base.$f(de::DimExtensionArray, i1::$T, i2::$T, Is::$T...)
         $__f(de, i1, i2, Is...)
     end
-    @eval function Base.$f(de::DimExtension, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
+    @eval @propagate_inbounds function Base.$f(de::DimExtensionArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
         $__f(de, i1, i2, Is...)
     end
-    @eval function Base.$f(
-        de::DimensionalData.DimExtension, 
+    @eval @propagate_inbounds function Base.$f(
+        de::DimensionalData.DimExtensionArray, 
         i1::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
         i2::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
         Is::Vararg{Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}}
     )
         $__f(de, i1, i2, Is...)
     end
-    @eval function $__f(de::DimExtension, i1, i2, Is...)
+    @eval Base.@assume_effects :foldable @propagate_inbounds function $__f(de::DimExtensionArray, i1, i2, Is...)
         I = (i1, i2, Is...)
-        newdims, _ = slicedims(dims(de), I)
+        newdims, newrefdims = slicedims(dims(de), refdims(de), I)
         D = map(rebuild, dims(de), I)
-        A = de.data
+        A = de._data
         realdims = dims(D, dims(A))
         if all(map(d -> val(d) isa Colon, realdims))
-            rebuild(de; dims=newdims)
+            rebuild(de; dims=newdims, refdims=newrefdims)
         else
             newrealparent = begin
                 x = parent(A)[dims2indices(A, realdims)...]
                 x isa AbstractArray ? x : fill(x)
             end
             newrealdims = dims(newdims, realdims)
-            newdata = rebuild(A; data=newrealparent, dims=newrealdims)
-            rebuild(de; data=newdata, dims=newdims)
+            newdata = rebuild(A; _data=newrealparent, dims=newrealdims)
+            rebuild(de; _data=newdata, dims=newdims, refdims=newrefdims)
         end
     end
-    @eval function $__f(de::DimExtension{<:Any,1}, i::$T)
+    @eval @propagate_inbounds function $__f(de::DimExtensionArray{<:Any,1}, i::$T)
         newdims, _ = slicedims(dims(de), (i,))
-        A = de.data
+        A = de._data
         D = rebuild(only(dims(de)), i)
-        rebuild(de; dims=newdims, data=A[D...])
+        rebuild(de; dims=newdims, _data=A[D...])
     end
 end
 for f in (:getindex, :dotview)
     __f = Symbol(:__, f)
-    @eval function $__f(de::DimExtension, i1::Int, i2::Int, Is::Int...)
+    @eval function $__f(de::DimExtensionArray, i1::Int, i2::Int, Is::Int...)
         D = map(rebuild, dims(de), (i1, i2, Is...))
-        A = de.data
+        A = de._data
         return $f(A, dims(D, dims(A))...)
     end
-    @eval $__f(de::DimExtension{<:Any,1}, i::Int) = $f(de.data, rebuild(dims(de, 1), i))
+    @eval $__f(de::DimExtensionArray{<:Any,1}, i::Int) = $f(de._data, rebuild(dims(de, 1), i))
 end

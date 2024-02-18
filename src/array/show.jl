@@ -180,17 +180,17 @@ function print_array(io::IO, mime, A::AbstractBasicDimArray{T,2}) where T
 end
 function print_array(io::IO, mime, A::AbstractBasicDimArray{T,3}) where T
     i3 = firstindex(A, 3)
-    frame = view(parent(A), :, :, i3)
+    frame = view(A, :, :, i3)
 
     _print_indices_vec(io, i3)
-    _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
+    Base.print_matrix(_print_array_ctx(io, T), frame)
 end
 function print_array(io::IO, mime, A::AbstractBasicDimArray{T,N}) where {T,N}
     o = ntuple(x -> firstindex(A, x + 2), N-2)
     frame = view(A, :, :, o...)
 
     _print_indices_vec(io, o...)
-    _print_matrix(_print_array_ctx(io, T), frame, lookup(A, (1, 2)))
+    Base.print_matrix(_print_array_ctx(io, T), frame)
 end
 
 function _print_indices_vec(io, o...)
@@ -215,9 +215,9 @@ function print_name(io::IO, name)
     end
 end
 
-Base.print_matrix(io::IO, A::AbstractDimArray) = _print_matrix(io, parent(A), lookup(A))
+Base.print_matrix(io::IO, A::AbstractBasicDimArray) = _print_matrix(io, parent(A), lookup(A))
 # Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
-function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
+function _print_matrix(io::IO, A::AbstractBasicDimArray{<:Any,1}, lookups::Tuple)
     f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
     if get(io, :limit, false)
         h, _ = displaysize(io)
@@ -241,7 +241,6 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     end
     return nothing
 end
-_print_matrix(io::IO, A::AbstractDimArray, lookups::Tuple) = _print_matrix(io, parent(A), lookups)
 function _print_matrix(io::IO, A::AbstractArray, lookups::Tuple)
     lu1, lu2 = lookups
     f1, f2 = firstindex(lu1), firstindex(lu2)

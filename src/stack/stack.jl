@@ -172,7 +172,7 @@ function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
         if all(hasdim(layer, map(first, dim_pairs))) 
             layer
         else
-            DimExtension(layer, dims(st))
+            DimExtensionArray(layer, dims(st))
         end
     end
     vals = map(A -> mergedims(A, dim_pairs...), extended_layers)
