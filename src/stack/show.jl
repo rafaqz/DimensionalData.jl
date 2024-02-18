@@ -6,41 +6,42 @@ end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
     # Show main blocks - summar, dims, layers, metadata
-    _, maxlen = show_main(io, mime, stack)
+    _, blockwidth = show_main(io, mime, stack)
     # Show anything else subtypes want to append
-    show_after(io, mime, stack; maxlen)
+    ctx = IOContext(io, :blockwidth => blockwidth)
+    show_after(ctx, mime, stack)
     return nothing
 end
 
 # Show customisation interface
 function show_main(io, mime, stack::AbstractDimStack)
-    lines, maxlen, width = print_top(io, mime, stack)
-    maxlen = print_layers_block(io, mime, stack; maxlen, width)
-    _, maxlen = print_metadata_block(io, mime, metadata(stack); width, maxlen=min(width-2, maxlen))
+    lines, blockwidth, displaywidth = print_top(io, mime, stack)
+    blockwidth = print_layers_block(io, mime, stack; blockwidth, displaywidth)
+    _, blockwidth = print_metadata_block(io, mime, metadata(stack); displaywidth, blockwidth=min(displaywidth-2, blockwidth))
 end
 
-function show_after(io, mime, stack::AbstractDimStack; maxlen)
-    print_block_close(io, maxlen)
+function show_after(io, mime, stack::AbstractDimStack; blockwidth)
+    print_block_close(io, blockwidth)
 end
 
 # Show blocks
-function print_layers_block(io, mime, stack; maxlen, width)
+function print_layers_block(io, mime, stack; blockwidth, displaywidth)
     layers = DD.layers(stack)
     keylen = if length(keys(layers)) == 0
         0
     else
         reduce(max, map(length ∘ string, collect(keys(layers))))
     end
-    newmaxlen = maxlen
+    newblockwidth = blockwidth
     for key in keys(layers)
-        newmaxlen = min(width - 2, max(maxlen, length(sprint(print_layer, stack, key, keylen))))
+        newblockwidth = min(displaywidth - 2, max(blockwidth, length(sprint(print_layer, stack, key, keylen))))
     end
-    print_block_separator(io, "layers", maxlen, newmaxlen)
+    print_block_separator(io, "layers", blockwidth, newblockwidth)
     println(io)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)
     end
-    return newmaxlen
+    return newblockwidth
 end
 
 function print_layer(io, stack, key, keylen)

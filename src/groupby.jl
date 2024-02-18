@@ -51,15 +51,18 @@ function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T,N}
     print(io, string(nameof(typeof(A)), "{$(nameof(T)),$N}"))
 end
 
-function show_after(io::IO, mime, A::DimGroupByArray; maxlen=0)
-    _, width = displaysize(io)
+function show_after(io::IO, mime, A::DimGroupByArray)
+    _, displaywidth = displaysize(io)
+    blockwidth = get(io, :blockwidth, 0)
     sorteddims = (dims(A)..., otherdims(first(A), dims(A))...)
     colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
     colors = collect(map(val, colordims))
-    print_dims_block(io, mime, basedims(first(A)); width, maxlen, label="group dims", colors)
+    print_dims_block(io, mime, basedims(first(A)); 
+        displaywidth, blockwidth, label="group dims", colors
+    )
     length(A) > 0 || return nothing
     A1 = map(x -> DimSummariser(x, colors), A)
-    show_after(io, mime, A1; maxlen)
+    show_after(io, mime, A1; blockwidth)
     return nothing
 end
 
