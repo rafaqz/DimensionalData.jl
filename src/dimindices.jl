@@ -317,20 +317,6 @@ end
     return view(ds._data, rebuild(d, d[i]))
 end
 
-# function Base.show(io::IO, mime, A::DimSlices)
-#     parentdims = otherdims(A.data, dims(A))
-#     _, width = displaysize(io)
-#     sorteddims = (dims(A)..., otherdims(parentdims, dims(A))...)
-#     colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
-#     colors = collect(map(val, colordims))
-#     print_dims_block(io, mime, basedims(first(A)); width, maxlen, label="group dims", colors)
-#     length(A) > 0 || return nothing
-#     A1 = map(x -> DimSummariser(x, colors), A)
-#     show_after(io, mime, A1; maxlen)
-#     map(x -> DimSummariser(x, colors), A)
-#     Base.printmatrix(io, A)
-# end
-
 # Extends the dimensions of any `AbstractBasicDimArray`
 # as if the array assigned into a larger array accross all dimensions,
 # but without the copying. Theres is a cost for linear indexing these objects

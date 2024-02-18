@@ -9,20 +9,20 @@ end
 
 # Fancy show for text/plain
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}) where {T,N}
-    lines, maxlen = show_main(io, mime, A::AbstractBasicDimArray)
+    lines, blockwidth = show_main(io, mime, A::AbstractBasicDimArray)
     # Printing the array data is optional, subtypes can
     # show other things here instead.
     ds = displaysize(io)
-    ioctx = IOContext(io, :displaysize => (ds[1] - lines, ds[2]))
-    show_after(ioctx, mime, A; maxlen)
+    ctx = IOContext(io, :blockwidth => blockwidth, :displaysize => (ds[1] - lines, ds[2]))
+    show_after(ctx, mime, A)
     return nothing
 end
 # Defer simple 2-arg show to the parent array
 Base.show(io::IO, A::AbstractDimArray) = show(io, parent(A))
 
 """
-    show_main(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
-    show_main(io::IO, mime, A::AbstractDimStack; maxlen, kw...)
+    show_main(io::IO, mime, A::AbstractDimArray)
+    show_main(io::IO, mime, A::AbstractDimStack)
 
 Interface methods for adding the main part of `show`
 
@@ -35,14 +35,16 @@ print_top(io, mime, A)
 But read the DimensionalData.jl `show.jl` code for details.
 """
 function show_main(io, mime, A::AbstractBasicDimArray)
-    lines_t, maxlen, width = print_top(io, mime, A)
-    lines_m, maxlen = print_metadata_block(io, mime, metadata(A); width, maxlen=min(width, maxlen))
-    return lines_t + lines_m, maxlen
+    lines_t, blockwidth, displaywidth = print_top(io, mime, A)
+    lines_m, blockwidth = print_metadata_block(io, mime, metadata(A); 
+        blockwidth, displaywidth=min(displaywidth, blockwidth)
+    )
+    return lines_t + lines_m, blockwidth
 end
 
 """
-    show_after(io::IO, mime, A::AbstractDimArray; maxlen, kw...)
-    show_after(io::IO, mime, A::AbstractDimStack; maxlen, kw...)
+    show_after(io::IO, mime, A::AbstractDimArray)
+    show_after(io::IO, mime, A::AbstractDimStack)
 
 Interface methods for adding addional `show` text
 for AbstractDimArray/AbstractDimStack subtypes.
@@ -51,19 +53,27 @@ for AbstractDimArray/AbstractDimStack subtypes.
 
 Additional keywords may be added at any time.
 
+
+`blockwidth` is passed in context
+
+```juli
+blockwidth = get(io, :blockwidth, 10000)
+```
+
 Note - a anssi box is left unclosed. This method needs to close it,
-or add more. `maxlen` is the maximum length of the inner text.
+or add more. `blockwidth` is the maximum length of the inner text.
 
 Most likely you always want to at least close the show blocks with:
 
 '''julia
-print_block_close(io, maxlen)
+print_block_close(io, blockwidth)
 '''
 
 But read the DimensionalData.jl `show.jl` code for details.
 """
-function show_after(io::IO, mime, A::AbstractBasicDimArray; maxlen, kw...)
-    print_block_close(io, maxlen)
+function show_after(io::IO, mime, A::AbstractBasicDimArray)
+    blockwidth = get(io, :blockwidth, 0)
+    print_block_close(io, blockwidth)
     ndims(A) > 0 && println(io)
     print_array(io, mime, A)
 end
@@ -85,18 +95,17 @@ print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(type
 print_type(io, x) = print(io, string(nameof(typeof(x))))
 
 function print_top(io, mime, A)
-    lines = 4
-    _, width = displaysize(io)
-    maxlen = min(width - 2, textwidth(sprint(summary, A)) + 2)
-    printstyled(io, '╭', '─'^maxlen, '╮'; color=:light_black)
+    _, displaywidth = displaysize(io)
+    blockwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
+    printstyled(io, '╭', '─'^blockwidth, '╮'; color=:light_black)
     println(io)
     printstyled(io, "│ "; color=:light_black)
     summary(io, A)
     printstyled(io, " │"; color=:light_black)
     println(io)
-    n, maxlen = print_dims_block(io, mime, dims(A); width, maxlen)
-    lines += n + 1
-    return lines, maxlen, width
+    n, blockwidth = print_dims_block(io, mime, dims(A); displaywidth, blockwidth)
+    lines = 2 + n
+    return lines, blockwidth, displaywidth
 end
 
 function print_sizes(io, size;
@@ -111,60 +120,68 @@ function print_sizes(io, size;
     end
 end
 
-function print_dims_block(io, mime, dims; width, maxlen, label="dims", kw...)
+function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims", kw...)
     lines = 0
     if isempty(dims)
         printed = false
-        newmaxlen = maxlen
+        new_blockwidth = blockwidth
     else
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
-        newmaxlen = min(width - 2, max(maxlen, maximum(textwidth, dim_lines)))
-        print_block_top(io, label, maxlen, newmaxlen)
+        new_blockwidth = min(displaywidth - 2, max(blockwidth, maximum(textwidth, dim_lines)))
+        lines += print_block_top(io, label, blockwidth, new_blockwidth)
         lines += print_dims(io, mime, dims; kw...)
         println(io)
-        lines += 2
+        lines += 1
         printed = true
     end
-    return lines, newmaxlen, printed
+    return lines, new_blockwidth, printed
 end
 
-function print_metadata_block(io, mime, metadata; maxlen=0, width, firstblock=false)
+function print_metadata_block(io, mime, metadata; blockwidth=0, displaywidth)
     lines = 0
     if metadata isa NoMetadata
-        newmaxlen = maxlen
+        new_blockwidth = blockwidth
     else
         metadata_lines = split(sprint(show, mime, metadata), "\n")
-        newmaxlen = min(width-2, max(maxlen, maximum(length, metadata_lines)))
-        print_block_separator(io, "metadata", maxlen, newmaxlen)
+        new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, metadata_lines)))
+        print_block_separator(io, "metadata", blockwidth, new_blockwidth)
         println(io)
         print(io, "  ")
         show(io, mime, metadata)
         println(io)
         lines += length(metadata_lines) + 2
     end
-    return lines, newmaxlen
+    return lines, new_blockwidth
 end
 
 # Block lines
 
-function print_block_top(io, label, prevmaxlen, newmaxlen)
-    corner = (newmaxlen > prevmaxlen) ? '┐' : '┤'
-    block_line = if newmaxlen > prevmaxlen
-        string('─'^(prevmaxlen), '┴', '─'^max(0, (newmaxlen - textwidth(label) - 3 - prevmaxlen)), ' ', label, ' ')
+function print_block_top(io, label, prev_width, new_width)
+    corner = (new_width > prev_width) ? '┐' : '┤'
+    top_line = if new_width > prev_width
+        string(
+            '├', '─'^(prev_width), '┴', 
+            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)), 
+            ' ', label, ' ', corner
+        )
     else
-        string('─'^max(0, newmaxlen - textwidth(label) - 2), ' ', label, ' ')
+        string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
     end
-    printstyled(io, '├', block_line, corner; color=:light_black)
+    printstyled(io, top_line; color=:light_black)
     println(io)
+    lines = 1
+    return lines
 end
 
-function print_block_separator(io, label, prevmaxlen, newmaxlen)
-    corner = (newmaxlen > prevmaxlen) ? '┐' : '┤'
-    printstyled(io, '├', '─'^max(0, newmaxlen - textwidth(label) - 2), ' ', label, ' ', corner; color=:light_black)
+function print_block_separator(io, label, prev_width, new_width)
+    corner = (new_width > prev_width) ? '┐' : '┤'
+    middle_line = string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
+    printstyled(io, middle_line; color=:light_black)
 end
 
-function print_block_close(io, maxlen)
-    printstyled(io, '└', '─'^maxlen, '┘'; color=:light_black)
+function print_block_close(io, blockwidth)
+    closing_line = string('└', '─'^blockwidth, '┘')
+    printstyled(io, closing_line; color=:light_black)
 end
 
 # Showing the array is optional for AbstractDimArray
