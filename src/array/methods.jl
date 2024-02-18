@@ -1,7 +1,7 @@
 # Array info
 for (m, f) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
     @eval begin
-        @inline $m.$f(A::AbstractDimArray, dims::AllDims) = $m.$f(A, dimnum(A, dims))
+        @inline $m.$f(A::AbstractBasicDimArray, dims::AllDims) = $m.$f(A, dimnum(A, dims))
     end
 end
 
@@ -165,6 +165,12 @@ else
     end
 end
 
+# works for arrays and for stacks
+function _eachslice(x, dims::Tuple)
+    slicedims = Dimensions.dims(x, dims)
+    return (view(x, d...) for d in DimIndices(slicedims))
+end
+
 # These just return the parent for now
 function Base.sort(A::AbstractDimVector; kw...)
     newdims = (set(only(dims(A)), NoLookup()),)
@@ -194,12 +200,6 @@ Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
 Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
 Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
 Base.cumsum!(B::AbstractArray, A::AbstractDimArray; dims) = cumsum!(B, parent(A); dims=dimnum(A, dims))
-
-# works for arrays and for stacks
-function _eachslice(x, dims::Tuple)
-    slicedims = Dimensions.dims(x, dims)
-    return (view(x, d...) for d in DimIndices(slicedims))
-end
 
 # Duplicated dims
 

@@ -1,7 +1,6 @@
 # `rebuild` and `dims` are key methods to add for a new type
 
 """
-    rebuild(x, args...)
     rebuild(x; kw...)
 
 Rebuild an object struct with updated field values.
@@ -11,15 +10,39 @@ Rebuild an object struct with updated field values.
 This is an abstraction that alows inbuilt and custom types to be rebuilt
 to update their fields, as most objects in DimensionalData.jl are immutable.
 
-The arguments version can be concise but depends on a fixed order defined for some
-DimensionalData objects. It should be defined based on the object type in DimensionalData,
-adding the fields specific to your object.
-
-The keyword version ignores order, and is mostly automated 
-using `ConstructionBase.setproperties`. It should only be defined if your object has 
-missing fields or fields with different names to DimensionalData objects.
+Rebuild is mostly automated using `ConstructionBase.setproperties`. 
+It should only be defined if your object has fields with 
+with different names to DimensionalData objects. Try not to do that!
 
 The arguments required are defined for the abstract type that has a `rebuild` method.
+
+#### `AbstractBasicDimArray`:
+- `dims`: a `Tuple` of `Dimension` 
+
+#### `AbstractDimArray`:
+
+- `data`: the parent object - an `AbstractArray`
+- `dims`: a `Tuple` of `Dimension` 
+- `refdims`: a `Tuple` of `Dimension` 
+- `name`: A Symbol, or `NoName` and `Name` on GPU.
+- `metadata`: A `Dict`-like object
+
+#### `AbstractDimStack`:
+
+- `data`: the parent object, often a `NamedTuple`
+- `dims`, `refdims`, `metadata`
+
+#### `Dimension`:
+
+- `val`: anything.
+
+#### `LookupArray`:
+
+- `data`: the parent object, an `AbstractArray`
+
+* Note: argument `rebuild` is deprecated on `AbstractDimArray` and 
+`AbstractDimStack` in favour of allways using the keyword version. 
+In future the argument version will only be used on `Dimension`, which only have one argument.
 """
 function rebuild end
 

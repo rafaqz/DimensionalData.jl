@@ -26,6 +26,17 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     da2 = DimArray(fill(3), ())
     dimz2 = dims(da2)
     @test dims2indices(dimz2, ()) === ()
+
+    @testset "mixed dimensions" begin
+        a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
+        da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
+        da[Ti=1, DimIndices(da[Ti=1])]
+        da[DimIndices(da[Ti=1]), Ti(2)]
+        da[DimIndices(da[Ti=1])[:], Ti(2)]
+        da[DimIndices(da[Ti=1])[:], DimIndices(da[X=1, Y=1])]
+        da[DimIndices(da[X=1, Y=1]), DimIndices(da[Ti=1])[:]]
+        da[DimIndices(da[X=1, Y=1])[:], DimIndices(da[Ti=1])[:]]
+    end
 end
 
 @testset "lookup" begin
@@ -155,16 +166,16 @@ end
 
 @testset "dimension" begin
     d = X(Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing))
-    @test d[:] == d
-    @test d[1:5] == d
-    @test d[1:5] isa typeof(d)
+    @test @inferred d[:] == d
+    @test @inferred d[1:5] == d
+    @test @inferred d[1:5] isa typeof(d)
     # TODO properly handle index mashing arrays: here Regular should become Irregular
     # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
-    @test d[2] === 4.0
-    @test d[CartesianIndex((4,))] == 8.0
-    @test d[CartesianIndices((3:4,))] isa X{<:Sampled}
-    @test d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing))
+    @test @inferred d[2] === 4.0
+    @test @inferred d[CartesianIndex((4,))] == 8.0
+    @test @inferred d[CartesianIndices((3:4,))] isa X{<:Sampled}
+    @test @inferred d[2:2:4] == X(Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing))
     d = Y(NoLookup(1:100))
     @test d[100] == 100
     @test d[1:5] isa typeof(d)
@@ -184,26 +195,38 @@ end
     da = @test_nowarn DimArray(a, dimz; refdims=refdimz, name=:test, metadata=ameta)
 
     @testset "getindex for single integers returns values" begin
-        @test da[X(1), Y(2)] == 2
-        @test da[X(2), Y(2)] == 4
-        @test da[1, 2] == 2
-        @test da[2] == 3
-        @inferred getindex(da, X(2), Y(2))
+        @test @inferred da[X(1), Y(2)] == 2
+        @test @inferred da[X(2), Y(2)] == 4
+        @test @inferred da[1, 2] == 2
+        @test @inferred da[2] == 3
     end
 
-
     @testset "LinearIndex getindex returns an Array, except Vector" begin
-        @test da[1:2] isa Array
-        @test x = da[1, :][1:2] isa DimArray
+        @test @inferred da[1:2] isa Array
+        @test @inferred da[rand(Bool, length(da))] isa Array
+        @test @inferred da[rand(Bool, size(da))] isa Array
+        @test @inferred da[:] isa Array
+        @test @inferred da[:] == vec(da)
+        b = @inferred da[[!iseven(i) for i in 1:length(da)]]
+        @test b isa Array
+        @test b == da[1:2:end]
+        
+        v = @inferred da[1, :]
+        @test @inferred v[1:2] isa DimArray
+        @test @inferred v[rand(Bool, length(v))] isa DimArray
+        b = v[[!iseven(i) for i in 1:length(v)]]
+        @test b isa DimArray
+        # Indexing with a Vector{Bool} returns an irregular lookup, so these are not exactly equal
+        @test parent(b) == v[1:2:end]
     end
 
     @testset "mixed CartesianIndex and CartesianIndices indexing works" begin
         da3 = cat(da, 10da; dims=Z) 
-        @test da3[1, CartesianIndex(1, 2)] == 10
-        @test view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
-        @test da3[1, CartesianIndices((1:2, 1:1))] isa DimArray
-        @test da3[CartesianIndices(da3)] isa DimArray
-        @test da3[CartesianIndices(da3)] == da3
+        @test @inferred da3[1, CartesianIndex(1, 2)] == 10
+        @test @inferred view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
+        @test @inferred da3[1, CartesianIndices((1:2, 1:1))] isa DimArray
+        @test @inferred da3[CartesianIndices(da3), 1] isa DimArray
+        @test @inferred da3[CartesianIndices(da3)] == da3
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
@@ -215,12 +238,12 @@ end
             (Ti(1:1), Y(Sampled(-38.0:2.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test name(a) == :test
         @test metadata(a) === ameta
-        @test metadata(a, X) === xmeta
+        @test metadata(dims(a, X)) === xmeta
         @test bounds(a) === ((143.0, 145.0),)
         @test bounds(a, X) === (143.0, 145.0)
         @test locus(da, X) == Center()
 
-        a = da[X(1), Y(1:2)]
+        a = da[(X(1), Y(1:2))] # Can use a tuple of dimensions like a CartesianIndex
         @test a == [1, 2]
         @test typeof(a) <: DimArray{Int,1}
         @test typeof(parent(a)) <: Array{Int,1}
@@ -246,16 +269,19 @@ end
         @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
         @test bounds(a, X) == (143.0, 145.0)
 
-        # Indexing with array works
-        a = da[X([2, 1]), Y([2, 1])]
+        a = da[X([2, 1]), Y([2, 1])] # Indexing with array works
         @test a == [4 3; 2 1]
+
+        @test da[DimIndices(da)] == da
+        da[DimIndices(da)[X(1)]]
+        da[DimSelectors(da)]
     end
     
     @testset "selectors work" begin
-        @test da[At(143), -38.0..36.0] == [1, 2]
-        @test da[144.0..146.0, Near(-37.1)] == [3]
-        @test da[X=At(143), Y=-38.0..36.0] == [1, 2]
-        @test da[X=144.0..146.0, Y=Near(-37.1)] == [3]
+        @test @inferred da[At(143), -38.0..36.0] == [1, 2]
+        @test @inferred da[144.0..146.0, Near(-37.1)] == [3]
+        @test @inferred da[X=At(143), Y=-38.0..36.0] == [1, 2]
+        @test @inferred da[X=144.0..146.0, Y=Near(-37.1)] == [3]
     end
 
     @testset "view DimensionArray containing views" begin
@@ -362,7 +388,7 @@ end
     end
 
     @testset "logical indexing" begin
-        A = DimArray(zeros(40, 50), (X, Y));
+        A = DimArray(zeros(40, 50), (X, Y))
         I = rand(Bool, 40, 50)
         @test all(A[I] .== 0.0)
         A[I] .= 3
@@ -444,6 +470,14 @@ end
             # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
         end
     end
+
+    @testset "trailing colon" begin
+        @test da[X(1), Y(2)] == 2
+        @test da[X(2), Y(2)] == 4
+        @test da[1, 2] == 2
+        @test da[2] == 3
+        @inferred getindex(da, X(2), Y(2))
+    end
 end
 
 @testset "stack" begin
@@ -453,56 +487,95 @@ end
     da1 = DimArray(A, dimz; name=:one)
     da2 = DimArray(Float32.(2A), dimz; name=:two)
     da3 = DimArray(Int.(3A), dimz; name=:three)
+    da4 = rebuild(Int.(4da1)[Y=1]; name=:four)
 
     s = DimStack((da1, da2, da3))
+    s_mixed = DimStack((da1, da2, da3, da4))
 
     @testset "getindex" begin
-        @test s[1, 1] === (one=1.0, two=2.0f0, three=3)
-        @test s[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
-        @test s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
+        @test @inferred s[1, 1] === (one=1.0, two=2.0f0, three=3)
+        @test @inferred s_mixed[1, 1] === (one=1.0, two=2.0f0, three=3, four=4)
+        @test @inferred s[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
+        @test @inferred s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
         slicedds = s[At(:a), :]
         @test slicedds[:one] == [1.0, 2.0, 3.0]
         @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
+        slicedds_mixed = s_mixed[At(:a), :]
+        @test slicedds_mixed[:one] == [1.0, 2.0, 3.0]
+        @test parent(slicedds_mixed) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9], four=fill(4))
         @testset "linear indices" begin
-            linear2d = s[1:2]
+            linear2d = @inferred s[1]
             @test linear2d isa NamedTuple
-            @test linear2d == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
-            linear1d = s[Y(1)][1:2]
+            @test linear2d == (one=1.0, two=2.0f0, three=3)
+            @test_broken linear1d = @inferred view(s[X(2)], 1)
+            linear1d = view(s[X(2)], 1)
             @test linear1d isa DimStack
-            @test parent(linear1d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+            @test parent(linear1d) == (one=fill(4.0), two=fill(8.0f0), three=fill(12))
+            @test_broken linear2d = @inferred s[1:2]
+            linear2d = s[1:2]
+            @test linear2d isa DimStack
+            @test NamedTuple(linear2d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+            linear1d = @inferred s[X(1)][1:2]
+            linear1d = @inferred s[X(1)][1:2]
+            @test linear1d isa DimStack
+            @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
         end
     end
 
     @testset "getindex Tuple" begin
+        @test_broken st1 = @inferred s[(:three, :one)]
         st1 = s[(:three, :one)]
         @test keys(st1) === (:three, :one)
         @test values(st1) == (da3, da1)
     end
 
+    @testset "mixed CartesianIndex and CartesianIndices indexing works" begin
+        da3d = cat(da1, 10da1; dims=Z) 
+        s3 = merge(s, (; ten=da3d))
+        @test @inferred s3[2, CartesianIndex(2, 2)] === (one=5.0, two=10.0f0, three=15, ten=50.0)
+        @test @inferred view(s3, 1:2, CartesianIndex(1, 2)) isa DimStack
+        @test @inferred NamedTuple(view(s3, 1:2, CartesianIndex(1, 2))) == (one=[1.0, 4.0], two=Float32[2.0, 8.0], three=[3, 12], ten=[10.0, 40.0])
+        @test @inferred s3[2, CartesianIndices((1:2, 1:1))] isa DimStack
+        @test @inferred s3[CartesianIndex((2,)), CartesianIndices((1:2, 1:1)), 1, 1, 1] isa DimStack
+        @test @inferred s3[CartesianIndices(s3.one), CartesianIndex(2,)] isa DimStack
+        @test @inferred NamedTuple(s3[CartesianIndices(s3.one), CartesianIndex(2,)]) ==
+            (one=[1.0 2.0 3.0; 4.0 5.0 6.0], two=Float32[2.0 4.0 6.0; 8.0 10.0 12.0], three=[3 6 9; 12 15 18], ten=[10 20 30; 40 50 60])
+        @test @inferred s3[CartesianIndices(s3.one), 2, 1, 1, 1] isa DimStack
+        @test @inferred s3[CartesianIndices(s3)] == s3
+    end
+
     @testset "view" begin
-        sv = view(s, 1, 1)
+        sv = @inferred view(s, 1, 1)
         @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         @test dims(sv) == ()
-        sv = view(s, X(1:2), Y(3:3)) 
+        sv = @inferred view(s, X(1:2), Y(3:3)) 
         @test parent(sv) == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
         slicedds = view(s, X=At(:a), Y=:)
-        @test slicedds[:one] == [1.0, 2.0, 3.0]
+        @test @inferred slicedds[:one] == [1.0, 2.0, 3.0]
         @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
+            @test_broken linear2d = @inferred view(s, 1)
             linear2d = view(s, 1)
             @test linear2d isa DimStack
             @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test_broken linear1d = @inferred view(s[X(1)], 1)
             linear1d = view(s[X(1)], 1)
             @test linear1d isa DimStack
             @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            linear2d = view(s, 1:2)
+            @test linear2d isa DimStack
+            @test NamedTuple(linear2d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
+            linear1d = s[X(1)][1:2]
+            @test linear1d isa DimStack
+            @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
         end
         @testset "0-dimensional return layers" begin
-            ds = view(s, X(1), Y(1))
+            ds = @inferred view(s, X(1), Y(1))
             @test ds isa DimStack
             @test dims(ds) === ()
-            @test view(s, X(1), Y(2))[:one] == view(da1, X(1), Y(2))
-            @test view(s, X(1), Y(1))[:two] == view(da2, X(1), Y(1))
-            @test view(s, X(2), Y(3))[:three] == view(da3, X(2), Y(3))
+            @test @inferred view(s, X(1), Y(2))[:one] == view(da1, X(1), Y(2))
+            @test @inferred view(s, X(1), Y(1))[:two] == view(da2, X(1), Y(1))
+            @test @inferred view(s, X(2), Y(3))[:three] == view(da3, X(2), Y(3))
         end
         @testset "@views macro and maybeview work even with kw syntax" begin
             sv1 = @views s[X(1:2), Y(3:3)]
@@ -526,13 +599,13 @@ end
     end
 
     @testset "Cartesian indices work as usual" begin
-        @test s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s)
+        @test @inferred s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
+        @test @inferred view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
-        @test s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
+        @test @inferred s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
         s_set[CartesianIndex(2, 2)] = (9, 10, 11)
-        @test s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
+        @test @inferred s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
         @test_throws ArgumentError s_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
     end
 end
@@ -549,7 +622,7 @@ end
     A2 = DimArray(p, (X, Y, t2))
     A3 = DimArray(p, (X, Y, t3))
 
-    @test view(A1, Ti(5)) == permutedims([5])
-    @test view(A2, Ti(5)) == permutedims([5])
-    @test view(A3, Ti(5)) == permutedims([5])
+    @test @inferred view(A1, Ti(5)) == permutedims([5])
+    @test @inferred view(A2, Ti(5)) == permutedims([5])
+    @test @inferred view(A3, Ti(5)) == permutedims([5])
 end

@@ -34,6 +34,7 @@ _set(lookup::LookupArray, newlookup::AbstractSampled) = begin
     # Rebuild the new lookup with the merged fields
     rebuild(newlookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
+_set(lookup::AbstractArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
 _set(lookup::LookupArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
 _set(lookup::LookupArray, newlookup::NoLookup) = newlookup
 

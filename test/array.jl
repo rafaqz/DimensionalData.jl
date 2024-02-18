@@ -246,6 +246,10 @@ end
     @testset "similar with mixed DimUnitRange and Base.OneTo" begin
         x = randn(10)
         T = ComplexF64
+        ax1 = Base.OneTo(2)
+        ax1 = axes(X(1:2), 1)
+        ax2 = Base.OneTo(2)
+        ax2 = axes(X(1:2), 1)
         for ax1 in (Base.OneTo(2), axes(X(1:2), 1))
             s11 = @inferred(similar(x, (ax1,)))
             s12 = @inferred(similar(x, T, (ax1,)))

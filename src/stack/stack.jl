@@ -38,11 +38,15 @@ layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
 layers(nt::NamedTuple) = nt
-function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+Base.@assume_effects :foldable function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
     NamedTuple{Keys}(map(K -> s[K], Keys))
 end
 
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
+
+Base.@assume_effects :foldable function hassamedims(s::AbstractDimStack) 
+    all(map(==(first(layerdims(s))), layerdims(s)))
+end
 
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
@@ -62,12 +66,12 @@ Keywords are simply the fields of the stack object:
 - `layermetadata`
 """
 function rebuild_from_arrays(
-    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractDimArray}}; kw...
+    s::AbstractDimStack{<:NamedTuple{Keys}}, das::Tuple{Vararg{AbstractBasicDimArray}}; kw...
 ) where Keys
     rebuild_from_arrays(s, NamedTuple{Keys}(das), kw...)
 end
 function rebuild_from_arrays(
-    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
+    s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractBasicDimArray}}};
     data=map(parent, das),
     refdims=refdims(s),
     metadata=DD.metadata(s),
@@ -96,7 +100,7 @@ Base.last(s::AbstractDimStack) = s[last(keys(s))]
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
-Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
+Base.@assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.length(s::AbstractDimStack) = length(keys(s))
 Base.ndims(s::AbstractDimStack) = length(dims(s))
 Base.size(s::AbstractDimStack) = map(length, dims(s))
@@ -109,6 +113,7 @@ Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
 Base.eltype(s::AbstractDimStack, args...) = NamedTuple{keys(s),Tuple{map(eltype, s)...}}
 Base.iterate(s::AbstractDimStack, args...) = iterate(layers(s), args...)
 Base.read(s::AbstractDimStack) = map(read, s)
+Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
@@ -124,7 +129,7 @@ end
 function Base.merge(x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...)
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
-function Base.setindex(s::AbstractDimStack, val::AbstractDimArray, key) 
+function Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, key) 
     rebuild_from_arrays(s, Base.setindex(layers(s), val, key))
 end
 Base.NamedTuple(s::AbstractDimStack) = layers(s)
@@ -160,10 +165,22 @@ for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :ord
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
-function mergedims(ds::AbstractDimStack, dim_pairs::Pair...)
-    isempty(dim_pairs) && return ds
-    vals = map(A -> mergedims(A, dim_pairs...), values(ds))
-    rebuild_from_arrays(ds, vals)
+function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
+    dim_pairs = map(dim_pairs) do (as, b)
+        basedims(as) => b
+    end
+    isempty(dim_pairs) && return st
+    # Extend missing dimensions in all layers
+    extended_layers = map(layers(st)) do layer
+        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs))) 
+            layer
+        else
+            DimExtensionArray(layer, dims(st))
+        end
+    end
+
+    vals = map(A -> mergedims(A, dim_pairs...), extended_layers)
+    return rebuild_from_arrays(st, vals)
 end
 
 function unmergedims(s::AbstractDimStack, original_dims)
@@ -255,9 +272,9 @@ struct DimStack{L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTup
     metadata::M
     layermetadata::LM
 end
-DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)
-DimStack(@nospecialize(das::Tuple{Vararg{AbstractDimArray}}); kw...) = DimStack(collect(das); kw...)
-function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
+DimStack(@nospecialize(das::AbstractBasicDimArray...); kw...) = DimStack(collect(das); kw...)
+DimStack(@nospecialize(das::Tuple{Vararg{AbstractBasicDimArray}}); kw...) = DimStack(collect(das); kw...)
+function DimStack(@nospecialize(das::AbstractArray{<:AbstractBasicDimArray});
     metadata=NoMetadata(), refdims=(),
 )
     keys_vec = uniquekeys(das)
@@ -270,7 +287,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
 
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
-function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
+function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractBasicDimArray}}};
     data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )

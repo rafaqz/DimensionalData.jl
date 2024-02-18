@@ -66,7 +66,7 @@ export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
 
-export DimIndices, DimKeys, DimPoints
+export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds
@@ -87,6 +87,7 @@ include("name.jl")
 
 # Arrays
 include("array/array.jl")
+include("dimindices.jl")
 include("array/indexing.jl")
 include("array/methods.jl")
 include("array/matmul.jl")
@@ -98,7 +99,6 @@ include("stack/indexing.jl")
 include("stack/methods.jl")
 include("stack/show.jl")
 # Other
-include("dimindices.jl")
 include("tables.jl")
 # Combined (easier to work on these in one file)
 include("plotrecipes.jl")
