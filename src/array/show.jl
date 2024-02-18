@@ -269,7 +269,6 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
         ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
         ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
         iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
-        @show f1 f2 l1 l2 itop ibottom ileft iright
     else
         itop    = f1:l1
         ibottom = f1:f1-1
