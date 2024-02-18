@@ -52,17 +52,21 @@ function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T,N}
 end
 
 function show_after(io::IO, mime, A::DimGroupByArray)
-    _, displaywidth = displaysize(io)
+    displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
     sorteddims = (dims(A)..., otherdims(first(A), dims(A))...)
     colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
     colors = collect(map(val, colordims))
-    print_dims_block(io, mime, basedims(first(A)); 
+    lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(first(A));
         displaywidth, blockwidth, label="group dims", colors
     )
     length(A) > 0 || return nothing
     A1 = map(x -> DimSummariser(x, colors), A)
-    show_after(io, mime, A1; blockwidth)
+    ctx = IOContext(io,
+        :blockwidth => blockwidth,
+        :displaysize => (displayheight - lines, displaywidth)
+    )
+    show_after(ctx, mime, A1)
     return nothing
 end
 
@@ -113,7 +117,7 @@ end
 Bins(bins; labels=nothing, pad=0.001) = Bins(identity, bins, labels, pad)
 Bins(f, bins; labels=nothing, pad=0.001) = Bins(f, bins, labels, pad)
 
-Base.show(io::IO, bins::Bins) = 
+Base.show(io::IO, bins::Bins) =
     println(io, nameof(typeof(bins)), "(", bins.f, ", ", bins.bins, ")")
 
 abstract type AbstractCyclicBins end
@@ -126,7 +130,7 @@ struct CyclicBins{F,C,Sta,Ste,L} <: AbstractBins
 end
 CyclicBins(f; cycle, step, start=1, labels=nothing) = CyclicBins(f, cycle, start, step, labels)
 
-Base.show(io::IO, bins::CyclicBins) = 
+Base.show(io::IO, bins::CyclicBins) =
     println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
 
 yearhour(x) = year(x), hour(x)
@@ -268,7 +272,7 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
         _group_indices(dims(A, d), DD.val(d))
     end
     # Separate lookups dims from indices
-    group_dims = map(first, dim_groups_indices) 
+    group_dims = map(first, dim_groups_indices)
     indices = map(rebuild, dimfuncs, map(last, dim_groups_indices))
 
     views = DimSlices(A, indices)
@@ -355,7 +359,7 @@ end
 
 # Return the bin for a value
 # function _choose_bin(b::AbstractBins, groups::LookupArray, val)
-#     groups[ispoints(groups) ? At(val) : Contains(val)] 
+#     groups[ispoints(groups) ? At(val) : Contains(val)]
 # end
 # function _choose_bin(b::AbstractBins, groups, val)
 #     i = findfirst(Base.Fix1(_in, val), groups)
@@ -383,11 +387,11 @@ end
 _maybe_label(vals) = vals
 _maybe_label(f::Function, vals) = f.(vals)
 _maybe_label(::Nothing, vals) = vals
-function _maybe_label(labels::AbstractArray, vals) 
+function _maybe_label(labels::AbstractArray, vals)
     @assert length(labels) == length(vals)
     return labels
 end
-function _maybe_label(labels::Dict, vals) 
+function _maybe_label(labels::Dict, vals)
     map(vals) do val
         if haskey(labels, val)
             labels[val]

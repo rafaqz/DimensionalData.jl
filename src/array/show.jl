@@ -95,7 +95,6 @@ print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(type
 print_type(io, x) = print(io, string(nameof(typeof(x))))
 
 function print_top(io, mime, A)
-    lines = 4
     _, displaywidth = displaysize(io)
     blockwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
     printstyled(io, '╭', '─'^blockwidth, '╮'; color=:light_black)
@@ -105,7 +104,7 @@ function print_top(io, mime, A)
     printstyled(io, " │"; color=:light_black)
     println(io)
     n, blockwidth = print_dims_block(io, mime, dims(A); displaywidth, blockwidth)
-    lines += n + 1
+    lines = 2 + n
     return lines, blockwidth, displaywidth
 end
 
@@ -129,10 +128,10 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
     else
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
         new_blockwidth = min(displaywidth - 2, max(blockwidth, maximum(textwidth, dim_lines)))
-        print_block_top(io, label, blockwidth, new_blockwidth)
+        lines += print_block_top(io, label, blockwidth, new_blockwidth)
         lines += print_dims(io, mime, dims; kw...)
         println(io)
-        lines += 2
+        lines += 1
         printed = true
     end
     return lines, new_blockwidth, printed
@@ -170,6 +169,8 @@ function print_block_top(io, label, prev_width, new_width)
     end
     printstyled(io, top_line; color=:light_black)
     println(io)
+    lines = 1
+    return lines
 end
 
 function print_block_separator(io, label, prev_width, new_width)
