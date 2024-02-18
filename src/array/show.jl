@@ -279,7 +279,6 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
 
     # A bit convoluted so it plays nice with GPU arrays
     topleft = Matrix{eltype(A)}(undef, map(length, (itop, ileft)))
-    @show CartesianIndices(topleft) CartesianIndices((itop, ileft))
     copyto!(topleft, CartesianIndices(topleft), A, CartesianIndices((itop, ileft)))
     bottomleft = Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
     copyto!(bottomleft, CartesianIndices(bottomleft), A, CartesianIndices((ibottom, ileft)))
