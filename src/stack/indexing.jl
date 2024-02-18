@@ -14,6 +14,9 @@ end
 for f in (:getindex, :view, :dotview)
     _f = Symbol(:_, f)
     @eval begin
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
+            Base.$f(s, dims2indices(s, i)...)
+        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Integer)
             if hassamedims(s)
                 map(l -> Base.$f(l, i), s)
