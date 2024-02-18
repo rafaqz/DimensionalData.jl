@@ -117,6 +117,15 @@ function broadcast_dims(f, As::AbstractDimArray...)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
 end
 
+function broadcast_dims(f, As::Union{AbstractDimStack,AbstractDimArray}...)
+    st = _firststack(As...)
+    nts = _as_nts(NamedTuple(st), As...)
+    layers = map(nts...) do as...
+        broadcast_dims(f, as...)
+    end
+    rebuild(st, layers)
+end
+
 """
     broadcast_dims!(f, dest::AbstractDimArray, sources::AbstractDimArray...) => dest
 
@@ -192,3 +201,9 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
 uniquekeys(nt::NamedTuple) = keys(nt)
+
+_as_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
+    (NamedTuple{K}(ntuple(x -> A, length(K))), _as_nts(nt, As...)...)
+_as_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K = 
+    (NamedTuple(st), _as_nts(nt, As...)...)
+_as_nts(nt::NamedTuple) = ()
