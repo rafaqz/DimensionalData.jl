@@ -15,17 +15,17 @@ fig = Figure(; size=(500,500),
 ax = LScene(fig[1,1]; show_axis=false)
 
 wireframe!.(ax, rpyz; color = colors[3], transparency=true) # shading=NoShading # bug!
-poly!.(ax, rmyz; color=colors[1], transparency=true, shading=NoShading)
+poly!(ax, rmyz; color=colors[1], transparency=true, shading=NoShading, rasterize = 4)
 
 meshscatter!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8),
     Point3f(0.1,0.1+7,0.8), Point3f(0.1+7,0.1+7,0.8)]; color = colors[4],
-    markersize=0.25, shading=FastShading)
+    markersize=0.25, shading=FastShading, rasterize = 4)
 
 lines!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8), Point3f(0.1+7,0.1+7,0.8), 
     Point3f(0.1,0.1+7,0.8), Point3f(0.1,0.1,0.8)]; color = colors[4],
     linewidth=2, transparency=true)
-meshscatter!(ax, Point3f(4,4,-0.01); color=:transparent)
-meshscatter!(ax, [Point3f(0.1,0.1,8), Point3f(0.1+7,0.1,8), Point3f(0.1,0.1+7,8), Point3f(0.1+7,0.1+7,8)]; color = colors[2], markersize=0.2, shading=FastShading)
+meshscatter!(ax, Point3f(4,4,-0.01); color=:transparent, rasterize = 4)
+meshscatter!(ax, [Point3f(0.1,0.1,8), Point3f(0.1+7,0.1,8), Point3f(0.1,0.1+7,8), Point3f(0.1+7,0.1+7,8)]; color = colors[2], markersize=0.2, shading=FastShading, rasterize = 4)
 
 lines!(ax, [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8), 
     Point3f(0.1,0.1+7,8),
