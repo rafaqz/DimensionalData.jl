@@ -248,7 +248,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
     bottom = Array{eltype(A)}(undef, length(ibottom)) 
     copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
-    vals = vcat(A[itop], A[ibottom])
+    vals = vcat(parent(A[itop]), parent(A[ibottom]))
     lu = only(lookups)
     if lu isa NoLookup
         Base.print_matrix(io, vals)
