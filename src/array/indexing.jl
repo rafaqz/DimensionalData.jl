@@ -93,13 +93,13 @@ function merge_and_index(f, A, dims)
     # No arrays here, so abort (dispatch is tricky...)
     length(inds_arrays) == 0 && return f(A, dims...)
 
-    V = length(dims) > 0 ? view(A, dims...) : A
+    V1 = length(dims) > 0 ? view(A, dims...) : A
     # We have an array of dims of dim tuples
-    x = reduce(inds_arrays[1:end-1]; init=V) do A, i
+    V2 = reduce(inds_arrays[1:end-1]; init=V1) do A, i
         _merge_and_index(view, A, i)
     end
 
-    return _merge_and_index(f, x, inds_arrays[end])
+    return _merge_and_index(f, V2, inds_arrays[end])
 end
 
 function _merge_and_index(f, A, inds)
@@ -118,8 +118,8 @@ function _merge_and_index(f, A, inds)
                 f(M, basedims(M)...)
             end
         else
-            minds = CartesianIndex.(dims2indices.(Ref(A), inds))
-            f(A, minds)
+            m_inds = CartesianIndex.(dims2indices.(Ref(A), inds))
+            f(A, m_inds)
         end
     else
         d = first(dims_to_merge)

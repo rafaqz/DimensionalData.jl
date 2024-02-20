@@ -11,7 +11,7 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
   its coordinate reference system, but otherwise behaves as a regular
   `Sampled` lookup.
 
-`dims` and `rebuild` are the key interface methods in most of these cases.
+`dims`, `rebuild` and `format` are the key interface methods in most of these cases.
 
 ## `dims`
 
@@ -71,7 +71,7 @@ updating `data` and `dims`, any more that that is confusing.
 For `Dimension` and `Selector` the single argument versions are easiest to use, 
 as there is only one argument.
 
-## `rebuild(obj, ...)` argument table
+### `rebuild(obj, ...)` argument table
 
 | Type             | Keywords                                                    | Arguments            |
 |------------------|------------------------------------------------------------ |----------------------|
@@ -83,3 +83,22 @@ as there is only one argument.
 
 You can always add your ownd keywords to `rebuild` calls, but these will only
 work on your own objects or other objects with those fields.
+
+
+## `format`
+
+When constructing an `AbstractDimArray` or `AbstractDimStack` 
+[`DimensionalData.format`](@ref) must be called on the `dims` tuple and the parent array:
+
+```julia
+dims=`format(dims, array)`
+```
+
+This lets DimensionalData detect the lookup properties, fill in missing fields
+of LookupArray, pass keywords from `Dimension` to detected `LookupArray`, and accept 
+a wider range of dimension inputs like tuples of `Symbol` and `Type`.
+
+Not calling `format` whille constructing an `AbstractDimArray` has 
+undefined behaviour.
+
+

@@ -61,8 +61,9 @@ All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 """
 @inline dim2key(dims::Tuple) = map(dim2key, dims)
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
-@inline dim2key(dim::Val{D}) where D <: Dimension = dim2key(D)
+@inline dim2key(::Val{D}) where D <: Dimension = dim2key(D)
 @inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.nameof(dt))
+@inline dim2key(s::Symbol) = s
 
 # dim2key is defined for concrete instances in dimensions.jl
 

@@ -86,8 +86,8 @@ abstract type AbstractBins <: Function end
 (bins::AbstractBins)(x) = bins.f(x)
 
 """
-    Bins(f, bins; pad)
-    Bins(bins; pad)
+    Bins(f, bins; labels, pad)
+    Bins(bins; labels, pad)
 
 Specify bins to reduce groups after applying function `f`.
 
@@ -135,7 +135,7 @@ Base.show(io::IO, bins::CyclicBins) =
 
 yearhour(x) = year(x), hour(x)
 
-season(; start=January, kw...) = months(3; start, kw...)
+season(; start=December, kw...) = months(3; start, kw...)
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 yearhours(step; start=0, labels=nothing) = CyclicBins(yearhour; cycle=24, step, start, labels)
@@ -313,7 +313,7 @@ function _group_indices(dim::Dimension, group_lookup::LookupArray; labels=nothin
     end
     return group_dim, indices
 end
-function _group_indices(dim::Dimension, bins::AbstractBins; labels=nothing)
+function _group_indices(dim::Dimension, bins::AbstractBins; labels=bins.labels)
     l = lookup(dim)
     # Apply the function first unless its `identity`
     transformed = bins.f == identity ? parent(l) : map(bins.f, parent(l))
@@ -333,7 +333,7 @@ function _group_indices(dim::Dimension, bins::AbstractBins; labels=nothing)
     transformed_lookup = rebuild(dim, transformed)
 
     # Call the LookupArray version to do the work using selectors
-    return _group_indices(transformed_lookup, group_lookup)
+    return _group_indices(transformed_lookup, group_lookup; labels)
 end
 
 

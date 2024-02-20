@@ -418,8 +418,9 @@ function Cyclic(data=AutoIndex();
     Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
 end
 
-_check_ordered_cyclic(order::Ordered) = nothing
-_check_ordered_cyclic(order::Unordered) = throw(ArgumentError("Cyclic lookups must be `Ordered`"))
+_check_ordered_cyclic(::AutoOrder) = nothing
+_check_ordered_cyclic(::Ordered) = nothing
+_check_ordered_cyclic(::Unordered) = throw(ArgumentError("Cyclic lookups must be `Ordered`"))
 
 function rebuild(l::Cyclic;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
