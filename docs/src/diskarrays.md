@@ -46,7 +46,7 @@ DimensionalData.jl and DiskArrays.jl play nice no matter the size of the data.
 To make this all work in CI we will simulate some huge data by multiplying 
 a huge `BitArray` with a `BigInt`, meant to make it 128 x larger in memory.
 
-```@example diskarray
+```@ansi diskarray
 using DimensionalData, DiskArrays 
 
 # This holds is a 100_100 * 50_000 `BitArray`  
@@ -56,7 +56,7 @@ dima = DimArray(diska, (X(0.01:0.01:1000), Y(0.02:0.02:1000)))
 ```
 
 # How big is this thing?
-```@example diskarray
+```@ansi diskarray
 GB = sizeof(A) / 1e9
 ```
 
@@ -65,13 +65,13 @@ Now if we multiply that by 2.0 they will be Float64, ie 64 x larger.
 
 But:
 
-```@example diskarray
+```@ansi diskarray
 dimb = view(permutedims(dima .* BigInt(200000000000), (X, Y)); X=1:99999)
 sizeof(dimb)
 ```
 
 The size should be:
-```@example diskarray
+```@ansi diskarray
 GB = (sizeof(eltype(dimb)) * prod(size(dimb))) / 1e9
 ```
 
@@ -79,7 +79,7 @@ I'm writing this on a laptop with only 32Gb or ram, but this runs instantly.
 
 The trick is nothing happens until we index:
 
-```@example diskarray
+```@ansi diskarray
 diska.getindex_count
 ```
 
@@ -88,7 +88,7 @@ These are just access for printing in the repl!
 When we actually get data the calulations happen, 
 and for real disk arrays the chunked reads too:
 
-```@example diskarray
+```@ansi diskarray
 dimb[X=1:100, Y=1:10]
 ```
 

@@ -25,18 +25,21 @@ using DimensionalData.Dimensions
 
 ## Examples
 
-## Use in a `DimArray`
-
-We can use dimensions without a `LookupArray` to simply label the axis.
+We can use dimensions to label array axes.
 A `DimArray` with labelled dimensions can be constructed by:
 
 ```@ansi dimensions
 using DimensionalData
+A1 = DimArray(zeros(5, 10), (X, Y))
+```
 
+Or simply wrap the sizes with the dimensions:
+
+```@ansi dimensions
 A1 = zeros(X(5), Y(10))
 ```
 
-And we can access a value with:
+We can access a value with the same dimension wrappers:
 
 ```@ansi dimensions
 A1[Y(1), X(2)]
@@ -53,7 +56,7 @@ by using `Symbol`s, and indexing with keywords:
 A2 = DimArray(rand(5, 5), (:a, :b))
 ```
 
-and get a value:
+and get a value, here another smaller `DimArray`:
 
 ```@ansi dimensions
 A2[a=3, b=1:3]
@@ -65,8 +68,7 @@ Keywords also work with our first example:
 A1[X=3]
 ```
 
-The length of each dimension index has to match the size of the corresponding
-array axis. 
+Here the missing Y was filled in for us.
 
 
 ## Dimensional Indexing
@@ -77,38 +79,29 @@ order of our objects axes, or from even keeping it consistent.
 We can index in whatever order we want to. These are the same:
 
 ```@ansi dimensions
-A1[X(2), Y(1)]
-A1[Y(1), X(2)]
+A1[X(2), Y(1)] == A1[Y(1), X(2)]
 ```
 
-We can Index with a single dimsions, and the remaining will be filled with colons: 
-
-```@ansi dimensions
-A1[Y(1:2:5)]
-```
-
-We can use Tuples of dimensions like `CartesianIndex`, but they don't have to
-be in order or for consecutive axes.
+We can use Tuples of dimensions like `CartesianIndex`, but they don't 
+have to be in order of consecutive axes.
 
 ```@ansi dimensions
 A3 = rand(X(10), Y(7), Z(5))
-# TODO not merged yet A3[(X(3), Z(5))]
+A3[(X(3), Z(5))]
 ```
 
 We can index with `Vector` of `Tuple{Vararg(Dimension}}` like vectors of
-`CartesianIndex`
+`CartesianIndex`. This will merge the dimensions in the tuples:
 
 ```@ansi dimensions
-# TODO not merged yet A3[[(X(3), Z(5)), (X(7), Z(x)), (X(8), Z(2))]]
-nothing # hide
+A3[[(X(3), Z(5)), (X(7), Z(4)), (X(8), Z(2))]]
 ```
 
 `DimIndices` can be used like `CartesianIndices` but again, without the 
 constraint of consecutive dimensions or known order.
 
 ```@ansi dimensions
-# TODO not merged yet A3[DimIndices(dims(A3, (X, Z))), Y(3)]
-nothing # hide
+A3[DimIndices(dims(A3, (X, Z))), Y(3)]
 ```
 
 All of this indexing can be combined arbitrarily.
@@ -118,10 +111,9 @@ and `:f`. Unlike base, we know that `:c` and `:f` are now related and merge the 
 dimensions into a lookup of tuples:
 
 ```@ansi dimensions
-A4 = DimArray(rand(10, 9, 8, 7, 6, 5), (:a, :b, :c, :d, :e, :f))
+A4 = DimArray(rand(10, 9, 8, 7), (:a, :b, :c, :d))
 
-# TODO not merged yet A4[e=6, DimIndices(dims(A4, (:d, :b))), a=3, collect(DimIndices(dims(A4, (:c, :f))))] 
-nothing # hide
+A4[d=6, collect(DimIndices(dims(A4, (:b, :a)))), c=5] 
 ```
 
 The `Dimension` indexing layer sits on top of regular indexing and _can not_ be combined 
@@ -129,9 +121,10 @@ with it! Regular indexing specifies order, so doesn't mix well with our dimensio
 
 Mixing them will throw an error:
 
-```@example dimensions
-A1[X(3), 4]
-# ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
+```juliarepl
+julia> A1[X(3), 4]
+ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
+...
 ```
 
 ::: info Indexing
@@ -153,11 +146,8 @@ A2 = ones(X(3), Y(3))
 
 Lets benchmark it
 
-```@example dimensions
-using BenchmarkTools
-```
-
 ```@ansi dimensions
+using BenchmarkTools
 @benchmark $A2[X(1), Y(2)]
 ```
 

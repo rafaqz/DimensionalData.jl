@@ -1,12 +1,22 @@
 # Selectors and LookupArrays
 
-http://localhost:5173/DimensionalData.jl/reference#lookuparrays
+As well as choosing dimensions by name, we can also select values in them.
 
-DimensionalData.jl [`Dimension`](@ref)s in an `AbstractDimArray` or 
-`AbstactDimStack` usually hold [`LookupArrays`](@ref). 
+First, we can create `DimArray` with lookup values as well as
+dimension names:
 
-These are `AbstractArray` with added features to facilitate fast and
-accurate lookups of their values, using a [`Selector`](@ref)
+````@ansi selectors
+A = rand(X(1.0:0.1:2.0), Y([:a, :b, :c]))
+````
+
+Then we can use [`Selector`](@ref) to selctect
+values from the array based on its lookup values:
+
+````@ansi selectors
+A[X=Near(1.3), Y=At(:c)]
+````
+
+There are a range of selectors available:
 
 | Selector                | Description                                                                  | Indexing style    |
 | :---------------------- | :--------------------------------------------------------------------------- |------------------ |
@@ -24,10 +34,11 @@ Note: `At`, `Near` and `Contains` can wrap either single values or an
 `AbstractArray` of values, to select one index with an `Int` or multiple 
 indices with a `Vector{Int}`.
 
+
 Selectors find indices in the `LookupArray`, for each dimension. 
 LookupArrays wrap other `AbstractArray` (often `AbstractRange`) but add
 aditional traits to facilitate fast lookups or specifing point or interval
-behviour.
+behviour. These are usually detected automatically.
 
 Some common `LookupArray` that are:
 
@@ -38,3 +49,60 @@ Some common `LookupArray` that are:
 | [`Cyclic(x)`](@ref)       | an `AbstractSampled` lookup for cyclical values.                                                             |
 | [`NoLookup(x)`](@ref)     | no lookup values provided, so `Selector`s will not work. Not show in repl printing.                          |
 
+
+
+````@ansi lookuparrays
+using DimensionalData.LookupArrays
+````
+
+## `Cyclic` lookups
+
+
+Create a `Cyclic` lookup that cycles over 12 months.
+
+````@ansi lookuparrays
+lookup = Cyclic(DateTime(2000):Month(1):DateTime(2000, 12); cycle=Month(12), sampling=Intervals(Start()))
+````
+
+Make a `DimArray` by apply a funcion to the lookup
+
+````@ansi lookuparrays
+A = DimArray(month, X(lookup))
+````
+
+Now we can select any date and get the month:
+
+```@ansi lookups
+A[At(DateTime(2005, 4))]
+```
+
+
+# `DimSelector`
+
+We can also index with arrays of selectors [`DimSelectors`](@ref). 
+These are like `CartesianIndices` or [`DimIndices`](@ref) but holding 
+`Selectors` `At`, `Near` or `Contains`.
+
+````@ansi dimselectors
+A = rand(X(1.0:0.1:2.0), Y(10:2:20))
+````
+
+We can define another array with partly matching indices
+
+````@ansi dimselectors
+B = rand(X(1.0:0.02:2.0), Y(20:-1:10))
+````
+
+And we can simply select values from `B` with selectors from `A`:
+
+````@ansi dimselectors
+B[DimSelectors(A)]
+````
+
+If the lookups aren't aligned we can use `Near` instead of `At`,
+which like doing a nearest neighor interpolation:
+
+````@ansi dimselectors
+C = rand(X(1.0:0.007:2.0), Y(10.0:0.9:30))
+C[DimSelectors(A; selectors=Near)]
+````

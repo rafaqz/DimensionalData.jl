@@ -1,14 +1,14 @@
-# `groupby`
+# Group By
 
 DimensionalData.jl provides a `groupby` function for dimensional
 grouping. This guide will cover:
 
 - simple grouping with a function
 - grouping with `Bins`
-- grouping with other existing `AbstractDimArry` or `Dimension`
+- grouping with another existing `AbstractDimArry` or `Dimension`
 
 
-# Basics: DateTime operations we can use for grouping
+# Grouping functions 
 
 Lets look at the kind of functions that can be used to group `DateTime`.
 Other types will follow the same principles, but are usually simpler.

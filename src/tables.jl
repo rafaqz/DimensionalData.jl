@@ -56,8 +56,8 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 
 # Keywords
-* `mergedims`: Combine two or more dimensions into a new dimension.
-* `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+- `mergedims`: Combine two or more dimensions into a new dimension.
+- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
 
 # Example
 ```jldoctest
@@ -117,9 +117,14 @@ end
 
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
-        nlayers = size(x, layersfrom)
-        layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
-        layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
+        d = dims(x, layersfrom)
+        nlayers = size(x, d)
+        layers = [view(x, rebuild(d, i)) for i in 1:nlayers]
+        layernames = if iscategorical(d)
+            Symbol.(Ref(dim2key(d)), '_', lookup(d))
+        else
+            Symbol.(("$(dim2key(d))_$i" for i in 1:nlayers))
+        end
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
         s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
