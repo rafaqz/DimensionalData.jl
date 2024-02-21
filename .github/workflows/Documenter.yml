@@ -48,7 +48,7 @@ jobs:
       - name: Instantiate NPM
         run: cd docs/; npm i; cd ..
       - name: Generate logo
-        run: julia --project=docs/ --color=yes docs/logo.jl
+        run: julia --project=docs -e "using Pkg; Pkg.instantiate()"; julia --project=docs/ --color=yes docs/logo.jl
       - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
