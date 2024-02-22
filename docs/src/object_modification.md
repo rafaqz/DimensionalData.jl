@@ -65,12 +65,6 @@ reorder(A, ReverseOrdered())
 
 ::::
 
-[`broadcast_dims`](@ref) is like Base julia `broadcast` on dimensional steroids.
-Because we know the names of the dimensions, there is ambiguity in which
-one we mean, and we can permuted and reshape them so that broadcasta that
-would fail with a regular `Array` just work with a `DimArray`. As an added
-bonus, `broadcast_dims` even works on `DimStack`s.
-
 ## `mergedims`
 
 [`mergedims`](@ref) is like `reshape`, but simultaneously merges multiple

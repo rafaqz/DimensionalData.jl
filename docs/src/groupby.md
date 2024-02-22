@@ -8,7 +8,7 @@ grouping. This guide will cover:
 - grouping with another existing `AbstractDimArry` or `Dimension`
 
 
-# Grouping functions
+## Grouping functions
 
 Lets look at the kind of functions that can be used to group `DateTime`.
 Other types will follow the same principles, but are usually simpler.
@@ -69,7 +69,7 @@ dayofyear.(tempo)
 
 Tuple groupings
 
-::::tabs
+::: tabs
 
 == yearmonth
 
@@ -107,7 +107,7 @@ yearday.(tempo)
 :::
 
 
-# Grouping and reducing
+## Grouping and reducing
 
 Lets define an array with a time dimension of the times used above:
 
@@ -115,7 +115,7 @@ Lets define an array with a time dimension of the times used above:
 A = rand(X(1:0.01:2), Ti(tempo))
 ````
 
-::::tabs
+::: tabs
 
 == basic
 
@@ -162,39 +162,51 @@ We can also use the function we defined above
 mean.(groupby(A, Ti=>yearday))
 ````
 
-::::
+:::
 
-# Binning
+## Binning
 
 Sometimes we want to further aggregate our groups after running a function,
 or just bin the raw data directly. We can use the [`Bins`](@ref) wrapper to
 do this.
 
-::::tabs
+::: tabs
 
-== bins
+== evenly spaced
+
+For quick analysis, we can break our groups into `N` bins.
+
+````@ansi groupby
+groupby(A, Ti=>Bins(month, 4))
+````
+
+Doing this requires slighly padding the bin edges, so the lookup
+of the output is less than ideal.
+
+== specific values as bins
 
 When our function returns an `Int`, we can use a range of values we want to keep:
 
-````@ansi groupby
+  ````@ansi groupby
 mean.(groupby(A, Ti=>Bins(month, 1:2)))
 ````
 
-== selected month Bins
+== selected month bins
 
 ````@ansi groupby
 mean.(groupby(A, Ti=>Bins(month, [1, 3, 5])))
 ````
 
-== manual bin groups
+== bin groups
 
-Groupby by month and take the summer and winter months:
+We can also specify an `AbstractArray` of grouping `AbstractArray`:
+Her we group by month, and bin the summer and winter months:
 
 ````@ansi groupby
-groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]] ; labels=x -> string.(x)))
+groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]]; labels=x -> string.(x)))
 ````
 
-== ranges bins
+== range bins
 
 First, lets see what [`ranges`](@ref) does:
 
@@ -202,7 +214,7 @@ First, lets see what [`ranges`](@ref) does:
 ranges(1:8:370)
 ````
 
-We can use this to group into blocks of 8 days.
+We can use this vector of ranges to group into blocks, here 8 days :
 
 ````@ansi groupby
 groupby(A, Ti => Bins(dayofyear, ranges(1:8:370)))
@@ -210,6 +222,29 @@ groupby(A, Ti => Bins(dayofyear, ranges(1:8:370)))
 
 Note: this only works where our function `dayofyear` returns
 values exactly `in` the ranges. `7.5` would not be included!
+
+== intervals bins
+
+Intervals is like ranges, but for taking all values in  
+an interval, not just discrete `Integer`s.
+
+`intervals` returns closed-open `IntervalSets.Interval`:
+
+````@ansi groupby
+intervals(1:0.3:2)
+````
+
+We can use this to bin the `Float64` values on the `X` axis:
+
+````@ansi groupby
+groups = groupby(A, X => Bins(intervals(1:0.3:2)))
+````
+
+The lookup values of our final array are now `IntervalSets.Interval`:
+
+````@ansi groupby
+mean.(groups)
+````
 
 == seasons
 
@@ -244,57 +279,32 @@ and night - two 12 hour blocks starting at 6am:
 groupby(A, Ti => hours(12; start=6, labels=x -> 6 in x ? :night : :day))
 ````
 
-::::
+:::
 
+## Select by [`Dimension`](@ref)
 
-## select by month, days, years
+We can also select by `Dimension`s and any objects with `dims` methods.
 
-How do we select month 1 or 2, and even a group of them, i.e. [1,3,5]? Same for days, years and seasons.
+::: tabs
 
-Use three-month bins. The 13 is the open side of the last interval.
+== groupby dims
 
-````@ansi groupby
-groupby(A, Ti=>Bins(yearmonth, intervals(1:3:12)))
-````
-
-````@ansi groupby
-groupby(A, Ti=>Bins(month, 4))
-````
-
-# Select by [`Dimension`](@ref)
-
-We can also select by `Dimension`s and any objects with `dims` methods:
-
-````@ansi groupby
-julia> B = A[:, 1:3:100]
-julia> C = mean.(groupby(A, B))
-julia> @assert size(A) == size(B)
-````
-
-How do could we incorporate resample? Let's say if we have hour resolution I want to resample every 3,6,12.. hours?
-
-# it will combine the same day from different year.
-
-````@ansi groupby
-groupby(A, Ti=>Bins(yearhour, intervals(1:3:24)))
-````
-
-````@ansi groupby
-groupby(A, Ti=>Bins(yearhour, 12))
-````
-
-Lets group into 8 day blocks using `ranges`.
-
-````@ansi groupby
-groupby(A, Ti=>Bins(dayofyear, ranges(1:8:366)))
-````
-
-## Group by Dims.
+Trivially, grouping by an objects own dimension is similar to `eachslice`:
 
 ````@ansi groupby
 groupby(A, dims(A, Ti))
 ````
 
+== groupby AbstractDimArray
 
+But we can also group by other objects dimensions:
+
+````@ansi groupby
+B = A[:, 1:3:100]
+C = mean.(groupby(A, B))
+@assert size(C) == size(B)
+````
+
+:::
 
 _TODO: Apply custom function (i.e. normalization) to grouped output._

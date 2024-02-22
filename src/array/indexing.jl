@@ -80,7 +80,6 @@ for f in (:getindex, :view, :dotview)
         end
     else
         @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
-            @show i1, i2, Is
             I = to_indices(A, (i1, i2, Is...))
             x = Base.$f(parent(A), I...)
             all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)

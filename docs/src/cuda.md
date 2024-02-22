@@ -13,7 +13,7 @@ A = rand(Float32, X(1.0:1000.0), Y(1.0:2000.0))
 cuA = modify(CuArray, A)
 ```
 
-The result of a GPU broadcast is still be a DimArray:
+The result of a GPU broadcast is still a DimArray:
 
 ```julia
 julia> cuA2 = cuA .* 2

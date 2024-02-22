@@ -66,7 +66,7 @@ and one for each layer:
 DataFrame(st)
 ````
 
-== array `DimTable`
+== layerfrom
 
 Using [`DimTable`](@ref) we can specify that a `DimArray` 
 should take columns from one of the dimensions:
@@ -80,7 +80,7 @@ DataFrame(DimTable(A; layersfrom=:category))
 Using [`DimTable`](@ref) we can merge the spatial 
 dimensions so the column is a tuple:
 
-````@ansi dataframe
+````@ansi mergedims
 DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 ````
 

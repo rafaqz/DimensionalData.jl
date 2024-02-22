@@ -1,4 +1,4 @@
-# Selectors and LookupArrays
+# Selectors
 
 As well as choosing dimensions by name, we can also select values in them.
 
@@ -13,28 +13,103 @@ using DimensionalData
 A = rand(X(1.0:0.2:2.0), Y([:a, :b, :c]))
 ````
 
-Then we can use [`Selector`](@ref) to selctect
-values from the array based on its lookup values:
+Then we can use [`Selector`](@ref) to select values from the array:
 
-These are single value selectors:
+::: tabs
 
-````@ansi selectors
-A[X=Near(1.3), Y=At(:c)]
-````
+== At
 
-But they can select vectors of indices if given vectors of values:
+These are single value selectors, `At` and `Near`:
 
 ````@ansi selectors
-# Broken
-# A[X=Near(1.12:0.09:1.3), Y=At([:a, :b])]
+A[X=At(1.2), Y=At(:c)]
 ````
 
-These selectors only select multiple indices: `..`, `Where` and `Not`
+[`At`](@ref) can also take vectors and ranges:
 
 ````@ansi selectors
-A[X=1.2 .. 1.7, Y=Where(x -> x in (:a, :c))]
-A[X=Not(At(1.2)), Y=Where(x -> x in (:a, :c))]
+A[X=At(1.2:0.2:1.5), Y=At([:a, :c])]
 ````
+
+Or specify tolerance:
+
+````@ansi selectors
+A[X=At(0.99:0.201:1.5; atol=0.05)]
+````
+
+== Near
+
+[`Near`](@ref) finds the nearest value in the lookup:
+
+````@ansi selectors
+A[X=Near(1.245)]
+````
+
+`Near` can also take vectors and ranges:
+
+````@ansi selectors
+A[X=Near(1.1:0.25:1.5)]
+````
+
+== Contains
+
+[`Contains`](@ref) finds the interval that contains a value.
+
+First set the `X` axis to be `Interals`
+
+````@ansi selectors
+using DimensionalData.LookupArrays
+A_intervals = set(A, X => Intervals(Start()))
+intervalbounds(A_intervals, X)
+````
+
+````@ansi selectors
+A_intervals[X=Contains(1.245)]
+````
+
+`Contains` can also take vectors and ranges:
+
+````@ansi selectors
+A_intervals[X=Contains(1.1:0.25:1.5)]
+````
+
+== ..
+
+`..` or `IntervalSets.Interval` selects a range of values:
+
+````@ansi selectors
+A[X=1.2 .. 1.7]
+````
+
+== Touches
+
+[`Touches`](@ref) is like `..`, but for `Intervals` it will include
+intervals touched by the selected interval, not inside it. 
+
+This usually means including zero, one or two cells more than `..`
+
+````@ansi selectors
+A_intervals[X=Touches(1.1, 1.5)]
+A_intervals[X=1.1 .. 1.5]
+````
+
+== Where
+
+[`Where`](@ref) uses a function of the lookup values:
+
+````@ansi selectors
+A[X=Where(>=(1.5)), Y=Where(x -> x in (:a, :c))]
+````
+
+== Not
+
+[`Not`](@ref) takes the opposite of whatever it wraps:
+
+````@ansi selectors
+A[X=Not(Near(1.3)), Y=Not(Where(in((:a, :c))))]
+````
+
+:::
 
 The full set is details in this table.
 
@@ -55,7 +130,9 @@ Note: `At`, `Near` and `Contains` can wrap either single values or an
 indices with a `Vector{Int}`.
 
 
-Selectors find indices in the `LookupArray`, for each dimension. 
+# Lookups
+
+Selectors find indices in the `LookupArray` of each dimension. 
 LookupArrays wrap other `AbstractArray` (often `AbstractRange`) but add
 aditional traits to facilitate fast lookups or specifing point or interval
 behviour. These are usually detected automatically.
@@ -70,7 +147,6 @@ Some common `LookupArray` that are:
 | [`NoLookup(x)`](@ref)    | no lookup values provided, so `Selector`s will not work. Not show in repl printing.                          |
 
 
-
 ````@example lookuparrays
 using DimensionalData.LookupArrays
 ````
@@ -82,7 +158,6 @@ When we define an array, extra properties are detected:
 ````@ansi lookuparrays
 A = DimArray(rand(7, 5), (X(10:10:70), Y([:a, :b, :c, :d, :e])))
 ````
-
 
 This array has a `Sampled` lookup with `ForwardOrdered` `Regular` 
 `Points` for `X`, and a `Categorical` `ForwardOrdered` for `Y`.
@@ -123,7 +198,7 @@ Any skippied fields will still be auto-detected. Here we skip `span` in
 `AutoSpan` in the show output after we construct it - this will be replaced 
 when the `DimArray` is constructed.
 
-````@ansi
+````@ansi lookuparrays
 using DimensionalData.LookupArrays
 x = X(Sampled(10:20:100; order=ForwardOrdered(), sampling=Intervals(Start()), metadata=NoMetadata()))
 y = Y(Categorical([1, 2, 3]; order=ForwardOrdered(), metadata=NoMetadata()))
@@ -138,22 +213,23 @@ manually.
 Create a `Cyclic` lookup that cycles over 12 months.
 
 ````@ansi lookuparrays
-lookup = Cyclic(DateTime(2000):Month(1):DateTime(2000, 12); cycle=Month(12), sampling=Intervals(Start()))
+using Dates
+l = Cyclic(DateTime(2000):Month(1):DateTime(2000, 12); cycle=Month(12), sampling=Intervals(Start()))
 ````
 
-Make a `DimArray` where ther values are the month names:
+There is a shorthand to make a `DimArray` frome a `Dimension` with a function
+of the lookup values. Here we convert the values to the month names:
 
 ````@ansi lookuparrays
-A = DimArray(monthabbr, X(lookup))
+A = DimArray(monthabbr, X(l))
 ````
 
 Now we can select any date and get the month:
 
-```@ansi lookups
+````@ansi lookuparrays
 A[At(DateTime(2005, 4))]
 A[At(DateTime(3047, 9))]
-```
-
+````
 
 ## `DimSelector`
 
@@ -161,26 +237,27 @@ We can also index with arrays of selectors [`DimSelectors`](@ref).
 These are like `CartesianIndices` or [`DimIndices`](@ref) but holding 
 `Selectors` `At`, `Near` or `Contains`.
 
-````@ansi dimselectors
+````@ansi lookuparrays
 A = rand(X(1.0:0.2:2.0), Y(10:2:20))
 ````
 
 We can define another array with partly matching indices
 
-````@ansi dimselectors
+````@ansi lookuparrays
 B = rand(X(1.0:0.04:2.0), Y(20:-1:10))
 ````
 
 And we can simply select values from `B` with selectors from `A`:
 
-````@ansi dimselectors
+````@ansi lookuparrays
 B[DimSelectors(A)]
 ````
 
 If the lookups aren't aligned we can use `Near` instead of `At`,
 which like doing a nearest neighor interpolation:
 
-````@ansi dimselectors
+````@ansi lookuparrays
 C = rand(X(1.0:0.007:2.0), Y(10.0:0.9:30))
 C[DimSelectors(A; selectors=Near)]
 ````
+

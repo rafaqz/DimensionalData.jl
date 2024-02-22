@@ -1,11 +1,21 @@
 # Dimensions
 
 Dimensions are "wrapper types" that can be used to wrap any 
-object to associate it with a named dimension.
+object to associate it with a named dimension. 
 
-The abstract supertype is [`Dimension`](@ref), and the types
-that inherit from it aare `Ti`, `X`, `Y`, `Z`, the generic `Dim{:x}`, 
-or others that you define manually using the [`@dim`](@ref) macro.
+`X`, `Y`, `Z`, `Ti` are predefined as types 
+
+```@ansi dimensions
+using DimensionalData
+X(1)
+X(1), Y(2), Z(3)
+```
+
+You can also make [`Dim`](@ref) dimensions with any name:
+
+```@ansi dimensions
+Dim{:a}(1), Dim{:b}(1)
+```
 
 DimensionalData.jl uses `Dimensions` pretty much everywhere: 
 
@@ -23,193 +33,4 @@ Dimension-specific methods can be brought into scope with:
 using DimensionalData.Dimensions
 ```
 
-## Examples
 
-We can use dimensions to label array axes.
-A `DimArray` with labelled dimensions can be constructed by:
-
-```@ansi dimensions
-using DimensionalData
-A1 = DimArray(zeros(5, 10), (X, Y))
-```
-
-Or simply wrap the sizes with the dimensions:
-
-```@ansi dimensions
-A1 = zeros(X(5), Y(10))
-```
-
-We can access a value with the same dimension wrappers:
-
-```@ansi dimensions
-A1[Y(1), X(2)]
-```
-
-As shown above, `Dimension`s can be used to construct arrays in `rand`, `zeros`,
-`ones` and `fill`, with either a range for a lookup index or a number for the
-dimension length.
-
-For completely arbitrary names, we can use the `Dim{:name}` dims 
-by using `Symbol`s, and indexing with keywords:
-
-```@ansi dimensions
-A2 = DimArray(rand(5, 5), (:a, :b))
-```
-
-and get a value, here another smaller `DimArray`:
-
-```@ansi dimensions
-A2[a=3, b=1:3]
-```
-
-Keywords also work with our first example:
-
-```@ansi dimensions
-A1[X=3]
-```
-
-Here the missing Y was filled in for us.
-
-
-## Dimensional Indexing
-
-When used in indexing, dimension wrappers free us from knowing the 
-order of our objects axes, or from even keeping it consistent. 
-
-We can index in whatever order we want to. These are the same:
-
-```@ansi dimensions
-A1[X(2), Y(1)] == A1[Y(1), X(2)]
-```
-
-We can use Tuples of dimensions like `CartesianIndex`, but they don't 
-have to be in order of consecutive axes.
-
-```@ansi dimensions
-A3 = rand(X(10), Y(7), Z(5))
-A3[(X(3), Z(5))]
-```
-
-We can index with `Vector` of `Tuple{Vararg(Dimension}}` like vectors of
-`CartesianIndex`. This will merge the dimensions in the tuples:
-
-```@ansi dimensions
-A3[[(X(3), Z(5)), (X(7), Z(4)), (X(8), Z(2))]]
-```
-
-`DimIndices` can be used like `CartesianIndices` but again, without the 
-constraint of consecutive dimensions or known order.
-
-```@ansi dimensions
-A3[DimIndices(dims(A3, (X, Z))), Y(3)]
-```
-
-All of this indexing can be combined arbitrarily.
-
-This will regurn values for `:e` at 6, `:a` at 3, all of `:d` an `:b`, and a vector of `:c` 
-and `:f`. Unlike base, we know that `:c` and `:f` are now related and merge the `:c` and `:f`
-dimensions into a lookup of tuples:
-
-```@ansi dimensions
-A4 = DimArray(rand(10, 9, 8, 7), (:a, :b, :c, :d))
-
-A4[d=6, collect(DimIndices(dims(A4, (:b, :a)))), c=5] 
-```
-
-The `Dimension` indexing layer sits on top of regular indexing and _can not_ be combined 
-with it! Regular indexing specifies order, so doesn't mix well with our dimensions.
-
-Mixing them will throw an error:
-
-```julia
-julia> A1[X(3), 4]
-ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
-...
-```
-
-::: info Indexing
-
-Indexing `AbstractDimArray`s works with `getindex`, `setindex!` and
-`view`. The result is still an `AbstracDimArray`, unless using all single
-`Int` or `Selector`s that resolve to `Int` inside `Dimension`.
-
-:::
-
-
-## Indexing Performance
-
-Indexing with `Dimension`s has no runtime cost:
-
-```@ansi dimensions
-A2 = ones(X(3), Y(3))
-```
-
-Lets benchmark it
-
-```@ansi dimensions
-using BenchmarkTools
-@benchmark $A2[X(1), Y(2)]
-```
-
-the same as accessing the parent array directly:
-
-```@ansi dimensions
-@benchmark parent($A2)[1, 2]
-```
-
-
-## `dims` keywords
-
-In many Julia functions like, `size` or `sum`, you can specify the dimension
-along which to perform the operation as an `Int`. It is also possible to do this
-using [`Dimension`](@ref) types with `AbstractDimArray`:
-
-````@ansi dimensions
-A3 = rand(X(3), Y(4), Ti(5))
-sum(A3; dims=Ti)
-````
-
-This also works in methods from `Statistics`:
-
-````@example dimensions
-using Statistics
-````
-
-````@ansi dimensions
-mean(A3; dims=Ti)
-````
-
-This can be especially useful when you are working with multiple objects.
-Here we take the mean of A3 over all dimensions _not in_ A2, using `otherdims`.
-
-In this case, thats the `Z` dimension. But we don't need to know it the Z 
-dimension, some other dimensions, or even if it has extra dimensions at all!
-
-This will work either way, leaveing us with the same dims as A1:
-
-````@ansi dimensions
-d = otherdims(A3, dims(A1))
-dropdims(mean(A3; dims=d); dims=d)
-````
-
-::: info Dims keywords
-
-Methods where dims, dim types, or `Symbol`s can be used to indicate the array dimension:
-
-- `size`, `axes`, `firstindex`, `lastindex`
-- `cat`, `reverse`, `dropdims`
-- `reduce`, `mapreduce`
-- `sum`, `prod`, `maximum`, `minimum`
-- `mean`, `median`, `extrema`, `std`, `var`, `cor`, `cov`
-- `permutedims`, `adjoint`, `transpose`, `Transpose`
-- `mapslices`, `eachslice`
-
-:::
-
-
-## DimIndices
-## Vectors of Dimensions
-
-## How to name dimensions?
-## How to name an array?
-## Adding metadata
