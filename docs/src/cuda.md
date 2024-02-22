@@ -13,7 +13,7 @@ A = rand(Float32, X(1.0:1000.0), Y(1.0:2000.0))
 cuA = modify(CuArray, A)
 ```
 
-The result of a broadcast is still be a DimArray:
+The result of a GPU broadcast is still be a DimArray:
 
 ```julia
 julia> cuA2 = cuA .* 2
@@ -66,6 +66,6 @@ fields converted to GPU friendly forms whenever required, using [Adapt.jl](https
 - Metadata dicts need to be stripped, they are often too difficult to convert,
   and not needed on GPU.
 
-As an example, DynamicGrids.jl uses `AbstractDimArray` for auxiliary 
+As an example, [DynamicGrids.jl](https://github.com/cesaraustralia/DynamicGrids.jl) uses `AbstractDimArray` for auxiliary 
 model data that are passed into [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)/
 [CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) kernels.

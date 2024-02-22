@@ -72,12 +72,12 @@ synchronisation during simulations. Notably, this all works on GPUs!
 
 ### AstroImages.jl
 
-[AstroImages.jl](http://juliaastro.org/dev/modules/AstroImages/)
+[AstroImages.jl](http://juliaastro.org/dev/modules/AstroImages)
 Provides tools to load and visualise astromical images.
 `AstroImage` is `<: AbstractDimArray`.
 
 ### TimeseriesTools.jl
 
-[TimeseriesTools.jl](https://juliahub.com/ui/Packages/General/TimeseriesTools
+[TimeseriesTools.jl](https://juliahub.com/ui/Packages/General/TimeseriesTools)
 Uses `DimArray` for time-series data.
 

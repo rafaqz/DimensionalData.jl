@@ -17,7 +17,7 @@ export default defineConfig({
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,
-  
+
   markdown: {
     config(md) {
       md.use(tabsMarkdownPlugin)
@@ -43,12 +43,12 @@ export default defineConfig({
       { text: 'Selectors', link: '/selectors' },
       { text: 'Integrations',
         items: [
-          { text: 'Integrations', link: '/integrations' },
-          { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'Plots and Makie', link: '/plots' },
+          { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'CUDA and GPUs', link: '/cuda' },
           { text: 'DiskArrays', link: '/diskarrays' },
-          { text: 'Extending DimensionalData', link: '/ext_dd' },
+          { text: 'Ecosystem', link: '/integrations' },
+          { text: 'Extending DimensionalData', link: '/extending_dd' },
         ],
       },
       {
@@ -64,17 +64,16 @@ export default defineConfig({
           { text: 'Getting Started', link: '/basics' },
           { text: 'Dimensions', link: '/dimensions' },
           { text: 'Selectors', link: '/selectors' },
-          { text: 'GroupBy', link: '/groupby' },
           { text: 'Stacks', link: '/stacks' },
-          { text: 'Lookup customazation', link: '/lookup_customization' },
-          { text: 'Tables and DataFrames', link: '/tables' },
+          { text: 'GroupBy', link: '/groupby' },
+          { text: 'Object modification', link: '/object_modification' },
           { text: 'Plots and Makie', link: '/plots' },
+          { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'CUDA and GPUs', link: '/cuda' },
           { text: 'DiskArrays', link: '/diskarrays' },
-          { text: 'Extending DimensionalData', link: '/ext_dd' },
-          { text: 'API Reference',
+          { text: 'Extending DimensionalData', link: '/extending_dd' },
+          { text: 'API Reference', link: '/api/reference',
             items: [
-              { text: 'General Reference', link: '/api/reference' },
               { text: 'Dimensions Reference', link: '/api/dimensions' },
               { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
             ],
@@ -85,7 +84,7 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
-      
+
     ],
     footer: {
       message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a> by <a href="https://github.com/lazarusA" target="_blank"><strong>Lazaro Alonso</strong><br>',

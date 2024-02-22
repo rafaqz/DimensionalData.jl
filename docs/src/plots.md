@@ -13,21 +13,21 @@ Plots.jl support is deprecated, as development is moving to Makie.jl
 
 # Makie.jl
 
-Makie.jl functions also mostly work with `AbstractDimArray` and will `permute` and 
-`reorder` axes into the right places, especially if `X`/`Y`/`Z`/`Ti` dimensions are used.
+Makie.jl functions also mostly work with [`AbstractDimArray`](@ref) and will `permute` and 
+[`reorder`](@ref) axes into the right places, especially if `X`/`Y`/`Z`/`Ti` dimensions are used.
 
-In makie a `DimMatrix` will plot as a heatmap by defualt, but again it will have labels 
+In makie a `DimMatrix` will plot as a heatmap by defualt, but it will have labels 
 and axes in the right places:
 
 ```@example Makie
 using DimensionalData, CairoMakie
 
-A = rand(X(1:10), Y([:a, :b, :c]))
+A = rand(X(10:10:100), Y([:a, :b, :c]))
 Makie.plot(A; colormap=:inferno)
 ```
 
-Other plots also work, here we ignore the axis order and instead favour the
-categorical varable for the X axis:
+Other plots also work, here DD ignores the axis order and instead 
+favours the categorical varable for the X axis:
 
 ```@example Makie
 Makie.rainclouds(A)

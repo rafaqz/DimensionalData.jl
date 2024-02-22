@@ -24,6 +24,7 @@ rev = reverse(da, dims=Y)
 reorder(rev, da) == da
 # output 
 true
+```
 """
 function reorder end
 

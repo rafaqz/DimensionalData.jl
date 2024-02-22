@@ -121,7 +121,7 @@ with it! Regular indexing specifies order, so doesn't mix well with our dimensio
 
 Mixing them will throw an error:
 
-```juliarepl
+```julia
 julia> A1[X(3), 4]
 ERROR: ArgumentError: invalid index: X{Int64}(3) of type X{Int64}
 ...
