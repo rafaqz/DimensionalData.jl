@@ -31,9 +31,10 @@ wraps must also have OffsetArrays.jl axes.
 
 ### `dims` keywords
 
-To any `dims` keyword argument that only marks the dimension name,
+To any `dims` keyword argument that usually requires the dimension I,
 objects should accept any `Dimension`, `Type{<:Dimension}`, `Symbol`,
-`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or regular `Integer`. 
+`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or also regular `Integer`. 
+
 This is easier than it sounds, calling `DD.dims(objs, dims)` will
 return the matching dimension and `DD.dimnum(obj, dims)` will return
 the matching `Int` for any of these inputs as long as `dims(obj)` is
@@ -71,19 +72,6 @@ updating `data` and `dims`, any more that that is confusing.
 For `Dimension` and `Selector` the single argument versions are easiest to use, 
 as there is only one argument.
 
-### `rebuild(obj, ...)` argument table
-
-| Type             | Keywords                                                    | Arguments            |
-|------------------|------------------------------------------------------------ |----------------------|
-| AbstractDimArray | data, dims, [refdims, name, metadata]                       | as with kw, in order |
-| AbstractDimStack | data, dims, [refdims], layerdims, [metadata, layermetadata] | as with kw, in order |
-| Dimension        | val                                                         | val                  |
-| Selector         | val, [atol]                                                 | val                  |
-| LookupArray      | data, [order, span, sampling, metadata]                     | keywords only        |
-
-You can always add your ownd keywords to `rebuild` calls, but these will only
-work on your own objects or other objects with those fields.
-
 
 ## `format`
 
@@ -91,14 +79,13 @@ When constructing an `AbstractDimArray` or `AbstractDimStack`
 [`DimensionalData.format`](@ref) must be called on the `dims` tuple and the parent array:
 
 ```julia
-dims=`format(dims, array)`
+format(dims, array)
 ```
 
 This lets DimensionalData detect the lookup properties, fill in missing fields
-of LookupArray, pass keywords from `Dimension` to detected `LookupArray`, and accept 
-a wider range of dimension inputs like tuples of `Symbol` and `Type`.
+of a `LookupArray`, pass keywords from `Dimension` to detected `LookupArray` 
+constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
+and `Type`.
 
-Not calling `format` whille constructing an `AbstractDimArray` has 
-undefined behaviour.
-
-
+Not calling `format` in the outer constructors of an `AbstractDimArray`
+has undefined behaviour.

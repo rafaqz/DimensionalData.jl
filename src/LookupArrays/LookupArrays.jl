@@ -1,7 +1,7 @@
 """
     LookupArrays
 
-Module for [`LookupArrays`](@ref) and [`Selector`]s used in DimensionalData.jl
+Module for [`LookupArrays`](@ref) and [`Selector`](@ref)s used in DimensionalData.jl
 
 `LookupArrays` defines traits and `AbstractArray` wrappers
 that give specific behaviours for a lookup index when indexed with [`Selector`](@ref).

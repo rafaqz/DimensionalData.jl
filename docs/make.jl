@@ -36,7 +36,7 @@ folder = deploy_decision.subfolder
 println("Deploying to $folder")
 vitepress_config_file = joinpath(@__DIR__, "build", ".vitepress", "config.mts")
 config = read(vitepress_config_file, String)
-new_config = replace(config, "base: 'REPLACE_ME_WITH_DOCUMENTER_VITEPRESS_BASE_URL_WITH_TRAILING_SLASH'" => "base: '/DimensionalData.jl/$folder/'")
+new_config = replace(config, "base: 'REPLACE_ME_WITH_DOCUMENTER_VITEPRESS_BASE_URL_WITH_TRAILING_SLASH'" => "base: '/DimensionalData.jl/$folder'")
 write(vitepress_config_file, new_config)
 
 # Build the docs using `npm` - we are assuming it's installed here!

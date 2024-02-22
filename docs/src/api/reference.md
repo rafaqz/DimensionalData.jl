@@ -37,7 +37,7 @@ DimStack
 
 ```@docs
 DimIndices
-DimKeys
+DimSelectors
 DimPoints
 ```
 
@@ -72,7 +72,6 @@ Base.map
 Base.copy!
 Base.eachslice
 ```
-
 
 Most base methods work as expected, using `Dimension` wherever a `dims`
 keyword is used. They are not allspecifically documented here.

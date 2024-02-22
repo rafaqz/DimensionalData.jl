@@ -127,7 +127,7 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
         new_blockwidth = blockwidth
     else
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
-        new_blockwidth = min(displaywidth - 2, max(blockwidth, maximum(textwidth, dim_lines)))
+        new_blockwidth = max(blockwidth, min(displaywidth - 2, maximum(textwidth, dim_lines)))
         lines += print_block_top(io, label, blockwidth, new_blockwidth)
         lines += print_dims(io, mime, dims; kw...)
         println(io)

@@ -11,52 +11,88 @@ DimensionalData.jl implements the Tables.jl interface for
 are unrolled so they are all the same size, and dimensions similarly loop
 over array strides to match the length of the largest layer.
 
-Columns are given the `name` or the array or the stack layer key.
+Columns are given the [`name`](@ref) or the array or the stack layer key.
 `Dimension` columns use the `Symbol` version (the result of `DD.dim2key(dimension)`).
 
-Looping of unevenly size dimensions and layers is done _lazily_,
+Looping of dimensions and stack layers is done _lazily_,
 and does not allocate unless collected.
 
-````@ansi dataframe
-using DimensionalData, Dates, DataFrames
-x = X(1:10)
-y = Y(1:10)
-c = Dim{:category}('a':'z')
-c = Dim{:category}(1:25.0)
+## Example
 
-A = DimArray(rand(x, y, c); name=:data)
+````@example dataframe
+using DimensionalData, Dates, DataFrames
+````
+
+Define some dimensions:
+
+````@ansi dataframe
+x, y, c = X(1:10), Y(1:10), Dim{:category}('a':'z')
+````
+
+::::tabs
+
+== create a `DimArray`
+
+````@ansi dataframe
+A = rand(x, y, c; name=:data)
+````
+
+== create a `DimStack`
+
+````@ansi dataframe
 st = DimStack((data1 = rand(x, y), data2=rand(x, y, c)))
 ````
 
-By default this stack will become a table with a column for each
-dimension, and one for each layer:
+::::
+
+## Converting to DataFrame
+
+::::tabs
+
+== array default
+
+Arrays will have columns for each dimension, and only one data column
+
+````@ansi dataframe
+DataFrame(A)
+````
+
+== stack default
+
+Stacks will become a table with a column for each dimension, 
+and one for each layer:
 
 ````@ansi dataframe
 DataFrame(st)
 ````
 
-Arrays behave the same way, but with only one data column
-````@ansi
-DataFrame(A)
-````
+== layerfrom
 
-We can also control how the table is created using [`DimTable`](@ref),
-here we can merge the spatial dimensions so the column is a point:
-
-````@ansi dataframe
-DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
-````
-
-Or, for a `DimArray` we can take columns from one of the layers:
+Using [`DimTable`](@ref) we can specify that a `DimArray` 
+should take columns from one of the dimensions:
 
 ````@ansi dataframe
 DataFrame(DimTable(A; layersfrom=:category))
 ````
+
+== stack `DimTable`
+
+Using [`DimTable`](@ref) we can merge the spatial 
+dimensions so the column is a tuple:
+
+````@ansi mergedims
+DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
+````
+
+::::
+
+## Converting to CSV
 
 We can also write arrays and stacks directly to CSV.jl, or 
 any other data type supporting the Tables.jl interface.
 
 ````@ansi dataframe
 using CSV
-CSV.write("stack_datframe.csv", st)
+CSV.write("dimstack.csv", st)
+readlines("dimstack.csv")
 ````
