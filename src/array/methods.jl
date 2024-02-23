@@ -547,6 +547,44 @@ $message on dimension $D.
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
 
+function Base._typed_stack(::Colon, ::Type{T}, ::Type{S}, A, Aax=_iterator_axes(A)) where {T,S<:AbstractDimArray}
+    origdims = dims.(A)
+    _A = parent.(A)
+    t = eltype(_A)
+    _A = Base._typed_stack(:, T, t, A)
+
+    if !comparedims(Bool, origdims...;
+        order=true, val=true, warn=" Can't `stack` AbstractDimArray, applying to `parent` object."
+    )
+        return _A
+    else
+        DimArray(_A, (first(origdims)..., AnonDim()))
+    end
+end
+
+function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:AbstractDimArray}
+    origdims = dims.(A)
+    _A = parent.(A)
+    t = eltype(_A)
+    _A = Base._dim_stack(newdim, T, t, A)
+
+    if !comparedims(Bool, origdims...;
+        order=true, val=true, warn=" Can't `stack` AbstractDimArray, applying to `parent` object."
+    )
+        return _A
+    end
+
+    newdims = first(origdims)
+    newdims = ntuple(d -> d == newdim ? AnonDim() : newdims[d-(d>newdim)], length(newdims) + 1)
+    DimArray(_A, newdims)
+end
+
+function Base.stack(dim::Dimension, A::AbstractVector{<:AbstractDimArray}; dims=nothing, kwargs...)
+    B = Base.stack(A; dims, kwargs...)
+    newdims = ntuple(d -> d == dims ? dim : DimensionalData.dims(B, d), ndims(B))
+    rebuild(B; dims=newdims)
+end
+
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
     newdims = reverse(dims(A))

@@ -655,6 +655,20 @@ end
     end
 end
 
+@testset "Base.stack" begin
+    a = [1 2 3; 4 5 6]
+    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+    b = [7 8 9; 10 11 12]
+    ca = DimArray(b, (X(4.0:5.0), Y(6.0:8.0)))
+    db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
+
+    @test stack([da, db]; dims=3) == stack([[1 2 3; 4 5 6], [7 8 9; 10 11 12]], dims=3)
+    @test_warn "Lookup values for X" stack([da, db]; dims=3)
+
+    @test stack([da, ca]; dims=1) == stack([[1 2 3; 4 5 6], [7 8 9; 10 11 12]], dims=1)
+    @test_warn "Lookup values for X" stack([da, db]; dims=1)
+end
+
 @testset "unique" begin
     a = [1 1 6; 1 1 6]
     xs = (X, X(), :X)
