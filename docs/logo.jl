@@ -33,6 +33,7 @@ lines!(ax, [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8),
     color = colors[2],
     linewidth=2, transparency=true)
 
+mkpath(joinpath(@__DIR__, "src", "assets"))
 save(joinpath(@__DIR__, "src", "assets", "logoDD.svg"), fig; pt_per_unit=0.75)
 save(joinpath(@__DIR__, "src", "assets", "logoDD.png"), fig; px_per_unit=2)
 save(joinpath(@__DIR__, "src", "assets", "favicon.png"), fig; px_per_unit=0.25)
