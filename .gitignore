@@ -23,3 +23,5 @@ docs/.vitepress/cache
 docs/src/.vitepress/dist
 docs/src/.vitepress/cache
 node_modules
+*.png
+*.svg
