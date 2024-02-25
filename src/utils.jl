@@ -22,7 +22,9 @@ da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)))
 rev = reverse(da, dims=Y)
 # using `da` in reorder will return it to the original order
 reorder(rev, da) == da
-# output 
+
+# output
+
 true
 ```
 """
