@@ -135,7 +135,7 @@ Base.show(io::IO, bins::CyclicBins) =
 
 yearhour(x) = year(x), hour(x)
 
-season(; start=December, kw...) = months(3; start, kw...)
+seasons(; start=December, kw...) = months(3; start, kw...)
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 yearhours(step; start=0, labels=nothing) = CyclicBins(yearhour; cycle=24, step, start, labels)

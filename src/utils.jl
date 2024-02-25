@@ -112,10 +112,19 @@ all passed in arrays in the order in which they are found.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function broadcast_dims(f, As::AbstractDimArray...)
+function broadcast_dims(f, As::AbstractBasicDimArray...)
     dims = combinedims(As...)
     T = Base.Broadcast.combine_eltypes(f, As)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
+end
+
+function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
+    st = _firststack(As...)
+    nts = _as_extended_nts(NamedTuple(st), As...)
+    layers = map(nts...) do as...
+        broadcast_dims(f, as...)
+    end
+    rebuild(st, layers)
 end
 
 """
@@ -132,7 +141,7 @@ which they are found.
 - `dest`: `AbstractDimArray` to update.
 - `sources`: `AbstractDimArrays` to broadcast over with `f`.
 """
-function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractDimArray...) where {N}
+function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDimArray...) where {N}
     As = map(As) do A
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
         # comparedims(dest, dims(A, dims(dest)))
@@ -193,3 +202,13 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
 uniquekeys(nt::NamedTuple) = keys(nt)
+
+_as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
+    (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
+function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
+    extended_layers = map(layers(st)) do l
+        DimExtensionArray(l, dims(st))
+    end
+    return (extended_layers, _as_extended_nts(nt, As...)...)
+end
+_as_extended_nts(::NamedTuple) = ()

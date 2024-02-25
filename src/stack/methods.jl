@@ -172,16 +172,28 @@ end
 
 # Methods with no arguments that return a DimStack
 for (mod, fnames) in
-    (:Base => (:inv, :adjoint, :transpose), :LinearAlgebra => (:Transpose,))
+    (:Base => (:inv, :adjoint, :transpose, :permutedims, :PermutedDimsArray), :LinearAlgebra => (:Transpose,))
     for fname in fnames
-        @eval ($mod.$fname)(s::AbstractDimStack) = map(A -> ($mod.$fname)(A), s)
+        @eval function ($mod.$fname)(s::AbstractDimStack)
+            map(s) do l
+                ndims(l) > 1 ? ($mod.$fname)(l) : l
+            end
+        end
     end
 end
 
 # Methods with an argument that return a DimStack
-for fname in (:rotl90, :rotr90, :rot180, :PermutedDimsArray, :permutedims)
+for fname in (:rotl90, :rotr90, :rot180)
     @eval (Base.$fname)(s::AbstractDimStack, args...) =
         map(A -> (Base.$fname)(A, args...), s)
+end
+for fname in (:PermutedDimsArray, :permutedims)
+    @eval function (Base.$fname)(s::AbstractDimStack, perm)
+        map(s) do l
+            lperm = dims(l, dims(s, perm))
+            length(lperm) > 1 ? (Base.$fname)(l, lperm) : l
+        end
+    end
 end
 
 # Methods with keyword arguments that return a DimStack
@@ -241,7 +253,7 @@ for fname in (:one, :oneunit, :zero, :copy)
     end
 end
 
-Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+Base.reverse(s::AbstractDimStack; dims=:) = map(A -> reverse(A; dims=dims), s)
 
 # Random
 Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =

@@ -85,20 +85,13 @@ yearmonthday.(tempo)
 
 == custom
 
-We can create our own anonymous function that return tuples
+We can create our own function that return tuples
 
 ````@example groupby
 yearday(x) = year(x), dayofyear(x)
-yearhour(x) = year(x), hour(x)
 ````
 
-And you can probably guess what they do:
-
-````@ansi groupby
-yearhour.(tempo)
-````
-
-== yearday
+You can probably guess what it does:
 
 ````@ansi groupby
 yearday.(tempo)
@@ -119,13 +112,13 @@ A = rand(X(1:0.01:2), Ti(tempo))
 
 == basic
 
-And group it by month:
+Group by month, using the `month` function:
 
 ````@ansi groupby
 groups = groupby(A, Ti=>month)
 ````
 
-We take the mean of each group by broadcasting over them :
+We can take the mean of each group by broadcasting over them :
 
 ````@ansi groupby
 mean.(groups)

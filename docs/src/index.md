@@ -5,7 +5,7 @@ layout: home
 
 hero:
   name: "DimensionalData.jl"
-  text: "Datasets with named dimensions"
+  text: "Julia Datasets with named dimensions"
   tagline: High performance name indexing for Julia
   image:
     src: 'logoDD.png'
@@ -14,11 +14,8 @@ hero:
       text: Getting Started
       link: /basics
     - theme: alt
-      text: Examples
-      link: /api-examples
-    - theme: alt
       text: API reference
-      link: /reference
+      link: /api/reference
 features:
   - icon: <img width="64" height="64" src="https://img.icons8.com/nolan/64/3d-scale.png" alt="3d-scale"/>
     title: Intelligent Indexing
