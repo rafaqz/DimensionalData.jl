@@ -1,8 +1,6 @@
-# Integrations
+# Ecosystem
 
-## Spatial sciences
-
-### Rasters.jl
+## Rasters.jl
 
 [Raster.jl](https://rafaqz.github.io/Rasters.jl/stable) extends DD
 for geospatial data manipulation, providing file load/save for
@@ -18,7 +16,7 @@ GIS tools and dependencies.
 A `Raster` is a `AbstractDimArray`, a `RasterStack` is a `AbstractDimStack`,
 and `Projected` and `Mapped` are `AbstractSample` lookups.
 
-### YAXArrays.jl
+## YAXArrays.jl
 
 [YAXArrays.jl](https://juliadatacubes.github.io/YAXArrays.jl/dev/) is another
 spatial data package aimmed more at (very) large datasets. It's functionality
@@ -27,12 +25,10 @@ and we work closely with the developers.
 
 `YAXArray` is a `AbstractDimArray` and inherits its behaviours.
 
-### ClimateBase.jl
+## ClimateBase.jl
 
 [ClimateBase.jl](https://juliaclimate.github.io/ClimateBase.jl/dev/)
 Extends DD with methods for analysis of climate data.
-
-## Statistics
 
 ## ArviZ.jl
 
@@ -41,24 +37,20 @@ Is a julia package for exploratory analysis of Bayesian models.
 
 An `ArviZ.Dataset` is an `AbstractDimStack`!
 
-## Optimization
-
-### JuMP.jl
+## JuMP.jl
 
 [JuMP.jl](https://jump.dev/) is a powerful omptimisation DSL. 
 It defines its own named array types but now accepts any `AbstractDimArray` 
 too, through a package extension.
 
-## Simulations
-
-### CryoGrid.jl
+## CryoGrid.jl
 
 [CryoGrid.jl](https://juliahub.com/ui/Packages/General/CryoGrid)
 A Juia implementation of the CryoGrid permafrost model.
 
 `CryoGridOutput` uses `DimArray` for views into output data.
 
-### DynamicGrids.jl
+## DynamicGrids.jl
 
 [DynamicGrids.jl](https://github.com/cesaraustralia/DynamicGrids.jl)
 is a spatial simulation engine, for cellular automata and spatial process
@@ -68,15 +60,13 @@ All DynamicGrids.jl `Outputs` are `<: AbstractDimArray`, and
 `AbstractDimArray` are used for auxiliary data to allow temporal 
 synchronisation during simulations. Notably, this all works on GPUs!
 
-## Analysis
-
-### AstroImages.jl
+## AstroImages.jl
 
 [AstroImages.jl](http://juliaastro.org/dev/modules/AstroImages)
 Provides tools to load and visualise astromical images.
 `AstroImage` is `<: AbstractDimArray`.
 
-### TimeseriesTools.jl
+## TimeseriesTools.jl
 
 [TimeseriesTools.jl](https://juliahub.com/ui/Packages/General/TimeseriesTools)
 Uses `DimArray` for time-series data.

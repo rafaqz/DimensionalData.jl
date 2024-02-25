@@ -89,3 +89,42 @@ and `Type`.
 
 Not calling `format` in the outer constructors of an `AbstractDimArray`
 has undefined behaviour.
+
+
+## Interfaces.jl interterface testing
+
+DimensionalData defines explicit, testable Interfaces.jl interfaces:
+`DimArrayInterface` and `DimStackInterface`.
+
+::: tabs
+
+== array
+
+This is the implementation definition for `DimArray`:
+
+````@ansi interfaces
+using DimensionalData, Interfaces
+@implements DimensionalData.DimArrayInterface{(:refdims,:name,:metadata)} DimArray [rand(X(10), Y(10)), zeros(Z(10))]
+````
+
+See the [`DimArrayInterface`](@ref) docs for options. We can test it with:
+
+````@ansi interfaces
+Interfaces.test(DimensionalData.DimArrayInterface)
+````
+
+== stack
+
+The implementation definition for `DimStack`:
+
+````@ansi interfaces
+@implements DimensionalData.DimStackInterface{(:refdims,:metadata)} DimStack [DimStack(zeros(Z(10))), DimStack(rand(X(10), Y(10))), DimStack(rand(X(10), Y(10)), rand(X(10)))]
+````
+
+See the [`DimStackInterface`](@ref) docs for options. We can test it with:
+
+````@ansi interfaces
+Interfaces.test(DimensionalData.DimStackInterface)
+````
+
+:::

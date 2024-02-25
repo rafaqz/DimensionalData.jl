@@ -191,10 +191,10 @@ end
 """
     DimStack <: AbstractDimStack
 
-    DimStack(data::AbstractDimArray...)
-    DimStack(data::Tuple{Vararg{AbstractDimArray}})
-    DimStack(data::NamedTuple{Keys,Vararg{AbstractDimArray}})
-    DimStack(data::NamedTuple, dims::DimTuple; metadata=NoMetadata())
+    DimStack(data::AbstractDimArray...; kw...)
+    DimStack(data::Tuple{Vararg{AbstractDimArray}}; kw...)
+    DimStack(data::NamedTuple{Keys,Vararg{AbstractDimArray}}; kw...)
+    DimStack(data::NamedTuple, dims::DimTuple; metadata=NoMetadata(); kw...)
 
 DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 
@@ -210,6 +210,10 @@ Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 - `setindex!` must pass a `Tuple` or `NamedTuple` maching the layers.
 - many base and `Statistics` methods (`sum`, `mean` etc) will work as for a `DimArray`
     again removing the need to use `map`.
+
+function DimStack(A::AbstractDimArray;
+    layersfrom=nothing, name=nothing, metadata=metadata(A), refdims=refdims(A), kw...
+)
 
 For example, here we take the mean over the time dimension for all layers :
 
@@ -272,9 +276,9 @@ struct DimStack{L,D<:Tuple,R<:Tuple,LD<:Union{NamedTuple,Nothing},M,LM<:NamedTup
     metadata::M
     layermetadata::LM
 end
-DimStack(@nospecialize(das::AbstractBasicDimArray...); kw...) = DimStack(collect(das); kw...)
-DimStack(@nospecialize(das::Tuple{Vararg{AbstractBasicDimArray}}); kw...) = DimStack(collect(das); kw...)
-function DimStack(@nospecialize(das::AbstractArray{<:AbstractBasicDimArray});
+DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)
+DimStack(@nospecialize(das::Tuple{Vararg{AbstractDimArray}}); kw...) = DimStack(collect(das); kw...)
+function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     metadata=NoMetadata(), refdims=(),
 )
     keys_vec = uniquekeys(das)
@@ -287,7 +291,20 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractBasicDimArray});
 
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
-function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractBasicDimArray}}};
+function DimStack(A::AbstractDimArray;
+    layersfrom=nothing, metadata=metadata(A), refdims=refdims(A), kw...
+)
+    layers = if isnothing(layersfrom)
+        keys = DD.name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (DD.name(A),)
+        NamedTuple{keys}((A,))
+    else
+        keys = Tuple(_layerkeysfromdim(A, layersfrom))
+        slices = Tuple(eachslice(A; dims=layersfrom))
+        NamedTuple{keys}(slices)
+    end
+    return DimStack(layers; refdims=refdims, metadata=metadata, kw...)
+end
+function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )
@@ -306,3 +323,13 @@ end
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,Nothing}, key::Symbol) = dims(s)
+
+function _layerkeysfromdim(A, dim)
+    map(index(A, dim)) do x
+        if x isa Number
+            Symbol(string(DD.dim2key(dim), "_", x))
+        else
+            Symbol(x)
+        end
+    end
+end

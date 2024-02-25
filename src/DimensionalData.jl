@@ -69,7 +69,7 @@ export AbstractDimTable, DimTable
 export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
 # getter methods
-export dims, refdims, metadata, name, lookup, bounds
+export dims, refdims, metadata, name, lookup, bounds, val
 
 # Dimension/Lookup primitives
 export dimnum, hasdim, hasselection, otherdims
@@ -77,7 +77,7 @@ export dimnum, hasdim, hasselection, otherdims
 # utils
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
 
-export groupby, season, months, hours, yeardays, monthdays, intervals, ranges
+export groupby, seasons, months, hours, yeardays, monthdays, intervals, ranges
 
 const DD = DimensionalData
 

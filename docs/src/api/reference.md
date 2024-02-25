@@ -46,7 +46,6 @@ DimPoints
 ```@docs
 DimensionalData.AbstractDimTable
 DimTable
-DimensionalData.DimColumn
 ```
 
 # Utility methods

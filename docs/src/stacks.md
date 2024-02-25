@@ -1,4 +1,4 @@
-# Stacks
+## DimStacks
 
 An `AbstractDimStack` represents a collection of `AbstractDimArray`
 layers that share some or all dimensions. For any two layers, a dimension
@@ -14,7 +14,7 @@ st = DimStack((a=rand(x, y), b=rand(x, y), c=rand(y), d=rand(x)))
 
 The behaviour is somewhere ebetween a `NamedTuple` and an `AbstractArray`.
 
-::::tabs
+::: tabs
 
 == getting layers
 
@@ -50,24 +50,156 @@ The layers without another dimension are now zero-dimensional:
 st[X=At(2.0)]
 ````
 
-::::
+:::
 
-Indexing with `Dimensions`, `Selectors` works as with an `AbstractDimArray`, 
-except it indexes for all layers at the same time, returning either a new
-small `AbstractDimStack` or a scalar value, if all layers are scalars. 
+
+## Reducing functions
 
 Base functions like `mean`, `maximum`, `reverse` are applied to all layers of the stack.
+
+::: tabs
+
+== maximum
+
+````@ansi stack
+maximum(st)
+maximum(st; dims=Y)
+````
+
+== minimum
+
+````@ansi stack
+minimum(st)
+minimum(st; dims=Y)
+````
+
+== sum
+
+````@ansi stack
+sum(st)
+sum(st; dims=Y)
+````
+
+== prod
+
+````@ansi stack
+prod(st)
+prod(st; dims=Y)
+````
+
+== mean
+
+````@ansi stack
+mean(st)
+mean(st; dims=Y)
+````
+
+== std
+
+````@ansi stack
+std(st)
+std(st; dims=Y)
+````
+
+== var
+
+````@ansi stack
+var(st)
+var(st; dims=Y)
+````
+
+== reduce
+
+````@ansi stack
+reduce(+, st)
+# reduce(+, st; dims=Y) # broken
+````
+
+== extrema
+
+````@ansi stack
+extrema(st)
+extrema(st; dims=Y) # Kind of broken? should :d be tuples too?
+````
+
+== dropdims
+
+````@ansi stack
+sum_st = sum(st; dims=Y)
+dropdims(sum_st; dims=Y)
+````
+
+:::
 
 `broadcast_dims` broadcasts functions over any mix of `AbstractDimStack` and
 `AbstractDimArray` returning a new `AbstractDimStack` with layers the size of
 the largest layer in the broadcast. This will work even if dimension permutation 
 does not match in the objects.
 
-# Performance 
 
-Indexing stack is fast - indexing a single value return a `NamedTuple` from all layers
-usingally, measures in nanoseconds. There are some compilation overheads to this
-though, and stacks with very many layers can take a long time to compile.
+::: tabs
+
+== rotl90
+
+Only atrix layers can be rotaed
+
+````@ansi stack
+rotl90(st[(:a, :b)])
+rotl90(st[(:a, :b)], 2)
+````
+
+== rotr90
+
+````@ansi stack
+rotr90(st[(:a, :b)])
+rotr90(st[(:a, :b)], 2)
+````
+
+== rot180
+
+````@ansi stack
+rot180(st[(:a, :b)])
+rot180(st[(:a, :b)], 2)
+````
+
+== permutedims
+
+````@ansi stack
+permutedims(st)
+permutedims(st, (2, 1))
+permutedims(st, (Y, X))
+````
+
+== transpose
+
+````@ansi stack
+transpose(st)
+````
+
+== adjoint
+
+````@ansi stack
+adjoint(st)
+st'
+````
+
+== PermutedDimsArray
+
+````@ansi stack
+PermutedDimsArray(st, (2, 1))
+PermutedDimsArray(st, (Y, X))
+````
+
+:::
+
+## Performance 
+
+Indexing stack is fast - indexing a single value return a `NamedTuple` from all 
+layers is usally measures in nanoseconds, and no slower than manually indexing
+into each parent array directly.
+
+There are some compilation overheads to this though, and stacks with very many 
+layers can take a long time to compile.
 
 ````@ansi stack
 using BenchmarkTools

@@ -1,7 +1,7 @@
 # Modifying objects
 
 DimensionalData.jl objects are all `struct` rather than
-`mutable struct`. The only things you can modify in-place 
+`mutable struct`. The only things you can modify in-place
 are the values of the contained arrays or metadata `Dict`s if
 they exist.
 

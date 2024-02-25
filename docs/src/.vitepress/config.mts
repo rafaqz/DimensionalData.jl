@@ -59,7 +59,37 @@ export default defineConfig({
       },
     ],
 
-    sidebar: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
+    sidebar: [
+      {
+        text: '',
+        items: [
+          { text: 'Getting Started', link: '/basics' },
+          { text: 'Dimensions', link: '/dimensions' },
+          { text: 'Selectors', link: '/selectors' },
+          { text: 'Dimarrays', link: '/dimarrays' },
+          { text: 'DimStacks', link: '/stacks' },
+          { text: 'GroupBy', link: '/groupby' },
+          { text: 'Getting information', link: '/get_info' },
+          { text: 'Object modification', link: '/object_modification' },
+          { text: 'Integrations',
+            items: [
+              { text: 'Plots and Makie', link: '/plots' },
+              { text: 'Tables and DataFrames', link: '/tables' },
+              { text: 'CUDA and GPUs', link: '/cuda' },
+              { text: 'DiskArrays', link: '/diskarrays' },
+              { text: 'Ecosystem', link: '/integrations' },
+              { text: 'Extending DimensionalData', link: '/extending_dd' },
+            ],
+          },
+          { text: 'API Reference', link: '/api/reference',
+            items: [
+              { text: 'Dimensions Reference', link: '/api/dimensions' },
+              { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
+            ],
+          },
+        ]
+      }
+    ],
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
