@@ -47,54 +47,6 @@ function Base.copyto!(
 end
 
 """
-    Base.map(f, stacks::AbstractDimStack...)
-
-Apply function `f` to each layer of the `stacks`.
-
-If `f` returns `DimArray`s the result will be another `DimStack`.
-Other values will be returned in a `NamedTuple`.
-"""
-function Base.map(f, s::AbstractDimStack)
-    _maybestack(s,map(f, values(s)))
-end
-function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
-    stacks = (x1, xs...)
-    _check_same_names(stacks...)
-    vals = map(f, map(values, stacks)...)
-    return _maybestack(_firststack(stacks...), vals)
-end
-
-
-_check_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
-            ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = nothing
-_check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) = throw(ArgumentError("Named tuple names do not match."))
-
-_firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
-_firststack() = nothing
-
-_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
-_maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
-# Without the `@nospecialise` here this method is also compile with the above method
-# on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
-function _maybestack(
-    s::AbstractDimStack, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
-)
-    # Avoid compiling this in the simple cases in the above method
-    Base.invokelatest() do
-        rebuild_from_arrays(s, das)
-    end
-end
-function _maybestack(
-    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
-) where K
-    # Avoid compiling this in the simple cases in the above method
-    Base.invokelatest() do
-        rebuild_from_arrays(s, das)
-    end
-end
-
-"""
     Base.eachslice(stack::AbstractDimStack; dims)
 
 Create a generator that iterates over dimensions `dims` of `stack`, returning stacks that
@@ -201,29 +153,20 @@ for (mod, fnames) in
     (:Base => (:sum, :prod, :maximum, :minimum, :extrema, :dropdims),
      :Statistics => (:mean, :median, :std, :var))
     for fname in fnames
-        @eval function ($mod.$fname)(s::AbstractDimStack; dims=:, kw...)
+        @eval function ($mod.$fname)(s::AbstractDimStack; dims=1, kw...)
             map(s) do A
-                # Ignore dims not found in layer
-                if dims isa Union{Colon,Int}
-                    ($mod.$fname)(A; dims, kw...)
-                else
-                    ldims = commondims(DD.dims(A), dims)
-                    # With no matching dims we do nothing
-                    ldims == () ? A : ($mod.$fname)(A; dims=ldims, kw...)
-                end
+                layer_dims = dims isa Colon ? dims : commondims(A, dims)
+                $mod.$fname(A; dims=layer_dims, kw...)
             end
         end
     end
 end
 for fname in (:cor, :cov)
     @eval function (Statistics.$fname)(s::AbstractDimStack; dims=1, kw...)
+        d = DD.dims(s, dims)
         map(s) do A
-            if dims isa Int
-                (Statistics.$fname)(A; dims, kw...)
-            else
-                ldims = only(commondims(DD.dims(A), dims))
-                ldims == () ? A : (Statistics.$fname)(A; dims=ldims, kw...)
-            end
+            layer_dims = only(commondims(A, d))
+            Statistics.$fname(A; dims=layer_dims, kw...)
         end
     end
 end
@@ -234,16 +177,11 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
     for fname in fnames
         _fname = Symbol(:_, fname)
         @eval function ($mod.$fname)(f::Function, s::AbstractDimStack; dims=Colon())
-            map(A -> ($mod.$fname)(f, A; dims=dims), s)
+            map(s) do A
+                layer_dims = dims isa Colon ? dims : commondims(A, dims) 
+                $mod.$fname(f, A; dims=layer_dims) 
+            end
         end
-                # ($_fname)(f, s, dims)
-            # Colon returns a NamedTuple
-            # ($_fname)(f::Function, s::AbstractDimStack, dims::Colon) =
-                # map(A -> ($mod.$fname)(f, A), data(s))
-            # Otherwise maybe return a DimStack
-            # function ($_fname)(f::Function, s::AbstractDimStack, dims) =
-            # end
-        # end
     end
 end
 

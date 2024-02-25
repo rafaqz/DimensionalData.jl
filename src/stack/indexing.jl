@@ -6,9 +6,14 @@
 for f in (:getindex, :view, :dotview)
     @eval Base.@assume_effects :foldable @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
         DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
-end
-@propagate_inbounds function Base.getindex(s::AbstractDimStack, keys::Tuple)
-    rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
+    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(s::AbstractDimStack, keys::Tuple)
+        rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
+    end
+    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(
+        s::AbstractDimStack, keys::Union{<:Not{Symbol},<:Not{<:NTuple{<:Any,Symbol}}}
+    )
+        rebuild_from_arrays(s, layers(s)[keys]) 
+    end
 end
 
 for f in (:getindex, :view, :dotview)
@@ -30,7 +35,15 @@ for f in (:getindex, :view, :dotview)
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{AbstractArray,Colon})
             if length(dims(s)) > 1
-                Base.$f(s, view(DimIndices(s), i))
+                if $f == getindex
+                    ls = map(A -> vec(DimExtensionArray(A, dims(s))), layers(s))
+                    i = i isa Colon ? eachindex(first(ls)) : i
+                    map(i) do n
+                        map(Base.Fix2(getindex, n), ls)
+                    end
+                else
+                    Base.$f(s, view(DimIndices(s), i))
+                end
             elseif length(dims(s)) == 1
                 Base.$f(s, rebuild(only(dims(s)), i))
             else 

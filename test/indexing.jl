@@ -511,7 +511,8 @@ end
             linear1d = view(s[X(2)], 1)
             @test linear1d isa DimStack
             @test parent(linear1d) == (one=fill(4.0), two=fill(8.0f0), three=fill(12))
-            @test_broken linear2d = @inferred s[1:2]
+            @test_broken linear2d = @inferred 
+            s[1:2]
             linear2d = s[1:2]
             @test linear2d isa DimStack
             @test NamedTuple(linear2d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
