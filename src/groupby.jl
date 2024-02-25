@@ -357,33 +357,6 @@ function _groups_from(_, bins::CyclicBins)
     end
 end
 
-# Return the bin for a value
-# function _choose_bin(b::AbstractBins, groups::LookupArray, val)
-#     groups[ispoints(groups) ? At(val) : Contains(val)]
-# end
-# function _choose_bin(b::AbstractBins, groups, val)
-#     i = findfirst(Base.Fix1(_in, val), groups)
-#     isnothing(i) && return nothing
-#     return groups[i]
-# end
-# function _choose_bin(b::Bins, groups::AbstractArray{<:Number}, val)
-#     i = searchsortedlast(groups, val; by=_by)
-#     i >= firstindex(groups) && val in groups[i] || return nothing
-#     return groups[i]
-# end
-# function _choose_bin(b::Bins, groups::AbstractArray{<:Tuple{Vararg{Union{Number,AbstractRange,IntervalSets.Interval}}}}, val::Tuple)
-#     @assert length(val) == length(first(groups))
-#     i = searchsortedlast(groups, val; by=_by)
-#     i >= firstindex(groups) && last(val) in last(groups[i]) || return nothing
-#     return groups[i]
-# end
-# _choose_bin(b::Bins, groups::AbstractArray{<:IntervalSets.Interval}, val::Tuple) = _choose_bin(b::Bins, groups, last(val))
-# function _choose_bin(b::Bins, groups::AbstractArray{<:IntervalSets.Interval}, val)
-#     i = searchsortedlast(groups, val; by=_by)
-#     i >= firstindex(groups) && val in groups[i] || return nothing
-#     return groups[i]
-# end
-
 _maybe_label(vals) = vals
 _maybe_label(f::Function, vals) = f.(vals)
 _maybe_label(::Nothing, vals) = vals
