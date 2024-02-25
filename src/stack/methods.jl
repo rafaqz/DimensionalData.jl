@@ -153,7 +153,7 @@ for (mod, fnames) in
     (:Base => (:sum, :prod, :maximum, :minimum, :extrema, :dropdims),
      :Statistics => (:mean, :median, :std, :var))
     for fname in fnames
-        @eval function ($mod.$fname)(s::AbstractDimStack; dims=1, kw...)
+        @eval function ($mod.$fname)(s::AbstractDimStack; dims=:, kw...)
             map(s) do A
                 layer_dims = dims isa Colon ? dims : commondims(A, dims)
                 $mod.$fname(A; dims=layer_dims, kw...)
