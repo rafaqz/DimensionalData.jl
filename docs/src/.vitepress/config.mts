@@ -11,12 +11,13 @@ const VERSIONS: DefaultTheme.NavItemWithLink[] = [
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
-  base: 'REPLACE_ME_WITH_DOCUMENTER_VITEPRESS_BASE_URL_WITH_TRAILING_SLASH',
-  title: "DimensionalData",
+  base: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
+  title: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
   description: "Datasets with named dimensions",
   lastUpdated: true,
   cleanUrls: true,
   ignoreDeadLinks: true,
+  outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
 
   markdown: {
     config(md) {
@@ -58,37 +59,7 @@ export default defineConfig({
       },
     ],
 
-    sidebar: [
-      {
-        text: '',
-        items: [
-          { text: 'Getting Started', link: '/basics' },
-          { text: 'Dimensions', link: '/dimensions' },
-          { text: 'Selectors', link: '/selectors' },
-          { text: 'Dimarrays', link: '/dimarrays' },
-          { text: 'DimStacks', link: '/stacks' },
-          { text: 'GroupBy', link: '/groupby' },
-          { text: 'Getting information', link: '/get_info' },
-          { text: 'Object modification', link: '/object_modification' },
-          { text: 'Integrations',
-            items: [
-              { text: 'Plots and Makie', link: '/plots' },
-              { text: 'Tables and DataFrames', link: '/tables' },
-              { text: 'CUDA and GPUs', link: '/cuda' },
-              { text: 'DiskArrays', link: '/diskarrays' },
-              { text: 'Ecosystem', link: '/integrations' },
-              { text: 'Extending DimensionalData', link: '/extending_dd' },
-            ],
-          },
-          { text: 'API Reference', link: '/api/reference',
-            items: [
-              { text: 'Dimensions Reference', link: '/api/dimensions' },
-              { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
-            ],
-          },
-        ]
-      }
-    ],
+    sidebar: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },

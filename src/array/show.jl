@@ -56,7 +56,7 @@ Additional keywords may be added at any time.
 
 `blockwidth` is passed in context
 
-```juli
+```julia
 blockwidth = get(io, :blockwidth, 10000)
 ```
 
