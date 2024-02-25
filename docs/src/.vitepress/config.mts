@@ -6,7 +6,6 @@ const version= '0.25.8'
 const VERSIONS: DefaultTheme.NavItemWithLink[] = [
   { text: `v${version} (current)`, link: '/' },
   { text: `Release Notes`, link: 'https://github.com/rafaqz/DimensionalData.jl/releases/' },
-  // { text: `Contributing`, link: 'https://github.com/twoslashes/twoslash/blob/main/CONTRIBUTING.md' },
 ]
 
 // https://vitepress.dev/reference/site-config
@@ -61,9 +60,8 @@ export default defineConfig({
 
     sidebar: [
       {
-        text: '',
+        text: 'Getting Started', link: '/basics',
         items: [
-          { text: 'Getting Started', link: '/basics' },
           { text: 'Dimensions', link: '/dimensions' },
           { text: 'Selectors', link: '/selectors' },
           { text: 'Dimarrays', link: '/dimarrays' },
@@ -71,25 +69,27 @@ export default defineConfig({
           { text: 'GroupBy', link: '/groupby' },
           { text: 'Getting information', link: '/get_info' },
           { text: 'Object modification', link: '/object_modification' },
-          { text: 'Integrations',
-            items: [
-              { text: 'Plots and Makie', link: '/plots' },
-              { text: 'Tables and DataFrames', link: '/tables' },
-              { text: 'CUDA and GPUs', link: '/cuda' },
-              { text: 'DiskArrays', link: '/diskarrays' },
-              { text: 'Ecosystem', link: '/integrations' },
-              { text: 'Extending DimensionalData', link: '/extending_dd' },
-            ],
-          },
-          { text: 'API Reference', link: '/api/reference',
-            items: [
-              { text: 'Dimensions Reference', link: '/api/dimensions' },
-              { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
-            ],
-          },
-        ]
-      }
+        ]},
+        { text: 'Integrations',
+          items: [
+            { text: 'Plots and Makie', link: '/plots' },
+            { text: 'Tables and DataFrames', link: '/tables' },
+            { text: 'CUDA and GPUs', link: '/cuda' },
+            { text: 'DiskArrays', link: '/diskarrays' },
+            { text: 'Ecosystem', link: '/integrations' },
+            { text: 'Extending DimensionalData', link: '/extending_dd' },
+          ],
+        },
+        { text: 'API Reference', link: '/api/reference',
+          items: [
+            { text: 'Dimensions Reference', link: '/api/dimensions' },
+            { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
+          ],
+        },
     ],
+    editLink: {
+      pattern: 'https://github.com/rafaqz/DimensionalData.jl/edit/master/docs/src/:path'
+    },
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },

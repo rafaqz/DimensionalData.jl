@@ -1,10 +1,18 @@
-using DocumenterVitepress ## add https://github.com/LuxDL/DocumenterVitepress.jl.git
+using DocumenterVitepress
 using Documenter
 using DimensionalData
 
+# Names are available everywhere so that [`function`](@ref) works.
+# ====================
+
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.LookupArrays); recursive=true)
+
+# Build documentation.
+# ====================
+
 makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
-    # modules=[DimensionalData],
-    # checkdocs=:all,
+    modules=[DimensionalData],
+    checkdocs=:all,
     format=DocumenterVitepress.MarkdownVitepress(
         repo = "github.com/rafaqz/DimensionalData.jl",
         devbranch = "main", 
@@ -12,10 +20,12 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
     ),
     draft=false,
     source="src", 
-    build=joinpath(@__DIR__, "build"), 
+    build="build", 
     warnonly = true,
 )
 
+# Deploy built documentation.
+# ===========================
 deploydocs(; 
     repo="github.com/rafaqz/DimensionalData.jl",
     target="build", # this is where Vitepress stores its output

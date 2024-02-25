@@ -1,4 +1,4 @@
-# Getters
+## Getters
 
 DimensionalData.jl defines consistent methods to retreive information
 from objects like `DimArray`, `DimStack`, `Tuple`s of `Dimension`,
@@ -160,7 +160,7 @@ extent(dims(A, Y))
 :::
 
 
-# Predicates
+## Predicates
 
 These always return `true` or `false`. With multiple
 dimensions, `fale` means `!all` and `true` means `all`.
