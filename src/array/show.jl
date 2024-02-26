@@ -173,7 +173,7 @@ function print_block_top(io, label, prev_width, new_width)
     return lines
 end
 
-function print_block_separator(io, label, prev_width, new_width)
+function print_block_separator(io, label, prev_width, new_width=prev_width)
     corner = (new_width > prev_width) ? '┐' : '┤'
     middle_line = string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
     printstyled(io, middle_line; color=:light_black)
