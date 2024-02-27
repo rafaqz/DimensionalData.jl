@@ -548,7 +548,7 @@ To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(new
 """
 
 function Base._typed_stack(::Colon, ::Type{T}, ::Type{S}, A, Aax=_iterator_axes(A)) where {T,S<:AbstractDimArray}
-    origdims = dims.(A)
+    origdims = map(dims, A)
     _A = parent.(A)
     t = eltype(_A)
     _A = Base._typed_stack(:, T, t, A)
@@ -575,13 +575,55 @@ function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:A
     end
 
     newdims = first(origdims)
-    newdims = ntuple(d -> d == newdim ? AnonDim() : newdims[d-(d>newdim)], length(newdims) + 1)
+    newdims = ntuple(length(newdims) + 1) do d
+        if d == newdim
+            AnonDim()
+        else # Return the old dimension, shifted across once if it comes after the new dim
+            newdims[d-(d>newdim)]
+        end
+    end
     DimArray(_A, newdims)
 end
 
+"""
+    Base.stack([dim::Dimension], A::AbstractVector{<:AbstractDimArray}; dims=nothing, kwargs...)
+
+Stack arrays along a specified axis `dims`, while preserving the dimensional
+information of other axes.
+If the optional `Dimension` argument `dim` is supplied, it must have
+`length(dim) == length(A)`; the resulting axis `dims` is given the dimension `dim`.
+If `dim` is not supplied, the new dimension will be an `AnonDim()`.
+
+# Examples
+```julia
+julia> da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)));
+julia> db = DimArray([6 5 4; 3 2 1], (X(10:10:20), Y(300:-100:100)));
+
+# Stack along a new dimension `Z`
+julia> dc = stack(Z(1:2), [da, db], dims=3)
+╭─────────────────────────╮
+│ 2×3×2 DimArray{Int64,3} │
+├─────────────────────────┴──────────────────────────────── dims ┐
+  ↓ X Sampled{Int64} 10:10:20 ForwardOrdered Regular Points,
+  → Y Sampled{Int64} 300:-100:100 ReverseOrdered Regular Points,
+  ↗ Z 1:2
+└────────────────────────────────────────────────────────────────┘
+
+julia> dims(dc, 3) == Z(1:2)
+true
+julia> parent(dc) == stack(map(parent, [da, db]), dims=3)
+true
+```
+"""
 function Base.stack(dim::Dimension, A::AbstractVector{<:AbstractDimArray}; dims=nothing, kwargs...)
     B = Base.stack(A; dims, kwargs...)
-    newdims = ntuple(d -> d == dims ? dim : DimensionalData.dims(B, d), ndims(B))
+    newdims = ntuple(ndims(B)) do d
+        if d == dims # Use the new provided dimension
+            dim
+        else
+            DimensionalData.dims(B, d)
+        end
+    end
     rebuild(B; dims=newdims)
 end
 
