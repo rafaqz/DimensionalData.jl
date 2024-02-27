@@ -586,16 +586,16 @@ function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:A
 end
 
 """
-    Base.stack([dim::Dimension], A::AbstractVector{<:AbstractDimArray}; dims=nothing, kwargs...)
+    Base.stack([dim::Dimension], A::AbstractVector{<:AbstractDimArray}; dims=nothing)
 
 Stack arrays along a specified axis `dims`, while preserving the dimensional
 information of other axes.
 If the optional `Dimension` argument `dim` is supplied, it must have
 `length(dim) == length(A)`; the resulting axis `dims` is given the dimension `dim`.
-If `dim` is not supplied, the new dimension will be an `AnonDim()`.
+If `dim` is not supplied, the new dimension will be an `AnonDim`.
 
 # Examples
-```julia
+```julia-repl
 julia> da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)));
 julia> db = DimArray([6 5 4; 3 2 1], (X(10:10:20), Y(300:-100:100)));
 
