@@ -8,13 +8,13 @@
 
 <img src="https://rafaqz.github.io/DimensionalData.jl/dev/logoDD.png" align="right" style="padding-left:10px;" width="200"/>
 
-> [!TIP]
-> Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
->
-
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions, and optionally a lookup index. It provides no-cost
 abstractions for named indexing, and fast index lookups.
+
+> [!TIP]
+> Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
+>
 
 DimensionalData is a pluggable, generalised version of
 [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
