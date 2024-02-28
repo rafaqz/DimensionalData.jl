@@ -8,21 +8,14 @@
 
 <img src="https://rafaqz.github.io/DimensionalData.jl/dev/logoDD.png" align="right" style="padding-left:10px;" width="200"/>
 
-DimensionalData.jl provides tools and abstractions for working with datasets
-that have named dimensions, and optionally a lookup index. It provides no-cost
-abstractions for named indexing, and fast index lookups.
+DimensionalData.jl provides tools and abstractions for working with datasets that have named dimensions, and optionally a lookup index. It provides no-cost abstractions for named indexing, and fast index lookups.
 
->
+
 > [!TIP]
 > Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
->
->
 
-DimensionalData is a pluggable, generalised version of
-[AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner
-syntax, and additional functionality found in NamedDims.jl. It has similar goals
-to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily
-written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
+
+DimensionalData is a pluggable, generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner syntax, and additional functionality found in NamedDims.jl. It has similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
 > [!IMPORTANT]
 > INSTALLATION
@@ -135,7 +128,7 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
 ```
 
 > [!IMPORTANT]
-> Alternate Packages
+> Alternative Packages
 
 There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate most of their syntax and functionality.
 
