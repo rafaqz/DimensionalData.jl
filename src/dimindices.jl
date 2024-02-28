@@ -290,8 +290,10 @@ struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator
 end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
 function DimSlices(x, dims; drop=true)
-    newdims = length(dims) == 0 ? map(d  -> rebuild(d, :), DD.dims(x)) : dims
-    inds = map(d -> rebuild(d, first(d)), newdims)
+    newdims = format(basedims(dims), CartesianIndices(map(x -> parent(axes(x, 1)), _astuple(dims))))
+    inds = map(newdims) do d
+        rebuild(d, first(d))
+    end
     T = typeof(view(x, inds...))
     N = length(newdims)
     D = typeof(newdims)

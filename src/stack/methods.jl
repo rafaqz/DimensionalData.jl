@@ -82,7 +82,7 @@ and 2 layers:
 """
 @static if VERSION < v"1.9-alpha1"
     function Base.eachslice(s::AbstractDimStack; dims)
-        dimtuple = _astuple(dims)
+        dimtuple = _astuple(basedims(dims))
         all(hasdim(s, dimtuple)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
         _eachslice(s, dimtuple)
     end
@@ -92,10 +92,11 @@ else
         if !(dimtuple == ()) 
             all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
+        # Avoid getting DimUnitRange from `axes(s)`
         axisdims = map(DD.dims(s, dimtuple)) do d
-            rebuild(d, axes(lookup(d), 1))
+            rebuild(d, axes(lookup(d), 1)) 
         end
-        DimSlices(s; dims=axisdims, drop)
+        return DimSlices(s; dims=axisdims, drop)
     end
 end
 
