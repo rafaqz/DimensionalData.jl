@@ -1,9 +1,16 @@
 # DimensionalData
 
-[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://rafaqz.github.io/DimensionalData.jl/)
+[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://rafaqz.github.io/DimensionalData.jl/stable)
+[![](https://img.shields.io/badge/docs-dev-blue.svg)](https://rafaqz.github.io/DimensionalData.jl/dev)
 [![CI](https://github.com/rafaqz/DimensionalData.jl/actions/workflows/ci.yml/badge.svg)](https://github.com/rafaqz/DimensionalData.jl/actions/workflows/ci.yml)
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl/tree/main)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
+
+> [!TIP]
+> Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
+>
+> Visit the stable documentation at https://rafaqz.github.io/DimensionalData.jl/stable/
+>
 
 DimensionalData.jl provides tools and abstractions for working with datasets
 that have named dimensions, and optionally a lookup index. It provides no-cost
