@@ -149,6 +149,7 @@ end
         rebuild(d, axes(lookup(d), 1))
     end
     ds = DimensionalData.DimSlices(A; dims=axisdims)
+    @test ds == ds[X=:]
     # Works just like Slices
     @test sum(ds) == sum(eachslice(A; dims=X))
 end
