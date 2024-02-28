@@ -89,13 +89,6 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     keys = collect(_colnames(s))
     return DimTable(s, keys, dimcolumns, dimarraycolumns)
 end
-
-_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
-function _dimcolumn(x, d::Dimension)
-    dim_as_dimarray = DimArray(index(d), d)
-    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
-end
-
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
     # Check that dims are compatible
     comparedims(xs...)
@@ -114,7 +107,6 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Return DimTable
     return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
-
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
         d = dims(x, layersfrom)
@@ -131,6 +123,14 @@ function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
         return  DimTable(s, mergedims=mergedims)
     end
 end
+
+_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
+function _dimcolumn(x, d::Dimension)
+    dim_as_dimarray = DimArray(index(d), d)
+    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+end
+
+
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)

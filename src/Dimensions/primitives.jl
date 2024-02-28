@@ -699,6 +699,8 @@ struct AlwaysTuple <: QueryMode end
 @inline _dim_query1(f, op::Function, t, x, query) = _dim_query1(f, op, t, dims(x), query)
 @inline _dim_query1(f, op::Function, t, x::Nothing) = _dimsnotdefinederror()
 @inline _dim_query1(f, op::Function, t, x::Nothing, query) = _dimsnotdefinederror()
+@inline _dim_query1(f, op::Function, t, ds::Tuple, query::Colon) =
+    _dim_query1(f, op, t, ds, basedims(ds))
 @inline function _dim_query1(f, op::Function, t, ds::Tuple, query::Function) 
     selection = foldl(ds; init=()) do acc, d
         query(d) ? (acc..., d) : acc

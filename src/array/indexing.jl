@@ -114,7 +114,7 @@ function _merge_and_index(f, A, inds)
                 lazylinear = rebuild(mdim, LazyDims2Linear(inds, DD.dims(A, dims_to_merge)))
                 f(M, lazylinear)
             else
-                # Index anyway with al Colon() just for type consistency
+                # Index anyway with all Colon() just for type consistency
                 f(M, basedims(M)...)
             end
         else
@@ -122,7 +122,7 @@ function _merge_and_index(f, A, inds)
             f(A, m_inds)
         end
     else
-        d = first(dims_to_merge)
+        d = only(dims_to_merge)
         val_array = reinterpret(typeof(val(d)), dims_to_merge)
         f(A, rebuild(d, val_array))
     end

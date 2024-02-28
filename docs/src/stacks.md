@@ -12,7 +12,10 @@ x, y = X(1.0:10.0), Y(5.0:10.0)
 st = DimStack((a=rand(x, y), b=rand(x, y), c=rand(y), d=rand(x)))
 ````
 
-The behaviour is somewhere ebetween a `NamedTuple` and an `AbstractArray`.
+The behaviour of a `DimStack` is at times like a `NamedTuple` of
+`DimArray` and, others an `AbstractArray` of `NamedTuple`.
+
+## NamedTuple-like indexing
 
 ::: tabs
 
@@ -24,6 +27,52 @@ Layers can be accessed with `.name` or `[:name]`
 st.a
 st[:c]
 ````
+
+== subsetting layers
+
+We can subset layers with a `Tupe` of `Symbol`:
+
+````@ansi stack
+st[(:a, :c)]
+````
+
+== inverted subsets
+
+`Not` works on `Symbol` keys just like it does on `Selector`:
+It inverts the keys to give you a `DImStack` with all the other layers:
+
+````@ansi stack
+st[Not(:b)]
+st[Not((:a, :c))]
+````
+
+== merging
+
+We can merge a `DimStack` with another `DimStack`:
+
+````@ansi stack
+st2 = DimStack((m=rand(x, y), n=rand(x, y), o=rand(y)))
+merge(st, st2)
+````
+
+Or merge a `DimStack` with a `NamedTuple` of `DimArray`:
+
+````@ansi stack
+merge(st, (; d = rand(y, x), e = rand(y)))
+````
+
+Merging only works when dimensions match: 
+
+````@ansi stack
+merge(st, (; d = rand(Y('a':'n'))))
+````
+
+:::
+
+
+## Array-like indexing
+
+::: tabs
 
 == scalars
 
@@ -50,8 +99,15 @@ The layers without another dimension are now zero-dimensional:
 st[X=At(2.0)]
 ````
 
-:::
+== linear indexing
 
+If we index with `:` we get a `Vector{<:NamedTuple}`
+
+````@ansi stack
+st[:]
+````
+
+:::
 
 ## Reducing functions
 
@@ -112,14 +168,14 @@ var(st; dims=Y)
 
 ````@ansi stack
 reduce(+, st)
-# reduce(+, st; dims=Y) # broken
+reduce(+, st; dims=Y)
 ````
 
 == extrema
 
 ````@ansi stack
 extrema(st)
-extrema(st; dims=Y) # Kind of broken? should :d be tuples too?
+extrema(st; dims=Y)
 ````
 
 == dropdims

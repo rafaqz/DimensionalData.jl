@@ -39,6 +39,8 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     data = copy(_unwrap_broadcasted(bc))
     return if A isa Nothing || _dims isa Nothing || ndims(A) == 0
         data
+    elseif data isa AbstractDimArray
+        rebuild(A, parent(data), _dims, refdims(A), Symbol(""))
     else
         rebuild(A, data, _dims, refdims(A), Symbol(""))
     end
