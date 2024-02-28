@@ -8,8 +8,8 @@ packages that implement the standard.
 
 DimensionalData.jl implements the Tables.jl interface for
 `AbstractDimArray` and `AbstractDimStack`. `DimStack` layers
-are unrolled so they are all the same size, and dimensions similarly loop
-over array strides to match the length of the largest layer.
+are unrolled so they are all the same size, and dimensions
+loop to match the length of the largest layer.
 
 Columns are given the [`name`](@ref) or the array or the stack layer key.
 `Dimension` columns use the `Symbol` version (the result of `DD.dim2key(dimension)`).

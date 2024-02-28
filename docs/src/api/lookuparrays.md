@@ -107,4 +107,5 @@ LookupArrays.AutoLocus
 LookupArrays.AbstractMetadata
 LookupArrays.Metadata
 LookupArrays.NoMetadata
+LookupArrays.units
 ```

@@ -692,10 +692,16 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 # Example
 
 ````jldoctest
-julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]));
-julia> mergedims(ds, Ti => :time, (X, Y) => :space)
-Dim{:time} MergedLookup{Tuple{Int64}} Tuple{Int64}[(0,), (3,), (4,)] Ti,
-Dim{:space} MergedLookup{Tuple{Float64, Int64}} Tuple{Float64, Int64}[(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] X, Y
+julia> using DimensionalData
+
+julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
+↓ X  0.0:0.1:0.4,
+→ Y  10:10:100,
+↗ Ti [0, 3, 4]
+
+julia> mergedims(ds, (X, Y) => :space)
+↓ Ti    [0, 3, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] ↓ X, → Y
 ````
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)

@@ -21,6 +21,7 @@ pkg> status DimensionalData
 ````
 
 ## Basics
+
 Start using the package:
 
 ````@example basics
@@ -39,11 +40,9 @@ or
 C = DimArray(rand(Int8, 10), (alpha='a':'j',))
 ````
 
-or maybe something a little bit more cumbersome:
+or something a little bit more complicated:
 
 ````@ansi basics
-data = rand(Int8, 2,10,3) .|> abs;
+data = rand(Int8, 2, 10, 3) .|> abs
 B = DimArray(data, (channel=[:left, :right], time=1:10, iter=1:3))
 ````
-
-See details on the [`Dimensions`](/dimensions) section.

@@ -1,12 +1,5 @@
 module DimensionalData
 
-# Use the README as the module docs
-@doc let
-    path = joinpath(dirname(@__DIR__), "README.md")
-    include_dependency(path)
-    read(path, String)
-end DimensionalData
-
 # Standard lib
 using Dates,
       LinearAlgebra,
@@ -46,7 +39,7 @@ using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, Dim
 import .LookupArrays: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval
-import .Dimensions: dims, refdims, name, lookup, dimstride, kwdims, hasdim, label, _astuple
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
 
 import DataAPI.groupby
 
@@ -56,7 +49,7 @@ export LookupArrays, Dimensions
 export X, Y, Z, Ti, Dim, Coord
 
 # Selector
-export At, Between, Touches, Contains, Near, Where, All, .., Not, Bins
+export At, Between, Touches, Contains, Near, Where, All, .., Not, Bins, CyclicBins
 
 export AbstractDimArray, DimArray
 
@@ -77,7 +70,7 @@ export dimnum, hasdim, hasselection, otherdims
 # utils
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
 
-export groupby, seasons, months, hours, yeardays, monthdays, intervals, ranges
+export groupby, seasons, months, hours, intervals, ranges
 
 const DD = DimensionalData
 

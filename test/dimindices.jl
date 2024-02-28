@@ -143,3 +143,23 @@ end
     @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
 end
 
+
+@testset "DimSlices" begin
+    A = DimArray(((1:4) * (1:3)'), (X(4.0:7.0), Y(10.0:12.0)); name=:foo)
+    axisdims = map(DD.dims(s, dimtuple)) do d
+        rebuild(d, axes(lookup(d), 1))
+    end
+    ex = DimensionalData.DimSlices(A, )
+
+    DimSlices(s; dims=axisdims, drop)
+    @test isintervals(dims(ex, Ti))
+    @test ispoints(dims(ex, (X, Y, Z)))
+    @test DimArray(ex) isa DimArray{Int,4,<:Tuple{<:X,<:Y,<:Z,<:Ti},<:Tuple,Array{Int,4}}
+    @test @inferred DimArray(ex[X=1, Y=1]) isa DimArray{Int,2,<:Tuple{<:Z,<:Ti},<:Tuple,Array{Int,2}}
+    @test @inferred all(DimArray(ex[X=4, Y=2]) .=== A[X=4, Y=2])
+    @test @inferred ex[Z=At(10), Ti=At(DateTime(2000))] == A
+    @test @inferred vec(ex) == mapreduce(_ -> vec(A), vcat, 1:prod(size(ex[X=1, Y=1])))
+    ex1 = DimensionalData.DimExtensionArray(A, (Z(1:10), dims(A)..., Ti(DateTime(2000):Month(1):DateTime(2000, 12); sampling=Intervals(Start()))))
+    @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
+end
+

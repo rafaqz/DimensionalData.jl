@@ -51,7 +51,7 @@ for f in (:getindex, :view, :dotview)
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, D::DimensionalIndices...; kw...) =
-            $_f(A, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
+            $_f(A, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         # For ambiguity
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimIndices) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimSelectors) = $_f(A, i)
@@ -198,7 +198,7 @@ Base.@assume_effects :foldable _simplify_dim_indices() = ()
 
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
-    setindex!(A, x, dims2indices(A, (args..., kwdims(values(kw))...))...)
+    setindex!(A, x, dims2indices(A, (args..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
