@@ -173,16 +173,18 @@ end
         @test dims(broadcast_dims(*, da4, da3)) == dims(da3)
     end
 
-    A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
-    da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
-    db1 = DimArray(B1, (Y([:a, :b, :c]),))
-    stack1 = DimStack(da3, db1)
-    stack2 = DimStack(da3, db1, dc3)
-    @test 
-    broadcast_dims(+, stack1, da3, db1)
-    == broadcast_dims(+, da3, db1, stack1)
-    # Cant mix numvers of stack layers
-    @test_throws ArgumentError broadcast_dims(+, stack1, da3, db1, stack2)
+    @testset "DimStack" begin
+        A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
+        da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
+        db1 = DimArray(B1, (Y([:a, :b, :c]),))
+        stack1 = DimStack(da3, db1)
+        stack2 = DimStack(da3, db1, dc3)
+        @test broadcast_dims(+, stack1, da3, db1) == broadcast_dims(+, da3, db1, stack1)
+        @test broadcast_dims(+, stack1, da3, db1).layer1 == broadcast_dims(+, stack1.layer1, da3, db1)
+        @test broadcast_dims(+, stack1, da3, stack1, db1) == broadcast_dims(+, da3, stack1, db1, stack1)
+        # Cant mix numvers of stack layers
+        @test_throws ArgumentError broadcast_dims(+, stack1, da3, db1, stack2)
+    end
 end
 
 @testset "shiftlocus" begin
