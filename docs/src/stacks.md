@@ -1,4 +1,4 @@
-## DimStacks
+# DimStacks
 
 An `AbstractDimStack` represents a collection of `AbstractDimArray`
 layers that share some or all dimensions. For any two layers, a dimension

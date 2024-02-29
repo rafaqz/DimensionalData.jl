@@ -1,4 +1,4 @@
-# Ecosystem
+# Integrations
 
 ## Rasters.jl
 

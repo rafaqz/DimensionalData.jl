@@ -16,15 +16,18 @@ If no axis reversal is required the same objects will be returned, without alloc
 ## Example
 
 ```jldoctest
+using DimensionalData
+
 # Create a DimArray
 da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)))
+
 # Reverse it
 rev = reverse(da, dims=Y)
+
 # using `da` in reorder will return it to the original order
 reorder(rev, da) == da
 
 # output
-
 true
 ```
 """
@@ -33,7 +36,7 @@ function reorder end
 reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = reorder(x, dims(A))
 reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
 reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairdims(ps...))
+reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
 # Reorder specific dims.
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.

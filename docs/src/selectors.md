@@ -1,4 +1,4 @@
-## Selectors
+# Selectors
 
 As well as choosing dimensions by name, we can also select values in them.
 

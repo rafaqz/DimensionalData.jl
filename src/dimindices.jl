@@ -15,7 +15,7 @@ for f in (:getindex, :dotview, :view)
         rebuild(di; dims=newdims)
     end
     @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
-        rebuild(di; dims=dims(di, 1)[i])
+        rebuild(di; dims=(dims(di, 1)[i],))
     end
     @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Int) = 
         Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
@@ -291,12 +291,15 @@ end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
 function DimSlices(x, dims; drop=true)
     newdims = length(dims) == 0 ? map(d  -> rebuild(d, :), DD.dims(x)) : dims
-    inds = map(d -> rebuild(d, first(d)), newdims)
+    inds = map(d -> rebuild(d, first(axes(x, d))), newdims)
     T = typeof(view(x, inds...))
     N = length(newdims)
     D = typeof(newdims)
     return DimSlices{T,N,D,typeof(x)}(x, newdims)
 end
+
+rebuild(ds::A; dims) where {A<:DimSlices{T,N}} where {T,N} =
+    DimSlices{T,N,typeof(dims),typeof(ds._data)}(ds._data, dims)
 
 function Base.summary(io::IO, A::DimSlices{T,N}) where {T,N}
     print_ndims(io, size(A))

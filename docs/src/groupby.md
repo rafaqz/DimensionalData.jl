@@ -265,7 +265,7 @@ groupby(A, Ti => months(2; start=6))
 
 == hours
 
-`hours` works a lot like `months`. Here we groupb into day
+`hours` works a lot like `months`. Here we group into day
 and night - two 12 hour blocks starting at 6am:
 
 ````@ansi groupby

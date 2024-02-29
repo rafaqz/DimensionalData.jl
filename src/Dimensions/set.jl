@@ -4,10 +4,10 @@ set(dim::Dimension, x::DimSetters) = _set(dim, x)
 set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     _set(dims_, args...; kw...)
 # Convert args/kw to dims and set
-_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kwdims(kw)...))
+_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kw2dims(kw)...))
 # Convert pairs to wrapped dims and set
 _set(dims_::DimTuple, p::Pair, ps::Vararg{Pair}) = _set(dims_, (p, ps...))
-_set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairdims(ps...))
+_set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairs2dims(ps...))
 _set(dims_::DimTuple, ::Tuple{}) = dims_
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin

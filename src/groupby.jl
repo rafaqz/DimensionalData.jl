@@ -121,6 +121,26 @@ Base.show(io::IO, bins::Bins) =
     println(io, nameof(typeof(bins)), "(", bins.f, ", ", bins.bins, ")")
 
 abstract type AbstractCyclicBins end
+
+"""
+    CyclicBins(f; cycle, start, step, labels)
+
+Cyclic bins to reduce groups after applying function `f`. Groups can wrap around
+the cycle. This is used for grouping in [`seasons`](@ref), [`months`](@ref)
+and [`hours`](@ref) but can also be used for custom cycles.
+
+- `f` a grouping function of the lookup values, by default `identity`.
+
+## Keywords
+
+- `cycle`: the length of the cycle, in return values of `f`.
+- `start`: the start of the cycle: a return value of `f`.
+- `step` the number of sequential values to group.
+- `labels`: either a vector of labels matching the number of groups, 
+    or a function that generates labels from `Vector{Int}` of the selected months.
+
+When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
+"""
 struct CyclicBins{F,C,Sta,Ste,L} <: AbstractBins
     f::F
     cycle::C
@@ -135,12 +155,50 @@ Base.show(io::IO, bins::CyclicBins) =
 
 yearhour(x) = year(x), hour(x)
 
+"""
+    seasons(; [start=Dates.December, labels])
+
+Generates `CyclicBins` for three month periods.
+
+## Keywords
+
+- `start`: By default seasons start in December, but any integer `1:12` can be used.
+- `labels`: either a vector of four labels, or a function that generates labels
+    from `Vector{Int}` of the selected months.
+"""
 seasons(; start=December, kw...) = months(3; start, kw...)
+
+"""
+    months(step; [start=Dates.January, labels])
+
+Generates `CyclicBins` for grouping to arbitrary month periods. 
+These can wrap around the end of a year.
+
+- `step` the number of months to group.
+
+## Keywords
+
+- `start`: By default months start in January, but any integer `1:12` can be used.
+- `labels`: either a vector of labels matching the numver of groups, 
+    or a function that generates labels from `Vector{Int}` of the selected months.
+"""
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
+
+"""
+    hours(step; [start=0, labels])
+
+Generates `CyclicBins` for grouping to arbitrary hour periods. 
+These can wrap around the end of the day.
+
+- `steps` the number of hours to group.
+
+## Keywords
+
+- `start`: By default seasons start in December, but any integer `1:12` can be used.
+- `labels`: either a vector of four labels, or a function that generates labels
+    from `Vector{Int}` of the selected months.
+"""
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
-yearhours(step; start=0, labels=nothing) = CyclicBins(yearhour; cycle=24, step, start, labels)
-yeardays(step; start=1, labels=nothing) = CyclicBins(dayofyear; cycle=daysinyear, step, start, labels)
-monthdays(step; start=1, labels=nothing) = CyclicBins(dayofmonth; cycle=daysinmonth, step, start, labels)
 
 """
     groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Pair...)
@@ -374,23 +432,16 @@ function _maybe_label(labels::Dict, vals)
     end
 end
 
-# Helpers
-intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
-function intervals(la::LookupArray)
-    if ispoints(la)
-        rebuild(la; data=(x -> IntervalSets.Interval{:closed,:closed}(x, x)).(la))
-    else
-        rebuild(la; data=(x -> IntervalSets.Interval{:closed,:open}(x[1], x[2])).(intervalbounds(la)))
-    end
-end
-function intervals(A::AbstractVector{T}; upper::T) where T
-    is =  Vector{IntervalSets.Interval{:closed,:open}}(undef, length(A))
-    for i in eachindex(A)[1:end-1]
-        is[i] = IntervalSets.Interval{:closed,:open}(A[i], A[i + 1])
-    end
-    is[end] = IntervalSets.Interval{:closed,:open}.(A[end], upper)
-    return is
-end
+"""
+    intervals(A::AbstractRange)
 
-ranges(rng::AbstractRange) = map(x -> x:x+step(rng)-1, rng)
-ranges(rng::LookupArray{<:AbstractRange}) = rebuild(rng; data=ranges(parent(rng)))
+Generate a `Vector` of `UnitRange` with length `step(A)`
+"""
+intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
+
+"""
+    ranges(A::AbsttactRange{<:Integer})
+
+Generate a `Vector` of `UnitRange` with length `step(A)`
+"""
+ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)

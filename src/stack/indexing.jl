@@ -69,7 +69,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, D::DimensionalIndices...; kw...
         )
-            $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
+            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         # Ambiguities
         @propagate_inbounds function Base.$f(
@@ -78,7 +78,7 @@ for f in (:getindex, :view, :dotview)
             ::Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension},
             ::_DimIndicesAmb...
         )
-            $_f(s, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
+            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 

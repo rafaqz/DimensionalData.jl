@@ -1,4 +1,4 @@
-# DimArray
+# DimArrays
 
 `DimArray`s are wrappers for other kinds of `AbstractArray` that
 add named dimension lookups.

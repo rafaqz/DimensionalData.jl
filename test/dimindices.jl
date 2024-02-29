@@ -143,3 +143,13 @@ end
     @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
 end
 
+@testset "DimSlices" begin
+    A = DimArray(((1:4) * (1:3)'), (X(4.0:7.0), Y(10.0:12.0)); name=:foo)
+    axisdims = map(dims(A, (X,))) do d
+        rebuild(d, axes(lookup(d), 1))
+    end
+    ds = DimensionalData.DimSlices(A; dims=axisdims)
+    @test ds == ds[X=:]
+    # Works just like Slices
+    @test sum(ds) == sum(eachslice(A; dims=X))
+end

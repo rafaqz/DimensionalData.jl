@@ -1,6 +1,6 @@
-# [DiskArrays.jl](https://github.com/meggart/DiskArrays.jl) compatability
+# DiskArrays.jl compatability
 
-DiskArrays enables lazy, chunked application of:
+[DiskArrays.jl](https://github.com/meggart/DiskArrays.jl) enables lazy, chunked application of:
 
 - broadcast
 - reductions

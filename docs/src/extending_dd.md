@@ -107,7 +107,7 @@ using DimensionalData, Interfaces
 @implements DimensionalData.DimArrayInterface{(:refdims,:name,:metadata)} DimArray [rand(X(10), Y(10)), zeros(Z(10))]
 ````
 
-See the [`DimArrayInterface`](@ref) docs for options. We can test it with:
+See the [`DimensionalData.DimArrayInterface`](@ref) docs for options. We can test it with:
 
 ````@ansi interfaces
 Interfaces.test(DimensionalData.DimArrayInterface)
@@ -121,7 +121,7 @@ The implementation definition for `DimStack`:
 @implements DimensionalData.DimStackInterface{(:refdims,:metadata)} DimStack [DimStack(zeros(Z(10))), DimStack(rand(X(10), Y(10))), DimStack(rand(X(10), Y(10)), rand(X(10)))]
 ````
 
-See the [`DimStackInterface`](@ref) docs for options. We can test it with:
+See the [`DimensionalData.DimStackInterface`](@ref) docs for options. We can test it with:
 
 ````@ansi interfaces
 Interfaces.test(DimensionalData.DimStackInterface)

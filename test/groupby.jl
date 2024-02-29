@@ -67,6 +67,8 @@ end
         end
     end
     @test all(collect(mean.(gb)) .=== manualmeans)
-    @test all(mean.(gb) .=== manualmeans)
+    @test all(
+              mean.(gb) .=== manualmeans
+             )
 end
 

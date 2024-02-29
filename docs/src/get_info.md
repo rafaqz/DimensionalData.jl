@@ -1,4 +1,4 @@
-## Getters
+# Getters
 
 DimensionalData.jl defines consistent methods to retreive information
 from objects like `DimArray`, `DimStack`, `Tuple`s of `Dimension`,

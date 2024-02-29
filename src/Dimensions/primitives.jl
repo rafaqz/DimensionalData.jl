@@ -10,6 +10,7 @@ or are at least rotations/transformations of the same type.
 
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
+function dimsmatch end
 @inline dimsmatch(dims, query) = dimsmatch(<:, dims, query)
 @inline function dimsmatch(f::Function, dims::Tuple, query::Tuple)
     length(dims) == length(query) || return false
@@ -41,6 +42,7 @@ to `X()`, `Y()`, `Ti()`, as with any other dims generated with the [`@dim`](@ref
 
 All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 """
+function key2dim end
 @inline key2dim(t::Tuple) = map(key2dim, t)
 @inline key2dim(s::Symbol) = key2dim(Val{s}())
 # Allow other things to pass through
@@ -59,6 +61,7 @@ to `:X`, `:Y`, `:Ti`, as with any other dims generated with the [`@dim`](@ref) m
 
 All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 """
+function dim2key end
 @inline dim2key(dims::Tuple) = map(dim2key, dims)
 @inline dim2key(dim::Dimension) = dim2key(typeof(dim))
 @inline dim2key(::Val{D}) where D <: Dimension = dim2key(D)
@@ -66,9 +69,7 @@ All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
 @inline dim2key(s::Symbol) = s
 
 # dim2key is defined for concrete instances in dimensions.jl
-
-@inline _asfunc(::Type{typeof(<:)}) = <:
-@inline _asfunc(::Type{typeof(>:)}) = >:
+#
 
 """
     sortdims([f], tosort, order) => Tuple
@@ -82,8 +83,13 @@ can be used in `order`.
 
 `f` is `<:` by default, but can be `>:` to sort abstract types by concrete types.
 """
+function sortdims end
 @inline sortdims(a1, a2) = _dim_query(_sortdims, MaybeFirst(), a1, a2)
 @inline sortdims(f::Function, a1, a2) = _dim_query(_sortdims, f, MaybeFirst(), a1, a2)
+
+# Defined before the @generated function for world age
+_asfunc(::Type{typeof(<:)}) = <:
+_asfunc(::Type{typeof(>:)}) = >:
 
 @inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) =map(p -> tosort[p], order)
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
@@ -143,6 +149,7 @@ julia> dims(A, (X, Y))
 
 ```
 """
+function dims end
 @inline dims(a1, args...) = _dim_query(_dims, MaybeFirst(), a1, args...)
 @inline dims(::Tuple{}, ::Tuple{}) = ()
 
@@ -176,6 +183,7 @@ julia> commondims(A, Ti)
 
 ```
 """
+function commondims end
 @inline commondims(a1, args...) = _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
@@ -207,6 +215,7 @@ julia> dimnum(A, Y)
 2
 ```
 """
+function dimnum end
 @inline function dimnum(x, q1, query...)
     all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query)))
     _dim_query(_dimnum, MaybeFirst(), x, q1, query...)
@@ -252,6 +261,7 @@ julia> hasdim(A, Ti)
 false
 ```
 """
+function hasdim end
 @inline hasdim(x, a1, args...) =
     _dim_query(_hasdim, MaybeFirst(), x, a1, args...)
 
@@ -285,9 +295,9 @@ julia> otherdims(A, (Y, Z))
 ↓ X
 ```
 """
-@inline otherdims(x, query) = begin
+function otherdims end
+@inline otherdims(x, query) =
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
-end
 @inline otherdims(x, query...) =
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
 
@@ -324,6 +334,7 @@ Categorical{Char} ForwardOrdered
 wrapping: 'a':1:'j'
 ```
 """
+function setdims end
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
 @inline setdims(x) = x
 @inline setdims(x, newdims::Dimension) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
@@ -366,6 +377,7 @@ Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
  1.0  1.0  1.0  1.0
 ```
 """
+function swapdims end
 @inline swapdims(x, d1, d2, ds...) = swapdims(x, (d1, d2, ds...))
 @inline swapdims(x) = x
 @inline swapdims(x, newdims::Tuple) =
@@ -474,6 +486,7 @@ but the number of dimensions has not changed.
 `LookupArray` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
+function reducedims end
 @inline reducedims(x, dimstoreduce) = _reducedims(x, key2dim(dimstoreduce))
 
 @inline _reducedims(x, dimstoreduce) = _reducedims(x, (dimstoreduce,))
@@ -638,25 +651,6 @@ _combinedims(a::DimTupleOrEmpty, b::DimTupleOrEmpty; check=true, kw...) = begin
 end
 
 """
-    dimstride(x, dim) => Int
-
-Get the stride of the dimension relative to the other dimensions.
-
-This may or may not be equal to the stride of the related array,
-although it will be for `Array`.
-
-## Arguments
-
-- `x` is any object with a `dims` method, or a `Tuple` of `Dimension`.
-- `dim` is a `Dimension`, `Dimension` type, or and `Int`. Using an `Int` is not type-stable.
-"""
-@inline dimstride(x, n) = dimstride(dims(x), n)
-@inline dimstride(::Nothing, n) = _dimsnotdefinederror()
-@inline dimstride(dims::DimTuple, d::DimOrDimType) = dimstride(dims, dimnum(dims, d))
-@inline dimstride(dims::DimTuple, n::Int) = prod(map(length, dims)[1:n-1])
-
-
-"""
     basedims(ds::Tuple)
     basedims(d::Union{Dimension,Symbol,Type})
 
@@ -664,14 +658,27 @@ Returns `basetypeof(d)()` or a `Tuple` of called on a `Tuple`.
 
 See [`basetypeof`](@ref)
 """
+function basedims end
 @inline basedims(x) = basedims(dims(x))
 @inline basedims(ds::Tuple) = map(basedims, ds)
 @inline basedims(d::Dimension) = basetypeof(d)()
 @inline basedims(d::Symbol) = key2dim(d)
 @inline basedims(T::Type{<:Dimension}) = basetypeof(T)()
 
+@inline pairs2dims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
 
-# Utils
+@inline kw2dims(kw::Base.Iterators.Pairs) = kw2dims(values(kw))
+# Convert `Symbol` keyword arguments to a `Tuple` of `Dimension`
+@inline kw2dims(kw::NamedTuple{Keys}) where Keys = kw2dims(key2dim(Keys), values(kw))
+@inline kw2dims(dims::Tuple, vals::Tuple) =
+    (rebuild(first(dims), first(vals)), kw2dims(tail(dims), tail(vals))...)
+@inline kw2dims(::Tuple{}, ::Tuple{}) = ()
+
+
+# Queries
+
+# Most primitives use these for argument handling
+
 abstract type QueryMode end
 struct MaybeFirst <: QueryMode end
 struct AlwaysTuple <: QueryMode end
@@ -717,16 +724,8 @@ end
 @inline _dim_query1(f, op::Function, ::QueryMode, d::Tuple, query::Tuple) = map(unwrap, f(op, d, query))
 @inline _dim_query1(f, op::Function, ::QueryMode, d::Tuple) = map(unwrap, f(op, d))
 
-_dims_are_not_dims() = throw(ArgumentError("`dims` are not `Dimension`s"))
 
-@inline kwdims(kw::Base.Iterators.Pairs) = kwdims(values(kw))
-# Convert `Symbol` keyword arguments to a `Tuple` of `Dimension`
-@inline kwdims(kw::NamedTuple{Keys}) where Keys = kwdims(key2dim(Keys), values(kw))
-@inline kwdims(dims::Tuple, vals::Tuple) =
-    (rebuild(first(dims), first(vals)), kwdims(tail(dims), tail(vals))...)
-@inline kwdims(dims::Tuple{}, vals::Tuple{}) = ()
-
-@inline pairdims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+# Utils
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)
@@ -759,6 +758,7 @@ _astuple(x) = (x,)
 
 
 # Warnings and Error methods.
+
 _dimsmismatchmsg(a, b) = "$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis."
 _valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match."
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
@@ -786,3 +786,5 @@ _typemsg(a, b) = "Lookups do not all have the same type: $(order(a)), $(order(b)
 @noinline _metadataerror(a, b) = throw(DimensionMismatch(_metadatamsg(a, b)))
 @noinline _extradimserror(args) = throw(ArgumentError(_extradimsmsg(args)))
 @noinline _dimsnotdefinederror() = throw(ArgumentError("Object does not define a `dims` method"))
+
+@noinline _dims_are_not_dims() = throw(ArgumentError("`dims` are not `Dimension`s"))

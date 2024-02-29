@@ -1,7 +1,7 @@
 using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
 
 using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using DimensionalData: DimTable, DimExtensionArray, dimstride
+using DimensionalData: DimTable, DimExtensionArray
 
 x = X([:a, :b, :c])
 y = Y([10.0, 20.0])
