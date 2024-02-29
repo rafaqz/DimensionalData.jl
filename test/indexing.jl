@@ -396,6 +396,13 @@ end
         @test all(view(A, I .== 3.0))
     end
 
+    @testset "zero dim dim getindex doesn't unwrap" begin
+        A = DimArray(fill(1), ())
+        @test A[notadim=1] isa DimArray{Int,0,Tuple{}}
+        @test A[X(1)] isa DimArray{Int,0,Tuple{}}
+        @test A[notadim=1] == A[X(1)] == A
+    end
+
     @testset "Empty getindedex/view/setindex throws a BoundsError" begin
         @test_throws BoundsError da[]
         @test_throws BoundsError view(da)

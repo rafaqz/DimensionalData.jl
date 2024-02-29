@@ -63,7 +63,7 @@ for f in (:getindex, :view, :dotview)
         # Use underscore methods to minimise ambiguities
         @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
             Base.$f(A, dims2indices(A, (d1, ds...))...)
-        @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...; kw...) =
+        @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_f(
             A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
@@ -83,6 +83,18 @@ for f in (:getindex, :view, :dotview)
             I = to_indices(A, (i1, i2, Is...))
             x = Base.$f(parent(A), I...)
             all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)
+        end
+    end
+    # Special caase zero dimensional arrays being indexed with missing dims
+    if f == :getindex
+        # Catch this before the dimension is converted to ()
+        @eval @propagate_inbounds function $_f(A::AbstractDimArray{<:Any,0}, ds::Dimension...)
+            Dimensions._extradimswarn(ds)
+            return rebuild(A, fill(A[]))
+        end
+        @eval @propagate_inbounds function $_f(A::AbstractDimArray{<:Any,0}, d1::Dimension, ds::Dimension...)
+            Dimensions._extradimswarn((d1, ds...))
+            return rebuild(A, fill(A[]))
         end
     end
 end
