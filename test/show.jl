@@ -1,5 +1,5 @@
 using DimensionalData, Test, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 # define dims with both long name and Type name
 @dim Lon "Longitude"
@@ -37,7 +37,7 @@ end
     @test occursin(sprint(show, MIME("text/plain"), parent(sl)), sv)
     sv = sprint(show, MIME("text/plain"), NoLookup())
     @test occursin("NoLookup", sv)
-    # LookupArray tuple
+    # Lookup tuple
     ls = lookup(ds)
     sv = sprint(show, MIME("text/plain"), ls)
     @test occursin("Categorical", sv)

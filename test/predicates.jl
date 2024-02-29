@@ -1,9 +1,9 @@
 using Test, DimensionalData, Dates
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 const DD = DimensionalData
 
-@testset "predicates on LookupArray" begin
+@testset "predicates on Lookup" begin
     @test DD.issampled(Cyclic(1:10; order=ForwardOrdered(), cycle=10)) == true
     @test DD.issampled(NoLookup()) == false
     @test DD.issampled(Categorical(1:10)) == false
@@ -17,7 +17,7 @@ const DD = DimensionalData
     @test DD.iscyclic(Categorical(1:10)) == false
 end
 
-@testset "predicates on LookupArray traits" begin
+@testset "predicates on Lookup traits" begin
     @test DD.isordered(ForwardOrdered()) == true
     @test DD.isordered(ReverseOrdered()) == true
     @test DD.isordered(Unordered()) == false

@@ -1,5 +1,5 @@
 using DimensionalData, Test, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 

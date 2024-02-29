@@ -7,20 +7,20 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
     set(x, args::Tuple{Vararg{Dimension}}; kw...) => x with updated field/s
 
     set(dim::Dimension, index::AbstractArray) => Dimension
-    set(dim::Dimension, lookup::LookupArray) => Dimension
-    set(dim::Dimension, lookupcomponent::LookupArrayTrait) => Dimension
+    set(dim::Dimension, lookup::Lookup) => Dimension
+    set(dim::Dimension, lookupcomponent::LookupTrait) => Dimension
     set(dim::Dimension, metadata::AbstractMetadata) => Dimension
 
 Set the properties of an object, its internal data or the traits of its dimensions
 and lookup index.
 
 As DimensionalData is so strongly typed you do not need to specify what field
-of a [`LookupArray`](@ref) to `set` - there is no ambiguity.
+of a [`Lookup`](@ref) to `set` - there is no ambiguity.
 
-To set fields of a `LookupArray` you need to specify the dimension. This can be done
+To set fields of a `Lookup` you need to specify the dimension. This can be done
 using `X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
 
-When a `Dimension` or `LookupArray` is passed to `set` to replace the
+When a `Dimension` or `Lookup` is passed to `set` to replace the
 existing ones, fields that are not set will keep their original values.
 
 ## Notes:
@@ -83,7 +83,7 @@ julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
  6    0.0  0.0  0.0  0.0
 ```
 
-Change the `LookupArray` type:
+Change the `Lookup` type:
 
 ```jldoctest set
 julia> set(da, Z=DD.NoLookup(), custom=DD.Sampled())
@@ -115,12 +115,12 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 ```
 """
 function set end
-set(A::DimArrayOrStack, x::T) where {T<:Union{LookupArray,LookupArrayTrait}} = _onlydimerror(x)
+set(A::DimArrayOrStack, x::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(x)
 set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
-set(A::AbstractDimStack, x::LookupArray) = LookupArrays._cantseterror(A, x)
-set(A::AbstractDimArray, x::LookupArray) = LookupArrays._cantseterror(A, x)
-set(A, x) = LookupArrays._cantseterror(A, x)
+set(A::AbstractDimStack, x::Lookup) = Lookups._cantseterror(A, x)
+set(A::AbstractDimArray, x::Lookup) = Lookups._cantseterror(A, x)
+set(A, x) = Lookups._cantseterror(A, x)
 set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     rebuild(A, data(A), set(dims(A), args...; kw...))
 set(A::AbstractDimArray, newdata::AbstractArray) = begin

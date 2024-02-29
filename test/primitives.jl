@@ -1,5 +1,5 @@
 using DimensionalData, Dates, Test , BenchmarkTools
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 

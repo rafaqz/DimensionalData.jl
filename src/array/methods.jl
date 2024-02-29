@@ -390,8 +390,8 @@ end
 check_cat_lookups(dims::Dimension...) =
     _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
 
-# LookupArrays may need adjustment for `cat`
-_check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
+# Lookups may need adjustment for `cat`
+_check_cat_lookups(D, lookups::Lookup...) = _check_cat_lookup_order(D, lookups...)
 _check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
 function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
     length(lookups) > 0 || return true
@@ -430,7 +430,7 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
     end |> all
 end
 
-function _check_cat_lookup_order(D, lookups::LookupArray...)
+function _check_cat_lookup_order(D, lookups::Lookup...)
     l1 = first(lookups)
     length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)
@@ -481,8 +481,8 @@ function _vcat_dims(d1::Dimension, ds::Dimension...)
     return rebuild(d1, newlookup)
 end
 
-# LookupArrays may need adjustment for `cat`
-function _vcat_lookups(lookups::LookupArray...)
+# Lookups may need adjustment for `cat`
+function _vcat_lookups(lookups::Lookup...)
     newindex = _vcat_index(lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
@@ -520,10 +520,10 @@ end
 _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-# function _vcat_index(lookup::LookupArray, lookups...)
+# function _vcat_index(lookup::Lookup, lookups...)
     # _vcat_index(span(lookup), lookup, lookups...)
 # end
-function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
+function _vcat_index(lookup1::Lookup, lookups::Lookup...)
     shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end

@@ -1,6 +1,6 @@
 using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimExtensionArray
 
 x = X([:a, :b, :c])

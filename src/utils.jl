@@ -53,7 +53,7 @@ end
 _reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
-reorder(x, orderdim::Dimension{<:LookupArray}) = _reorder(order(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension{<:Lookup}) = _reorder(order(orderdim), x, dims(x, orderdim))
 
 _reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
@@ -93,7 +93,7 @@ function modify(f, A::AbstractDimArray)
 end
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
 modify(f, dim::Dimension) = rebuild(dim, modify(f, val(dim)))
-function modify(f, lookup::LookupArray)
+function modify(f, lookup::Lookup)
     newindex = modify(f, parent(lookup))
     rebuild(lookup; data=newindex)
 end

@@ -114,10 +114,10 @@ function print_dimval(io, mime, val, nchars=0)
     printstyled(io, val; color=get(io, :dimcolor, 1))
 end
 function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
-    LookupArrays.print_index(io, mime, lookup, nchars)
+    Lookups.print_index(io, mime, lookup, nchars)
 end
 print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")
-function print_dimval(io, mime, lookup::LookupArray, nchars=0)
+function print_dimval(io, mime, lookup::Lookup, nchars=0)
     print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)
     show(ctx, mime, lookup)

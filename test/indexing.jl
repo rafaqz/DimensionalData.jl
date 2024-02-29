@@ -1,5 +1,5 @@
 using DimensionalData, Test, BenchmarkTools, Dates, Statistics
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 @testset "dims2indices" begin
     a = [1 2 3; 4 5 6]

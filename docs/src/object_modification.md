@@ -52,7 +52,7 @@ imperitive: we tell it how we want the object to be, not what to do.
 Reorder a specific dimension
 
 ````@ansi helpers
-using DimensionalData.LookupArrays;
+using DimensionalData.Lookups;
 A = rand(X(1.0:3.0), Y('a':'n'));
 reorder(A, X => ReverseOrdered())
 ````
@@ -119,7 +119,7 @@ Keywords in ( ) will error if used where they are not accepted.
 | [`AbstractDimStack`](@ref) | data, dims, [refdims], layerdims, [metadata, layermetadata] | as with kw, in order |
 | [`Dimension`](@ref)        | val                                                         | val                  |
 | [`Selector`](@ref)         | val, (atol)                                                 | val                  |
-| [`LookupArray`](@ref)      | data, (order, span, sampling, metadata)                     | keywords only        |
+| [`Lookup`](@ref)      | data, (order, span, sampling, metadata)                     | keywords only        |
 
 ### `rebuild` magic
 

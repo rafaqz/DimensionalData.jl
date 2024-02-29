@@ -1,6 +1,6 @@
 using DimensionalData, Test, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: shiftlocus, maybeshiftlocus
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using .Lookups: shiftlocus, maybeshiftlocus
 using DimensionalData: uniquekeys
 
 @testset "reverse" begin

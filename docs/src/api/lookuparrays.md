@@ -1,31 +1,31 @@
 
-# LookupArrays
+# Lookups
 
 ```@docs
-LookupArrays.LookupArrays
+Lookups.Lookups
 ```
 
 ```@docs
-LookupArrays.LookupArray
-LookupArrays.Aligned
-LookupArrays.AbstractSampled
-LookupArrays.Sampled
-LookupArrays.AbstractCyclic
-LookupArrays.Cyclic
-LookupArrays.AbstractCategorical
-LookupArrays.Categorical
-LookupArrays.Unaligned
-LookupArrays.Transformed
+Lookups.Lookup
+Lookups.Aligned
+Lookups.AbstractSampled
+Lookups.Sampled
+Lookups.AbstractCyclic
+Lookups.Cyclic
+Lookups.AbstractCategorical
+Lookups.Categorical
+Lookups.Unaligned
+Lookups.Transformed
 Dimensions.MergedLookup
-LookupArrays.NoLookup
-LookupArrays.AutoLookup
-LookupArrays.AutoIndex
+Lookups.NoLookup
+Lookups.AutoLookup
+Lookups.AutoIndex
 ```
 
 The generic value getter `val`
 
 ```@docs
-LookupArrays.val
+Lookups.val
 ```
 
 Lookup methods:
@@ -33,20 +33,20 @@ Lookup methods:
 ```@docs
 bounds
 hasselection
-LookupArrays.index
-LookupArrays.sampling
-LookupArrays.span
-LookupArrays.order
-LookupArrays.locus
-LookupArrays.shiftlocus
+Lookups.index
+Lookups.sampling
+Lookups.span
+Lookups.order
+Lookups.locus
+Lookups.shiftlocus
 ```
 
 ## Selectors
 
 ```@docs
-LookupArrays.Selector
-LookupArrays.IntSelector
-LookupArrays.ArraySelector
+Lookups.Selector
+Lookups.IntSelector
+Lookups.ArraySelector
 At
 Near
 Between
@@ -56,56 +56,56 @@ Where
 All
 ```
 
-## LookupArray traits
+## Lookup traits
 
 ```@docs
-LookupArrays.LookupArrayTrait
+Lookups.LookupTrait
 ```
 
 ### Order
 
 ```@docs
-LookupArrays.Order
-LookupArrays.Ordered
-LookupArrays.ForwardOrdered
-LookupArrays.ReverseOrdered
-LookupArrays.Unordered
-LookupArrays.AutoOrder
+Lookups.Order
+Lookups.Ordered
+Lookups.ForwardOrdered
+Lookups.ReverseOrdered
+Lookups.Unordered
+Lookups.AutoOrder
 ```
 
 ### Span
 
 ```@docs
-LookupArrays.Span
-LookupArrays.Regular
-LookupArrays.Irregular
-LookupArrays.Explicit
-LookupArrays.AutoSpan
+Lookups.Span
+Lookups.Regular
+Lookups.Irregular
+Lookups.Explicit
+Lookups.AutoSpan
 ```
 
 ### Sampling
 
 ```@docs
-LookupArrays.Sampling
-LookupArrays.Points
-LookupArrays.Intervals
+Lookups.Sampling
+Lookups.Points
+Lookups.Intervals
 ```
 
 ### Loci
 
 ```@docs
-LookupArrays.Locus
-LookupArrays.Center
-LookupArrays.Start
-LookupArrays.End
-LookupArrays.AutoLocus
+Lookups.Locus
+Lookups.Center
+Lookups.Start
+Lookups.End
+Lookups.AutoLocus
 ```
 
 ## Metadata
 
 ```@docs
-LookupArrays.AbstractMetadata
-LookupArrays.Metadata
-LookupArrays.NoMetadata
-LookupArrays.units
+Lookups.AbstractMetadata
+Lookups.Metadata
+Lookups.NoMetadata
+Lookups.units
 ```

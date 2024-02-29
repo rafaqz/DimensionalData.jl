@@ -134,11 +134,11 @@ _dimindices_format(dims::Tuple) = map(rebuild, dims, map(_dimindices_axis, dims)
 # Allow only CartesianIndices arguments
 _dimindices_axis(x::Integer) = Base.OneTo(x)
 _dimindices_axis(x::AbstractRange{<:Integer}) = x
-# And LookupArray, which we take the axes from
+# And Lookup, which we take the axes from
 _dimindices_axis(x::Dimension) = _dimindices_axis(val(x))
-_dimindices_axis(x::LookupArray) = axes(x, 1)
+_dimindices_axis(x::Lookup) = axes(x, 1)
 _dimindices_axis(x) =
-    throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `LookupArray` (the `axes` will be used)"))
+    throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `Lookup` (the `axes` will be used)"))
 
 
 """

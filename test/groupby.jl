@@ -1,7 +1,7 @@
 using DimensionalData, Test, Dates, Statistics, IntervalSets
 
 using DimensionalData.Dimensions
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 const DD = DimensionalData
 
 days = DateTime(2000):Day(1):DateTime(2000, 12, 31)

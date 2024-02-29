@@ -73,7 +73,7 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
 # `Not` form InvertedIndices.jr
-function selectindices(l::LookupArray, sel::Not; kw...)
+function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
 end
@@ -125,8 +125,8 @@ Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x)
 struct _True end
 struct _False end
 
-selectindices(l::LookupArray, sel::At; kw...) = at(l, sel; kw...)
-selectindices(l::LookupArray, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
+selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
 
 _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
 
@@ -147,11 +147,11 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     r in lookup || err isa _False || throw(SelectorError(lookup, sel))
     return r
 end
-function at(lookup::LookupArray, sel::At; kw...)
+function at(lookup::Lookup, sel::At; kw...)
     at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
 end
 function at(
-    ::Ordered, span::Regular, lookup::LookupArray{<:Integer}, selval, atol::Nothing, rtol::Nothing;
+    ::Ordered, span::Regular, lookup::Lookup{<:Integer}, selval, atol::Nothing, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -165,7 +165,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::LookupArray{<:IntervalSets.Interval}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:IntervalSets.Interval}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -177,7 +177,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::LookupArray{<:Union{Number,Dates.TimeType,AbstractString}}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.TimeType,AbstractString}}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -203,7 +203,7 @@ function at(
     end
 end
 # catch-all for an unordered index
-function at(::Order, ::Span, lookup::LookupArray, selval, atol, rtol::Nothing; err=_True())
+function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
         return _selnotfound_or_nothing(err, lookup, selval)
@@ -250,8 +250,8 @@ struct Near{T} <: IntSelector{T}
 end
 Near() = Near(nothing)
 
-selectindices(l::LookupArray, sel::Near) = near(l, sel)
-selectindices(l::LookupArray, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
+selectindices(l::Lookup, sel::Near) = near(l, sel)
+selectindices(l::Lookup, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
@@ -260,13 +260,13 @@ function near(lookup::AbstractCyclic{Cycling}, sel::Near)
     near(no_cycling(lookup), cycled_sel) 
 end
 near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
-function near(lookup::LookupArray, sel::Near)
+function near(lookup::Lookup, sel::Near)
     !isregular(lookup) && !iscenter(lookup) &&
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End loci. Use Contains"))
     near(order(lookup), sampling(lookup), lookup, sel)
 end
-near(order::Order, ::NoSampling, lookup::LookupArray, sel::Near) = at(lookup, At(val(sel)))
-function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
+near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
+function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
     # Unwrap the selector value and adjust it for
     # interval locus if neccessary
     v = unwrap(val(sel))
@@ -297,10 +297,10 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::LookupArray, se
 
     return closest_i
 end
-function near(order::Ordered, ::Intervals, lookup::LookupArray{<:IntervalSets.Interval}, sel::Near)
+function near(order::Ordered, ::Intervals, lookup::Lookup{<:IntervalSets.Interval}, sel::Near)
     throw(ArgumentError("`Near` is not yet implemented for lookups of `IntervalSets.Interval`"))
 end
-function near(::Unordered, ::Union{Intervals,Points}, lookup::LookupArray, sel::Near)
+function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
     throw(ArgumentError("`Near` has no meaning in an `Unordered` lookup"))
 end
 
@@ -343,8 +343,8 @@ end
 Contains() = Contains(nothing)
 
 # Filter based on sampling and selector -----------------
-selectindices(l::LookupArray, sel::Contains; kw...) = contains(l, sel; kw...)
-selectindices(l::LookupArray, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
+selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
@@ -357,30 +357,30 @@ function contains(l::NoLookup, sel::Contains; kw...)
     i in l || throw(SelectorError(l, i))
     return i
 end
-contains(l::LookupArray, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
+contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
-function contains(::NoSampling, l::LookupArray, sel::Contains; kw...)
+function contains(::NoSampling, l::Lookup, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
 # Points --------------------------------------
-function contains(sampling::Points, l::LookupArray, sel::Contains; kw...)
+function contains(sampling::Points, l::Lookup, sel::Contains; kw...)
     contains(order(l), sampling, l, sel; kw...)
 end
-function contains(::Order, ::Points, l::LookupArray, sel::Contains; kw...)
+function contains(::Order, ::Points, l::Lookup, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
-function contains(::Order, ::Points, l::LookupArray{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
+function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
     kw...
 )
     at(l, At(val(sel)); kw...)
 end
 # Intervals -----------------------------------
-function contains(sampling::Intervals, l::LookupArray, sel::Contains; err=_True())
+function contains(sampling::Intervals, l::Lookup, sel::Contains; err=_True())
     _locus_checkbounds(locus(l), l, sel) || return _selector_error_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 function contains(
-    sampling::Intervals, l::LookupArray{<:IntervalSets.Interval}, sel::Contains; 
+    sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains; 
     err=_True()
 )
     v = val(sel)
@@ -389,7 +389,7 @@ function contains(
 end
 function contains(
     ::Intervals, 
-    l::LookupArray{<:IntervalSets.Interval}, 
+    l::Lookup{<:IntervalSets.Interval}, 
     sel::Contains{<:IntervalSets.Interval}; 
     err=_True()
 )
@@ -403,7 +403,7 @@ function contains(
 end
 # Regular Intervals ---------------------------
 function contains(
-    o::Ordered, span::Regular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
+    o::Ordered, span::Regular, ::Intervals, locus::Locus, l::Lookup, sel::Contains;
     err=_True()
 )
     v = val(sel)
@@ -411,7 +411,7 @@ function contains(
     return check_regular_contains(span, locus, l, v, i, err)
 end
 function contains(
-    o::Ordered, span::Regular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
+    o::Ordered, span::Regular, ::Intervals, locus::Center, l::Lookup, sel::Contains;
     err=_True()
 )
     v = val(sel) + abs(val(span)) / 2
@@ -419,7 +419,7 @@ function contains(
     return check_regular_contains(span, locus, l, v, i, err)
 end
 
-function check_regular_contains(span::Span, locus::Locus, l::LookupArray, v, i, err)
+function check_regular_contains(span::Span, locus::Locus, l::Lookup, v, i, err)
     absstep = abs(val(span))
     if (parent(l) isa AbstractRange) || _lt(locus)(v, l[i] + absstep)
         return i
@@ -430,7 +430,7 @@ end
 
 # Explicit Intervals ---------------------------
 function contains(
-    o::Ordered, span::Explicit, ::Intervals, locus, l::LookupArray, sel::Contains;
+    o::Ordered, span::Explicit, ::Intervals, locus, l::Lookup, sel::Contains;
     err=_True()
 )
     v = val(sel)
@@ -444,13 +444,13 @@ function contains(
 end
 # Irregular Intervals -------------------------
 function contains(
-    o::Ordered, span::Irregular, ::Intervals, locus::Locus, l::LookupArray, sel::Contains;
+    o::Ordered, span::Irregular, ::Intervals, locus::Locus, l::Lookup, sel::Contains;
     err=_True()
 )
     return _searchfunc(locus, o)(l, val(sel))
 end
 function contains(
-    o::Ordered, span::Irregular, ::Intervals, locus::Center, l::LookupArray, sel::Contains;
+    o::Ordered, span::Irregular, ::Intervals, locus::Center, l::Lookup, sel::Contains;
     err=_True()
 )
     _order_lt(::ForwardOrdered) = (<)
@@ -547,8 +547,8 @@ abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
 
-selectindices(l::LookupArray, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
-function selectindices(lookup::LookupArray, sel::Between{<:AbstractVector})
+selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -557,7 +557,7 @@ end
 
 # between
 # returns a UnitRange from an Interval
-function between(l::LookupArray, sel::Between)
+function between(l::Lookup, sel::Between)
     a, b = _sorttuple(sel)
     return between(l, a..b)
 end
@@ -571,18 +571,18 @@ end
 #     cycled_sel = rebuild(sel; val=)
 #     near(no_cycling(lookup), cycled_sel; kw...) 
 # end
-between(l::LookupArray, interval::Interval) = between(sampling(l), l, interval)
+between(l::Lookup, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
-function between(sampling::Sampling, l::LookupArray, interval::Interval)
+function between(sampling::Sampling, l::Lookup, interval::Interval)
     isordered(l) || throw(ArgumentError("Cannot use an interval or `Between` with `Unordered`"))
     between(sampling, order(l), l, interval)
 end
 
-function between(sampling::NoSampling, o::Ordered, l::LookupArray, interval::Interval)
+function between(sampling::NoSampling, o::Ordered, l::Lookup, interval::Interval)
     between(Points(), o, l, interval)
 end
 
-function between(sampling, o::Ordered, l::LookupArray, interval::Interval)
+function between(sampling, o::Ordered, l::Lookup, interval::Interval)
     lowerbound, upperbound = bounds(l)
     lowsel, highsel = endpoints(interval)
     a = if lowsel > upperbound
@@ -753,7 +753,7 @@ _ordscalar(::ReverseOrdered) = -1
 _lt(::_Lower) = (<)
 _lt(::_Upper) = (<=)
 
-_maybeflipbounds(m::LookupArray, bounds) = _maybeflipbounds(order(m), bounds)
+_maybeflipbounds(m::Lookup, bounds) = _maybeflipbounds(order(m), bounds)
 _maybeflipbounds(o::ForwardOrdered, (a, b)) = (a, b)
 _maybeflipbounds(o::ReverseOrdered, (a, b)) = (b, a)
 _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
@@ -802,8 +802,8 @@ Touches(a, b) = Touches((a, b))
 Base.first(sel::Touches) = first(val(sel))
 Base.last(sel::Touches) = last(val(sel))
 
-selectindices(l::LookupArray, sel::Touches) = touches(l, sel)
-function selectindices(lookup::LookupArray, sel::Touches{<:AbstractVector})
+selectindices(l::Lookup, sel::Touches) = touches(l, sel)
+function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -814,19 +814,19 @@ end
 # returns a UnitRange like Touches/Interval but for cells contained
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 touches(l::NoLookup, sel::Touches) = between(l, Interval(val(sel)...))
-touches(l::LookupArray, sel::Touches) = touches(sampling(l), l, sel)
+touches(l::Lookup, sel::Touches) = touches(sampling(l), l, sel)
 # This is the main method called above
-function touches(sampling::Sampling, l::LookupArray, sel::Touches)
+function touches(sampling::Sampling, l::Lookup, sel::Touches)
     o = order(l)
     o isa Unordered && throw(ArgumentError("Cannot use an sel or `Between` with Unordered"))
     touches(sampling, o, l, sel)
 end
 
-function touches(sampling::NoSampling, o::Ordered, l::LookupArray, sel::Touches)
+function touches(sampling::NoSampling, o::Ordered, l::Lookup, sel::Touches)
     touches(Points(), o, l, sel)
 end
 
-function touches(sampling, o::Ordered, l::LookupArray, sel::Touches)
+function touches(sampling, o::Ordered, l::Lookup, sel::Touches)
     lowerbound, upperbound = bounds(l)
     lowsel, highsel = val(sel)
     a = if lowsel > upperbound
@@ -979,7 +979,7 @@ val(sel::Where) = sel.f
 Base.show(io::IO, x::Where) = print(io, "Where(", repr(val(x)), ")")
 
 # Yes this is everything. `Where` doesn't need lookup specialisation
-@inline function selectindices(lookup::LookupArray, sel::Where)
+@inline function selectindices(lookup::Lookup, sel::Where)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
 
@@ -1020,7 +1020,7 @@ All(args::SelectorOrInterval...) = All(args)
 
 Base.show(io::IO, x::All) = print(io, "All(", x.selectors, ")")
 
-@inline function selectindices(lookup::LookupArray, sel::All)
+@inline function selectindices(lookup::Lookup, sel::All)
     results = map(s -> selectindices(lookup, s), sel.selectors)
     sort!(union(results...))
 end
@@ -1035,33 +1035,33 @@ end
 Converts [`Selector`](@ref) to regular indices.
 """
 function selectindices end
-@inline selectindices(lookups::LookupArrayTuple, s1, ss...) = selectindices(lookups, (s1, ss...))
-@inline selectindices(lookups::LookupArrayTuple, selectors::Tuple) =
+@inline selectindices(lookups::LookupTuple, s1, ss...) = selectindices(lookups, (s1, ss...))
+@inline selectindices(lookups::LookupTuple, selectors::Tuple) =
     map((l, s) -> selectindices(l, s), lookups, selectors)
-@inline selectindices(lookups::LookupArrayTuple, selectors::Tuple{}) = ()
-# @inline selectindices(dim::LookupArray, sel::Val) = selectindices(val(dim), At(sel))
+@inline selectindices(lookups::LookupTuple, selectors::Tuple{}) = ()
+# @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.
-@inline selectindices(::LookupArray, sel::StandardIndices) = sel
-@inline function selectindices(l::LookupArray, sel)
+@inline selectindices(::Lookup, sel::StandardIndices) = sel
+@inline function selectindices(l::Lookup, sel)
     selstr = sprint(show, sel)
     throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
 end
 # Vectors are mapped
-@inline selectindices(lookup::LookupArray, sel::Selector{<:AbstractVector}) =
+@inline selectindices(lookup::Lookup, sel::Selector{<:AbstractVector}) =
     [selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
 
 
-# Unaligned LookupArray ------------------------------------------
+# Unaligned Lookup ------------------------------------------
 
 # select_unalligned_indices is callled directly from dims2indices
 
 # We use the transformation from the first unalligned dim.
 # In practice the others could be empty.
-function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
+function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
     transformed = transformfunc(lookups[1])(map(val, sel))
     map(_transform2int, lookups, sel, transformed)
 end
-function select_unalligned_indices(lookups::LookupArrayTuple, sel::Tuple{Selector,Vararg{Selector}})
+function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}})
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 
@@ -1080,8 +1080,8 @@ end
 # Shared utils ============================================================================
 
 # Return an inbounds index
-_inbounds(is::Tuple, lookup::LookupArray) = map(i -> _inbounds(i, lookup), is)
-function _inbounds(i::Int, lookup::LookupArray)
+_inbounds(is::Tuple, lookup::Lookup) = map(i -> _inbounds(i, lookup), is)
+function _inbounds(i::Int, lookup::Lookup)
     if i > lastindex(lookup)
         lastindex(lookup)
     elseif i <= firstindex(lookup)
@@ -1099,7 +1099,7 @@ _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
 
-_locus_checkbounds(loc, lookup::LookupArray, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel))
+_locus_checkbounds(loc, lookup::Lookup, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel))
 _locus_checkbounds(loc, (l, h)::Tuple, v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
 
 _searchfunc(::ForwardOrdered) = searchsortedfirst
@@ -1125,9 +1125,9 @@ _in(needle::Interval{<:Any,:open}, haystack::Interval{:closed,:open}) = needle.l
 _in(needle::Interval{:open,<:Any}, haystack::Interval{:open,:closed}) = needle.left in haystack && needle.right in haystack
 _in(needle::OpenInterval, haystack::OpenInterval) = needle.left in haystack && needle.right in haystack
 
-hasselection(lookup::LookupArray, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
-hasselection(lookup::LookupArray, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
+hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
+hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
 # Otherwise Near returns the nearest index, and Between an empty range
-hasselection(lookup::LookupArray, ::Near) = isordered(lookup) ? true : false
-hasselection(lookup::LookupArray, ::Union{Interval,Between}) = isordered(lookup) ? true : false
+hasselection(lookup::Lookup, ::Near) = isordered(lookup) ? true : false
+hasselection(lookup::Lookup, ::Union{Interval,Between}) = isordered(lookup) ? true : false

@@ -1,5 +1,5 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using LinearAlgebra: Transpose
 
