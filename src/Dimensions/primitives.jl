@@ -566,7 +566,6 @@ function comparedims end
     valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)
     val && parent(a) != parent(b) && _valerror(a, b)
     if order 
-        # Ignore order for `NoLookup`
         (isnolookup(a) || isnolookup(b) || LA.order(a) == LA.order(b)) || _ordererror(a, b)
     end
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
