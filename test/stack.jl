@@ -22,7 +22,6 @@ mixed = DimStack(da1, da2, da4)
         DimStack(da1, da2, da3) ==
         DimStack((one=da1, two=da2, three=da3), dimz) ==
         DimStack((one=da1, two=da2, three=da3)) == s
-    @test length(DimStack(NamedTuple())) == length(DimStack()) == 0
     @test dims(DimStack()) == dims(DimStack(NamedTuple())) == ()
 end
 
@@ -66,7 +65,7 @@ end
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
-    @test length(s) == 3 # length is as for NamedTuple
+    @test_throws ErrorException length(s) == 3
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
@@ -77,8 +76,8 @@ end
     @test dims(axes(mixed, X)) == dims(mixed, X)
     @test axes(mixed, 2) == Base.OneTo(3)
     @test dims(axes(mixed, 2)) == dims(mixed, 2)
-    @test first(s) == da1 # first/last are for the NamedTuple
-    @test last(s) == da3
+    @test_throws ErrorException first(s) == da1 # first/last are for the NamedTuple
+    @test_throws ErrorException last(s) == da3
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 

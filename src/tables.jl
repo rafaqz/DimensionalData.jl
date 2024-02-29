@@ -56,19 +56,40 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 
 # Keywords
-* `mergedims`: Combine two or more dimensions into a new dimension.
-* `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+- `mergedims`: Combine two or more dimensions into a new dimension.
+- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
 
 # Example
-```jldoctest
-julia> a = DimArray(rand(32,32,3), (X,Y,Dim{:band}));
 
-julia> DimTable(a, layersfrom=Dim{:band}, mergedims=(X,Y)=>:geometry)
-DimTable with 1024 rows, 4 columns, and schema:
- :geometry  Tuple{Int64, Int64}
- :band_1    Float64
- :band_2    Float64
- :band_3    Float64
+```jldoctest
+julia> using DimensionalData, Tables
+
+julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
+╭─────────────────────────────╮
+│ 16×16×3 DimArray{Float64,3} │
+├─────────────────────── dims ┤
+  ↓ X, → Y, ↗ band
+└─────────────────────────────┘
+[:, :, 1]
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+
+julia> 
+
 ```
 """
 struct DimTable <: AbstractDimTable
@@ -89,13 +110,6 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     keys = collect(_colnames(s))
     return DimTable(s, keys, dimcolumns, dimarraycolumns)
 end
-
-_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
-function _dimcolumn(x, d::Dimension)
-    dim_as_dimarray = DimArray(index(d), d)
-    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
-end
-
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
     # Check that dims are compatible
     comparedims(xs...)
@@ -114,18 +128,30 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Return DimTable
     return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
-
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
-        nlayers = size(x, layersfrom)
-        layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
-        layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
+        d = dims(x, layersfrom)
+        nlayers = size(x, d)
+        layers = [view(x, rebuild(d, i)) for i in 1:nlayers]
+        layernames = if iscategorical(d)
+            Symbol.(Ref(dim2key(d)), '_', lookup(d))
+        else
+            Symbol.(("$(dim2key(d))_$i" for i in 1:nlayers))
+        end
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
         s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
         return  DimTable(s, mergedims=mergedims)
     end
 end
+
+_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
+function _dimcolumn(x, d::Dimension)
+    dim_as_dimarray = DimArray(index(d), d)
+    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+end
+
+
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)

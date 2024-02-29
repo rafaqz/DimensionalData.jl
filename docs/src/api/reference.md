@@ -4,6 +4,7 @@
 ## Arrays
 
 ```@docs
+DimensionalData.AbstractBasicDimArray
 AbstractDimArray
 DimArray
 ```
@@ -24,6 +25,9 @@ dims
 refdims
 metadata
 name
+otherdims
+dimnum
+hasdim
 ```
 
 ## Multi-array datasets
@@ -37,7 +41,7 @@ DimStack
 
 ```@docs
 DimIndices
-DimKeys
+DimSelectors
 DimPoints
 ```
 
@@ -46,7 +50,22 @@ DimPoints
 ```@docs
 DimensionalData.AbstractDimTable
 DimTable
-DimensionalData.DimColumn
+```
+
+# Group by methods
+
+For transforming DimensionalData objects:
+
+```@docs
+groupby
+DimensionalData.DimGroupByArray
+Bins
+ranges
+intervals
+CyclicBins
+seasons
+months
+hours
 ```
 
 # Utility methods
@@ -68,11 +87,9 @@ Base methods
 
 ```@docs
 Base.cat
-Base.map
 Base.copy!
 Base.eachslice
 ```
-
 
 Most base methods work as expected, using `Dimension` wherever a `dims`
 keyword is used. They are not allspecifically documented here.
@@ -85,10 +102,13 @@ DimensionalData.Name
 DimensionalData.NoName
 ```
 
-## Internal interface methods
+## Internal interface
 
 ```@docs
+DimensionalData.DimArrayInterface
+DimensionalData.DimStackInterface
 DimensionalData.rebuild_from_arrays
 DimensionalData.show_main
 DimensionalData.show_after
+DimensionalData.refdims_title
 ```

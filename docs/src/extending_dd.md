@@ -6,12 +6,12 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
   `YAXArray` are examples from other packages.
 - `AbstractDimStack` are easily extended to custom mixed array dataset.
     `RasterStack` or `ArViZ.Dataset` are examples.
-- `LookupArray` can have new types added, e.g. to `AbstractSampled` or
+- `Lookup` can have new types added, e.g. to `AbstractSampled` or
   `AbstractCategorical`. `Rasters.Projected` is a lookup that knows
   its coordinate reference system, but otherwise behaves as a regular
   `Sampled` lookup.
 
-`dims` and `rebuild` are the key interface methods in most of these cases.
+`dims`, `rebuild` and `format` are the key interface methods in most of these cases.
 
 ## `dims`
 
@@ -20,7 +20,7 @@ a `Tuple` of constructed `Dimension`s from `dims(obj)`.
 
 ### `Dimension` axes
 
-Dimensions return from `dims` should hold a `LookupArray` or in some cases 
+Dimensions return from `dims` should hold a `Lookup` or in some cases 
 just an `AbstractArray` (like wiht `DimIndices`). When attached to 
 mullti-dimensional objects, lookups must be the _same length_ as the axis 
 of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
@@ -31,9 +31,10 @@ wraps must also have OffsetArrays.jl axes.
 
 ### `dims` keywords
 
-To any `dims` keyword argument that only marks the dimension name,
+To any `dims` keyword argument that usually requires the dimension I,
 objects should accept any `Dimension`, `Type{<:Dimension}`, `Symbol`,
-`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or regular `Integer`. 
+`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or also regular `Integer`. 
+
 This is easier than it sounds, calling `DD.dims(objs, dims)` will
 return the matching dimension and `DD.dimnum(obj, dims)` will return
 the matching `Int` for any of these inputs as long as `dims(obj)` is
@@ -71,15 +72,59 @@ updating `data` and `dims`, any more that that is confusing.
 For `Dimension` and `Selector` the single argument versions are easiest to use, 
 as there is only one argument.
 
-## `rebuild(obj, ...)` argument table
 
-| Type             | Keywords                                                    | Arguments            |
-|------------------|------------------------------------------------------------ |----------------------|
-| AbstractDimArray | data, dims, [refdims, name, metadata]                       | as with kw, in order |
-| AbstractDimStack | data, dims, [refdims], layerdims, [metadata, layermetadata] | as with kw, in order |
-| Dimension        | val                                                         | val                  |
-| Selector         | val, [atol]                                                 | val                  |
-| LookupArray      | data, [order, span, sampling, metadata]                     | keywords only        |
+## `format`
 
-You can always add your ownd keywords to `rebuild` calls, but these will only
-work on your own objects or other objects with those fields.
+When constructing an `AbstractDimArray` or `AbstractDimStack` 
+[`DimensionalData.format`](@ref) must be called on the `dims` tuple and the parent array:
+
+```julia
+format(dims, array)
+```
+
+This lets DimensionalData detect the lookup properties, fill in missing fields
+of a `Lookup`, pass keywords from `Dimension` to detected `Lookup` 
+constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
+and `Type`.
+
+Not calling `format` in the outer constructors of an `AbstractDimArray`
+has undefined behaviour.
+
+
+## Interfaces.jl interterface testing
+
+DimensionalData defines explicit, testable Interfaces.jl interfaces:
+`DimArrayInterface` and `DimStackInterface`.
+
+::: tabs
+
+== array
+
+This is the implementation definition for `DimArray`:
+
+````@ansi interfaces
+using DimensionalData, Interfaces
+@implements DimensionalData.DimArrayInterface{(:refdims,:name,:metadata)} DimArray [rand(X(10), Y(10)), zeros(Z(10))]
+````
+
+See the [`DimensionalData.DimArrayInterface`](@ref) docs for options. We can test it with:
+
+````@ansi interfaces
+Interfaces.test(DimensionalData.DimArrayInterface)
+````
+
+== stack
+
+The implementation definition for `DimStack`:
+
+````@ansi interfaces
+@implements DimensionalData.DimStackInterface{(:refdims,:metadata)} DimStack [DimStack(zeros(Z(10))), DimStack(rand(X(10), Y(10))), DimStack(rand(X(10), Y(10)), rand(X(10)))]
+````
+
+See the [`DimensionalData.DimStackInterface`](@ref) docs for options. We can test it with:
+
+````@ansi interfaces
+Interfaces.test(DimensionalData.DimStackInterface)
+````
+
+:::

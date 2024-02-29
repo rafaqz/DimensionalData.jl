@@ -23,8 +23,8 @@ Y
 Z
 Ti
 Dim
-Coord
 Dimensions.AnonDim
+Dimensions.@dim
 ```
 
 ### Exported methods
@@ -33,18 +33,19 @@ These are widely useful methods for working with dimensions.
 
 ```@docs; canonical=false
 dims
+otherdims
 dimnum
 hasdim
-otherdims
 ```
 
 ### Non-exported methods
 
 ```@docs
+Dimensions.lookup
 Dimensions.label
-DimensionalData.format
-DimensionalData.dims2indices
-DimensionalData.selectindices
+Dimensions.format
+Dimensions.dims2indices
+Dimensions.selectindices
 ```
 
 ### Primitive methods
@@ -55,19 +56,17 @@ can be useful for writing dimensional algorithms.
 They are not guaranteed to keep their interface, but usually will.
 
 ```@docs
-DimensionalData.commondims
-DimensionalData.dim2key
-DimensionalData.key2dim
-DimensionalData.reducedims
-DimensionalData.swapdims
-DimensionalData.slicedims
-DimensionalData.comparedims
-DimensionalData.combinedims
-DimensionalData.sortdims
-DimensionalData.basetypeof
-DimensionalData.basedims
-DimensionalData.setdims
-DimensionalData.dimsmatch
-DimensionalData.dimstride
-DimensionalData.refdims_title
+Dimensions.commondims
+Dimensions.dim2key
+Dimensions.key2dim
+Dimensions.reducedims
+Dimensions.swapdims
+Dimensions.slicedims
+Dimensions.comparedims
+Dimensions.combinedims
+Dimensions.sortdims
+Dimensions.basetypeof
+Dimensions.basedims
+Dimensions.setdims
+Dimensions.dimsmatch
 ```

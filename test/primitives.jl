@@ -1,5 +1,5 @@
 using DimensionalData, Dates, Test , BenchmarkTools
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 
@@ -468,14 +468,4 @@ end
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
     end
-
-end
-
-@testset "dimstride" begin
-    dimz = (X(), Y(), Dim{:test}())
-    da = DimArray(ones(3, 2, 3), dimz; name=:data)
-    @test dimstride(da, X()) == 1
-    @test dimstride(da, Y()) == 3
-    @test dimstride(da, Dim{:test}()) == 6
-    @test_throws ArgumentError dimstride(nothing, X())
 end

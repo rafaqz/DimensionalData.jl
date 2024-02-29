@@ -1,6 +1,7 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 using Statistics: mean
+using DimensionalData.Dimensions: SelOrStandard
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))
 da = DimArray(0.1:0.1:0.4, dim)
@@ -31,7 +32,7 @@ end
 @test bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
 
 @testset "merged named reduction" begin
-    m = mean(da2; dims = Coord)
+    m = mean(da2; dims=Coord)
     @test size(m) == (1,3)
     @test length(dims(m, Coord)) == 1
     @test dims(m, Coord).val == DimensionalData.NoLookup(Base.OneTo(1))

@@ -56,7 +56,7 @@ Additional keywords may be added at any time.
 
 `blockwidth` is passed in context
 
-```juli
+```julia
 blockwidth = get(io, :blockwidth, 10000)
 ```
 
@@ -127,7 +127,7 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
         new_blockwidth = blockwidth
     else
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
-        new_blockwidth = min(displaywidth - 2, max(blockwidth, maximum(textwidth, dim_lines)))
+        new_blockwidth = max(blockwidth, min(displaywidth - 2, maximum(textwidth, dim_lines)))
         lines += print_block_top(io, label, blockwidth, new_blockwidth)
         lines += print_dims(io, mime, dims; kw...)
         println(io)
@@ -248,12 +248,12 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
     bottom = Array{eltype(A)}(undef, length(ibottom)) 
     copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
-    vals = vcat(A[itop], A[ibottom])
+    vals = vcat(parent(A)[itop], parent(A)[ibottom])
     lu = only(lookups)
     if lu isa NoLookup
         Base.print_matrix(io, vals)
     else
-        labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu))[ibottom])
+        labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu)[ibottom]))
         Base.print_matrix(io, hcat(labels, vals))
     end
     return nothing

@@ -1,22 +1,22 @@
 """
-    LookupArrays
+    Lookups
 
-Module for [`LookupArrays`](@ref) and [`Selector`]s used in DimensionalData.jl
+Module for [`Lookup`](@ref)s and [`Selector`](@ref)s used in DimensionalData.jl
 
-`LookupArrays` defines traits and `AbstractArray` wrappers
+`Lookup` defines traits and `AbstractArray` wrappers
 that give specific behaviours for a lookup index when indexed with [`Selector`](@ref).
 
 For example, these allow tracking over array order so fast indexing works evne when 
 the array is reversed.
 
-To load LookupArrays types and methods into scope:
+To load `Lookup` types and methods into scope:
 
 ```julia
 using DimensionalData
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 ```
 """
-module LookupArrays
+module Lookups
 
 using Dates, IntervalSets, Extents
 import Adapt, ConstructionBase
@@ -37,7 +37,7 @@ export At, Between, Touches, Contains, Near, Where, All
 export ..
 export Not
 
-export LookupArrayTrait
+export LookupTrait
 export Order, Ordered, ForwardOrdered, ReverseOrdered, Unordered, AutoOrder
 export Sampling, Points, Intervals, AutoSampling, NoSampling
 export Span, Regular, Irregular, Explicit, AutoSpan, NoSpan
@@ -45,7 +45,7 @@ export Locus, Center, Start, End, AutoLocus
 export Metadata, NoMetadata
 export AutoStep, AutoBounds, AutoIndex
 
-export LookupArray
+export Lookup
 export AutoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
 export Unaligned, Transformed

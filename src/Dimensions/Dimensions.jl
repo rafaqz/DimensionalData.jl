@@ -16,23 +16,23 @@ module Dimensions
 import Adapt, ConstructionBase, Extents, IntervalSets
 using Dates 
 
-include("../LookupArrays/LookupArrays.jl")
+include("../Lookups/Lookups.jl")
 
-using .LookupArrays
+using .Lookups
 
-const LA = LookupArrays
+const LA = Lookups
 
-import .LookupArrays: rebuild, order, span, sampling, locus, val, index, set, _set,
+import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
     shiftlocus, maybeshiftlocus, SelectorOrInterval, Interval
-using .LookupArrays: StandardIndices, SelTuple, CategoricalEltypes,
-    LookupArrayTrait, AllMetadata, LookupArraySetters
+using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
+    LookupTrait, AllMetadata, LookupSetters
 
 using Base: tail, OneTo, @propagate_inbounds
 
 export name, label, dimnum, hasdim, hasselection, otherdims, commondims, combinedims,
     setdims, swapdims, sortdims, lookup, set, format, rebuild, key2dim, dim2key,
-    basetypeof, basedims, dimstride, dims2indices, slicedims, dimsmatch, comparedims, reducedims
+    basetypeof, basedims, dims2indices, slicedims, dimsmatch, comparedims, reducedims
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,
     X, Y, Z, Ti, Dim, AnonDim, Coord, MergedLookup, AutoVal

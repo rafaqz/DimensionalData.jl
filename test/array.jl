@@ -2,7 +2,7 @@ using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 a = [1 2; 3 4]
 a2 = [1 2 3 4

@@ -1,5 +1,5 @@
 using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterface, DimensionalData, Test
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 
 @testset "ArrayInterface" begin
     a = [1 2; 3 4]
