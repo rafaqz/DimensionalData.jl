@@ -123,7 +123,7 @@ end
 
 Get the dimension(s) matching the type(s) of the query dimension.
 
-LookupArray can be an Int or an Dimension, or a tuple containing
+Lookup can be an Int or an Dimension, or a tuple containing
 any combination of either.
 
 ## Arguments
@@ -325,7 +325,7 @@ and returns a new object or tuple with the dimension updated.
 
 # Example
 ```jldoctest
-using DimensionalData, DimensionalData.Dimensions, DimensionalData.LookupArrays
+using DimensionalData, DimensionalData.Dimensions, DimensionalData.Lookups
 A = ones(X(10), Y(10:10:100))
 B = setdims(A, Y(Categorical('a':'j'; order=ForwardOrdered())))
 lookup(B, Y)
@@ -483,7 +483,7 @@ This is usually to match a new array size where an axis has been
 reduced with a method like `mean` or `reduce` to a length of 1,
 but the number of dimensions has not changed.
 
-`LookupArray` traits are also updated to correspond to the change in
+`Lookup` traits are also updated to correspond to the change in
 cell step, sampling type and order.
 """
 function reducedims end
@@ -604,7 +604,7 @@ end
         isnothing(warn) || _valwarn(a, b, warn)
         return false
     end
-    if order && LookupArrays.order(a) != LookupArrays.order(b)
+    if order && Lookups.order(a) != Lookups.order(b)
         isnothing(warn) || _orderwarn(a, b, warn)
         return false
     end

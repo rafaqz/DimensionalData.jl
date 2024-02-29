@@ -356,11 +356,11 @@ function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
     indices = last.(ps)
     return group_dim, indices
 end
-function _group_indices(dim::Dimension, group_lookup::LookupArray; labels=nothing)
+function _group_indices(dim::Dimension, group_lookup::Lookup; labels=nothing)
     orig_lookup = lookup(dim)
     indices = map(_ -> Int[], 1:length(group_lookup))
     for (i, v) in enumerate(orig_lookup)
-        n = selectindices(group_lookup, Contains(v); err=LookupArrays._False())
+        n = selectindices(group_lookup, Contains(v); err=Lookups._False())
         isnothing(n) || push!(indices[n], i)
     end
     group_dim = if isnothing(labels)
@@ -390,7 +390,7 @@ function _group_indices(dim::Dimension, bins::AbstractBins; labels=bins.labels)
     group_lookup = lookup(format(rebuild(dim, groups)))
     transformed_lookup = rebuild(dim, transformed)
 
-    # Call the LookupArray version to do the work using selectors
+    # Call the Lookup version to do the work using selectors
     return _group_indices(transformed_lookup, group_lookup; labels)
 end
 

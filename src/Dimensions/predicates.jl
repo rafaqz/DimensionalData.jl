@@ -14,10 +14,10 @@ for f in (
     :isreverse,
 )
     @eval begin
-        LookupArrays.$f(x::Dimension) = $f(val(x))
-        LookupArrays.$f(::Nothing) = false
-        LookupArrays.$f(xs::DimTuple) = all(map($f, xs))
-        LookupArrays.$f(x::Any) = $f(dims(x))
-        LookupArrays.$f(x::Any, ds) = $f(dims(x, ds))
+        Lookups.$f(x::Dimension) = $f(val(x))
+        Lookups.$f(::Nothing) = false
+        Lookups.$f(xs::DimTuple) = all(map($f, xs))
+        Lookups.$f(x::Any) = $f(dims(x))
+        Lookups.$f(x::Any, ds) = $f(dims(x, ds))
     end
 end

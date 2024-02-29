@@ -1,9 +1,9 @@
 """
-    MergedLookup <: LookupArray
+    MergedLookup <: Lookup
 
     MergedLookup(data, dims; [metadata])
 
-A [`LookupArray`](@ref) that holds multiple combined dimensions.
+A [`Lookup`](@ref) that holds multiple combined dimensions.
 
 `MergedLookup` can be indexed with [`Selector`](@ref)s like `At`, 
 `Between`, and `Where` although `Near` has undefined meaning.
@@ -19,7 +19,7 @@ A [`LookupArray`](@ref) that holds multiple combined dimensions.
 - `metadata`: a `Dict` or `Metadata` object to attach dimension metadata.
 
 """
-struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: LookupArray{T,1}
+struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: Lookup{T,1}
     data::A
     dims::D
     metadata::Me
@@ -30,20 +30,20 @@ order(m::MergedLookup) = Unordered()
 dims(m::MergedLookup) = m.dims
 dims(d::Dimension{<:MergedLookup}) = dims(val(d))
 
-# LookupArray interface methods
+# Lookup interface methods
 
-LookupArrays.bounds(d::Dimension{<:MergedLookup}) =
+Lookups.bounds(d::Dimension{<:MergedLookup}) =
     ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
 # Return an `Int` or  Vector{Bool}
-LookupArrays.selectindices(lookup::MergedLookup, sel::DimTuple) =
+Lookups.selectindices(lookup::MergedLookup, sel::DimTuple) =
     selectindices(lookup, map(_val_or_nothing, sortdims(sel, dims(lookup))))
-function LookupArrays.selectindices(lookup::MergedLookup, sel::NamedTuple{K}) where K
+function Lookups.selectindices(lookup::MergedLookup, sel::NamedTuple{K}) where K
     dimsel = map(rebuild, map(key2dim, K), values(sel))
     selectindices(lookup, dimsel) 
 end
-LookupArrays.selectindices(lookup::MergedLookup, sel::StandardIndices) = sel
-function LookupArrays.selectindices(lookup::MergedLookup, sel::Tuple)
+Lookups.selectindices(lookup::MergedLookup, sel::StandardIndices) = sel
+function Lookups.selectindices(lookup::MergedLookup, sel::Tuple)
     if (length(sel) == length(dims(lookup))) && all(map(s -> s isa At, sel))
         i = findfirst(x -> all(map(_matches, sel, x)), lookup)
         isnothing(i) && _coord_not_found_error(sel)
@@ -53,9 +53,9 @@ function LookupArrays.selectindices(lookup::MergedLookup, sel::Tuple)
     end
 end
 
-@inline LookupArrays.reducelookup(l::MergedLookup) = NoLookup(OneTo(1))
+@inline Lookups.reducelookup(l::MergedLookup) = NoLookup(OneTo(1))
 
-function LookupArrays.show_properties(io::IO, mime, lookup::MergedLookup)
+function Lookups.show_properties(io::IO, mime, lookup::MergedLookup)
     print(io, " ")
     show(IOContext(io, :inset => "", :dimcolor => 244), mime, basedims(lookup))
 end
@@ -82,7 +82,7 @@ _matches(sel::Tuple, x) = all(map(_matches, sel, x))
 _matches(sel::Dimension, x) = _matches(val(sel), x)
 _matches(sel::Between, x) = _matches(Interval(val(sel)...), x)
 _matches(sel::Touches, x) = (x >= first(sel)) & (x <= last(sel))
-_matches(sel::LookupArrays.AbstractInterval, x) = x in sel
+_matches(sel::Lookups.AbstractInterval, x) = x in sel
 _matches(sel::At, x) = x == val(sel)
 _matches(sel::Colon, x) = true
 _matches(sel::Nothing, x) = true

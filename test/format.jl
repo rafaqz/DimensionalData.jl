@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using .Dimensions: _format
 using Base: OneTo
@@ -8,7 +8,7 @@ struct Unsortable
     val::Int
 end
 
-@testset "format LookupArray" begin
+@testset "format Lookup" begin
    @testset "format Categorical from AutoLookup" begin
         A = [:a, :b]
         @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, ForwardOrdered(), NoMetadata())
@@ -94,7 +94,7 @@ end
         @test format(l, X, Base.OneTo(2)) === Sampled(l, ForwardOrdered(), Regular(0.0), Points(), NoMetadata())
     end
 
-    @testset "LookupArray conversion errors" begin
+    @testset "Lookup conversion errors" begin
         @test_throws ArgumentError DimArray(rand(5, 4), (X(1), Y(1:4)))
         @test_throws ArgumentError DimArray(rand(5), X(1; foo=:bar))
     end

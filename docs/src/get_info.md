@@ -2,13 +2,13 @@
 
 DimensionalData.jl defines consistent methods to retreive information
 from objects like `DimArray`, `DimStack`, `Tuple`s of `Dimension`,
-`Dimension` and `LookupArray`.
+`Dimension` and `Lookup`.
 
 First we will define an example `DimArray`.
 
 ```@example getters
 using DimensionalData
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 x, y = X(10:-1:1), Y(100.0:10:200.0)
 A = rand(x, y)
 ```
@@ -51,7 +51,7 @@ otherdims(A, isregular)
 
 == lookup
 
-Get all the `LookupArray` in an object
+Get all the `Lookup` in an object
 
 ```@ansi getters
 lookup(A)
@@ -71,7 +71,7 @@ val(At(10.5))
 
 == order
 
-Get the order of a `LookupArray`, or a `Tuple`
+Get the order of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
 ```@ansi getters
@@ -83,7 +83,7 @@ order(lookup(A, Y))
 
 == sampling
 
-Get the sampling of a `LookupArray`, or a `Tuple`
+Get the sampling of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
 ```@ansi getters
@@ -95,7 +95,7 @@ sampling(lookup(A, Y))
 
 == span
 
-Get the span of a `LookupArray`, or a `Tuple`
+Get the span of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
 ```@ansi getters
@@ -107,7 +107,7 @@ span(lookup(A, Y))
 
 == locus
 
-Get the locus of a `LookupArray`, or a `Tuple`
+Get the locus of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
 (locus is our term for distiguishing if an lookup value
@@ -123,7 +123,7 @@ locus(lookup(A, Y))
 == bounds
 
 Get the bounds of each dimension. This is different for `Points` 
-and `Intervals` - the bounds for points of a `LookupArray` are 
+and `Intervals` - the bounds for points of a `Lookup` are 
 simply `(first(l), last(l))`.
 
 ```@ansi getters

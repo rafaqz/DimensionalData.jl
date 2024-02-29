@@ -59,7 +59,7 @@ A[X=Near(1.1:0.25:1.5)]
 First set the `X` axis to be `Intervals`:
 
 ````@ansi selectors
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 A_intervals = set(A, X => Intervals(Start()))
 intervalbounds(A_intervals, X)
 ````
@@ -129,14 +129,14 @@ A[X=Not(Near(1.3)), Y=Not(Where(in((:a, :c))))]
 
 ## Lookups
 
-Selectors find indices in the `LookupArray` of each dimension.
-LookupArrays wrap other `AbstractArray` (often `AbstractRange`) but add
+Selectors find indices in the `Lookup` of each dimension.
+Lookups wrap other `AbstractArray` (often `AbstractRange`) but add
 aditional traits to facilitate fast lookups or specifing point or interval
 behviour. These are usually detected automatically.
 
 
 ````@example selectors
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 ````
 ::: tabs
 

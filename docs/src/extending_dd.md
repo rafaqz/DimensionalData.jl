@@ -6,7 +6,7 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
   `YAXArray` are examples from other packages.
 - `AbstractDimStack` are easily extended to custom mixed array dataset.
     `RasterStack` or `ArViZ.Dataset` are examples.
-- `LookupArray` can have new types added, e.g. to `AbstractSampled` or
+- `Lookup` can have new types added, e.g. to `AbstractSampled` or
   `AbstractCategorical`. `Rasters.Projected` is a lookup that knows
   its coordinate reference system, but otherwise behaves as a regular
   `Sampled` lookup.
@@ -20,7 +20,7 @@ a `Tuple` of constructed `Dimension`s from `dims(obj)`.
 
 ### `Dimension` axes
 
-Dimensions return from `dims` should hold a `LookupArray` or in some cases 
+Dimensions return from `dims` should hold a `Lookup` or in some cases 
 just an `AbstractArray` (like wiht `DimIndices`). When attached to 
 mullti-dimensional objects, lookups must be the _same length_ as the axis 
 of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
@@ -83,7 +83,7 @@ format(dims, array)
 ```
 
 This lets DimensionalData detect the lookup properties, fill in missing fields
-of a `LookupArray`, pass keywords from `Dimension` to detected `LookupArray` 
+of a `Lookup`, pass keywords from `Dimension` to detected `Lookup` 
 constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
 and `Type`.
 

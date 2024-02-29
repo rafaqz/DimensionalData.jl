@@ -1,28 +1,28 @@
 
 """
-    LookupArrayTrait
+    LookupTrait
 
-Abstract supertype of all traits of a [`LookupArray`](@ref).
+Abstract supertype of all traits of a [`Lookup`](@ref).
 
 These modify the behaviour of the lookup index.
 
 The term "Trait" is used loosely - these may be fields of an object
 of traits hard-coded to specific types.
 """
-abstract type LookupArrayTrait end
+abstract type LookupTrait end
 
 """
-    Order <: LookupArrayTrait
+    Order <: LookupTrait
 
-Traits for the order of a [`LookupArray`](@ref). These determine how
+Traits for the order of a [`Lookup`](@ref). These determine how
 `searchsorted` finds values in the index, and how objects are plotted.
 """
-abstract type Order <: LookupArrayTrait end
+abstract type Order <: LookupTrait end
 
 """
     Ordered <: Order
 
-Supertype for the order of an ordered [`LookupArray`](@ref),
+Supertype for the order of an ordered [`Lookup`](@ref),
 including [`ForwardOrdered`](@ref) and [`ReverseOrdered`](@ref).
 """
 abstract type Ordered <: Order end
@@ -32,7 +32,7 @@ abstract type Ordered <: Order end
 
     AutoOrder()
 
-Specifies that the `Order` of a `LookupArray` will be found automatically
+Specifies that the `Order` of a `Lookup` will be found automatically
 where possible.
 """
 struct AutoOrder <: Order end
@@ -42,7 +42,7 @@ struct AutoOrder <: Order end
 
     ForwardOrdered()
 
-Indicates that the `LookupArray` index is in the normal forward order.
+Indicates that the `Lookup` index is in the normal forward order.
 """
 struct ForwardOrdered <: Ordered end
 
@@ -51,7 +51,7 @@ struct ForwardOrdered <: Ordered end
 
     ReverseOrdered()
 
-Indicates that the `LookupArray` index is in the reverse order.
+Indicates that the `Lookup` index is in the reverse order.
 """
 struct ReverseOrdered <: Ordered end
 
@@ -60,7 +60,7 @@ struct ReverseOrdered <: Ordered end
 
     Unordered()
 
-Indicates that `LookupArray` is unordered.
+Indicates that `Lookup` is unordered.
 
 This means the index cannot be searched with `searchsortedfirst`
 or similar optimised methods - instead it will use `findfirst`.
@@ -72,7 +72,7 @@ isrev(::Type{<:ForwardOrdered}) = false
 isrev(::Type{<:ReverseOrdered}) = true
 
 """
-   Locus <: LookupArrayTrait
+   Locus <: LookupTrait
 
 Abstract supertype of types that indicate the position of index values 
 where they represent [`Intervals`](@ref).
@@ -83,7 +83,7 @@ These allow for values array cells to align with the [`Start`](@ref),
 This means they can be plotted with correct axis markers, and allows automatic
 converrsions to between formats with different standards (such as NetCDF and GeoTiff).
 """
-abstract type Locus <: LookupArrayTrait end
+abstract type Locus <: LookupTrait end
 
 """
     Center <: Locus
@@ -126,12 +126,12 @@ struct AutoLocus <: Locus end
 
 
 """
-    Sampling <: LookupArrayTrait
+    Sampling <: LookupTrait
 
 Indicates the sampling method used by the index: [`Points`](@ref)
 or [`Intervals`](@ref).
 """
-abstract type Sampling <: LookupArrayTrait end
+abstract type Sampling <: LookupTrait end
 
 struct NoSampling <: Sampling end
 locus(sampling::NoSampling) = Center()
@@ -172,12 +172,12 @@ locus(sampling::Intervals) = sampling.locus
 rebuild(::Intervals, locus) = Intervals(locus)
 
 """
-    Span <: LookupArrayTrait
+    Span <: LookupTrait
 
 Defines the type of span used in a [`Sampling`](@ref) index.
 These are [`Regular`](@ref) or [`Irregular`](@ref).
 """
-abstract type Span <: LookupArrayTrait end
+abstract type Span <: LookupTrait end
 
 struct NoSpan <: Span end
 
@@ -255,9 +255,9 @@ Adapt.adapt_structure(to, s::Explicit) = Explicit(Adapt.adapt_structure(to, val(
 """
     AutoIndex
 
-Detect a `LookupArray` index from the context. This is used in `NoLookup` to simply
+Detect a `Lookup` index from the context. This is used in `NoLookup` to simply
 use the array axis as the index when the array is constructed, and in `set` to
-change the `LookupArray` type without changing the index values.
+change the `Lookup` type without changing the index values.
 """
 struct AutoIndex <: AbstractVector{Int} end
 

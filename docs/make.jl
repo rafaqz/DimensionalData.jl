@@ -2,12 +2,12 @@ using DocumenterVitepress
 using Documenter
 using DimensionalData
 using DimensionalData.Dimensions
-using DimensionalData.LookupArrays
+using DimensionalData.Lookups
 
 # Names are available everywhere so that [`function`](@ref) works.
 # ====================
 
-DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.LookupArrays); recursive=true)
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.Lookups); recursive=true)
 
 # Build documentation.
 # ====================

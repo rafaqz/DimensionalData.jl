@@ -191,23 +191,23 @@ name(dim::Val{D}) where D = name(D)
 
 label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
 
-# LookupArrays methods
-LookupArrays.metadata(dim::Dimension) = metadata(lookup(dim))
+# Lookups methods
+Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
 
-LookupArrays.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-LookupArrays.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
+Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
+Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
-LookupArrays.bounds(dim::Dimension) = bounds(val(dim))
-LookupArrays.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
+Lookups.bounds(dim::Dimension) = bounds(val(dim))
+Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
-    @eval function LookupArrays.$f(locus::Locus, x; dims=Dimensions.dims(x))
+    @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
         newdims = map(Dimensions.dims(x, dims)) do d
-            LookupArrays.$f(locus, d)
+            Lookups.$f(locus, d)
         end
         return setdims(x, newdims)
     end
-    @eval LookupArrays.$f(locus::Locus, d::Dimension) =
-        rebuild(d, LookupArrays.$f(locus, lookup(d)))
+    @eval Lookups.$f(locus::Locus, d::Dimension) =
+        rebuild(d, Lookups.$f(locus, lookup(d)))
 end
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
@@ -299,7 +299,7 @@ dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
-function dim2boundsmatrix(lookup::LookupArray)
+function dim2boundsmatrix(lookup::Lookup)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
     _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
@@ -309,7 +309,7 @@ _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
     # Only offset starts and reuse them for ends, 
     # so floating point error is the same.
-    starts = LookupArrays._shiftindexlocus(Start(), lookup)
+    starts = Lookups._shiftindexlocus(Start(), lookup)
     dest = Array{eltype(starts),2}(undef, 2, length(starts))
     # Use `bounds` as the start/end values
     if order(lookup) isa ReverseOrdered

@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using DimensionalData.Lookups: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
 
 @testset "locus" begin

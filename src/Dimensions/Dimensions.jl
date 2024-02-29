@@ -16,17 +16,17 @@ module Dimensions
 import Adapt, ConstructionBase, Extents, IntervalSets
 using Dates 
 
-include("../LookupArrays/LookupArrays.jl")
+include("../Lookups/Lookups.jl")
 
-using .LookupArrays
+using .Lookups
 
-const LA = LookupArrays
+const LA = Lookups
 
-import .LookupArrays: rebuild, order, span, sampling, locus, val, index, set, _set,
+import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
     shiftlocus, maybeshiftlocus, SelectorOrInterval, Interval
-using .LookupArrays: StandardIndices, SelTuple, CategoricalEltypes,
-    LookupArrayTrait, AllMetadata, LookupArraySetters
+using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
+    LookupTrait, AllMetadata, LookupSetters
 
 using Base: tail, OneTo, @propagate_inbounds
 

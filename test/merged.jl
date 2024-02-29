@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 using Statistics: mean
 using DimensionalData.Dimensions: SelOrStandard
 

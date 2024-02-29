@@ -1,4 +1,4 @@
-const DimSetters = Union{LookupArraySetters,Type,UnionAll,Dimension,Symbol}
+const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
 set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
@@ -33,7 +33,7 @@ _set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
 _set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
 # Set the lookup
 # Otherwise pass this on to set fields on the lookup
-_set(dim::Dimension, x::LookupArrayTrait) = rebuild(dim, _set(lookup(dim), x))
+_set(dim::Dimension, x::LookupTrait) = rebuild(dim, _set(lookup(dim), x))
 
 # Metadata
 _set(dim::Dimension, newmetadata::AllMetadata) = rebuild(dim, _set(lookup(dim), newmetadata))

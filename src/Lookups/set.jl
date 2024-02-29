@@ -1,14 +1,14 @@
-const LookupArraySetters = Union{AllMetadata,LookupArray,LookupArrayTrait,Nothing,AbstractArray}
-set(lookup::LookupArray, x::LookupArraySetters) = _set(lookup, x)
+const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing,AbstractArray}
+set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
 
-# _set(lookup::LookupArray, newlookup::LookupArray) = lookup
+# _set(lookup::Lookup, newlookup::Lookup) = lookup
 _set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
     lookup = _set(lookup, parent(newlookup))
     o = _set(order(lookup), order(newlookup))
     md = _set(metadata(lookup), metadata(newlookup))
     rebuild(lookup; order=o, metadata=md)
 end
-_set(lookup::LookupArray, newlookup::AbstractCategorical) = begin
+_set(lookup::Lookup, newlookup::AbstractCategorical) = begin
     lookup = _set(lookup, parent(newlookup))
     o = _set(order(lookup), order(newlookup))
     md = _set(metadata(lookup), metadata(newlookup))
@@ -23,7 +23,7 @@ _set(lookup::AbstractSampled, newlookup::AutoLookup) = begin
     md = _set(metadata(lookup), metadata(newlookup))
     rebuild(lookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
-_set(lookup::LookupArray, newlookup::AbstractSampled) = begin
+_set(lookup::Lookup, newlookup::AbstractSampled) = begin
     # Update each field separately. The old lookup may not have these fields, or may have
     # a subset with the rest being traits. The new lookup may have some auto fields.
     lookup = _set(lookup, parent(newlookup))
@@ -35,17 +35,17 @@ _set(lookup::LookupArray, newlookup::AbstractSampled) = begin
     rebuild(newlookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
 _set(lookup::AbstractArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
-_set(lookup::LookupArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
-_set(lookup::LookupArray, newlookup::NoLookup) = newlookup
+_set(lookup::Lookup, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
+_set(lookup::Lookup, newlookup::NoLookup) = newlookup
 
 # Set the index
-_set(lookup::LookupArray, index::Val) = rebuild(lookup; data=index)
-_set(lookup::LookupArray, index::Colon) = lookup
-_set(lookup::LookupArray, index::AutoLookup) = lookup
-_set(lookup::LookupArray, index::AbstractArray) = rebuild(lookup; data=index)
+_set(lookup::Lookup, index::Val) = rebuild(lookup; data=index)
+_set(lookup::Lookup, index::Colon) = lookup
+_set(lookup::Lookup, index::AutoLookup) = lookup
+_set(lookup::Lookup, index::AbstractArray) = rebuild(lookup; data=index)
 
-_set(lookup::LookupArray, index::AutoIndex) = lookup
-_set(lookup::LookupArray, index::AbstractRange) =
+_set(lookup::Lookup, index::AutoIndex) = lookup
+_set(lookup::Lookup, index::AbstractRange) =
     rebuild(lookup; data=_set(parent(lookup), index), order=orderof(index))
 # Update the Sampling lookup of Sampled dims - it must match the range.
 _set(lookup::AbstractSampled, index::AbstractRange) = begin
@@ -56,7 +56,7 @@ _set(lookup::AbstractSampled, index::AbstractRange) = begin
 end
 
 # Order
-_set(lookup::LookupArray, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
+_set(lookup::Lookup, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
 _set(lookup::NoLookup, neworder::Order) = lookup
 _set(order::Order, neworder::Order) = neworder 
 _set(order::Order, neworder::AutoOrder) = order
@@ -88,7 +88,7 @@ _set(locus::Locus, newlocus::Locus) = newlocus
 _set(locus::Locus, newlocus::AutoLocus) = locus
 
 # Metadata
-_set(lookup::LookupArray, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
+_set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
 _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
 # Index

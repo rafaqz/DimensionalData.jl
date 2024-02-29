@@ -134,25 +134,25 @@ end
 _withaxes(dim::Dimension, A::AbstractDimArray) =
     _withaxes(lookup(dim), index(dim), parent(A))
 _withaxes(::NoLookup, index, A::AbstractArray) = A
-_withaxes(::LookupArray, index, A::AbstractArray) = index, A
+_withaxes(::Lookup, index, A::AbstractArray) = index, A
 _withaxes(::Categorical, index, A::AbstractArray) = eachindex(index), A
 
 _withaxes(dx::Dimension, dy::Dimension, A::AbstractDimArray) =
     _withaxes(lookup(dx), lookup(dy), index(dx), index(dy), parent(A))
-_withaxes(::LookupArray, ::LookupArray, ix, iy, A) = ix, iy, A
-_withaxes(::NoLookup, ::LookupArray, ix, iy, A) = axes(A, 2), iy, A
-_withaxes(::LookupArray, ::NoLookup, ix, iy, A) = ix, axes(A, 1), A
+_withaxes(::Lookup, ::Lookup, ix, iy, A) = ix, iy, A
+_withaxes(::NoLookup, ::Lookup, ix, iy, A) = axes(A, 2), iy, A
+_withaxes(::Lookup, ::NoLookup, ix, iy, A) = ix, axes(A, 1), A
 _withaxes(::NoLookup, ::NoLookup, ix, iy, A) = axes(A, 2), axes(A, 1), A
 
 _xticks!(attr, s, d::Dimension) = _xticks!(attr, s, lookup(d), index(d))
 _xticks!(attr, s, ::Categorical, index) =
     RecipesBase.is_explicit(attr, :xticks) || (attr[:xticks] = (eachindex(index), index))
-_xticks!(attr, s, ::LookupArray, index) = nothing
+_xticks!(attr, s, ::Lookup, index) = nothing
 
 _yticks!(attr, s, d::Dimension) = _yticks!(attr, s, lookup(d), index(d))
 _yticks!(attr, s, ::Categorical, index) =
     RecipesBase.is_explicit(attr, :yticks) || (attr[:yticks] = (eachindex(index), index))
-_yticks!(attr, s, ::LookupArray, index) = nothing
+_yticks!(attr, s, ::Lookup, index) = nothing
 
 ### Shared utils
 
@@ -179,7 +179,7 @@ function refdims_title(lookup::AbstractSampled, refdim::Dimension; kw...)
          "$start to $stop"
     end
 end
-function refdims_title(lookup::LookupArray, refdim::Dimension; kw...)
+function refdims_title(lookup::Lookup, refdim::Dimension; kw...)
     if parent(refdim) isa AbstractArray
         string(first(parent(refdim)))
     else
