@@ -607,9 +607,8 @@ end
         isnothing(warn) || _valwarn(a, b, warn)
         return false
     end
-    if order
-        # Ignore order for `NoLookup`
-        (isnolookup(a) || isnolookup(b) || LA.order(a) == LA.order(b)) || _orderwarn(a, b, warn)
+    if order && !(isnolookup(a) || isnolookup(b) || LA.order(a) == LA.order(b)) 
+        _orderwarn(a, b, warn)
         return false
     end
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
