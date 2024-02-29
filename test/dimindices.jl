@@ -27,8 +27,8 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @test @inferred A1[di] isa DimArray{Float64,3}
     @test @inferred A1[X=1][di] isa DimArray{Float64,2}
     @test @inferred A1[X=1, Y=1][di] isa DimArray{Float64,1}
-    # Indexing with no matching dims is like [] (?)
-    @test @inferred view(A1, X=1, Y=1, Ti=1)[di] == 0.0
+    # Indexing with no matching dims still returns a DimArray
+    @test @inferred view(A1, X=1, Y=1, Ti=1)[di] == fill(0.0)
 
     # Convert to vector of DimTuple
     @test @inferred A1[di[:]] isa DimArray{Float64,2}
