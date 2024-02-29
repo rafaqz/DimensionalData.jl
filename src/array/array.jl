@@ -241,9 +241,9 @@ end
 _parent_range(r::Dimensions.DimUnitRange) = parent(r)
 _parent_range(r) = r
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
+Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...) where T =
     Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
     rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=(), metadata=NoMetadata())

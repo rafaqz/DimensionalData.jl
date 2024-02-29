@@ -129,7 +129,7 @@ function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
     layers = map(nts...) do as...
         broadcast_dims(f, as...)
     end
-    rebuild(st, layers)
+    rebuild_from_arrays(st, layers)
 end
 
 """

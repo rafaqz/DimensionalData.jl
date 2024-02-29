@@ -6,6 +6,11 @@ dims(dg::AbstractDimArrayGenerator) = dg.dims
 Base.size(dg::AbstractDimArrayGenerator) = map(length, dims(dg))
 Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 
+Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::DimTuple) where T =
+    dimconstructor(D)(A; data=similar(Array{T}, size(D)), dims=D, refdims=(), metadata=NoMetadata())
+Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
+    dimconstructor(D)(A; data=similar(Array{T}, ()), dims=(), refdims=(), metadata=NoMetadata())
+
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
     T = Union{Colon,AbstractRange}
