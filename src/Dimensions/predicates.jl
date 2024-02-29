@@ -1,4 +1,5 @@
 for f in (
+    :isnolookup,
     :issampled,
     :iscategorical,
     :iscyclic,
