@@ -557,9 +557,9 @@ m = LinearMap([0.5 0.0; 0.0 0.5])
 A = [1 2  3  4
      5 6  7  8
      9 10 11 12];
-da = DimArray(A, (t1=Transformed(m, X), t2=Transformed(m, Y)))
+da = DimArray(A, (X(Transformed(m)), Y(Transformed(m))))
 
-da[X(At(6)), Y(At(2))]
+da[X(At(6.0)), Y(At(2.0))]
 
 # output
 9
