@@ -131,7 +131,7 @@ end
     """
     function Base.eachslice(A::AbstractDimArray; dims)
         dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
+        if !(dimtuple == ())
             all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
         _eachslice(A, dimtuple)
@@ -139,7 +139,7 @@ end
 else
     @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
         dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
+        if !(dimtuple == ())
             all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
         _eachslice(A, dimtuple, drop)
@@ -195,7 +195,7 @@ function Base.sortslices(A::AbstractDimArray; dims, kw...)
     return rebuild(A, newdata, newdims)
 end
 
-                
+
 Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
 Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
 Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
@@ -293,7 +293,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             else
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
-                if !check_cat_lookups(joindims...) 
+                if !check_cat_lookups(joindims...)
                     return rebuild(catdim, NoLookup())
                 end
                 _vcat_dims(joindims...)
@@ -367,7 +367,7 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
+        if !comparedims(Bool, map(x -> dims(x, 2), As)...;
             val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
         )
             return Base.vcat(map(parent, As)...)
@@ -542,7 +542,7 @@ end
 _span_string(D, S, span) = _cat_warn_string(D, "not all lookups have `$S` spans. Found $(basetypeof(span))")
 _cat_warn_string(D, message) = """
 `cat` cannot concatenate `Dimension`s, falling back to `parent` type:
-$message on dimension $D. 
+$message on dimension $D.
 
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
@@ -586,13 +586,17 @@ function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:A
 end
 
 """
-    Base.stack([dim::Dimension], A::AbstractVector{<:AbstractDimArray}; dims=nothing)
+    Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1]), AnonDim()))
 
-Stack arrays along a specified axis `dims`, while preserving the dimensional
-information of other axes.
-If the optional `Dimension` argument `dim` is supplied, it must have
-`length(dim) == length(A)`; the resulting axis `dims` is given the dimension `dim`.
-If `dim` is not supplied, the new dimension will be an `AnonDim`.
+Stack arrays along a new axis while preserving the dimensional information of other axes.
+
+The optional keyword argument `dims` has the following behavior:
+- `dims isa Integer`: The dimension of the new axis is an `AnonDim` at position `dims`
+- `dims isa Dimension`: The new axis is at `ndims(A[1])+1` and has a dimension of `dims`.
+- `dims isa Pair{Integer, Dimension}`: The new axis is at `first(dims)` and has a dimension
+  of `last(dims)`.
+
+If `dims` contains a `Dimension`, that `Dimension` must have the same length as A.
 
 # Examples
 ```julia-repl
@@ -615,16 +619,25 @@ julia> parent(dc) == stack(map(parent, [da, db]), dims=3)
 true
 ```
 """
-function Base.stack(dim::Dimension, A::AbstractVector{<:AbstractDimArray}; dims=nothing, kwargs...)
-    B = Base.stack(A; dims, kwargs...)
-    newdims = ntuple(ndims(B)) do d
-        if d == dims # Use the new provided dimension
-            dim
-        else
-            DimensionalData.dims(B, d)
+function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1]), AnonDim()), kwargs...)
+    dims isa Integer && (dims = dims => AnonDim())
+    dims isa Dimension && (dims = ndims(A[1])+1 => dims)
+
+    B = Base._stack(first(dims), A)
+
+    if B isa AbstractDimArray
+        newdims = ntuple(ndims(B)) do d
+            if d == first(dims) # Use the new provided dimension
+                last(dims)
+            else
+                DimensionalData.dims(B, d)
+            end
         end
+        newdims = format(newdims, B)
+
+        B = rebuild(B; dims=newdims)
     end
-    rebuild(B; dims=newdims)
+    return B
 end
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
