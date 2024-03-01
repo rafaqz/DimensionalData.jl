@@ -271,9 +271,6 @@ end
 end
 
 @testset "dims2indices with Transformed" begin
-    tdimz = Dim{:trans1}(Transformed(identity, X())), 
-            Dim{:trans2}(Transformed(identity, Y())), 
-            Z(NoLookup(1:1))
-    @test_broken dims2indices(tdimz, (X(1), Y(2), Z())) == (1, 2, Colon())
-    @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Z())) == (1, 2, Colon())
+    tdimz = X(Transformed(identity)), Y(Transformed(identity)), Z(NoLookup(1:1))
+    @test dims2indices(tdimz, (X(1), Y(2), Z())) == (1, 2, Colon())
 end
