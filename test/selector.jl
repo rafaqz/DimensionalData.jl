@@ -1319,12 +1319,12 @@ end
 @testset "Selectors on TranformedIndex" begin
     using CoordinateTransformations
 
-    dimz = X(Transformed(m)), Y(Transformed(m)), Z()
     m = LinearMap([0.5 0.0; 0.0 0.5])
+    dimz = X(Transformed(m)), Y(Transformed(m)), Z()
     da = DimArray(reshape(a, 3, 4, 1), dimz)
     view(da, :, :, 1)
 
-    @testset "AutoDim attachs the dimension to Transformed" begin
+    @testset "AutoDim attachs the dimension to " begin
         Lookups.dim(lookup(da, X))
     end
 
