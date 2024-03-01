@@ -1319,39 +1319,30 @@ end
 @testset "Selectors on TranformedIndex" begin
     using CoordinateTransformations
 
+    dimz = X(Transformed(m)), Y(Transformed(m)), Z()
     m = LinearMap([0.5 0.0; 0.0 0.5])
-
-    dimz = Dim{:trans1}(Transformed(m, X())), 
-           Dim{:trans2}(Transformed(m, Y())), Z()
-    @test DimensionalData.dimsmatch(dimz[1], X())
-    @test DimensionalData.dimsmatch(dimz[2], Y())
-
-    @testset "permutedims works on lookup dimensions" begin
-        # @test @inferred sortdims((Y(), Z(), X()), dimz) == (X(), Y(), Z())
-    end
-
     da = DimArray(reshape(a, 3, 4, 1), dimz)
     view(da, :, :, 1)
 
+    @testset "AutoDim resolves" begin
+        Lookups.dim(
+                    lookup(da, X)
+                   )
+    end
+
     @testset "Indexing with array dims indexes the array as usual" begin
-        da2 = da[1:3, 1:1, 1:1]
-        @test @inferred da2[Dim{:trans1}(3), Dim{:trans2}(1), Z(1)] == 9
-        # Using selectors works the same as indexing with lookup
-        # dims - it applies the transform function.
-        # It's not clear this should be allowed or makes sense,
-        # but it works anyway because the permutation is correct either way.
-        @test @inferred da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2)), Z(1)] == 9
+        da2 = da[1:3, 1:1, 1:1];
+        @test @inferred da2[X(3), Y(1), Z(1)] == 9
     end
 
     @testset "Indexing with lookup dims uses the transformation" begin
         @test @inferred da[X(Near(6.1)), Y(Near(8.5)), Z(1)] == 12
         @test @inferred da[X(At(4.0)), Y(At(2.0)), Z(1)] == 5
-        @test_throws ArgumentError da[trans1=At(4.0)]
+        @test_throws ArgumentError da[X=At(4.0)]
         @test_throws InexactError da[X(At(6.1)), Y(At(8)), Z(1)]
         # Indexing directly with lookup dims also just works, but maybe shouldn't?
         @test @inferred da[X(2), Y(2), Z(1)] == 6
     end
-
 end
 
 @testset "Cyclic lookup" begin

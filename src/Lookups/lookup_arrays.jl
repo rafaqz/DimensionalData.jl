@@ -571,17 +571,19 @@ struct Transformed{T,A<:AbstractVector{T},F,D,M} <: Unaligned{T,1}
     dim::D
     metadata::M
 end
-function Transformed(f, dim; metadata=NoMetadata())
-    Transformed(AutoIndex(), f, basetypeof(dim)(), metadata)
+function Transformed(f; metadata=NoMetadata())
+    Transformed(AutoIndex(), f, AutoDim(), metadata)
+end
+function Transformed(f, data::AbstractArray; metadata=NoMetadata())
+    Transformed(data, f, AutoDim(), metadata)
 end
 
 function rebuild(l::Transformed;
-    data=parent(l), f=f(l), dim=dim(l), metadata=metadata(l)
+    data=parent(l), f=transformfunc(l), dim=dim(l), metadata=metadata(l)
 )
     Transformed(data, f, dim, metadata)
 end
 
-f(lookup::Transformed) = lookup.f
 dim(lookup::Transformed) = lookup.dim
 
 transformfunc(lookup::Transformed) = lookup.f

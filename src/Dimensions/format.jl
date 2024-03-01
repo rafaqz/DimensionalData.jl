@@ -81,8 +81,9 @@ function format(m::AbstractSampled, D::Type, index, axis::AbstractRange)
     return x
 end
 # # Transformed
-format(m::Transformed, D::Type, index::AutoIndex, axis::AbstractRange) = rebuild(m; data=axis)
-format(m::Transformed, D::Type, index, axis::AbstractRange) = m
+format(m::Transformed, D::Type, index::AutoIndex, axis::AbstractRange) =
+    rebuild(m; dim=D(), data=axis)
+format(m::Transformed, D::Type, index, axis::AbstractRange) = rebuild(m; dim=D())
 
 # Index
 _format(index::AbstractArray, axis::AbstractRange) = index
