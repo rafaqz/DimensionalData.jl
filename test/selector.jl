@@ -1324,10 +1324,8 @@ end
     da = DimArray(reshape(a, 3, 4, 1), dimz)
     view(da, :, :, 1)
 
-    @testset "AutoDim resolves" begin
-        Lookups.dim(
-                    lookup(da, X)
-                   )
+    @testset "AutoDim attachs the dimension to Transformed" begin
+        Lookups.dim(lookup(da, X))
     end
 
     @testset "Indexing with array dims indexes the array as usual" begin
