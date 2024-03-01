@@ -47,7 +47,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true)
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
     copyto!(dest, _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
     if A isa Nothing || _dims isa Nothing
@@ -57,7 +57,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     end
 end
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true)
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
     copyto!(parent(dest), _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
     if A isa Nothing || _dims isa Nothing
@@ -99,6 +99,7 @@ _firstdimarray(x::Tuple{}) = nothing
 
 # Make sure all arrays have the same dims, and return them
 _broadcasted_dims(bc::Broadcasted) = _broadcasted_dims(bc.args...)
-_broadcasted_dims(a, bs...) = comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true)
+_broadcasted_dims(a, bs...) =
+    comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true, order=true)
 _broadcasted_dims(a::AbstractDimArray) = dims(a)
 _broadcasted_dims(a) = nothing

@@ -29,7 +29,7 @@ export order, sampling, span, bounds, locus, hasselection, transformdim,
     metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus,
     maybeshiftlocus, intervalbounds
 
-export issampled, iscategorical, iscyclic, isintervals, ispoints, isregular,
+export issampled, iscategorical, iscyclic, isnolookup, isintervals, ispoints, isregular,
     isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse
 
 export Selector
