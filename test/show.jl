@@ -42,9 +42,8 @@ end
     sv = sprint(show, MIME("text/plain"), ls)
     @test occursin("Categorical", sv)
     @test occursin("Sampled", sv)
-    sv = sprint(show, MIME("text/plain"), Transformed(identity, X()))
+    sv = sprint(show, MIME("text/plain"), Transformed(identity))
     @test occursin("Transformed", sv)
-    @test occursin("X", sv)
     nds = (X(NoLookup(Base.OneTo(10))), Y(NoLookup(Base.OneTo(5))))
     sv = sprint(show, MIME("text/plain"), nds)
     @test sv == "↓ X, → Y"
