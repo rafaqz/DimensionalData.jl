@@ -270,7 +270,7 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
     # Unwrap the selector value and adjust it for
     # interval locus if neccessary
     v = unwrap(val(sel))
-    if v isa Dates.TimeType
+    if v isa Union{Dates.DateTime,Date.Date}
         v = eltype(lookup)(v)
     end
     v_adj = _locus_adjust(locus(lookup), v, lookup)
