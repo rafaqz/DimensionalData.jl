@@ -50,6 +50,9 @@ export AutoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
 export Unaligned, Transformed
 
+# Deprecated
+export LookupArray
+
 const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex,CartesianIndices}
 
 # As much as possible keyword rebuild is automatic
