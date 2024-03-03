@@ -194,6 +194,7 @@ struct AutoSpan <: Span end
 
 struct AutoStep end
 struct AutoBounds end
+struct AutoDim end
 
 """
     Regular <: Span

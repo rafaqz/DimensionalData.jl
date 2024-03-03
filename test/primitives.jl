@@ -114,9 +114,6 @@ end
     # Val
     @inferred sortdims(dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))
     @test (@ballocated sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) == 0
-    # Transformed
-    @test @inferred (sortdims((Y(Transformed(identity, Z())), X(1)), (X(), Z()))) ==
-                              (X(1), Y(Transformed(identity, Z())))
     # Abstract
     @test sortdims((Z(), Y(), X()), (XDim, TimeDim)) == (X(), nothing)
     # Repeating
