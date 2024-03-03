@@ -77,6 +77,7 @@ function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
 end
+selectindices(l::Lookup, i; kw...) = first(Base.to_indices(l, (i,)))
 
 """
     At <: IntSelector

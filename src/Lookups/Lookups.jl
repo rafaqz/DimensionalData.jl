@@ -67,6 +67,7 @@ include("indexing.jl")
 include("methods.jl")
 include("utils.jl")
 include("set.jl")
+include("beginend.jl")
 include("show.jl")
 
 end
