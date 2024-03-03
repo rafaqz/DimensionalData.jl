@@ -25,9 +25,9 @@ import InvertedIndices
 using InvertedIndices: Not
 using Base: tail, OneTo, @propagate_inbounds
 
-export order, sampling, span, bounds, locus, hasselection, transformdim,
-    metadata, units, sort, selectindices, val, index, reducelookup, shiftlocus,
-    maybeshiftlocus, intervalbounds
+export order, sampling, span, bounds, locus, hasselection, dim,
+    metadata, units, sort, selectindices, val, index, reducelookup, 
+    shiftlocus, maybeshiftlocus, intervalbounds
 
 export issampled, iscategorical, iscyclic, isnolookup, isintervals, ispoints, isregular,
     isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse
