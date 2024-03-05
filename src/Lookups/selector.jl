@@ -267,10 +267,10 @@ function near(lookup::Lookup, sel::Near)
 end
 near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
 function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
-    # Unwrap the selector value and adjust it for
-    # interval locus if neccessary
+    # Unwrap the selector value and adjust it for interval locus if neccessary
     v = unwrap(val(sel))
-    if v isa Union{Dates.DateTime,Date.Date}
+    # Allow Date and DateTime to be used interchangeably
+    if v isa Union{Dates.DateTime,Dates.Date}
         v = eltype(lookup)(v)
     end
     v_adj = _locus_adjust(locus(lookup), v, lookup)
