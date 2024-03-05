@@ -11,7 +11,7 @@ or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type Lookup{T,N} <: AbstractArray{T,N} end
 
-
+const LookupArray = Lookup
 const LookupTuple = Tuple{Lookup,Vararg{Lookup}}
 
 span(lookup::Lookup) = NoSpan()
@@ -587,9 +587,6 @@ end
 dim(lookup::Transformed) = lookup.dim
 
 transformfunc(lookup::Transformed) = lookup.f
-transformdim(x) = nothing
-transformdim(lookup::Transformed) = lookup.dim
-transformdim(::Type{<:Transformed{<:Any,<:Any,<:Any,D}}) where D = D
 
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
 

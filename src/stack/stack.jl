@@ -9,10 +9,10 @@ Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 
 - indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
 - iteration amd `map` are apply over array layers, as indexed with a `Symbol`.
-- `getindex` and many base methods are applied as for `DimArray` - to avoid the need 
+- `getindex` and many base methods are applied as for `DimArray` - to avoid the need
     to allways use `map`.
 
-This design gives very succinct code when working with many-layered, mixed-dimension objects. 
+This design gives very succinct code when working with many-layered, mixed-dimension objects.
 But it may be jarring initially - the most surprising outcome is that `dimstack[1]` will return
 a `NamedTuple` of values for the first index in all layers, while `first(dimstack)` will return
 the first value of the iterator - the `DimArray` for the first layer.
@@ -20,7 +20,7 @@ the first value of the iterator - the `DimArray` for the first layer.
 See [`DimStack`](@ref) for the concrete implementation.
 Most methods are defined on the abstract type.
 
-To extend `AbstractDimStack`, implement argument and keyword version of 
+To extend `AbstractDimStack`, implement argument and keyword version of
 [`rebuild`](@ref) and also [`rebuild_from_arrays`](@ref).
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
@@ -38,13 +38,14 @@ layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
 layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
 
 layers(nt::NamedTuple) = nt
-Base.@assume_effects :foldable function layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys
+@assume_effects :foldable layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys =
     NamedTuple{Keys}(map(K -> s[K], Keys))
-end
+@assume_effects :foldable DD.layers(s::AbstractDimStack, i::Integer) = s[keys(s)[i]]
+@assume_effects :foldable DD.layers(s::AbstractDimStack, k::Symbol) = s[k]
 
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
-Base.@assume_effects :foldable function hassamedims(s::AbstractDimStack) 
+@assume_effects :foldable function hassamedims(s::AbstractDimStack)
     all(map(==(first(layerdims(s))), layerdims(s)))
 end
 
@@ -130,44 +131,61 @@ Base.similar(s::AbstractDimStack, args...) = map(A -> similar(A, args...), s)
 Base.eltype(s::AbstractDimStack, args...) = NamedTuple{keys(s),Tuple{map(eltype, s)...}}
 Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
 Base.LinearIndices(s::AbstractDimStack) = LinearIndices(CartesianIndices(map(l -> axes(l, 1), lookup(s))))
-function Base.eachindex(s::AbstractDimStack) 
+function Base.eachindex(s::AbstractDimStack)
     li = LinearIndices(s)
     first(li):last(li)
 end
 # all of methods.jl is also Array-like...
 
 # NamedTuple-like
-Base.@assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
+@assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.haskey(s::AbstractDimStack, k) = k in keys(s)
 Base.values(s::AbstractDimStack) = values(layers(s))
+Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I...)
+Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
+Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, key) =
+    rebuild_from_arrays(s, Base.setindex(layers(s), val, key))
+Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
+
 # Remove these, but explain
 Base.iterate(::AbstractDimStack, args...) = error("Use iterate(layers(s)) rather than `iterate(s)`") #iterate(layers(s), args...)
-Base.length(::AbstractDimStack) = error("Use length(layers(s)) rather than `length(s)`") # length(keys(s)) 
+Base.length(::AbstractDimStack) = error("Use length(layers(s)) rather than `length(s)`") # length(keys(s))
 Base.first(::AbstractDimStack) = error("Use first(layers(s)) rather than `first(s)`")
 Base.last(::AbstractDimStack) = error("Use last(layers(s)) rather than `last(s)`")
+
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
-function Base.merge(x1::AbstractDimStack, x2::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) 
-    rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); refdims=())
+function Base.merge(
+    x1::AbstractDimStack, 
+    x2::Union{AbstractDimStack,NamedTuple}, 
+    xs::Union{AbstractDimStack,NamedTuple}...; 
+    kw...
+)
+    rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); kw...)
 end
-function Base.merge(s::AbstractDimStack, pairs) 
+function Base.merge(s::AbstractDimStack, pairs; kw...)
     rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
 end
-function Base.merge(x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...)
+function Base.merge(
+    x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...; 
+)
     merge(map(layers, (x1, x2, xs...))...)
 end
-function Base.merge(x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...)
+function Base.merge(
+    x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack, 
+    xs::Union{AbstractDimStack,NamedTuple}...; 
+    kw...
+)
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
-function Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, key) 
-    rebuild_from_arrays(s, Base.setindex(layers(s), val, key))
-end
-Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
+
 Base.map(f, s::AbstractDimStack) = _maybestack(s,map(f, values(s)))
-function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
+function Base.map(
+    f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...
+)
     stacks = (x1, xs...)
     _check_same_names(stacks...)
     vals = map(f, map(values, stacks)...)
@@ -176,10 +194,10 @@ end
 
 # Other interfaces
 
-Extents.extent(A::AbstractDimStack, args...) = Extents.extent(dims(A), args...) 
+Extents.extent(A::AbstractDimStack, args...) = Extents.extent(dims(A), args...)
 
 ConstructionBase.getproperties(s::AbstractDimStack) = layers(s)
-ConstructionBase.setproperties(s::AbstractDimStack, patch::NamedTuple) = 
+ConstructionBase.setproperties(s::AbstractDimStack, patch::NamedTuple) =
     ConstructionBase.constructorof(typeof(s))(ConstructionBase.setproperties(layers(s), patch))
 
 Adapt.adapt_structure(to, s::AbstractDimStack) = map(A -> Adapt.adapt(to, A), s)
@@ -191,7 +209,7 @@ function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
     isempty(dim_pairs) && return st
     # Extend missing dimensions in all layers
     extended_layers = map(layers(st)) do layer
-        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs))) 
+        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs)))
             layer
         else
             DimExtensionArray(layer, dims(st))
@@ -218,13 +236,13 @@ function _layerkeysfromdim(A, dim)
     end
 end
 
-_check_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
+_check_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}},
     ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = nothing
-_check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) = 
+_check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) =
     throw(ArgumentError("Named tuple names do not match."))
 
 _firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
+_firststack(arg1, args...) = _firststack(args...)
 _firststack() = nothing
 
 _maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
@@ -262,7 +280,7 @@ Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
     return a `NamedTuple` of values from each layer in the stack.
     This has very good performace, and avoids the need to always use `map`.
 - `getindex` or `view` with a `Vector` or `Colon` will return another `DimStack` where
-    all data layers have been sliced.  
+    all data layers have been sliced.
 - `setindex!` must pass a `Tuple` or `NamedTuple` maching the layers.
 - many base and `Statistics` methods (`sum`, `mean` etc) will work as for a `DimArray`
     again removing the need to use `map`.
@@ -283,7 +301,7 @@ And this equivalent to:
 map(A -> mean(A; dims=Ti), mydimstack)
 ```
 
-This design gives succinct code when working with many-layered, mixed-dimension objects. 
+This design gives succinct code when working with many-layered, mixed-dimension objects.
 
 But it may be jarring initially - the most surprising outcome is that `dimstack[1]` will return
 a `NamedTuple` of values for the first index in all layers, while `first(dimstack)` will return
@@ -373,7 +391,7 @@ end
 # Same sized arrays
 DimStack(data::NamedTuple, dim::Dimension; kw...) = DimStack(data::NamedTuple, (dim,); kw...)
 function DimStack(data::NamedTuple, dims::Tuple;
-    refdims=(), metadata=NoMetadata(), 
+    refdims=(), metadata=NoMetadata(),
     layermetadata=map(_ -> NoMetadata(), data),
     layerdims = map(_ -> basedims(dims), data),
 )

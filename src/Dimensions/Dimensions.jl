@@ -20,7 +20,8 @@ include("../Lookups/Lookups.jl")
 
 using .Lookups
 
-const LA = Lookups
+const LU = Lookups
+const LookupArrays = Lookups
 
 import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,

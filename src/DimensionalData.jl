@@ -10,7 +10,7 @@ using Dates,
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
 
-using Base: tail, OneTo, Callable, @propagate_inbounds
+using Base: tail, OneTo, Callable, @propagate_inbounds, @assume_effects
       
 # Ecosystem
 import Adapt, 
@@ -67,7 +67,7 @@ export AbstractDimTable, DimTable
 export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
 # getter methods
-export dims, refdims, metadata, name, lookup, bounds, val
+export dims, refdims, metadata, name, lookup, bounds, val, layers
 
 # Dimension/Lookup primitives
 export dimnum, hasdim, hasselection, otherdims
