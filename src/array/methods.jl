@@ -109,7 +109,7 @@ end
     ds = DD.dims(A, _astuple(dims))
     # Run one slice with dimensions to get the transformed dim
     d_inds = map(d -> rebuild(d, 1), otherdims(A, ds))
-    example_dims = DD.dims(f(view(A, d_inds...)))
+    example_dims = length(d_inds) > 0 ? DD.dims(f(view(A, d_inds...))) : ()
     replacement_dims = if isnothing(example_dims) || length(example_dims) != length(ds)
         map(d -> rebuild(d, NoLookup()), ds)
     else
