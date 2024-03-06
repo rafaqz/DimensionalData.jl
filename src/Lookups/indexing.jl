@@ -9,7 +9,12 @@ for f in (:getindex, :view, :dotview)
             rebuild(l; data=Base.$f(parent(l), i))
         # Selector gets processed with `selectindices`
         @propagate_inbounds Base.$f(l::Lookup, i::SelectorOrInterval) = Base.$f(l, selectindices(l, i))
-        # Everything else (like custom indexing from other packages) passes through to the parent
-        @propagate_inbounds Base.$f(l::Lookup, i) = Base.$f(parent(l), i)
+        @propagate_inbounds function Base.$f(l::Lookup, i)
+            x = Base.$f(parent(l), i)
+            x isa AbstractArray ? rebuild(l; data=x) : x
+        end
+        @propagate_inbounds function Base.$f(l::Lookup, i::AbstractBeginEndRange)
+            l[Base.to_indices(l, (i,))...]
+        end
     end
 end

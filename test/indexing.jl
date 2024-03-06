@@ -42,8 +42,9 @@ end
 @testset "lookup" begin
     @testset "Points" begin
         l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
-        @test l[:] == l
-        @test l[1:5] == l
+        @test l[:] == l[Begin:End] == l
+        @test l[Begin:5] == l[1:5] == l
+        @test l[Begin:End] isa typeof(l)
         @test l[1:5] isa typeof(l)
         @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
             Base.dotview(l, [1, 3, 4]) ==
@@ -110,9 +111,10 @@ end
 
     @testset "Intervals" begin
         l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Intervals(Start()), nothing)
-        @test l[:] == l
+        @test l[:] == l[Begin:End] == l
         @test l[1:5] == l
         @test l[1:5] isa typeof(l)
+        @test l[Begin:End] isa typeof(l)
         @test l[[1, 3, 4]] == Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
         @test l[Int[]] == Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Intervals(Start()), nothing)
         @test l[Near(2.1)] == 2.0
@@ -168,7 +170,9 @@ end
     d = X(Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing))
     @test @inferred d[:] == d
     @test @inferred d[1:5] == d
-    @test @inferred d[1:5] isa typeof(d)
+    @test d[1:5] isa typeof(d)
+    @test @inferred d[Begin:End] == d
+    @test d[Begin:End] isa typeof(d)
     # TODO properly handle index mashing arrays: here Regular should become Irregular
     # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))

@@ -63,11 +63,11 @@ include("lookup_traits.jl")
 include("lookup_arrays.jl")
 include("predicates.jl")
 include("selector.jl")
+include("beginend.jl")
 include("indexing.jl")
 include("methods.jl")
 include("utils.jl")
 include("set.jl")
-include("beginend.jl")
 include("show.jl")
 
 end

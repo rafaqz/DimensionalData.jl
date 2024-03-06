@@ -13,17 +13,13 @@ const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
 const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
 const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
 const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
+const _DimIndicesAmb2 = Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension}
 
 for f in (:getindex, :view, :dotview)
     _f = Symbol(:_, f)
     @eval begin
         if Base.$f === Base.view
-            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Union{CartesianIndex,CartesianIndices})
-                x = Base.$f(parent(A), i)
-                I = to_indices(A, (i,))
-                rebuildsliced(Base.$f, A, x, I)
-            end
-            @eval @propagate_inbounds function Base.$f(A::AbstractDimArray, i::Integer)
+            @eval @propagate_inbounds function Base.$f(A::AbstractDimVector, i::Integer)
                 x = Base.$f(parent(A), i)
                 I = to_indices(A, (CartesianIndices(A)[i],))
                 rebuildsliced(Base.$f, A, x, I)
@@ -32,23 +28,20 @@ for f in (:getindex, :view, :dotview)
             #### Array getindex/view ###
             # These are needed to resolve ambiguity
             @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
-            @propagate_inbounds Base.$f(A::AbstractDimArray, i::CartesianIndex) = Base.$f(parent(A), i)
-            # CartesianIndices
-            @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
-                Base.$f(A, to_indices(A, (I,))...)
+            @propagate_inbounds Base.$f(A::AbstractDimVector, i::Integer) = Base.$f(parent(A), i)
         end
-        @propagate_inbounds function Base.$f(A::AbstractDimVector, i)
-            x = Base.$f(parent(A), i)
+        # @propagate_inbounds function Base.$f(A::AbstractDimVector, i)
+        #     x = Base.$f(parent(A), i)
+        #     if $f != view || x isa AbstractArray
+        #         rebuildsliced(Base.$f, A, x, i)
+        #     else
+        #         x
+        #     end
+        # end
+        @propagate_inbounds function Base.$f(A::AbstractDimArray, i1, I...)
+            x = Base.$f(parent(A), i1, I...)
             if $f != view || x isa AbstractArray
-                rebuildsliced(Base.$f, A, x, i)
-            else
-                x
-            end
-        end
-        @propagate_inbounds function Base.$f(A::AbstractDimArray, i1, i2, I...)
-            x = Base.$f(parent(A), i1, i2, I...)
-            if $f != view || x isa AbstractArray
-                rebuildsliced(Base.$f, A, x, to_indices(A, (i1, i2, I...)))
+                rebuildsliced(Base.$f, A, x, to_indices(A, (i1, I...)))
             else
                 x
             end
@@ -63,6 +56,8 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, I...))...)
 
+        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Extents.Extent) =
+            Base.$f(A, dims2indices(A, extent)...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Extents.Extent) =
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
@@ -74,7 +69,10 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimIndices) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimSelectors) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::_DimIndicesAmb) = $_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::_DimIndicesAmb, I::_DimIndicesAmb...) = $_f(A, i1, I...)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::_DimIndicesAmb, I::_DimIndicesAmb...) = 
+            $_f(A, _simplify_dim_indices(i1, I...)...)
+        @propagate_inbounds Base.$f(A::AbstractDimArray, i1::_DimIndicesAmb2,  I::_DimIndicesAmb2...) = 
+            $_f(A, _simplify_dim_indices(i1, I)...)
 
         # Use underscore methods to minimise ambiguities
         @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =

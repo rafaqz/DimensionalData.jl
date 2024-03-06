@@ -77,7 +77,10 @@ function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
 end
-selectindices(l::Lookup, i; kw...) = first(Base.to_indices(l, (i,)))
+@inline function selectindices(l::Lookup, sel; kw...)
+    selstr = sprint(show, sel)
+    throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
+end
 
 """
     At <: IntSelector
@@ -1043,10 +1046,6 @@ function selectindices end
 # @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.
 @inline selectindices(::Lookup, sel::StandardIndices) = sel
-@inline function selectindices(l::Lookup, sel)
-    selstr = sprint(show, sel)
-    throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
-end
 # Vectors are mapped
 @inline selectindices(lookup::Lookup, sel::Selector{<:AbstractVector}) =
     [selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]

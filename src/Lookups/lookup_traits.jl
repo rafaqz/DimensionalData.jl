@@ -72,7 +72,7 @@ isrev(::Type{<:ForwardOrdered}) = false
 isrev(::Type{<:ReverseOrdered}) = true
 
 """
-   Locus <: LookupTrait
+   Position <: LookupTrait
 
 Abstract supertype of types that indicate the position of index values
 where they represent [`Intervals`](@ref).
@@ -83,49 +83,63 @@ These allow for values array cells to align with the [`Start`](@ref),
 This means they can be plotted with correct axis markers, and allows automatic
 converrsions to between formats with different standards (such as NetCDF and GeoTiff).
 """
-abstract type Locus <: LookupTrait end
+abstract type Position <: LookupTrait end
 
 """
-    Center <: Locus
+    Center <: Position
 
     Center()
 
-Indicates a lookup value is for the center of its corresponding array cell.
+Used to specify lookup values correspond to the center position in an interval.
 """
-struct Center <: Locus end
+struct Center <: Position end
 
 """
-    Begin <: Locus
+    Start <: Position
+
+    Start()
+
+Used to specify lookup values correspond to the center 
+position of an interval.
+"""
+struct Start <: Position end
+
+"""
+    Begin <: Position
 
     Begin()
 
-Indicates a lookup value is for the start of its corresponding array cell,
-in the direction of the lookup index order.
+Used to specify the `begin` index of a `Dimension` axis. 
+as regular `begin` will not work with named dimensions.
 """
-struct Begin <: Locus end
-
-const Start = Begin
+struct Begin <: Position end
 
 """
-    End <: Locus
+    End <: Position
 
     End()
 
-Indicates a lookup value is for the end of its corresponding array cell,
-in the direction of the lookup index order.
+Used to specify the `end` index of aa `Dimension` axis, 
+as regular `end` will not work with named dimensions.
+
+Also ysed to specify lookup values correspond to the center 
+position of an interval.
 """
-struct End <: Locus end
+struct End <: Position end
 
 """
-    AutoLocus <: Locus
+    AutoPosition <: Position
 
-    AutoLocus()
+    AutoPosition()
 
 Indicates a interval where the index position is not yet known.
 This will be filled with a default value on object construction.
 """
-struct AutoLocus <: Locus end
+struct AutoPosition <: Position end
 
+# Deprecated
+const Locus = Union{AutoPosition,Start,Center,End}
+const AutoLocus = AutoPosition
 
 """
     Sampling <: LookupTrait
@@ -139,7 +153,7 @@ struct NoSampling <: Sampling end
 locus(sampling::NoSampling) = Center()
 
 struct AutoSampling <: Sampling end
-locus(sampling::AutoSampling) = AutoLocus()
+locus(sampling::AutoSampling) = AutoPosition()
 
 """
     Points <: Sampling
@@ -168,7 +182,7 @@ Intervals require a [`Locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
 struct Intervals{L} <: Sampling
     locus::L
 end
-Intervals() = Intervals(AutoLocus())
+Intervals() = Intervals(AutoPosition())
 
 locus(sampling::Intervals) = sampling.locus
 rebuild(::Intervals, locus) = Intervals(locus)

@@ -14,9 +14,9 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::SelectorOrInterval)
             Base.$f(d, selectindices(val(d), i))
         end
-        # Everything else (like custom indexing from other packages) passes through to the parent
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
-            Base.$f(parent(d), i)
+            x = Base.$f(parent(d), i)
+            x isa AbstractArray ? rebuild(d, x) : x
         end
     end
 end
