@@ -586,7 +586,7 @@ function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:A
 end
 
 """
-    Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1]), AnonDim()))
+    Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()))
 
 Stack arrays along a new axis while preserving the dimensional information of other axes.
 
@@ -604,7 +604,7 @@ julia> da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)));
 julia> db = DimArray([6 5 4; 3 2 1], (X(10:10:20), Y(300:-100:100)));
 
 # Stack along a new dimension `Z`
-julia> dc = stack(Z(1:2), [da, db], dims=3)
+julia> dc = stack([da, db], dims=3=>Z(1:2))
 ╭─────────────────────────╮
 │ 2×3×2 DimArray{Int64,3} │
 ├─────────────────────────┴──────────────────────────────── dims ┐
@@ -619,9 +619,12 @@ julia> parent(dc) == stack(map(parent, [da, db]), dims=3)
 true
 ```
 """
-function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1]), AnonDim()), kwargs...)
-    dims isa Integer && (dims = dims => AnonDim())
-    dims isa Dimension && (dims = ndims(A[1])+1 => dims)
+function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()), kwargs...)
+    if dims isa Integer
+        dims = dims => AnonDim()
+    elseif dims isa Dimension
+        dims = ndims(A[1])+1 => dims
+    end
 
     B = Base._stack(first(dims), A)
 
@@ -633,9 +636,7 @@ function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])
                 DimensionalData.dims(B, d)
             end
         end
-        newdims = format(newdims, B)
-
-        B = rebuild(B; dims=newdims)
+        B = rebuild(B; dims=format(newdims, B))
     end
     return B
 end
