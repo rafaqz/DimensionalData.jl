@@ -109,7 +109,7 @@ end
     ds = DD.dims(A, _astuple(dims))
     # Run one slice with dimensions to get the transformed dim
     d_inds = map(d -> rebuild(d, 1), otherdims(A, ds))
-    example_dims = length(d_inds) > 0 ? DD.dims(f(view(A, d_inds...))) : ()
+    example_dims = DD.dims(f(view(A, d_inds...)))
     replacement_dims = if isnothing(example_dims) || length(example_dims) != length(ds)
         map(d -> rebuild(d, NoLookup()), ds)
     else
@@ -131,7 +131,7 @@ end
     """
     function Base.eachslice(A::AbstractDimArray; dims)
         dimtuple = _astuple(dims)
-        if !(dimtuple == ())
+        if !(dimtuple == ()) 
             all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
         _eachslice(A, dimtuple)
@@ -139,7 +139,7 @@ end
 else
     @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
         dimtuple = _astuple(dims)
-        if !(dimtuple == ())
+        if !(dimtuple == ()) 
             all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
         end
         _eachslice(A, dimtuple, drop)
@@ -195,7 +195,7 @@ function Base.sortslices(A::AbstractDimArray; dims, kw...)
     return rebuild(A, newdata, newdims)
 end
 
-
+                
 Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
 Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
 Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
@@ -293,7 +293,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             else
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
-                if !check_cat_lookups(joindims...)
+                if !check_cat_lookups(joindims...) 
                     return rebuild(catdim, NoLookup())
                 end
                 _vcat_dims(joindims...)
@@ -367,7 +367,7 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 2), As)...;
+        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
             val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
         )
             return Base.vcat(map(parent, As)...)
@@ -390,8 +390,8 @@ end
 check_cat_lookups(dims::Dimension...) =
     _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
 
-# Lookups may need adjustment for `cat`
-_check_cat_lookups(D, lookups::Lookup...) = _check_cat_lookup_order(D, lookups...)
+# LookupArrays may need adjustment for `cat`
+_check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
 _check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
 function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
     length(lookups) > 0 || return true
@@ -430,7 +430,7 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
     end |> all
 end
 
-function _check_cat_lookup_order(D, lookups::Lookup...)
+function _check_cat_lookup_order(D, lookups::LookupArray...)
     l1 = first(lookups)
     length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)
@@ -481,8 +481,8 @@ function _vcat_dims(d1::Dimension, ds::Dimension...)
     return rebuild(d1, newlookup)
 end
 
-# Lookups may need adjustment for `cat`
-function _vcat_lookups(lookups::Lookup...)
+# LookupArrays may need adjustment for `cat`
+function _vcat_lookups(lookups::LookupArray...)
     newindex = _vcat_index(lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
@@ -520,10 +520,10 @@ end
 _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-# function _vcat_index(lookup::Lookup, lookups...)
+# function _vcat_index(lookup::LookupArray, lookups...)
     # _vcat_index(span(lookup), lookup, lookups...)
 # end
-function _vcat_index(lookup1::Lookup, lookups::Lookup...)
+function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
     shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end
@@ -542,7 +542,7 @@ end
 _span_string(D, S, span) = _cat_warn_string(D, "not all lookups have `$S` spans. Found $(basetypeof(span))")
 _cat_warn_string(D, message) = """
 `cat` cannot concatenate `Dimension`s, falling back to `parent` type:
-$message on dimension $D.
+$message on dimension $D. 
 
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
