@@ -619,7 +619,7 @@ julia> parent(dc) == stack(map(parent, [da, db]), dims=3)
 true
 ```
 """
-function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()), kwargs...)
+function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()))
     if dims isa Integer
         dims = dims => AnonDim()
     elseif dims isa Dimension
