@@ -51,6 +51,22 @@ end
     @test (rand(3) .> 1 .> 0 .* da) isa DimArray
 end
 
+@testset "trailng dimensions" begin
+    @test zeros(X(10), Y(5)) .* zeros(X(10), Y(1)) ==
+        zeros(X(10), Y(5)) .* zeros(X(1), Y(1)) ==
+        zeros(X(1), Y(1)) .* zeros(X(10), Y(5)) ==
+        zeros(X(10), Y(5)) .* zeros(X(1), Y(5)) ==
+        zeros(X(10), Y(1)) .* zeros(X(1), Y(5)) ==
+        zeros(X(10), Y(5)) .* zeros(X(1)) ==
+        zeros(X(1), Y(5)) .* zeros(X(10))
+end
+
+@testset "mixed order fails" begin
+    @test_throws DimensionMismatch zeros(X(1:3), Y(5)) .* zeros(X(3:-1:1), Y(5))
+    @test_throws DimensionMismatch zeros(X([1, 3, 2]), Y(5)) .* zeros(X(3:-1:1), Y(5))
+    zeros(X([1, 3, 2]), Y(5)) .* zeros(X(3), Y(5))
+end
+
 @testset "broadcasting" begin
     v = DimArray(zeros(3,), X)
     m = DimArray(ones(3, 3), (X, Y))

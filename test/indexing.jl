@@ -1,5 +1,5 @@
 using DimensionalData, Test, BenchmarkTools, Dates, Statistics
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 @testset "dims2indices" begin
     a = [1 2 3; 4 5 6]
@@ -396,6 +396,13 @@ end
         @test all(view(A, I .== 3.0))
     end
 
+    @testset "zero dim dim getindex doesn't unwrap" begin
+        A = DimArray(fill(1), ())
+        @test A[notadim=1] isa DimArray{Int,0,Tuple{}}
+        @test A[X(1)] isa DimArray{Int,0,Tuple{}}
+        @test A[notadim=1] == A[X(1)] == A
+    end
+
     @testset "Empty getindedex/view/setindex throws a BoundsError" begin
         @test_throws BoundsError da[]
         @test_throws BoundsError view(da)
@@ -503,23 +510,23 @@ end
         slicedds_mixed = s_mixed[At(:a), :]
         @test slicedds_mixed[:one] == [1.0, 2.0, 3.0]
         @test parent(slicedds_mixed) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9], four=fill(4))
-        @testset "linear indices" begin
-            linear2d = @inferred s[1]
-            @test linear2d isa NamedTuple
-            @test linear2d == (one=1.0, two=2.0f0, three=3)
-            @test_broken linear1d = @inferred view(s[X(2)], 1)
-            linear1d = view(s[X(2)], 1)
-            @test linear1d isa DimStack
-            @test parent(linear1d) == (one=fill(4.0), two=fill(8.0f0), three=fill(12))
-            @test_broken linear2d = @inferred s[1:2]
-            linear2d = s[1:2]
-            @test linear2d isa DimStack
-            @test NamedTuple(linear2d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
-            linear1d = @inferred s[X(1)][1:2]
-            linear1d = @inferred s[X(1)][1:2]
-            @test linear1d isa DimStack
-            @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
-        end
+    end
+
+    @testset "linear indices" begin
+        linear2d = @inferred s[1]
+        @test linear2d isa NamedTuple
+        @test linear2d == (one=1.0, two=2.0f0, three=3)
+        @test_broken linear1d = @inferred view(s[X(2)], 1)
+        linear1d = view(s[X(2)], 1)
+        @test linear1d isa DimStack
+        @test parent(linear1d) == (one=fill(4.0), two=fill(8.0f0), three=fill(12))
+        @test @inferred s[1:2] isa Array
+        linear2d = s[1:2]
+        @test linear2d == [(one=1.0, two=2.0f0, three=3), (one=4.0, two=8.0f0, three=12)]
+        linear1d = @inferred s[X(1)][1:2]
+        linear1d = @inferred s[X(1)][1:2]
+        @test linear1d isa DimStack
+        @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
     end
 
     @testset "getindex Tuple" begin

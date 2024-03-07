@@ -4,11 +4,13 @@ isregular(::Sampling) = false
 isexplicit(::Explicit) = true
 isexplicit(::Sampling) = false
 issampled(::AbstractSampled) = true
-issampled(::LookupArray) = false
+issampled(::Lookup) = false
 iscategorical(::AbstractCategorical) = true
-iscategorical(::LookupArray) = false
+iscategorical(::Lookup) = false
 iscyclic(::AbstractCyclic) = true
-iscyclic(::LookupArray) = false
+iscyclic(::Lookup) = false
+isnolookup(::Lookup) = false
+isnolookup(::NoLookup) = true
 isstart(::Start) = true
 isstart(::Locus) = false
 iscenter(::Center) = true
@@ -28,18 +30,18 @@ ispoints(::Intervals) = false
 
 # Forward them from lookups
 for f in (:isregular, :isexplicit)
-    @eval $f(l::LookupArray) = $f(span(l))
+    @eval $f(l::Lookup) = $f(span(l))
 end
 for f in (:isintervals, :ispoints)
-    @eval $f(l::LookupArray) = $f(sampling(l))
+    @eval $f(l::Lookup) = $f(sampling(l))
 end
 for f in (:isstart, :isend)
     @eval $f(l::AbstractSampled) = $f(locus(l))
-    @eval $f(l::LookupArray) = false
+    @eval $f(l::Lookup) = false
 end
 iscenter(l::AbstractSampled) = iscenter(locus(l))
-iscenter(l::LookupArray) = true
+iscenter(l::Lookup) = true
 
 for f in (:isordered, :isforward, :isreverse)
-    @eval $f(l::LookupArray) = $f(order(l))
+    @eval $f(l::Lookup) = $f(order(l))
 end

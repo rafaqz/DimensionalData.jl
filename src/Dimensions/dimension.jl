@@ -33,16 +33,18 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-3×5×12 DimArray{Float64,3} with dimensions:
-  Y Categorical{Char} Char['a', 'b', 'c'] ForwardOrdered,
-  X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+╭────────────────────────────╮
+│ 3×5×12 DimArray{Float64,3} │
+├────────────────────────────┴─────────────────────────────────────────── dims ┐
+  ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
+  → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
+  ↗ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
 [:, :, 1]
-       2    4    6    8    10
+ ↓ →   2    4    6    8    10
   'a'  0.0  0.0  0.0  0.0   0.0
   'b'  0.0  0.0  0.0  0.0   0.0
   'c'  0.0  0.0  0.0  0.0   0.0
-[and 11 more slices...]
 ```
 
 For simplicity, the same `Dimension` types are also used as wrappers
@@ -53,16 +55,20 @@ x = A[X(2), Y(3)]
 
 # output
 
-12-element DimArray{Float64,1} with dimensions:
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-and reference dimensions:
-  Y Categorical{Char} Char['c'] ForwardOrdered,
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points
+╭────────────────────────────────╮
+│ 12-element DimArray{Float64,1} │
+├────────────────────────────────┴─────────────────────────────────────── dims ┐
+  ↓ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
  2021-01-01T00:00:00  0.0
  2021-02-01T00:00:00  0.0
  2021-03-01T00:00:00  0.0
  2021-04-01T00:00:00  0.0
- ⋮
+ 2021-05-01T00:00:00  0.0
+ 2021-06-01T00:00:00  0.0
+ 2021-07-01T00:00:00  0.0
+ 2021-08-01T00:00:00  0.0
+ 2021-09-01T00:00:00  0.0
  2021-10-01T00:00:00  0.0
  2021-11-01T00:00:00  0.0
  2021-12-01T00:00:00  0.0
@@ -75,13 +81,14 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-1×12 DimArray{Float64,2} with dimensions:
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-and reference dimensions:
-  Y Categorical{Char} Char['b'] ForwardOrdered
-     2021-01-01T00:00:00  …   2021-12-01T00:00:00
- 4  0.0                                  0.0
+╭──────────────────────────╮
+│ 1×12 DimArray{Float64,2} │
+├──────────────────────────┴───────────────────────────────────────────── dims ┐
+  ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
+  → Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
+ ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
+ 4    0.0                   0.0                      0.0
 ```
 
 `Dimension` objects may have [`lookup`](@ref) and [`metadata`](@ref) fields
@@ -184,23 +191,23 @@ name(dim::Val{D}) where D = name(D)
 
 label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
 
-# LookupArrays methods
-LookupArrays.metadata(dim::Dimension) = metadata(lookup(dim))
+# Lookups methods
+Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
 
-LookupArrays.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-LookupArrays.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
+Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
+Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
-LookupArrays.bounds(dim::Dimension) = bounds(val(dim))
-LookupArrays.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
+Lookups.bounds(dim::Dimension) = bounds(val(dim))
+Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
-    @eval function LookupArrays.$f(locus::Locus, x; dims=Dimensions.dims(x))
+    @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
         newdims = map(Dimensions.dims(x, dims)) do d
-            LookupArrays.$f(locus, d)
+            Lookups.$f(locus, d)
         end
         return setdims(x, newdims)
     end
-    @eval LookupArrays.$f(locus::Locus, d::Dimension) =
-        rebuild(d, LookupArrays.$f(locus, lookup(d)))
+    @eval Lookups.$f(locus::Locus, d::Dimension) =
+        rebuild(d, Lookups.$f(locus, lookup(d)))
 end
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
@@ -292,7 +299,7 @@ dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
-function dim2boundsmatrix(lookup::LookupArray)
+function dim2boundsmatrix(lookup::Lookup)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
     _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
@@ -302,7 +309,7 @@ _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
     # Only offset starts and reuse them for ends, 
     # so floating point error is the same.
-    starts = LookupArrays._shiftindexlocus(Start(), lookup)
+    starts = Lookups._shiftindexlocus(Start(), lookup)
     dest = Array{eltype(starts),2}(undef, 2, length(starts))
     # Use `bounds` as the start/end values
     if order(lookup) isa ReverseOrdered
@@ -339,7 +346,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-Dim{:custom} Char['a', 'b', 'c']
+custom ['a', 'b', 'c']
 ```
 """
 struct Dim{S,T} <: Dimension{T}

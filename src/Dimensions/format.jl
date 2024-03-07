@@ -10,7 +10,7 @@ Format the passed-in dimension(s) `dims` to match the object `x`.
 Errors are thrown if dims don't match the array dims or size, 
 and any fields holding `Auto-` objects are filled with guessed objects.
 
-If a [`LookupArray`](@ref) hasn't been specified, a lookup is chosen
+If a [`Lookup`](@ref) hasn't been specified, a lookup is chosen
 based on the type and element type of the index.
 """
 format(dims, A::AbstractArray) = format((dims,), A)
@@ -43,11 +43,11 @@ function _format(dim::Dimension, axis::AbstractRange)
 end
 
 format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), D, val, axis)
-format(m::LookupArray, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
+format(m::Lookup, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
 format(v::AutoVal, D::Type, axis::AbstractRange) = _valformaterror(val(v), D)
 format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D) 
 
-# Format LookupArrays
+# Format Lookups
 # No more identification required for NoLookup
 format(m::NoLookup, D::Type, index, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, index::AutoIndex, axis::AbstractRange) = NoLookup(axis)
@@ -81,15 +81,16 @@ function format(m::AbstractSampled, D::Type, index, axis::AbstractRange)
     return x
 end
 # # Transformed
-format(m::Transformed, D::Type, index::AutoIndex, axis::AbstractRange) = rebuild(m; data=axis)
-format(m::Transformed, D::Type, index, axis::AbstractRange) = m
+format(m::Transformed, D::Type, index::AutoIndex, axis::AbstractRange) =
+    rebuild(m; dim=D(), data=axis)
+format(m::Transformed, D::Type, index, axis::AbstractRange) = rebuild(m; dim=D())
 
 # Index
 _format(index::AbstractArray, axis::AbstractRange) = index
 _format(index::AutoLookup, axis::AbstractRange) = axis
 # Order
 _format(order::Order, D::Type, index) = order
-_format(order::AutoOrder, D::Type, index) = LookupArrays.orderof(index)
+_format(order::AutoOrder, D::Type, index) = Lookups.orderof(index)
 # Span
 _format(span::AutoSpan, D::Type, index::Union{AbstractArray,Val}) =
     _format(Irregular(), D, index)
@@ -147,5 +148,5 @@ checkaxis(lookup, axis) = first(axes(lookup)) == axis || _checkaxiserror(lookup,
     ))
 @noinline _valformaterror(v, D::Type) =
     throw(ArgumentError(
-        "Lookup value of `$v` for dimension $D cannot be converted to a `LookupArray`. Did you mean to pass a range or array?"
+        "Lookup value of `$v` for dimension $D cannot be converted to a `Lookup`. Did you mean to pass a range or array?"
     ))

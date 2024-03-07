@@ -14,6 +14,10 @@ const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
 const AbstractBasicDimVecOrMat = Union{AbstractBasicDimVector,AbstractBasicDimMatrix}
 
+refdims(::AbstractBasicDimArray) = ()
+name(::AbstractBasicDimArray) = NoName()
+metadata(::AbstractBasicDimArray) = NoMetadata()
+
 # DimensionalData.jl interface methods ####################################################
 
 for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
@@ -142,10 +146,10 @@ Base.similar(A::AbstractDimArray, ::Type{T}) where T =
     rebuild(A; data=similar(parent(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 
 # We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
-Base.similar(A::AbstractBasicDimArray{T}) where T =
-    rebuild(A; data=similar(typeof(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
-Base.similar(A::AbstractBasicDimArray, ::Type{T}) where T =
-    rebuild(A; data=similar(typeof(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+Base.similar(A::AbstractBasicDimArray{T,N}) where {T,N} =
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+Base.similar(A::AbstractBasicDimArray{<:Any,N}, ::Type{T}) where {T,N} =
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 # We can't resize the dims or add missing dims, so return the unwraped Array type?
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
@@ -237,9 +241,9 @@ end
 _parent_range(r::Dimensions.DimUnitRange) = parent(r)
 _parent_range(r) = r
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
+Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...) where T =
     Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
     rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=(), metadata=NoMetadata())
@@ -247,7 +251,8 @@ Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
     rebuild(A; data=similar(parent(A), T, ()), dims=(), refdims=(), metadata=NoMetadata())
 
 # Keep the same type in `similar`
-_noname(A::AbstractDimArray) = _noname(name(A))
+_noname(A::AbstractBasicDimArray) = _noname(name(A))
+_noname(s::String) = @show s
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
 _noname(name::Name) = name # Keep the name so the type doesn't change
@@ -687,10 +692,16 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 # Example
 
 ````jldoctest
-julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]));
-julia> mergedims(ds, Ti => :time, (X, Y) => :space)
-Dim{:time} MergedLookup{Tuple{Int64}} Tuple{Int64}[(0,), (3,), (4,)] Ti,
-Dim{:space} MergedLookup{Tuple{Float64, Int64}} Tuple{Float64, Int64}[(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] X, Y
+julia> using DimensionalData
+
+julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
+↓ X  0.0:0.1:0.4,
+→ Y  10:10:100,
+↗ Ti [0, 3, 4]
+
+julia> mergedims(ds, (X, Y) => :space)
+↓ Ti    [0, 3, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] ↓ X, → Y
 ````
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)

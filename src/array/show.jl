@@ -36,9 +36,7 @@ But read the DimensionalData.jl `show.jl` code for details.
 """
 function show_main(io, mime, A::AbstractBasicDimArray)
     lines_t, blockwidth, displaywidth = print_top(io, mime, A)
-    lines_m, blockwidth = print_metadata_block(io, mime, metadata(A); 
-        blockwidth, displaywidth=min(displaywidth, blockwidth)
-    )
+    lines_m, blockwidth = print_metadata_block(io, mime, metadata(A); blockwidth, displaywidth)
     return lines_t + lines_m, blockwidth
 end
 
@@ -56,7 +54,7 @@ Additional keywords may be added at any time.
 
 `blockwidth` is passed in context
 
-```juli
+```julia
 blockwidth = get(io, :blockwidth, 10000)
 ```
 
@@ -143,7 +141,7 @@ function print_metadata_block(io, mime, metadata; blockwidth=0, displaywidth)
         new_blockwidth = blockwidth
     else
         metadata_lines = split(sprint(show, mime, metadata), "\n")
-        new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, metadata_lines)))
+        new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, metadata_lines) + 4))
         print_block_separator(io, "metadata", blockwidth, new_blockwidth)
         println(io)
         print(io, "  ")
@@ -173,10 +171,15 @@ function print_block_top(io, label, prev_width, new_width)
     return lines
 end
 
-function print_block_separator(io, label, prev_width, new_width)
-    corner = (new_width > prev_width) ? '┐' : '┤'
-    middle_line = string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
-    printstyled(io, middle_line; color=:light_black)
+function print_block_separator(io, label, prev_width, new_width=prev_width)
+    if new_width > prev_width 
+        line = string('├', '─'^max(0, prev_width), '┴', '─'^max(0, new_width - prev_width - textwidth(label) - 3) )
+        corner = '┐'
+    else
+        line = string('├', '─'^max(0, new_width - textwidth(label) - 2))
+        corner = '┤'
+    end
+    printstyled(io, string(line, ' ', label, ' ', corner); color=:light_black)
 end
 
 function print_block_close(io, blockwidth)
@@ -248,12 +251,12 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
     bottom = Array{eltype(A)}(undef, length(ibottom)) 
     copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
-    vals = vcat(parent(A[itop]), parent(A[ibottom]))
+    vals = vcat(parent(A)[itop], parent(A)[ibottom])
     lu = only(lookups)
     if lu isa NoLookup
         Base.print_matrix(io, vals)
     else
-        labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu))[ibottom])
+        labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu)[ibottom]))
         Base.print_matrix(io, hcat(labels, vals))
     end
     return nothing

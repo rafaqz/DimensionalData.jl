@@ -8,8 +8,8 @@ packages that implement the standard.
 
 DimensionalData.jl implements the Tables.jl interface for
 `AbstractDimArray` and `AbstractDimStack`. `DimStack` layers
-are unrolled so they are all the same size, and dimensions similarly loop
-over array strides to match the length of the largest layer.
+are unrolled so they are all the same size, and dimensions
+loop to match the length of the largest layer.
 
 Columns are given the [`name`](@ref) or the array or the stack layer key.
 `Dimension` columns use the `Symbol` version (the result of `DD.dim2key(dimension)`).
@@ -29,7 +29,7 @@ Define some dimensions:
 x, y, c = X(1:10), Y(1:10), Dim{:category}('a':'z')
 ````
 
-::::tabs
+::: tabs
 
 == create a `DimArray`
 
@@ -43,11 +43,11 @@ A = rand(x, y, c; name=:data)
 st = DimStack((data1 = rand(x, y), data2=rand(x, y, c)))
 ````
 
-::::
+::: 
 
 ## Converting to DataFrame
 
-::::tabs
+::: tabs
 
 == array default
 
@@ -66,25 +66,26 @@ and one for each layer:
 DataFrame(st)
 ````
 
-== layerfrom
+== layersfrom
 
 Using [`DimTable`](@ref) we can specify that a `DimArray` 
 should take columns from one of the dimensions:
 
 ````@ansi dataframe
 DataFrame(DimTable(A; layersfrom=:category))
+DimStack(A; layersfrom=:category)
 ````
 
-== stack `DimTable`
+== mergedims
 
 Using [`DimTable`](@ref) we can merge the spatial 
 dimensions so the column is a tuple:
 
-````@ansi mergedims
+````@ansi dataframe
 DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 ````
 
-::::
+::: 
 
 ## Converting to CSV
 

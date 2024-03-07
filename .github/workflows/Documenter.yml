@@ -47,18 +47,14 @@ jobs:
         uses: julia-actions/setup-julia@v1
       - name: Pull Julia cache
         uses: julia-actions/cache@v1
-      - name: Install custom documentation dependencies
-        run: julia --project=docs -e 'using Pkg; pkg"add https://github.com/LuxDL/DocumenterVitepress.jl.git"; pkg"dev ."; Pkg.instantiate(); Pkg.precompile(); Pkg.status()'
       - name: Instantiate NPM
         run: cd docs/; npm i; cd ..
       - name: Generate logo
-        run: julia --project=docs/ --color=yes docs/logo.jl
-      - name: Build and deploy
+        run: julia --project=docs -e "using Pkg; Pkg.instantiate()"; julia --project=docs/ --color=yes docs/logo.jl
+      - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
           DOCUMENTER_KEY: ${{ secrets.DOCUMENTER_KEY }} # For authentication with SSH deploy key
           GKSwstype: "100" # https://discourse.julialang.org/t/generation-of-documentation-fails-qt-qpa-xcb-could-not-connect-to-display/60988
           JULIA_DEBUG: "Documenter"
           DATADEPS_ALWAYS_ACCEPT: true
-        run: |
-          julia --project=docs/ --color=yes docs/make.jl # this should ideally AUTO-DEPLOY!

@@ -1,5 +1,5 @@
 using DimensionalData, Test, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
@@ -27,8 +27,8 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @test @inferred A1[di] isa DimArray{Float64,3}
     @test @inferred A1[X=1][di] isa DimArray{Float64,2}
     @test @inferred A1[X=1, Y=1][di] isa DimArray{Float64,1}
-    # Indexing with no matching dims is like [] (?)
-    @test @inferred view(A1, X=1, Y=1, Ti=1)[di] == 0.0
+    # Indexing with no matching dims still returns a DimArray
+    @test @inferred view(A1, X=1, Y=1, Ti=1)[di] == fill(0.0)
 
     # Convert to vector of DimTuple
     @test @inferred A1[di[:]] isa DimArray{Float64,2}
@@ -143,3 +143,13 @@ end
     @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
 end
 
+@testset "DimSlices" begin
+    A = DimArray(((1:4) * (1:3)'), (X(4.0:7.0), Y(10.0:12.0)); name=:foo)
+    axisdims = map(dims(A, (X,))) do d
+        rebuild(d, axes(lookup(d), 1))
+    end
+    ds = DimensionalData.DimSlices(A; dims=axisdims)
+    @test ds == ds[X=:]
+    # Works just like Slices
+    @test sum(ds) == sum(eachslice(A; dims=X))
+end

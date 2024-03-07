@@ -1,5 +1,5 @@
 using DimensionalData, Dates, Test , BenchmarkTools
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
 
@@ -114,9 +114,6 @@ end
     # Val
     @inferred sortdims(dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))
     @test (@ballocated sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) == 0
-    # Transformed
-    @test @inferred (sortdims((Y(Transformed(identity, Z())), X(1)), (X(), Z()))) ==
-                              (X(1), Y(Transformed(identity, Z())))
     # Abstract
     @test sortdims((Z(), Y(), X()), (XDim, TimeDim)) == (X(), nothing)
     # Repeating
@@ -468,14 +465,4 @@ end
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
     end
-
-end
-
-@testset "dimstride" begin
-    dimz = (X(), Y(), Dim{:test}())
-    da = DimArray(ones(3, 2, 3), dimz; name=:data)
-    @test dimstride(da, X()) == 1
-    @test dimstride(da, Y()) == 3
-    @test dimstride(da, Dim{:test}()) == 6
-    @test_throws ArgumentError dimstride(nothing, X())
 end

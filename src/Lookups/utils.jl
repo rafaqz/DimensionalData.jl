@@ -5,7 +5,7 @@ Shift the index of `x` from the current locus to the new locus.
 
 We only shift `Sampled`, `Regular` or `Explicit`, `Intervals`. 
 """
-function shiftlocus(locus::Locus, lookup::LookupArray)
+function shiftlocus(locus::Locus, lookup::Lookup)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
     newindex = _shiftindexlocus(locus, lookup)
@@ -14,15 +14,15 @@ function shiftlocus(locus::Locus, lookup::LookupArray)
 end
 
 # Fallback - no shifting
-_shiftindexlocus(locus::Locus, lookup::LookupArray) = index(lookup)
+_shiftindexlocus(locus::Locus, lookup::Lookup) = index(lookup)
 # Sampled
 function _shiftindexlocus(locus::Locus, lookup::AbstractSampled)
     _shiftindexlocus(locus, span(lookup), sampling(lookup), lookup)
 end
 # TODO:
-_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::LookupArray) = index(lookup)
+_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::Lookup) = index(lookup)
 # Sampled Regular
-function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::LookupArray)
+function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Lookup)
     if destlocus === locus(sampling)
         return index(dim)
     else
@@ -31,17 +31,17 @@ function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals,
         return index(dim) .+ shift
     end
 end
-function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::LookupArray)
+function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::Lookup)
     index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
 end
 # Sampled Explicit
-_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[1, :]
-_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::LookupArray) = val(span)[2, :]
-function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::LookupArray)
+_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[1, :]
+_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[2, :]
+function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::Lookup)
     _shiftindexlocus(destlocus, locus(lookup), span, sampling, lookup)
 end
-_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::LookupArray) = index(lookup)
-function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::LookupArray)
+_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::Lookup) = index(lookup)
+function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::Lookup)
     # A little complicated so that DateTime works
     (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
 end
@@ -54,10 +54,10 @@ _offset(::End, ::Start) = -1
 _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
 
-maybeshiftlocus(locus::Locus, l::LookupArray) = _maybeshiftlocus(locus, sampling(l), l)
+maybeshiftlocus(locus::Locus, l::Lookup) = _maybeshiftlocus(locus, sampling(l), l)
 
-_maybeshiftlocus(locus::Locus, sampling::Intervals, l::LookupArray) = shiftlocus(locus, l)
-_maybeshiftlocus(locus::Locus, sampling::Sampling, l::LookupArray) = l
+_maybeshiftlocus(locus::Locus, sampling::Intervals, l::Lookup) = shiftlocus(locus, l)
+_maybeshiftlocus(locus::Locus, sampling::Sampling, l::Lookup) = l
 
 """
     basetypeof(x) => Type
@@ -91,7 +91,7 @@ orderof(A::AbstractUnitRange) = ForwardOrdered()
 orderof(A::AbstractRange) = _order(A)
 function orderof(A::AbstractArray{<:IntervalSets.Interval})
     indord = _order(A)
-    sorted = issorted(A; rev=LookupArrays.isrev(indord), by=x -> x.left)
+    sorted = issorted(A; rev=Lookups.isrev(indord), by=x -> x.left)
     return sorted ? indord : Unordered()
 end
 function orderof(A::AbstractArray)
@@ -101,7 +101,7 @@ function orderof(A::AbstractArray)
     # This may be resolved by: https://github.com/JuliaLang/julia/pull/37239
     try
         indord = _order(A)
-        sorted = issorted(A; rev=LookupArrays.isrev(indord))
+        sorted = issorted(A; rev=Lookups.isrev(indord))
     catch
         sorted = false
     end

@@ -1,5 +1,5 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using LinearAlgebra: Transpose
 
@@ -365,6 +365,12 @@ end
         y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
         @test size(y) == size(dims(y))
         @test dims(y) == dims(x[2:9, :, :])
+    end
+
+    @testset "single dim" begin
+        x = X(1:10)
+        A = DimArray(ones(10), x)
+        @test mapslices(sum, A; dims=X) == fill(10.0, X(1))
     end
 end
 

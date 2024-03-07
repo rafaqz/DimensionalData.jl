@@ -16,13 +16,18 @@ If no axis reversal is required the same objects will be returned, without alloc
 ## Example
 
 ```jldoctest
+using DimensionalData
+
 # Create a DimArray
 da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)))
+
 # Reverse it
 rev = reverse(da, dims=Y)
+
 # using `da` in reorder will return it to the original order
 reorder(rev, da) == da
-# output 
+
+# output
 true
 ```
 """
@@ -31,7 +36,7 @@ function reorder end
 reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = reorder(x, dims(A))
 reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
 reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairdims(ps...))
+reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
 # Reorder specific dims.
 reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
 # Reorder all dims.
@@ -48,7 +53,7 @@ end
 _reorder(x, orderdims::Tuple{}) = x
 
 reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
-reorder(x, orderdim::Dimension{<:LookupArray}) = _reorder(order(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension{<:Lookup}) = _reorder(order(orderdim), x, dims(x, orderdim))
 
 _reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
@@ -88,7 +93,7 @@ function modify(f, A::AbstractDimArray)
 end
 modify(f, x, dim::DimOrDimType) = set(x, modify(f, dims(x, dim)))
 modify(f, dim::Dimension) = rebuild(dim, modify(f, val(dim)))
-function modify(f, lookup::LookupArray)
+function modify(f, lookup::Lookup)
     newindex = modify(f, parent(lookup))
     rebuild(lookup; data=newindex)
 end
@@ -112,10 +117,19 @@ all passed in arrays in the order in which they are found.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function broadcast_dims(f, As::AbstractDimArray...)
+function broadcast_dims(f, As::AbstractBasicDimArray...)
     dims = combinedims(As...)
     T = Base.Broadcast.combine_eltypes(f, As)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
+end
+
+function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
+    st = _firststack(As...)
+    nts = _as_extended_nts(NamedTuple(st), As...)
+    layers = map(nts...) do as...
+        broadcast_dims(f, as...)
+    end
+    rebuild_from_arrays(st, layers)
 end
 
 """
@@ -132,7 +146,7 @@ which they are found.
 - `dest`: `AbstractDimArray` to update.
 - `sources`: `AbstractDimArrays` to broadcast over with `f`.
 """
-function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractDimArray...) where {N}
+function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDimArray...) where {N}
     As = map(As) do A
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
         # comparedims(dest, dims(A, dims(dest)))
@@ -193,3 +207,13 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
 uniquekeys(nt::NamedTuple) = keys(nt)
+
+_as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
+    (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
+function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
+    extended_layers = map(layers(st)) do l
+        DimExtensionArray(l, dims(st))
+    end
+    return (extended_layers, _as_extended_nts(nt, As...)...)
+end
+_as_extended_nts(::NamedTuple) = ()

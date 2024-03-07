@@ -42,7 +42,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
 @inline dims2indices(dims::DimTuple, sel::Tuple) = 
-    LookupArrays.selectindices(lookup(dims), sel)
+    Lookups.selectindices(lookup(dims), sel)
 @inline dims2indices(dims::DimTuple, ::Tuple{}) = ()
 # Otherwise attempt to convert dims to indices
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
@@ -96,7 +96,7 @@ end
     end
 end
 @inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{Selector,Vararg{Selector}})
-    LookupArrays.select_unalligned_indices(lookup(dims), sel)
+    Lookups.select_unalligned_indices(lookup(dims), sel)
 end
 
 _unalligned_all_selector_error(dims) =
@@ -112,11 +112,11 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 # Simply unwrap dimensions
 @inline _dims2indices(dim::Dimension, seldim::Dimension) = 
-    LookupArrays.selectindices(val(dim), val(seldim))
+    Lookups.selectindices(val(dim), val(seldim))
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
     map(map(key2dim, Keys), values(extent)) do k, v
-        rebuild(k, LookupArrays.Interval(v...))
+        rebuild(k, Lookups.Interval(v...))
     end    
 end
 

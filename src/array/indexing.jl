@@ -51,7 +51,7 @@ for f in (:getindex, :view, :dotview)
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, D::DimensionalIndices...; kw...) =
-            $_f(A, _simplify_dim_indices(D..., kwdims(values(kw))...)...)
+            $_f(A, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         # For ambiguity
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimIndices) = $_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimSelectors) = $_f(A, i)
@@ -63,7 +63,7 @@ for f in (:getindex, :view, :dotview)
         # Use underscore methods to minimise ambiguities
         @propagate_inbounds $_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
             Base.$f(A, dims2indices(A, (d1, ds...))...)
-        @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...; kw...) =
+        @propagate_inbounds $_f(A::AbstractBasicDimArray, ds::Dimension...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_f(
             A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
@@ -83,6 +83,18 @@ for f in (:getindex, :view, :dotview)
             I = to_indices(A, (i1, i2, Is...))
             x = Base.$f(parent(A), I...)
             all(i -> i isa Integer, I) ? x : rebuildsliced(Base.$f, A, x, I)
+        end
+    end
+    # Special caase zero dimensional arrays being indexed with missing dims
+    if f == :getindex
+        # Catch this before the dimension is converted to ()
+        @eval @propagate_inbounds function $_f(A::AbstractDimArray{<:Any,0}, ds::Dimension...)
+            Dimensions._extradimswarn(ds)
+            return rebuild(A, fill(A[]))
+        end
+        @eval @propagate_inbounds function $_f(A::AbstractDimArray{<:Any,0}, d1::Dimension, ds::Dimension...)
+            Dimensions._extradimswarn((d1, ds...))
+            return rebuild(A, fill(A[]))
         end
     end
 end
@@ -114,7 +126,7 @@ function _merge_and_index(f, A, inds)
                 lazylinear = rebuild(mdim, LazyDims2Linear(inds, DD.dims(A, dims_to_merge)))
                 f(M, lazylinear)
             else
-                # Index anyway with al Colon() just for type consistency
+                # Index anyway with all Colon() just for type consistency
                 f(M, basedims(M)...)
             end
         else
@@ -122,7 +134,7 @@ function _merge_and_index(f, A, inds)
             f(A, m_inds)
         end
     else
-        d = first(dims_to_merge)
+        d = only(dims_to_merge)
         val_array = reinterpret(typeof(val(d)), dims_to_merge)
         f(A, rebuild(d, val_array))
     end
@@ -198,7 +210,7 @@ Base.@assume_effects :foldable _simplify_dim_indices() = ()
 
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
-    setindex!(A, x, dims2indices(A, (args..., kwdims(values(kw))...))...)
+    setindex!(A, x, dims2indices(A, (args..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =

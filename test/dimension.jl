@@ -1,5 +1,5 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 @dim TestDim "Testname"
 
