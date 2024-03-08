@@ -23,7 +23,7 @@ for f in (:getindex, :view, :dotview)
             Base.$f(s, dims2indices(s, i)...)
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Integer)
-            if hassamedims(s)
+            if hassamedims(s) && length(dims(s)) == 1 
                 map(l -> Base.$f(l, i), s)
             else
                 Base.$f(s, DimIndices(s)[i])
@@ -104,7 +104,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function $_dim_f(s::AbstractDimStack)
             map(Base.$f, s)
         end
-        @propagate_inbounds function $_dim_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
+        Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
@@ -114,10 +114,7 @@ for f in (:getindex, :view, :dotview)
                 Base.$f(A, I...)
             end
             # Dicide to rewrap as an AbstractDimStack, or return a scalar
-            if all(map(v -> v isa AbstractDimArray, newlayers))
-                # All arrays, wrap
-                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), D)))
-            elseif any(map(v -> v isa AbstractDimArray, newlayers))
+            if any(map(v -> v isa AbstractDimArray, newlayers))
                 # Some scalars, re-wrap them as zero dimensional arrays
                 non_scalar_layers = map(layers(s), newlayers) do l, nl
                     nl isa AbstractDimArray ? nl : rebuild(l, fill(nl), ())

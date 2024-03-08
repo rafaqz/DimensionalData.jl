@@ -11,26 +11,33 @@ const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSel
 for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     if f === :view
-        @eval @propagate_inbounds function Base.$f(A::AbstractDimVector, i::Integer)
-            rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
-        end
+        # No indices and we try to rebuild, for 0d
         @eval @propagate_inbounds Base.view(A::AbstractDimArray) = rebuild(A, Base.view(parent(A)), ())
+        # With one Integer and 0d and 1d we try to rebuild
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArray{<:Any,0}, i::Integer) =
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
+        @eval @propagate_inbounds Base.$f(A::AbstractDimVector, i::Integer) =
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
+        # Otherwise its linear indexing, don't rebuild
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) =
+            Base.$f(parent(A), i)
+        # More Integera and we rebuild again
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
     else
-        #### Array getindex/view ###
-        # These are needed to resolve ambiguity
         @eval @propagate_inbounds Base.$f(A::AbstractDimVector, i::Integer) = Base.$f(parent(A), i)
         @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) = Base.$f(parent(A), i)
         @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
             Base.$f(parent(A), i1, i2, I...)
-        # Integer returns a single value, but not for view
-        # No indices. These just prevent stack overflows
-        @eval @propagate_inbounds Base.getindex(A::AbstractDimArray) = Base.getindex(parent(A))
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArray) = Base.$f(parent(A))
     end
     @eval begin
         @propagate_inbounds Base.$f(A::AbstractDimVector, I::CartesianIndex) =
             Base.$f(A, to_indices(A, (I,))...)
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndex) =
             Base.$f(A, to_indices(A, (I,))...)
+        @propagate_inbounds Base.$f(A::AbstractDimVector, I::CartesianIndices) =
+            rebuildsliced(Base.$f, A, Base.$f(parent(A), I), (I,))
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), I), (I,))
         @propagate_inbounds function Base.$f(A::AbstractDimVector, i)
@@ -42,7 +49,6 @@ for f in (:getindex, :view, :dotview)
             end
         end
         @propagate_inbounds function Base.$f(A::AbstractDimArray, i1, i2, I...)
-            @show "here"
             x = Base.$f(parent(A), i1, i2, I...)
             if x isa AbstractArray
                 rebuildsliced(Base.$f, A, x, to_indices(A, (i1, i2, I...)))
@@ -217,25 +223,25 @@ function _separate_dims_arrays(a::AbstractArray, ds...)
 end
 _separate_dims_arrays() = (), ()
 
-Base.@assume_effects :foldable _simplify_dim_indices(d::Dimension, ds...) =
+Base.@assume_effects :foldable @inline _simplify_dim_indices(d::Dimension, ds...) =
     (d, _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::Tuple, ds...) =
+Base.@assume_effects :foldable @inline _simplify_dim_indices(d::Tuple, ds...) =
     (d..., _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:Dimension}, ds...) =
+Base.@assume_effects :foldable @inline _simplify_dim_indices(d::AbstractArray{<:Dimension}, ds...) =
     (d, _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(d::AbstractArray{<:DimTuple}, ds...) =
+Base.@assume_effects :foldable @inline _simplify_dim_indices(d::AbstractArray{<:DimTuple}, ds...) =
     (d, _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable _simplify_dim_indices(::Tuple{}) = ()
-Base.@assume_effects :foldable _simplify_dim_indices(d::DimIndices, ds...) =
+Base.@assume_effects :foldable @inline _simplify_dim_indices(::Tuple{}) = ()
+Base.@assume_effects :foldable @inline _simplify_dim_indices(d::DimIndices, ds...) =
     (dims(d)..., _simplify_dim_indices(ds)...)
-Base.@assume_effects :foldable function _simplify_dim_indices(d::DimSelectors, ds...)
+Base.@assume_effects :foldable @inline function _simplify_dim_indices(d::DimSelectors, ds...)
     seldims = map(dims(d), d.selectors) do d, s
         # But the dimension values inside selectors
         rebuild(d, rebuild(s; val=val(d)))
     end
     return (seldims..., _simplify_dim_indices(ds)...)
 end
-Base.@assume_effects :foldable _simplify_dim_indices() = ()
+Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
 
 @inline _unwrap_cartesian(i1::CartesianIndices, I...) = (Tuple(i1)..., _unwrap_cartesian(I...)...)
 @inline _unwrap_cartesian(i1::CartesianIndex, I...) = (Tuple(i1)..., _unwrap_cartesian(I...)...)
