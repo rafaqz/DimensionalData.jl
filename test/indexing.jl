@@ -26,17 +26,6 @@ using DimensionalData.Lookups, DimensionalData.Dimensions
     da2 = DimArray(fill(3), ())
     dimz2 = dims(da2)
     @test dims2indices(dimz2, ()) === ()
-
-    @testset "mixed dimensions" begin
-        a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
-        da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
-        da[Ti=1, DimIndices(da[Ti=1])]
-        da[DimIndices(da[Ti=1]), Ti(2)]
-        da[DimIndices(da[Ti=1])[:], Ti(2)]
-        da[DimIndices(da[Ti=1])[:], DimIndices(da[X=1, Y=1])]
-        da[DimIndices(da[X=1, Y=1]), DimIndices(da[Ti=1])[:]]
-        da[DimIndices(da[X=1, Y=1])[:], DimIndices(da[Ti=1])[:]]
-    end
 end
 
 @testset "lookup" begin
@@ -207,13 +196,15 @@ end
 
     @testset "LinearIndex getindex returns an Array, except Vector" begin
         @test @inferred da[1:2] isa Array
+        @test @inferred da[Begin:Begin+1] isa Array
+        @test da[1:2] == da[begin:begin+1] == da[Begin:Begin+1]
         @test @inferred da[rand(Bool, length(da))] isa Array
         @test @inferred da[rand(Bool, size(da))] isa Array
         @test @inferred da[:] isa Array
-        @test @inferred da[:] == vec(da)
+        @test da[:] == da[Begin:End] == vec(da)
         b = @inferred da[[!iseven(i) for i in 1:length(da)]]
         @test b isa Array
-        @test b == da[1:2:end]
+        @test b == da[1:2:end] == da[Begin:2:End]  
         
         v = @inferred da[1, :]
         @test @inferred v[1:2] isa DimArray
@@ -234,7 +225,7 @@ end
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
-        a = da[X(1:2), Y(1)]
+        a = da[X(Begin:Begin+1), Y(1)]
         @test a == [1, 3]
         @test typeof(a) <: DimArray{Int,1}
         @test dims(a) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
@@ -248,7 +239,7 @@ end
         @test locus(da, X) == Center()
 
         a = da[(X(1), Y(1:2))] # Can use a tuple of dimensions like a CartesianIndex
-        @test a == [1, 2]
+        @test a == [1, 2] == da[(X(1), Y(Begin:Begin+1))]
         @test typeof(a) <: DimArray{Int,1}
         @test typeof(parent(a)) <: Array{Int,1}
         @test dims(a) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
@@ -279,6 +270,7 @@ end
         @test da[DimIndices(da)] == da
         da[DimIndices(da)[X(1)]]
         da[DimSelectors(da)]
+        da[DimSelectors(da)[X(1)]]
     end
     
     @testset "selectors work" begin
@@ -359,7 +351,8 @@ end
                 @test length(refdims(a)) == 1
             end
 
-            for inds in ((2,), (2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+            for inds in ((2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+                inds = (CartesianIndex(2, 1),)
                 @test typeof(parent(view(da2, inds...))) === typeof(view(parent(da2), inds...))
                 @test parent(view(da2, inds...)) == view(parent(da2), inds...)
                 a = view(da2, inds...)
@@ -488,6 +481,17 @@ end
         @test da[1, 2] == 2
         @test da[2] == 3
         @inferred getindex(da, X(2), Y(2))
+    end
+
+    @testset "mixed dimensions" begin
+        a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
+        da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
+        da[Ti=1, DimIndices(da[Ti=1])]
+        da[DimIndices(da[Ti=1]), Ti(2)]
+        da[DimIndices(da[Ti=1])[:], Ti(2)]
+        da[DimIndices(da[Ti=1])[:], DimIndices(da[X=1, Y=1])]
+        da[DimIndices(da[X=1, Y=1]), DimIndices(da[Ti=1])[:]]
+        da[DimIndices(da[X=1, Y=1])[:], DimIndices(da[Ti=1])[:]]
     end
 end
 

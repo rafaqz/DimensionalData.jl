@@ -28,9 +28,7 @@ end
 
 Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or `Colon`.
 """
-@inline dims2indices(dim::Dimension, I::StandardIndices) = I
 @inline dims2indices(dim::Dimension, I) = _dims2indices(dim, I)
-
 @inline dims2indices(x, I) = dims2indices(dims(x), I)
 @inline dims2indices(::Nothing, I) = _dimsnotdefinederror()
 @inline dims2indices(::Tuple{}, I) = ()
@@ -106,13 +104,15 @@ _unwrapdim(dim::Dimension) = val(dim)
 _unwrapdim(x) = x
 
 # Single dim methods
+# Simply unwrap dimensions
+@inline _dims2indices(dim::Dimension, seldim::Dimension) = _dims2indices(dim, val(seldim))
 # A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
-# Simply unwrap dimensions
-@inline _dims2indices(dim::Dimension, seldim::Dimension) = 
-    Lookups.selectindices(val(dim), val(seldim))
+@inline _dims2indices(dim::Dimension, I::AbstractBeginEndRange) = I
+@inline _dims2indices(dim::Dimension, I::StandardIndices) = I
+@inline _dims2indices(dim::Dimension, I::SelectorOrInterval) = selectindices(val(dim), I)
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
     map(map(key2dim, Keys), values(extent)) do k, v

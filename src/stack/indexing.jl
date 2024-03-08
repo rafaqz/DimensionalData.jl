@@ -17,7 +17,7 @@ for f in (:getindex, :view, :dotview)
 end
 
 for f in (:getindex, :view, :dotview)
-    _f = Symbol(:_, f)
+    _dim_f = Symbol(:_dim_, f)
     @eval begin
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
@@ -69,7 +69,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, D::DimensionalIndices...; kw...
         )
-            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
+            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         # Ambiguities
         @propagate_inbounds function Base.$f(
@@ -78,33 +78,33 @@ for f in (:getindex, :view, :dotview)
             ::Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension},
             ::_DimIndicesAmb...
         )
-            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
+            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 
             d1::Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}, 
             D::Vararg{Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}}
         )
-            $_f(s, _simplify_dim_indices(d1, D...))
+            $_dim_f(s, _simplify_dim_indices(d1, D...))
         end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 
             D::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
         )
-            $_f(s, _simplify_dim_indices(D...))
+            $_dim_f(s, _simplify_dim_indices(D...))
         end
 
 
-        @propagate_inbounds function $_f(
+        @propagate_inbounds function $_dim_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
             return merge_and_index(Base.$f, A, (a1, args...))
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
-        @propagate_inbounds function $_f(s::AbstractDimStack)
+        @propagate_inbounds function $_dim_f(s::AbstractDimStack)
             map(Base.$f, s)
         end
-        @propagate_inbounds function $_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
+        @propagate_inbounds function $_dim_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
