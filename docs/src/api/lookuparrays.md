@@ -91,14 +91,15 @@ Lookups.Points
 Lookups.Intervals
 ```
 
-### Loci
+### Positions
 
 ```@docs
-Lookups.Locus
+Position
 Lookups.Center
 Lookups.Start
+Lookups.Begin
 Lookups.End
-Lookups.AutoLocus
+Lookups.AutoPosition
 ```
 
 ## Metadata

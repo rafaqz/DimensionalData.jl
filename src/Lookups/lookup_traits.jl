@@ -74,7 +74,7 @@ isrev(::Type{<:ReverseOrdered}) = true
 """
    Position <: LookupTrait
 
-Abstract supertype of types that indicate the position of index values
+Abstract supertype of types that indicate the locus of index values
 where they represent [`Intervals`](@ref).
 
 These allow for values array cells to align with the [`Start`](@ref),
@@ -90,7 +90,7 @@ abstract type Position <: LookupTrait end
 
     Center()
 
-Used to specify lookup values correspond to the center position in an interval.
+Used to specify lookup values correspond to the center locus in an interval.
 """
 struct Center <: Position end
 
@@ -100,7 +100,7 @@ struct Center <: Position end
     Start()
 
 Used to specify lookup values correspond to the center 
-position of an interval.
+locus of an interval.
 """
 struct Start <: Position end
 
@@ -119,11 +119,13 @@ struct Begin <: Position end
 
     End()
 
-Used to specify the `end` index of aa `Dimension` axis, 
+Used to specify the `end` index of a `Dimension` axis, 
 as regular `end` will not work with named dimensions.
+Can be used with `:` to create a [`BeginEndRange`](@ref)
+or [`BeginEndStepRange`](@ref).
 
-Also ysed to specify lookup values correspond to the center 
-position of an interval.
+Also used to specify lookup values correspond to the end 
+locus of an interval.
 """
 struct End <: Position end
 
@@ -132,12 +134,12 @@ struct End <: Position end
 
     AutoPosition()
 
-Indicates a interval where the index position is not yet known.
+Indicates a interval where the index locus is not yet known.
 This will be filled with a default value on object construction.
 """
 struct AutoPosition <: Position end
 
-# Deprecated
+# Locus does not include `Begin` 
 const Locus = Union{AutoPosition,Start,Center,End}
 const AutoLocus = AutoPosition
 
@@ -171,7 +173,7 @@ locus(sampling::Points) = Center()
 """
     Intervals <: Sampling
 
-    Intervals(locus::Locus)
+    Intervals(locus::Position)
 
 [`Sampling`](@ref) specifying that sampled values are the mean (or similar)
 value over an _interval_, rather than at one specific point.
@@ -179,8 +181,8 @@ value over an _interval_, rather than at one specific point.
 Intervals require a [`Locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
 [`End`](@ref) to define the location in the interval that the index values refer to.
 """
-struct Intervals{L} <: Sampling
-    locus::L
+struct Intervals{P} <: Sampling
+    locus::P
 end
 Intervals() = Intervals(AutoPosition())
 
@@ -270,12 +272,12 @@ Base.:(==)(l1::Explicit, l2::Explicit) = val(l1) == val(l2)
 Adapt.adapt_structure(to, s::Explicit) = Explicit(Adapt.adapt_structure(to, val(s)))
 
 """
-    AutoIndex
+    AutoValues
 
-Detect a `Lookup` index from the context. This is used in `NoLookup` to simply
+Detect `Lookup` values from the context. This is used in `NoLookup` to simply
 use the array axis as the index when the array is constructed, and in `set` to
 change the `Lookup` type without changing the index values.
 """
-struct AutoIndex <: AbstractVector{Int} end
+struct AutoValues <: AbstractVector{Int} end
 
-Base.size(::AutoIndex) = (0,)
+Base.size(::AutoValues) = (0,)

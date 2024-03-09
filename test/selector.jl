@@ -976,7 +976,7 @@ end
             (Near([13]), Near([1.3u"s", 3.3u"s"])),
             (Between(11, 20), At((2:3)u"s"))
         ]
-        positions =  [
+        locuss =  [
             (1:3, [3, 4]),
             (2, [3, 4]),
             (2, [2, 3]),
@@ -984,7 +984,7 @@ end
             ([1], [1, 3]),
             (2:2, [2, 3])
         ]
-        for (selector, pos) in zip(selectors, positions)
+        for (selector, pos) in zip(selectors, locuss)
             pairs = collect(zip(selector, pos))
             cases = [(i, j) for i in pairs[1], j in pairs[2]]
             for (case1, case2) in combinations(cases, 2)

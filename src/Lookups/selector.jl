@@ -235,7 +235,7 @@ Selector that selects the nearest index to `x`.
 With [`Points`](@ref) this is simply the index values nearest to the `x`,
 however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
 This will be offset from the index value for `Start` and
-[`End`](@ref) loci.
+[`End`](@ref) locuss.
 
 ## Example
 
@@ -266,7 +266,7 @@ end
 near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
 function near(lookup::Lookup, sel::Near)
     !isregular(lookup) && !iscenter(lookup) &&
-        throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End loci. Use Contains"))
+        throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End locus. Use Contains"))
     near(order(lookup), sampling(lookup), lookup, sel)
 end
 near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
@@ -277,7 +277,7 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
     if v isa Union{Dates.DateTime,Dates.Date}
         v = eltype(lookup)(v)
     end
-    v_adj = _locus_adjust(locus(lookup), v, lookup)
+    v_adj = _adjust_locus(locus(lookup), v, lookup)
     # searchsortedfirst or searchsortedlast
     searchfunc = _searchfunc(order)
     # Search for the value
@@ -308,13 +308,13 @@ function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
     throw(ArgumentError("`Near` has no meaning in an `Unordered` lookup"))
 end
 
-_locus_adjust(locus::Center, v, lookup) = v
-_locus_adjust(locus::Start, v, lookup) = v - abs(step(lookup)) / 2
-_locus_adjust(locus::End, v, lookup) = v + abs(step(lookup)) / 2
-_locus_adjust(locus::Start, v::Dates.TimeType, lookup) = v - (v - (v - abs(step(lookup)))) / 2
-_locus_adjust(locus::End, v::Dates.TimeType, lookup) = v + (v + abs(step(lookup)) - v) / 2
-_locus_adjust(locus::Start, v::Dates.Date, lookup) = v - (v - (v - abs(step(lookup)))) ÷ 2
-_locus_adjust(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - v) ÷ 2
+_adjust_locus(locus::Center, v, lookup) = v
+_adjust_locus(locus::Start, v, lookup) = v - abs(step(lookup)) / 2
+_adjust_locus(locus::End, v, lookup) = v + abs(step(lookup)) / 2
+_adjust_locus(locus::Start, v::Dates.TimeType, lookup) = v - (v - (v - abs(step(lookup)))) / 2
+_adjust_locus(locus::End, v::Dates.TimeType, lookup) = v + (v + abs(step(lookup)) - v) / 2
+_adjust_locus(locus::Start, v::Dates.Date, lookup) = v - (v - (v - abs(step(lookup)))) ÷ 2
+_adjust_locus(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - v) ÷ 2
 
 """
     Contains <: IntSelector
@@ -380,7 +380,7 @@ function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<
 end
 # Intervals -----------------------------------
 function contains(sampling::Intervals, l::Lookup, sel::Contains; err=_True())
-    _locus_checkbounds(locus(l), l, sel) || return _selector_error_or_nothing(err, l, sel)
+    _checkbounds_locus(l, sel) || return _selector_error_or_nothing(err, l, sel)
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 function contains(
@@ -630,7 +630,7 @@ end
 # Regular Intervals -------------------------
 # Adjust the value for the lookup locus before search
 function _between_side(side, o::Ordered, ::Regular, ::Intervals, l, interval, v)
-    adj = _locus_adjust(side, l)
+    adj = _adjust_locus(side, l)
     v1 = v + adj
     i = _searchfunc(side, o)(l, v1)
     # Sideshift (1 or -1) expands the selection to the outside of any touched intervals
@@ -687,7 +687,7 @@ function _between_irreg_side(side, locus::Union{Start,End}, o, l, interval, v)
         s = _ordscalar(o) 
         # Search for the value and offset per order/locus/side
         i = _searchfunc(o)(l, v; lt=_lt(side))
-        i -= s * (_locscalar(locus) + _sideshift(side))
+        i -= s * (_posscalar(locus) + _sideshift(side))
         # Get the value on the interval edge
         cellbound = if i < firstindex(l)
             _maybeflipbounds(l, bounds(l))[1]
@@ -738,16 +738,16 @@ function _close_interval(side::_Upper, l, interval::Interval{<:Any,:open}, cellb
     cellbound == interval.right ? i - _ordscalar(l) : i
 end
 
-_locus_adjust(side, l) = _locus_adjust(side, locus(l), abs(step(span(l))))
-_locus_adjust(::_Lower, locus::Start, step) = zero(step)
-_locus_adjust(::_Upper, locus::Start, step) = -step
-_locus_adjust(::_Lower, locus::Center, step) = step/2
-_locus_adjust(::_Upper, locus::Center, step) = -step/2
-_locus_adjust(::_Lower, locus::End, step) = step
-_locus_adjust(::_Upper, locus::End, step) = -zero(step)
+_adjust_locus(side, l) = _adjust_locus(side, locus(l), abs(step(span(l))))
+_adjust_locus(::_Lower, locus::Start, step) = zero(step)
+_adjust_locus(::_Upper, locus::Start, step) = -step
+_adjust_locus(::_Lower, locus::Center, step) = step/2
+_adjust_locus(::_Upper, locus::Center, step) = -step/2
+_adjust_locus(::_Lower, locus::End, step) = step
+_adjust_locus(::_Upper, locus::End, step) = -zero(step)
 
-_locscalar(::Start) = 1
-_locscalar(::End) = 0
+_posscalar(::Start) = 1
+_posscalar(::End) = 0
 _sideshift(::_Lower) = -1
 _sideshift(::_Upper) = 1
 _ordscalar(l) = _ordscalar(order(l))
@@ -874,7 +874,7 @@ end
 # Regular Intervals -------------------------
 # Adjust the value for the lookup locus before search
 function _touches(side, o::Ordered, ::Regular, ::Intervals, l, sel, v)
-    adj = _locus_adjust(side, l)
+    adj = _adjust_locus(side, l)
     v1 = v + adj
     i = _searchfunc(side, o)(l, v1)
     # Sideshift (1 or -1) expands the selection to the outside of any touched sels
@@ -915,7 +915,7 @@ function _touches_irreg_side(side, locus::Union{Start,End}, o, l, sel, v)
         ordered_lastindex(l)
     else
         # Search for the value and offset per order/locus/side
-        _searchfunc(o)(l, v; lt=_lt(side)) - _ordscalar(o) * _locscalar(locus)
+        _searchfunc(o)(l, v; lt=_lt(side)) - _ordscalar(o) * _posscalar(locus)
     end
     return i
 end
@@ -1099,8 +1099,8 @@ _lt(::End) = (<=)
 _gt(::Locus) = (>=)
 _gt(::End) = (>)
 
-_locus_checkbounds(loc, lookup::Lookup, sel::Selector) =  _locus_checkbounds(loc, bounds(lookup), val(sel))
-_locus_checkbounds(loc, (l, h)::Tuple, v) = !(_lt(loc)(v, l) || _gt(loc)(v, h))
+_checkbounds_locus(l::Lookup, sel::Selector) =  _checkbounds_locus(locus(l), bounds(l), val(sel))
+_checkbounds_locus(pos, (l, h)::Tuple, v) = !(_lt(pos)(v, l) || _gt(pos)(v, h))
 
 _searchfunc(::ForwardOrdered) = searchsortedfirst
 _searchfunc(::ReverseOrdered) = searchsortedlast

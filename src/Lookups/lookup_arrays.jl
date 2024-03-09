@@ -5,8 +5,8 @@
 Types defining the behaviour of a lookup index, how it is plotted
 and how [`Selector`](@ref)s like [`Between`](@ref) work.
 
-A `Lookup` may be [`NoLookup`](@ref) indicating that the index is just the
-underlying array axis, [`Categorical`](@ref) for ordered or unordered categories,
+A `Lookup` may be [`NoLookup`](@ref) indicating that there are no
+lookup values, [`Categorical`](@ref) for ordered or unordered categories,
 or a [`Sampled`](@ref) index for [`Points`](@ref) or [`Intervals`](@ref).
 """
 abstract type Lookup{T,N} <: AbstractArray{T,N} end
@@ -19,8 +19,11 @@ sampling(lookup::Lookup) = NoSampling()
 
 dims(::Lookup) = nothing
 val(l::Lookup) = parent(l)
-index(l::Lookup) = parent(l)
 locus(l::Lookup) = Center()
+
+# Deprecated
+index(l::Lookup) = parent(l)
+@deprecate locus locus
 
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
@@ -61,10 +64,10 @@ end
     AutoLookup <: Lookup
 
     AutoLookup()
-    AutoLookup(index=AutoIndex(); kw...)
+    AutoLookup(values=AutoValues(); kw...)
 
 Automatic [`Lookup`](@ref), the default lookup. It will be converted automatically
-to another [`Lookup`](@ref) when it is possible to detect it from the index.
+to another [`Lookup`](@ref) when it is possible to detect it from the lookup values.
 
 Keywords will be used in the detected `Lookup` constructor.
 """
@@ -72,7 +75,7 @@ struct AutoLookup{T,A<:AbstractVector{T},K} <: Lookup{T,1}
     data::A
     kw::K
 end
-AutoLookup(index=AutoIndex(); kw...) = AutoLookup(index, kw)
+AutoLookup(values=AutoValues(); kw...) = AutoLookup(values, kw)
 
 order(lookup::AutoLookup) = hasproperty(lookup.kw, :order) ? lookup.kw.order : AutoOrder()
 span(lookup::AutoLookup) = hasproperty(lookup.kw, :span) ? lookup.kw.span : AutoSpan()
@@ -94,7 +97,7 @@ _bounds(::Unordered, l::Lookup) = (nothing, nothing)
     Aligned <: Lookup
 
 Abstract supertype for [`Lookup`](@ref)s
-where the index is aligned with the array axes.
+where the lookup is aligned with the array axes.
 
 This is by far the most common supertype for `Lookup`.
 """
@@ -112,7 +115,7 @@ A [`Lookup`](@ref) that is identical to the array axis.
 
 ## Example
 
-Defining a `DimArray` without passing an index
+Defining a `DimArray` without passing lookup values
 to the dimensions, it will be assigned `NoLookup`:
 
 ```jldoctest NoLookup
@@ -141,7 +144,7 @@ NoLookup, NoLookup
 struct NoLookup{A<:AbstractVector{Int}} <: Aligned{Int,Order}
     data::A
 end
-NoLookup() = NoLookup(AutoIndex())
+NoLookup() = NoLookup(AutoValues())
 
 order(lookup::NoLookup) = ForwardOrdered()
 span(lookup::NoLookup) = Regular(1)
@@ -153,7 +156,7 @@ Base.step(lookup::NoLookup) = 1
 """
     AbstractSampled <: Aligned
 
-Abstract supertype for [`Lookup`](@ref)s where the index is
+Abstract supertype for [`Lookup`](@ref)s where the lookup is
 aligned with the array, and is independent of other dimensions. [`Sampled`](@ref)
 is provided by this package.
 
@@ -218,9 +221,9 @@ _bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), firs
 
 
 const SAMPLED_ARGUMENTS_DOC = """
-- `data`: An `AbstractVector` of index values, matching the length of the curresponding
+- `data`: An `AbstractVector` of lookup values, matching the length of the curresponding
     array axis.
-- `order`: [`Order`](@ref)) indicating the order of the index,
+- `order`: [`Order`](@ref)) indicating the order of the lookup,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
     to be [`ForwardOrdered`](@ref), [`ReverseOrdered`](@ref) or [`Unordered`](@ref).
     These can be provided explicitly if they are known and performance is important.
@@ -239,7 +242,7 @@ const SAMPLED_ARGUMENTS_DOC = """
     Sampled <: AbstractSampled
 
     Sampled(data::AbstractVector, order::Order, span::Span, sampling::Sampling, metadata)
-    Sampled(data=AutoIndex(); order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
+    Sampled(data=AutoValues(); order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata())
 
 A concrete implementation of the [`Lookup`](@ref)
 [`AbstractSampled`](@ref). It can be used to represent
@@ -247,7 +250,7 @@ A concrete implementation of the [`Lookup`](@ref)
 
 `Sampled` is capable of representing gridded data from a wide range of sources, allowing
 correct `bounds` and [`Selector`](@ref)s for points or intervals of regular,
-irregular, forward and reverse indexes.
+irregular, forward and reverse lookups.
 
 On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of
 `AbstractRange` not assigned to [`Categorical`](@ref).
@@ -261,7 +264,7 @@ $SAMPLED_ARGUMENTS_DOC
 Create an array with [`Interval`] sampling, and `Regular` span for a vector with known spacing.
 
 We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying
-that the index values are for the positions at the start of each interval.
+that the lookup values are for the locuss at the start of each interval.
 
 ```jldoctest Sampled
 using DimensionalData, DimensionalData.Lookups
@@ -292,7 +295,7 @@ struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
     sampling::Sa
     metadata::M
 end
-function Sampled(data=AutoIndex();
+function Sampled(data=AutoValues();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata()
 )
@@ -412,7 +415,7 @@ struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,S
         new{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
     end
 end
-function Cyclic(data=AutoIndex();
+function Cyclic(data=AutoValues();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata(),
     cycle, # Mandatory keyword, there are too many possible bugs with auto detection
@@ -461,18 +464,18 @@ end
     Categorical(o::Order)
     Categorical(; order=Unordered())
 
-An Lookup where the values are categories.
+A [`Lookup`](@ref) where the values are categories.
 
-This will be automatically assigned if the index contains `AbstractString`,
+This will be automatically assigned if the lookup contains `AbstractString`,
 `Symbol` or `Char`. Otherwise it can be assigned manually.
 
 [`Order`](@ref) will be determined automatically where possible.
 
 ## Arguments
 
-- `data`: An `AbstractVector` of index values, matching the length of the curresponding
+- `data`: An `AbstractVector` matching the length of the curresponding
     array axis.
-- `order`: [`Order`](@ref)) indicating the order of the index,
+- `order`: [`Order`](@ref)) indicating the order of the lookup,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
     to be `ForwardOrdered`, `ReverseOrdered` or `Unordered`.
     Can be provided if this is known and performance is important.
@@ -502,7 +505,7 @@ struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O
     order::O
     metadata::M
 end
-function Categorical(data=AutoIndex(); order=AutoOrder(), metadata=NoMetadata())
+function Categorical(data=AutoValues(); order=AutoOrder(), metadata=NoMetadata())
     Categorical(data, order, metadata)
 end
 
@@ -520,7 +523,7 @@ end
 """
     Unaligned <: Lookup
 
-Abstract supertype for [`Lookup`](@ref) where the index is not aligned to the grid.
+Abstract supertype for [`Lookup`](@ref) where the lookup is not aligned to the grid.
 
 Indexing an [`Unaligned`](@ref) with [`Selector`](@ref)s must provide all
 other [`Unaligned`](@ref) dimensions.
@@ -572,7 +575,7 @@ struct Transformed{T,A<:AbstractVector{T},F,D,M} <: Unaligned{T,1}
     metadata::M
 end
 function Transformed(f; metadata=NoMetadata())
-    Transformed(AutoIndex(), f, AutoDim(), metadata)
+    Transformed(AutoValues(), f, AutoDim(), metadata)
 end
 function Transformed(f, data::AbstractArray; metadata=NoMetadata())
     Transformed(data, f, AutoDim(), metadata)
@@ -758,44 +761,44 @@ end
 @inline reducelookup(lookup::AbstractSampled) = _reducelookup(span(lookup), lookup)
 
 @inline _reducelookup(::Irregular, lookup::AbstractSampled) = begin
-    rebuild(lookup; data=_reduceindex(lookup), order=ForwardOrdered())
+    rebuild(lookup; data=_reducevalues(lookup), order=ForwardOrdered())
 end
 @inline _reducelookup(span::Regular, lookup::AbstractSampled) = begin
     newstep = step(span) * length(lookup)
-    newindex = _reduceindex(lookup, newstep)
-    # Make sure the step type matches the new index eltype
-    newstep = convert(promote_type(eltype(newindex), typeof(newstep)), newstep)
+    newvalues = _reducevalues(lookup, newstep)
+    # Make sure the step type matches the new eltype
+    newstep = convert(promote_type(eltype(newvalues), typeof(newstep)), newstep)
     newspan = Regular(newstep)
-    rebuild(lookup; data=newindex, order=ForwardOrdered(), span=newspan)
+    rebuild(lookup; data=newvalues, order=ForwardOrdered(), span=newspan)
 end
 @inline _reducelookup(
     span::Regular{<:Dates.CompoundPeriod}, lookup::AbstractSampled
 ) = begin
     newstep = Dates.CompoundPeriod(step(span).periods .* length(lookup))
     # We don't pass the step here - the range doesn't work with CompoundPeriod
-    newindex = _reduceindex(lookup)
-    # Make sure the step type matches the new index eltype
+    newvalues = _reducevalues(lookup)
+    # Make sure the step type matches the new eltype
     newspan = Regular(newstep)
-    rebuild(lookup; data=newindex, order=ForwardOrdered(), span=newspan)
+    rebuild(lookup; data=newvalues, order=ForwardOrdered(), span=newspan)
 end
 @inline _reducelookup(span::Explicit, lookup::AbstractSampled) = begin
     bnds = val(span)
     newstep = bnds[2] - bnds[1]
-    newindex = _reduceindex(lookup, newstep)
-    # Make sure the step type matches the new index eltype
-    newstep = convert(promote_type(eltype(newindex), typeof(newstep)), newstep)
+    newvalues = _reducevalues(lookup, newstep)
+    # Make sure the step type matches the new eltype
+    newstep = convert(promote_type(eltype(newvalues), typeof(newstep)), newstep)
     newspan = Explicit(reshape([bnds[1, 1]; bnds[2, end]], 2, 1))
-    newlookup = rebuild(lookup; data=newindex, order=ForwardOrdered(), span=newspan)
+    newlookup = rebuild(lookup; data=newvalues, order=ForwardOrdered(), span=newspan)
 end
-# Get the index value at the reduced locus.
-# This is the start, center or end point of the whole index.
-@inline _reduceindex(lookup::Lookup, step=nothing) = _reduceindex(locus(lookup), lookup, step)
-@inline _reduceindex(locus::Start, lookup::Lookup, step) = _mayberange(first(lookup), step)
-@inline _reduceindex(locus::End, lookup::Lookup, step) = _mayberange(last(lookup), step)
-@inline _reduceindex(locus::Center, lookup::Lookup, step) = begin
-    index = parent(lookup)
-    len = length(index)
-    newval = centerval(index, len)
+# Get the lookup value at the reduced locus.
+# This is the start, center or end point of the whole lookup.
+@inline _reducevalues(lookup::Lookup, step=nothing) = _reducevalues(locus(lookup), lookup, step)
+@inline _reducevalues(locus::Start, lookup::Lookup, step) = _mayberange(first(lookup), step)
+@inline _reducevalues(locus::End, lookup::Lookup, step) = _mayberange(last(lookup), step)
+@inline _reducevalues(locus::Center, lookup::Lookup, step) = begin
+    values = parent(lookup)
+    len = length(values)
+    newval = centerval(values, len)
     _mayberange(newval, step)
 end
 # Ranges with a known step always return a range
@@ -803,17 +806,17 @@ _mayberange(x, step) = x:step:x
 # Arrays return a vector
 _mayberange(x, step::Nothing) = [x]
 
-@inline centerval(index::AbstractArray{<:Number}, len) = (first(index) + last(index)) / 2
-@inline function centerval(index::AbstractArray{<:DateTime}, len)
-    f = first(index)
-    l = last(index)
+@inline centerval(values::AbstractArray{<:Number}, len) = (first(values) + last(values)) / 2
+@inline function centerval(values::AbstractArray{<:DateTime}, len)
+    f = first(values)
+    l = last(values)
     if f <= l
-        return (l - f) / 2 + first(index)
+        return (l - f) / 2 + first(values)
     else
-        return (f - l) / 2 + last(index)
+        return (f - l) / 2 + last(values)
     end
 end
-@inline centerval(index::AbstractArray, len) = index[len ÷ 2 + 1]
+@inline centerval(values::AbstractArray, len) = values[len ÷ 2 + 1]
 
 ordering(::ForwardOrdered) = Base.Order.ForwardOrdering()
 ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
