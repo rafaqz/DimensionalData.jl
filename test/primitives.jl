@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
+using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims
 
 @dim Tst
 
@@ -298,6 +298,66 @@ end
     @test combinedims((X(1:10), Y(1:5)), (X(1:10), Z(3:10))) == (X(1:10), Y(1:5), Z(3:10))
     @test combinedims([]) == combinedims() == ()
     @test_throws DimensionMismatch combinedims((X(1:2), Y(1:5)), (X(1:10), Z(3:10)))
+end
+
+@testset "comparedims" begin
+    @testset "default keywords" begin
+        @test comparedims(Bool, X(1:2), X(1:2))
+        @test !comparedims(Bool, X(1:2), Y(1:2))
+        @test !comparedims(Bool, X(1:2), X(1:3))
+        @test_warn "Found both lengths 2 and 3" comparedims(Bool, X(1:2), X(1:3); warn="")
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); warn="")
+        @test comparedims(X(1:2), X(1:2)) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), Y(1:2))
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:3))
+    end
+    @testset "compare type" begin
+        @test comparedims(Bool, X(1:2), Y(1:2); type=false)
+        @test !comparedims(Bool, X(1:2), Y(1:2); type=true)
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); type=true, warn="")
+        @test comparedims(X(1:2), Y(1:2); type=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), Y(Sampled(1:2)); type=true)
+    end
+    @testset "compare val type" begin
+        @test comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
+        @test comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
+        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=true)
+        @test comparedims(X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled([1, 2])), X(Sampled(1:2)); valtype=true)
+    end
+    @testset "compare values" begin
+        @test comparedims(Bool, X(1:2), X(2:3); val=false)
+        @test !comparedims(Bool, X(1:2), X(2:3); val=true)
+        @test_warn "do not match" comparedims(Bool, X(1:2), X(2:3); val=true, warn="")
+        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=true)
+        @test comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=true)
+    end
+    @testset "compare length" begin
+        @test comparedims(Bool, X(1:2), X(1:3); length=false)
+        @test !comparedims(Bool, X(1:2), X(1:3); length=true)
+        @test_warn "Found both lengths" comparedims(Bool, X(1:2), X(1:3); length=true, warn="")
+        @test comparedims(X(1:2), X(1:3); length=false) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:3); length=true)
+        @test comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=true)
+        @test !comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=false)
+        @test comparedims(X(1:2), X(1:1); length=false, ignore_length_one=true) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:1); length=true, ignore_length_one=false)
+    end
+    @testset "compare order" begin
+        a, b = X(Sampled(1:2); order=ForwardOrdered()), X(Sampled(1:2); order=ReverseOrdered())
+        @test comparedims(Bool, a, b; order=false)
+        @test !comparedims(Bool, a, b; order=true)
+        @test comparedims(Bool, a, b; order=false)
+        @test_nowarn comparedims(Bool, a, b; order=true)
+        @test_nowarn comparedims(Bool, a, b; order=true, warn="")
+        @test_warn "Lookups do not all have the same order" comparedims(Bool, a, b; order=true, warn="")
+        @test_throws DimensionMismatch comparedims(a, b; order=true)
+    end
 end
 
 @testset "setdims" begin
