@@ -354,7 +354,6 @@ end
         @test !comparedims(Bool, a, b; order=true)
         @test comparedims(Bool, a, b; order=false)
         @test_nowarn comparedims(Bool, a, b; order=true)
-        @test_nowarn comparedims(Bool, a, b; order=true, warn="")
         @test_warn "Lookups do not all have the same order" comparedims(Bool, a, b; order=true, warn="")
         @test_throws DimensionMismatch comparedims(a, b; order=true)
     end
