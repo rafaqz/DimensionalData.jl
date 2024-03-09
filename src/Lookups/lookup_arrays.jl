@@ -263,7 +263,7 @@ $SAMPLED_ARGUMENTS_DOC
 
 Create an array with [`Interval`] sampling, and `Regular` span for a vector with known spacing.
 
-We set the [`Locus`](@ref) of the `Intervals` to `Start` specifying
+We set the [`locus`](@ref) of the `Intervals` to `Start` specifying
 that the lookup values are for the locuss at the start of each interval.
 
 ```jldoctest Sampled

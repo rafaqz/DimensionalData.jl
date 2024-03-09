@@ -181,7 +181,7 @@ locus(sampling::Points) = Center()
 [`Sampling`](@ref) specifying that sampled values are the mean (or similar)
 value over an _interval_, rather than at one specific point.
 
-Intervals require a [`Locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
+Intervals require a [`locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
 [`End`](@ref) to define the location in the interval that the index values refer to.
 """
 struct Intervals{P} <: Sampling
