@@ -6,7 +6,7 @@
 for f in (:getindex, :view, :dotview)
     @eval Base.@assume_effects :foldable @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
         DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
-    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(s::AbstractDimStack, keys::Tuple)
+    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(s::AbstractDimStack, keys::NTuple{<:Any,Symbol})
         rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
     end
     @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(
@@ -17,13 +17,16 @@ for f in (:getindex, :view, :dotview)
 end
 
 for f in (:getindex, :view, :dotview)
-    _f = Symbol(:_, f)
+    _dim_f = Symbol(:_dim_, f)
     @eval begin
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
+            Base.$f(s, to_indices(CartesianIndices(s), (i,))...)
+        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Integer)
-            if hassamedims(s)
+            if hassamedims(s) && length(dims(s)) == 1 
                 map(l -> Base.$f(l, i), s)
             else
                 Base.$f(s, DimIndices(s)[i])
@@ -50,7 +53,7 @@ for f in (:getindex, :view, :dotview)
                 checkbounds(s, i)
             end
         end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1::SelectorOrStandard, i2, Is::SelectorOrStandard...)
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1, i2, Is...)
             I = to_indices(CartesianIndices(s), (i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
@@ -69,7 +72,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, D::DimensionalIndices...; kw...
         )
-            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
+            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         # Ambiguities
         @propagate_inbounds function Base.$f(
@@ -78,46 +81,44 @@ for f in (:getindex, :view, :dotview)
             ::Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension},
             ::_DimIndicesAmb...
         )
-            $_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
+            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 
             d1::Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}, 
             D::Vararg{Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}}
         )
-            $_f(s, _simplify_dim_indices(d1, D...))
+            $_dim_f(s, _simplify_dim_indices(d1, D...))
         end
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, 
             D::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
         )
-            $_f(s, _simplify_dim_indices(D...))
+            $_dim_f(s, _simplify_dim_indices(D...))
         end
 
 
-        @propagate_inbounds function $_f(
+        @propagate_inbounds function $_dim_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
             return merge_and_index(Base.$f, A, (a1, args...))
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
-        @propagate_inbounds function $_f(s::AbstractDimStack)
+        @propagate_inbounds function $_dim_f(s::AbstractDimStack)
             map(Base.$f, s)
         end
-        @propagate_inbounds function $_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
+        Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(s::AbstractDimStack, d1::Dimension, ds::Dimension...)
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
-            newlayers = map(layers(s)) do A
+            function f(A) 
                 layerdims = dims(D, dims(A))
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
                 Base.$f(A, I...)
             end
+            newlayers = map(f, layers(s))
             # Dicide to rewrap as an AbstractDimStack, or return a scalar
-            if all(map(v -> v isa AbstractDimArray, newlayers))
-                # All arrays, wrap
-                rebuildsliced(Base.$f, s, newlayers, (dims2indices(dims(s), D)))
-            elseif any(map(v -> v isa AbstractDimArray, newlayers))
+            if any(map(v -> v isa AbstractDimArray, newlayers))
                 # Some scalars, re-wrap them as zero dimensional arrays
                 non_scalar_layers = map(layers(s), newlayers) do l, nl
                     nl isa AbstractDimArray ? nl : rebuild(l, fill(nl), ())

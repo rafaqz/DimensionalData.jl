@@ -25,9 +25,10 @@ const LookupArrays = Lookups
 
 import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
-    shiftlocus, maybeshiftlocus, SelectorOrInterval, Interval
+    shiftlocus, maybeshiftlocus
 using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
-    LookupTrait, AllMetadata, LookupSetters
+    LookupTrait, AllMetadata, LookupSetters, AbstractBeginEndRange,
+    SelectorOrInterval, Interval
 
 using Base: tail, OneTo, @propagate_inbounds
 

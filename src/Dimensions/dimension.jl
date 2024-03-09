@@ -7,15 +7,14 @@ Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
 `Dimension`s label the axes of an `AbstractDimArray`,
-or other dimensional objects, and are used to index into the array.
+or other dimensional objects, and are used to index into an array.
 
-They may also provide an alternate index to lookup for each array axis.
-This may be any `AbstractVector` matching the array axis length, or a `Val`
-holding a tuple for compile-time index lookups.
+They may also wrap lookup values for each array axis.
+This may be any `AbstractVector` matching the array axis length,
+but will usually be converted to a `Lookup` when use in a constructed
+object.
 
-`Dimension`s also have `lookup` and `metadata` fields.
-
-`lookup` gives more details about the dimension, such as that it is
+A `Lookup` gives more details about the dimension, such as that it is
 [`Categorical`](@ref) or [`Sampled`](@ref) as [`Points`](@ref) or
 [`Intervals`](@ref) along some transect. DimensionalData will
 attempt to guess the lookup from the passed-in index value.
@@ -90,9 +89,6 @@ x = A[X(Between(3, 4)), Y(At('b'))]
  ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
  4    0.0                   0.0                      0.0
 ```
-
-`Dimension` objects may have [`lookup`](@ref) and [`metadata`](@ref) fields
-to track additional information about the data and the index, and their relationship.
 """
 abstract type Dimension{T} end
 
@@ -194,9 +190,6 @@ label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", unit
 # Lookups methods
 Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
 
-Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
-
 Lookups.bounds(dim::Dimension) = bounds(val(dim))
 Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
@@ -255,6 +248,9 @@ end
 @inline selectindices(ds::DimTuple, sel::Tuple) = selectindices(val(ds), sel)
 @inline selectindices(dim::Dimension, sel) = selectindices(val(dim), sel)
 
+# Deprecated
+Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
+Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
@@ -309,7 +305,7 @@ _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
     # Only offset starts and reuse them for ends, 
     # so floating point error is the same.
-    starts = Lookups._shiftindexlocus(Start(), lookup)
+    starts = Lookups._shiftlocus(Start(), lookup)
     dest = Array{eltype(starts),2}(undef, 2, length(starts))
     # Use `bounds` as the start/end values
     if order(lookup) isa ReverseOrdered

@@ -69,7 +69,7 @@ end
     cat_da = set(da, X=NoLookup(), Y=Categorical())
     @test index(cat_da) == 
         (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
-    cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoIndex(); metadata=Dict()))
+    cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
     @test metadata(cat_da_m) == Dict()
  
     @testset "span" begin

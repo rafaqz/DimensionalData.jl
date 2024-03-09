@@ -75,7 +75,7 @@ end
     ind, dep = dims(A)
     :xguide --> label(A)
     :legendtitle --> label(dep)
-    :label --> string.(permutedims(index(dep)))
+    :label --> string.(permutedims(parent(lookup(dep))))
     _withaxes(ind, A)
 end
 
@@ -91,7 +91,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(ind)
-    :label --> string.(permutedims(index(ind)))
+    :label --> string.(permutedims(parent(lookup(ind))))
     _xticks!(plotattributes, s, ind)
     parent(A)
 end
@@ -102,7 +102,7 @@ end
     :xguide --> label(ind)
     :yguide --> label(A)
     :legendtitle --> label(ind)
-    :label --> string.(permutedims(index(ind)))
+    :label --> string.(permutedims(parent(lookup(ind))))
     _xticks!(plotattributes, s, ind)
     parent(A)
 end
@@ -132,27 +132,27 @@ end
 
 
 _withaxes(dim::Dimension, A::AbstractDimArray) =
-    _withaxes(lookup(dim), index(dim), parent(A))
-_withaxes(::NoLookup, index, A::AbstractArray) = A
-_withaxes(::Lookup, index, A::AbstractArray) = index, A
-_withaxes(::Categorical, index, A::AbstractArray) = eachindex(index), A
+    _withaxes(lookup(dim), parent(lookup(dim)), parent(A))
+_withaxes(::NoLookup, values, A::AbstractArray) = A
+_withaxes(::Lookup, values, A::AbstractArray) = values, A
+_withaxes(::Categorical, values, A::AbstractArray) = eachindex(values), A
 
 _withaxes(dx::Dimension, dy::Dimension, A::AbstractDimArray) =
-    _withaxes(lookup(dx), lookup(dy), index(dx), index(dy), parent(A))
+    _withaxes(lookup(dx), lookup(dy), parent(lookup(dx)), parent(lookup(dy)), parent(A))
 _withaxes(::Lookup, ::Lookup, ix, iy, A) = ix, iy, A
 _withaxes(::NoLookup, ::Lookup, ix, iy, A) = axes(A, 2), iy, A
 _withaxes(::Lookup, ::NoLookup, ix, iy, A) = ix, axes(A, 1), A
 _withaxes(::NoLookup, ::NoLookup, ix, iy, A) = axes(A, 2), axes(A, 1), A
 
-_xticks!(attr, s, d::Dimension) = _xticks!(attr, s, lookup(d), index(d))
-_xticks!(attr, s, ::Categorical, index) =
-    RecipesBase.is_explicit(attr, :xticks) || (attr[:xticks] = (eachindex(index), index))
-_xticks!(attr, s, ::Lookup, index) = nothing
+_xticks!(attr, s, d::Dimension) = _xticks!(attr, s, lookup(d), parent(lookup(d)))
+_xticks!(attr, s, ::Categorical, values) =
+    RecipesBase.is_explicit(attr, :xticks) || (attr[:xticks] = (eachindex(values), values))
+_xticks!(attr, s, ::Lookup, values) = nothing
 
-_yticks!(attr, s, d::Dimension) = _yticks!(attr, s, lookup(d), index(d))
-_yticks!(attr, s, ::Categorical, index) =
-    RecipesBase.is_explicit(attr, :yticks) || (attr[:yticks] = (eachindex(index), index))
-_yticks!(attr, s, ::Lookup, index) = nothing
+_yticks!(attr, s, d::Dimension) = _yticks!(attr, s, lookup(d), parent(lookup(d)))
+_yticks!(attr, s, ::Categorical, values) =
+    RecipesBase.is_explicit(attr, :yticks) || (attr[:yticks] = (eachindex(values), values))
+_yticks!(attr, s, ::Lookup, values) = nothing
 
 ### Shared utils
 

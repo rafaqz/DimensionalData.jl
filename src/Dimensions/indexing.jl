@@ -14,9 +14,9 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::SelectorOrInterval)
             Base.$f(d, selectindices(val(d), i))
         end
-        # Everything else (like custom indexing from other packages) passes through to the parent
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
-            Base.$f(parent(d), i)
+            x = Base.$f(parent(d), i)
+            x isa AbstractArray ? rebuild(d, x) : x
         end
     end
 end
@@ -28,9 +28,7 @@ end
 
 Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or `Colon`.
 """
-@inline dims2indices(dim::Dimension, I::StandardIndices) = I
 @inline dims2indices(dim::Dimension, I) = _dims2indices(dim, I)
-
 @inline dims2indices(x, I) = dims2indices(dims(x), I)
 @inline dims2indices(::Nothing, I) = _dimsnotdefinederror()
 @inline dims2indices(::Tuple{}, I) = ()
@@ -106,13 +104,16 @@ _unwrapdim(dim::Dimension) = val(dim)
 _unwrapdim(x) = x
 
 # Single dim methods
+# Simply unwrap dimensions
+@inline _dims2indices(dim::Dimension, seldim::Dimension) = _dims2indices(dim, val(seldim))
 # A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
+@inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
+@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End}}) = 
+    to_indices(parent(dim), (i,))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
-# Simply unwrap dimensions
-@inline _dims2indices(dim::Dimension, seldim::Dimension) = 
-    Lookups.selectindices(val(dim), val(seldim))
+@inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
     map(map(key2dim, Keys), values(extent)) do k, v

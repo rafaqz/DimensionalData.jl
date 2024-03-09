@@ -142,7 +142,7 @@ function print_metadata_block(io, mime, metadata; blockwidth=0, displaywidth)
     else
         metadata_lines = split(sprint(show, mime, metadata), "\n")
         new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, metadata_lines) + 4))
-        print_block_separator(io, "metadata", blockwidth, new_blockwidth)
+        new_blockwidth = print_block_separator(io, "metadata", blockwidth, new_blockwidth)
         println(io)
         print(io, "  ")
         show(io, mime, metadata)
@@ -179,7 +179,9 @@ function print_block_separator(io, label, prev_width, new_width=prev_width)
         line = string('├', '─'^max(0, new_width - textwidth(label) - 2))
         corner = '┤'
     end
-    printstyled(io, string(line, ' ', label, ' ', corner); color=:light_black)
+    full = string(line, ' ', label, ' ', corner)
+    printstyled(io, full; color=:light_black)
+    return length(full) - 2
 end
 
 function print_block_close(io, blockwidth)

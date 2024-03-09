@@ -26,24 +26,14 @@ using DimensionalData.Lookups, DimensionalData.Dimensions
     da2 = DimArray(fill(3), ())
     dimz2 = dims(da2)
     @test dims2indices(dimz2, ()) === ()
-
-    @testset "mixed dimensions" begin
-        a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
-        da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
-        da[Ti=1, DimIndices(da[Ti=1])]
-        da[DimIndices(da[Ti=1]), Ti(2)]
-        da[DimIndices(da[Ti=1])[:], Ti(2)]
-        da[DimIndices(da[Ti=1])[:], DimIndices(da[X=1, Y=1])]
-        da[DimIndices(da[X=1, Y=1]), DimIndices(da[Ti=1])[:]]
-        da[DimIndices(da[X=1, Y=1])[:], DimIndices(da[Ti=1])[:]]
-    end
 end
 
 @testset "lookup" begin
     @testset "Points" begin
         l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
-        @test l[:] == l
-        @test l[1:5] == l
+        @test l[:] == l[Begin:End] == l
+        @test l[Begin:5] == l[1:5] == l
+        @test l[Begin:End] isa typeof(l)
         @test l[1:5] isa typeof(l)
         @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
             Base.dotview(l, [1, 3, 4]) ==
@@ -110,9 +100,10 @@ end
 
     @testset "Intervals" begin
         l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Intervals(Start()), nothing)
-        @test l[:] == l
+        @test l[:] == l[Begin:End] == l
         @test l[1:5] == l
         @test l[1:5] isa typeof(l)
+        @test l[Begin:End] isa typeof(l)
         @test l[[1, 3, 4]] == Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
         @test l[Int[]] == Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Intervals(Start()), nothing)
         @test l[Near(2.1)] == 2.0
@@ -168,7 +159,9 @@ end
     d = X(Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing))
     @test @inferred d[:] == d
     @test @inferred d[1:5] == d
-    @test @inferred d[1:5] isa typeof(d)
+    @test d[1:5] isa typeof(d)
+    @test @inferred d[Begin:End] == d
+    @test d[Begin:End] isa typeof(d)
     # TODO properly handle index mashing arrays: here Regular should become Irregular
     # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
     # @test d[[true, false, false, false, true]] == X(Sampled([2.0, 10.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
@@ -203,13 +196,15 @@ end
 
     @testset "LinearIndex getindex returns an Array, except Vector" begin
         @test @inferred da[1:2] isa Array
+        @test @inferred da[Begin:Begin+1] isa Array
+        @test da[1:2] == da[begin:begin+1] == da[Begin:Begin+1]
         @test @inferred da[rand(Bool, length(da))] isa Array
         @test @inferred da[rand(Bool, size(da))] isa Array
         @test @inferred da[:] isa Array
-        @test @inferred da[:] == vec(da)
+        @test da[:] == da[Begin:End] == vec(da)
         b = @inferred da[[!iseven(i) for i in 1:length(da)]]
         @test b isa Array
-        @test b == da[1:2:end]
+        @test b == da[1:2:end] == da[Begin:2:End]  
         
         v = @inferred da[1, :]
         @test @inferred v[1:2] isa DimArray
@@ -230,7 +225,7 @@ end
     end
 
     @testset "getindex returns DimensionArray slices with the right dimensions" begin
-        a = da[X(1:2), Y(1)]
+        a = da[X(Begin:Begin+1), Y(1)]
         @test a == [1, 3]
         @test typeof(a) <: DimArray{Int,1}
         @test dims(a) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
@@ -244,7 +239,7 @@ end
         @test locus(da, X) == Center()
 
         a = da[(X(1), Y(1:2))] # Can use a tuple of dimensions like a CartesianIndex
-        @test a == [1, 2]
+        @test a == [1, 2] == da[(X(1), Y(Begin:Begin+1))]
         @test typeof(a) <: DimArray{Int,1}
         @test typeof(parent(a)) <: Array{Int,1}
         @test dims(a) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
@@ -275,6 +270,7 @@ end
         @test da[DimIndices(da)] == da
         da[DimIndices(da)[X(1)]]
         da[DimSelectors(da)]
+        da[DimSelectors(da)[X(1)]]
     end
     
     @testset "selectors work" begin
@@ -338,9 +334,9 @@ end
             da2 = DimArray(randn(2, 3), (X(1:2), Y(1:3)))
 
             for inds in ((), (1,), (1, 1), (1, 1, 1), (CartesianIndex(),), (CartesianIndices(da0),))
-                @test typeof(parent(view(da0, inds...))) === typeof(view(parent(da0), inds...))
-                @test parent(view(da0, inds...)) == view(parent(da0), inds...)
                 a = view(da0, inds...)
+                @test typeof(parent(a)) === typeof(view(parent(da0), inds...))
+                @test parent(a) == view(parent(da0), inds...)
                 @test a isa DimArray{eltype(da0),0}
                 @test length(dims(a)) == 0
                 @test length(refdims(a)) == 0
@@ -355,7 +351,8 @@ end
                 @test length(refdims(a)) == 1
             end
 
-            for inds in ((2,), (2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+            for inds in ((2, 3), (1, 3, 1), (CartesianIndex(2, 1),))
+                inds = (CartesianIndex(2, 1),)
                 @test typeof(parent(view(da2, inds...))) === typeof(view(parent(da2), inds...))
                 @test parent(view(da2, inds...)) == view(parent(da2), inds...)
                 a = view(da2, inds...)
@@ -485,6 +482,17 @@ end
         @test da[2] == 3
         @inferred getindex(da, X(2), Y(2))
     end
+
+    @testset "mixed dimensions" begin
+        a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
+        da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
+        da[Ti=1, DimIndices(da[Ti=1])]
+        da[DimIndices(da[Ti=1]), Ti(2)]
+        da[DimIndices(da[Ti=1])[:], Ti(2)]
+        da[DimIndices(da[Ti=1])[:], DimIndices(da[X=1, Y=1])]
+        da[DimIndices(da[X=1, Y=1]), DimIndices(da[Ti=1])[:]]
+        da[DimIndices(da[X=1, Y=1])[:], DimIndices(da[Ti=1])[:]]
+    end
 end
 
 @testset "stack" begin
@@ -552,7 +560,7 @@ end
     end
 
     @testset "view" begin
-        sv = @inferred view(s, 1, 1)
+        sv = @inferred view(s, Begin, Begin)
         @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         @test dims(sv) == ()
         sv = @inferred view(s, X(1:2), Y(3:3)) 
@@ -561,12 +569,12 @@ end
         @test @inferred slicedds[:one] == [1.0, 2.0, 3.0]
         @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
         @testset "linear indices" begin
-            @test_broken linear2d = @inferred view(s, 1)
+            linear2d = @inferred view(s, 1)
             linear2d = view(s, 1)
             @test linear2d isa DimStack
             @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             @test_broken linear1d = @inferred view(s[X(1)], 1)
-            linear1d = view(s[X(1)], 1)
+            linear1d = view(s, 1)
             @test linear1d isa DimStack
             @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear2d = view(s, 1:2)
@@ -632,4 +640,29 @@ end
     @test @inferred view(A1, Ti(5)) == permutedims([5])
     @test @inferred view(A2, Ti(5)) == permutedims([5])
     @test @inferred view(A3, Ti(5)) == permutedims([5])
+end
+
+@testset "Begin End indexng" begin
+    @testset "generic indexing" begin
+        @test (1:10)[Begin] == 1
+        @test (1:10)[Begin()] == 1
+        @test (1:10)[End] == 10
+        @test (1:10)[End()] == 10
+        @test (1:10)[Begin:End] == 1:10
+        @test (1:10)[Begin:10] == 1:10
+        @test (1:10)[1:End] == 1:10
+        @test (1:10)[Begin():End()] == 1:10
+        @test (1:10)[Begin+1:End-1] == 2:9
+        @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[Begin:End÷2] == 1:5
+        @test (1:10)[Begin|3:End] == 3:10
+        @test (1:10)[Begin:End&3] == 1:2
+        @test (1:10)[Begin()+1:End()-1] == 2:9
+    end
+    @testset "dimension indexing" begin
+        A = DimArray((1:5)*(6:3:20)', (X, Y))
+        @test A[X=Begin, Y=End] == 18
+        @test A[X=End(), Y=Begin()] == 30
+        @test A[X=Begin:Begin+1, Y=End] == [18, 36]
+    end
 end
