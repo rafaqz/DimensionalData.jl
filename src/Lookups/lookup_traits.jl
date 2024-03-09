@@ -111,6 +111,9 @@ struct Start <: Position end
 
 Used to specify the `begin` index of a `Dimension` axis. 
 as regular `begin` will not work with named dimensions.
+
+Can be used with `:` to create a `BeginEndRange` or 
+`BeginEndStepRange`.
 """
 struct Begin <: Position end
 
@@ -121,8 +124,8 @@ struct Begin <: Position end
 
 Used to specify the `end` index of a `Dimension` axis, 
 as regular `end` will not work with named dimensions.
-Can be used with `:` to create a [`BeginEndRange`](@ref)
-or [`BeginEndStepRange`](@ref).
+Can be used with `:` to create a `BeginEndRange` or 
+`BeginEndStepRange`.
 
 Also used to specify lookup values correspond to the end 
 locus of an interval.
