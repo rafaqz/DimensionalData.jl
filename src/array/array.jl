@@ -252,7 +252,7 @@ Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
-_noname(s::String) = @show s
+_noname(s::String) = ""
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
 _noname(name::Name) = name # Keep the name so the type doesn't change
