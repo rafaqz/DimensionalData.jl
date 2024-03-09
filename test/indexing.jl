@@ -560,7 +560,7 @@ end
     end
 
     @testset "view" begin
-        sv = @inferred view(s, 1, 1)
+        sv = @inferred view(s, Begin, Begin)
         @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
         @test dims(sv) == ()
         sv = @inferred view(s, X(1:2), Y(3:3)) 
@@ -574,7 +574,7 @@ end
             @test linear2d isa DimStack
             @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             @test_broken linear1d = @inferred view(s[X(1)], 1)
-            linear1d = view(s[X(1)], 1)
+            linear1d = view(s, 1)
             @test linear1d isa DimStack
             @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
             linear2d = view(s, 1:2)
@@ -640,4 +640,29 @@ end
     @test @inferred view(A1, Ti(5)) == permutedims([5])
     @test @inferred view(A2, Ti(5)) == permutedims([5])
     @test @inferred view(A3, Ti(5)) == permutedims([5])
+end
+
+@testset "Begin End indexng" begin
+    @testset "generic indexing" begin
+        @test (1:10)[Begin] == 1
+        @test (1:10)[Begin()] == 1
+        @test (1:10)[End] == 10
+        @test (1:10)[End()] == 10
+        @test (1:10)[Begin:End] == 1:10
+        @test (1:10)[Begin:10] == 1:10
+        @test (1:10)[1:End] == 1:10
+        @test (1:10)[Begin():End()] == 1:10
+        @test (1:10)[Begin+1:End-1] == 2:9
+        @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[Begin:End÷2] == 1:5
+        @test (1:10)[Begin|3:End] == 3:10
+        @test (1:10)[Begin:End&3] == 1:2
+        @test (1:10)[Begin()+1:End()-1] == 2:9
+    end
+    @testset "dimension indexing" begin
+        A = DimArray((1:5)*(6:3:20)', (X, Y))
+        @test A[X=Begin, Y=End] == 18
+        @test A[X=End(), Y=Begin()] == 30
+        @test A[X=Begin:Begin+1, Y=End] == [18, 36]
+    end
 end

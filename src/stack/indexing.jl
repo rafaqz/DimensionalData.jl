@@ -6,7 +6,7 @@
 for f in (:getindex, :view, :dotview)
     @eval Base.@assume_effects :foldable @propagate_inbounds Base.$f(s::AbstractDimStack, key::Symbol) =
         DimArray(data(s)[key], dims(s, layerdims(s, key)), refdims(s), key, layermetadata(s, key))
-    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(s::AbstractDimStack, keys::Tuple)
+    @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(s::AbstractDimStack, keys::NTuple{<:Any,Symbol})
         rebuild_from_arrays(s, NamedTuple{keys}(map(k -> s[k], keys)))
     end
     @eval Base.@assume_effects :foldable @propagate_inbounds function Base.$f(
@@ -19,6 +19,9 @@ end
 for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     @eval begin
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
+            Base.$f(s, to_indices(CartesianIndices(s), (i,))...)
+        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
         end
@@ -50,7 +53,7 @@ for f in (:getindex, :view, :dotview)
                 checkbounds(s, i)
             end
         end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1::SelectorOrStandard, i2, Is::SelectorOrStandard...)
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i1, i2, Is...)
             I = to_indices(CartesianIndices(s), (i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
@@ -108,11 +111,12 @@ for f in (:getindex, :view, :dotview)
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
-            newlayers = map(layers(s)) do A
+            function f(A) 
                 layerdims = dims(D, dims(A))
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
                 Base.$f(A, I...)
             end
+            newlayers = map(f, layers(s))
             # Dicide to rewrap as an AbstractDimStack, or return a scalar
             if any(map(v -> v isa AbstractDimArray, newlayers))
                 # Some scalars, re-wrap them as zero dimensional arrays

@@ -37,7 +37,7 @@ function print_layers_block(io, mime, stack; blockwidth, displaywidth)
     for key in keys(layers)
         newblockwidth = min(displaywidth - 2, max(newblockwidth, length(sprint(print_layer, stack, key, keylen))))
     end
-    print_block_separator(io, "layers", blockwidth, newblockwidth)
+    newblockwidth = print_block_separator(io, "layers", blockwidth, newblockwidth)
     println(io)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)

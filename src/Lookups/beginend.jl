@@ -22,22 +22,27 @@ Base.first(r::AbstractBeginEndRange) = r.start
 Base.last(r::AbstractBeginEndRange) = r.stop
 Base.step(r::BeginEndStepRange) = r.step
 
-(::Colon)(a::LazyMath, b::LazyMath) = BeginEndRange(a, b)
-(::Colon)(a::Union{Int,LazyMath}, b::Union{Type{Begin},Type{End}}) = BeginEndRange(a, b())
-(::Colon)(a::Union{Type{Begin},Type{End}}, b::Union{Int,LazyMath}) = BeginEndRange(a(), b)
-(::Colon)(a::Union{Type{Begin},Type{End}}, b::Union{Type{Begin},Type{End}}) = BeginEndRange(a(), b())
+(::Colon)(a::Int, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = BeginEndRange(a, _x(b))
+(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Int) = BeginEndRange(_x(a), b)
+(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = 
+    BeginEndRange(_x(a), _x(b))
 
-(::Colon)(a::LazyMath, step::Int, b::LazyMath) = BeginEndStepRange(a, step, b)
-(::Colon)(a::Union{Int,LazyMath}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a, step, b())
-(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Int,LazyMath}) = BeginEndStepRange(a(), step, b)
+(::Colon)(a::Union{Int,LazyMath}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a, step, _x(b))
+(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Int,LazyMath}) = BeginEndStepRange(_x(a), step, b)
 (::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Type{Begin},Type{End}}) = 
-    BeginEndStepRange(a(), step, b())
+    BeginEndStepRange(_x(a), step, _x(b))
 
+_x(T::Type) = T()
+_x(x) = x
 
 Base.to_indices(A, inds, (r, args...)::Tuple{BeginEndRange,Vararg}) =
     (_to_index(inds[1], r.start):_to_index(inds[1], r.stop), to_indices(A, Base.tail(inds), args)...)
 Base.to_indices(A, inds, (r, args...)::Tuple{BeginEndStepRange,Vararg}) =
     (_to_index(inds[1], r.start):r.step:_to_index(inds[1], r.stop), to_indices(A, Base.tail(inds), args)...)
+Base._to_indices1(A, inds, ::Type{Begin}) = first(inds[1])
+Base._to_indices1(A, inds, ::Type{End}) = last(inds[1])
+Base._to_indices1(A, inds, ::Begin) = first(inds[1])
+Base._to_indices1(A, inds, ::End) = last(inds[1])
 
 _to_index(inds, a::Int) = a
 _to_index(inds, ::Begin) = first(inds)
@@ -51,6 +56,8 @@ Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, ber::AbstractBeginEndRang
 for f in (:+, :-, :*, :÷, :|, :&)
     @eval Base.$f(::Type{T}, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
     @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
+    @eval Base.$f(::T, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
+    @eval Base.$f(i::Int, ::T) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
     @eval Base.$f(x::LazyMath{T}, i::Int) where T = LazyMath{T}(Base.Fix2(x.f ∘ $f, i))
     @eval Base.$f(i::Int, x::LazyMath{T}) where T = LazyMath{T}(Base.Fix1(x.f ∘ $f, i))
 end

@@ -112,6 +112,7 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 @inline _dims2indices(dim::Dimension, I::AbstractBeginEndRange) = I
 @inline _dims2indices(dim::Dimension, I::StandardIndices) = I
+@inline _dims2indices(dim::Dimension, i) = Base.to_indices(parent(dim), (i,))[1]
 @inline _dims2indices(dim::Dimension, I::SelectorOrInterval) = selectindices(val(dim), I)
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
