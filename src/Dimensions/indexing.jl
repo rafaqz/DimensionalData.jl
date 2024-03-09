@@ -109,11 +109,11 @@ _unwrapdim(x) = x
 # A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
+@inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
+@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End}}) = 
+    to_indices(parent(dim), (i,))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
-@inline _dims2indices(dim::Dimension, I::AbstractBeginEndRange) = I
-@inline _dims2indices(dim::Dimension, I::StandardIndices) = I
-@inline _dims2indices(dim::Dimension, i) = Base.to_indices(parent(dim), (i,))[1]
-@inline _dims2indices(dim::Dimension, I::SelectorOrInterval) = selectindices(val(dim), I)
+@inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
     map(map(key2dim, Keys), values(extent)) do k, v

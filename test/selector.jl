@@ -1027,11 +1027,7 @@ end
         for idx in indices
             from2d = view(da, idx)
             @test from2d == view(parent(da), idx)
-            if idx isa Integer
-                @test from2d isa DimArray
-            else
-                @test from2d isa SubArray
-            end
+            @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(parent(da)[1, :], idx)
             @test from1d isa DimArray
@@ -1144,7 +1140,7 @@ end
     @testset "Extent indexing" begin
         # THese should be the same because da is the maximum size
         # we can index with `Touches`
-        da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        @test da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
     end
 
     @testset "with dim wrappers" begin

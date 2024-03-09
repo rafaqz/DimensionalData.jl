@@ -62,17 +62,19 @@ for f in (:getindex, :view, :dotview)
         # Except 1D DimArrays
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
+        @propagate_inbounds Base.$f(A::AbstractDimVector, i::SelectorOrInterval) = 
+            Base.$f(A, dims2indices(A, (i,))...)
         # Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, i2, I...))...)
 
-        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Extents.Extent) =
+        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Extents.Extent) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Extents.Extent) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Extents.Extent) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray; kw...) =
