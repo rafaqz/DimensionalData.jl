@@ -661,8 +661,12 @@ end
     end
     @testset "dimension indexing" begin
         A = DimArray((1:5)*(6:3:20)', (X, Y))
+        @test A[Begin, End] == 18
+        @test A[Begin(), End()] == 18
         @test A[X=Begin, Y=End] == 18
         @test A[X=End(), Y=Begin()] == 30
+        @test A[Begin:Begin+1, End] == [18, 36]
+        @test A[Begin():Begin()+1, End()] == [18, 36]
         @test A[X=Begin:Begin+1, Y=End] == [18, 36]
     end
 end

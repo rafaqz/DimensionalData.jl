@@ -41,17 +41,18 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, I::CartesianIndices) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), I), (I,))
         @propagate_inbounds function Base.$f(A::AbstractDimVector, i)
-            x = Base.$f(parent(A), i)
+            x = Base.$f(parent(A), Lookups._construct_types(i))
             if x isa AbstractArray
                 rebuildsliced(Base.$f, A, x, to_indices(A, (i,)))
             else
                 x
             end
         end
-        @propagate_inbounds function Base.$f(A::AbstractDimArray, i1, i2, I...)
-            x = Base.$f(parent(A), i1, i2, I...)
+        @propagate_inbounds function Base.$f(A::AbstractDimArray, i1, i2, Is...)
+            I = Lookups._construct_types(i1, i2, Is...)
+            x = Base.$f(parent(A), I...)
             if x isa AbstractArray
-                rebuildsliced(Base.$f, A, x, to_indices(A, (i1, i2, I...)))
+                rebuildsliced(Base.$f, A, x, to_indices(A, I))
             else
                 x
             end

@@ -20,7 +20,7 @@ for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     @eval begin
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
-            Base.$f(s, to_indices(CartesianIndices(s), (i,))...)
+            Base.$f(s, to_indices(CartesianIndices(s), Lookups._construct_types(i))...)
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
@@ -54,7 +54,7 @@ for f in (:getindex, :view, :dotview)
             end
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i1, i2, Is...)
-            I = to_indices(CartesianIndices(s), (i1, i2, Is...))
+            I = to_indices(CartesianIndices(s), Lookups._construct_types(i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
                 throw(BoundsError(dims(s), I))
