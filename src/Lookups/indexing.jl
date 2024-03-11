@@ -13,8 +13,5 @@ for f in (:getindex, :view, :dotview)
             x = Base.$f(parent(l), i)
             x isa AbstractArray ? rebuild(l; data=x) : x
         end
-        @propagate_inbounds function Base.$f(l::Lookup, i::AbstractBeginEndRange)
-            l[Base.to_indices(l, (i,))...]
-        end
     end
 end
