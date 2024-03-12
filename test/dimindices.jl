@@ -141,6 +141,11 @@ end
     @test @inferred vec(ex) == mapreduce(_ -> vec(A), vcat, 1:prod(size(ex[X=1, Y=1])))
     ex1 = DimensionalData.DimExtensionArray(A, (Z(1:10), dims(A)..., Ti(DateTime(2000):Month(1):DateTime(2000, 12); sampling=Intervals(Start()))))
     @test vec(ex1) == mapreduce(_ -> mapreduce(i -> map(_ -> A[i], 1:size(ex1, Z)), vcat, 1:prod((size(ex1, X), size(ex1, Y)))), vcat, 1:size(ex1, Ti))
+
+    v = DimVector(5:10, X; name=:vec)
+    @test v[4] == 8
+    @test view(v, 4) == fill(8)
+    @test v[1:3] == 5:7
 end
 
 @testset "DimSlices" begin
