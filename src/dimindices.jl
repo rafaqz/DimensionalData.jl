@@ -358,7 +358,7 @@ for f in (:getindex, :dotview, :view)
             $f(de._data, i)
         end
     end
-    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::Union{AbstractRange,Colon})
+    @eval @propagate_inbounds function Base.$f(di::DimExtensionArray{<:Any,1}, i::Union{AbstractRange,Colon})
         rebuild(di; _data=di.data[i], dims=(dims(di, 1)[i],))
     end
     # For ambiguity
