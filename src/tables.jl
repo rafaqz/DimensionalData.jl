@@ -147,8 +147,13 @@ end
 
 _dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
 function _dimcolumn(x, d::Dimension)
-    dim_as_dimarray = DimArray(index(d), d)
-    vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+    lookupvals = parent(lookup(d))
+    if length(dims(x)) == 1
+        lookupvals
+    else
+        dim_as_dimarray = DimArray(lookupvals, d)
+        vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+    end
 end
 
 

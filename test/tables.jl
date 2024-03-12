@@ -116,6 +116,14 @@ end
     @test lookup(ds) == lookup(dims(da))
 end
 
+@testset "one dimension tables" begin
+    a = DimVector(1:3, x; name=:a)
+    b = DimVector(4:6, x; name=:b)
+    s = DimStack((a, b))
+    @test Tables.columntable(a) == (X=[:a, :b, :c], a=1:3,)
+    @test Tables.columntable(s) == (X=[:a, :b, :c], a=1:3, b=4:6)
+end
+
 @testset "zero dimension tables" begin
     a = DimArray(fill(1), (); name=:a);
     b = DimArray(fill(2), (); name=:b);

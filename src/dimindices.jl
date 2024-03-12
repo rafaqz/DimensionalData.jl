@@ -19,10 +19,9 @@ for f in (:getindex, :dotview, :view)
         newdims, _ = slicedims(dims(di), I)
         rebuild(di; dims=newdims)
     end
-    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T)
+    @eval @propagate_inbounds Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T) =
         rebuild(di; dims=(dims(di, 1)[i],))
-    end
-    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Int) = 
+    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
         Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
 end
 
@@ -122,13 +121,13 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
 end
 
 # Forces multiple indices not linear
-function Base.getindex(di::DimIndices, i1::Int, i2::Int, I::Int...)
+function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
     map(dims(di), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
     end
 end
 # Dispatch to avoid linear indexing in multidimensionsl DimIndices
-function Base.getindex(di::DimIndices{<:Any,1}, i::Int)
+function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
     d = dims(di, 1)
     (rebuild(d, d[i]),)
 end
@@ -177,7 +176,7 @@ function DimPoints(dims::DimTuple, order::DimTuple)
     DimPoints{T,N,typeof(dims),typeof(order)}(dims, order)
 end
 
-function Base.getindex(dp::DimPoints, i1::Int, i2::Int, I::Int...)
+function Base.getindex(dp::DimPoints, i1::Integer, i2::Integer, I::Integer...)
     # Get dim-wrapped point values at i1, I...
     pointdims = map(dims(dp), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
@@ -185,7 +184,7 @@ function Base.getindex(dp::DimPoints, i1::Int, i2::Int, I::Int...)
     # Return the unwrapped point sorted by `order
     return map(val, DD.dims(pointdims, dp.order))
 end
-Base.getindex(di::DimPoints{<:Any,1}, i::Int) = (dims(di, 1)[i],)
+Base.getindex(di::DimPoints{<:Any,1}, i::Integer) = (dims(di, 1)[i],)
 
 _format(::Tuple{}) = ()
 function _format(dims::Tuple)
@@ -276,12 +275,12 @@ end
 _atol(::Type, atol) = atol
 _atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
 
-@propagate_inbounds function Base.getindex(di::DimSelectors, i1::Int, i2::Int, I::Int...)
+@propagate_inbounds function Base.getindex(di::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
     map(dims(di), di.selectors, (i1, i2, I...)) do d, s, i
         rebuild(d, rebuild(s; val=d[i])) # At selector with the value at i
     end
 end
-@propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Int)
+@propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Integer)
     d = dims(di, 1)
     (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
 end
@@ -311,7 +310,7 @@ function Base.summary(io::IO, A::DimSlices{T,N}) where {T,N}
     print(io, string(nameof(typeof(A)), "{$(nameof(T)),$N}"))
 end
 
-@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Int, i2::Int, Is::Int...)
+@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Integer, i2::Integer, Is::Integer...)
     I = (i1, i2, Is...)
     @boundscheck checkbounds(ds, I...)
     D = map(dims(ds), I) do d, i
@@ -320,7 +319,7 @@ end
     return view(ds._data, D...)
 end
 # Dispatch to avoid linear indexing in multidimensionsl DimIndices
-@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Int)
+@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
     d = dims(ds, 1)
     return view(ds._data, rebuild(d, d[i]))
 end
@@ -352,6 +351,17 @@ for f in (:getindex, :dotview, :view)
     __f = Symbol(:__, f)
     T = Union{Colon,AbstractRange}
     # For ambiguity
+    @eval @propagate_inbounds function Base.$f(de::DimExtensionArray{<:Any,1}, i::Integer)
+        if ndims(parent(de)) == 0
+            $f(de._data)
+        else
+            $f(de._data, i)
+        end
+    end
+    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::Union{AbstractRange,Colon})
+        rebuild(di; _data=di.data[i], dims=(dims(di, 1)[i],))
+    end
+    # For ambiguity
     @eval @propagate_inbounds function Base.$f(de::DimExtensionArray, i1::$T, i2::$T, Is::$T...)
         $__f(de, i1, i2, Is...)
     end
@@ -359,9 +369,9 @@ for f in (:getindex, :dotview, :view)
         $__f(de, i1, i2, Is...)
     end
     @eval @propagate_inbounds function Base.$f(
-        de::DimensionalData.DimExtensionArray, 
-        i1::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
-        i2::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}, 
+        de::DimensionalData.DimExtensionArray,
+        i1::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}},
+        i2::Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}},
         Is::Vararg{Union{AbstractArray{Union{}}, DimensionalData.DimIndices{<:Integer}, DimensionalData.DimSelectors{<:Integer}}}
     )
         $__f(de, i1, i2, Is...)
