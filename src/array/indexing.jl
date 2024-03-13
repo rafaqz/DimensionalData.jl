@@ -179,9 +179,7 @@ function _merge_and_index(f, A, inds)
             f(A, m_inds)
         end
     else
-        d = only(dims_to_merge)
-        val_array = reinterpret(typeof(val(d)), dims_to_merge)
-        f(A, rebuild(d, val_array))
+        f(A, only(dims_to_merge))
     end
 end
 
