@@ -1,12 +1,9 @@
-import type { DefaultTheme } from 'vitepress'
 import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
-const version= '0.25.8'
-
-const VERSIONS: DefaultTheme.NavItemWithLink[] = [
-  { text: `v${version} (current)`, link: '/' },
-  { text: `Release Notes`, link: 'https://github.com/rafaqz/DimensionalData.jl/releases/' },
-]
+import mathjax3 from "markdown-it-mathjax3";
+import footnote from "markdown-it-footnote";
+// Custom
+import type { DefaultTheme } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -15,12 +12,16 @@ export default defineConfig({
   description: "Datasets with named dimensions",
   lastUpdated: true,
   cleanUrls: true,
-  ignoreDeadLinks: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
+  head: [],
+  ignoreDeadLinks: true,
 
   markdown: {
+    math: true,
     config(md) {
-      md.use(tabsMarkdownPlugin)
+      md.use(tabsMarkdownPlugin),
+      md.use(mathjax3),
+      md.use(footnote)
     },
     // https://shiki.style/themes
     theme: {
@@ -50,10 +51,6 @@ export default defineConfig({
           { text: 'DiskArrays', link: '/diskarrays' },
           { text: 'Extending DimensionalData', link: '/extending_dd' },
         ],
-      },
-      {
-        text: `v${version}`,
-        items: VERSIONS,
       },
     ],
 
@@ -91,7 +88,6 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
-
     ],
     footer: {
       message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a> by <a href="https://github.com/lazarusA" target="_blank"><strong>Lazaro Alonso</strong><br>',
