@@ -86,6 +86,13 @@ This also works for all the data layers in a `DimStack`.
 """
 function modify end
 modify(f, s::AbstractDimStack) = map(a -> modify(f, a), s)
+<<<<<<< Updated upstream
+=======
+# Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
+# layers, and instead just modify the parent data directly.
+modify(f, s::AbstractDimStack{<:NamedTuple}) = 
+    rebuild(s; data=map(a -> f(a), parent(s)))
+>>>>>>> Stashed changes
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
