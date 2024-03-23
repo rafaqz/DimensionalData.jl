@@ -1,12 +1,9 @@
-import type { DefaultTheme } from 'vitepress'
 import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
-const version= '0.25.8'
-
-const VERSIONS: DefaultTheme.NavItemWithLink[] = [
-  { text: `v${version} (current)`, link: '/' },
-  { text: `Release Notes`, link: 'https://github.com/rafaqz/DimensionalData.jl/releases/' },
-]
+import mathjax3 from "markdown-it-mathjax3";
+import footnote from "markdown-it-footnote";
+// Custom
+import type { DefaultTheme } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -50,10 +47,6 @@ export default defineConfig({
           { text: 'DiskArrays', link: '/diskarrays' },
           { text: 'Extending DimensionalData', link: '/extending_dd' },
         ],
-      },
-      {
-        text: `v${version}`,
-        items: VERSIONS,
       },
     ],
 
