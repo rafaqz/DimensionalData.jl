@@ -101,5 +101,5 @@ _firstdimarray(x::Tuple{}) = nothing
 _broadcasted_dims(bc::Broadcasted) = _broadcasted_dims(bc.args...)
 _broadcasted_dims(a, bs...) =
     comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true, order=true)
-_broadcasted_dims(a::AbstractDimArray) = dims(a)
+_broadcasted_dims(a::AbstractBasicDimArray) = dims(a)
 _broadcasted_dims(a) = nothing
