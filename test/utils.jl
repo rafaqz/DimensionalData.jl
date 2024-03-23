@@ -115,13 +115,13 @@ end
         @test typeof(parent(mda)) == BitArray{2}
         @test_throws ErrorException modify(A -> A[1, :], da)
     end
-    @testset "dataset" begin
+    @testset "stack" begin
         da1 = DimArray(A, dimz; name=:da1)
         da2 = DimArray(2A, dimz; name=:da2)
         s = DimStack(da1, da2)
         ms = modify(A -> A .> 3, s)
         @test parent(ms) == (da1=[false false false; true true true],
-                              da2=[false true  true ; true true true])
+                             da2=[false true  true ; true true true])
         @test typeof(parent(ms[:da2])) == BitArray{2}
     end
     @testset "dimension" begin
