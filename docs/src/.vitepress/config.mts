@@ -18,6 +18,8 @@ export default defineConfig({
   markdown: {
     config(md) {
       md.use(tabsMarkdownPlugin)
+      md.use(mathjax3),
+      md.use(footnote)
     },
     // https://shiki.style/themes
     theme: {
