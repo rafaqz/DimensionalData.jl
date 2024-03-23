@@ -12,12 +12,14 @@ export default defineConfig({
   description: "Datasets with named dimensions",
   lastUpdated: true,
   cleanUrls: true,
-  ignoreDeadLinks: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
+  head: [],
+  ignoreDeadLinks: true,
 
   markdown: {
+    math: true,
     config(md) {
-      md.use(tabsMarkdownPlugin)
+      md.use(tabsMarkdownPlugin),
       md.use(mathjax3),
       md.use(footnote)
     },
@@ -86,7 +88,6 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
-
     ],
     footer: {
       message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a> by <a href="https://github.com/lazarusA" target="_blank"><strong>Lazaro Alonso</strong><br>',
