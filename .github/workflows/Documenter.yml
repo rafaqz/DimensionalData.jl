@@ -37,20 +37,12 @@ jobs:
         uses: actions/checkout@v4
         with: # Fetches the last commit only
           fetch-depth: 0
-      - name: Setup Node
-        uses: actions/setup-node@v3
-        with:
-            node-version: 20
-            cache: npm # or pnpm / yarn
-            cache-dependency-path: 'docs/package-lock.json' # this should be a package-lock.json file
       - name: Setup Julia
         uses: julia-actions/setup-julia@v1
       - name: Pull Julia cache
         uses: julia-actions/cache@v1
-      - name: Instantiate NPM
-        run: cd docs/; npm i; cd ..
       - name: Generate logo
-        run: julia --project=docs -e "using Pkg; Pkg.instantiate()"; julia --project=docs/ --color=yes docs/logo.jl
+        run: julia --project=docs -e "using Pkg; pkg"dev ."; Pkg.instantiate()"; julia --project=docs/ --color=yes docs/logo.jl
       - uses: julia-actions/julia-docdeploy@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} # For authentication with GitHub Actions token
