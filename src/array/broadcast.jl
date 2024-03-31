@@ -85,7 +85,7 @@ _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
-_fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
+_firstdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
 function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
     found = _firstdimarray(x[1])
     if found isa Nothing
