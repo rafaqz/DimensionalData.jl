@@ -110,7 +110,7 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
-@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End}}) = 
+@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End},LU.LazyMath}) = 
     to_indices(parent(dim), LU._construct_types(i))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 @inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)

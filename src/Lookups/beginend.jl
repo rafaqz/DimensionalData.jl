@@ -39,10 +39,8 @@ Base.to_indices(A, inds, (r, args...)::Tuple{BeginEndRange,Vararg}) =
     (_to_index(inds[1], r.start):_to_index(inds[1], r.stop), to_indices(A, Base.tail(inds), args)...)
 Base.to_indices(A, inds, (r, args...)::Tuple{BeginEndStepRange,Vararg}) =
     (_to_index(inds[1], r.start):r.step:_to_index(inds[1], r.stop), to_indices(A, Base.tail(inds), args)...)
-Base.to_indices(A, inds, (r, args...)::Tuple{Begin,Vararg}) =
-    (first(inds[1]), to_indices(A, Base.tail(inds), args)...)
-Base.to_indices(A, inds, (r, args...)::Tuple{End,Vararg}) =
-    (last(inds[1]), to_indices(A, Base.tail(inds), args)...)
+Base.to_indices(A, inds, (r, args...)::Tuple{<:Union{Begin,End,<:LazyMath},Vararg}) =
+    (_to_index(inds[1], r), to_indices(A, Base.tail(inds), args)...)
 
 _to_index(inds, a::Int) = a
 _to_index(inds, ::Begin) = first(inds)
@@ -92,8 +90,8 @@ _pf(f) = string(f)
 for T in (UnitRange, AbstractUnitRange, StepRange, StepRangeLen, LinRange, Lookup)
     for f in (:getindex, :view, :dotview)
         @eval Base.$f(A::$T, i::AbstractBeginEndRange) = Base.$f(A, to_indices(A, (i,))...)
-        @eval Base.$f(A::$T, ::Type{Begin}) = Base.$f(A, firstindex(A)) 
-        @eval Base.$f(A::$T, ::Type{End}) = Base.$f(A, lastindex(A)) 
+        @eval Base.$f(A::$T, i::Union{Type{Begin},Type{End},Begin,End,LazyMath}) = 
+            Base.$f(A, to_indices(A, (LU._construct_types(i),))...) 
     end
 end
 
