@@ -91,7 +91,7 @@ for T in (UnitRange, AbstractUnitRange, StepRange, StepRangeLen, LinRange, Looku
     for f in (:getindex, :view, :dotview)
         @eval Base.$f(A::$T, i::AbstractBeginEndRange) = Base.$f(A, to_indices(A, (i,))...)
         @eval Base.$f(A::$T, i::Union{Type{Begin},Type{End},Begin,End,LazyMath}) = 
-            Base.$f(A, to_indices(A, (LU._construct_types(i),))...) 
+            Base.$f(A, to_indices(A, _construct_types(i))...) 
     end
 end
 
