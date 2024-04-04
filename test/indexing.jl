@@ -31,8 +31,8 @@ end
 @testset "lookup" begin
     @testset "Points" begin
         l = Sampled(2.0:2.0:10, ForwardOrdered(), Regular(2.0), Points(), nothing)
-        @test l[:] == l[Begin:End] == l
-        @test l[Begin:5] == l[1:5] == l
+        @test l[:] == l[Begin:End] == l[1:End] == l[Begin:5] == l[1:5] == l
+        @test l[Begin+1:End-1] ==l[Begin+1:4] ==  l[2:End-1] == l[2:4]
         @test l[Begin:End] isa typeof(l)
         @test l[1:5] isa typeof(l)
         @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
@@ -161,6 +161,7 @@ end
     @test @inferred d[1:5] == d
     @test d[1:5] isa typeof(d)
     @test @inferred d[Begin:End] == d
+    @test d[Begin+1:End-1] == d[2:-1+End] == d[1+Begin:4] == d[2:4]
     @test d[Begin:End] isa typeof(d)
     # TODO properly handle index mashing arrays: here Regular should become Irregular
     # @test d[[1, 3, 4]] == X(Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Regular(2.0), Points(), nothing))
