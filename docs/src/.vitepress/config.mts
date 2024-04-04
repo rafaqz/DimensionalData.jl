@@ -6,13 +6,12 @@ import footnote from "markdown-it-footnote";
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   base: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
-  title: 'REPLACE_ME_DOCUMENTER_VITEPRESS',
+  title: 'DimensionalData.jl',
   description: "Datasets with named dimensions",
   lastUpdated: true,
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
-  head: [],
-  ignoreDeadLinks: true,
+  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/favicon.ico' }]],
 
   markdown: {
     math: true,
@@ -28,7 +27,7 @@ export default defineConfig({
   },
   themeConfig: {
     // https://vitepress.dev/reference/default-theme-config
-    logo: { src: '/logoDD.png', width: 24, height: 24 },
+    logo: { src: '/logo.png', width: 24, height: 24 },
     search: {
       provider: 'local',
       options: {
@@ -41,8 +40,9 @@ export default defineConfig({
       { text: 'Dimensions', link: '/dimensions' },
       { text: 'DimArrays', link: '/dimarrays' },
       { text: 'Selectors', link: '/selectors' },
-      { text: 'Integrations', link: '/integrations',
+      { text: 'Integrations',
         items: [
+          { text: 'Integrations', link: '/integrations'},
           { text: 'Plots and Makie', link: '/plots' },
           { text: 'Tables and DataFrames', link: '/tables' },
           { text: 'CUDA and GPUs', link: '/cuda' },

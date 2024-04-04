@@ -8,7 +8,7 @@ hero:
   text: "Julia datasets with named dimensions"
   tagline: High performance named indexing for Julia
   image:
-    src: 'logoDD.png'
+    src: 'logo.png'
   actions:
     - theme: brand
       text: Getting Started
