@@ -23,7 +23,7 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
     draft=false,
     source="src", 
     build="build", 
-    # warnonly = true,
+    warnonly = true,
 )
 
 # Deploy built documentation.

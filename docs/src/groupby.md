@@ -274,7 +274,8 @@ groupby(A, Ti => hours(12; start=6, labels=x -> 6 in x ? :night : :day))
 
 :::
 
-## Select by [`Dimension`](@ref)
+## Select by Dimension
+- [`Dimension`](@ref)
 
 We can also select by `Dimension`s and any objects with `dims` methods.
 
