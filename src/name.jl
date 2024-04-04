@@ -40,4 +40,4 @@ Base.string(::Name{X}) where X = string(X)
 
 name(x::Name) = x
 name(x) = name(typeof(x))
-name(::Type{T}) where T = nameof(T)
+@noinline name(T::Type) = throw(ArgumentError("`name` not implemented for $T"))
