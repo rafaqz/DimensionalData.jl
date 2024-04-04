@@ -283,7 +283,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
             end
         else
-            catdim = basedims(key2dim(catdim))
+            catdim = basedims(name2dim(catdim))
         end
         # Dimension Types and Symbols
         if all(x -> hasdim(x, catdim), Xin)

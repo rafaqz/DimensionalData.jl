@@ -29,19 +29,20 @@ abstract type AbstractDimStack{L} end
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
+name(s::AbstractDimStack) = keys(s)
 refdims(s::AbstractDimStack) = getfield(s, :refdims)
 metadata(s::AbstractDimStack) = getfield(s, :metadata)
 
 layerdims(s::AbstractDimStack) = getfield(s, :layerdims)
-layerdims(s::AbstractDimStack, key::Symbol) = dims(s, layerdims(s)[key])
+layerdims(s::AbstractDimStack, name::Symbol) = dims(s, layerdims(s)[name])
 layermetadata(s::AbstractDimStack) = getfield(s, :layermetadata)
-layermetadata(s::AbstractDimStack, key::Symbol) = layermetadata(s)[key]
+layermetadata(s::AbstractDimStack, name::Symbol) = layermetadata(s)[name]
 
 layers(nt::NamedTuple) = nt
 @assume_effects :foldable layers(s::AbstractDimStack{<:NamedTuple{Keys}}) where Keys =
     NamedTuple{Keys}(map(K -> s[K], Keys))
 @assume_effects :foldable DD.layers(s::AbstractDimStack, i::Integer) = s[keys(s)[i]]
-@assume_effects :foldable DD.layers(s::AbstractDimStack, k::Symbol) = s[k]
+@assume_effects :foldable DD.layers(s::AbstractDimStack, name::Symbol) = s[name]
 
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
@@ -145,8 +146,8 @@ Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I
 Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 @inline Base.keys(s::AbstractDimStack) = keys(data(s))
 @inline Base.propertynames(s::AbstractDimStack) = keys(data(s))
-Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, key) =
-    rebuild_from_arrays(s, Base.setindex(layers(s), val, key))
+Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, name) =
+    rebuild_from_arrays(s, Base.setindex(layers(s), val, name))
 Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
 
 # Remove these, but explain
@@ -227,9 +228,9 @@ end
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
 
 function _layerkeysfromdim(A, dim)
-    map(index(A, dim)) do x
+    map(lookup(A, dim)) do x
         if x isa Number
-            Symbol(string(DD.dim2key(dim), "_", x))
+            Symbol(string(name(dim), "_", x))
         else
             Symbol(x)
         end
@@ -373,7 +374,7 @@ function DimStack(A::AbstractDimArray;
     layersfrom=nothing, metadata=metadata(A), refdims=refdims(A), kw...
 )
     layers = if isnothing(layersfrom)
-        keys = DD.name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (DD.name(A),)
+        keys = name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (name(A),)
         NamedTuple{keys}((A,))
     else
         keys = Tuple(_layerkeysfromdim(A, layersfrom))
@@ -399,4 +400,4 @@ function DimStack(data::NamedTuple, dims::Tuple;
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
 
-layerdims(s::DimStack{<:Any,<:Any,<:Any,Nothing}, key::Symbol) = dims(s)
+layerdims(s::DimStack{<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)

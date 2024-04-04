@@ -40,4 +40,4 @@ Base.string(::Name{X}) where X = string(X)
 
 name(x::Name) = x
 name(x) = name(typeof(x))
-name(x::Type) = ""
+name(::Type{T}) where T = nameof(T)
