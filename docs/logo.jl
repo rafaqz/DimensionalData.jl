@@ -41,4 +41,5 @@ meshscatter!(ax, base_points; marker=Rect3f(Vec3f(-0.5,-0.5,0), Vec3f(1,1,1)),
 mkpath(joinpath(@__DIR__, "src", "assets"))
 save(joinpath(@__DIR__, "src", "assets", "logo.svg"), fig; pt_per_unit=0.75)
 save(joinpath(@__DIR__, "src", "assets", "logo.png"), fig; px_per_unit=2)
-save(joinpath(@__DIR__, "src", "assets", "favicon.ico"), fig; px_per_unit=0.25)
+save(joinpath(@__DIR__, "src", "assets", "favicon.png"), fig; px_per_unit=0.25)
+mv(joinpath(@__DIR__, "src", "assets", "favicon.png"), joinpath(@__DIR__, "src", "assets", "favicon.ico"))
