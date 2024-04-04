@@ -26,6 +26,12 @@ function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     end
     return format(dims, A)
 end
+# Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
+function format(dims::DimTuple) 
+    ax = map(parent ∘ first ∘ axes, dims)
+    A = CartesianIndices(ax)
+    return format(dims, A)
+end
 format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))

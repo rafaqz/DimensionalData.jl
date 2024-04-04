@@ -72,3 +72,20 @@ end
              )
 end
 
+@testset "broadcastdims runs after groupby" begin
+    dimlist = (
+        Ti(Date("2021-12-01"):Day(1):Date("2022-12-31")),
+        X(range(1, 10, length=10)),
+        Y(range(1, 5, length=15)),
+        Dim{:Variable}(["var1", "var2"])
+    )
+    data = rand(396, 10, 15, 2)
+    A = DimArray(data, dimlist)
+    month_length = DimArray(daysinmonth, dims(A, Ti))
+    g_tempo = DimensionalData.groupby(month_length, Ti=>seasons(; start=December))
+    sum_days = sum.(g_tempo, dims=Ti)
+    weights = map(./, g_tempo, sum_days)
+    lookup(parent(g_tempo), Ti)[1]
+    G = DimensionalData.groupby(A, Ti=>seasons(; start=December))
+    G_w = broadcast_dims.(*, weights, G)
+end

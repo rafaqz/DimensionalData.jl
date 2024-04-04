@@ -46,9 +46,9 @@ end
     rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a reguilar DimArray
 end
 
-function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T,N}
+function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
     print_ndims(io, size(A))
-    print(io, string(nameof(typeof(A)), "{$(nameof(T)),$N}"))
+    print(io, string(nameof(typeof(A)), "{$(nameof(T)){$T1,$N1},$N}"))
 end
 
 function show_after(io::IO, mime, A::DimGroupByArray)
@@ -331,7 +331,8 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
     end
     # Separate lookups dims from indices
     group_dims = map(first, dim_groups_indices)
-    indices = map(rebuild, dimfuncs, map(last, dim_groups_indices))
+    # Get indices for each group wrapped with dims for indexing
+    indices = map(rebuild, group_dims, map(last, dim_groups_indices))
 
     views = DimSlices(A, indices)
     # Put the groupby query in metadata
