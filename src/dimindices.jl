@@ -298,10 +298,11 @@ function DimSlices(x, dims; drop=true)
         map(d  -> rebuild(d, :), DD.dims(x))
     else
         dims
-    end |> format
+    end 
     inds = map(basedims(newdims)) do d
         rebuild(d, first(axes(x, d)))
     end
+    # `getindex` returns these views
     T = typeof(view(x, inds...))
     N = length(newdims)
     D = typeof(newdims)

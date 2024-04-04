@@ -67,9 +67,7 @@ end
         end
     end
     @test all(collect(mean.(gb)) .=== manualmeans)
-    @test all(
-              mean.(gb) .=== manualmeans
-             )
+    @test all(mean.(gb) .=== manualmeans)
 end
 
 @testset "broadcastdims runs after groupby" begin
@@ -85,7 +83,6 @@ end
     g_tempo = DimensionalData.groupby(month_length, Ti=>seasons(; start=December))
     sum_days = sum.(g_tempo, dims=Ti)
     weights = map(./, g_tempo, sum_days)
-    lookup(parent(g_tempo), Ti)[1]
     G = DimensionalData.groupby(A, Ti=>seasons(; start=December))
     G_w = broadcast_dims.(*, weights, G)
 end
