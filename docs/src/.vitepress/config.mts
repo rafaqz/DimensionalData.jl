@@ -2,7 +2,7 @@ import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import mathjax3 from "markdown-it-mathjax3";
 import footnote from "markdown-it-footnote";
-import del from 'rollup-plugin-delete';
+// import del from 'rollup-plugin-delete';
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -14,16 +14,15 @@ export default defineConfig({
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
   head: [['link', { rel: 'icon', href: '/DimensionalData.jl/dev/favicon.ico' }]],
 
-  vite: {
-    build: {
-      rollupOptions: {
-        // https://rollupjs.org/configuration-options/
-        plugins: [
-          del({ targets: ['dist/*', 'build/*'], verbose: true })
-        ]
-      },
-    },
-  },
+  // vite: {
+  //   build: {
+  //     rollupOptions: {
+  //       plugins: [
+  //         del({ targets: ['dist/*', 'build/*'], verbose: true })
+  //       ]
+  //     },
+  //   },
+  // },
 
   markdown: {
     math: true,
