@@ -11,7 +11,7 @@ export default defineConfig({
   lastUpdated: true,
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
-  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/dev/favicon.ico' }]],
 
   markdown: {
     math: true,
