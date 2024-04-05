@@ -24,9 +24,9 @@ features:
     details: DimensionalData.jl provides no-cost abstractions for named indexing, and fast index lookups.
     link: /selectors
   - title: Powerful Array manipulation
-    details: broadcast, reduce, permutedims, and <font color="orange">groupby</font> operations.
+    details: broadcast, reduce, permutedims, and groupby operations.
     link: /groupby
   - title: Seamlessly integrated with the julia ecosystem
-    details: Works with most methods that accept a regular `Array`. If a method accepts numeric indices or <strong>dims=X</strong> in base, you should be able to use DimensionalData.jl <strong>dims</strong>.
+    details: Works with most methods that accept a regular Array. If a method accepts numeric indices or dims=X in base, you should be able to use DimensionalData.jl dims.
 ---
 ```

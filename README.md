@@ -6,7 +6,7 @@
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl/tree/main)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-<img src="https://rafaqz.github.io/DimensionalData.jl/dev/logoDD.png" align="right" style="padding-left:10px;" width="180"/>
+<img src="https://rafaqz.github.io/DimensionalData.jl/dev/logo.png" align="right" style="padding-left:10px;" width="180"/>
 
 > [!TIP]
 > Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
