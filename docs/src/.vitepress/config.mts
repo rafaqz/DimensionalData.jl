@@ -88,7 +88,7 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
     ],
     footer: {
-      message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a> by <a href="https://github.com/lazarusA" target="_blank"><strong>Lazaro Alonso</strong><br>',
+      message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a>',
       copyright: `© Copyright ${new Date().getUTCFullYear()}. Released under the MIT License.`
     }
   }
