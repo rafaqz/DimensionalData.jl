@@ -82,9 +82,9 @@ stack_tests = (;
         ),
         refdims_base = "`refdims` returns a tuple of Dimension or empty" =>
             A -> refdims(A) isa Tuple{Vararg{Dimension}},
-        ndims = "number of dims matches dimensions of array" =>
+        ndims = "number of dims matches ndims of stack" =>
             A -> length(dims(A)) == ndims(A),
-        size = "length of dims matches dimensions of array" =>
+        size = "length of dims matches size of stack" =>
             A -> map(length, dims(A)) == size(A),
         rebuild_parent = "rebuild parent from args" =>
             A -> parent(rebuild(A, map(a -> reverse(a; dims=1), parent(A)))) == map(a -> reverse(a; dims=1), parent(A)),
