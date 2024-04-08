@@ -184,6 +184,7 @@ lookuptype(x) = NoLookup
 
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
+name(dim::Type{D}) where D = nameof(D)
 
 label(x) = string(name(x))
 
