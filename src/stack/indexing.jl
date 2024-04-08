@@ -101,42 +101,15 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         # Ambiguities
-        # @propagate_inbounds function Base.$f(
-        #     ::AbstractDimStack, 
-        #     ::_DimIndicesAmb,
-        #     ::Union{Tuple{Dimension,Vararg{Dimension}},AbstractArray{<:Dimension},AbstractArray{<:Tuple{Dimension,Vararg{Dimension}}},DimIndices,DimSelectors,Dimension},
-        #     ::_DimIndicesAmb...
-        # )
-        #     $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
-        # end
-
         @propagate_inbounds function Base.$f(s::DimensionalData.AbstractVectorDimStack, 
-            D::Union{AbstractVector{<:DimensionalData.Dimensions.Dimension},
+            i::Union{AbstractVector{<:DimensionalData.Dimensions.Dimension},
             AbstractVector{<:Tuple{DimensionalData.Dimensions.Dimension, Vararg{DimensionalData.Dimensions.Dimension}}}, 
             DimensionalData.DimIndices{T,1} where T, DimensionalData.DimSelectors{T,1} where T}
         )
-            $_dim_f(s, _simplify_dim_indices(D...)...)
+            $_dim_f(s, _simplify_dim_indices(i)...)
         end
-        # @propagate_inbounds function Base.$f(
-        #     s::AbstractDimStack, 
-        #     d1::Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}, 
-        #     D::Vararg{Union{AbstractArray{Union{}}, DimIndices{<:Integer}, DimSelectors{<:Integer}}}
-        # )
-        #     $_dim_f(s, _simplify_dim_indices(d1, D...))
-        # end
-        # @propagate_inbounds function Base.$f(
-        #     s::AbstractDimStack, 
-        #     D::Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
-        # )
-        #     $_dim_f(s, _simplify_dim_indices(D...))
-        # end
 
 
-        @propagate_inbounds function $_dim_f(
-            A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
-        )
-            return merge_and_index(Base.$f, A, (a1, args...))
-        end
         @propagate_inbounds function $_dim_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
