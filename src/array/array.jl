@@ -472,14 +472,18 @@ Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 
-```@doctest
-julia> using DimensionalData
-
+````@doctest
+julia> using DimensionalData, Random; Random.seed!(123)
 julia> rand(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
+ 0  0  0  0
  1  0  0  1
- 1  0  1  1
-```
+
+````
 """
 Base.fill
 
@@ -505,17 +509,25 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData
 
 julia> rand(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
- 1  0  0  1
- 1  0  1  1
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
+ 1  1  0  0
+ 0  1  1  0
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 0.43204   0.835111  0.624231
- 0.752868  0.471638  0.193652
- 0.484558  0.846559  0.455256
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0       150.0       200.0
+  :a    0.624539    0.559166    0.813246
+  :b    0.947442    0.664213    0.284669
+  :c    0.695604    0.564835    0.156286
 ```
 """
 Base.rand
@@ -538,19 +550,27 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```@doctest
 julia> using DimensionalData
-
 julia> zeros(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
  0  0  0  0
  0  0  0  0
 
 julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 0.0  0.0  0.0
- 0.0  0.0  0.0
- 0.0  0.0  0.0
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0  150.0  200.0
+  :a    0.0    0.0    0.0
+  :b    0.0    0.0    0.0
+  :c    0.0    0.0    0.0
+
 ```
 """
 Base.zeros
@@ -573,19 +593,27 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```@doctest
 julia> using DimensionalData
-
 julia> ones(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
  1  1  1  1
  1  1  1  1
 
 julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 1.0  1.0  1.0
- 1.0  1.0  1.0
- 1.0  1.0  1.0
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0  150.0  200.0
+  :a    1.0    1.0    1.0
+  :b    1.0    1.0    1.0
+  :c    1.0    1.0    1.0
+
 ```
 """
 Base.ones

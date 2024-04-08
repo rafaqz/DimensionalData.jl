@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import mathjax3 from "markdown-it-mathjax3";
 import footnote from "markdown-it-footnote";
+// import del from 'rollup-plugin-delete';
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -11,7 +12,17 @@ export default defineConfig({
   lastUpdated: true,
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
-  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/favicon.ico' }]],
+  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/dev/favicon.ico' }]],
+
+  // vite: {
+  //   build: {
+  //     rollupOptions: {
+  //       plugins: [
+  //         del({ targets: ['dist/*', 'build/*'], verbose: true })
+  //       ]
+  //     },
+  //   },
+  // },
 
   markdown: {
     math: true,
@@ -88,7 +99,7 @@ export default defineConfig({
       { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
     ],
     footer: {
-      message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a> by <a href="https://github.com/lazarusA" target="_blank"><strong>Lazaro Alonso</strong><br>',
+      message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a>',
       copyright: `© Copyright ${new Date().getUTCFullYear()}. Released under the MIT License.`
     }
   }
