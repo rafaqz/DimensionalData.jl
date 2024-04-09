@@ -399,7 +399,8 @@ function contains(
 )
     v = val(sel)
     i = searchsortedlast(l, v; by=_by)
-    if _in(v, l[i])
+   
+    if i in eachindex(l) && _in(v, l[i])
         return i
     else
         return _notcontained_or_nothing(err, v)
