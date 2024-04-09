@@ -39,5 +39,3 @@ Base.Symbol(::Name{X}) where X = X
 Base.string(::Name{X}) where X = string(X)
 
 name(x::Name) = x
-name(x) = name(typeof(x))
-@noinline name(T::Type) = throw(ArgumentError("`name` not implemented for $T"))
