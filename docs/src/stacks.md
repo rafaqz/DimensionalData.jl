@@ -30,7 +30,7 @@ st[:c]
 
 == subsetting layers
 
-We can subset layers with a `Tupe` of `Symbol`:
+We can subset layers with a `Tuple` of `Symbol`:
 
 ````@ansi stack
 st[(:a, :c)]
@@ -39,7 +39,7 @@ st[(:a, :c)]
 == inverted subsets
 
 `Not` works on `Symbol` keys just like it does on `Selector`:
-It inverts the keys to give you a `DImStack` with all the other layers:
+It inverts the keys to give you a `DimStack` with all the other layers:
 
 ````@ansi stack
 st[Not(:b)]
