@@ -1,7 +1,7 @@
 # Tables and DataFrames
 
 [Tables.jl](https://github.com/JuliaData/Tables.jl) provides an 
-ecosystem-wide interface to tabular data in julia, giving interop with 
+ecosystem-wide interface to tabular data in Julia, giving interoperability with 
 [DataFrames.jl](https://dataframes.juliadata.org/stable/), 
 [CSV.jl](https://csv.juliadata.org/stable/) and hundreds of other 
 packages that implement the standard.

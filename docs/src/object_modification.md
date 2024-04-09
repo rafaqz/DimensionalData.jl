@@ -10,7 +10,7 @@ Everything else must be _rebuilt_ and assigned to a variable.
 ## `modify`
 
 Modify the inner arrays of a `AbstractDimArray` or `AbstractDimStack`, with
-[`modify`](@ref). This can be usefule to e.g. replace all arrays with `CuArray`
+[`modify`](@ref). This can be useful to e.g. replace all arrays with `CuArray`
 moving the data to the GPU, `collect` all inner arrays to `Array` without losing
 the outer `DimArray` wrappers, and similar things.
 
@@ -72,12 +72,12 @@ dimensions into a single combined dimension with a lookup holding
 `Tuples` of the values of both dimensions.
 
 
-## `rebulid`
+## `rebuild`
 
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
 Basically everything uses it somewhere. And you can to, with a few caveats.
 
-`reuild` assumes you _know what yo uare doing_. You can quite eaily set
+`rebuild` assumes you _know what you are doing_. You can quite eaily set
 values to things that don't make sense. The constructor may check a few things,
 like the number of dimensions matches the axes of the array. But not much else.
 
@@ -101,7 +101,7 @@ metadata(A1)
 
 The most common use internally is the arg version on `Dimension`.
 This is _very_ useful in dimension-based algorithmsas a way
-to transfrom a dimension wrapper from one object to another:
+to transform a dimension wrapper from one object to another:
 
 ```@ansi helpers
 d = X(1)
@@ -110,7 +110,7 @@ rebuild(d, 1:10)
 
 `rebuild` applications are listed here. `AbstractDimArray` and
 `AbstractDimStack` _always_ accept these keywords or arguments,
-but those in [ ] brackes may be thrown away if not needed.
+but those in [ ] brackets may be thrown away if not needed.
 Keywords in ( ) will error if used where they are not accepted.
 
 | Type                       | Keywords                                                    | Arguments            |
@@ -138,12 +138,12 @@ the process.
 ## `set`
 
 [`set`](@ref) gives us a way to set the values of the immutable objects
-in DD, like `Dimension` and `LookupAray`. Unlike `rebuild` it tries its best
+in DD, like `Dimension` and `LookupArray`. Unlike `rebuild` it tries its best
 to _do the right thing_. You don't have to specify what field you want to set.
 just pass in the object you want to be part of the lookup. Usually, there is
 no possible ambiguity.
 
-`set` is still improving. Sometimes itmay not do the right thing.
+`set` is still improving. Sometimes it may not do the right thing.
 If you think this is the case, make a github issue.
 
 :::: tabs

@@ -169,7 +169,7 @@ Methods where dims, dim types, or `Symbol`s can be used to indicate the array di
 
 ## Performance
 
-Indexing with `Dimension`s has no runtime cost. Lets benchmark it:
+Indexing with `Dimension`s has no runtime cost. Let's benchmark it:
 
 ```@ansi dimarray
 using BenchmarkTools

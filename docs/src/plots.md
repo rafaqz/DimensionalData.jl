@@ -16,7 +16,7 @@ Plots.jl support is deprecated, as development is moving to Makie.jl
 Makie.jl functions also mostly work with [`AbstractDimArray`](@ref) and will `permute` and 
 [`reorder`](@ref) axes into the right places, especially if `X`/`Y`/`Z`/`Ti` dimensions are used.
 
-In makie a `DimMatrix` will plot as a heatmap by defualt, but it will have labels 
+In makie a `DimMatrix` will plot as a heatmap by default, but it will have labels 
 and axes in the right places:
 
 ```@example Makie
