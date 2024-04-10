@@ -12,7 +12,7 @@ are unrolled so they are all the same size, and dimensions
 loop to match the length of the largest layer.
 
 Columns are given the [`name`](@ref) or the array or the stack layer key.
-`Dimension` columns use the `Symbol` version (the result of `DD.dim2key(dimension)`).
+`Dimension` columns use the `Symbol` version (the result of `DD.name(dimension)`).
 
 Looping of dimensions and stack layers is done _lazily_,
 and does not allocate unless collected.

@@ -28,7 +28,7 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
     Tables.getcolumn(t, dimnum(t, dim))
 
 function _colnames(s::AbstractDimStack)
-    dimkeys = map(dim2key, dims(s))
+    dimkeys = map(name, dims(s))
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
@@ -49,7 +49,7 @@ This table will have columns for the array data and columns for each
 as required.
 
 Column names are converted from the dimension types using
-[`DimensionalData.dim2key`](@ref). This means type `Ti` becomes the
+[`DimensionalData.name`](@ref). This means type `Ti` becomes the
 column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 
 To get dimension columns, you can index with `Dimension` (`X()`) or
@@ -121,7 +121,7 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
     dimcolumns = collect(_dimcolumns(dims_))
-    dimnames = collect(map(dim2key, dims_))
+    dimnames = collect(map(name, dims_))
     dimarraycolumns = collect(map(vec ∘ parent, xs))
     colnames = vcat(dimnames, layernames)
 
@@ -134,9 +134,9 @@ function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
         nlayers = size(x, d)
         layers = [view(x, rebuild(d, i)) for i in 1:nlayers]
         layernames = if iscategorical(d)
-            Symbol.(Ref(dim2key(d)), '_', lookup(d))
+            Symbol.((name(d),), '_', lookup(d))
         else
-            Symbol.(("$(dim2key(d))_$i" for i in 1:nlayers))
+            Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
