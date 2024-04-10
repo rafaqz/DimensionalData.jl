@@ -57,8 +57,7 @@ They are not guaranteed to keep their interface, but usually will.
 
 ```@docs
 Dimensions.commondims
-Dimensions.dim2key
-Dimensions.key2dim
+Dimensions.name2dim
 Dimensions.reducedims
 Dimensions.swapdims
 Dimensions.slicedims
