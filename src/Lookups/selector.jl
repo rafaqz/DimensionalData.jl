@@ -148,7 +148,7 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=at) || _selnotfound_or_nothing(err, lookup, v)
     end
-    r in lookup || err isa _False || throw(SelectorError(lookup, sel))
+    err isa _False || r in lookup || throw(SelectorError(lookup, sel))
     return r
 end
 function at(lookup::Lookup, sel::At; kw...)
@@ -254,8 +254,8 @@ struct Near{T} <: IntSelector{T}
 end
 Near() = Near(nothing)
 
-selectindices(l::Lookup, sel::Near) = near(l, sel)
-selectindices(l::Lookup, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
+selectindices(l::Lookup, sel::Near; kw...) = near(l, sel)
+selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel)
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
@@ -356,10 +356,16 @@ function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     return contains(no_cycling(lookup), cycled_sel; kw...) 
 end
-function contains(l::NoLookup, sel::Contains; kw...) 
-    i = Int(val(sel))
-    i in l || throw(SelectorError(l, i))
-    return i
+function contains(l::NoLookup, sel::Contains; err=_True(), kw...) 
+    if isinteger(val(sel))
+        i = Int(val(sel))
+        i in l && return i
+    end
+    if err isa _False
+        return nothing
+    else
+        throw(SelectorError(l, i))
+    end
 end
 contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
@@ -385,11 +391,11 @@ function contains(sampling::Intervals, l::Lookup, sel::Contains; err=_True())
 end
 function contains(
     sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains; 
-    err=_True()
+    kw... 
 )
     v = val(sel)
     interval_sel = Contains(Interval{:closed,:open}(v, v))
-    contains(sampling, l, interval_sel; err)
+    contains(sampling, l, interval_sel; kw...)
 end
 function contains(
     ::Intervals, 

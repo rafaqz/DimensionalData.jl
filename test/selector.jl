@@ -41,6 +41,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(startrev, At(29.9; atol=0.2)) == 1
             @test at(startfwd, At(30.1; atol=0.2)) == 20
             @test at(startrev, At(30.1; atol=0.2)) == 1
+            @test_throws ArgumentError at(startrev, At(0.0; atol=0.2))
+            @test at(startrev, At(0.0; atol=0.2); err=Lookups._False()) == nothing
         end
 
         @testset "Start between" begin
@@ -220,6 +222,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test_throws SelectorError contains(startfwd, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(10.9))
+            @test contains(startrev, Contains(10.9); err=Lookups._False()) == nothing
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
@@ -1409,6 +1412,7 @@ end
     @test selectindices(l, Near(-200.1)) == 1
     @test selectindices(l, Contains(20)) == 20
     @test_throws InexactError selectindices(l, Contains(20.1))
+    @test selectindices(l, Contains(20.1); err=Lookups._False()) === nothing
     @test_throws SelectorError selectindices(l, Contains(0)) 
     @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
