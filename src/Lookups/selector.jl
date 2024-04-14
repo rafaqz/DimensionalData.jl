@@ -1,4 +1,4 @@
-struct SelectorError{L,S} <: Exception 
+struct SelectorError{L,S} <: Exception
     lookup::L
     selector::S
 end
@@ -10,7 +10,7 @@ function Base.showerror(io::IO, ex::SelectorError)
         println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with values $(ex.lookup)")
     end
 end
-Base.showerror(io::IO, ex::SelectorError{<:Categorical}) = 
+Base.showerror(io::IO, ex::SelectorError{<:Categorical}) =
     println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with categories $(ex.lookup)")
 
 """
@@ -124,7 +124,7 @@ rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
-Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")  
+Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")
 
 struct _True end
 struct _False end
@@ -134,11 +134,11 @@ selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; 
 
 _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
 
-function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...) 
+function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    return at(no_cycling(lookup), cycled_sel; kw...) 
+    return at(no_cycling(lookup), cycled_sel; kw...)
 end
-function at(lookup::NoLookup, sel::At; err=_True(), kw...) 
+function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     v = val(sel)
     r = round(Int, v)
     at = atol(sel)
@@ -148,8 +148,15 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=at) || _selnotfound_or_nothing(err, lookup, v)
     end
-    err isa _False || r in lookup || throw(SelectorError(lookup, sel))
-    return r
+    if r in lookup 
+        return r
+    else
+        if err isa _False
+            return nothing
+        else
+            throw(SelectorError(lookup, sel))
+        end
+    end
 end
 function at(lookup::Lookup, sel::At; kw...)
     at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
@@ -174,7 +181,7 @@ function at(
 )
     x = unwrap(selval)
     i = searchsortedlast(lookup, x; lt=(a, b) -> a.left < b.left)
-    if lookup[i].left == x.left && lookup[i].right == x.right 
+    if lookup[i].left == x.left && lookup[i].right == x.right
         return i
     else
         return _selnotfound_or_nothing(err, lookup, selval)
@@ -259,18 +266,20 @@ selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
-function near(lookup::AbstractCyclic{Cycling}, sel::Near) 
+function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    near(no_cycling(lookup), cycled_sel) 
+    near(no_cycling(lookup), cycled_sel; kw...)
 end
-near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
-function near(lookup::Lookup, sel::Near)
-    !isregular(lookup) && !iscenter(lookup) &&
+near(lookup::NoLookup, sel::Near{<:Real}; kw...) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
+function near(lookup::Lookup, sel::Near; kw...)
+    # We ignore err keyword in near, as these are a different class of errors
+    if !isregular(lookup) && !iscenter(lookup)
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End locus. Use Contains"))
-    near(order(lookup), sampling(lookup), lookup, sel)
+    end
+    return near(order(lookup), sampling(lookup), lookup, sel; kw...)
 end
-near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
-function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
+near(order::Order, ::NoSampling, lookup::Lookup, sel::Near; kw...) = at(lookup, At(val(sel)); kw...)
+function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near; kw...)
     # Unwrap the selector value and adjust it for interval locus if neccessary
     v = unwrap(val(sel))
     # Allow Date and DateTime to be used interchangeably
@@ -301,10 +310,10 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
 
     return closest_i
 end
-function near(order::Ordered, ::Intervals, lookup::Lookup{<:IntervalSets.Interval}, sel::Near)
+function near(order::Ordered, ::Intervals, lookup::Lookup{<:IntervalSets.Interval}, sel::Near; kw...)
     throw(ArgumentError("`Near` is not yet implemented for lookups of `IntervalSets.Interval`"))
 end
-function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
+function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near; kw...)
     throw(ArgumentError("`Near` has no meaning in an `Unordered` lookup"))
 end
 
@@ -352,11 +361,11 @@ selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l,
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
-function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...) 
+function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    return contains(no_cycling(lookup), cycled_sel; kw...) 
+    return contains(no_cycling(lookup), cycled_sel; kw...)
 end
-function contains(l::NoLookup, sel::Contains; err=_True(), kw...) 
+function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
     if isinteger(val(sel))
         i = Int(val(sel))
         i in l && return i
@@ -364,7 +373,7 @@ function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
     if err isa _False
         return nothing
     else
-        throw(SelectorError(l, i))
+        throw(SelectorError(l, val(sel)))
     end
 end
 contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
@@ -379,7 +388,7 @@ end
 function contains(::Order, ::Points, l::Lookup, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
-function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
+function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<:AbstractArray};
     kw...
 )
     at(l, At(val(sel)); kw...)
@@ -390,22 +399,22 @@ function contains(sampling::Intervals, l::Lookup, sel::Contains; err=_True())
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 function contains(
-    sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains; 
-    kw... 
+    sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains;
+    kw...
 )
     v = val(sel)
     interval_sel = Contains(Interval{:closed,:open}(v, v))
     contains(sampling, l, interval_sel; kw...)
 end
 function contains(
-    ::Intervals, 
-    l::Lookup{<:IntervalSets.Interval}, 
-    sel::Contains{<:IntervalSets.Interval}; 
+    ::Intervals,
+    l::Lookup{<:IntervalSets.Interval},
+    sel::Contains{<:IntervalSets.Interval};
     err=_True()
 )
     v = val(sel)
     i = searchsortedlast(l, v; by=_by)
-   
+
     if i in eachindex(l) && _in(v, l[i])
         return i
     else
@@ -575,12 +584,12 @@ end
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
     x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
-    return ceil(Int, x.left):floor(Int, x.right) 
+    return ceil(Int, x.left):floor(Int, x.right)
 end
-# function between(l::AbstractCyclic{Cycling}, sel::Interval) 
+# function between(l::AbstractCyclic{Cycling}, sel::Interval)
 #     cycle_val(l, sel.x)..cycle_val(l, sel.x)
 #     cycled_sel = rebuild(sel; val=)
-#     near(no_cycling(lookup), cycled_sel; kw...) 
+#     near(no_cycling(lookup), cycled_sel; kw...)
 # end
 between(l::Lookup, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
@@ -674,7 +683,7 @@ end
 
 # Irregular Intervals -----------------------
 #
-# This works a little differently to Regular variants, 
+# This works a little differently to Regular variants,
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
@@ -691,7 +700,7 @@ function _between_irreg_side(side, locus::Union{Start,End}, o, l, interval, v)
         i = ordered_lastindex(l)
         cellbound = v
     else
-        s = _ordscalar(o) 
+        s = _ordscalar(o)
         # Search for the value and offset per order/locus/side
         i = _searchfunc(o)(l, v; lt=_lt(side))
         i -= s * (_posscalar(locus) + _sideshift(side))
@@ -906,7 +915,7 @@ end
 
 # Irregular Intervals -----------------------
 #
-# This works a little differently to Regular variants, 
+# This works a little differently to Regular variants,
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
@@ -935,7 +944,7 @@ function _touches_irreg_side(side, locus::Center, o, l, sel, v)
         i = _searchfunc(o)(l, v; lt=_lt(side))
         i1 = i - _ordscalar(o)
         # We are at the start or end, return i
-        if (i1 < firstindex(l) ||  i1 > lastindex(l)) 
+        if (i1 < firstindex(l) ||  i1 > lastindex(l))
             i
         else
             # Calculate the size of the current step
@@ -999,7 +1008,7 @@ end
 
     All(selectors::Selector...)
 
-Selector that combines the results of other selectors. 
+Selector that combines the results of other selectors.
 The indices used will be the union of all result sorted in ascending order.
 
 ## Example

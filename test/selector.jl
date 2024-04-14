@@ -1411,7 +1411,7 @@ end
     @test selectindices(l, Near(200.1)) == 100
     @test selectindices(l, Near(-200.1)) == 1
     @test selectindices(l, Contains(20)) == 20
-    @test_throws InexactError selectindices(l, Contains(20.1))
+    @test_throws SelectorError selectindices(l, Contains(20.1))
     @test selectindices(l, Contains(20.1); err=Lookups._False()) === nothing
     @test_throws SelectorError selectindices(l, Contains(0)) 
     @test_throws SelectorError selectindices(l, Contains(200)) 
