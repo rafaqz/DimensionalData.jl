@@ -6,7 +6,11 @@
 ```@docs
 DimensionalData.AbstractBasicDimArray
 AbstractDimArray
+AbstractDimVector
+AbstractDimMatrix
 DimArray
+DimVector
+DimMatrix
 ```
 
 Shorthand `AbstractDimArray` constructors:
@@ -111,4 +115,15 @@ DimensionalData.rebuild_from_arrays
 DimensionalData.show_main
 DimensionalData.show_after
 DimensionalData.refdims_title
+```
+
+## Internal helper functions
+
+These are internal functions that could change at any time and should not be depended on.
+
+```@autodocs
+Modules=[DimensionalData]
+Public = false
+Order = [:type]
+Pages = [array.jl, metadata.jl]
 ```
