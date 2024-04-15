@@ -5,6 +5,8 @@
 
 ```@docs
 DimensionalData.AbstractBasicDimArray
+DimensionalData.AbstractBasicDimVector
+DimensionalData.AbstractBasicDimMatrix
 AbstractDimArray
 AbstractDimVector
 AbstractDimMatrix
