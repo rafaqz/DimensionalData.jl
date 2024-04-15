@@ -66,19 +66,23 @@ end
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
-    @test_throws ErrorException length(s) == 3
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
+    @test length(mixed) === 24
+    @test firstindex(mixed) === 1
+    @test lastindex(mixed) === 24
+    @test eachindex(mixed) === 1:24
     @test axes(mixed) == (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
     @test eltype(axes(mixed)) <: Dimensions.DimUnitRange
     @test dims(axes(mixed)) == dims(mixed)
     @test axes(mixed, X) == Base.OneTo(2)
     @test dims(axes(mixed, X)) == dims(mixed, X)
     @test axes(mixed, 2) == Base.OneTo(3)
+    @test lastindex(mixed, 2) == 3
     @test dims(axes(mixed, 2)) == dims(mixed, 2)
-    @test_throws ErrorException first(s) == da1 # first/last are for the NamedTuple
-    @test_throws ErrorException last(s) == da3
+    @test first(mixed) == mixed[Begin] 
+    @test last(mixed) == mixed[End]
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 

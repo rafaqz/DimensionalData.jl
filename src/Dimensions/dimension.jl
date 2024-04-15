@@ -235,19 +235,19 @@ for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :b
     end
 end
 
-@inline function selectindices(x, selectors)
+@inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
         # This object has no dimensions and no `selectindices` method.
-        # Just return whatever it is, maybe the underlying array can use it.
+        # Just return whatever selectors is, maybe the underlying array can use it.
         return selectors
     else
         # Otherwise select indices based on the object `Dimension`s
-        return selectindices(dims(x), selectors)
+        return selectindices(dims(x), selectors; kw...)
     end
 end
-@inline selectindices(ds::DimTuple, sel...) = selectindices(ds, sel)
-@inline selectindices(ds::DimTuple, sel::Tuple) = selectindices(val(ds), sel)
-@inline selectindices(dim::Dimension, sel) = selectindices(val(dim), sel)
+@inline selectindices(ds::DimTuple, sel...; kw...) = selectindices(ds, sel; kw...)
+@inline selectindices(ds::DimTuple, sel::Tuple; kw...) = selectindices(val(ds), sel; kw...)
+@inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
 # Deprecated
 Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))

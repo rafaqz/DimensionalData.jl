@@ -508,44 +508,118 @@ end
     s = DimStack((da1, da2, da3))
     s_mixed = DimStack((da1, da2, da3, da4))
 
-    @testset "getindex" begin
-        @test @inferred s[1, 1] === (one=1.0, two=2.0f0, three=3)
-        @test @inferred s_mixed[1, 1] === (one=1.0, two=2.0f0, three=3, four=4)
-        @test @inferred s[X(2), Y(3)] === (one=6.0, two=12.0f0, three=18)
-        @test @inferred s[X=At(:b), Y=At(10.0)] === (one=4.0, two=8.0f0, three=12)
-        slicedds = s[At(:a), :]
-        @test slicedds[:one] == [1.0, 2.0, 3.0]
-        @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
-        slicedds_mixed = s_mixed[At(:a), :]
-        @test slicedds_mixed[:one] == [1.0, 2.0, 3.0]
-        @test parent(slicedds_mixed) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9], four=fill(4))
+    @testset "cartesian Int" begin
+        @inferred s[1, 1]
+        @inferred view(s, 1, 1)
+        @test view(s, Begin, Begin)[] === view(s, 1, 1)[] === 
+            s[Begin, Begin] === s[1, 1] === (one=1.0, two=2.0f0, three=3)
+        @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] == 
+            s_mixed[Begin, Begin] == (one=1.0, two=2.0f0, three=3, four=4)
     end
 
-    @testset "linear indices" begin
-        linear2d = @inferred s[1]
-        @test linear2d isa NamedTuple
-        @test linear2d == (one=1.0, two=2.0f0, three=3)
-        @test_broken linear1d = @inferred view(s[X(2)], 1)
-        linear1d = view(s[X(2)], 1)
-        @test linear1d isa DimStack
-        @test parent(linear1d) == (one=fill(4.0), two=fill(8.0f0), three=fill(12))
-        @test @inferred s[1:2] isa Array
-        linear2d = s[1:2]
-        @test linear2d == [(one=1.0, two=2.0f0, three=3), (one=4.0, two=8.0f0, three=12)]
-        linear1d = @inferred s[X(1)][1:2]
-        linear1d = @inferred s[X(1)][1:2]
-        @test linear1d isa DimStack
-        @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
+    @testset "cartesian mixed" begin
+        @inferred s[At(:a), :] 
+        @inferred view(s, At(:a), :)
+        @inferred s_mixed[At(:a), :] 
+        @inferred view(s_mixed, At(:a), :)
+
+        @test s[At(:a), :] == view(s, At(:a), :) == 
+              s[1, :] == view(s, 1, :) == 
+              s[Begin, :] == view(s, Begin, :) == 
+              s[1, 1:3] == view(s, 1, 1:3) == 
+              s[1, Begin:End] == view(s, 1, Begin:End) == 
+              s[X=1, Y=Begin:End] == view(s, X=1, Y=Begin:End) ==
+              s[X=At(:a), Y=Begin:End] == view(s, X=At(:a), Y=Begin:End) ==
+              s[Y=Begin:End, X=1] == view(s, Y=Begin:End, X=1) ==
+                  DimStack((one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9]), (Y(10.0:10:30.0),))
+
+        y = dims(s, Y)
+        @test s_mixed[At(:a), :] == view(s_mixed, At(:a), :) == 
+              s_mixed[1, :] == view(s_mixed, 1, :) == 
+              s_mixed[Begin, :] == view(s_mixed, Begin, :) == 
+              s_mixed[1, 1:3] == view(s_mixed, 1, 1:3) == 
+              s_mixed[1, Begin:End] == view(s_mixed, 1, Begin:End) == 
+              s_mixed[X=1, Y=Begin:End] == view(s_mixed, X=1, Y=Begin:End) ==
+              s_mixed[X=At(:a), Y=Begin:End] == view(s_mixed, X=At(:a), Y=Begin:End) ==
+              s_mixed[Y=Begin:End, X=1] == view(s_mixed, Y=Begin:End, X=1) ==
+                  DimStack((one=DimArray([1.0, 2.0, 3.0], y), two=DimArray([2.0f0, 4.0f0, 6.0f0], y), three=DimArray([3, 6, 9], y), four=DimArray(fill(4), ())))
     end
 
-    @testset "getindex Tuple" begin
-        @test_broken st1 = @inferred s[(:three, :one)]
-        st1 = s[(:three, :one)]
-        @test keys(st1) === (:three, :one)
-        @test values(st1) == (da3, da1)
+    @testset "linear" begin
+        s1d = s[X(2)]
+        @inferred s[1]
+        @inferred s[:]
+        @inferred s[[1, 2]] 
+        @inferred s[1:2]
+        @inferred s1d[1]
+        @inferred s1d[:]
+        @inferred s1d[1:2]
+        # @inferred s[[1, 2]] # Irregular bounds are not type-stable
+        @inferred view(s, 1)
+        @inferred view(s, :)
+        @inferred view(s, 1:2)
+        @inferred view(s, [1, 2])
+        @inferred view(s1d, 1)
+        @inferred view(s1d, :)
+        @inferred view(s1d, 1:2)
+        # @inferred view(s1d, [1, 2])
+
+        @testset "Integer indexing" begin
+            @test s[1] == view(s, 1)[] == (one=1.0, two=2.0f0, three=3)
+            @test s1d[1] == view(s1d, 1)[] == (one=4.0, two=8.0f0, three=12)
+            @test s1d[1] isa NamedTuple
+            @test s[1] isa NamedTuple
+            @test view(s1d, 1) isa DimStack
+            @test view(s, 1) isa SubArray{<:NamedTuple,0}
+        end
+
+        @testset "Colon and Vector{Int/Bool} indexing" begin
+            b = [false, false, false, true, false, true]
+            v = [4, 6]
+            @test s[:][b] == s[b] == 
+                s[:][v] == s[v] == [s[4], s[6]] == 
+                view(s, :)[b] == view(s, b) ==
+                view(s, :)[v] == view(s, v) == [
+                (one = 5.0, two = 10.0, three = 15),
+                (one = 6.0, two = 12.0, three = 18),
+            ]
+            @test s_mixed[:][b] == s_mixed[b] ==
+                s_mixed[:][v] == s_mixed[v] == [s_mixed[4], s_mixed[6]] ==
+                view(s_mixed, :)[b] == view(s_mixed, b) == 
+                view(s_mixed, :)[v] == view(s_mixed, v) == [
+                (one = 5.0, two = 10.0, three = 15, four=16),
+                (one = 6.0, two = 12.0, three = 18, four=16),
+            ]
+            m = [false true false; false false true]
+            @test s[m] == view(s, m) == [
+               (one = 2.0, two = 4.0, three = 6)
+               (one = 6.0, two = 12.0, three = 18)
+            ]
+            @test s_mixed[m] == view(s_mixed, m) == [
+               (one = 2.0, two = 4.0, three = 6, four=4),
+               (one = 6.0, two = 12.0, three = 18, four=16),
+            ]
+            @test s1d[1:2] isa DimStack
+            @test s[1:2] isa Vector
+        end
     end
 
-    @testset "mixed CartesianIndex and CartesianIndices indexing works" begin
+    @testset "CartesianIndex" begin
+        @inferred s[CartesianIndex(2, 2)]
+        @inferred view(s, CartesianIndex(2, 2))
+        @test s[CartesianIndex(2, 2)] == 
+            view(s, CartesianIndex(2, 2))[] == (one=5.0, two=10.0, three=15.0)
+    end
+
+    @testset "CartesianIndices" begin
+        @inferred s[CartesianIndices((1, 2))]
+        @inferred view(s, CartesianIndices((1, 2)))
+        @test s[CartesianIndices((1, 2))] == 
+            view(s, CartesianIndices((1, 2))) ==
+            s[X=1:1, Y=1:2]
+    end
+
+    @testset "Mixed CartesianIndex and CartesianIndices" begin
         da3d = cat(da1, 10da1; dims=Z) 
         s3 = merge(s, (; ten=da3d))
         @test @inferred s3[2, CartesianIndex(2, 2)] === (one=5.0, two=10.0f0, three=15, ten=50.0)
@@ -560,32 +634,18 @@ end
         @test @inferred s3[CartesianIndices(s3)] == s3
     end
 
+    @testset "getindex Symbol Tuple" begin
+        @test_broken st1 = @inferred s[(:three, :one)]
+        st1 = s[(:three, :one)]
+        @test keys(st1) === (:three, :one)
+        @test values(st1) == (da3, da1)
+    end
+
     @testset "view" begin
-        sv = @inferred view(s, Begin, Begin)
-        @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
-        @test dims(sv) == ()
-        sv = @inferred view(s, X(1:2), Y(3:3)) 
-        @test parent(sv) == (one=[3.0 6.0]', two=[6.0f0 12.0f0]', three=[9 18]')
-        slicedds = view(s, X=At(:a), Y=:)
-        @test @inferred slicedds[:one] == [1.0, 2.0, 3.0]
-        @test parent(slicedds) == (one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9])
-        @testset "linear indices" begin
-            linear2d = @inferred view(s, 1)
-            linear2d = view(s, 1)
-            @test linear2d isa DimStack
-            @test parent(linear2d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
-            @test_broken linear1d = @inferred view(s[X(1)], 1)
-            linear1d = view(s, 1)
-            @test linear1d isa DimStack
-            @test parent(linear1d) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
-            linear2d = view(s, 1:2)
-            @test linear2d isa DimStack
-            @test NamedTuple(linear2d) == (one=[1.0, 4.0], two=[2.0f0, 8.0f0], three=[3, 12])
-            linear1d = s[X(1)][1:2]
-            @test linear1d isa DimStack
-            @test parent(linear1d) == (one=[1.0, 2.0], two=[2.0f0, 4.0f0], three=[3, 6])
-        end
-        @testset "0-dimensional return layers" begin
+        @testset "0-dimensional" begin
+            sv = @inferred view(s, Begin, Begin)
+            @test parent(sv) == (one=fill(1.0), two=fill(2.0f0), three=fill(3))
+            @test dims(sv) == ()
             ds = @inferred view(s, X(1), Y(1))
             @test ds isa DimStack
             @test dims(ds) === ()
@@ -606,23 +666,23 @@ end
         @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
         s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)
         @test s_set[2, 1] === (one=7.0, two=11.0f0, three=13) 
-    end
 
-    @testset "Empty getindedex/view/setindex throws a BoundsError" begin
-        @test_throws BoundsError s[]
-        @test_throws BoundsError view(s)
-        @test_throws BoundsError s[] = 1
-    end
-
-    @testset "Cartesian indices work as usual" begin
-        @test @inferred s[CartesianIndex(2, 2)] == (one=5.0, two=10.0, three=15.0)
-        @test @inferred view(s, CartesianIndex(2, 2)) == map(d -> view(d, 2, 2), s)
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
         @test @inferred s_set[2, 2] === (one=5.0, two=6.0f0, three=7)
         s_set[CartesianIndex(2, 2)] = (9, 10, 11)
         @test @inferred s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
         @test_throws ArgumentError s_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
+
+        s_set_mixed = deepcopy(s_mixed)
+        s_set_mixed[1, 1] = (one=9, two=10, three=11, four=12)
+        @test @inferred s_set_mixed[1, 1] === (one=9.0, two=10.0f0, three=11, four=12)
+    end
+
+    @testset "Empty getindedex/view/setindex throws a BoundsError" begin
+        @test_throws BoundsError s[]
+        @test_throws BoundsError view(s)
+        @test_throws BoundsError s[] = 1
     end
 end
 

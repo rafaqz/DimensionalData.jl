@@ -198,7 +198,7 @@ A[At(DateTime(3047, 9))]
 == NoLookup
 
 [`NoLookup(x)`](@ref) no lookup values provided, so `Selector`s will not work.
-Whe you create a `DimArray` without a lookup array, `NoLookup` will be used.
+When you create a `DimArray` without a lookup array, `NoLookup` will be used.
 It is also not show in repl printing.
 
 Here we create a [`NoLookup`](@ref):
@@ -241,7 +241,7 @@ from the arrays and ranges used.
         nothing` are the unknown outer bounds of the lookup. They are not needed
         for `Points` as the outer values are the outer bounds. But they can be
         specified manually for `Intervals`
-    - Emtpy dimensions or dimension types are assigned `NoLookup()` ranges that
+    - Empty dimensions or dimension types are assigned `NoLookup()` ranges that
         can't be used with selectors as they hold no values.
 
 ## `DimSelector`
@@ -267,7 +267,7 @@ B[DimSelectors(A)]
 ````
 
 If the lookups aren't aligned we can use `Near` instead of `At`,
-which like doing a nearest neighor interpolation:
+which like doing a nearest neighbor interpolation:
 
 ````@ansi selectors
 C = rand(X(1.0:0.007:2.0), Y(10.0:0.9:30))

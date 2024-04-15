@@ -81,15 +81,16 @@ end
 Base.alignment(io::IO, s::DimSummariser) = (textwidth(sprint(show, s)), 0)
 
 # An array that doesn't know what it holds, to simplify dispatch
-struct OpaqueArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
-    parent::A
+# It can also hole somthing that is not an AbstractArray itself.
+struct OpaqueArray{T,N,P} <: AbstractArray{T,N}
+    parent::P
 end
-Base.parent(A::OpaqueArray) = A.parent
-Base.size(A::OpaqueArray) = size(parent(A))
-for f in (:getindex, :view, :dotview)
-    @eval Base.$f(A::OpaqueArray, args...) = Base.$f(parent(A), args...)
-end
-Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(parent(A), args...)
+OpaqueArray(A::P) where P<:AbstractArray{T,N} where {T,N} = OpaqueArray{T,N,P}(A)
+OpaqueArray(st::P) where P<:AbstractDimStack{<:Any,T,N} where {T,N} = OpaqueArray{T,N,P}(st)
+
+Base.size(A::OpaqueArray) = size(A.parent)
+Base.getindex(A::OpaqueArray, args...) = Base.getindex(A.parent, args...)
+Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(A.parent, args...)
 
 
 abstract type AbstractBins <: Function end
