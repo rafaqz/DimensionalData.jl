@@ -38,6 +38,7 @@ end
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
     @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
+    @test name(s)== (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
@@ -60,8 +61,8 @@ end
 end
 
 @testset "low level base methods" begin
-    @test keys(data(s)) == (:one, :two, :three)
-    @test keys(data(mixed)) == (:one, :two, :extradim)
+    @test keys(s) == (:one, :two, :three)
+    @test keys(mixed) == (:one, :two, :extradim)
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false

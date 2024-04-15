@@ -28,43 +28,26 @@ end
     f(basetypeof(unwrap(D)), basetypeof(unwrap(M)))
 
 """
-    key2dim(s::Symbol) => Dimension
-    key2dim(dims...) => Tuple{Dimension,Vararg}
-    key2dim(dims::Tuple) => Tuple{Dimension,Vararg}
+    name2dim(s::Symbol) => Dimension
+    name2dim(dims...) => Tuple{Dimension,Vararg}
+    name2dim(dims::Tuple) => Tuple{Dimension,Vararg}
 
 Convert a symbol to a dimension object. `:X`, `:Y`, `:Ti` etc will be converted.
 to `X()`, `Y()`, `Ti()`, as with any other dims generated with the [`@dim`](@ref) macro.
 
 All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
 """
-function key2dim end
-@inline key2dim(t::Tuple) = map(key2dim, t)
-@inline key2dim(s::Symbol) = key2dim(Val{s}())
+function name2dim end
+@inline name2dim(t::Tuple) = map(name2dim, t)
+@inline name2dim(s::Symbol) = name2dim(Val{s}())
 # Allow other things to pass through
-@inline key2dim(d::Val{<:Dimension}) = d
-@inline key2dim(d) = d
+@inline name2dim(d::Val{<:Dimension}) = d
+@inline name2dim(d) = d
 
-# key2dim is defined for concrete instances in dimensions.jl
+# name2dim is defined for concrete instances in dimensions.jl
 
-"""
-    dim2key(dim::Dimension) => Symbol
-    dim2key(dims::Type{<:Dimension}) => Symbol
-    dim2key(dims::Tuple) => Tuple{Symbol,Vararg}
-
-Convert a dimension object to a simbol. `X()`, `Y()`, `Ti()` etc will be converted.
-to `:X`, `:Y`, `:Ti`, as with any other dims generated with the [`@dim`](@ref) macro.
-
-All other `Dim{S}()` dimensions will generate `Symbol`s `S`.
-"""
-function dim2key end
-@inline dim2key(dims::Tuple) = map(dim2key, dims)
-@inline dim2key(dim::Dimension) = dim2key(typeof(dim))
-@inline dim2key(::Val{D}) where D <: Dimension = dim2key(D)
-@inline dim2key(dt::Type{<:Dimension}) = Symbol(Base.nameof(dt))
-@inline dim2key(s::Symbol) = s
-
-# dim2key is defined for concrete instances in dimensions.jl
-#
+@deprecate key2dim name2dim
+@deprecate dim2key name
 
 """
     sortdims([f], tosort, order) => Tuple
@@ -332,8 +315,8 @@ wrapping: 'a':1:'j'
 function setdims end
 @inline setdims(x, d1, d2, ds...) = setdims(x, (d1, d2, ds...))
 @inline setdims(x) = x
-@inline setdims(x, newdims::Dimension) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
-@inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), key2dim(newdims)))
+@inline setdims(x, newdims::Dimension) = rebuild(x; dims=setdims(dims(x), name2dim(newdims)))
+@inline setdims(x, newdims::Tuple) = rebuild(x; dims=setdims(dims(x), name2dim(newdims)))
 @inline setdims(dims::Tuple, newdim::Dimension) = setdims(dims, (newdim,))
 @inline setdims(dims::Tuple, newdims::Tuple) = swapdims(dims, sortdims(newdims, dims))
 @inline setdims(dims::Tuple, newdims::Tuple{}) = dims
@@ -482,7 +465,7 @@ but the number of dimensions has not changed.
 cell step, sampling type and order.
 """
 function reducedims end
-@inline reducedims(x, dimstoreduce) = _reducedims(x, key2dim(dimstoreduce))
+@inline reducedims(x, dimstoreduce) = _reducedims(x, name2dim(dimstoreduce))
 
 @inline _reducedims(x, dimstoreduce) = _reducedims(x, (dimstoreduce,))
 @inline _reducedims(x, dimstoreduce::Tuple) = _reducedims(dims(x), dimstoreduce)
@@ -660,14 +643,14 @@ function basedims end
 @inline basedims(x) = basedims(dims(x))
 @inline basedims(ds::Tuple) = map(basedims, ds)
 @inline basedims(d::Dimension) = basetypeof(d)()
-@inline basedims(d::Symbol) = key2dim(d)
+@inline basedims(d::Symbol) = name2dim(d)
 @inline basedims(T::Type{<:Dimension}) = basetypeof(T)()
 
-@inline pairs2dims(pairs::Pair...) = map(p -> basetypeof(key2dim(first(p)))(last(p)), pairs)
+@inline pairs2dims(pairs::Pair...) = map(p -> basetypeof(name2dim(first(p)))(last(p)), pairs)
 
 @inline kw2dims(kw::Base.Iterators.Pairs) = kw2dims(values(kw))
 # Convert `Symbol` keyword arguments to a `Tuple` of `Dimension`
-@inline kw2dims(kw::NamedTuple{Keys}) where Keys = kw2dims(key2dim(Keys), values(kw))
+@inline kw2dims(kw::NamedTuple{Keys}) where Keys = kw2dims(name2dim(Keys), values(kw))
 @inline kw2dims(dims::Tuple, vals::Tuple) =
     (rebuild(first(dims), first(vals)), kw2dims(tail(dims), tail(vals))...)
 @inline kw2dims(::Tuple{}, ::Tuple{}) = ()
@@ -745,7 +728,7 @@ end
 
 @inline _w(t::Tuple) = _wraparg(t...)
 @inline _w(x) = x
-@inline _w(s::Symbol) = key2dim(s)
+@inline _w(s::Symbol) = name2dim(s)
 @inline _w(::Type{T}) where T = Val{T}()
 
 @inline _flip_subtype(::typeof(<:)) = >:

@@ -1,7 +1,7 @@
 using DimensionalData, Interfaces, Test, Dates
 
-@test name(nothing) == ""
-@test name(Nothing) == ""
+@test_throws MethodError name(nothing) 
+@test_throws MethodError name(Nothing)
 @test dims(1) == nothing
 @test dims(nothing) == nothing
 @test refdims(1) == ()

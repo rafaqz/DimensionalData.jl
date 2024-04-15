@@ -16,7 +16,7 @@ based on the type and element type of the values.
 format(dims, A::AbstractArray) = format((dims,), A)
 function format(dims::NamedTuple, A::AbstractArray)
     dims = map(keys(dims), values(dims)) do k, v
-        rebuild(key2dim(k), v)
+        rebuild(name2dim(k), v)
     end
     return format(dims, A)
 end

@@ -35,7 +35,7 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
         lines = 3
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
-        maxname = maximum(length ∘ string ∘ dim2key, dims) 
+        maxname = maximum(length ∘ string ∘ name, dims) 
         dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len=> maxname)
         show(dim_ctx, mime, first(dims))
         lines += 1
@@ -104,7 +104,7 @@ end
 # print a dimension name
 function print_dimname(io, dim::Dimension)
     dimname_len = get(io, :dimname_len, 0)
-    printstyled(io, rpad(dim2key(dim), dimname_len); color=dimcolor(io))
+    printstyled(io, rpad(name(dim), dimname_len); color=dimcolor(io))
 end
 
 

@@ -39,7 +39,7 @@ Lookups.bounds(d::Dimension{<:MergedLookup}) =
 Lookups.selectindices(lookup::MergedLookup, sel::DimTuple) =
     selectindices(lookup, map(_val_or_nothing, sortdims(sel, dims(lookup))))
 function Lookups.selectindices(lookup::MergedLookup, sel::NamedTuple{K}) where K
-    dimsel = map(rebuild, map(key2dim, K), values(sel))
+    dimsel = map(rebuild, map(name2dim, K), values(sel))
     selectindices(lookup, dimsel) 
 end
 Lookups.selectindices(lookup::MergedLookup, sel::StandardIndices) = sel
@@ -99,7 +99,7 @@ struct Coord{T} <: Dimension{T}
 end
 function Coord(val::T, dims::Tuple) where {T<:AbstractVector}
     length(dims) == length(first(val)) || throw(ArgumentError("Number of dims must match number of points"))
-    lookup = MergedLookup(val, key2dim(dims))
+    lookup = MergedLookup(val, name2dim(dims))
     Coord(lookup)
 end
 Coord(s1::SelOrStandard, s2::SelOrStandard, sels::SelOrStandard...) = Coord((s1, s2, sels...))

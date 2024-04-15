@@ -734,7 +734,7 @@ julia> mergedims(ds, (X, Y) => :space)
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)
     pairs = map((dt1, dts...)) do ds
-        ds => Dim{Symbol(map(dim2key, ds)...)}()
+        ds => Dim{Symbol(map(name, ds)...)}()
     end
     mergedims(x, pairs...)
 end

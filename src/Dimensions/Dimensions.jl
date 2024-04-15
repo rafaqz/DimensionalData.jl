@@ -33,7 +33,7 @@ using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
 using Base: tail, OneTo, @propagate_inbounds
 
 export name, label, dimnum, hasdim, hasselection, otherdims, commondims, combinedims,
-    setdims, swapdims, sortdims, lookup, set, format, rebuild, key2dim, dim2key,
+    setdims, swapdims, sortdims, lookup, set, format, rebuild, name2dim,
     basetypeof, basedims, dims2indices, slicedims, dimsmatch, comparedims, reducedims
 
 export Dimension, IndependentDim, DependentDim, XDim, YDim, ZDim, TimeDim,

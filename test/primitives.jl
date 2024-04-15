@@ -48,15 +48,6 @@ end
     @test key2dim((:test, Ti, Ti())) == (Dim{:test}(), Ti, Ti())
 end
 
-@testset "dim2key" begin
-    @test dim2key(X()) == :X
-    @test dim2key(Dim{:x}) == :x
-    @test dim2key(Tst()) == :Tst
-    @test dim2key(Dim{:test}()) == :test
-    @test (@ballocated dim2key(Dim{:test}())) == 0
-    @test dim2key(Val{TimeDim}()) == :TimeDim
-end
-
 @testset "_wraparg" begin
     @test _wraparg(X()) == (X(),)
     @test _wraparg((X, Y,), X,) == ((Val(X), Val(Y),), Val(X),)

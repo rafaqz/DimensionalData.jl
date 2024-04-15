@@ -98,7 +98,7 @@ end
 end
 
 _unalligned_all_selector_error(dims) =
-    throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(string ∘ dim2key, dims), ", ")) dims, or none of them"))
+    throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(name, dims), ", ")) dims, or none of them"))
 
 _unwrapdim(dim::Dimension) = val(dim)
 _unwrapdim(x) = x
@@ -116,13 +116,13 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
-    map(map(key2dim, Keys), values(extent)) do k, v
+    map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Lookups.Interval(v...))
     end    
 end
 
 function _extent_as_touches(extent::Extents.Extent{Keys}) where Keys
-    map(map(key2dim, Keys), values(extent)) do k, v
+    map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Touches(v))
     end    
 end

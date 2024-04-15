@@ -349,7 +349,7 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
     # Hide that the parent is a DimSlices
     views = OpaqueArray(DimSlices(A, indices))
     # Put the groupby query in metadata
-    meta = map(d -> dim2key(d) => val(d), dimfuncs)
+    meta = map(d -> name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
     # Return a DimGroupByArray
     return DimGroupByArray(views, format(group_dims, views), (), :groupby, metadata)

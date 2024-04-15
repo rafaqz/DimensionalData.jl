@@ -184,8 +184,9 @@ lookuptype(x) = NoLookup
 
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
+name(dim::Type{D}) where D<:Dimension = nameof(D)
 
-label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
+label(x) = string(name(x))
 
 # Lookups methods
 Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
@@ -227,10 +228,10 @@ end
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
-        $f(ds::DimTuple) = map($f, ds)
+        $f(ds::Tuple) = map($f, ds)
         $f(::Tuple{}) = ()
-        $f(ds::DimTuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::DimTuple, I) = $f(dims(ds, key2dim(I)))
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
     end
 end
 
@@ -287,10 +288,10 @@ Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), di
 function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
-    return Extents.Extent{dim2key(extent_dims)}(extent_bounds)
+    return Extents.Extent{name(extent_dims)}(extent_bounds)
 end
 
-dims(extent::Extents.Extent{K}) where K = map(rebuild, key2dim(K), values(extent))
+dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
 dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
@@ -367,8 +368,7 @@ Dim{S}() where S = Dim{S}(:)
 
 name(::Type{<:Dim{S}}) where S = S
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
-key2dim(s::Val{S}) where S = Dim{S}()
-dim2key(::Type{D}) where D<:Dim{S} where S = S
+name2dim(s::Val{S}) where S = Dim{S}()
 
 """
     AnonDim <: Dimension
@@ -385,16 +385,21 @@ AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
 metadata(::AnonDim) = NoMetadata()
-name(::AnonDim) = :Anon
 
 """
-    @dim typ [supertype=Dimension] [name::String=string(typ)]
+    @dim typ [supertype=Dimension] [label::String=string(typ)]
 
-Macro to easily define new dimensions. The supertype will be inserted
-into the type of the dim. The default is simply `YourDim <: Dimension`. Making
-a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
+Macro to easily define new dimensions. 
+
+The supertype will be inserted into the type of the dim. 
+The default is simply `YourDim <: Dimension`. 
+
+Making a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
+
+`label` is used in plots and similar, 
+if the dimension is short for a longer word.
 
 Example:
 ```jldoctest
@@ -433,8 +438,9 @@ function dimmacro(typ, supertype, name::String=string(typ))
             $typ{typeof(val)}(val)
         end
         $typ() = $typ(:)
-        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
-        $Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(typ)))
+        $Dimensions.label(::Type{<:$typ}) = $name
+        $Dimensions.name2dim(::Val{$(QuoteNode(typ))}) = $typ()
     end |> esc
 end
 
@@ -448,6 +454,7 @@ end
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
 ## Example:
+
 ```julia
 xdim = X(2:2:10)
 # Or

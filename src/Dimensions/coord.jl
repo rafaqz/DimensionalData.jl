@@ -59,7 +59,7 @@ struct Coord{T} <: Dimension{T}
 end
 function Coord(val::T, dims::Tuple) where {T<:AbstractVector}
     length(dims) == length(first(val)) || throw(ArgumentError("Number of dims must match number of points"))
-    lookup = CoordLookup(val, key2dim(dims))
+    lookup = CoordLookup(val, name2dim(dims))
     Coord(lookup)
 end
 const SelOrStandard = Union{Selector,StandardIndices}
