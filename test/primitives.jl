@@ -31,10 +31,11 @@ dimz = dims(da)
     @test (@inferred dimsmatch(nothing, Z())) == false
     @test (@inferred dimsmatch(nothing, nothing)) == false
 
+    @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, Dimension))) == 0
     @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
 
-    @testset "no type match but name matches"
+    @testset "no type match but name matches" begin
         @test (@ballocated dimsmatch(Z, Dim{:Z})) == 0
         @test (@ballocated dimsmatch((Z(), Dim{:Ti}()), (Dim{:Z}(), Ti()))) == 0
     end

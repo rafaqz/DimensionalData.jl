@@ -11,26 +11,26 @@ or are at least rotations/transformations of the same type.
 `f` is `<:` by default, but can be `>:` to match abstract types to concrete types.
 """
 function dimsmatch end
-@inline dimsmatch(dims, query) = dimsmatch(<:, dims, query)
-@inline function dimsmatch(f::Function, dims::Tuple, query::Tuple)
+@inline dimsmatch(dims, query)::Bool = dimsmatch(<:, dims, query)
+@inline function dimsmatch(f::Function, dims::Tuple, query::Tuple)::Bool
     length(dims) == length(query) || return false
     all(map((d, l) -> dimsmatch(f, d, l), dims, query))
 end
-@inline dimsmatch(f::Function, dim, query) = dimsmatch(f, typeof(dim), typeof(query))
-@inline dimsmatch(f::Function, dim::Type, query) = dimsmatch(f, dim, typeof(query))
-@inline dimsmatch(f::Function, dim, query::Type) = dimsmatch(f, typeof(dim), query)
-@inline dimsmatch(f::Function, dim::Nothing, query::Type) = false
-@inline dimsmatch(f::Function, dim::Type, ::Nothing) = false
-@inline dimsmatch(f::Function, dim, query::Nothing) = false
-@inline dimsmatch(f::Function, dim::Nothing, query) = false
+@inline dimsmatch(f::Function, dim, query)::Bool = dimsmatch(f, typeof(dim), typeof(query))
+@inline dimsmatch(f::Function, dim::Type, query)::Bool = dimsmatch(f, dim, typeof(query))
+@inline dimsmatch(f::Function, dim, query::Type)::Bool = dimsmatch(f, typeof(dim), query)
+@inline dimsmatch(f::Function, dim::Nothing, query::Type)::Bool = false
+@inline dimsmatch(f::Function, dim::Type, ::Nothing)::Bool = false
+@inline dimsmatch(f::Function, dim, query::Nothing)::Bool = false
+@inline dimsmatch(f::Function, dim::Nothing, query)::Bool = false
 @inline dimsmatch(f::Function, dim::Nothing, query::Nothing) = false
-@inline dimsmatch(f::Function, dim::Type{<:Val{D}}, match::Type{<:Val{M}}) where {D,M} =
+@inline dimsmatch(f::Function, dim::Type{Val{D}}, match::Type{Val{M}}) where {D,M} =
     dimsmatch(f, D, M)
-@inline dimsmatch(f::Function, dim::Type{D}, match::Type{<:Val{M}}) where {D,M} =
+@inline dimsmatch(f::Function, dim::Type{D}, match::Type{Val{M}}) where {D,M} =
     dimsmatch(f, D, M)
-@inline dimsmatch(f::Function, dim::Type{<:Val{D}}, match::Type{M}) where {D,M} =
+@inline dimsmatch(f::Function, dim::Type{Val{D}}, match::Type{M}) where {D,M} =
     dimsmatch(f, D, M)
-@inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
+@inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M})::Bool where {D,M}
     # Match based on type and inheritance
     f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) || 
     # Or match based on name so that Dim{:X} matches X
@@ -284,12 +284,17 @@ julia> otherdims(A, (Y, Z))
 ```
 """
 function otherdims end
-@inline otherdims(x, query) =
+@inline otherdims(x, query) = begin
+    @show x query
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
+end
 @inline otherdims(x, query...) =
     _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
 
-@inline _otherdims_presort(f, ds, query) = _otherdims(f, ds, _sortdims(_rev_op(f), query, ds))
+@inline function _otherdims_presort(f, ds, query) 
+    @show ds query
+    _otherdims(f, ds, _sortdims(_rev_op(f), query, ds))
+end
 # Work with a sorted query where the missing dims are `nothing`
 @inline _otherdims(f, ds::Tuple, query::Tuple) =
     (_dimifmatching(f, first(ds), first(query))..., _otherdims(f, tail(ds), tail(query))...)
