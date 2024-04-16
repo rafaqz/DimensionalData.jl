@@ -24,7 +24,7 @@ end
 @inline dimsmatch(f::Function, dim, query::Nothing) = false
 @inline dimsmatch(f::Function, dim::Nothing, query) = false
 @inline dimsmatch(f::Function, dim::Nothing, query::Nothing) = false
-@inline dimsmatch(f::Function, dim::Type{Va{D}}, match::Type{Val{M}}) where {D,M} =
+@inline dimsmatch(f::Function, dim::Type{Val{D}}, match::Type{Val{M}}) where {D,M} =
     dimsmatch(f, D, M)
 @inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
     # Match based on type and inheritance
