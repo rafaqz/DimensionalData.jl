@@ -32,7 +32,7 @@ end
     dimsmatch(f, D, M)
 @inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M})::Bool where {D,M}
     # Match based on type and inheritance
-    f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) || 
+    f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) ||
     # Or match based on name so that Dim{:X} matches X
     isconcretetype(D) && isconcretetype(M) && name(D) === name(M)
 end
@@ -79,7 +79,15 @@ function sortdims end
 _asfunc(::Type{typeof(<:)}) = <:
 _asfunc(::Type{typeof(>:)}) = >:
 
-@inline _sortdims(f, tosort, order::Tuple{<:Integer,Vararg}) =map(p -> tosort[p], order)
+@inline function _sortdims(f, tosort, order::Tuple{<:Integer,Vararg})
+    map(order) do i
+        if i in 1:length(tosort) 
+            tosort[i]
+        else
+            nothing
+        end
+    end
+end
 @inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
 
 @generated _sortdims_gen(f, tosort::Tuple, order::Tuple) = begin
@@ -205,7 +213,7 @@ julia> dimnum(A, Y)
 """
 function dimnum end
 @inline function dimnum(x, q1, query...)
-    all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query)))
+    all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query...)))
     _dim_query(_dimnum, MaybeFirst(), x, q1, query...)
 end
 @inline dimnum(x, query::Function) =
@@ -284,26 +292,22 @@ julia> otherdims(A, (Y, Z))
 ```
 """
 function otherdims end
-@inline otherdims(x, query) = begin
-    @show x query
-    _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
-end
 @inline otherdims(x, query...) =
-    _dim_query(_otherdims_presort, AlwaysTuple(), x, query)
+    _dim_query(_otherdims, AlwaysTuple(), x, query...)
 
-@inline function _otherdims_presort(f, ds, query) 
-    @show ds query
-    _otherdims(f, ds, _sortdims(_rev_op(f), query, ds))
+@inline _otherdims(f, ds) = ds
+@inline function _otherdims(f, ds, query)
+    sorted = sortdims(f, dims(ds, query), ds)
+    _otherdims_from_nothing(f, ds, sorted)
 end
 # Work with a sorted query where the missing dims are `nothing`
-@inline _otherdims(f, ds::Tuple, query::Tuple) =
-    (_dimifmatching(f, first(ds), first(query))..., _otherdims(f, tail(ds), tail(query))...)
-@inline _otherdims(f, dims::Tuple{}, ::Tuple{}) = ()
+@inline _otherdims_from_nothing(f, ds::Tuple, query::Tuple) =
+    (_dimifnothing(f, first(ds), first(query))..., _otherdims_from_nothing(f, tail(ds), tail(query))...)
+@inline _otherdims_from_nothing(f, ::Tuple{}, ::Tuple{}) = ()
 
-@inline _dimifmatching(f, dim, query) = dimsmatch(f, dim, query) ? () : (dim,)
+@inline _dimifnothing(f, dim, query) = () 
+@inline _dimifnothing(f, dim, query::Nothing) = (dim,)
 
-_rev_op(::typeof(<:)) = >:
-_rev_op(::typeof(>:)) = <:
 
 """
     setdims(X, newdims) => AbstractArray
@@ -558,7 +562,7 @@ function comparedims end
     type && basetypeof(a) != basetypeof(b) && _dimsmismatcherror(a, b)
     valtype && typeof(parent(a)) != typeof(parent(b)) && _valtypeerror(a, b)
     val && parent(lookup(a)) != parent(lookup(b)) && _valerror(a, b)
-    if order 
+    if order
         (isnolookup(a) || isnolookup(b) || LU.order(a) == LU.order(b)) || _ordererror(a, b)
     end
     if ignore_length_one && (Base.length(a) == 1 || Base.length(b) == 1)
@@ -585,7 +589,7 @@ end
 @inline _comparedims(T::Type{Bool}, a::Dimension, b::AnonDim; kw...) = true
 @inline _comparedims(T::Type{Bool}, a::AnonDim, b::Dimension; kw...) = true
 @inline function _comparedims(::Type{Bool}, a::Dimension, b::Dimension;
-    type=true, valtype=false, val=false, length=true, order=false, ignore_length_one=false, 
+    type=true, valtype=false, val=false, length=true, order=false, ignore_length_one=false,
     warn::Union{Nothing,String}=nothing,
 )
     if type && basetypeof(a) != basetypeof(b)
@@ -600,7 +604,7 @@ end
         isnothing(warn) || _valwarn(a, b, warn)
         return false
     end
-    if order && !(isnolookup(a) || isnolookup(b) || LU.order(a) == LU.order(b)) 
+    if order && !(isnolookup(a) || isnolookup(b) || LU.order(a) == LU.order(b))
         isnothing(warn) || _orderwarn(a, b, warn)
         return false
     end

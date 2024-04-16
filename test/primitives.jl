@@ -152,8 +152,18 @@ end
         @test dims(A, :two) == Dim{:two}(NoLookup(Base.OneTo(5)))
     end
 
-    # @test_throws ArgumentError dims(da, Ti)
-    # @test_throws ArgumentError dims(dimz, Ti)
+    @testset "non matching single queries return nothing" begin
+        @test dims(da, :Ti) == nothing
+        @test dims(da, Ti) == nothing
+        @test dims(da, 3) == nothing
+    end
+
+    @testset "non matching tuple queries return empty tuples" begin
+        @test dims(da, (:Ti,)) == ()
+        @test dims(da, (Ti,)) == ()
+        @test dims(da, (3,)) == ()
+    end
+
     @test_throws ArgumentError dims(nothing, X)
 
     @test dims(dimz) === dimz
@@ -200,7 +210,6 @@ end
 end
 
 @testset "dimnum" begin
-    dims(da)
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
     @test dimnum(da, Base.Fix2(isa,Y)) == (2,)
     @test (@ballocated dimnum($da, Y())) == 0
@@ -221,6 +230,12 @@ end
         @test dimnum((Dim{:a}(), Y(), Dim{:b}()), (:b, :a, Y)) == (3, 1, 2)
         dimz = (Dim{:a}(), Y(), Dim{:b}())
         @test (@ballocated dimnum($dimz, :b, :a, Y)) == 0
+    end
+
+    @testset "not present dimensions error" begin
+        @test_throws ArgumentError dimnum(da, Z())
+        @test_throws ArgumentError dimnum(da, 3)
+        @test_throws ArgumentError dimnum(da, 0)
     end
 end
 
@@ -273,7 +288,7 @@ end
     @test otherdims(A, X, Y) == dims(A, (Z,))
     @test otherdims(A, Y) == dims(A, (X, Z))
     @test otherdims(A, Z) == dims(A, (X, Y))
-    @test otherdims(A) == dims(A, (X, Y, Z))
+    @test otherdims(A) == dims(A)
     @test otherdims(A, DimensionalData.ZDim) == dims(A, (X, Y))
     @test otherdims(A, (X, Z)) == dims(A, (Y,))
     f1 = A -> otherdims(A, (X, Z))
@@ -289,6 +304,13 @@ end
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
     @test_throws ArgumentError otherdims(nothing, X)
+
+    @testset "non matching single queries return all dims" begin
+        @test otherdims(da, :Ti) == dims(da)
+        @test otherdims(da, Ti) == dims(da)
+        @test otherdims(da, 3) == dims(da)
+        @test otherdims(da, 0) == dims(da)
+    end
 end
 
 @testset "combinedims" begin
