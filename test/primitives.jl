@@ -33,6 +33,11 @@ dimz = dims(da)
 
     @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
+
+    @testset "no type match but name matches"
+        @test (@ballocated dimsmatch(Z, Dim{:Z})) == 0
+        @test (@ballocated dimsmatch((Z(), Dim{:Ti}()), (Dim{:Z}(), Ti()))) == 0
+    end
 end
 
 @testset "key2dim" begin
@@ -221,7 +226,7 @@ end
 @testset "hasdim" begin
     @test hasdim(da, X()) == true
     @test hasdim(da, :X) == true
-    @test hasdim(da, isforward) == (true, true) 
+    @test hasdim(da, isforward) == (true, true)
     @test (@ballocated hasdim($da, X())) == 0
     @test hasdim(da, Ti) == false
     @test (@ballocated hasdim($da, Ti)) == 0
@@ -425,8 +430,8 @@ end
             ((X(Sampled([142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),
               Y(Sampled([30.0, 20.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata()))), ())
         # This should never happen, not sure why it was tested?
-        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ()) 
-        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ()) 
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
 
     @testset "Irregular Points" begin

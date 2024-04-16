@@ -24,8 +24,12 @@ end
 @inline dimsmatch(f::Function, dim, query::Nothing) = false
 @inline dimsmatch(f::Function, dim::Nothing, query) = false
 @inline dimsmatch(f::Function, dim::Nothing, query::Nothing) = false
-@inline dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M} =
-    f(basetypeof(unwrap(D)), basetypeof(unwrap(M)))
+@inline function dimsmatch(f::Function, dim::Type{D}, match::Type{M}) where {D,M}
+    # Match based on type and inheritance
+    f(basetypeof(unwrap(D)), basetypeof(unwrap(M))) || 
+    # Or match based on name so that Dim{:X} matches X
+    isconcretetype(D) && isconcretetype(M) && name(D) === name(M)
+end
 
 """
     name2dim(s::Symbol) => Dimension
