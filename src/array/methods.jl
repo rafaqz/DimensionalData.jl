@@ -563,7 +563,9 @@ _unique(A::AbstractDimArray, dims) = unique(parent(A); dims=dimnum(A, dims))
 _unique(A::AbstractDimArray, dims::Colon) = unique(parent(A); dims=:)
 
 Base.diff(A::AbstractDimVector; dims=1) = _diff(A, dimnum(A, dims))
-Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
+Base.diff(A::AbstractDimArray; dims) = begin
+    _diff(A, dimnum(A, dims))
+end
 
 @inline function _diff(A::AbstractDimArray{<:Any,N}, dims::Integer) where {N}
     r = axes(A)

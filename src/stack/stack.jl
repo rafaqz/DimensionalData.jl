@@ -222,7 +222,7 @@ function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
     isempty(dim_pairs) && return st
     # Extend missing dimensions in all layers
     extended_layers = map(layers(st)) do layer
-        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs)))
+        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs)...))
             layer
         else
             DimExtensionArray(layer, dims(st))
