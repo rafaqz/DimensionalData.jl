@@ -8,7 +8,7 @@ First we will define an example `DimArray`.
 
 ```@example getters
 using DimensionalData
-using DimensionalData.Lookups
+using DimensionalData.LookupsArrays
 x, y = X(10:-1:1), Y(100.0:10:200.0)
 A = rand(x, y)
 ```
