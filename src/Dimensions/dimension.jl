@@ -544,7 +544,7 @@ Base.@assume_effects :total function dimtrait(::Type{<:Dim{K}}) where K
         X()
     elseif Kl in (:y, :lat, :latitude)
         Y()
-    elseif Kl in (:z, :elev, :lev, :Lev, :elevation)
+    elseif Kl in (:z, :elev, :lev, :elevation)
         Z()
     else
         AnonDim()
