@@ -144,3 +144,10 @@ end
     @test typeof(dims(a)[1]) <: X
     @test a.data == cos.(d.val)
 end
+
+@testset "applying function on a dimension" begin
+    @test dimtrait(X) == dimtrait(X()) == dimtrait(Dim{:X}()) == dimtrait(Dim{:x}()) == X()
+    @test dimtrait(Y) == dimtrait(Y()) == dimtrait(Dim{:Y}()) == dimtrait(Dim{:y}()) == Y()
+    @test dimtrait(Z) == dimtrait(Z()) == dimtrait(Dim{:Z}()) == dimtrait(Dim{:z}()) == Z()
+    @test dimtrait(Ti) == dimtrait(Ti()) == dimtrait(Dim{:Time}()) == dimtrait(Dim{:time}()) == Ti()
+end
