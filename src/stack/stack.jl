@@ -8,7 +8,7 @@ These have multiple layers of data, but share dimensions.
 Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 
 - indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
-- iteration amd `map` are apply over array layers, as indexed with a `Symbol`.
+- iteration and `map` apply over array layers, as indexed with a `Symbol`.
 - `getindex` and many base methods are applied as for `DimArray` - to avoid the need
     to allways use `map`.
 
@@ -288,13 +288,13 @@ DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 
 - indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
-- iteration amd `map` are apply over array layers, as indexed with a `Symbol`.
+- iteration and `map` apply over array layers, as indexed with a `Symbol`.
 - `getindex` or `view` with `Int`, `Dimension`s or `Selector`s that resolve to `Int` will
     return a `NamedTuple` of values from each layer in the stack.
     This has very good performace, and avoids the need to always use `map`.
 - `getindex` or `view` with a `Vector` or `Colon` will return another `DimStack` where
     all data layers have been sliced.
-- `setindex!` must pass a `Tuple` or `NamedTuple` maching the layers.
+- `setindex!` must pass a `Tuple` or `NamedTuple` matching the layers.
 - many base and `Statistics` methods (`sum`, `mean` etc) will work as for a `DimArray`
     again removing the need to use `map`.
 
