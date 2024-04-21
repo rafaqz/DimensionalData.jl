@@ -117,6 +117,7 @@ Specify bins to reduce groups after applying function `f`.
    `Integer`. This avoids losing the edge values. Note this is a messy solution -
    it will often be prefereble to manually specify a `Vector` of chosen `Interval`s
    rather than relying on passing an `Integer` and `pad`.
+- `labels`: a list of descriptive labels for the bins. The labels need to have the same length as `bins`.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
 """
@@ -149,7 +150,7 @@ and [`hours`](@ref) but can also be used for custom cycles.
 - `start`: the start of the cycle: a return value of `f`.
 - `step` the number of sequential values to group.
 - `labels`: either a vector of labels matching the number of groups, 
-    or a function that generates labels from `Vector{Int}` of the selected months.
+    or a function that generates labels from `Vector{Int}` of the selected bins.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
 """
@@ -176,7 +177,7 @@ Generates `CyclicBins` for three month periods.
 
 - `start`: By default seasons start in December, but any integer `1:12` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
-    from `Vector{Int}` of the selected months.
+    from `Vector{Int}` of the selected quartals.
 """
 seasons(; start=December, kw...) = months(3; start, kw...)
 
@@ -191,7 +192,7 @@ These can wrap around the end of a year.
 ## Keywords
 
 - `start`: By default months start in January, but any integer `1:12` can be used.
-- `labels`: either a vector of labels matching the numver of groups, 
+- `labels`: either a vector of labels matching the number of groups, 
     or a function that generates labels from `Vector{Int}` of the selected months.
 """
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
@@ -206,9 +207,9 @@ These can wrap around the end of the day.
 
 ## Keywords
 
-- `start`: By default seasons start in December, but any integer `1:12` can be used.
+- `start`: By default seasons start in December, but any integer `1:24` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
-    from `Vector{Int}` of the selected months.
+    from `Vector{Int}` of the selected hours of the day.
 """
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 
