@@ -35,7 +35,7 @@ The basic syntax is:
 A = DimArray(rand(50, 31), (X(), Y(10.0:40.0)));
 ```
 
-Or just use `rand` directly, also works for `zeros`, `ones` and `fill`:
+Or just use `rand` directly, which also works for `zeros`, `ones` and `fill`:
 
 ```julia
 A = rand(X(10), Y(10.0:20.0))
