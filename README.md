@@ -76,7 +76,7 @@ A[Y=1:10, X=1]
  19.0  0.605331
 ```
 
-We can also subset by lookup, using a `Selector`, lets try `At`: 
+One can also subset by lookup, using a `Selector`, lets try `At`: 
 
 ```julia
 A[Y(At(25))]
@@ -117,12 +117,12 @@ And the plot will have the right ticks and labels.
 > [!NOTE]
 > Recent changes have greatly reduced the exported API.
 
-Previously exported methods can me brought into global scope by `using`
-the sub-modules they have been moved to - `LookupArrays` and `Dimensions`:
+Previously exported methods can be brought into global scope by `using`
+the sub-modules they have been moved to - `Lookup` and `Dimensions`:
 
 ```julia
 using DimensionalData
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookup, DimensionalData.Dimensions
 ```
 
 > [!IMPORTANT]
