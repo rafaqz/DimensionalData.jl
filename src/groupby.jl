@@ -207,7 +207,7 @@ These can wrap around the end of the day.
 
 ## Keywords
 
-- `start`: By default seasons start in December, but any integer `1:24` can be used.
+- `start`: By default seasons start at `0`, but any integer `1:24` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
     from `Vector{Int}` of the selected hours of the day.
 """
