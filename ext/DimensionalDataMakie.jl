@@ -97,7 +97,7 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     axis_attributes = if set_axis_attributes 
         Attributes(; 
             axis=(; 
-                xlabel=string(name(dims(A, 1))), 
+                xlabel=string(label(dims(A, 1))), 
                 ylabel=DD.label(A),
                 title=DD.refdims_title(A),
             ),
