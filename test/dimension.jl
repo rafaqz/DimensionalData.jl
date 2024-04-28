@@ -11,6 +11,7 @@ using DimensionalData.Lookups, DimensionalData.Dimensions
     @test metadata(TestDim(Sampled(1:1; metadata=Metadata(a=1)))) == Metadata(a=1)
     @test units(TestDim) == nothing
     @test label(TestDim) == "Testname"
+    @test label(TestDim()) == "Testname"
     @test eltype(TestDim(1)) == Int
     @test eltype(TestDim([1, 2, 3])) <: Int
     @test length(TestDim(1)) == 1

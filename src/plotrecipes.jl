@@ -48,7 +48,7 @@ end
     dim = dims(A, 1)
     :xguide --> label(dim)
     :yguide --> label(A)
-    :label --> string(name(A))
+    :label --> string(label(A))
     _xticks!(plotattributes, s, dim)
     _withaxes(dim, A)
 end
@@ -169,7 +169,7 @@ function refdims_title(refdims::Tuple; kw...)
     join(map(rd -> refdims_title(rd; kw...), refdims), ", ")
 end
 function refdims_title(refdim::Dimension; kw...)
-    string(name(refdim), ": ", refdims_title(lookup(refdim), refdim; kw...))
+    string(label(refdim), ": ", refdims_title(lookup(refdim), refdim; kw...))
 end
 function refdims_title(lookup::AbstractSampled, refdim::Dimension; kw...)
     start, stop = map(string, bounds(refdim))

@@ -419,7 +419,7 @@ macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
 
-function dimmacro(typ, supertype, name::String=string(typ))
+function dimmacro(typ, supertype, label::String=string(typ))
     quote
         Base.@__doc__ struct $typ{T} <: $supertype{T}
             val::T
@@ -439,8 +439,9 @@ function dimmacro(typ, supertype, name::String=string(typ))
         end
         $typ() = $typ(:)
         $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(typ)))
-        $Dimensions.label(::Type{<:$typ}) = $name
         $Dimensions.name2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.label(::$typ) = $label
+        $Dimensions.label(::Type{<:$typ}) = $label
     end |> esc
 end
 
