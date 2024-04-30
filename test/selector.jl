@@ -1420,7 +1420,11 @@ end
 
 @testset "selectindices" begin
     @test selectindices(A[X(1)], Contains(7)) == (3,)
+    @test selectindices(A, (At(10), Contains(7))) == (1, 3)
     @test selectindices(dims_, ()) == ()
+    @test selectindices((), ()) == ()
+    @test selectindices(A, (At(90), Contains(7)); err=Lookups._False()) == nothing
+    @test selectindices(A[X(1)], Contains(10); err=Lookups._False()) == nothing
 end
 
 @testset "hasselection" begin
