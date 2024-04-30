@@ -22,6 +22,7 @@ using Dates, IntervalSets, Extents
 import Adapt, ConstructionBase
 import InvertedIndices
 
+import DataAPI: metadata
 using InvertedIndices: Not
 using Base: tail, OneTo, @propagate_inbounds
 
