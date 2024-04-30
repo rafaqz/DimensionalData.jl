@@ -245,8 +245,23 @@ end
         return selectindices(dims(x), selectors; kw...)
     end
 end
-@inline selectindices(ds::DimTuple, sel...; kw...) = selectindices(ds, sel; kw...)
-@inline selectindices(ds::DimTuple, sel::Tuple; kw...) = selectindices(val(ds), sel; kw...)
+@inline selectindices(ds::Tuple, sel...; kw...) = selectindices(ds, sel; kw...)
+# Cant get this to compile away without a generated function
+# The nothing handling is for if `err=_False`, and we want to combine
+# multiple `nothing` into a single `nothing` return value
+@generated function selectindices(ds::Tuple, sel::Tuple; kw...) 
+    tuple_exp = Expr(:tuple)
+    for i in eachindex(ds.parameters)
+        expr = quote 
+            x = selectindices(ds[$i], sel[$i]; kw...)
+            isnothing(x) && return nothing
+            x
+        end
+        push!(tuple_exp.args, expr)
+    end
+    return tuple_exp
+end
+@inline selectindices(ds::Tuple{}, sel::Tuple{}; kw...) = () 
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
 # Deprecated

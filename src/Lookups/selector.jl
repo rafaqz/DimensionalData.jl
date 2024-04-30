@@ -73,7 +73,7 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
 # `Not` form InvertedIndices.jr
-function selectindices(l::Lookup, sel::Not; kw...)
+@inline function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
 end
@@ -129,10 +129,10 @@ Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x)
 struct _True end
 struct _False end
 
-selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
-selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
 
-_selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
+@inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
 
 function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -261,8 +261,8 @@ struct Near{T} <: IntSelector{T}
 end
 Near() = Near(nothing)
 
-selectindices(l::Lookup, sel::Near; kw...) = near(l, sel)
-selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel)
+@inline selectindices(l::Lookup, sel::Near; kw...) = near(l, sel)
+@inline selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel)
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
@@ -356,8 +356,8 @@ end
 Contains() = Contains(nothing)
 
 # Filter based on sampling and selector -----------------
-selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
-selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
@@ -567,8 +567,8 @@ abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
 
-selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
-function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
+@inline selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -822,8 +822,8 @@ Touches(a, b) = Touches((a, b))
 Base.first(sel::Touches) = first(val(sel))
 Base.last(sel::Touches) = last(val(sel))
 
-selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
+@inline selectindices(l::Lookup, sel::Touches) = touches(l, sel)
+@inline function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -1141,9 +1141,9 @@ _in(needle::Interval{<:Any,:open}, haystack::Interval{:closed,:open}) = needle.l
 _in(needle::Interval{:open,<:Any}, haystack::Interval{:open,:closed}) = needle.left in haystack && needle.right in haystack
 _in(needle::OpenInterval, haystack::OpenInterval) = needle.left in haystack && needle.right in haystack
 
-hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
-hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
+@inline hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
+@inline hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
 # Otherwise Near returns the nearest index, and Between an empty range
-hasselection(lookup::Lookup, ::Near) = isordered(lookup) ? true : false
-hasselection(lookup::Lookup, ::Union{Interval,Between}) = isordered(lookup) ? true : false
+@inline hasselection(lookup::Lookup, ::Near) = isordered(lookup) ? true : false
+@inline hasselection(lookup::Lookup, ::Union{Interval,Between}) = isordered(lookup) ? true : false
