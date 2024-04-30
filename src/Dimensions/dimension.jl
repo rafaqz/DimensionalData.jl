@@ -261,7 +261,7 @@ end
     end
     return tuple_exp
 end
-@inline selectindices(ds::Tuple{}, sel::Tuple{}; kw...) = () 
+@inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
 # Deprecated
