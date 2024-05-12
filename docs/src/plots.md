@@ -32,5 +32,27 @@ favours the categorical varable for the X axis:
 ```@example Makie
 Makie.rainclouds(A)
 ```
+## Test series plots
 
-A lot more is planned for Make.jl plots in future!
+### default colormap
+```@example Makie
+B = rand(X(10:10:100), Y([:a, :b, :c, :d, :e, :f, :g, :h, :i, :j]))
+Makie.series(B)
+```
+### A different colormap
+The colormap is controlled by the `color` argument, which can take as an input a named colormap, i.e. `:plasma` or a list of colours. 
+
+```@example Makie
+Makie.series(B; color=:plasma)
+```
+
+```@example Makie
+Makie.series(A; color=[:red, :blue, :orange])
+```
+### with markers
+
+```@example Makie
+Makie.series(A; color=[:red, :blue, :orange], markersize=15)
+```
+
+A lot more is planned for Makie.jl plots in future!

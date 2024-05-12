@@ -243,20 +243,16 @@ Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 $(_labeldim_detection_doc(series))
 """
 function Makie.series(A::AbstractDimArray{<:Any,2}; 
-    colormap=:Set1_5, color=nothing, axislegendkw=(;), labeldim=nothing, attributes...,
+    color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
     n = size(last(args), 1)
-    p = if isnothing(color)
-        if n > 7
-            color = resample_cmap(colormap, n) 
-            Makie.series(args...; color, colormap, merged_attributes...)
+    p = if n > 7
+            color = resample_cmap(color, n) 
+            Makie.series(args...; color, merged_attributes...)
         else
-            Makie.series(args...; colormap, merged_attributes...)
+            Makie.series(args...; color, merged_attributes...)
         end
-    else
-        Makie.series(args...; color, colormap, merged_attributes...)
-    end
     axislegend(p.axis; merge=true, unique=false, axislegendkw...)
     return p
 end
