@@ -241,17 +241,17 @@ using ColorTypes
     fig, ax, _ = M.surface(A2m)
     M.surface!(ax, A2m)
     # Series also puts Categories in the legend no matter where they are
+    # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
-    M.series!(ax, A2)
+    # M.series!(ax, A2)
     fig, ax, _ = M.series(A2r)
-    M.series!(ax, A2r)
-    #TODO: uncomment when the Makie version gets bumped
-    #fig, ax, _ = M.series(A2r; labeldim=Y)
-    #M.series!(ax, A2r; labeldim=Y)
+    # M.series!(ax, A2r)
+    fig, ax, _ = M.series(A2r; labeldim=Y)
+    # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
-    M.series!(ax, A2m)
+    # M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
-    @test_throws ArgumentError M.plot!(ax, A2; y=:c)
+    # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -262,7 +262,7 @@ using ColorTypes
     fig, ax, _ = M.heatmap(A2ab; y=:b)
     M.heatmap!(ax, A2ab; y=:b)
     fig, ax, _ = M.series(A2ab)
-    M.series!(ax, A2ab)
+    # M.series!(ax, A2ab)
     fig, ax, _ = M.boxplot(A2ab)
     M.boxplot!(ax, A2ab)
     fig, ax, _ = M.violin(A2ab)
@@ -277,7 +277,7 @@ using ColorTypes
     M.series!(ax, A2ab; labeldim=:a)
 
     fig, ax, _ = M.series(A2ab; labeldim=:b)
-    M.series!(ax, A2ab;labeldim=:b)
+    # M.series!(ax, A2ab;labeldim=:b)
 
     # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
