@@ -169,7 +169,7 @@ function _surface2(A, attributes, replacements)
     A1 = _prepare_for_makie(A, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
-    args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
+    args = Makie.convert_arguments(Makie.VertexGrid(), A2)
 
     # Plot attribute generation
     dx, dy = DD.dims(A2)
@@ -361,7 +361,7 @@ function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimArray{<:Any
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
-    t::Makie.DiscreteSurface, A::AbstractDimArray{<:Any,2}
+    t::Makie.CellGrid, A::AbstractDimArray{<:Any,2}
 )
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
@@ -440,7 +440,7 @@ end
 # Permute the data after replacing the dimensions with X/Y/Z
 _permute_xyz(A::AbstractDimArray, replacements::Pair) = _permute_xyz(A, (replacements,))
 _permute_xyz(A::AbstractDimArray, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
-    _permute_xyz(A, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
+    _permute_xyz(A, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     all_replacements = _get_replacement_dims(A, replacements)
@@ -452,7 +452,7 @@ end
 # Give the data in A2 the names from A1 working backwards from what was replaced earlier
 _restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
 _restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
-    _restore_dim_names(A2, A1, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
+    _restore_dim_names(A2, A1, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _restore_dim_names(A2, A1, replacements::Tuple=())
     all_replacements = _get_replacement_dims(A1, replacements)
     # Invert our replacement dimensions - `set` sets the outer wrapper
