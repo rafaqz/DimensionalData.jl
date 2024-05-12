@@ -275,12 +275,11 @@ using ColorTypes
     M.series!(ax, A2ab)
     fig, ax, _ = M.series(A2ab; labeldim=:a)
     M.series!(ax, A2ab; labeldim=:a)
-    # TODO: this is currently broken in Makie 
-    # should be uncommented with the bump of the Makie version
-    #fig, ax, _ = M.series(A2ab; labeldim=:b)
-    #M.series!(ax, A2ab;labeldim=:b)
 
-    # 3d
+    fig, ax, _ = M.series(A2ab; labeldim=:b)
+    M.series!(ax, A2ab;labeldim=:b)
+
+    # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
@@ -292,17 +291,17 @@ using ColorTypes
     # Broken in Makie ?
     # fig, ax, _ = M.volumeslices(A3rgb)
     # M.volumeslices!(ax, A3rgb)
-    fig, ax, _ = M.volumeslices(A3)
-    M.volumeslices!(ax, A3)
+    # fig, ax, _ = M.volumeslices(A3)
+    # M.volumeslices!(ax, A3)
     # colorrange isn't detected here
-    fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
-    M.volumeslices!(ax, A3m; colorrange=(1, 7))
+    # fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
+    # M.volumeslices!(ax, A3m; colorrange=(1, 7))
     # fig, ax, _ = M.volumeslices(A3rgb)
     # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    M.volumeslices!(ax, A3abc;z=:a)
+    # fig, ax, _ = M.volumeslices(A3abc; x=:c)
+    # fig, ax, _ = M.volumeslices(A3abc; z=:a)
+    # M.volumeslices!(ax, A3abc;z=:a)
 end
