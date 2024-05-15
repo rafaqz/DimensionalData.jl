@@ -235,7 +235,7 @@ const SAMPLED_ARGUMENTS_DOC = """
     to take account for the full size of the interval, rather than the point alone.
 - `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
     information about the array axis - useful for extending DimensionalData for specific
-    contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
+    contexts, like geospatial data in Rasters.jl. By default it is `NoMetadata()`.
 """
 
 """
@@ -481,7 +481,7 @@ This will be automatically assigned if the lookup contains `AbstractString`,
     Can be provided if this is known and performance is important.
 - `metadata`: a `Dict` or `Metadata` wrapper that holds any metadata object adding more
     information about the array axis - useful for extending DimensionalData for specific
-    contexts, like geospatial data in GeoData.jl. By default it is `NoMetadata()`.
+    contexts, like geospatial data in Rasters.jl. By default it is `NoMetadata()`.
 
 ## Example
 
