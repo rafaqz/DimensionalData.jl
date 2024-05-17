@@ -350,7 +350,7 @@ end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
-    return Makie.convert_arguments(t, _floatornan(parent(A)))
+    return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
     return Makie.convert_arguments(t, parent(A))
