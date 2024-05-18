@@ -37,6 +37,7 @@ using DimensionalData, Test, Aqua, SafeTestsets
     @time @safetestset "show" begin include("show.jl") end
     @time @safetestset "adapt" begin include("adapt.jl") end
     @time @safetestset "ecosystem" begin include("ecosystem.jl") end
+    @time @safetestset "categorical" begin include("categorical.jl") end
     if Sys.islinux()
         # Unfortunately this can hang on other platforms.
         # Maybe ram use of all the plots on the small CI machine? idk
