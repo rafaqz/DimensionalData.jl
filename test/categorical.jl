@@ -42,43 +42,53 @@ end
     c = categorical(x)
     c2 = categorical(x2)
     # on a normal dim array
-    @test recode(x, 1 => 2) == rebuild(x; data = [2,2,3])
+    rc1 = recode(x, 1 => 2) 
+    @test rc1 == [2,2,3]
+    @test rc1 isa DimArray
     # with a default
-    @test recode(x, 2, 3 => 4) == rebuild(x; data = [2,2,4])
+    rc2 = recode(x, 2, 3 => 4)
+    @test rc2 == [2,2,4]
+    @test rc2 isa DimArray
     # on a categorical dim array
-    @test recode(c, 1 => 2) == rebuild(c; data = [2,2,3])
+    rc3 = recode(c, 1 => 2) 
+    @test rc3 == [2,2,3]
+    @test rc3 isa DimArray
 
     # in-place
     recode!(c, 1 => 2)
-    @test c == rebuild(c; data = [2,2,3])
+    @test c == [2,2,3]
 
     c3 = categorical(x)
     recode!(c3, c, 2 => 3)
-    @test c3 == rebuild(c; data = [3,3,3])
+    @test c3 == [3,3,3]
 
     # from a dim array to a normal array
-    A = categorical([1,2,3])
+    c = categorical(x)
+    A = categorical([1,2,2])
     recode!(A, c, 3 => 2)
-    @test A == categorical([2,2,2]; levels = [1,2,3])
-    recode!(A, x, 3 => 2)
-    @test A == categorical([1,1,2]; levels = [1,2,3])
+    @test A == [1,2,2]
+    recode!(A, x, 2 => 1, 3 => 2)
+    @test A == [1,1,2]
+
     # with a default
     recode!(A, c, 3, 2 => 1)
-    @test A == categorical([1,1,3]; levels = [1,2,3])
+    @test A == [3,1,3]
     recode!(A, x, 3, 2 => 1)
-    @test A == categorical([1,1,3]; levels = [1,2,3])
+    @test A == [3,1,3]
 
     ## from an array to a dim array
     A = categorical([1,2,3])
-    recode!(c3, A, 2 => 3)
-    @test c3 == rebuild(c3; data = [1,3,3])
+    rc = recode!(c3, A, 2 => 3)
+    @test c3 == [1,3,3]
+    @test c3 isa DimArray
+    @test rc === c3
     recode!(x, A, 2 => 3)
-    @test x == rebuild(x; data = [1,3,3])
+    @test x == [1,3,3]
     # with a default
     recode!(c3, A, 2, 2 => 3)
-    @test c3 == rebuild(c3; data = [2,3,2])
+    @test c3 == [2,3,2]
     recode!(x, A, 2, 2 => 3)
-    @test x == rebuild(x; data = [2,3,2])
+    @test x == [2,3,2]
 end
 
 @testset "cut" begin
@@ -89,7 +99,7 @@ end
     @test all(CategoricalArrays.refs(c) .== [1,1,2,2])
 
     c2 = cut(x, [0.1, 0.5, 1.0];extend = missing)
-    @test c2 isa DimArray{<:CategoricalArrays.CategoricalValue}
+    @test c2 isa DimArray{<:Union{Missing, <:CategoricalArrays.CategoricalValue}}
     @test length(levels(c2)) == 2
     @test all(CategoricalArrays.refs(c2) .== [0,1,1,2])
     @test ismissing(first(c2))
