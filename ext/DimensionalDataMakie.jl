@@ -169,7 +169,7 @@ function _surface2(A, attributes, replacements)
     A1 = _prepare_for_makie(A, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
-    args = Makie.convert_arguments(Makie.ContinuousSurface(), A2)
+    args = Makie.convert_arguments(Makie.VertexGrid(), A2)
 
     # Plot attribute generation
     dx, dy = DD.dims(A2)
@@ -243,20 +243,16 @@ Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 $(_labeldim_detection_doc(series))
 """
 function Makie.series(A::AbstractDimArray{<:Any,2}; 
-    colormap=:Set1_5, color=nothing, axislegendkw=(;), labeldim=nothing, attributes...,
+    color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
     n = size(last(args), 1)
-    p = if isnothing(color)
-        if n > 7
-            color = resample_cmap(colormap, n) 
-            Makie.series(args...; color, colormap, merged_attributes...)
+    p = if n > 7
+            color = resample_cmap(color, n) 
+            Makie.series(args...; color, merged_attributes...)
         else
-            Makie.series(args...; colormap, merged_attributes...)
+            Makie.series(args...; color, merged_attributes...)
         end
-    else
-        Makie.series(args...; color, colormap, merged_attributes...)
-    end
     axislegend(p.axis; merge=true, unique=false, axislegendkw...)
     return p
 end
@@ -362,10 +358,11 @@ end
 function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimArray{<:Any,2})
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
-    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+    # the following will not work for irregular spacings, we'll need to add a check for this.
+    return xs[1]..xs[end], ys[1]..ys[end], last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
-    t::Makie.DiscreteSurface, A::AbstractDimArray{<:Any,2}
+    t::Makie.CellGrid, A::AbstractDimArray{<:Any,2}
 )
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
@@ -374,7 +371,8 @@ end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(parent, lookup(A1))
-    return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
+    # the following will not work for irregular spacings
+    return xs[1]..xs[end], ys[1]..ys[end], zs[1]..zs[end], last(Makie.convert_arguments(t, parent(A1)))
 end
 # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
@@ -444,7 +442,7 @@ end
 # Permute the data after replacing the dimensions with X/Y/Z
 _permute_xyz(A::AbstractDimArray, replacements::Pair) = _permute_xyz(A, (replacements,))
 _permute_xyz(A::AbstractDimArray, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
-    _permute_xyz(A, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
+    _permute_xyz(A, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     all_replacements = _get_replacement_dims(A, replacements)
@@ -456,7 +454,7 @@ end
 # Give the data in A2 the names from A1 working backwards from what was replaced earlier
 _restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
 _restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
-    _restore_dim_names(A2, A1, map(p -> basetypeof(key2dim(p[1]))(basetypeof(key2dim(p[2]))()), replacements))
+    _restore_dim_names(A2, A1, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _restore_dim_names(A2, A1, replacements::Tuple=())
     all_replacements = _get_replacement_dims(A1, replacements)
     # Invert our replacement dimensions - `set` sets the outer wrapper

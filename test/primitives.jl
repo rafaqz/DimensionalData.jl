@@ -41,17 +41,17 @@ dimz = dims(da)
     end
 end
 
-@testset "key2dim" begin
-    @test key2dim(:test) == Dim{:test}()
-    @test key2dim(:X) == X()
-    @test key2dim(:x) == Dim{:x}()
-    @test key2dim(:Ti) == Ti()
-    @test key2dim(:ti) == Dim{:ti}()
-    @test key2dim(:Tst) == Tst()
-    @test key2dim(Ti) == Ti
-    @test key2dim(Ti()) == Ti()
-    @test key2dim(Val{TimeDim}()) == Val{TimeDim}()
-    @test key2dim((:test, Ti, Ti())) == (Dim{:test}(), Ti, Ti())
+@testset "name2dim" begin
+    @test name2dim(:test) == Dim{:test}()
+    @test name2dim(:X) == X()
+    @test name2dim(:x) == Dim{:x}()
+    @test name2dim(:Ti) == Ti()
+    @test name2dim(:ti) == Dim{:ti}()
+    @test name2dim(:Tst) == Tst()
+    @test name2dim(Ti) == Ti
+    @test name2dim(Ti()) == Ti()
+    @test name2dim(Val{TimeDim}()) == Val{TimeDim}()
+    @test name2dim((:test, Ti, Ti())) == (Dim{:test}(), Ti, Ti())
 end
 
 @testset "_wraparg" begin
@@ -76,8 +76,8 @@ end
     @inferred f6()
     @inferred f7()
     @inferred f8()
-    @test (@inferred f9()) == (DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h))),
-                        DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
+    @test (@inferred f9()) == (DimensionalData.name2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h))),
+                        DimensionalData.name2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
 end
 
 @testset "_dim_query" begin
