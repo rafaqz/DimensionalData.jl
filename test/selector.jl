@@ -1144,6 +1144,8 @@ end
         # These should be the same because da is the maximum size
         # we can index with `Touches`
         @test da[Near(Extents.extent(da))] == da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        rda = reverse(da; dims=Y)
+        @test rda[Near(Extents.extent(rda))] == rda[Touches(Extents.extent(rda))] == rda[Extents.extent(rda)] == rda
     end
 
     @testset "with dim wrappers" begin
