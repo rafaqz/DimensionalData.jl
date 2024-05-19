@@ -582,7 +582,7 @@ function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:A
             newdims[d-(d>newdim)]
         end
     end
-    DimArray(_A, newdims)
+    rebuild(A, _A, format(newdims, _A))
 end
 
 """
