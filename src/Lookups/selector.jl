@@ -145,7 +145,7 @@ struct _False end
 
 @inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
 @inline function _selecttuple(l, sel; kw...) 
-    v1, v2 = val(sel)
+    v1, v2 = _maybeflipbounds(l, val(sel))
     selectindices(l, rebuild(sel, v1); kw...):selectindices(l, rebuild(sel, v2); kw...)
 end
 
