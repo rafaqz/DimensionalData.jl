@@ -19,7 +19,7 @@ Base.showerror(io::IO, ex::SelectorError{<:Categorical}) =
 Abstract supertype for all selectors.
 
 Selectors are wrappers that indicate that passed values are not the array indices,
-but values to be selected from the dimension index, such as `DateTime` objects for
+but values to be selected from the dimension lookup, such as `DateTime` objects for
 a `Ti` dimension.
 
 Selectors provided in DimensionalData are:
@@ -92,18 +92,17 @@ end
 """
     At <: IntSelector
 
-    At(x, atol, rtol)
     At(x; atol=nothing, rtol=nothing)
+    At(a, b; kw...)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
 For ranges and arrays, every intermediate value must match an existing value -
 not just the end points.
 
-`x` can be any value or `Vector` of values.
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b` are used, the range between them will be selected.
 
-`atol` and `rtol` are passed to `isapprox`.
-For `Number` `rtol` will be set to `Base.rtoldefault`, otherwise `nothing`,
-and wont be used.
+Keyword `atol` is passed to `isapprox`.
 
 ## Example
 
@@ -124,7 +123,8 @@ struct At{T,A,R} <: IntSelector{T}
     rtol::R
 end
 At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
-At() = At(nothing)
+At(; kw...) = At(nothing; kw...)
+At(a, b; kw...) = At((a, b); kw...)
 
 rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 
@@ -138,8 +138,16 @@ struct _False end
 
 @inline selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
 @inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = _selecttuple(l, sel; kw...)
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple}; kw...) = at(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
 
 @inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
+@inline function _selecttuple(l, sel; kw...) 
+    v1, v2 = val(sel)
+    selectindices(l, rebuild(sel, v1); kw...):selectindices(l, rebuild(sel, v2); kw...)
+end
 
 function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -237,18 +245,23 @@ end
 
 _selnotfound_or_nothing(err::_True, lookup, selval) = _selnotfound(lookup, selval)
 _selnotfound_or_nothing(err::_False, lookup, selval) = nothing
-@noinline _selnotfound(lookup, selval) = throw(ArgumentError("$selval for not found in $lookup"))
+@noinline _selnotfound(l, selval) = throw(SelectorError(l, "$selval for not found in $l"))
 
 """
     Near <: IntSelector
 
     Near(x)
+    Near(a, b)
 
 Selector that selects the nearest index to `x`.
 
-With [`Points`](@ref) this is simply the index values nearest to the `x`,
+With [`Points`](@ref) this is simply the lookup values nearest to the `x`,
 however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
 This will be offset from the index value for `Start` and [`End`](@ref) locus.
+
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b`  are used, the range between the nearsest value
+to each of them will be selected.
 
 ## Example
 
@@ -266,9 +279,14 @@ struct Near{T} <: IntSelector{T}
     val::T
 end
 Near() = Near(nothing)
+Near(a, b) = Near((a, b))
 
-@inline selectindices(l::Lookup, sel::Near; kw...) = near(l, sel)
-@inline selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel)
+@inline selectindices(l::Lookup, sel::Near; kw...) = near(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Near{<:Tuple}; kw...)  = _selecttuple(l, sel; kw...) 
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple}; kw...) = near(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
@@ -335,13 +353,18 @@ _adjust_locus(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - 
     Contains <: IntSelector
 
     Contains(x)
+    Contains(a, b)
 
 Selector that selects the interval the value is contained by. If the
-interval is not present in the index, an error will be thrown.
+interval is not present in the lookup, an error will be thrown.
 
 Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 For [`Categorical`](@ref) it falls back to using [`At`](@ref).
-`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` to check for if values are contain in categorical values like strings.
+`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` 
+to check for if values are contain in categorical values like strings.
+
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b`  are used, the range between them will be selected.
 
 ## Example
 
@@ -360,10 +383,15 @@ struct Contains{T} <: IntSelector{T}
     val::T
 end
 Contains() = Contains(nothing)
+Contains(a, b) = Contains((a, b))
 
 # Filter based on sampling and selector -----------------
 @inline selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
 @inline selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains{<:Tuple}; kw...) = _selecttuple(l, sel; kw...)
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple}; kw...) = contains(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 

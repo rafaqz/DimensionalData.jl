@@ -1141,9 +1141,9 @@ end
                       Ti(Sampled((1:4)u"s"; sampling=Intervals()))))
 
     @testset "Extent indexing" begin
-        # THese should be the same because da is the maximum size
+        # These should be the same because da is the maximum size
         # we can index with `Touches`
-        @test da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        @test da[Near(Extents.extent(da))] == da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
     end
 
     @testset "with dim wrappers" begin
@@ -1425,6 +1425,15 @@ end
     @test selectindices((), ()) == ()
     @test selectindices(A, (At(90), Contains(7)); err=Lookups._False()) == nothing
     @test selectindices(A[X(1)], Contains(10); err=Lookups._False()) == nothing
+end
+
+@testset "selectindices with Tuple" begin
+    @test selectindices(lookup(A, Y), At(6, 7))
+    @test_throws SelectorError selectindices(lookup(A, Y), At(5.3, 8))
+    @test selectindices(lookup(A, Y), At(5.1, 7.1; atol=0.1)) == 1:3
+    @test selectindices(lookup(A, Y), Near(5.3, 8)) == 1:3
+    @test selectindices(lookup(A, Y), Contains(4.7, 6.1)) == 1:2
+    @test_throws SelectorError selectindices(lookup(A, Y), Contains(5.3, 8)) == 1:3
 end
 
 @testset "hasselection" begin
