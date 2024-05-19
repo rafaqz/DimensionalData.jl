@@ -245,7 +245,7 @@ end
 
 _selnotfound_or_nothing(err::_True, lookup, selval) = _selnotfound(lookup, selval)
 _selnotfound_or_nothing(err::_False, lookup, selval) = nothing
-@noinline _selnotfound(l, selval) = throw(SelectorError(l, "$selval for not found in $l"))
+@noinline _selnotfound(l, selval) = throw(SelectorError(l, selval))
 
 """
     Near <: IntSelector

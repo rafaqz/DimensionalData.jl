@@ -41,7 +41,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(startrev, At(29.9; atol=0.2)) == 1
             @test at(startfwd, At(30.1; atol=0.2)) == 20
             @test at(startrev, At(30.1; atol=0.2)) == 1
-            @test_throws ArgumentError at(startrev, At(0.0; atol=0.2))
+            @test_throws SelectorError at(startrev, At(0.0; atol=0.2))
             @test at(startrev, At(0.0; atol=0.2); err=Lookups._False()) == nothing
         end
 
@@ -951,7 +951,7 @@ end
 
     @testset "selectors with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Near(17)), Ti(Near([1.5u"s", 3.1u"s"]))) == [6, 7]
         @test @inferred view(da, Y(Between(9, 21)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
@@ -1150,7 +1150,7 @@ end
 
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.9u"s", 3.1u"s"]))) == [5, 7]
         @test @inferred view(da, Y(Between(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
@@ -1246,7 +1246,7 @@ end
 
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.4u"s", 3.1u"s"]))) == [5, 7]
     end
@@ -1430,7 +1430,7 @@ end
 end
 
 @testset "selectindices with Tuple" begin
-    @test selectindices(lookup(A, Y), At(6, 7))
+    @test selectindices(lookup(A, Y), At(6, 7)) == 2:3
     @test_throws SelectorError selectindices(lookup(A, Y), At(5.3, 8))
     @test selectindices(lookup(A, Y), At(5.1, 7.1; atol=0.1)) == 1:3
     @test selectindices(lookup(A, Y), Near(5.3, 8)) == 1:3
