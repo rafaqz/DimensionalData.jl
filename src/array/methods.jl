@@ -558,7 +558,7 @@ function Base._typed_stack(::Colon, ::Type{T}, ::Type{S}, A, Aax=_iterator_axes(
     )
         return _A
     else
-        DimArray(_A, (first(origdims)..., AnonDim()))
+        rebuild(A, _A, format((first(origdims)..., AnonDim()), _A))
     end
 end
 
