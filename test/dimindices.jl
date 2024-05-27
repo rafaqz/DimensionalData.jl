@@ -1,5 +1,6 @@
 using DimensionalData, Test, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
+using DimensionalData.Lookups: SelectorError
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
