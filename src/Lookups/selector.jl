@@ -137,11 +137,16 @@ struct _True end
 struct _False end
 
 @inline selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = _selecttuple(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = 
+    _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
+    _selecttuple(l, sel; kw...)
 # Handle lookups of Tuple
 @inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple}; kw...) = at(l, sel; kw...)
-@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
+    at(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Tuple,<:Tuple}}; kw...) = 
+    _selecttuple(l, sel; kw...)
 
 @inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
 @inline function _selecttuple(l, sel; kw...) 

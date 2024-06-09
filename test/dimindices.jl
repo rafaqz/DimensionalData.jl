@@ -120,7 +120,7 @@ end
         @test @inferred broadcast(ds -> C[ds...] + 2, dsa2) == fill(2.0, 4, 3)
         @test @inferred broadcast(ds -> C[ds...], dsa2[X(At(7.0))]) == [0.0 for i in 1:3]
         # without atol it errors
-        @test_throws ArgumentError broadcast(ds -> C[ds...] + 2, ds) == fill(2.0, 4, 3)
+        @test_throws SelectorError broadcast(ds -> C[ds...] + 2, ds) == fill(2.0, 4, 3)
         # no dims errors
         @test_throws ArgumentError DimSelectors(zeros(2, 2))
         @test_throws ArgumentError DimSelectors(nothing)
