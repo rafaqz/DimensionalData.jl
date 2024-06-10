@@ -177,10 +177,7 @@ using ColorTypes
     M.reset_limits!(ax)
     org = first(ax.finallimits.val.origin)
     wid = first(M.widths(ax.finallimits.val))
-    @show org
-    @show wid
     # This tests for #714
-    # This works in the REPL but not in the Tests
     @test org <= -10
     @test org + wid >= 10
     fig, ax, _ = M.scatter(A1)
