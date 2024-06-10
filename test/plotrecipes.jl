@@ -165,7 +165,7 @@ using ColorTypes
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
-
+    A1num = rand(X(-10:10))
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = M.plot(A1)
@@ -173,6 +173,13 @@ using ColorTypes
     fig, ax, _ = M.plot(A1m)
     fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
+    fig, ax, _ = M.plot(A1num)
+    M.reset_limits!(ax)
+    org = first(ax.finallimits.val.origin)
+    wid = first(M.widths(ax.finallimits.val))
+    # This tests for #714
+    @test org <= -10
+    @test org + wid >= 10
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
     fig, ax, _ = M.scatter(A1m)
