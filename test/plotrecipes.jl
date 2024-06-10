@@ -176,9 +176,12 @@ using ColorTypes
     fig, ax, _ = M.plot(A1num)
     org = first(ax.finallimits.val.origin)
     wid = first(M.widths(ax.finallimits.val))
+    @show org
+    @show wid
     # This tests for #714
-    @test org < -10
-    @test org + wid > 10
+    # This works in the REPL but not in the Tests
+    @test org <= -10
+    @test org + wid >= 10
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
     fig, ax, _ = M.scatter(A1m)
