@@ -174,6 +174,7 @@ using ColorTypes
     fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
     fig, ax, _ = M.plot(A1num)
+    M.reset_limits!(ax)
     org = first(ax.finallimits.val.origin)
     wid = first(M.widths(ax.finallimits.val))
     @show org
