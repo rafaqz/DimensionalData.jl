@@ -30,6 +30,7 @@ Selectors provided in DimensionalData are:
 - [`Near`](@ref)
 - [`Where`](@ref)
 - [`Contains`](@ref)
+- [`Not`](@ref)
 
 """
 abstract type Selector{T} end
