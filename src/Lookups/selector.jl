@@ -31,6 +31,13 @@ Selectors provided in DimensionalData are:
 - [`Where`](@ref)
 - [`Contains`](@ref)
 
+Note: Selectors can be modified using:
+- `Not`: as in `Not(At(x))`
+And IntervalSets.jl `Interval` can be used instead of `Between`
+- `..`
+- `Interval`
+- `OpenInterval`
+- `ClosedInterval`
 """
 abstract type Selector{T} end
 
