@@ -33,7 +33,11 @@ Selectors provided in DimensionalData are:
 
 Note: Selectors can be modified using:
 - [`Not`](@ref)
-- [`..`](@ref)
+And IntervalSets.jl `Interval` can be used instead of `Between`
+- `..`
+- `Interval`
+- `OpenInterval`
+- `ClosedInterval`
 """
 abstract type Selector{T} end
 
