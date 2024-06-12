@@ -32,7 +32,7 @@ Selectors provided in DimensionalData are:
 - [`Contains`](@ref)
 
 Note: Selectors can be modified using:
-- [`Not`](@ref)
+- `Not`: as in `Not(At(x))`
 And IntervalSets.jl `Interval` can be used instead of `Between`
 - `..`
 - `Interval`
