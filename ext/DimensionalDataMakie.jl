@@ -441,7 +441,7 @@ end
 
 # Permute the data after replacing the dimensions with X/Y/Z
 _permute_xyz(A::AbstractDimArray, replacements::Pair) = _permute_xyz(A, (replacements,))
-_permute_xyz(A::AbstractDimArray, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
+_permute_xyz(A::AbstractDimArray, replacements::Tuple{<:Pair,Vararg{T}}) where T<:Pair =
     _permute_xyz(A, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
@@ -453,7 +453,7 @@ end
 
 # Give the data in A2 the names from A1 working backwards from what was replaced earlier
 _restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
-_restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{<:Pair}}) =
+_restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{T}}) where T<:Pair =
     _restore_dim_names(A2, A1, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _restore_dim_names(A2, A1, replacements::Tuple=())
     all_replacements = _get_replacement_dims(A1, replacements)
