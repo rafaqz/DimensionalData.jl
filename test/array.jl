@@ -500,6 +500,11 @@ end
     @test size(A) === size(da)
     @test A isa DimArray
     @test dims(A) === dims(da)
+    A = DimArray{Int}(undef, dimz)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
 end
 
 @testset "rand constructors" begin
