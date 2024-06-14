@@ -367,34 +367,32 @@ end
     @test convert(DimArray{eltype(da)}, da) === convert(DimArray, da) === da
 end
 
-if VERSION > v"1.1-"
-    @testset "copy!" begin
-        dimz = dims(da2)
-        A = zero(a2)
-        sp = sprand(Int, 4, 0.5)
-        db = DimArray(deepcopy(A), dimz)
-        dc = DimArray(deepcopy(A), dimz)
+@testset "copy!" begin
+    dimz = dims(da2)
+    A = zero(a2)
+    sp = sprand(Int, 4, 0.5)
+    db = DimArray(deepcopy(A), dimz)
+    dc = DimArray(deepcopy(A), dimz)
 
-        @test copy!(A, da2) isa Matrix
-        @test A == parent(da2)
-        @test copy!(db, da2) isa DimMatrix
-        @test parent(db) == parent(da2)
-        @test copy!(dc, a2) isa DimMatrix
-        @test parent(db) == a2
-        # Sparse vector has its own method for ambiguity
-        copy!(sp, da2[1, :])
-        @test sp == parent(da2[1, :])
+    @test copy!(A, da2) isa Matrix
+    @test A == parent(da2)
+    @test copy!(db, da2) isa DimMatrix
+    @test parent(db) == parent(da2)
+    @test copy!(dc, a2) isa DimMatrix
+    @test parent(db) == a2
+    # Sparse vector has its own method for ambiguity
+    copy!(sp, da2[1, :])
+    @test sp == parent(da2[1, :])
 
-        @testset "vector copy! (ambiguity fix)" begin
-            v = zeros(3)
-            dv = DimArray(zeros(3), X)
-            @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
-            @test v == [1.0, 2.0, 3.0]
-            @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
-            @test dv == [9.9, 9.9, 9.9]
-            @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
-            @test dv == [5.0, 5.0, 5.0]
-        end
+    @testset "vector copy! (ambiguity fix)" begin
+        v = zeros(3)
+        dv = DimArray(zeros(3), X)
+        @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
+        @test v == [1.0, 2.0, 3.0]
+        @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
+        @test dv == [9.9, 9.9, 9.9]
+        @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
+        @test dv == [5.0, 5.0, 5.0]
     end
 end
 

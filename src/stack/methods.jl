@@ -47,7 +47,7 @@ function Base.copyto!(
 end
 
 """
-    Base.eachslice(stack::AbstractDimStack; dims)
+    Base.eachslice(stack::AbstractDimStack; dims, drop=true)
 
 Create a generator that iterates over dimensions `dims` of `stack`, returning stacks that
 select all the data from the other dimensions in `stack` using views.
@@ -80,25 +80,18 @@ and 2 layers:
   :y Float64 dims: Y, Ti (3×5)
 ```
 """
-@static if VERSION < v"1.9-alpha1"
-    function Base.eachslice(s::AbstractDimStack; dims)
-        dimtuple = _astuple(basedims(dims))
-        all(hasdim(s, dimtuple)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
-        _eachslice(s, dimtuple)
+function Base.eachslice(s::AbstractDimStack; dims, drop=true)
+    dimtuple = _astuple(dims)
+    if !(dimtuple == ()) 
+        all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
     end
-else
-    function Base.eachslice(s::AbstractDimStack; dims, drop=true)
-        dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
-            all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-        end
-        # Avoid getting DimUnitRange from `axes(s)`
-        axisdims = map(DD.dims(s, dimtuple)) do d
-            rebuild(d, axes(lookup(d), 1)) 
-        end
-        return DimSlices(s; dims=axisdims, drop)
+    # Avoid getting DimUnitRange from `axes(s)`
+    axisdims = map(DD.dims(s, dimtuple)) do d
+        rebuild(d, axes(lookup(d), 1)) 
     end
+    return DimSlices(s; dims=axisdims, drop)
 end
+
 
 """
     Base.cat(stacks::AbstractDimStack...; [keys=keys(stacks[1])], dims)
