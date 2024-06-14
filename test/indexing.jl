@@ -467,13 +467,12 @@ end
         @inferred setindex!(da2_set, 77, Dim{:row}(1), column=2)
 
         # With a large type
-        if VERSION >= v"1.5"
-            da4 = DimArray(zeros(1, 2, 3, 4, 5, 6, 7, 8), (:a, :b, :c, :d, :d, :f, :g, :h))
-            @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5)
-            # Type inference breaks with 6 arguments.
-            # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
-            # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
-        end
+        da4 = DimArray(zeros(1, 2, 3, 4, 5, 6, 7, 8), (:a, :b, :c, :d, :d, :f, :g, :h))
+        @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5)
+        # Type inference breaks with 6 arguments.
+        # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
+        # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
+    
     end
 
     @testset "trailing colon" begin
