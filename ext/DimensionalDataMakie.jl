@@ -6,8 +6,20 @@ using DimensionalData.Dimensions, DimensionalData.LookupArrays
 const DD = DimensionalData
 
 # Handle changes between Makie 0.19 and 0.20
+"""
+Internal type union
+
+# Extended Help
+This is needed to have the Makie plotting work with Makie 0.19 and .0.20
+"""
 const SurfaceLikeCompat = isdefined(Makie, :SurfaceLike) ? Makie.SurfaceLike : Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}
 
+"""
+Internal function
+
+# Extended Help
+Convert the list of arguments to a list of Pairs with the same key and value
+"""
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
 
 

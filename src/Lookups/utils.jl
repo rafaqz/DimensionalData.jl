@@ -67,7 +67,7 @@ define the object without it's fields. By default this is the full
 `UnionAll` for the type. But custom `basetypeof` methods can be
 defined for types with free type parameters.
 
-In DimensionalData this is primariliy used for comparing `Dimension`s,
+In DimensionalData this is primarily used for comparing `Dimension`s,
 where `Dim{:x}` is different from `Dim{:y}`.
 """
 @inline basetypeof(x::T) where T = basetypeof(T)
