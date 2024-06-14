@@ -671,7 +671,7 @@ function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...;
 end
 function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
     C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)), _maybestripval(dims); kw...)
+    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)
