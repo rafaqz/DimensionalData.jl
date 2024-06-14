@@ -67,14 +67,13 @@ function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
 
-@static if VERSION >= v"1.6"
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-        rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-    end
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-        Base._mapreduce_dim(f, op, nt, parent(A), dims)
-    end
+function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
+function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
+    Base._mapreduce_dim(f, op, nt, parent(A), dims)
+end
+
 
 # TODO: Unfortunately Base/accumulate.jl kw methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
@@ -120,50 +119,41 @@ end
     return rebuild(A, newdata, newdims)
 end
 
-@static if VERSION < v"1.9-alpha1"
-    """
-        Base.eachslice(A::AbstractDimArray; dims)
+"""
+    Base.eachslice(A::AbstractDimArray; dims,drop=true)
 
-    Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
-    select all the data from the other dimensions in `A` using views.
+Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
+select all the data from the other dimensions in `A` using views.
 
-    The generator has `size` and `axes` equivalent to those of the provided `dims`.
-    """
-    function Base.eachslice(A::AbstractDimArray; dims)
-        dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
-            all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-        end
-        _eachslice(A, dimtuple)
+The generator has `size` and `axes` equivalent to those of the provided `dims`.
+"""
+@inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
+    dimtuple = _astuple(dims)
+    if !(dimtuple == ()) 
+        all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
     end
-else
-    @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
-        dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
-            all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+    _eachslice(A, dimtuple, drop)
+end
+Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
+    slicedims = Dimensions.dims(A, dims)
+    Adims = Dimensions.dims(A)
+    if drop
+        ax = map(dim -> axes(A, dim), slicedims)
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
         end
-        _eachslice(A, dimtuple, drop)
-    end
-    Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
-        slicedims = Dimensions.dims(A, dims)
-        Adims = Dimensions.dims(A)
-        if drop
-            ax = map(dim -> axes(A, dim), slicedims)
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
-        else
-            ax = map(Adims) do dim
-                hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
-            end
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
+        return Slices(A, slicemap, ax)
+    else
+        ax = map(Adims) do dim
+            hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
         end
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
+        end
+        return Slices(A, slicemap, ax)
     end
 end
+
 
 # works for arrays and for stacks
 function _eachslice(x, dims::Tuple)
