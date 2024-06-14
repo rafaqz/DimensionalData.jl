@@ -125,7 +125,8 @@ end
 Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
 select all the data from the other dimensions in `A` using views.
 
-The generator has `size` and `axes` equivalent to those of the provided `dims`.
+The generator has `size` and `axes` equivalent to those of the provided `dims` if `drop=true`.
+Otherwise it will have the same dimensionality as the underlying array with inner dimensions having size 1.
 """
 @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
     dimtuple = _astuple(dims)
