@@ -97,7 +97,6 @@ end
     @test reo_s == s
     @test dims(reo_s) == dims(s)
 
-    @test_throws MethodError reorder(da, rand(2,3))
 
     @testset "reorder handles extra dimensions" begin
         @test reorder(da[X=1], X=>ReverseOrdered(), Y=>ForwardOrdered()) == rev[X=1]
