@@ -7,7 +7,12 @@ using DimensionalData.Lookups
 # Names are available everywhere so that [`function`](@ref) works.
 # ====================
 
-DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.Lookups); recursive=true)
+doctest_setup = quote
+    using DimensionalData
+    using DimensionalData.Dimensions
+    using DimensionalData.Dimensions.Lookups
+end
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, doctest_setup; recursive=true)
 
 # Build documentation.
 # ====================
