@@ -122,8 +122,8 @@ locus(lookup(A, Y))
 
 == bounds
 
-Get the bounds of each dimension. This is different for `Points` 
-and `Intervals` - the bounds for points of a `Lookup` are 
+Get the bounds of each dimension. This is different for `Points`
+and `Intervals` - the bounds for points of a `Lookup` are
 simply `(first(l), last(l))`.
 
 ```@ansi getters
@@ -146,8 +146,8 @@ intervalbounds(lookup(A, Y))
 
 == extent
 
-[Extents.jl](https://github.com/rafaqz/Extent) provides an `Extent` 
-object that combines the names of dimensions with their bounds. 
+[Extents.jl](https://github.com/rafaqz/Extent) provides an `Extent`
+object that combines the names of dimensions with their bounds.
 
 ```@ansi getters
 using Extents

@@ -7,7 +7,7 @@
 
 Format the passed-in dimension(s) `dims` to match the object `x`.
 
-Errors are thrown if dims don't match the array dims or size, 
+Errors are thrown if dims don't match the array dims or size,
 and any fields holding `Auto-` objects are filled with guessed objects.
 
 If a [`Lookup`](@ref) hasn't been specified, a lookup is chosen
@@ -27,7 +27,7 @@ function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     return format(dims, A)
 end
 # Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
-function format(dims::DimTuple) 
+function format(dims::DimTuple)
     ax = map(parent ∘ first ∘ axes, dims)
     A = CartesianIndices(ax)
     return format(dims, A)
@@ -51,7 +51,7 @@ end
 format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), D, val, axis)
 format(m::Lookup, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
 format(v::AutoVal, D::Type, axis::AbstractRange) = _valformaterror(val(v), D)
-format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D) 
+format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 
 # Format Lookups
 # No more identification required for NoLookup
@@ -60,7 +60,7 @@ format(m::NoLookup, D::Type, values::AutoValues, axis::AbstractRange) = NoLookup
 # # AutoLookup
 function format(m::AutoLookup, D::Type, values::AbstractArray{T}, axis::AbstractRange) where T
     # A mixed type lookup is Categorical
-    m = if isconcretetype(T) 
+    m = if isconcretetype(T)
         Sampled(; order=order(m), span=span(m), sampling=sampling(m), metadata=metadata(m))
     else
         o = order(m) isa AutoOrder ? Unordered() : order(m)
@@ -126,7 +126,7 @@ _format(sampling::AutoSampling, span::Explicit, D::Type, values) =
 _format(::AutoSampling, ::Explicit, D::Type, ::AbstractArray{<:IntervalSets.Interval}) =
     Intervals(_format(locus(sampling), D, values))
 _format(sampling::Points, span::Span, D::Type, values) = sampling
-_format(sampling::Points, span::Explicit, D::Type, values) = _explicitpoints_error() 
+_format(sampling::Points, span::Explicit, D::Type, values) = _explicitpoints_error()
 _format(sampling::Intervals, span::Span, D::Type, values) =
     rebuild(sampling, _format(locus(sampling), D, values))
 # Locus

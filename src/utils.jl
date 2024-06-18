@@ -86,9 +86,9 @@ This also works for all the data layers in a `DimStack`.
 """
 function modify end
 modify(f, s::AbstractDimStack) = map(a -> modify(f, a), s)
-# Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
+# Stack optimisation to avoid compilation to build all the `AbstractDimArray`
 # layers, and instead just modify the parent data directly.
-modify(f, s::AbstractDimStack{<:NamedTuple}) = 
+modify(f, s::AbstractDimStack{<:NamedTuple}) =
     rebuild(s; data=map(a -> modify(f, a), parent(s)))
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
@@ -111,7 +111,7 @@ end
     broadcast_dims(f, sources::AbstractDimArray...) => AbstractDimArray
 
 Broadcast function `f` over the `AbstractDimArray`s in `sources`, permuting and reshaping
-dimensions to match where required. The result will contain all the dimensions in 
+dimensions to match where required. The result will contain all the dimensions in
 all passed in arrays in the order in which they are found.
 
 ## Arguments
@@ -139,7 +139,7 @@ end
 """
     broadcast_dims!(f, dest::AbstractDimArray, sources::AbstractDimArray...) => dest
 
-Broadcast function `f` over the `AbstractDimArray`s in `sources`, writing to `dest`. 
+Broadcast function `f` over the `AbstractDimArray`s in `sources`, writing to `dest`.
 `sources` are permuting and reshaping dimensions to match where required.
 
 The result will contain all the dimensions in all passed in arrays, in the order in
@@ -171,7 +171,7 @@ function _broadcast_dims_inner!(f, dest, As, od)
     if all(map(isempty, od))
         dest .= f.(As...)
     else
-        not_shared_dims = combinedims(od...) 
+        not_shared_dims = combinedims(od...)
         reshaped = map(As) do A
             all(hasdim(A, dims(dest))) ? parent(A) : _insert_length_one_dims(A, dims(dest))
         end
@@ -181,7 +181,7 @@ function _broadcast_dims_inner!(f, dest, As, od)
 end
 
 function _insert_length_one_dims(A, alldims)
-    lengths = map(alldims) do d 
+    lengths = map(alldims) do d
         hasdim(A, d) ? size(A, d) : 1
     end
     return reshape(parent(A), lengths)
@@ -212,7 +212,7 @@ end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
 uniquekeys(nt::NamedTuple) = keys(nt)
 
-_as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
+_as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K =
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
 function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
     extended_layers = map(layers(st)) do l

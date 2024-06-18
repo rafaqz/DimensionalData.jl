@@ -24,12 +24,12 @@ Base.step(r::BeginEndStepRange) = r.step
 
 (::Colon)(a::Int, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = BeginEndRange(a, _x(b))
 (::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Int) = BeginEndRange(_x(a), b)
-(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = 
+(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) =
     BeginEndRange(_x(a), _x(b))
 
 (::Colon)(a::Union{Int,LazyMath}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a, step, _x(b))
 (::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Int,LazyMath}) = BeginEndStepRange(_x(a), step, b)
-(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Type{Begin},Type{End}}) = 
+(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Type{Begin},Type{End}}) =
     BeginEndStepRange(_x(a), step, _x(b))
 
 _x(T::Type) = T()
@@ -62,12 +62,12 @@ end
 
 
 Base.show(io::IO, ::MIME"text/plain", r::AbstractBeginEndRange) = show(io, r)
-function Base.show(io::IO, r::BeginEndRange)  
+function Base.show(io::IO, r::BeginEndRange)
     _show(io, first(r))
     print(io, ':')
     _show(io, last(r))
 end
-function Base.show(io::IO, r::BeginEndStepRange)  
+function Base.show(io::IO, r::BeginEndStepRange)
     _show(io, first(r))
     print(io, ':')
     show(io, step(r))
@@ -77,7 +77,7 @@ end
 
 _show(io, x::Union{Begin,End}) = show(io, typeof(x))
 _show(io, x) = show(io, x)
-# Here we recursively print `Fix1` and `Fix2` either left or right 
+# Here we recursively print `Fix1` and `Fix2` either left or right
 # to recreate the function
 _print_f(T, f) = string(T, _pf(f))
 _print_f(T, f::Base.ComposedFunction) = string('(', _print_f(T, f.outer), ')', _print_f("", f.inner))
@@ -90,8 +90,8 @@ _pf(f) = string(f)
 for T in (UnitRange, AbstractUnitRange, StepRange, StepRangeLen, LinRange, Lookup)
     for f in (:getindex, :view, :dotview)
         @eval Base.$f(A::$T, i::AbstractBeginEndRange) = Base.$f(A, to_indices(A, (i,))...)
-        @eval Base.$f(A::$T, i::Union{Type{Begin},Type{End},Begin,End,LazyMath}) = 
-            Base.$f(A, to_indices(A, _construct_types(i))...) 
+        @eval Base.$f(A::$T, i::Union{Type{Begin},Type{End},Begin,End,LazyMath}) =
+            Base.$f(A, to_indices(A, _construct_types(i))...)
     end
 end
 

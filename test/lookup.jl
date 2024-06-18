@@ -144,9 +144,9 @@ end
                 ]
                 # Test non keyword constructors too
                 dim = X(Sampled(ind, ForwardOrdered(), Regular(10.0), Intervals(Start()), NoMetadata()))
-                @test bounds(dim) == (10.0, 60.0)                                        
+                @test bounds(dim) == (10.0, 60.0)
                 dim = X(Sampled(ind, ForwardOrdered(), Regular(10.0), Intervals(End()), NoMetadata()))
-                @test bounds(dim) == (0.0, 50.0)                                         
+                @test bounds(dim) == (0.0, 50.0)
                 dim = X(Sampled(ind, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()))
                 @test bounds(dim) == (5.0, 55.0)
             end
@@ -260,7 +260,7 @@ end
             @test f(l, 1:10) isa Sampled
         end
         # TODO clarify intervalbounds - we cant return the whole set to typemax, so we return onecycle?
-        # @test intervalbounds(dim) 
+        # @test intervalbounds(dim)
         dim = X(Cyclic(reverse(vals); cycle=360.0, order=ReverseOrdered(), span=Regular(1.0), sampling=Intervals(Start())))
         @test bounds(dim) == (typemin(Float64), typemax(Float64))
         @test order(dim) == ReverseOrdered()

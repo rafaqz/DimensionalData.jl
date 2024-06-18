@@ -129,7 +129,7 @@ da1[X=Begin:Begin+1, Y=Begin+1:End-1]
 ```
 
 In base julia the keywords `begin` and `end` can be used to
-index the first or last element of an array. But this doesn't 
+index the first or last element of an array. But this doesn't
 work when named indexing is used. Instead you can use the types
 `Begin` and `End`.
 

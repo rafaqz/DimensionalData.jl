@@ -63,7 +63,7 @@ for f in (:getindex, :view, :dotview)
         # Except 1D DimArrays
         @propagate_inbounds Base.$f(A::AbstractDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i), (i,))
-        @propagate_inbounds Base.$f(A::AbstractDimVector, i::SelectorOrInterval) = 
+        @propagate_inbounds Base.$f(A::AbstractDimVector, i::SelectorOrInterval) =
             Base.$f(A, dims2indices(A, (i,))...)
         # Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =

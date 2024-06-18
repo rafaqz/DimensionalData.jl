@@ -50,7 +50,7 @@ Dimensions.selectindices
 
 ### Primitive methods
 
-These low-level methods are really for internal use, but 
+These low-level methods are really for internal use, but
 can be useful for writing dimensional algorithms.
 
 They are not guaranteed to keep their interface, but usually will.

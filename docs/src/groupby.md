@@ -218,7 +218,7 @@ values exactly `in` the ranges. `7.5` would not be included!
 
 == intervals bins
 
-Intervals is like ranges, but for taking all values in  
+Intervals is like ranges, but for taking all values in
 an interval, not just discrete `Integer`s.
 
 `intervals` returns closed-open `IntervalSets.Interval`:

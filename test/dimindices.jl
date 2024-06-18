@@ -22,7 +22,7 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @test @inferred A[reverse(di[2:5])] == A[5:-1:2]
     @test @inferred A[di[2:4, 1:2]] == A[2:4, 1:2]
     A1 = zeros(X(4.0:7.0), Ti(3), Y(10.0:12.0))
-    @test @inferred size(A1[di[2:5]]) == (3, 4) 
+    @test @inferred size(A1[di[2:5]]) == (3, 4)
     @test @inferred size(A1[di[2:4, 1:2], Ti=1]) == (3, 2)
     @test @inferred A1[di] isa DimArray{Float64,3}
     @test @inferred A1[X=1][di] isa DimArray{Float64,2}
@@ -56,8 +56,8 @@ end
 
 @testset "DimSelectors" begin
     ds = @inferred DimSelectors(A)
-    # The selected array is not identical because 
-    # the lookups will be vectors and Irregular, 
+    # The selected array is not identical because
+    # the lookups will be vectors and Irregular,
     # rather than Regular ranges
     @test parent(A[DimSelectors(A)]) == parent(view(A, DimSelectors(A))) == A
     @test index(A[DimSelectors(A)], 1) == index(view(A, DimSelectors(A)), 1) == index(A, 1)

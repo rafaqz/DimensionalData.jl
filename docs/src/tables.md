@@ -1,9 +1,9 @@
 # Tables and DataFrames
 
-[Tables.jl](https://github.com/JuliaData/Tables.jl) provides an 
-ecosystem-wide interface to tabular data in Julia, giving interoperability with 
-[DataFrames.jl](https://dataframes.juliadata.org/stable/), 
-[CSV.jl](https://csv.juliadata.org/stable/) and hundreds of other 
+[Tables.jl](https://github.com/JuliaData/Tables.jl) provides an
+ecosystem-wide interface to tabular data in Julia, giving interoperability with
+[DataFrames.jl](https://dataframes.juliadata.org/stable/),
+[CSV.jl](https://csv.juliadata.org/stable/) and hundreds of other
 packages that implement the standard.
 
 DimensionalData.jl implements the Tables.jl interface for
@@ -43,7 +43,7 @@ A = rand(x, y, c; name=:data)
 st = DimStack((data1 = rand(x, y), data2=rand(x, y, c)))
 ````
 
-::: 
+:::
 
 ## Converting to DataFrame
 
@@ -59,7 +59,7 @@ DataFrame(A)
 
 == stack default
 
-Stacks will become a table with a column for each dimension, 
+Stacks will become a table with a column for each dimension,
 and one for each layer:
 
 ````@ansi dataframe
@@ -68,7 +68,7 @@ DataFrame(st)
 
 == layersfrom
 
-Using [`DimTable`](@ref) we can specify that a `DimArray` 
+Using [`DimTable`](@ref) we can specify that a `DimArray`
 should take columns from one of the dimensions:
 
 ````@ansi dataframe
@@ -78,18 +78,18 @@ DimStack(A; layersfrom=:category)
 
 == mergedims
 
-Using [`DimTable`](@ref) we can merge the spatial 
+Using [`DimTable`](@ref) we can merge the spatial
 dimensions so the column is a tuple:
 
 ````@ansi dataframe
 DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 ````
 
-::: 
+:::
 
 ## Converting to CSV
 
-We can also write arrays and stacks directly to CSV.jl, or 
+We can also write arrays and stacks directly to CSV.jl, or
 any other data type supporting the Tables.jl interface.
 
 ````@ansi dataframe

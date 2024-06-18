@@ -130,7 +130,7 @@ Otherwise it will have the same dimensionality as the underlying array with inne
 """
 @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
     dimtuple = _astuple(dims)
-    if !(dimtuple == ()) 
+    if !(dimtuple == ())
         all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
     end
     _eachslice(A, dimtuple, drop)
@@ -186,7 +186,7 @@ function Base.sortslices(A::AbstractDimArray; dims, kw...)
     return rebuild(A, newdata, newdims)
 end
 
-                
+
 Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
 Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
 Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
@@ -284,7 +284,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             else
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
-                if !check_cat_lookups(joindims...) 
+                if !check_cat_lookups(joindims...)
                     return rebuild(catdim, NoLookup())
                 end
                 _vcat_dims(joindims...)
@@ -358,7 +358,7 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
+        if !comparedims(Bool, map(x -> dims(x, 2), As)...;
             val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
         )
             return Base.vcat(map(parent, As)...)
@@ -533,7 +533,7 @@ end
 _span_string(D, S, span) = _cat_warn_string(D, "not all lookups have `$S` spans. Found $(basetypeof(span))")
 _cat_warn_string(D, message) = """
 `cat` cannot concatenate `Dimension`s, falling back to `parent` type:
-$message on dimension $D. 
+$message on dimension $D.
 
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """

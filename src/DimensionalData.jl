@@ -11,11 +11,11 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
       Unknown
 
 using Base: tail, OneTo, Callable, @propagate_inbounds, @assume_effects
-      
+
 # Ecosystem
-import Adapt, 
+import Adapt,
        ArrayInterface,
-       ConstructionBase, 
+       ConstructionBase,
        DataAPI,
        Extents,
        Interfaces,
@@ -36,7 +36,7 @@ include("Dimensions/Dimensions.jl")
 using .Dimensions
 using .Dimensions.Lookups
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .Lookups: metadata, set, _set, rebuild, basetypeof, 
+import .Lookups: metadata, set, _set, rebuild, basetypeof,
     order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple

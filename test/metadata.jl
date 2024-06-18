@@ -20,10 +20,10 @@ using DimensionalData.Lookups: Metadata, NoMetadata, units, val
         @test units(md) == "km"
         @test length(md) == 2
         @test haskey(md, :a)
-        @test haskey(md, :c) == false 
-        @test get(md, :a, nothing) == "test1" 
-        @test md[:a] == "test1" 
-        @test md[:units] == "km" 
+        @test haskey(md, :c) == false
+        @test get(md, :a, nothing) == "test1"
+        @test md[:a] == "test1"
+        @test md[:units] == "km"
         if md isa Dict || val(md) isa Dict
             @test [x for x in md] == [:a=>"test1", :units=>"km"]
             @test all(keys(md) .== [:a, :units])

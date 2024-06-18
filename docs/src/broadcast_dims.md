@@ -1,10 +1,10 @@
 # `broadcast_dims` and `broadcast_dims!`
 
-[`broadcast_dims`](@ref) is a dimension-aware extension to Base julia `broadcast`. 
+[`broadcast_dims`](@ref) is a dimension-aware extension to Base julia `broadcast`.
 
 Because we know the names of the dimensions there is no ambiguity in which
-one we mean to broadcast together. We can permute and reshape dims so that 
-broadcasts that would fail with a regular `Array` just work with a `DimArray`. 
+one we mean to broadcast together. We can permute and reshape dims so that
+broadcasts that would fail with a regular `Array` just work with a `DimArray`.
 
 As an added bonus, `broadcast_dims` even works on `DimStack`s.
 

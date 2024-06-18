@@ -80,7 +80,7 @@ end
     @test index(revallis) == (20:-10:10, 100:100:300)
     @test order(revallis) == (ReverseOrdered(), ForwardOrdered())
 
-    d = reorder(dims(da, Y), ForwardOrdered()) 
+    d = reorder(dims(da, Y), ForwardOrdered())
     @test order(d) isa ForwardOrdered
     @test index(d) == 100:100:300
 
@@ -245,7 +245,7 @@ end
         rnge = LinRange(59.95, -40.05, 1001)
         dim = X(Sampled(rnge; order=ReverseOrdered(), span=Regular(step(rnge)), sampling=Intervals(Center())))
         @test Dimensions.selectindices(dim, Contains(7.35)) == 527
-        mat = Dimensions.dim2boundsmatrix(dim) 
+        mat = Dimensions.dim2boundsmatrix(dim)
         dim = X(Sampled(rnge; order=ReverseOrdered(), span=Explicit(mat), sampling=Intervals(Center())))
         @test Dimensions.selectindices(dim, Contains(7.35)) == 527
     end
@@ -264,7 +264,7 @@ end
     @test uniquekeys([da1, da2, da3]) == [:layer1, :layer2, :name2] # Should we keep thoe original name?
     @test uniquekeys((da1, da2, da3)) == (:layer1, :layer2, :name2) # Should we keep thoe original name?
     @test uniquekeys([:name1, :name1, :name2]) == [:layer1, :layer2, :name2] # Should we keep thoe original name?
-    @test uniquekeys((:name1, :name1, :name2)) == (:layer1, :layer2, :name2) 
+    @test uniquekeys((:name1, :name1, :name2)) == (:layer1, :layer2, :name2)
     @test uniquekeys(Symbol[]) == Symbol[]
     @test uniquekeys(()) == ()
 end

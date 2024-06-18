@@ -375,8 +375,8 @@ end
 
     Cyclic(data; order=AutoOrder(), span=AutoSpan(), sampling=Points(), metadata=NoMetadata(), cycle)
 
-A `Cyclic` lookup is similar to `Sampled` but out of range `Selectors` [`At`](@ref), 
-[`Near`](@ref), [`Contains`](@ref) will cycle the values to `typemin` or `typemax` 
+A `Cyclic` lookup is similar to `Sampled` but out of range `Selectors` [`At`](@ref),
+[`Near`](@ref), [`Contains`](@ref) will cycle the values to `typemin` or `typemax`
 over the length of `cycle`. [`Where`](@ref) and `..` work as for [`Sampled`](@ref).
 
 This is useful when we are using mean annual datasets over a real time-span,
@@ -385,20 +385,20 @@ or for wrapping longitudes so that `-360` and `360` are the same.
 ## Arguments
 
 $SAMPLED_ARGUMENTS_DOC
-- `cycle`: the length of the cycle. This does not have to exactly match the data, 
+- `cycle`: the length of the cycle. This does not have to exactly match the data,
    the `step` size is `Week(1)` the cycle can be `Years(1)`.
 
 ## Notes
 
-1. If you use dates and e.g. cycle over a `Year`, every year will have the 
-    number and spacing of `Week`s and `Day`s as the cycle year. Using `At` may not be reliable
-    in terms of exact dates, as it will be applied to the specified date plus or minus `n` years.
-2. Indexing into a `Cycled` with any `AbstractArray` or `AbstractRange` will return 
-    a [`Sampled`](@ref) as the full cycle is likely no longer available.
-3. `..` or `Between` selectors do not work in a cycled way: they work as for [`Sampled`](@ref). 
-    This may change in future to return cycled values, but there are problems with this, such as
-    leap years breaking correct date cycling of a single year. If you actually need this behaviour, 
-    please make a GitHub issue.
+1. If you use dates and e.g. cycle over a `Year`, every year will have the
+   number and spacing of `Week`s and `Day`s as the cycle year. Using `At` may not be reliable
+   in terms of exact dates, as it will be applied to the specified date plus or minus `n` years.
+2. Indexing into a `Cycled` with any `AbstractArray` or `AbstractRange` will return
+   a [`Sampled`](@ref) as the full cycle is likely no longer available.
+3. `..` or `Between` selectors do not work in a cycled way: they work as for [`Sampled`](@ref).
+   This may change in future to return cycled values, but there are problems with this, such as
+   leap years breaking correct date cycling of a single year. If you actually need this behaviour,
+   please make a GitHub issue.
 """
 struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
     data::A
@@ -599,7 +599,7 @@ Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1)
 
 intervalbounds(l::Lookup, args...) = _intervalbounds_no_interval_error()
 intervalbounds(l::AbstractSampled, args...) = intervalbounds(span(l), sampling(l), l, args...)
-intervalbounds(span::Span, ::Points, ls::Lookup) = map(l -> (l, l), ls) 
+intervalbounds(span::Span, ::Points, ls::Lookup) = map(l -> (l, l), ls)
 intervalbounds(span::Span, ::Points, ls::Lookup, i::Int) = ls[i], ls[i]
 intervalbounds(span::Span, sampling::Intervals, l::Lookup, i::Int) =
     intervalbounds(order(l), locus(sampling), span, l, i)

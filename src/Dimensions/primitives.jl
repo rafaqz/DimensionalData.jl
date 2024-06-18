@@ -81,7 +81,7 @@ _asfunc(::Type{typeof(>:)}) = >:
 
 @inline function _sortdims(f, tosort, order::Tuple{<:Integer,Vararg})
     map(order) do i
-        if i in 1:length(tosort) 
+        if i in 1:length(tosort)
             tosort[i]
         else
             nothing
@@ -305,7 +305,7 @@ end
     (_dimifnothing(f, first(ds), first(query))..., _otherdims_from_nothing(f, tail(ds), tail(query))...)
 @inline _otherdims_from_nothing(f, ::Tuple{}, ::Tuple{}) = ()
 
-@inline _dimifnothing(f, dim, query) = () 
+@inline _dimifnothing(f, dim, query) = ()
 @inline _dimifnothing(f, dim, query::Nothing) = (dim,)
 
 
@@ -708,7 +708,7 @@ struct AlwaysTuple <: QueryMode end
 @inline _dim_query1(f, op::Function, t, x::Nothing, query) = _dimsnotdefinederror()
 @inline _dim_query1(f, op::Function, t, ds::Tuple, query::Colon) =
     _dim_query1(f, op, t, ds, basedims(ds))
-@inline function _dim_query1(f, op::Function, t, ds::Tuple, query::Function) 
+@inline function _dim_query1(f, op::Function, t, ds::Tuple, query::Function)
     selection = foldl(ds; init=()) do acc, d
         query(d) ? (acc..., d) : acc
     end

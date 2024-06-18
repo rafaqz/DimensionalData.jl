@@ -3,7 +3,7 @@
 
 Shift the values of `x` from the current locus to the new locus.
 
-We only shift `Sampled`, `Regular` or `Explicit`, `Intervals`. 
+We only shift `Sampled`, `Regular` or `Explicit`, `Intervals`.
 """
 function shiftlocus(locus::Locus, lookup::Lookup)
     samp = sampling(lookup)

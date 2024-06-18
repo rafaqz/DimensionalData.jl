@@ -20,7 +20,7 @@ end
     @test da[Coord(:, Between(1, 2), :)] == [0.1, 0.2]
     @test da2[Ti(At(1u"s")), Coord(:, Between(1, 2), :)] == [0.1, 0.2]
     @test da2[Ti(At(2u"s")), Coord(:, Where(>=(3)), :)] == [0.6, 0.8]
-    @test_throws ArgumentError da[var=1, Coord(:, Near(1), :)] 
+    @test_throws ArgumentError da[var=1, Coord(:, Near(1), :)]
 end
 
 @testset "merged dimension indexing" begin
@@ -50,7 +50,7 @@ end
     merged = Dim{:mymerged}(Dimensions.MergedLookup(map(Tuple, vec(CartesianIndices((1:10, 1:4)))), (Dim{:draw}(), Dim{:chain}())))
     da = DimArray(A, (Dim{:var}(1:2), merged))
     @test da[var=2, mymerged=(Dim{:draw}(At(8)), Dim{:chain}(At(4)))] == 76
-    @test da[var=1, mymerged=(draw=At(8), chain=At(1))] == 8 
+    @test da[var=1, mymerged=(draw=At(8), chain=At(1))] == 8
 end
 
 @testset "show merged" begin
@@ -69,7 +69,7 @@ end
     merged = mergedims(a, (X, Y) => :geometry)
     unmerged = unmergedims(merged, dims(a))
     perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
-    
+
     # Test Merge
     @test hasdim(merged, Dim{:band})
     @test hasdim(merged, Dim{:geometry})

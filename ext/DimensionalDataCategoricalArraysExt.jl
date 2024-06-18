@@ -28,7 +28,7 @@ end
 
 # functions that rebuild the categorical array
 for f in [:compress, :decompress]
-    @eval CAs.$f(x::CategoricalDimArray, args...; kw...) = 
+    @eval CAs.$f(x::CategoricalDimArray, args...; kw...) =
         DD.rebuild(x; data = CAs.$f(Base.parent(x), args...; kw...))
 end
 

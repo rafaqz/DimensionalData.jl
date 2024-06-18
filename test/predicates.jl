@@ -68,9 +68,9 @@ end
 end
 
 @testset "predicates on subsets of dimensions" begin
-    ds = X(10:20), 
-         Ti(Cyclic([DateTime(2001), DateTime(2002), DateTime(2003)]; order=ForwardOrdered(), cycle=Year(3), sampling=Intervals(Start()))), 
-         Y(20:-1:10; sampling=Intervals(End())), 
+    ds = X(10:20),
+         Ti(Cyclic([DateTime(2001), DateTime(2002), DateTime(2003)]; order=ForwardOrdered(), cycle=Year(3), sampling=Intervals(Start()))),
+         Y(20:-1:10; sampling=Intervals(End())),
          Dim{:cat}(["a", "z", "b"])
     A = rand(ds)
     @test DD.issampled(A) == false

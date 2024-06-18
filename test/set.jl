@@ -1,4 +1,4 @@
-using DimensionalData, Test 
+using DimensionalData, Test
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using DimensionalData.Lookups: _set
@@ -37,7 +37,7 @@ end
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(s, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
-    @test index(set(s, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test index(set(s, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z]
 end
 
 @testset "DimArray dim Dimension" begin
@@ -49,32 +49,32 @@ end
     @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
-    @test index(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test index(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z]
 end
 
 @testset "Dimension index" begin
-    @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
+    @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) ==
         (4:6, [:a, :b, :c, :d])
     @test index(set(s, :column => 10:5:20, :row => 4:6)) == (4:6, 10:5:20)
     @test step.(span(set(da2, :column => 10:5:20, :row => 4:6))) == (1, 5)
 end
 
 @testset "dim lookup" begin
-    @test lookup(set(da2, :column => NoLookup(), :row => Sampled(sampling=Intervals(Center())))) == 
+    @test lookup(set(da2, :column => NoLookup(), :row => Sampled(sampling=Intervals(Center())))) ==
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()), NoLookup(Base.OneTo(4)))
-    @test lookup(set(da2, column=NoLookup())) == 
+    @test lookup(set(da2, column=NoLookup())) ==
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
-    @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
+    @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) ==
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da = set(da, X=NoLookup(), Y=Categorical())
-    @test index(cat_da) == 
-        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
+    @test index(cat_da) ==
+        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata()))
     cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
     @test metadata(cat_da_m) == Dict()
- 
+
     @testset "span" begin
         # TODO: should this error? the span step doesn't match the index step
-        @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
+        @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) ==
             (Irregular(10, 12), Regular(9.9))
         @test _set(Sampled(), AutoSpan()) == Sampled()
         @test _set(Sampled(), Irregular()) == Sampled(; span= Irregular())
@@ -97,8 +97,8 @@ end
 
     @testset "sampling" begin
         @test sampling(interval_da) == (Intervals(Center()), Intervals(Center()))
-        @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
-            (Intervals(End()), Intervals(Start())) 
+        @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) ==
+            (Intervals(End()), Intervals(Start()))
         @test _set(Sampled(), AutoSampling()) == Sampled()
         @test _set(Sampled(), Intervals()) == Sampled(; sampling=Intervals())
         @test _set(Points(), AutoSampling()) == Points()
@@ -131,7 +131,7 @@ end
     @test metadata(set(Sampled(), Metadata(Dict(:a=>1, :b=>2)))).val == Dict(:a=>1, :b=>2)
     dax = set(da, X => Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax), X).val == Dict(:a=>1, :b=>2)
-    @test metadata(dims(dax), Y).val == Dict(:meta => "Y") 
+    @test metadata(dims(dax), Y).val == Dict(:meta => "Y")
     dax = set(da, X => Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, X)).val == Dict(:a=>1, :b=>2)
     dax = set(da2, row=Metadata(Dict(:a=>1, :b=>2)))
@@ -148,7 +148,7 @@ end
     @test order(x) === ReverseOrdered()
     @test span(x) === Regular(-10)
     @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
-    @test metadata(x).val == Dict(:a=>1, :b=>2) 
+    @test metadata(x).val == Dict(:a=>1, :b=>2)
 end
 
 @testset "errors with set" begin

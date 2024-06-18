@@ -135,7 +135,7 @@ end
     @test dropdims(da[X(1:1)]; dims=X) == [1, 2, 3]
     @test dropdims(da[2:2, 1:1]; dims=(X(), Y()))[] == 4
     @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimArray{Int,0,Tuple{}}
-    @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) ==
         (X(Sampled(143:2:143, ForwardOrdered(), Regular(2), Points(), NoMetadata())),)
     dropped = dropdims(da[X(1:1)]; dims=X)
     @test dropped[1:2] == [1, 2]
@@ -184,7 +184,7 @@ end
             @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
             @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
             @test slices[1] == DimArray([1, 3, 5], y)
-            
+
         end
     end
 
@@ -202,7 +202,7 @@ end
             @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
             @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
             @test slices[1] == DimArray([1, 2, 3, 4], ti)
-        
+
         end
     end
 
@@ -222,7 +222,7 @@ end
             @test slices isa Slices
             @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
             @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
-        
+
         end
     end
     @testset "eachslice with empty tuple dims" begin
@@ -237,7 +237,7 @@ end
     @test tda == transpose(parent(da))
     resultdims = (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                   Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
-    @test typeof(dims(tda)) == typeof(resultdims) 
+    @test typeof(dims(tda)) == typeof(resultdims)
     @test dims(tda) == resultdims
     @test size(tda) == (4, 5)
 
@@ -316,14 +316,14 @@ end
     for dims in xs
         cvda = cov(da; dims=X)
         @test cvda == cov(a; dims=2)
-        @test DimensionalData.dims(cvda) == 
+        @test DimensionalData.dims(cvda) ==
             (Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())),
              Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
     end
     for dims in ys
         crda = cor(da; dims)
         @test crda == cor(a; dims=1)
-        @test DimensionalData.dims(crda) == 
+        @test DimensionalData.dims(crda) ==
             (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
              X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())))
     end
@@ -333,7 +333,7 @@ end
     a = [1 2 3 4
          3 4 5 6
          5 6 7 8]
-    y = Y(Sampled(10:10:30; sampling=Intervals())) 
+    y = Y(Sampled(10:10:30; sampling=Intervals()))
     ti = Ti(Sampled(1:4; sampling=Intervals()))
     da = DimArray(a, (y, ti))
     ys = (1, Y, Y(), :Y, y)
@@ -341,7 +341,7 @@ end
     for dims in ys
         ms = mapslices(sum, da; dims)
         @test ms == [9 12 15 18]
-        @test DimensionalData.dims(ms) == 
+        @test DimensionalData.dims(ms) ==
             (Y(NoLookup(Base.OneTo(1))), Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
         @test refdims(ms) == ()
     end
@@ -393,13 +393,13 @@ end
     @test dims(sort(v)) == (X(NoLookup(Base.OneTo(10))),)
     A = rand((X(5:-1:1), Y(11:15)))
     @test sort(A; dims=X) == sort(parent(A); dims=1)
-    @test dims(sort(A; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(A, Y)) 
+    @test dims(sort(A; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(A, Y))
 end
 
 @testset "sortslices" begin
     M = rand((X(5:-1:1), Y(11:15)))
     @test sortslices(M; dims=X) == sortslices(parent(M); dims=1)
-    @test dims(sort(M; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(M, Y)) 
+    @test dims(sort(M; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(M, Y))
     M = rand((X(5:-1:1), Y(11:15), Ti(3:10)))
     @test sortslices(M; dims=(X, Y)) == sortslices(parent(M); dims=(1, 2))
     @test dims(sortslices(M; dims=(X, Y))) == (X(NoLookup(Base.OneTo(5))), Y(NoLookup(Base.OneTo(5))), dims(M, Ti))
@@ -422,7 +422,7 @@ end
         @test_throws DimensionMismatch vcat(dims(da, 1), dims(de, 1))
         testdims = (X(Sampled([4.0, 5.0, 6.0, 7.0], ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
                     Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
-        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) 
+        @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X())
         @test cat(da, db; dims=X) == cat(da, db; dims=(X,)) == cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test dims(cat(da, db; dims=X)) == testdims
         @test val(cat(da, db; dims=X)) == val(testdims)
@@ -463,7 +463,7 @@ end
 
     @testset "Irregular Sampled" begin
         @testset "Intervals" begin
-            d1 = X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata())) 
+            d1 = X(Sampled([1, 3, 4], ForwardOrdered(), Irregular(1, 5), Intervals(), NoMetadata()))
             d2 = X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Intervals(), NoMetadata()))
             iri_dim = vcat(d1, d2)
             @test span(iri_dim) == Irregular(1, 9)
@@ -491,7 +491,7 @@ end
         d2 = X(Sampled([7.5, 9], ForwardOrdered(), Explicit([7 8; 8 10]), Intervals(Center()), NoMetadata()))
         ed = vcat(d1, d2)
         @test span(ed) == Explicit([1 3 4 7 8; 3 4 7 8 10])
-        @test index(ed) == [2, 3.5, 5, 7.5, 9] 
+        @test index(ed) == [2, 3.5, 5, 7.5, 9]
         @test lookup(ed) == Sampled([2, 3.5, 5, 7.5, 9], ForwardOrdered(), Explicit([1 3 4 7 8; 3 4 7 8 10]), Intervals(Center()), NoMetadata())
         @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
         @test_warn "lookups are misaligned" vcat(d2, d1)
@@ -559,16 +559,16 @@ end
 
         @test vcat(da) isa DimArray{Int,1}
         @test vcat(da) == da
-        @test dims(vcat(da)) == 
+        @test dims(vcat(da)) ==
             dims(cat(da; dims=1)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
         @test vcat(da, db) == cat(da, db; dims=1)
-        @test dims(vcat(da, db)) == 
+        @test dims(vcat(da, db)) ==
             dims(cat(da, db; dims=1)) ==
             (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
         @test_warn "X and Y dims on the same axis" hcat(da, dd)
         @test vcat(da, db, dc) == cat(da, db, dc; dims=1)
-        @test dims(vcat(da, db, dc)) == 
+        @test dims(vcat(da, db, dc)) ==
             dims(cat(da, db, dc; dims=1)) ==
             (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),)
         @test_warn "do not match" hcat(da, db, dd)
@@ -585,21 +585,21 @@ end
         dd = DimArray(c, (X(8.0:9.0), Z(6.0:8.0)))
 
         @test vcat(da) == da
-        @test dims(vcat(da)) == 
+        @test dims(vcat(da)) ==
             dims(cat(da; dims=1)) ==
-            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test vcat(da, db) == cat(da, db; dims=1)
-        @test dims(vcat(da, db)) == 
+        @test dims(vcat(da, db)) ==
             dims(cat(da, db; dims=1)) ==
-            (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test_warn "lookups are misaligned" hcat(da, dd)
         @test vcat(da, db, dc) == cat(da, db, dc; dims=1)
-        @test dims(vcat(da, db, dc)) == 
+        @test dims(vcat(da, db, dc)) ==
             dims(cat(da, db, dc; dims=1)) ==
-            (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:9.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test_warn "lookups are misaligned" hcat(da, db, dd)
     end
 end
@@ -615,16 +615,16 @@ end
         dd = DimArray(c, X(8.0:9.0))
 
         @test hcat(da) == permutedims([1 2])
-        @test dims(hcat(da)) == 
+        @test dims(hcat(da)) ==
             dims(cat(da; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(1))))
         @test hcat(da, db) == cat(da, db; dims=2)
-        @test dims(hcat(da, db)) == 
+        @test dims(hcat(da, db)) ==
             dims(cat(da, db; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(2))))
         @test_warn "do not match" hcat(da, dd)
         @test hcat(da, db, dc) == cat(da, db, dc; dims=2)
-        @test dims(hcat(da, db, dc)) == 
+        @test dims(hcat(da, db, dc)) ==
             dims(cat(da, db, dc; dims=2)) ==
             (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), AnonDim(NoLookup(Base.OneTo(3))))
         @test_warn "do not match" hcat(da, db, dd)
@@ -640,20 +640,20 @@ end
 
         @test hcat(da) isa DimArray{Int,2}
         @test hcat(da) == da
-        @test dims(hcat(da)) == 
+        @test dims(hcat(da)) ==
             dims(cat(da; dims=2)) ==
-            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:8.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test hcat(da, db) == cat(da, db; dims=2)
-        @test dims(hcat(da, db)) == 
+        @test dims(hcat(da, db)) ==
             dims(cat(da, db; dims=2)) ==
-            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:11.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:11.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test_warn "do not join with the correct step size" hcat(da, dd)
         @test hcat(da, db, dc) == cat(da, db, dc; dims=2)
         @test dims(hcat(da, db, dc)) == dims(cat(da, db, dc; dims=2)) ==
-            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())), 
-             Y(Sampled(6.0:14.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))) 
+            (X(Sampled(4.0:5.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())),
+             Y(Sampled(6.0:14.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata())))
         @test_warn "do not match" hcat(da, db, dd)
     end
 end
@@ -687,7 +687,7 @@ end
             @test diff(A; dims) == DimArray([111 93 -169 142; 98 -55 110 -131], (Y(['a', 'b']), ti))
         end
         for dims in tis
-            @test diff(A; dims) == 
+            @test diff(A; dims) ==
                 DimArray([38 156 -125; 20 -106 186; -133 59 -55], (y, Ti(DateTime(2021, 1):Month(1):DateTime(2021, 3))))
         end
         @test_throws ArgumentError diff(A; dims='X')

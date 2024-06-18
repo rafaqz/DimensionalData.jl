@@ -124,9 +124,9 @@ end
     @test dims(z .= ab .+ ba') == dims(ab .+ ba')
     @test z == (ab.data .+ ba.data')
 
-    @test dims(z .= ab .+ a_) == 
+    @test dims(z .= ab .+ a_) ==
         (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    @test dims(a_ .= ba' .+ ab) == 
+    @test dims(a_ .= ba' .+ ab) ==
         (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
 
@@ -153,7 +153,7 @@ end
 #     ta = TrackedArray(5 * ones(4))
 #     dt = DimArray(TrackedArray(5 * ones(4)), X)
 #     arrays = (da, ta, dt)
-#     @testset "$a .- $b" 
+#     @testset "$a .- $b"
 #     for (a, b) in Iterators.product(arrays, arrays)
 #         a === b && continue
 #         @test typeof(da .- ta) <: DimArray

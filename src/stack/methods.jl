@@ -40,7 +40,7 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
 end
 
 function Base.copyto!(
-    dst::Array{<:DimStack,3}, dstI::CartesianIndices, 
+    dst::Array{<:DimStack,3}, dstI::CartesianIndices,
     src::DimSlices{<:DimStack}, srcI::CartesianIndices
 )
     dst[dstI] = src[srcI]
@@ -82,12 +82,12 @@ and 2 layers:
 """
 function Base.eachslice(s::AbstractDimStack; dims, drop=true)
     dimtuple = _astuple(dims)
-    if !(dimtuple == ()) 
+    if !(dimtuple == ())
         all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
     end
     # Avoid getting DimUnitRange from `axes(s)`
     axisdims = map(DD.dims(s, dimtuple)) do d
-        rebuild(d, axes(lookup(d), 1)) 
+        rebuild(d, axes(lookup(d), 1))
     end
     return DimSlices(s; dims=axisdims, drop)
 end
@@ -172,8 +172,8 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
         _fname = Symbol(:_, fname)
         @eval function ($mod.$fname)(f::Function, s::AbstractDimStack; dims=Colon())
             map(s) do A
-                layer_dims = dims isa Colon ? dims : commondims(A, dims) 
-                $mod.$fname(f, A; dims=layer_dims) 
+                layer_dims = dims isa Colon ? dims : commondims(A, dims)
+                $mod.$fname(f, A; dims=layer_dims)
             end
         end
     end

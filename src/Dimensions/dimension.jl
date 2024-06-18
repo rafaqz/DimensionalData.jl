@@ -1,5 +1,5 @@
 """
-    Dimension 
+    Dimension
 
 Abstract supertype of all dimension types.
 
@@ -249,10 +249,10 @@ end
 # Cant get this to compile away without a generated function
 # The nothing handling is for if `err=_False`, and we want to combine
 # multiple `nothing` into a single `nothing` return value
-@generated function selectindices(ds::Tuple, sel::Tuple; kw...) 
+@generated function selectindices(ds::Tuple, sel::Tuple; kw...)
     tuple_exp = Expr(:tuple)
     for i in eachindex(ds.parameters)
-        expr = quote 
+        expr = quote
             x = selectindices(ds[$i], sel[$i]; kw...)
             isnothing(x) && return nothing
             x
@@ -261,7 +261,7 @@ end
     end
     return tuple_exp
 end
-@inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
+@inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = ()
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
 # Deprecated
@@ -319,7 +319,7 @@ end
 
 _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
-    # Only offset starts and reuse them for ends, 
+    # Only offset starts and reuse them for ends,
     # so floating point error is the same.
     starts = Lookups._shiftlocus(Start(), lookup)
     dest = Array{eltype(starts),2}(undef, 2, length(starts))
@@ -404,16 +404,16 @@ metadata(::AnonDim) = NoMetadata()
 """
     @dim typ [supertype=Dimension] [label::String=string(typ)]
 
-Macro to easily define new dimensions. 
+Macro to easily define new dimensions.
 
-The supertype will be inserted into the type of the dim. 
-The default is simply `YourDim <: Dimension`. 
+The supertype will be inserted into the type of the dim.
+The default is simply `YourDim <: Dimension`.
 
 Making a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
-`label` is used in plots and similar, 
+`label` is used in plots and similar,
 if the dimension is short for a longer word.
 
 Example:
@@ -519,7 +519,7 @@ mean(A; dims=Z)
 
 """m
     Ti <: TimeDim
-    
+
     Ti(val=:)
 
 Time [`Dimension`](@ref). `Ti <: TimeDim <: IndependentDim`
