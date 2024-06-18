@@ -5,11 +5,11 @@
     reorder(A::Dimension, order::Order)
 
 Reorder every dims index/array to `order`, or reorder index for
-the the given dimension(s) in `order`.
+the given dimension(s) in `order`.
 
 `order` can be an [`Order`](@ref), `Dimension => Order` pairs.
 A Tuple of Dimensions or any object that defines `dims` can be used
-in which case dimensions are
+in which case the dimensions of this object are used for reordering.
 
 If no axis reversal is required the same objects will be returned, without allocation.
 

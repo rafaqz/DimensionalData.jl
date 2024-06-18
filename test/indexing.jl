@@ -702,7 +702,7 @@ end
     @test @inferred view(A3, Ti(5)) == permutedims([5])
 end
 
-@testset "Begin End indexng" begin
+@testset "Begin End indexing" begin
     @testset "generic indexing" begin
         @test (1:10)[Begin] == 1
         @test (1:10)[Begin()] == 1
