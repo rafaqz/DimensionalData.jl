@@ -84,6 +84,7 @@ const DD = DimensionalData
 # Common
 include("interface.jl")
 include("name.jl")
+include("table_ops.jl")
 
 # Arrays
 include("array/array.jl")

@@ -411,6 +411,13 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Write a single column from a table with one or more coordinate columns to a DimArray
+function DimArray(table, dims::Tuple, col::Symbol; missingval=missing)
+    perm = _sort_coords(table, dims)
+    data = Tables.getcolumn(table, col)
+    dst = _write_vals(data, dims, perm, missingval)
+    return DimArray(reshape(dst, size(dims)), dims, name=col)
+end
 """
     DimArray(f::Function, dim::Dimension; [name])
 

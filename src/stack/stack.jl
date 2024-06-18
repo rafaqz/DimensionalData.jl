@@ -423,5 +423,16 @@ function DimStack(data::NamedTuple, dims::Tuple;
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(table, dims::Tuple; missingval=missing)
+    arrays = Any[]
+    perm = _sort_coords(table, dims)
+    data_cols = _data_cols(table, dims)
+    for (name, data) in pairs(data_cols)
+        dst = _write_vals(data, dims, perm, missingval)
+        push!(arrays, reshape(dst, size(dims)))
+    end
+    return DimStack(NamedTuple{keys(data_cols)}(arrays), dims)
+end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
