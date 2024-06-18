@@ -27,9 +27,14 @@ end
 
 # Extract data columns from table
 function _data_cols(table, dims::Tuple)
-    dim_cols = name.(dims)
-    data_cols = filter(x -> !(x in dim_cols), Tables.columnnames(table))
+    data_cols = _data_col_names(table, dims)
     return NamedTuple{Tuple(data_cols)}(Tables.getcolumn(table, col) for col in data_cols)
+end
+
+# Get names of data columns from table
+function _data_col_names(table, dims::Tuple)
+    dim_cols = name.(dims)
+    return filter(x -> !(x in dim_cols), Tables.columnnames(table))
 end
 
 # Determine the ordinality of a set of numerical coordinates
