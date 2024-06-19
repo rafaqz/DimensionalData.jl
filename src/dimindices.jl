@@ -69,41 +69,42 @@ Index a `DimArray` with `DimIndices`.
 Notice that unlike CartesianIndices, it doesn't matter if the dimensions
 are not in the same order. Or even if they are not all contained in each.
 
-```julia
+```jldoctest; setup = :(using Random; Random.seed!(123))
 julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
 ╭─────────────────────────╮
 │ 4×6 DimArray{Float64,2} │
-├─────────────────────────┴─────────────────────────────────── dims ┐
+├─────────────────────────┴───────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.3:0.9 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':1:'f' ForwardOrdered
-└───────────────────────────────────────────────────────────────────┘
- ↓ →   'a'       'b'        'c'       'd'       'e'       'f'
- 0.0  0.513225  0.377972   0.771862  0.666855  0.837314  0.274402
- 0.3  0.13363   0.519241   0.937604  0.288436  0.437421  0.745771
- 0.6  0.837621  0.0987936  0.441426  0.88518   0.551162  0.728571
- 0.9  0.399042  0.750191   0.56436   0.47882   0.54036   0.113656
+└─────────────────────────────────────────────────────────────────┘
+ ↓ →   'a'       'b'       'c'        'd'        'e'       'f'
+ 0.0  0.9063    0.253849  0.0991336  0.0320967  0.774092  0.893537
+ 0.3  0.443494  0.334152  0.125287   0.350546   0.183555  0.354868
+ 0.6  0.745673  0.427328  0.692209   0.930332   0.297023  0.131798
+ 0.9  0.512083  0.867547  0.136551   0.959434   0.150155  0.941133
 
 julia> di = DimIndices((X(1:2:4), Y(1:2:4)))
-╭──────────────────────────────────────────────╮
-│ 2×2 DimIndices{Tuple{X{Int64}, Y{Int64}},2}  │
-├──────────────────────────────────────────────┴── dims ┐
+╭─────────────────────────────────────────────╮
+│ 2×2 DimIndices{Tuple{X{Int64}, Y{Int64}},2} │
+├─────────────────────────────────────── dims ┤
   ↓ X 1:2:3,
   → Y 1:2:3
-└───────────────────────────────────────────────────────┘
- ↓ X 1, → Y 1  ↓ X 1, → Y 3
- ↓ X 3, → Y 1  ↓ X 3, → Y 3
+└─────────────────────────────────────────────┘
+ ↓ →  1                            3
+ 1     ↓ X 1, → Y 1   ↓ X 1, → Y 3
+ 3     ↓ X 3, → Y 1   ↓ X 3, → Y 3
 
 julia> A[di] # Index A with these indices
-dims(d) = (X{StepRange{Int64, Int64}}(1:2:3), Y{StepRange{Int64, Int64}}(1:2:3))
 ╭─────────────────────────╮
 │ 2×2 DimArray{Float64,2} │
-├─────────────────────────┴─────────────────────────────────── dims ┐
+├─────────────────────────┴───────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.6:0.6 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':2:'c' ForwardOrdered
-└───────────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────────┘
  ↓ →   'a'       'c'
- 0.0  0.513225  0.771862
- 0.6  0.837621  0.441426
+ 0.0  0.9063    0.0991336
+ 0.6  0.745673  0.692209
+```
 """
 struct DimIndices{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractDimIndices{T,N,D}
     dims::D
@@ -216,22 +217,22 @@ Here we can interpolate a `DimArray` to the lookups of another `DimArray`
 using `DimSelectors` with `Near`. This is essentially equivalent to
 nearest neighbour interpolation.
 
-```julia
+```jldoctest; setup = :(using Random; Random.seed!(123))
 julia> A = rand(X(1.0:3.0:30.0), Y(1.0:5.0:30.0), Ti(1:2));
 
 julia> target = rand(X(1.0:10.0:30.0), Y(1.0:10.0:30.0));
 
 julia> A[DimSelectors(target; selectors=Near), Ti=2]
-╭───────────────────────────╮
-│ 3×3×2 DimArray{Float64,3} │
-├───────────────────────────┴──────────────────────────────────────── dims ┐
-  ↓ X  Sampled{Float64} [1.0, 10.0, 22.0] ForwardOrdered Irregular Points,
-  → Y  Sampled{Float64} [1.0, 11.0, 21.0] ForwardOrdered Irregular Points,
-└──────────────────────────────────────────────────────────────────────────┘
-  ↓ →  1.0       11.0       21.0
-  1.0  0.473548   0.773863   0.541381
- 10.0  0.951457   0.176647   0.968292
- 22.0  0.822979   0.980585   0.544853
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────────── dims ┐
+  ↓ X Sampled{Float64} [1.0, 10.0, 22.0] ForwardOrdered Irregular Points,
+  → Y Sampled{Float64} [1.0, 11.0, 21.0] ForwardOrdered Irregular Points
+└─────────────────────────────────────────────────────────────────────────┘
+  ↓ →  1.0        11.0       21.0
+  1.0  0.691162    0.218579   0.539076
+ 10.0  0.0303789   0.420756   0.485687
+ 22.0  0.0967863   0.864856   0.870485
 ```
 
 Using `At` would make sure we only use exact interpolation,
