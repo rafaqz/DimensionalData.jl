@@ -15,7 +15,7 @@ cuA = modify(CuArray, A)
 
 The result of a GPU broadcast is still a DimArray:
 
-```julia
+```julia-repl
 julia> cuA2 = cuA .* 2
 ╭───────────────────────────────╮
 │ 1000×2000 DimArray{Float32,2} │
@@ -41,7 +41,7 @@ julia> cuA2 = cuA .* 2
 
 But the data is on the GPU:
 
-```julia
+```julia-repl
 julia> typeof(parent(cuA2))
 CuArray{Float32, 2, CUDA.Mem.DeviceBuffer}
 ```

@@ -10,6 +10,9 @@ First we will define an example `DimArray`.
 using DimensionalData
 using DimensionalData.Lookups
 x, y = X(10:-1:1), Y(100.0:10:200.0)
+```
+
+```@ansi getters
 A = rand(x, y)
 ```
 
@@ -150,7 +153,7 @@ intervalbounds(lookup(A, Y))
 object that combines the names of dimensions with their bounds.
 
 ```@ansi getters
-using Extents
+using Extents: extent
 extent(A)
 extent(A, X)
 extent(dims(A))

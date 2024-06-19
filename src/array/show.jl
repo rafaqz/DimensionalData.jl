@@ -28,9 +28,9 @@ Interface methods for adding the main part of `show`
 
 At the least, you likely want to call:
 
-'''julia
+```julia
 print_top(io, mime, A)
-'''
+```
 
 But read the DimensionalData.jl `show.jl` code for details.
 """
@@ -63,9 +63,9 @@ or add more. `blockwidth` is the maximum length of the inner text.
 
 Most likely you always want to at least close the show blocks with:
 
-'''julia
+```julia
 print_block_close(io, blockwidth)
-'''
+```
 
 But read the DimensionalData.jl `show.jl` code for details.
 """

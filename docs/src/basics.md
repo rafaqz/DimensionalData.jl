@@ -2,20 +2,21 @@
 
 If you want to use this package you need to install it first. You can do it using the following commands:
 
-````julia
+````julia-repl
 julia> ] # ']' should be pressed
 pkg> add DimensionalData
 ````
+
 or
 
-````julia
+````julia-repl
 julia> using Pkg
 julia> Pkg.add("DimensionalData")
 ````
 
 Additionally, it is recommended to check the version that you have installed with the status command.
 
-````julia
+````julia-repl
 julia> ]
 pkg> status DimensionalData
 ````

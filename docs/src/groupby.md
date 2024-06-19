@@ -20,6 +20,7 @@ using DimensionalData
 using Dates
 using Statistics
 const DD = DimensionalData
+nothing # hide
 ````
 
 Now create a demo `DateTime` range
@@ -88,7 +89,8 @@ yearmonthday.(tempo)
 We can create our own function that return tuples
 
 ````@example groupby
-yearday(x) = year(x), dayofyear(x)
+yearday(x) = (year(x), dayofyear(x))
+nothing # hide
 ````
 
 You can probably guess what it does:

@@ -20,7 +20,9 @@ and does not allocate unless collected.
 ## Example
 
 ````@example dataframe
-using DimensionalData, Dates, DataFrames
+using DimensionalData
+using Dates
+using DataFrames
 ````
 
 Define some dimensions:
@@ -92,7 +94,7 @@ DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 We can also write arrays and stacks directly to CSV.jl, or
 any other data type supporting the Tables.jl interface.
 
-````@ansi dataframe
+````@example dataframe
 using CSV
 CSV.write("dimstack.csv", st)
 readlines("dimstack.csv")

@@ -420,7 +420,7 @@ Example:
 ```jldoctest
 using DimensionalData
 using DimensionalData: @dim, YDim, XDim
-@dim Lat YDim "latitude"
+@dim Lat YDim "Latitude"
 @dim Lon XDim "Longitude"
 # output
 
@@ -469,13 +469,17 @@ end
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
-## Example:
+## Examples
 
 ```julia
 xdim = X(2:2:10)
-# Or
+```
+
+```julia
 val = A[X(1)]
-# Or
+```
+
+```julia
 mean(A; dims=X)
 ```
 """
@@ -488,12 +492,17 @@ mean(A; dims=X)
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
-## Example:
+## Examples
+
 ```julia
 ydim = Y(['a', 'b', 'c'])
-# Or
+```
+
+```julia
 val = A[Y(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Y)
 ```
 """
@@ -509,9 +518,13 @@ Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 ## Example:
 ```julia
 zdim = Z(10:10:100)
-# Or
+```
+
+```julia
 val = A[Z(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Z)
 ```
 """
@@ -530,9 +543,13 @@ We use `Ti` to avoid clashes.
 ## Example:
 ```julia
 timedim = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
-# Or
+```
+
+```julia
 val = A[Ti(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Ti)
 ```
 """
