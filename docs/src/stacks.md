@@ -113,6 +113,10 @@ st[:]
 
 Base functions like `mean`, `maximum`, `reverse` are applied to all layers of the stack.
 
+````@example stack
+using Statistics
+````
+
 ::: tabs
 
 == maximum
