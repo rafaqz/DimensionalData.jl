@@ -149,9 +149,9 @@ minimum.(groupby(A, Ti=>yearmonth))
 median.(groupby(A, Ti=>hour))
 ````
 
-We can also use the function we defined above
-
 == mean yearday
+
+We can also use the function we defined above
 
 ````@ansi groupby
 mean.(groupby(A, Ti=>yearday))
@@ -244,16 +244,16 @@ mean.(groups)
 == seasons
 
 There is a helper function for grouping by three-month seasons and getting
-nice keys for them: `season`. Note you have to call it, not just pass it!
+nice keys for them: `seasons`. Note you have to call it, not just pass it!
 
 ````@ansi groupby
-groupby(A, Ti => season())
+groupby(A, Ti => seasons())
 ````
 
 We could also start our seasons in January:
 
 ````@ansi groupby
-groupby(A, Ti => season(; start=January))
+groupby(A, Ti => seasons(; start=January))
 ````
 
 == months
