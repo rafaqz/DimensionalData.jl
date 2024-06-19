@@ -120,7 +120,7 @@ Group by month, using the `month` function:
 groups = groupby(A, Ti=>month)
 ````
 
-We can take the mean of each group by broadcasting over them :
+We can take the mean of each group by broadcasting over them:
 
 ````@ansi groupby
 mean.(groups)
@@ -175,7 +175,7 @@ For quick analysis, we can break our groups into `N` bins.
 groupby(A, Ti=>Bins(month, 4))
 ````
 
-Doing this requires slighly padding the bin edges, so the lookup
+Doing this requires slightly padding the bin edges, so the lookup
 of the output is less than ideal.
 
 == specific values as bins

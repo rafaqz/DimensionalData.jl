@@ -1,6 +1,6 @@
 # Getters
 
-DimensionalData.jl defines consistent methods to retreive information
+DimensionalData.jl defines consistent methods to retrieve information
 from objects like `DimArray`, `DimStack`, `Tuple`s of `Dimension`,
 `Dimension` and `Lookup`.
 
@@ -20,7 +20,7 @@ A = rand(x, y)
 
 == dims
 
-`dims` retreives dimensions from any object that has them.
+`dims` retrieves dimensions from any object that has them.
 
 What makes it so useful is you can filter which dimensions
 you want in what order, using any `Dimension`, `Type{Dimension}`
@@ -65,7 +65,7 @@ lookup(dims(A, Y))
 
 == val
 
-Val is used where there is an unambiguous single value:
+`val` is used where there is an unambiguous single value:
 
 ```@ansi getters
 val(X(7))
@@ -113,7 +113,7 @@ span(lookup(A, Y))
 Get the locus of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
-(locus is our term for distiguishing if an lookup value
+(locus is our term for distinguishing if an lookup value
 specifies the start, center or end of an interval)
 
 ```@ansi getters

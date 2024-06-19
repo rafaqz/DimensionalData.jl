@@ -66,9 +66,8 @@ and freely mixed with individual `Dimension`s or tuples of `Dimension`.
 
 Index a `DimArray` with `DimIndices`.
 
-Notice that unlike CartesianIndices, it doesn't matter if
-the dimensions are not in the same order. Or even if they
-are not all contained in each.
+Notice that unlike CartesianIndices, it doesn't matter if the dimensions
+are not in the same order. Or even if they are not all contained in each.
 
 ```julia
 julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
@@ -126,7 +125,7 @@ function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
         rebuild(d, d[i])
     end
 end
-# Dispatch to avoid linear indexing in multidimensionsl DimIndices
+# Dispatch to avoid linear indexing in multidimensional DimIndices
 function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
     d = dims(di, 1)
     (rebuild(d, d[i]),)
@@ -208,7 +207,7 @@ is similar to doing an interpolation.
 ## Keywords
 
 - `selectors`: `Near`, `At` or `Contains`, or a mixed tuple of these.
-    `At` is the default, meaning only exact or within `atol` values are used.
+  `At` is the default, meaning only exact or within `atol` values are used.
 - `atol`: used for `At` selectors only, as the `atol` value.
 
 ## Example
@@ -236,7 +235,7 @@ julia> A[DimSelectors(target; selectors=Near), Ti=2]
 ```
 
 Using `At` would make sure we only use exact interpolation,
-while `Contains` with sampleing of `Intervals` would make sure that
+while `Contains` with sampling of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
 struct DimSelectors{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
@@ -285,7 +284,7 @@ end
     (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
 end
 
-# Depricated
+# Deprecated
 const DimKeys = DimSelectors
 
 struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator{T,N,D}
@@ -326,16 +325,16 @@ end
     end
     return view(ds._data, D...)
 end
-# Dispatch to avoid linear indexing in multidimensionsl DimIndices
+# Dispatch to avoid linear indexing in multidimensional DimIndices
 @propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
     d = dims(ds, 1)
     return view(ds._data, rebuild(d, d[i]))
 end
 
 # Extends the dimensions of any `AbstractBasicDimArray`
-# as if the array assigned into a larger array accross all dimensions,
-# but without the copying. Theres is a cost for linear indexing these objects
-# as we need to convert to cartesian.
+# as if the array assigned into a larger array across all dimensions,
+# but without the copying. There's is a cost for linear indexing these objects
+# as we need to convert to Cartesian.
 struct DimExtensionArray{T,N,
                          D<:Tuple{Vararg{Dimension}},
                          R<:Tuple{Vararg{Dimension}},

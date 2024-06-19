@@ -114,7 +114,7 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Construct Layer Names
     layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames
 
-    # Construct dimwnsion and array columns with DimExtensionArray
+    # Construct dimension and array columns with DimExtensionArray
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
     dimcolumns = collect(_dimcolumns(dims_))

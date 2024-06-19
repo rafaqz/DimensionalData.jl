@@ -42,8 +42,8 @@ parent(modify(Array, st).b)
 
 ## `reorder`
 
-[`reorder`](@ref) is like reverse but declaritive, rather than
-imperitive: we tell it how we want the object to be, not what to do.
+[`reorder`](@ref) is like reverse but declarative, rather than
+imperative: we tell it how we want the object to be, not what to do.
 
 ::::tabs
 
@@ -75,7 +75,7 @@ dimensions into a single combined dimension with a lookup holding
 ## `rebuild`
 
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
-Basically everything uses it somewhere. And you can to, with a few caveats.
+Basically everything uses it somewhere. And you can too, with a few caveats.
 
 `rebuild` assumes you _know what you are doing_. You can quite eaily set
 values to things that don't make sense. The constructor may check a few things,
@@ -100,7 +100,7 @@ metadata(A1)
 ::::
 
 The most common use internally is the arg version on `Dimension`.
-This is _very_ useful in dimension-based algorithmsas a way
+This is _very_ useful in dimension-based algorithms as a way
 to transform a dimension wrapper from one object to another:
 
 ```@ansi helpers
@@ -140,11 +140,12 @@ the process.
 [`set`](@ref) gives us a way to set the values of the immutable objects
 in DD, like `Dimension` and `LookupArray`. Unlike `rebuild` it tries its best
 to _do the right thing_. You don't have to specify what field you want to set.
-just pass in the object you want to be part of the lookup. Usually, there is
+Just pass in the object you want to be part of the lookup. Usually, there is
 no possible ambiguity.
 
 `set` is still improving. Sometimes it may not do the right thing.
-If you think this is the case, make a github issue.
+If you think this is the case, create a
+[GitHub issue](https://github.com/rafaqz/DimensionalData.jl/issues).
 
 :::: tabs
 

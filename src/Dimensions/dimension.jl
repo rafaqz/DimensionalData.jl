@@ -4,7 +4,7 @@
 Abstract supertype of all dimension types.
 
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
-[`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
+[`Ti`](@ref) (Time), and the custom [`Dim`](@ref) dimension.
 
 `Dimension`s label the axes of an `AbstractDimArray`,
 or other dimensional objects, and are used to index into an array.
@@ -95,14 +95,14 @@ abstract type Dimension{T} end
 """
     IndependentDim <: Dimension
 
-Abstract supertype for independent dimensions. Thise will plot on the X axis.
+Abstract supertype for independent dimensions. These will plot on the X axis.
 """
 abstract type IndependentDim{T} <: Dimension{T} end
 
 """
     DependentDim <: Dimension
 
-Abstract supertype for Dependent dimensions. These will plot on the Y axis.
+Abstract supertype for dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T} <: Dimension{T} end
 
@@ -224,7 +224,7 @@ for func in (:order, :span, :sampling, :locus)
     @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
 end
 
-# Dipatch on Tuple{<:Dimension}, and map to single dim methods
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
@@ -409,7 +409,7 @@ Macro to easily define new dimensions.
 The supertype will be inserted into the type of the dim.
 The default is simply `YourDim <: Dimension`.
 
-Making a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
+Making a Dimension inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
 

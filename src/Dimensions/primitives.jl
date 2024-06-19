@@ -1,5 +1,5 @@
 # These functions do most of the work in the package.
-# They are all type-stable recusive methods for performance and extensibility.
+# They are all type-stable recursive methods for performance and extensibility.
 
 """
     dimsmatch([f], dim, query) => Bool
@@ -42,7 +42,7 @@ end
     name2dim(dims...) => Tuple{Dimension,Vararg}
     name2dim(dims::Tuple) => Tuple{Dimension,Vararg}
 
-Convert a symbol to a dimension object. `:X`, `:Y`, `:Ti` etc will be converted.
+Convert a symbol to a dimension object. `:X`, `:Y`, `:Ti` etc will be converted
 to `X()`, `Y()`, `Ti()`, as with any other dims generated with the [`@dim`](@ref) macro.
 
 All other `Symbol`s `S` will generate `Dim{S}()` dimensions.
@@ -62,8 +62,8 @@ function name2dim end
 """
     sortdims([f], tosort, order) => Tuple
 
-Sort dimensions `tosort` by `order`. Dimensions
-in `order` but missing from `tosort` are replaced with `nothing`.
+Sort dimensions `tosort` by `order`. Dimensions in `order` but
+missing from `tosort` are replaced with `nothing`.
 
 `tosort` and `order` can be `Tuple`s or `Vector`s or Dimension
 or dimension type. Abstract supertypes like [`TimeDim`](@ref)
@@ -195,7 +195,7 @@ Get the number(s) of `Dimension`(s) as ordered in the dimensions of an object.
 - `query`: Tuple, Array or single `Dimension` or dimension `Type`.
 
 The return type will be a Tuple of `Int` or a single `Int`,
-depending on wether `query` is a `Tuple` or single `Dimension`.
+depending on whether `query` is a `Tuple` or single `Dimension`.
 
 ## Example
 
@@ -228,8 +228,8 @@ end
 end
 
 """
-    hasdim([f], x, query::Tuple) => NTUple{Bool}
-    hasdim([f], x, query...) => NTUple{Bool}
+    hasdim([f], x, query::Tuple) => NTuple{Bool}
+    hasdim([f], x, query...) => NTuple{Bool}
     hasdim([f], x, query) => Bool
 
 Check if an object `x` has dimensions that match or inherit from the `query` dimensions.
@@ -349,7 +349,7 @@ order passed.
 
 Passing in the `Dimension` types rewraps the dimension index,
 keeping the index values and metadata, while constructed `Dimension`
-objectes replace the original dimension. `nothing` leaves the original
+objects replace the original dimension. `nothing` leaves the original
 dimension as-is.
 
 ## Arguments
@@ -392,7 +392,7 @@ function swapdims end
 
 Slice the dimensions to match the axis values of the new array.
 
-All methods return a tuple conatining two tuples: the new dimensions,
+All methods return a tuple containing two tuples: the new dimensions,
 and the reference dimensions. The ref dimensions are no longer used in
 the new struct but are useful to give context to plots.
 
@@ -418,9 +418,9 @@ function slicedims end
     slicedims(f, dims, refdims, Tuple(I))
 
 @propagate_inbounds function _slicedims(f, dims::Tuple, refdims::Tuple, I::Tuple)
-    # Unnaligned may need grouped slicing
+    # Unaligned may need grouped slicing
     newdims, newrefdims = if any(map(d -> lookup(d) isa Unaligned, dims))
-        # Separate out unalligned dims
+        # Separate out unaligned dims
         udims = _unalligned_dims(dims)
         odims = otherdims(dims, udims)
         oI = map(d -> I[dimnum(dims, d)], odims)
@@ -460,7 +460,7 @@ end
 @propagate_inbounds _slicedims(f::F, d::Dimension, i) where F = (f(d, i),), ()
 
 _unwrapinds(s::Base.Slice) = s.indices
-_unwrapinds(x) = x # Not sure this can ever be hit? but just in case
+_unwrapinds(x) = x # Not sure this can ever be hit? But just in case
 
 _unalligned_dims(dims::Tuple) = _unalligned_dims(dims...)
 _unalligned_dims(dim::Dimension{<:Unaligned}, args...) = (dim, _unalligned_dims(args...)...)
@@ -687,7 +687,7 @@ struct AlwaysTuple <: QueryMode end
 (::MaybeFirst)(xs::Tuple) = first(xs)
 (::MaybeFirst)(::Tuple{}) = nothing
 
-# Call the function f with stardardised args
+# Call the function f with standardised args
 # This looks like HELL, but it removes this complexity
 # from every other method and makes sure they all behave the same way.
 @inline _dim_query(f::Function, t::QueryMode, args...) =

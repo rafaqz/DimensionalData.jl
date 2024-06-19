@@ -13,7 +13,6 @@ A [`Lookup`](@ref) that holds multiple combined dimensions.
 - `data`: A `Vector` of `Tuple`.
 - `dims`: A `Tuple` of [`Dimension`](@ref) indicating the dimensions in the tuples in `data`.
 
-
 # Keywords
 
 - `metadata`: a `Dict` or `Metadata` object to attach dimension metadata.

@@ -44,7 +44,7 @@ end
     show_after(io::IO, mime, A::AbstractDimArray)
     show_after(io::IO, mime, A::AbstractDimStack)
 
-Interface methods for adding addional `show` text
+Interface methods for adding additional `show` text
 for AbstractDimArray/AbstractDimStack subtypes.
 
 *Always include `kw` to avoid future breaking changes*
@@ -58,7 +58,7 @@ Additional keywords may be added at any time.
 blockwidth = get(io, :blockwidth, 10000)
 ```
 
-Note - a anssi box is left unclosed. This method needs to close it,
+Note - a ANSI box is left unclosed. This method needs to close it,
 or add more. `blockwidth` is the maximum length of the inner text.
 
 Most likely you always want to at least close the show blocks with:

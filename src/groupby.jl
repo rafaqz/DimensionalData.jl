@@ -40,14 +40,14 @@ end
         # We have DimArrays or DimStacks. Rebuild as a DimGroupArray
         DimGroupByArray(data, dims, refdims, name, metadata)
     else
-        # Some other values. Rebuild as a reguilar DimArray
+        # Some other values. Rebuild as a regular DimArray
         dimconstructor(dims)(data, dims, refdims, name, metadata)
     end
 end
 @inline function rebuild(A::DimGroupByArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
-    rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a reguilar DimArray
+    rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a regular DimArray
 end
 
 function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
@@ -85,7 +85,7 @@ end
 Base.alignment(io::IO, s::DimSummariser) = (textwidth(sprint(show, s)), 0)
 
 # An array that doesn't know what it holds, to simplify dispatch
-# It can also hole somthing that is not an AbstractArray itself.
+# It can also hold something that is not an AbstractArray itself.
 struct OpaqueArray{T,N,P} <: AbstractArray{T,N}
     parent::P
 end
@@ -107,19 +107,19 @@ abstract type AbstractBins <: Function end
 
 Specify bins to reduce groups after applying function `f`.
 
-- `f` a grouping function of the lookup values, by default `identity`.
+- `f`: a grouping function of the lookup values, by default `identity`.
 - `bins`:
    * an `Integer` will divide the group values into equally spaced sections.
    * an `AbstractArray` of values will be treated as exact
      matches for the return value of `f`. For example, `1:3` will create 3 bins - 1, 2, 3.
-   * an `AbstractArray` of `IntervalSets.Interval` can be used to
-     explictly define the intervals. Overlapping intervals have undefined behaviour.
+   * an `AbstractArray` of `IntervalSets.Interval` can be used to explicitly
+     define the intervals. Overlapping intervals have undefined behaviour.
 
 ## Keywords
 
 - `pad`: fraction of the total interval to pad at each end when `Bins` contains an
   `Integer`. This avoids losing the edge values. Note this is a messy solution -
-  it will often be prefereble to manually specify a `Vector` of chosen `Interval`s
+  it will often be preferable to manually specify a `Vector` of chosen `Interval`s
   rather than relying on passing an `Integer` and `pad`.
 - `labels`: a list of descriptive labels for the bins. The labels need to have the same length as `bins`.
 
@@ -146,7 +146,7 @@ Cyclic bins to reduce groups after applying function `f`. Groups can wrap around
 the cycle. This is used for grouping in [`seasons`](@ref), [`months`](@ref)
 and [`hours`](@ref) but can also be used for custom cycles.
 
-- `f` a grouping function of the lookup values, by default `identity`.
+- `f`: a grouping function of the lookup values, by default `identity`.
 
 ## Keywords
 
@@ -183,7 +183,7 @@ Generates `CyclicBins` for three month periods.
 
 - `start`: By default seasons start in December, but any integer `1:12` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
-  from `Vector{Int}` of the selected quartals.
+  from `Vector{Int}` of the selected quarters.
 """
 seasons(; start=December, kw...) = months(3; start, kw...)
 
@@ -227,15 +227,15 @@ Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 
 ## Arguments
 
-- `A`: any `AbstractDimArray` or `AbsractDimStack`.
+- `A`: any `AbstractDimArray` or `AbstractDimStack`.
 - `dims`: `Pair`s such as `groups = groupby(A, :dimname => groupingfunction)` or wrapped
-    [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
-    a grouping function [`Bins`](@ref) can be used to specify group bins.
+  [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
+  a grouping function [`Bins`](@ref) can be used to specify group bins.
 
 ## Return value
 
 A [`DimGroupByArray`](@ref) is returned, which is basically a regular `AbstractDimArray`
-but holding the grouped `AbstractDimArray` or `AbstractDimStrack`. Its `dims`
+but holding the grouped `AbstractDimArray` or `AbstractDimStack`. Its `dims`
 hold the sorted values returned by the grouping function/s.
 
 Base julia and package methods work on `DimGroupByArray` as for any other
@@ -460,7 +460,7 @@ Generate a `Vector` of `UnitRange` with length `step(A)`
 intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
 
 """
-    ranges(A::AbsttactRange{<:Integer})
+    ranges(A::AbstractRange{<:Integer})
 
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """

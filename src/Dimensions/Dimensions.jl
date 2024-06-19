@@ -1,5 +1,5 @@
 """
-Dimensions
+    Dimensions
 
 Sub-module for [`Dimension`](@ref)s wrappers,
 and operations on them used in DimensionalData.jl.
