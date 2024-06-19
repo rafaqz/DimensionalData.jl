@@ -10,7 +10,7 @@ Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 - indexing with a `Symbol` as in `dimstack[:symbol]` returns a `DimArray` layer.
 - iteration and `map` apply over array layers, as indexed with a `Symbol`.
 - `getindex` and many base methods are applied as for `DimArray` - to avoid the need
-    to allways use `map`.
+  to always use `map`.
 
 This design gives very succinct code when working with many-layered, mixed-dimension objects.
 But it may be jarring initially - the most surprising outcome is that `dimstack[1]` will return
@@ -117,7 +117,7 @@ function rebuild_from_arrays(
     end
 end
 
-# Dipatch on Tuple of Dimension, and map
+# Dispatch on Tuple of Dimension, and map
 for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :order)
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
@@ -291,7 +291,7 @@ Notably, their behaviour lies somewhere between a `DimArray` and a `NamedTuple`:
 - iteration and `map` apply over array layers, as indexed with a `Symbol`.
 - `getindex` or `view` with `Int`, `Dimension`s or `Selector`s that resolve to `Int` will
     return a `NamedTuple` of values from each layer in the stack.
-    This has very good performace, and avoids the need to always use `map`.
+    This has very good performance, and avoids the need to always use `map`.
 - `getindex` or `view` with a `Vector` or `Colon` will return another `DimStack` where
     all data layers have been sliced.
 - `setindex!` must pass a `Tuple` or `NamedTuple` matching the layers.
@@ -304,7 +304,7 @@ function DimStack(A::AbstractDimArray;
 )
 ```
 
-For example, here we take the mean over the time dimension for all layers :
+For example, here we take the mean over the time dimension for all layers:
 
 ```julia
 mean(mydimstack; dims=Ti)

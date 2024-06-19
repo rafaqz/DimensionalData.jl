@@ -5,7 +5,7 @@ function Base.summary(io::IO, stack::AbstractDimStack)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    # Show main blocks - summar, dims, layers, metadata
+    # Show main blocks - summary, dims, layers, metadata
     _, blockwidth = show_main(io, mime, stack)
     # Show anything else subtypes want to append
     ctx = IOContext(io, :blockwidth => blockwidth)

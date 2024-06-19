@@ -1,7 +1,7 @@
 # Base methods
 
 """
-    Base.copy!(dst::AbstractArray, src::AbstractGimStack, key::Key)
+    Base.copy!(dst::AbstractArray, src::AbstractDimStack, key::Key)
 
 Copy the stack layer `key` to `dst`, which can be any `AbstractArray`.
 

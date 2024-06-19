@@ -91,7 +91,7 @@ _set(locus::Locus, newlocus::AutoPosition) = locus
 _set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
 _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
-# Looup values
+# Lookup values
 _set(values::AbstractArray, newvalues::AbstractArray) = newvalues
 _set(values::AbstractArray, newvalues::AutoLookup) = values
 _set(values::AbstractArray, newvalues::Colon) = values

@@ -129,7 +129,7 @@ for f in (:getindex, :view, :dotview)
                 Base.$f(A, I...)
             end
             newlayers = map(f, values(s))
-            # Dicide to rewrap as an AbstractDimStack, or return a scalar
+            # Decide to rewrap as an AbstractDimStack, or return a scalar
             if any(map(v -> v isa AbstractDimArray, newlayers))
                 # Some scalars, re-wrap them as zero dimensional arrays
                 non_scalar_layers = map(values(s), newlayers) do l, nl
