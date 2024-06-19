@@ -115,13 +115,13 @@ rebuild(d, 1:10)
 but those in [ ] brackets may be thrown away if not needed.
 Keywords in ( ) will error if used where they are not accepted.
 
-| Type                       | Keywords                                                    | Arguments            |
-|--------------------------- |------------------------------------------------------------ |----------------------|
-| [`AbstractDimArray`](@ref) | data, dims, [refdims, name, metadata]                       | as with kw, in order |
-| [`AbstractDimStack`](@ref) | data, dims, [refdims], layerdims, [metadata, layermetadata] | as with kw, in order |
-| [`Dimension`](@ref)        | val                                                         | val                  |
-| [`Selector`](@ref)         | val, (atol)                                                 | val                  |
-| [`Lookup`](@ref)      | data, (order, span, sampling, metadata)                     | keywords only        |
+| Type                       | Keywords                                                                | Arguments            |
+|:-------------------------- |:----------------------------------------------------------------------- |:---------------------|
+| [`AbstractDimArray`](@ref) | `data`, `dims`, [`refdims`, `name`, `metadata`]                         | as with kw, in order |
+| [`AbstractDimStack`](@ref) | `data`, `dims`, [`refdims`], `layerdims`, [`metadata`, `layermetadata`] | as with kw, in order |
+| [`Dimension`](@ref)        | `val`                                                                   | val                  |
+| [`Selector`](@ref)         | `val`, (`atol`)                                                         | val                  |
+| [`Lookup`](@ref)           | `data`, (`order`, `span`, `sampling`, `metadata`)                       | keywords only        |
 
 ### `rebuild` magic
 
