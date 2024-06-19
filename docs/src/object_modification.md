@@ -77,9 +77,11 @@ dimensions into a single combined dimension with a lookup holding
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
 Basically everything uses it somewhere. And you can too, with a few caveats.
 
-`rebuild` assumes you _know what you are doing_. You can quite eaily set
-values to things that don't make sense. The constructor may check a few things,
-like the number of dimensions matches the axes of the array. But not much else.
+!!! warning
+
+    `rebuild` assumes you _know what you are doing_. You can quite easily set
+    values to things that don't make sense. The constructor may check a few things,
+    like the number of dimensions matches the axes of the array. But not much else.
 
 :::: tabs
 
