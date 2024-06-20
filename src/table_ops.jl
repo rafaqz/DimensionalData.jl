@@ -21,8 +21,12 @@ end
 
 # Extract coordinate columns from table
 function _dim_cols(table, dims::Tuple)
-    dim_cols = map(name, dims)
+    dim_cols = _dim_col_names(dims)
     return NamedTuple{dim_cols}(Tables.getcolumn(table, col) for col in dim_cols)
+end
+
+function _dim_col_names(dims)
+    return map(name, dims)
 end
 
 # Extract data columns from table
@@ -33,7 +37,7 @@ end
 
 # Get names of data columns from table
 function _data_col_names(table, dims::Tuple)
-    dim_cols = map(name, dims)
+    dim_cols = _dim_col_names(dims)
     return filter(x -> !(x in dim_cols), Tables.columnnames(table))
 end
 
@@ -72,13 +76,13 @@ end
 
 # Determine the ordinality of a set of categorical or irregular coordinates
 function _coords_to_ords(coords::AbstractVector, dim::Dimension, ::Any, ::Any, ::Any)
-    return map(c -> DimensionalData.selectindices(dim, At(c)), coords)
+    return map(c -> DimensionalData.selectindices(dim, Contains(c)), coords)
 end
 
 # Preprocessing methods for _coords_to_ords
 _coords_to_ords(coords::AbstractVector, dim::Dimension) = _coords_to_ords(coords, dim, eltype(dim), locus(dim), span(dim))
 _coords_to_ords(coords::Tuple, dims::Tuple) = Tuple(_coords_to_ords(c, d) for (c, d) in zip(coords, dims))
-_coords_to_ords(coords::NamedTuple, dims::Tuple) = _coords_to_ords(Tuple(coords[d] for d in name.(dims)), dims)
+_coords_to_ords(coords::NamedTuple, dims::Tuple) = _coords_to_ords(map(x -> coords[x], _dim_col_names(dims)), dims)
 
 # Determine the index from a tuple of coordinate orders
 function _ords_to_indices(ords, dims)
