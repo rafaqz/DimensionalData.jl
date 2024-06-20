@@ -1,6 +1,6 @@
 function _write_vals(data, dims::Tuple, perm, missingval)
     # Allocate Destination Array
-    dst_size = reduce(*, length.(dims))
+    dst_size = prod(map(length, dims))
     dst = Vector{eltype(data)}(undef, dst_size)
     dst[perm] .= data
 
@@ -21,7 +21,7 @@ end
 
 # Extract coordinate columns from table
 function _dim_cols(table, dims::Tuple)
-    dim_cols = name.(dims)
+    dim_cols = map(name, dims)
     return NamedTuple{dim_cols}(Tables.getcolumn(table, col) for col in dim_cols)
 end
 
@@ -33,13 +33,13 @@ end
 
 # Get names of data columns from table
 function _data_col_names(table, dims::Tuple)
-    dim_cols = name.(dims)
+    dim_cols = map(name, dims)
     return filter(x -> !(x in dim_cols), Tables.columnnames(table))
 end
 
 # Determine the ordinality of a set of numerical coordinates
 function _coords_to_ords(coords::AbstractVector, dim::AbstractVector{<:Real})
-    stride = (last(dim) - first(dim)) / (length(dim) - 1)
+    step = (last(dim) - first(dim)) / (length(dim) - 1)
     return round.(UInt32, ((coords .- first(dim)) ./ stride) .+ 1)
 end
 
@@ -68,6 +68,7 @@ function _ords_to_indices(ords, dims)
     return indices
 end
 
+_cast_missing(::AbstractArray, missingval::Missing) = missing
 function _cast_missing(::AbstractArray{T}, missingval) where {T}
     try
         return convert(T, missingval)
