@@ -161,6 +161,14 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
         end
+        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
+        )
+            replacements = _keywords2dimpairs(x,y)
+            args =  lift(x->_surface2(x, attributes, replacements)[3], A)
+            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
+            return p
+        end
     end
 end
 
