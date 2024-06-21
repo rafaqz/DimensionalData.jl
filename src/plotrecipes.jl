@@ -35,8 +35,8 @@ end
         parent(A_fwd)
     elseif sertype in (:violin, :dotplot, :boxplot)
         ViolinLike(sertype), A_fwd
-    elseif sertype in (:plot, :histogram2d, :none, :line, :path, :shape, :steppre,
-                       :steppost, :sticks, :scatter, :hexbin, :barbins, :scatterbins,
+    elseif sertype in (:plot, :histogram2d, :none, :line, :path, :shape, :steppre, 
+                       :steppost, :sticks, :scatter, :hexbin, :barbins, :scatterbins, 
                        :stepbins, :bins2d, :bar)
         SeriesLike(sertype), A_fwd
     else

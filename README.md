@@ -70,13 +70,13 @@ A[Y=1:10, X=1]
  10.0  0.130198
  11.0  0.693343
  12.0  0.400656
-  ⋮
+  ⋮    
  17.0  0.877581
  18.0  0.866406
  19.0  0.605331
 ```
 
-One can also subset by lookup, using a `Selector`, lets try `At`:
+One can also subset by lookup, using a `Selector`, lets try `At`: 
 
 ```julia
 A[Y(At(25))]
@@ -92,7 +92,7 @@ A[Y(At(25))]
   3  0.99119
   4  0.373549
   5  0.0987397
-  ⋮
+  ⋮  
  46  0.503611
  47  0.225421
  48  0.293564
@@ -100,7 +100,7 @@ A[Y(At(25))]
  50  0.622586
 ```
 
-There is also `Near` (for inexact/nearest selection), `Contains` (for `Intervals` containing values),
+There is also `Near` (for inexact/nearest selection), `Contains` (for `Intervals` containing values), 
 `Between` or `..` for range selection, and `Where` for queries, among others.
 
 Plotting with Makie.jl is as easy as:

@@ -1,4 +1,4 @@
-function dimsymbols(i)
+function dimsymbols(i) 
     symbols = ['↓', '→', '↗', '⬔', '◩', '⬒', '⬓', '■']
     symbols[min(i, length(symbols))]
 end
@@ -35,7 +35,7 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
         lines = 3
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
-        maxname = maximum(length ∘ string ∘ name, dims)
+        maxname = maximum(length ∘ string ∘ name, dims) 
         dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len=> maxname)
         show(dim_ctx, mime, first(dims))
         lines += 1
@@ -93,7 +93,7 @@ function print_dims(io::IO, mime, dims::Tuple; kw...)
 end
 # print refdims with description string and inset
 function print_refdims(io::IO, mime, refdims::Tuple)
-    if isempty(refdims)
+    if isempty(refdims) 
         return 0
     end
     printstyled(io, "and reference dimensions: "; color=:light_black)
@@ -113,7 +113,7 @@ function print_dimval(io, mime, val, nchars=0)
     val isa Colon || print(io, " ")
     printstyled(io, val; color=get(io, :dimcolor, 1))
 end
-function print_dimval(io, mime, lookup::AbstractArray, nchars=0)
+function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
     Lookups.print_index(io, mime, lookup, nchars)
 end
 print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")

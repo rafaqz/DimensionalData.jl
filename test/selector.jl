@@ -676,7 +676,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(centerrev, 0.5..111.5) === 1:10
             @test between(centerfwd, Interval{:open,:open}(0.5..111.5)) === 2:9
             @test between(centerrev, Interval{:open,:open}(0.5..111.5)) === 2:9
-
+    
 
             @test between(centerfwd, 6.5..30.5) === 3:5
             @test between(centerfwd, 6.6..30.4) === 4:4
@@ -774,7 +774,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test touches(centerrev, Touches(2.5, 90.5)) === 1:10
             @test touches(centerfwd, Touches(2.6, 90.4)) === 2:9
             @test touches(centerrev, Touches(2.6, 90.4)) === 2:9
-
+    
             @test touches(centerfwd, Touches(12.5, 20.5)) === 3:5
             @test touches(centerfwd, Touches(12.6, 20.4)) === 4:4
             @test touches(centerrev, Touches(12.5, 20.5)) === 6:8
@@ -906,7 +906,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test between(rev, Interval{:closed,:open}(0..5.0)) === 27:26
             @test between(rev, Interval{:closed,:open}(0..5.1)) === 26:26
             @test between(rev, Interval{:closed,:open}(30..31)) === 1:1
-
+            
             fwd1 = Sampled(5.0:5.0; order=ForwardOrdered(), sampling=Points())
             rev1 = Sampled(5.0:-1.0:5.0; order=ReverseOrdered(), sampling=Points())
             @test between(fwd1, 5..5) === 1:1
@@ -1116,7 +1116,7 @@ end
         dimz = X(10.0:20:200.0), Ti(1u"s":5u"s":100u"s")
         A = DimArray((1:10) * (1:20)', dimz)
         aA = A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
-        @test parent(aA) ==
+        @test parent(aA) == 
             [1  2  19  20
              3  6  57  60]
     end
@@ -1129,7 +1129,7 @@ end
         A3 = A[X=Not(At([1.0,3.0]))]
         @test lookup(A2, :Ti) == [6u"s", 11u"s"]
         @test lookup(A3, :X) == [5.0,7.0,9.0]
-        @test A1 == permutedims([3 6 12 15])
+        @test A1 == permutedims([3 6 12 15]) 
         @test lookup(A1, Ti) == [11u"s"]
         @test lookup(A1, X) == [1.0, 3.0, 7.0, 9.0]
     end
@@ -1177,7 +1177,7 @@ end
 
     @testset "with DateTime index" begin
         @testset "Start locus" begin
-            timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12);
+            timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(Start())
             ))
             da = DimArray(1:12, timedim)
@@ -1188,7 +1188,7 @@ end
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
 
-            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12);
+            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(Start())
             ))
             da = DimArray(1:12, timedim)
@@ -1200,7 +1200,7 @@ end
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
         end
         @testset "End locus" begin
-            timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12);
+            timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(End()))
             )
             da = DimArray(1:12, timedim)
@@ -1211,7 +1211,7 @@ end
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
 
-            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12);
+            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(End()))
             )
             da = DimArray(1:12, timedim)
@@ -1225,7 +1225,7 @@ end
     end
 
     # @testset "with Val index" begin
-    #     valdimz = Ti(Sampled(Val(2.0:2.0:6.0))),
+    #     valdimz = Ti(Sampled(Val(2.0:2.0:6.0))), 
     #               Y(Sampled(Val(10.0:10.0:40)))
     #     da = DimArray(a, valdimz)
     #     @test @inferred da[Ti=Val(4.0), Y=Val(40.0)] == 8
@@ -1267,7 +1267,7 @@ end
             reshape((DateTime(2001, 1):Month(1):DateTime(2001, 12)), 1, 12),
             reshape((DateTime(2001, 2):Month(1):DateTime(2002, 1)), 1, 12)
         ))
-        timedim = Ti(Sampled(DateTime(2001, 1, 15):Month(1):DateTime(2001, 12, 15);
+        timedim = Ti(Sampled(DateTime(2001, 1, 15):Month(1):DateTime(2001, 12, 15); 
             span=span_ti, sampling=Intervals(Center())
         ))
         da = DimArray(1:12, timedim)
@@ -1350,7 +1350,7 @@ end
         month_month=Cyclic(DateTime(2001):Month(1):DateTime(2002, 1, 31); cycle=Month(1), order=ForwardOrdered(), span=Regular(Month(1)), sampling=Intervals(Start())),
     )
 
-    for l in lookups
+    for l in lookups 
         # Test exact cycles
         @test at(l, At(DateTime(1))) == 1
         @test at(l, At(DateTime(1999))) == 1
@@ -1376,7 +1376,7 @@ end
     @test at(l, At(DateTime(2001, 12))) == 12
     @test at(l, At(DateTime(3000, 12))) == 12
     l = lookups.day
-    @test at(l, At(DateTime(1, 12, 31))) == 365
+    @test at(l, At(DateTime(1, 12, 31))) == 365 
     @test at(l, At(DateTime(1999, 12, 31))) == 365
     # This is kinda wrong, as there are 366 days in 2000
     # But our l has 365. Leap years would be handled
@@ -1413,8 +1413,8 @@ end
     @test selectindices(l, Contains(20)) == 20
     @test_throws SelectorError selectindices(l, Contains(20.1))
     @test selectindices(l, Contains(20.1); err=Lookups._False()) === nothing
-    @test_throws SelectorError selectindices(l, Contains(0))
-    @test_throws SelectorError selectindices(l, Contains(200))
+    @test_throws SelectorError selectindices(l, Contains(0)) 
+    @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
 end
 

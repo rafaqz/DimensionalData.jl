@@ -51,7 +51,7 @@ end
 
 @testset "arrays" begin
     d, str = Lat(), "Lat"
-    for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, "n"), (Z(), "Z"))
+    for (d, str) in ((Ti(), "Ti"), (Lat(), "Lat"), (Lon(), "Lon"), (:n, "n"), (Z(), "Z")) 
         s1 = sprint(show, MIME("text/plain"), A)
         s2 = sprint(show, MIME("text/plain"), dims(A, ds))
         s3 = sprint(show, MIME("text/plain"), dims(A, ds))

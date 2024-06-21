@@ -1,7 +1,7 @@
 # Dimensions
 
-Dimensions are "wrapper types" that can be used to wrap any
-object to associate it with a named dimension.
+Dimensions are "wrapper types" that can be used to wrap any 
+object to associate it with a named dimension. 
 
 `X`, `Y`, `Z`, `Ti` are predefined as types:
 
@@ -23,16 +23,16 @@ The wrapped value can be retrieved with `val`:
 val(X(1))
 ```
 
-DimensionalData.jl uses `Dimensions` everywhere:
+DimensionalData.jl uses `Dimensions` everywhere: 
 
 - `Dimension` are returned from `dims` to specify the names of the dimensions of an object
 - they wrap [`Lookups`](@ref) to associate the lookups with those names
-- to index into these objects, they wrap indices like `Int` or a `Selector`
+- to index into these objects, they wrap indices like `Int` or a `Selector` 
 
-This symmetry means we can ignore how data is organised,
+This symmetry means we can ignore how data is organised, 
 and label and access it by name, letting DD work out the details for us.
 
-Dimensions are defined in the [`Dimensions`](@ref) submodule, some
+Dimensions are defined in the [`Dimensions`](@ref) submodule, some 
 Dimension-specific methods can be brought into scope with:
 
 ```julia

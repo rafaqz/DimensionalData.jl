@@ -30,7 +30,7 @@ julia> cuA2 = cuA .* 2
     4.0  0.374026  1.91495    1.17645    0.995683        0.835288      1.54822       0.487601
     5.0  1.17673   0.0557598  0.183637   1.90645   …     0.88058       1.23788       1.59705
     6.0  1.57019   0.215049   1.9155     0.982762        0.906838      0.1076        0.390081
-    ⋮                                              ⋱
+    ⋮                                              ⋱                              
   995.0  1.48275   0.40409    1.37963    1.66622         0.462981      1.4492        1.26917
   996.0  1.88869   1.86174    0.298383   0.854739  …     0.778222      1.42151       1.75568
   997.0  1.88092   1.87436    0.285965   0.304688        1.32669       0.0599431     0.134186
@@ -57,7 +57,7 @@ DimensionalData.jl has two GPU-related goals:
 This means any `AbstractDimArray` must be automatically moved to the GPU and its
 fields converted to GPU friendly forms whenever required, using [Adapt.jl](https://github.com/JuliaGPU/Adapt.jl)).
 
-- The array data must converts to the correct GPU array backend
+- The array data must converts to the correct GPU array backend 
   when `Adapt.adapt(dimarray)` is called.
 - All DimensionalData.jl objects, except the actual parent array, need to be immutable `isbits` or
   convertible to them. This is one reason DimensionalData.jl uses `rebuild` and a functional style,
@@ -66,7 +66,6 @@ fields converted to GPU friendly forms whenever required, using [Adapt.jl](https
 - Metadata dicts need to be stripped, they are often too difficult to convert,
   and not needed on GPU.
 
-As an example, [DynamicGrids.jl](https://github.com/cesaraustralia/DynamicGrids.jl) uses
-`AbstractDimArray` for auxiliary model data that are passed into
-[KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)/[CUDA.jl](https://github.com/JuliaGPU/CUDA.jl)
-kernels.
+As an example, [DynamicGrids.jl](https://github.com/cesaraustralia/DynamicGrids.jl) uses `AbstractDimArray` for auxiliary 
+model data that are passed into [KernelAbstractions.jl](https://github.com/JuliaGPU/KernelAbstractions.jl)/
+[CUDA.jl](https://github.com/JuliaGPU/CUDA.jl) kernels.

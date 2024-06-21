@@ -9,7 +9,7 @@ polygon rasterization and masking. `Raster` types are aware
 of `crs` and their `missingval` (which is often not `missing`
 for performance and storage reasons).
 
-Rasters.jl is also the reason DimensionalData.jl exists at all!
+Rasters.jl is also the reason DimensionalData.jl exists at all! 
 But it always made sense to separate out spatial indexing from
 GIS tools and dependencies.
 
@@ -32,15 +32,15 @@ Extends DD with methods for analysis of climate data.
 
 ## ArviZ.jl
 
-[ArviZ.jl](https://arviz-devs.github.io/ArviZ.jl/dev/)
+[ArviZ.jl](https://arviz-devs.github.io/ArviZ.jl/dev/) 
 Is a Julia package for exploratory analysis of Bayesian models.
 
 An `ArviZ.Dataset` is an `AbstractDimStack`!
 
 ## JuMP.jl
 
-[JuMP.jl](https://jump.dev/) is a powerful optimization DSL.
-It defines its own named array types but now accepts any `AbstractDimArray`
+[JuMP.jl](https://jump.dev/) is a powerful optimization DSL. 
+It defines its own named array types but now accepts any `AbstractDimArray` 
 too, through a package extension.
 
 ## CryoGrid.jl
@@ -56,8 +56,8 @@ A Julia implementation of the CryoGrid permafrost model.
 is a spatial simulation engine, for cellular automata and spatial process
 models.
 
-All DynamicGrids.jl `Outputs` are `<: AbstractDimArray`, and
-`AbstractDimArray` are used for auxiliary data to allow temporal
+All DynamicGrids.jl `Outputs` are `<: AbstractDimArray`, and 
+`AbstractDimArray` are used for auxiliary data to allow temporal 
 synchronisation during simulations. Notably, this all works on GPUs!
 
 ## AstroImages.jl

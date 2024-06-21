@@ -4,11 +4,11 @@
 
 Abstract supertype for all metadata wrappers.
 
-Metadata wrappers allow tracking the contents and origin of metadata. This can
+Metadata wrappers allow tracking the contents and origin of metadata. This can 
 facilitate conversion between metadata types (for saving a file to a different format)
 or simply saving data back to the same file type with identical metadata.
 
-Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata
+Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata 
 objects to [`set`](@ref) without ambiguity about where to put them.
 """
 abstract type AbstractMetadata{X,T} end
@@ -36,7 +36,7 @@ Base.:(==)(m1::AbstractMetadata, m2::AbstractMetadata) = m1 isa typeof(m2) && va
     Metadata{X}(; kw...) => Metadata{NamedTuple}
 
 General [`Metadata`](@ref) object. The `X` type parameter
-categorises the metadata for method dispatch, if required.
+categorises the metadata for method dispatch, if required. 
 """
 struct Metadata{X,T<:_MetadataContents} <: AbstractMetadata{X,T}
     val::T
@@ -59,7 +59,7 @@ val(m::Metadata) = m.val
 
 # Metadata nearly always contains strings, which break GPU compat.
 # For now just remove everything, but we could strip all strings
-# and replace Dict with NamedTuple.
+# and replace Dict with NamedTuple. 
 # This might also be a problem with non-GPU uses of Adapt.jl where keeping
 # the metadata is fine.
 Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
@@ -69,7 +69,7 @@ Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
 
     NoMetadata()
 
-Indicates an object has no metadata. But unlike using `nothing`,
+Indicates an object has no metadata. But unlike using `nothing`, 
 `get`, `keys` and `haskey` will still work on it, `get` always
 returning the fallback argument. `keys` returns `()` while `haskey`
 always returns `false`.

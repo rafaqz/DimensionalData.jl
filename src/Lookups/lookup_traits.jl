@@ -99,7 +99,7 @@ struct Center <: Position end
 
     Start()
 
-Used to specify lookup values correspond to the center
+Used to specify lookup values correspond to the center 
 locus of an interval.
 """
 struct Start <: Position end
@@ -109,10 +109,10 @@ struct Start <: Position end
 
     Begin()
 
-Used to specify the `begin` index of a `Dimension` axis,
+Used to specify the `begin` index of a `Dimension` axis, 
 as regular `begin` will not work with named dimensions.
 
-Can be used with `:` to create a `BeginEndRange` or
+Can be used with `:` to create a `BeginEndRange` or 
 `BeginEndStepRange`.
 """
 struct Begin <: Position end
@@ -122,12 +122,12 @@ struct Begin <: Position end
 
     End()
 
-Used to specify the `end` index of a `Dimension` axis,
+Used to specify the `end` index of a `Dimension` axis, 
 as regular `end` will not work with named dimensions.
-Can be used with `:` to create a `BeginEndRange` or
+Can be used with `:` to create a `BeginEndRange` or 
 `BeginEndStepRange`.
 
-Also used to specify lookup values correspond to the end
+Also used to specify lookup values correspond to the end 
 locus of an interval.
 """
 struct End <: Position end
@@ -142,7 +142,7 @@ This will be filled with a default value on object construction.
 """
 struct AutoPosition <: Position end
 
-# Locus does not include `Begin`
+# Locus does not include `Begin` 
 const Locus = Union{AutoPosition,Start,Center,End}
 const AutoLocus = AutoPosition
 

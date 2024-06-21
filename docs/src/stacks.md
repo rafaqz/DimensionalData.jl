@@ -61,7 +61,7 @@ Or merge a `DimStack` with a `NamedTuple` of `DimArray`:
 merge(st, (; d = rand(y, x), e = rand(y)))
 ````
 
-Merging only works when dimensions match:
+Merging only works when dimensions match: 
 
 ````@ansi stack
 merge(st, (; d = rand(Y('a':'n'))))
@@ -193,7 +193,7 @@ dropdims(sum_st; dims=Y)
 
 `broadcast_dims` broadcasts functions over any mix of `AbstractDimStack` and
 `AbstractDimArray` returning a new `AbstractDimStack` with layers the size of
-the largest layer in the broadcast. This will work even if dimension permutation
+the largest layer in the broadcast. This will work even if dimension permutation 
 does not match in the objects.
 
 
@@ -252,13 +252,13 @@ PermutedDimsArray(st, (Y, X))
 
 :::
 
-## Performance
+## Performance 
 
-Indexing stack is fast - indexing a single value return a `NamedTuple` from all
+Indexing stack is fast - indexing a single value return a `NamedTuple` from all 
 layers is usually measures in nanoseconds, and no slower than manually indexing
 into each parent array directly.
 
-There are some compilation overheads to this though, and stacks with very many
+There are some compilation overheads to this though, and stacks with very many 
 layers can take a long time to compile.
 
 ````@ansi stack

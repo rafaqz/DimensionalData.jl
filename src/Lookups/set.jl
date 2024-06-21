@@ -58,7 +58,7 @@ end
 # Order
 _set(lookup::Lookup, neworder::Order) = rebuild(lookup; order=_set(order(lookup), neworder))
 _set(lookup::NoLookup, neworder::Order) = lookup
-_set(order::Order, neworder::Order) = neworder
+_set(order::Order, neworder::Order) = neworder 
 _set(order::Order, neworder::AutoOrder) = order
 
 # Span

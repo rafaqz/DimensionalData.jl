@@ -66,7 +66,7 @@ end
 end
 
 @testset "interface methods" begin
-    lx = Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)
+    lx = Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta) 
     ly = Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)
     @test dims(da) == (X(lx), Y(ly))
     @test dims(da, X) == X(lx)
@@ -101,15 +101,15 @@ end
 
     o = one(da)
     @test o == [1 0; 0 1]
-    @test dims(o) == dims(da)
+    @test dims(o) == dims(da) 
 
     ou = oneunit(da)
     @test ou == [1 0; 0 1]
-    @test dims(ou) == dims(da)
+    @test dims(ou) == dims(da) 
 
     z = zero(da)
     @test z == [0 0; 0 0]
-    @test dims(z) == dims(da)
+    @test dims(z) == dims(da) 
 
     @test Array(da) == [1 2; 3 4]
     @test Array(da) isa Array{Int,2}
@@ -197,7 +197,7 @@ end
         @test refdims(da_all) == ()
         @test metadata(da_all) == NoMetadata()
 
-        da_first = similar(da, Missing, (axes(da, 1),))
+        da_first = similar(da, Missing, (axes(da, 1),))   
         @test eltype(da_first) === Missing
         @test size(da_first) == (size(da, 1),)
         @test dims(da_first) === (dims(da, 1),)
@@ -322,7 +322,7 @@ end
 end
 
 @testset "replace" begin
-    dar = replace(da, 1 => 99)
+    dar = replace(da, 1 => 99) 
     dar isa DimArray
     @test dar == [99 2; 3 4]
 
@@ -449,7 +449,7 @@ end
     da = fill(5.0, X(4), Y(40.0:10.0:80.0))
     @test parent(da) == fill(5.0, (4, 5))
     @test dims(da) == (
-         X(NoLookup(Base.OneTo(4))),
+         X(NoLookup(Base.OneTo(4))), 
          Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
     )
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
@@ -459,22 +459,22 @@ end
     da = zeros(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
     @test metadata(da) == (a=1, b=2)
-    @test all(==(0), da)
+    @test all(==(0), da) 
     ti = Ti(Date(2001):Year(1):Date(2004))
     da = ones(Int32, ti)
     @test size(da) == (4,)
     @test eltype(da) <: Int32
-    @test all(==(1), da)
+    @test all(==(1), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
     da = trues(ti)
     @test size(da) == (4,)
     @test eltype(da) <: Bool
-    @test all(==(true), da)
+    @test all(==(true), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
     da = falses(ti)
     @test size(da) == (4,)
     @test eltype(da) <: Bool
-    @test all(==(false), da)
+    @test all(==(false), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 
     for f in (ones, zeros, trues, falses)
@@ -482,7 +482,7 @@ end
         @test size(da) == (4, 5)
         @test metadata(da) == (a=1, b=2)
         @test dims(da) == (
-             X(NoLookup(Base.OneTo(4))),
+             X(NoLookup(Base.OneTo(4))), 
              Y(Sampled(40.0:10.0:80.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()))
         )
     end
@@ -511,7 +511,7 @@ end
     @test eltype(da) <: Int
     @test metadata(da) == (a=1, b=2)
     @test dims(da) == (
-         X(NoLookup(Base.OneTo(8))),
+         X(NoLookup(Base.OneTo(8))), 
          Y(Sampled(11:20, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
     )
     da = rand(X([:a, :b]), Y(3))

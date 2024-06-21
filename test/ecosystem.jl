@@ -60,7 +60,7 @@ end
     da = DimArray(randn(10, 10), (X, Y))
 
     # We are just testing that they actually run
-    imfilter(da, Kernel.gaussian(1.0)) isa DimArray
+    imfilter(da, Kernel.gaussian(1.0)) isa DimArray 
     # Array is a different size so the index is changed.
     # But we cant handle this without a dependency.
     # Maybe some tricks with ArrayInterface.jl can solve this.

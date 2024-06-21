@@ -24,17 +24,17 @@ meshscatter!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8),
     Point3f(0.1,0.1+7,0.8), Point3f(0.1+7,0.1+7,0.8)]; color = colors[4],
     markersize=0.25, shading=FastShading)
 
-lines!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8), Point3f(0.1+7,0.1+7,0.8),
+lines!(ax, [Point3f(0.1,0.1,0.8), Point3f(0.1+7,0.1,0.8), Point3f(0.1+7,0.1+7,0.8), 
     Point3f(0.1,0.1+7,0.8), Point3f(0.1,0.1,0.8)]; color = colors[4],
     linewidth=2, transparency=true)
 meshscatter!(ax, Point3f(4,4,-0.01); color=:transparent)
-meshscatter!(ax, [Point3f(0.1,0.1,8), Point3f(0.1+7,0.1,8), Point3f(0.1,0.1+7,8), Point3f(0.1+7,0.1+7,8)];
-             color = colors[2], markersize=0.2, shading=FastShading)
+meshscatter!(ax, [Point3f(0.1,0.1,8), Point3f(0.1+7,0.1,8), Point3f(0.1,0.1+7,8), Point3f(0.1+7,0.1+7,8)]; color = colors[2], markersize=0.2, shading=FastShading)
 
-lines!(ax,
-       [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8), Point3f(0.1,0.1+7,8), ];
-       color = colors[2],
-       linewidth=2, transparency=true)
+lines!(ax, [ Point3f(0.1+7,0.1,8), Point3f(0.1+7,0.1+7,8), 
+    Point3f(0.1,0.1+7,8),
+    ];
+    color = colors[2],
+    linewidth=2, transparency=true)
 meshscatter!(ax, base_points; marker=Rect3f(Vec3f(-0.5,-0.5,0), Vec3f(1,1,1)),
     markersize = Vec3f.(0.5,0.5, z), color=z, colormap=tuple.(colors, 1), transparency=false)
 

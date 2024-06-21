@@ -5,7 +5,7 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
 - `AbstractDimArray` are easily extended to custom array types. `Raster` or
   `YAXArray` are examples from other packages.
 - `AbstractDimStack` are easily extended to custom mixed array dataset.
-  `RasterStack` or `ArViZ.Dataset` are examples.
+    `RasterStack` or `ArViZ.Dataset` are examples.
 - `Lookup` can have new types added, e.g. to `AbstractSampled` or
   `AbstractCategorical`. `Rasters.Projected` is a lookup that knows
   its coordinate reference system, but otherwise behaves as a regular
@@ -15,25 +15,25 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
 
 ## `dims`
 
-Objects extending DimensionalData.jl that have dimensions must return
-a `Tuple` of constructed `Dimension`s from `dims(obj)`.
+Objects extending DimensionalData.jl that have dimensions must return 
+a `Tuple` of constructed `Dimension`s from `dims(obj)`. 
 
 ### `Dimension` axes
 
-Dimensions return from `dims` should hold a `Lookup` or in some cases
-just an `AbstractArray` (like with `DimIndices`). When attached to
-multi-dimensional objects, lookups must be the _same length_ as the axis
-of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must
-return the same values.
+Dimensions return from `dims` should hold a `Lookup` or in some cases 
+just an `AbstractArray` (like with `DimIndices`). When attached to 
+multi-dimensional objects, lookups must be the _same length_ as the axis 
+of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
+return the same values. 
 
-This means that if the array has OffsetArrays.jl axes, the array the dimension
+This means that if the array has OffsetArrays.jl axes, the array the dimension 
 wraps must also have OffsetArrays.jl axes.
 
 ### `dims` keywords
 
 To any `dims` keyword argument that usually requires the dimension I,
 objects should accept any `Dimension`, `Type{<:Dimension}`, `Symbol`,
-`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or also regular `Integer`.
+`Val{:Symbol}`, `Val{<:Type{<:Dimension}}` or also regular `Integer`. 
 
 This is easier than it sounds, calling `DD.dims(objs, dims)` will
 return the matching dimension and `DD.dimnum(obj, dims)` will return
@@ -56,26 +56,26 @@ rebuild(obj; kw...)
 ```
 
 `rebuild` has keyword versions automatically generated for all objects
-using [ConstructionBase.jl](https://github.com/JuliaObjects/ConstructionBase.jl).
+using [ConstructionBase.jl](https://github.com/JuliaObjects/ConstructionBase.jl). 
 
-These will work without further work as long as your object has the fields
-used by DimensionalData.jl objects. For example, `AbstractDimArray` will
-receive these keywords in `rebuild`: `data`, `dims`, `refdims`, `name`, `metadata`.
+These will work without further work as long as your object has the fields 
+used by DimensionalData.jl objects. For example, `AbstractDimArray` will 
+receive these keywords in `rebuild`: `data`, `dims`, `refdims`, `name`, `metadata`. 
 
 If your `AbstractDimArray` does not have all these fields, you must implement
 `rebuild(x::YourDimArray; kw...)` manually.
 
-An argument method is also defined with the same arguments as the
-keyword version. For `AbstractDimArray` it should only be used for
+An argument method is also defined with the same arguments as the 
+keyword version. For `AbstractDimArray` it should only be used for 
 updating `data` and `dims`, any more that that is confusing.
 
-For `Dimension` and `Selector` the single argument versions are easiest to use,
+For `Dimension` and `Selector` the single argument versions are easiest to use, 
 as there is only one argument.
 
 
 ## `format`
 
-When constructing an `AbstractDimArray` or `AbstractDimStack`
+When constructing an `AbstractDimArray` or `AbstractDimStack` 
 [`DimensionalData.format`](@ref) must be called on the `dims` tuple and the parent array:
 
 ```julia
@@ -83,8 +83,8 @@ format(dims, array)
 ```
 
 This lets DimensionalData detect the lookup properties, fill in missing fields
-of a `Lookup`, pass keywords from `Dimension` to detected `Lookup`
-constructors, and accept a wider range of dimension inputs like tuples of `Symbol`
+of a `Lookup`, pass keywords from `Dimension` to detected `Lookup` 
+constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
 and `Type`.
 
 Not calling `format` in the outer constructors of an `AbstractDimArray`

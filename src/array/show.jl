@@ -76,7 +76,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
     print_array(io, mime, A)
 end
 
-function print_ndims(io, size::Tuple;
+function print_ndims(io, size::Tuple; 
     colors=map(dimcolors, ntuple(identity, length(size)))
 )
     if length(size) > 1
@@ -158,8 +158,8 @@ function print_block_top(io, label, prev_width, new_width)
     corner = (new_width > prev_width) ? '┐' : '┤'
     top_line = if new_width > prev_width
         string(
-            '├', '─'^(prev_width), '┴',
-            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)),
+            '├', '─'^(prev_width), '┴', 
+            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)), 
             ' ', label, ' ', corner
         )
     else
@@ -172,7 +172,7 @@ function print_block_top(io, label, prev_width, new_width)
 end
 
 function print_block_separator(io, label, prev_width, new_width=prev_width)
-    if new_width > prev_width
+    if new_width > prev_width 
         line = string('├', '─'^max(0, prev_width), '┴', '─'^max(0, new_width - prev_width - textwidth(label) - 3) )
         corner = '┐'
     else
@@ -251,7 +251,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
     end
     top = Array{eltype(A)}(undef, length(itop))
     copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
-    bottom = Array{eltype(A)}(undef, length(ibottom))
+    bottom = Array{eltype(A)}(undef, length(ibottom)) 
     copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
     vals = vcat(A[itop], A[ibottom])
     lu = only(lookups)
@@ -285,7 +285,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
     # A bit convoluted so it plays nice with GPU arrays
     topleft = Matrix{eltype(A)}(undef, map(length, (itop, ileft)))
     copyto!(topleft, CartesianIndices(topleft), A, CartesianIndices((itop, ileft)))
-    bottomleft = Matrix{eltype(A)}(undef, map(length, (ibottom, ileft)))
+    bottomleft = Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
     copyto!(bottomleft, CartesianIndices(bottomleft), A, CartesianIndices((ibottom, ileft)))
     if !(lu1 isa NoLookup)
         topleft = hcat(map(show1, parent(lu1)[itop]), topleft)
@@ -294,7 +294,7 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
     leftblock = vcat(topleft, bottomleft)
     topright = Matrix{eltype(A)}(undef, map(length, (itop, iright)))
     copyto!(topright, CartesianIndices(topright), A, CartesianIndices((itop, iright)))
-    bottomright= Matrix{eltype(A)}(undef, map(length, (ibottom, iright)))
+    bottomright= Matrix{eltype(A)}(undef, map(length, (ibottom, iright))) 
     copyto!(bottomright, CartesianIndices(bottomright), A, CartesianIndices((ibottom, iright)))
     rightblock = vcat(topright, bottomright)
     bottomblock = hcat(leftblock, rightblock)

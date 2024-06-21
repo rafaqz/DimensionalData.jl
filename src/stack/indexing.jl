@@ -20,7 +20,7 @@ for f in (:getindex, :view, :dotview)
     @eval Base.@constprop :aggressive @propagate_inbounds function Base.$f(
         s::AbstractDimStack, keys::Union{<:Not{Symbol},<:Not{<:NTuple{<:Any,Symbol}}}
     )
-        rebuild_from_arrays(s, layers(s)[keys])
+        rebuild_from_arrays(s, layers(s)[keys]) 
     end
 end
 
@@ -101,9 +101,9 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
         end
         # Ambiguities
-        @propagate_inbounds function Base.$f(s::DimensionalData.AbstractVectorDimStack,
+        @propagate_inbounds function Base.$f(s::DimensionalData.AbstractVectorDimStack, 
             i::Union{AbstractVector{<:DimensionalData.Dimensions.Dimension},
-            AbstractVector{<:Tuple{DimensionalData.Dimensions.Dimension, Vararg{DimensionalData.Dimensions.Dimension}}},
+            AbstractVector{<:Tuple{DimensionalData.Dimensions.Dimension, Vararg{DimensionalData.Dimensions.Dimension}}}, 
             DimensionalData.DimIndices{T,1} where T, DimensionalData.DimSelectors{T,1} where T}
         )
             $_dim_f(s, _simplify_dim_indices(i)...)
@@ -123,7 +123,7 @@ for f in (:getindex, :view, :dotview)
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
-            function f(A)
+            function f(A) 
                 layerdims = dims(D, dims(A))
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
                 Base.$f(A, I...)
@@ -139,7 +139,7 @@ for f in (:getindex, :view, :dotview)
             else
                 # All scalars, return as-is
                 NamedTuple{K}(newlayers)
-            end
+            end 
         end
     end
 end
@@ -192,7 +192,7 @@ function merge_and_index(f, s::AbstractDimStack, ds)
 
     V = length(ds) > 0 ? view(s, ds...) : s
     if !(length(dims(first(inds))) == length(dims(V)))
-        throw(ArgumentError("When indexing an AbstractDimStack with an Array all dimensions must be used"))
+        throw(ArgumentError("When indexing an AbstractDimStack with an Array all dimensions must be used")) 
     end
     mdim = only(mergedims(dims(V),  dims(V)))
     newlayers = map(layers(V)) do l

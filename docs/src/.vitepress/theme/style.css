@@ -7,7 +7,7 @@ https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/var
 
   /* Layouts */
 
-/*
+/* 
  :root {
   --vp-layout-max-width: 1440px;
 } */
@@ -111,7 +111,7 @@ https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/var
     --vp-c-gray-dark-3: hsl(220 12% 23%);
     --vp-c-gray-dark-4: hsl(220 14% 17%);
     --vp-c-gray-dark-5: hsl(220 16% 13%);
-
+  
     /* // Backgrounds */
     --vp-c-bg: hsl(240, 2%, 11%);
     --vp-custom-block-info-bg: hsl(220 14% 17%);
@@ -120,7 +120,7 @@ https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/var
     --vp-c-bg-alt: hsl(220 20% 9%);
     --vp-c-bg-soft: hsl(220 14% 17%);
     --vp-c-bg-mute: hsl(220 12% 23%);
-
+    
 }
 
  /* Component: Algolia */

@@ -64,8 +64,8 @@ end
            Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1)))), A) ==
           (X(Categorical([:A, :B], ForwardOrdered(), Metadata(a=5))),
            Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1))))
-    @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) ==
-        (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata())),
+    @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) == 
+        (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata())), 
          Y(NoLookup(Base.OneTo(3))))
 end
 
@@ -90,12 +90,12 @@ end
     da = DimArray(a, (X(LinRange(140, 148, 5)), Y(LinRange(2, 11, 4))))
     dimz = dims(da)
 
-    for args in ((dimz,),
-                 (dimz, (X(), Y())),
-                 (dimz, X(), Y()),
-                 (dimz, (X, Y)) ,
-                 (dimz, X, Y),
-                 (dimz, (1, 2)),
+    for args in ((dimz,), 
+                 (dimz, (X(), Y())), 
+                 (dimz, X(), Y()), 
+                 (dimz, (X, Y)) , 
+                 (dimz, X, Y), 
+                 (dimz, (1, 2)), 
                  (dimz, 1, 2)
         )
         @test index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
@@ -107,7 +107,7 @@ end
         @test locus(args...) == (Center(), Center())
         @test order(args...) == (ForwardOrdered(), ForwardOrdered())
         @test bounds(args...) == ((140, 148), (2, 11))
-        @test lookup(args...) == (Sampled(LinRange(140, 148, 5), ForwardOrdered(), Regular(2.0), Points(), NoMetadata()),
+        @test lookup(args...) == (Sampled(LinRange(140, 148, 5), ForwardOrdered(), Regular(2.0), Points(), NoMetadata()), 
                                 Sampled(LinRange(2, 11, 4), ForwardOrdered(), Regular(3.0), Points(), NoMetadata()))
     end
 

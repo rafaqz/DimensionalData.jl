@@ -76,7 +76,7 @@ end
             @test typeof(x * da) <: DimArray
             @test typeof(da * x) <: DimArray
             @test parent(da' * x) == parent(da)' * x
-            @test parent(x * da) == x * parent(da)
+            @test parent(x * da) == x * parent(da) 
         end
     end
 
@@ -89,7 +89,7 @@ end
             @test typeof(x * dv) <: DimArray
             @test typeof(dv' * x) <: DimArray
             @test parent(dv' * x) == parent(dv)' * x
-            @test parent(x * dv) == x * parent(dv)
+            @test parent(x * dv) == x * parent(dv) 
         end
         @testset "$T" for T in (Adjoint, Transpose)
             x = T(1:5)

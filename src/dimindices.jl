@@ -298,7 +298,7 @@ function DimSlices(x, dims; drop=true)
         map(d  -> rebuild(d, :), DD.dims(x))
     else
         dims
-    end
+    end 
     inds = map(basedims(newdims)) do d
         rebuild(d, first(axes(x, d)))
     end
@@ -334,12 +334,9 @@ end
 
 # Extends the dimensions of any `AbstractBasicDimArray`
 # as if the array assigned into a larger array across all dimensions,
-# but without the copying. There's is a cost for linear indexing these objects
+# but without the copying. Theres is a cost for linear indexing these objects
 # as we need to convert to Cartesian.
-struct DimExtensionArray{T,N,
-                         D<:Tuple{Vararg{Dimension}},
-                         R<:Tuple{Vararg{Dimension}},
-                         A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
+struct DimExtensionArray{T,N,D<:Tuple{Vararg{Dimension}},R<:Tuple{Vararg{Dimension}},A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
     _data::A
     dims::D
     refdims::R

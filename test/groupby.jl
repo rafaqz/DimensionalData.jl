@@ -21,7 +21,7 @@ st = DimStack((a=A, b=A, c=A[X=1]))
     @test mean.(groupby(st, Ti=>month)) == manualmeans_st
 
     manualsums = mapreduce(hcat, months) do m
-        vcat(sum(A[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1 .. 1.5]),
+        vcat(sum(A[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1 .. 1.5]), 
              sum(A[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1.5 .. 2])
         )
     end |> permutedims
@@ -31,11 +31,11 @@ st = DimStack((a=A, b=A, c=A[X=1]))
     @test gb_sum == manualsums
 
     manualsums_st = mapreduce(hcat, months) do m
-        vcat(sum(st[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1 .. 1.5]),
+        vcat(sum(st[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1 .. 1.5]), 
              sum(st[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1.5 .. 2])
         )
     end |> permutedims
-    gb_sum_st = sum.(groupby(st, Ti=>month, X => >(1.5)))
+    gb_sum_st = sum.(groupby(st, Ti=>month, X => >(1.5))) 
     @test dims(gb_sum_st, Ti) == Ti(Sampled([1:12...], ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata()))
     @test typeof(dims(gb_sum_st, X)) == typeof(X(Sampled(BitVector([false, true]), ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata())))
     @test gb_sum_st == manualsums_st

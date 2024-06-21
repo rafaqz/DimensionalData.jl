@@ -10,20 +10,20 @@ Rebuild an object struct with updated field values.
 This is an abstraction that allows inbuilt and custom types to be rebuilt
 to update their fields, as most objects in DimensionalData.jl are immutable.
 
-Rebuild is mostly automated using `ConstructionBase.setproperties`.
-It should only be defined if your object has fields with
+Rebuild is mostly automated using `ConstructionBase.setproperties`. 
+It should only be defined if your object has fields with 
 with different names to DimensionalData objects. Try not to do that!
 
 The arguments required are defined for the abstract type that has a `rebuild` method.
 
 #### `AbstractBasicDimArray`:
-- `dims`: a `Tuple` of `Dimension`
+- `dims`: a `Tuple` of `Dimension` 
 
 #### `AbstractDimArray`:
 
 - `data`: the parent object - an `AbstractArray`
-- `dims`: a `Tuple` of `Dimension`
-- `refdims`: a `Tuple` of `Dimension`
+- `dims`: a `Tuple` of `Dimension` 
+- `refdims`: a `Tuple` of `Dimension` 
 - `name`: A Symbol, or `NoName` and `Name` on GPU.
 - `metadata`: A `Dict`-like object
 
@@ -40,8 +40,8 @@ The arguments required are defined for the abstract type that has a `rebuild` me
 
 - `data`: the parent object, an `AbstractArray`
 
-* Note: argument `rebuild` is deprecated on `AbstractDimArray` and
-`AbstractDimStack` in favour of always using the keyword version.
+* Note: argument `rebuild` is deprecated on `AbstractDimArray` and 
+`AbstractDimStack` in favour of always using the keyword version. 
 In future the argument version will only be used on `Dimension`, which only have one argument.
 """
 function rebuild end
@@ -101,8 +101,8 @@ and sampling properties.
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
 
 This is separate from `val` in that it will only work when dimensions
-actually contain an `AbstractArray` lookup, and can be used on a
-`DimArray` or `DimStack` to retrieve all lookups, as there is no ambiguity
+actually contain an `AbstractArray` lookup, and can be used on a 
+`DimArray` or `DimStack` to retrieve all lookups, as there is no ambiguity 
 of meaning as there is with `val`.
 """
 function lookup end
@@ -191,7 +191,7 @@ function bounds end
     order(x::Union{Dimension,Lookup}) => Order
 
 Return the `Ordering` of the dimension lookup for each dimension:
-`ForwardOrdered`, `ReverseOrdered`, or [`Unordered`](@ref)
+`ForwardOrdered`, `ReverseOrdered`, or [`Unordered`](@ref) 
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
 or `Symbols` for `Dim{Symbol}`.

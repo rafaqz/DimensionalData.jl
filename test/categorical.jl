@@ -42,7 +42,7 @@ end
     c = categorical(x)
     c2 = categorical(x2)
     # on a normal dim array
-    rc1 = recode(x, 1 => 2)
+    rc1 = recode(x, 1 => 2) 
     @test rc1 == [2,2,3]
     @test rc1 isa DimArray
     # with a default
@@ -50,7 +50,7 @@ end
     @test rc2 == [2,2,4]
     @test rc2 isa DimArray
     # on a categorical dim array
-    rc3 = recode(c, 1 => 2)
+    rc3 = recode(c, 1 => 2) 
     @test rc3 == [2,2,3]
     @test rc3 isa DimArray
 

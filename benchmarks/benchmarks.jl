@@ -101,9 +101,9 @@ suite["permutedims"]["array_intdim"] = @benchmarkable permutedims($a, (2, 1, 3))
 suite["permutedims"]["dimarray_intdim"] = @benchmarkable permutedims($da, (2, 1, 3))
 suite["permutedims"]["dimarray_dim"] = @benchmarkable permutedims($da, (Y(), X(), Ti()))
 suite["reverse"] = BenchmarkGroup()
-suite["reverse"]["array_intdim"] = @benchmarkable reverse($a; dims = 1)
-suite["reverse"]["dimarray_intdim"] = @benchmarkable reverse($da; dims = 1)
-suite["reverse"]["dimarray_dim"] = @benchmarkable reverse($da; dims = Y())
+suite["reverse"]["array_intdim"] = @benchmarkable reverse($a; dims = 1) 
+suite["reverse"]["dimarray_intdim"] = @benchmarkable reverse($da; dims = 1) 
+suite["reverse"]["dimarray_dim"] = @benchmarkable reverse($da; dims = Y()) 
 
 # Sparse (and similar specialised arrays)
 

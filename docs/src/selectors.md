@@ -19,7 +19,7 @@ Then we can use [`Selector`](@ref) to select values from the array:
 
 == At
 
-[`At(x)`](@ref) gets the index or indices exactly matching the passed in value/s.
+[`At(x)`](@ref) gets the index or indices exactly matching the passed in value/s. 
 
 ````@ansi selectors
 A[X=At(1.2), Y=At(:c)]
@@ -54,7 +54,7 @@ A[X=Near(1.1:0.25:1.5)]
 
 == Contains
 
-[`Contains(x)`](@ref) get indices where the value x falls within an interval in the lookup.
+[`Contains(x)`](@ref) get indices where the value x falls within an interval in the lookup. 
 
 First set the `X` axis to be `Intervals`:
 
@@ -109,7 +109,7 @@ A_intervals[X=1.1 .. 1.5]
 
 == Where
 
-[`Where(f)`](@ref) filter the array axis by a function of the dimension index values.
+[`Where(f)`](@ref) filter the array axis by a function of the dimension index values. 
 `Where` is like indexing with a `Vector{Bool}`:
 
 ````@ansi selectors

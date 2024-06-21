@@ -11,11 +11,7 @@ This wrapper allows for specialisations on later broadcast or
 reducing operations, e.g. for chunk reading with DiskArrays.jl,
 because we know the data originates from a single array.
 """
-struct DimGroupByArray{T,N,
-                       D<:Tuple,
-                       R<:Tuple,
-                       A<:AbstractArray{T,N},
-                       Na,Me} <: AbstractDimArray{T,N,D,A}
+struct DimGroupByArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
     data::A
     dims::D
     refdims::R
@@ -111,16 +107,22 @@ Specify bins to reduce groups after applying function `f`.
 - `bins`:
    * an `Integer` will divide the group values into equally spaced sections.
    * an `AbstractArray` of values will be treated as exact
-     matches for the return value of `f`. For example, `1:3` will create 3 bins - 1, 2, 3.
-   * an `AbstractArray` of `IntervalSets.Interval` can be used to explicitly
-     define the intervals. Overlapping intervals have undefined behaviour.
+       matches for the return value of `f`. For example, `1:3` will create 3 bins - 1, 2, 3.
+   * an `AbstractArray` of `IntervalSets.Interval` can be used to
+       explicitly define the intervals. Overlapping intervals have undefined behaviour.
 
 ## Keywords
 
 - `pad`: fraction of the total interval to pad at each end when `Bins` contains an
+<<<<<<< HEAD
   `Integer`. This avoids losing the edge values. Note this is a messy solution -
   it will often be preferable to manually specify a `Vector` of chosen `Interval`s
   rather than relying on passing an `Integer` and `pad`.
+=======
+   `Integer`. This avoids losing the edge values. Note this is a messy solution -
+   it will often be prefereble to manually specify a `Vector` of chosen `Interval`s
+   rather than relying on passing an `Integer` and `pad`.
+>>>>>>> parent of c54bc6c (Fix whitespace)
 - `labels`: a list of descriptive labels for the bins. The labels need to have the same length as `bins`.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
@@ -153,8 +155,8 @@ and [`hours`](@ref) but can also be used for custom cycles.
 - `cycle`: the length of the cycle, in return values of `f`.
 - `start`: the start of the cycle: a return value of `f`.
 - `step` the number of sequential values to group.
-- `labels`: either a vector of labels matching the number of groups,
-  or a function that generates labels from `Vector{Int}` of the selected bins.
+- `labels`: either a vector of labels matching the number of groups, 
+    or a function that generates labels from `Vector{Int}` of the selected bins.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
 """
@@ -168,9 +170,7 @@ end
 CyclicBins(f; cycle, step, start=1, labels=nothing) = CyclicBins(f, cycle, start, step, labels)
 
 Base.show(io::IO, bins::CyclicBins) =
-    println(io,
-            nameof(typeof(bins)),
-            "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
+    println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
 
 yearhour(x) = year(x), hour(x)
 
@@ -183,14 +183,18 @@ Generates `CyclicBins` for three month periods.
 
 - `start`: By default seasons start in December, but any integer `1:12` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
+<<<<<<< HEAD
   from `Vector{Int}` of the selected quarters.
+=======
+    from `Vector{Int}` of the selected quartals.
+>>>>>>> parent of c54bc6c (Fix whitespace)
 """
 seasons(; start=December, kw...) = months(3; start, kw...)
 
 """
     months(step; [start=Dates.January, labels])
 
-Generates `CyclicBins` for grouping to arbitrary month periods.
+Generates `CyclicBins` for grouping to arbitrary month periods. 
 These can wrap around the end of a year.
 
 - `step` the number of months to group.
@@ -198,7 +202,7 @@ These can wrap around the end of a year.
 ## Keywords
 
 - `start`: By default months start in January, but any integer `1:12` can be used.
-- `labels`: either a vector of labels matching the number of groups,
+- `labels`: either a vector of labels matching the number of groups, 
     or a function that generates labels from `Vector{Int}` of the selected months.
 """
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
@@ -206,7 +210,7 @@ months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins
 """
     hours(step; [start=0, labels])
 
-Generates `CyclicBins` for grouping to arbitrary hour periods.
+Generates `CyclicBins` for grouping to arbitrary hour periods. 
 These can wrap around the end of the day.
 
 - `steps` the number of hours to group.

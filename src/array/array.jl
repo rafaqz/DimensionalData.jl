@@ -3,7 +3,7 @@ const IDim = Dimension{<:StandardIndices}
 """
     AbstractBasicDimArray <: AbstractArray
 
-The abstract supertype for all arrays with a `dims` method that
+The abstract supertype for all arrays with a `dims` method that 
 returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
@@ -24,7 +24,7 @@ for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :
     @eval ($func)(A::AbstractBasicDimArray, args...) = ($func)(dims(A), args...)
 end
 
-Extents.extent(A::AbstractBasicDimArray, args...) = Extents.extent(dims(A), args...)
+Extents.extent(A::AbstractBasicDimArray, args...) = Extents.extent(dims(A), args...) 
 
 Base.size(A::AbstractBasicDimArray) = map(length, dims(A))
 Base.size(A::AbstractBasicDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
@@ -64,7 +64,7 @@ const AbstractDimMatrix = AbstractDimArray{T,2} where T
 const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
 
 # DimensionalData.jl interface methods ####################################################
-
+ 
 """
     rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
     rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
@@ -75,7 +75,7 @@ have any additional fields or alternate field order.
 
 Implementations can discard arguments like `refdims`, `name` and `metadata`.
 
-Additional arguments can be added to the keyword argument method.
+Additional arguments can be added to the keyword argument method. 
 
 For readability it is preferable to use keyword versions for any more than a few arguments.
 """
@@ -112,19 +112,19 @@ Base.vec(A::AbstractDimArray) = vec(parent(A))
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
 
-# undef constructor for Array, using dims
-function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T
+# undef constructor for Array, using dims 
+function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))
 end
 Base.Array{T}(x::UndefInitializer, dims::DimTuple; kw...) where T = Array{T}(x, size(dims))
 
-function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
+function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...) 
     arrays = (A1, As...)
     keys = map(Symbol ∘ name, arrays)
     NamedTuple{keys}(arrays)
 end
 
-# undef constructor for all AbstractDimArray
+# undef constructor for all AbstractDimArray 
 (::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{<:Any}} = A(x, dims; kw...)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
@@ -156,7 +156,7 @@ Base.similar(A::AbstractBasicDimArray{<:Any,N}, ::Type{T}) where {T,N} =
 # below using DimTuple work better anyway.
 Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}) =
     similar(A, eltype(A), (i, I...))
-Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}) =
+Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}) = 
     similar(A, eltype(A), I)
 Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}) where T =
     similar(A, T, (i, I...))
@@ -206,8 +206,8 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
                     T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,Vararg{MaybeDimUnitRange}}
                 )
                     _similar(T, shape)
-                end
-            end
+                end        
+            end    
             for s4 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
                 all(Base.Fix2(===, :MaybeDimUnitRange), (s1, s2, s3, s4)) && continue
                 @eval begin
@@ -220,7 +220,7 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
                         T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,$s4,Vararg{MaybeDimUnitRange}}
                     )
                         _similar(T, shape)
-                    end
+                    end            
                 end
             end
         end
@@ -241,10 +241,10 @@ end
 _parent_range(r::Dimensions.DimUnitRange) = parent(r)
 _parent_range(r) = r
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D)
-Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D)
+Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
 Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...) where T =
-    Base.similar(A, T, D)
+    Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
     rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=(), metadata=NoMetadata())
 Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
@@ -300,9 +300,9 @@ Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSpars
 Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
     (copyto!(parent(dst), src); dst)
 function Base.copyto!(
-    dst::AbstractDimArray{<:Any,2},
-    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}},
-    src::SparseArrays.AbstractSparseMatrixCSC{<:Any},
+    dst::AbstractDimArray{<:Any,2}, 
+    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
+    src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
     src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
 )
     copyto!(parent(dst), dst_i, src, src_i)
@@ -313,7 +313,7 @@ Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{
 
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
     (copy!(dst, parent(src)); dst)
-Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) =
+Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     (copyto!(dst, parent(src)); dst)
 
 ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
@@ -352,7 +352,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
-and/or [`Selector`](@ref)s.
+and/or [`Selector`](@ref)s. 
 
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
@@ -404,7 +404,7 @@ struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDi
 end
 # 2 arg version
 DimArray(data::AbstractArray, dims; kw...) = DimArray(data, (dims,); kw...)
-function DimArray(data::AbstractArray, dims::Union{Tuple,NamedTuple};
+function DimArray(data::AbstractArray, dims::Union{Tuple,NamedTuple}; 
     refdims=(), name=NoName(), metadata=NoMetadata()
 )
     DimArray(data, format(dims, data), refdims, name, metadata)
@@ -421,7 +421,7 @@ function DimArray(A::AbstractDimArray;
 end
 DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
-# We collect other kinds of AbstractBasicDimArray
+# We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
@@ -444,7 +444,7 @@ const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
 const DimVecOrMat = Union{DimVector,DimMatrix}
 
-DimVector(A::AbstractVector, dim::Dimension, args...; kw...) =
+DimVector(A::AbstractVector, dim::Dimension, args...; kw...) = 
     DimArray(A, (dim,), args...; kw...)
 DimVector(A::AbstractVector, args...; kw...) = DimArray(A, args...; kw...)
 DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
@@ -457,7 +457,7 @@ checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, 
 checkdims(n::Integer, dims::Tuple) = length(dims) == n || _dimlengtherror(n, length(dims))
 
 @noinline _dimlengtherror(na, nd) =
-    throw(ArgumentError("axes of the array ($na) do not match number of dimensions ($nd)"))
+    throw(ArgumentError("axes of the array ($na) do not match number of dimensions ($nd)")) 
 
 """
     rebuild(A::DimArray, data, dims, refdims, name, metadata) => DimArray
@@ -480,7 +480,7 @@ end
 Create a [`DimArray`](@ref) with a fill value of `x`.
 
 There are two kinds of `Dimension` value acepted:
-- A `Dimension` holding an `AbstractVector` will set the dimension index to
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
@@ -513,7 +513,7 @@ Base.fill
 Create a [`DimArray`](@ref) of random values.
 
 There are two kinds of `Dimension` value acepted:
-- A `Dimension` holding an `AbstractVector` will set the dimension index to
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
@@ -556,7 +556,7 @@ Base.rand
 Create a [`DimArray`](@ref) of zeros.
 
 There are two kinds of `Dimension` value acepted:
-- A `Dimension` holding an `AbstractVector` will set the dimension index to
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
@@ -567,7 +567,6 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```jldoctest
 julia> using DimensionalData
-
 julia> zeros(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -600,7 +599,7 @@ Base.zeros
 Create a [`DimArray`](@ref) of ones.
 
 There are two kinds of `Dimension` value acepted:
-- A `Dimension` holding an `AbstractVector` will set the dimension index to
+- A `Dimension` holding an `AbstractVector` will set the dimension index to 
   that `AbstractVector`, and detect the dimension lookup.
 - A `Dimension` holding an `Integer` will set the length of the axis,
   and set the dimension lookup to [`NoLookup`](@ref).
@@ -611,7 +610,6 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```jldoctest
 julia> using DimensionalData
-
 julia> ones(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -657,7 +655,7 @@ end
 # Type specific DimArray creation methods
 for f in (:zeros, :ones, :rand)
     @eval begin
-        Base.$f(::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T =
+        Base.$f(::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T = 
             $f(T, (d1, dims...); kw...)
         function Base.$f(::Type{T}, dims::DimTuple; kw...) where T
             C = dimconstructor(dims)
@@ -713,8 +711,8 @@ end
 # dimconstructor
 # Allow customising constructors based on dimension types
 # Thed default constructor is DimArray
-dimconstructor(dims::DimTuple) = dimconstructor(tail(dims))
-dimconstructor(::Tuple{}) = DimArray
+dimconstructor(dims::DimTuple) = dimconstructor(tail(dims)) 
+dimconstructor(::Tuple{}) = DimArray 
 
 """
     mergedims(old_dims => new_dim) => Dimension

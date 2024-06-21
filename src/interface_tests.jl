@@ -34,11 +34,11 @@ array_tests = (;
             "defines a `dims` method" => A -> dims(A) isa Tuple{Vararg{Dimension}},
             "dims are updated on getindex" => A -> dims(view(A, rebuild(first(dims(A)), 1))) == Base.tail(dims(A)),
         ),
-        refdims_base = "`refdims` returns a tuple of Dimension or empty" =>
+        refdims_base = "`refdims` returns a tuple of Dimension or empty" => 
             A -> refdims(A) isa Tuple{Vararg{Dimension}},
-        ndims = "number of dims matches dimensions of array" =>
+        ndims = "number of dims matches dimensions of array" => 
             A -> length(dims(A)) == ndims(A),
-        size = "length of dims matches dimensions of array" =>
+        size = "length of dims matches dimensions of array" => 
             A -> map(length, dims(A)) == size(A),
         rebuild_parent = "rebuild parent from args" =>
             A -> parent(rebuild(A, reverse(A; dims=1))) == reverse(A; dims=1),

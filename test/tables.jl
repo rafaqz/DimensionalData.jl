@@ -21,7 +21,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
     @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
 
     @test Tables.istable(typeof(t)) == Tables.istable(t) ==
-          Tables.istable(typeof(da)) == Tables.istable(da) ==
+          Tables.istable(typeof(da)) == Tables.istable(da) == 
           Tables.istable(typeof(ds)) == Tables.istable(ds) == true
     @test Tables.columnaccess(t) == Tables.columnaccess(da) == Tables.columnaccess(ds) == true
     @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
@@ -47,11 +47,11 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
           Tables.getcolumn(ds, 3)[:] == vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
     @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :data) ==
           Tables.getcolumn(da, 4) == Tables.getcolumn(da, :data) ==
-          Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) ==
+          Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) == 
           Tables.getcolumn(ds, 4)[:] == ones(3 * 2 * 3)
     @test Tables.getcolumn(t, Float64, 4, :data) == ones(3 * 2 * 3)
     @test Tables.getcolumn(t, Float64, 2, :Y) == Tables.getcolumn(da, Float64, 2, :Y) ==
-          Tables.getcolumn(ds, Float64, 2, :Y) ==
+          Tables.getcolumn(ds, Float64, 2, :Y) == 
           Tables.getcolumn(ds, Float64, 2, :Y)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
     @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
     @test_throws BoundsError Tables.getcolumn(t, 5)

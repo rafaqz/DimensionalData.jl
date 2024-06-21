@@ -15,7 +15,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::Lookup)
     show_compact(io, mime, lookup)
     get(io, :compact, false) && print_index(io, mime, parent(lookup))
     show_properties(io, mime, lookup)
-    if !get(io, :compact, false)
+    if !get(io, :compact, false) 
         println(io)
         printstyled(io, "wrapping: "; color=:light_black)
         Base.show(io, mime, parent(lookup))
@@ -88,7 +88,7 @@ function print_index(io, mime, v::AbstractVector, nchars=0)
     # Maximum 2 values for dates
     vals = if length(v) > 2 && eltype(v) <: Dates.TimeType
         "$(v[begin]), …, $(v[end])"
-    # Maximum 4 values for other types
+    # Maximum 4 values for other types 
     elseif length(v) > 5
         "$(v[begin]), $(v[begin+1]), …, $(v[end-1]), $(v[end])"
     else

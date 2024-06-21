@@ -155,7 +155,7 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=at) || _selnotfound_or_nothing(err, lookup, v)
     end
-    if r in lookup
+    if r in lookup 
         return r
     else
         if err isa _False
@@ -341,8 +341,7 @@ interval is not present in the index, an error will be thrown.
 
 Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 For [`Categorical`](@ref) it falls back to using [`At`](@ref).
-`Contains` should not be confused with `Base.contains` - use `Where(contains(x))`
-to check for if values are contain in categorical values like strings.
+`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` to check for if values are contain in categorical values like strings.
 
 ## Example
 

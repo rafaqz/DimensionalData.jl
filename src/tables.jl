@@ -87,6 +87,9 @@ julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+
+julia> 
+
 ```
 """
 struct DimTable <: AbstractDimTable
@@ -172,7 +175,7 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable) = colnames(c)
 
-function Tables.schema(t::DimTable)
+function Tables.schema(t::DimTable) 
     types = vcat([map(eltype, dimcolumns(t))...], [map(eltype, dimarraycolumns(t))...])
     Tables.Schema(colnames(t), types)
 end

@@ -39,7 +39,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as_touches(val(first(I))))
 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
-@inline dims2indices(dims::DimTuple, sel::Tuple) =
+@inline dims2indices(dims::DimTuple, sel::Tuple) = 
     Lookups.selectindices(lookup(dims), sel)
 @inline dims2indices(dims::DimTuple, ::Tuple{}) = ()
 # Otherwise attempt to convert dims to indices
@@ -110,7 +110,7 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
-@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End},LU.LazyMath}) =
+@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End},LU.LazyMath}) = 
     to_indices(parent(dim), LU._construct_types(i))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 @inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
@@ -118,11 +118,11 @@ _unwrapdim(x) = x
 function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
     map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Lookups.Interval(v...))
-    end
+    end    
 end
 
 function _extent_as_touches(extent::Extents.Extent{Keys}) where Keys
     map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Touches(v))
-    end
+    end    
 end

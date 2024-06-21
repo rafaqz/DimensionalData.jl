@@ -5,7 +5,7 @@
 
 A [`Lookup`](@ref) that holds multiple combined dimensions.
 
-`MergedLookup` can be indexed with [`Selector`](@ref)s like `At`,
+`MergedLookup` can be indexed with [`Selector`](@ref)s like `At`, 
 `Between`, and `Where` although `Near` has undefined meaning.
 
 # Arguments
@@ -39,7 +39,7 @@ Lookups.selectindices(lookup::MergedLookup, sel::DimTuple) =
     selectindices(lookup, map(_val_or_nothing, sortdims(sel, dims(lookup))))
 function Lookups.selectindices(lookup::MergedLookup, sel::NamedTuple{K}) where K
     dimsel = map(rebuild, map(name2dim, K), values(sel))
-    selectindices(lookup, dimsel)
+    selectindices(lookup, dimsel) 
 end
 Lookups.selectindices(lookup::MergedLookup, sel::StandardIndices) = sel
 function Lookups.selectindices(lookup::MergedLookup, sel::Tuple)
