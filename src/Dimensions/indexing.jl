@@ -35,8 +35,9 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline dims2indices(dims::DimTuple, I) = dims2indices(dims, (I,))
 # Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, I::Tuple{Vararg{StandardIndices}}) = I
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as_intervals(first(I)))
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as_touches(val(first(I))))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as(Interval, first(I)))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Touches, val(first(I))))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Near{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Near, val(first(I))))
 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
 @inline dims2indices(dims::DimTuple, sel::Tuple) = 
@@ -115,14 +116,13 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 @inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 
-function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
+function _extent_as(::Type{Lookups.Interval}, extent::Extents.Extent{Keys}) where Keys
     map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Lookups.Interval(v...))
     end    
 end
-
-function _extent_as_touches(extent::Extents.Extent{Keys}) where Keys
+function _extent_as(::Type{T}, extent::Extents.Extent{Keys}) where {T,Keys}
     map(map(name2dim, Keys), values(extent)) do k, v
-        rebuild(k, Touches(v))
+        rebuild(k, T(v))
     end    
 end
