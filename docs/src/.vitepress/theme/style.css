@@ -169,3 +169,61 @@ mjx-container > svg {
   --vp-c-sponsor: #ee4e95;
   --vitest-c-sponsor-hover: #e51370;
 }
+
+
+/* https://bddxg.top/article/note/vitepress优化/一些细节上的优化.html#文档页面调整-加宽 */
+
+@media (min-width: 1440px) {
+  .VPSidebar {
+    padding-left: 20px !important;
+    width: 250px !important;
+  }
+  .VPNavBar .title {
+    padding-left: 10px !important;
+    width: 250px !important;
+  }
+  .VPContent.has-sidebar {
+    padding-left: 255px !important;
+    padding-right: 5vw !important;
+  }
+  .VPNavBar .curtain {
+    width: 100% !important;
+  }
+  .VPDoc {
+    padding: 32px 0 0 !important;
+  }
+}
+
+@media (min-width: 960px) {
+  .VPDoc {
+    padding: 32px 32px 0 10 !important;
+  }
+  .VPContent.has-sidebar {
+    padding-left: 255px !important;
+  }
+}
+
+
+.VPNavBar {
+  padding-right: 0px !important;
+}
+.VPNavBar .container {
+  margin: unset;
+  max-width: unset;
+}
+.VPDoc.has-aside .content-container {
+  max-width: 100% !important;
+}
+.aside {
+  max-width: 200px !important;
+  padding-left: 0 !important;
+}
+
+/* This one does the right menu */
+
+.VPDocOutlineItem li {
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  max-width: 200px;
+}
