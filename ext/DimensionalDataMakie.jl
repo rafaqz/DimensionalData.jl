@@ -510,7 +510,7 @@ function _keywords2dimpairs(x, y)
     end
 end
 
-_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan32.(A)
+_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
 _floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
 _floatornan(A) = A
 _floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
