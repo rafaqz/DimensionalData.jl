@@ -153,7 +153,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractMatrix; 
+        function Makie.$f1!(axis, A::AbstractDimMatrix; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
@@ -350,7 +350,7 @@ Makie.plottype(A::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
-function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractMatrix)
+function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
@@ -388,6 +388,13 @@ function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<
     return Makie.convert_arguments(t, parent(A))
 end
 
+# We also implement expand_dimensions for recognized plot traits.
+# These can just forward to the relevant converts.
+Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
 
 # Utility methods
 
@@ -503,7 +510,7 @@ function _keywords2dimpairs(x, y)
     end
 end
 
-_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan32.(A)
+_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
 _floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
 _floatornan(A) = A
 _floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
