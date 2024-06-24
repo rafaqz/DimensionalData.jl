@@ -153,7 +153,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractMatrix; 
+        function Makie.$f1!(axis, A::AbstractDimMatrix; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
@@ -350,7 +350,7 @@ Makie.plottype(A::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
-function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractMatrix)
+function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
