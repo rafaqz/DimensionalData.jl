@@ -28,105 +28,12 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
     Tables.getcolumn(t, dimnum(t, dim))
 
 function _colnames(s::AbstractDimStack)
-    dimkeys = map(dim2key, dims(s))
+    dimkeys = map(name, dims(s))
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
 
-
-# DimColumn
-
-
-"""
-    DimColumn{T,D<:Dimension} <: AbstractVector{T}
-
-    DimColumn(dim::Dimension, dims::Tuple{Vararg{DimTuple}})
-    DimColumn(dim::DimColumn, length::Int, dimstride::Int)
-
-A table column based on a `Dimension` and it's relationship with other
-`Dimension`s in `dims`.
-
-`length` is the product of all dim lengths (usually the length of the corresponding
-array data), while stride is the product of the preceding dimension lengths, which
-may or may not be the real stride of the corresponding array depending on the data type.
-For `A isa Array`, the `dimstride` will match the `stride`.
-
-When the second argument is a `Tuple` of `Dimension`, the `length` and `dimstride`
-fields are calculated from the dimensions, relative to the column dimension `dim`.
-
-
-This object will be returned as a column of [`DimTable`](@ref).
-"""
-struct DimColumn{T,D<:Dimension} <: AbstractVector{T}
-    dim::D
-    dimstride::Int
-    length::Int
-end
-function DimColumn(dim::D, alldims::DimTuple) where D<:Dimension
-    # This is the apparent stride for indexing purposes,
-    # it is not always the real array stride
-    stride = dimstride(alldims, dim)
-    len = prod(map(length, alldims))
-    DimColumn{eltype(dim),D}(dim, stride, len)
-end
-
-dim(c::DimColumn) = getfield(c, :dim)
-dimstride(c::DimColumn) = getfield(c, :dimstride)
-
-Base.length(c::DimColumn) = getfield(c, :length)
-@inline function Base.getindex(c::DimColumn, i::Int)
-    Base.@boundscheck checkbounds(c, i)
-    dim(c)[mod((i - 1) ÷ dimstride(c), length(dim(c))) + 1]
-end
-Base.getindex(c::DimColumn, ::Colon) = vec(c)
-Base.getindex(c::DimColumn, A::AbstractArray) = [c[i] for i in A]
-Base.size(c::DimColumn) = (length(c),)
-Base.axes(c::DimColumn) = (Base.OneTo(length(c)),)
-Base.vec(c::DimColumn{T}) where T = [c[i] for i in eachindex(c)]
-Base.Array(c::DimColumn) = vec(c)
-
-
-# DimArrayColumn
-
-
-struct DimArrayColumn{T,A<:AbstractDimArray{T},DS,DL,L} <: AbstractVector{T}
-    data::A
-    dimstrides::DS
-    dimlengths::DL
-    length::L
-end
-function DimArrayColumn(A::AbstractDimArray{T}, alldims::DimTupleOrEmpty) where T
-    # This is the apparent stride for indexing purposes,
-    # it is not always the real array stride
-    dimstrides = map(d -> dimstride(alldims, d), dims(A))
-    dimlengths = map(length, dims(A))
-    len = prod(map(length, alldims))
-    DimArrayColumn(A, dimstrides, dimlengths, len)
-end
-
-Base.parent(c::DimArrayColumn) = getfield(c, :data)
-dimstrides(c::DimArrayColumn) = getfield(c, :dimstrides)
-dimlengths(c::DimArrayColumn) = getfield(c, :dimlengths)
-
-Base.length(c::DimArrayColumn) = getfield(c, :length)
-@inline function Base.getindex(c::DimArrayColumn, i::Int)
-    Base.@boundscheck checkbounds(c, i)
-    I = map((s, l) -> _strideind(s, l, i), dimstrides(c), dimlengths(c))
-    parent(c)[I...]
-end
-
-_strideind(stride, len, i) = mod((i - 1) ÷ stride, len) + 1
-
-Base.getindex(c::DimArrayColumn, ::Colon) = vec(c)
-Base.getindex(c::DimArrayColumn, A::AbstractArray) = [c[i] for i in A]
-Base.size(c::DimArrayColumn) = (length(c),)
-Base.axes(c::DimArrayColumn) = (Base.OneTo(length(c)),)
-Base.vec(c::DimArrayColumn{T}) where T = [c[i] for i in eachindex(c)]
-Base.Array(c::DimArrayColumn) = vec(c)
-
-
 # DimTable
-
 
 """
     DimTable <: AbstractDimTable
@@ -142,44 +49,67 @@ This table will have columns for the array data and columns for each
 as required.
 
 Column names are converted from the dimension types using
-[`DimensionalData.dim2key`](@ref). This means type `Ti` becomes the
+[`DimensionalData.name`](@ref). This means type `Ti` becomes the
 column name `:Ti`, and `Dim{:custom}` becomes `:custom`.
 
 To get dimension columns, you can index with `Dimension` (`X()`) or
 `Dimension` type (`X`) as well as the regular `Int` or `Symbol`.
 
 # Keywords
-* `mergedims`: Combine two or more dimensions into a new dimension.
-* `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+- `mergedims`: Combine two or more dimensions into a new dimension.
+- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
 
 # Example
-```jldoctest
-julia> a = DimArray(rand(32,32,3), (X,Y,Dim{:band}));
 
-julia> DimTable(a, layersfrom=Dim{:band}, mergedims=(X,Y)=>:geometry)
-DimTable with 1024 rows, 4 columns, and schema:
- :geometry  Tuple{Int64, Int64}
- :band_1    Float64
- :band_2    Float64
- :band_3    Float64
+```jldoctest
+julia> using DimensionalData, Tables
+
+julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
+╭─────────────────────────────╮
+│ 16×16×3 DimArray{Float64,3} │
+├─────────────────────── dims ┤
+  ↓ X, → Y, ↗ band
+└─────────────────────────────┘
+[:, :, 1]
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+
+julia> 
+
 ```
 """
 struct DimTable <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
     colnames::Vector{Symbol}
-    dimcolumns::Vector{DimColumn}
-    dimarraycolumns::Vector{DimArrayColumn}
+    dimcolumns::Vector{AbstractVector}
+    dimarraycolumns::Vector{AbstractVector}
 end
 
 function DimTable(s::AbstractDimStack; mergedims=nothing)
-    s = isnothing(mergedims) ? s : DimensionalData.mergedims(s, mergedims)
-    dims_ = dims(s)
-    dimcolumns = map(d -> DimColumn(d, dims_), dims_)
-    dimarraycolumns = map(A -> DimArrayColumn(A, dims_), s)
-    keys = _colnames(s)
-    return DimTable(s, collect(keys), collect(dimcolumns), collect(dimarraycolumns))
+    s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
+    dimcolumns = collect(_dimcolumns(s))
+    dimarraycolumns = if hassamedims(s)
+        map(vec, layers(s))
+    else
+        map(A -> vec(DimExtensionArray(A, dims(s))), layers(s))
+    end |> collect
+    keys = collect(_colnames(s))
+    return DimTable(s, keys, dimcolumns, dimarraycolumns)
 end
-
 function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
     # Check that dims are compatible
     comparedims(xs...)
@@ -187,31 +117,46 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Construct Layer Names
     layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames
 
-    # Construct DimColumns
+    # Construct dimwnsion and array columns with DimExtensionArray
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
     dims_ = dims(first(xs))
-    dimcolumns = collect(map(d -> DimColumn(d, dims_), dims_))
-    dimnames = collect(map(dim2key, dims_))
-
-    # Construct DimArrayColumns
-    dimarraycolumns = collect(map(A -> DimArrayColumn(A, dims_), xs))
+    dimcolumns = collect(_dimcolumns(dims_))
+    dimnames = collect(map(name, dims_))
+    dimarraycolumns = collect(map(vec ∘ parent, xs))
+    colnames = vcat(dimnames, layernames)
 
     # Return DimTable
-    colnames = vcat(dimnames, layernames)
     return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
-
 function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
-        nlayers = size(x, layersfrom)
-        layers = [(@view x[layersfrom(i)]) for i in 1:nlayers]
-        layernames = Symbol.(["$(dim2key(layersfrom))_$i" for i in 1:nlayers])
+        d = dims(x, layersfrom)
+        nlayers = size(x, d)
+        layers = [view(x, rebuild(d, i)) for i in 1:nlayers]
+        layernames = if iscategorical(d)
+            Symbol.((name(d),), '_', lookup(d))
+        else
+            Symbol.(("$(name(d))_$i" for i in 1:nlayers))
+        end
         return DimTable(layers..., layernames=layernames, mergedims=mergedims)
     else
         s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
         return  DimTable(s, mergedims=mergedims)
     end
 end
+
+_dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))
+function _dimcolumn(x, d::Dimension)
+    lookupvals = parent(lookup(d))
+    if length(dims(x)) == 1
+        lookupvals
+    else
+        dim_as_dimarray = DimArray(lookupvals, d)
+        vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+    end
+end
+
+
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)

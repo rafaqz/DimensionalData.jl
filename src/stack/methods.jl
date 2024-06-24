@@ -39,56 +39,15 @@ function Base.copy!(dst::AbstractDimStack, src::AbstractDimStack, keys=keys(dst)
     end
 end
 
-"""
-    Base.map(f, stacks::AbstractDimStack...)
-
-Apply function `f` to each layer of the `stacks`.
-
-If `f` returns `DimArray`s the result will be another `DimStack`.
-Other values will be returned in a `NamedTuple`.
-"""
-function Base.map(f, s::AbstractDimStack)
-    _maybestack(s,map(f, values(s)))
-end
-function Base.map(f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...)
-    stacks = (x1, xs...)
-    _check_same_names(stacks...)
-    vals = map(f, map(values, stacks)...)
-    return _maybestack(_firststack(stacks...), vals)
-end
-
-
-_check_same_names(::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}, 
-            ::Union{AbstractDimStack{<:NamedTuple{names}},NamedTuple{names}}...) where {names} = nothing
-_check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) = throw(ArgumentError("Named tuple names do not match."))
-
-_firststack(s::AbstractDimStack, args...) = s
-_firststack(arg1, args...) = _firststack(args...) 
-_firststack() = nothing
-
-_maybestack(s::AbstractDimStack{<:NamedTuple{K}}, xs::Tuple) where K = NamedTuple{K}(xs)
-_maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
-# Without the `@nospecialise` here this method is also compile with the above method
-# on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
-function _maybestack(
-    s::AbstractDimStack, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
+function Base.copyto!(
+    dst::Array{<:DimStack,3}, dstI::CartesianIndices, 
+    src::DimSlices{<:DimStack}, srcI::CartesianIndices
 )
-    # Avoid compiling this in the simple cases in the above method
-    Base.invokelatest() do
-        rebuild_from_arrays(s, das)
-    end
-end
-function _maybestack(
-    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
-) where K
-    # Avoid compiling this in the simple cases in the above method
-    Base.invokelatest() do
-        rebuild_from_arrays(s, das)
-    end
+    dst[dstI] = src[srcI]
 end
 
 """
-    Base.eachslice(stack::AbstractDimStack; dims)
+    Base.eachslice(stack::AbstractDimStack; dims, drop=true)
 
 Create a generator that iterates over dimensions `dims` of `stack`, returning stacks that
 select all the data from the other dimensions in `stack` using views.
@@ -121,11 +80,18 @@ and 2 layers:
   :y Float64 dims: Y, Ti (3×5)
 ```
 """
-function Base.eachslice(s::AbstractDimStack; dims)
+function Base.eachslice(s::AbstractDimStack; dims, drop=true)
     dimtuple = _astuple(dims)
-    all(hasdim(s, dimtuple...)) || throw(DimensionMismatch("s doesn't have all dimensions $dims"))
-    _eachslice(s, dimtuple)
+    if !(dimtuple == ()) 
+        all(hasdim(s, dimtuple)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+    end
+    # Avoid getting DimUnitRange from `axes(s)`
+    axisdims = map(DD.dims(s, dimtuple)) do d
+        rebuild(d, axes(lookup(d), 1)) 
+    end
+    return DimSlices(s; dims=axisdims, drop)
 end
+
 
 """
     Base.cat(stacks::AbstractDimStack...; [keys=keys(stacks[1])], dims)
@@ -152,16 +118,28 @@ end
 
 # Methods with no arguments that return a DimStack
 for (mod, fnames) in
-    (:Base => (:inv, :adjoint, :transpose), :LinearAlgebra => (:Transpose,))
+    (:Base => (:inv, :adjoint, :transpose, :permutedims, :PermutedDimsArray), :LinearAlgebra => (:Transpose,))
     for fname in fnames
-        @eval ($mod.$fname)(s::AbstractDimStack) = map(A -> ($mod.$fname)(A), s)
+        @eval function ($mod.$fname)(s::AbstractDimStack)
+            map(s) do l
+                ndims(l) > 1 ? ($mod.$fname)(l) : l
+            end
+        end
     end
 end
 
 # Methods with an argument that return a DimStack
-for fname in (:rotl90, :rotr90, :rot180, :PermutedDimsArray, :permutedims)
+for fname in (:rotl90, :rotr90, :rot180)
     @eval (Base.$fname)(s::AbstractDimStack, args...) =
         map(A -> (Base.$fname)(A, args...), s)
+end
+for fname in (:PermutedDimsArray, :permutedims)
+    @eval function (Base.$fname)(s::AbstractDimStack, perm)
+        map(s) do l
+            lperm = dims(l, dims(s, perm))
+            length(lperm) > 1 ? (Base.$fname)(l, lperm) : l
+        end
+    end
 end
 
 # Methods with keyword arguments that return a DimStack
@@ -171,27 +149,18 @@ for (mod, fnames) in
     for fname in fnames
         @eval function ($mod.$fname)(s::AbstractDimStack; dims=:, kw...)
             map(s) do A
-                # Ignore dims not found in layer
-                if dims isa Union{Colon,Int}
-                    ($mod.$fname)(A; dims, kw...)
-                else
-                    ldims = commondims(DD.dims(A), dims)
-                    # With no matching dims we do nothing
-                    ldims == () ? A : ($mod.$fname)(A; dims=ldims, kw...)
-                end
+                layer_dims = dims isa Colon ? dims : commondims(A, dims)
+                $mod.$fname(A; dims=layer_dims, kw...)
             end
         end
     end
 end
 for fname in (:cor, :cov)
     @eval function (Statistics.$fname)(s::AbstractDimStack; dims=1, kw...)
+        d = DD.dims(s, dims)
         map(s) do A
-            if dims isa Int
-                (Statistics.$fname)(A; dims, kw...)
-            else
-                ldims = only(commondims(DD.dims(A), dims))
-                ldims == () ? A : (Statistics.$fname)(A; dims=ldims, kw...)
-            end
+            layer_dims = only(commondims(A, d))
+            Statistics.$fname(A; dims=layer_dims, kw...)
         end
     end
 end
@@ -202,16 +171,11 @@ for (mod, fnames) in (:Base => (:reduce, :sum, :prod, :maximum, :minimum, :extre
     for fname in fnames
         _fname = Symbol(:_, fname)
         @eval function ($mod.$fname)(f::Function, s::AbstractDimStack; dims=Colon())
-            map(A -> ($mod.$fname)(f, A; dims=dims), s)
+            map(s) do A
+                layer_dims = dims isa Colon ? dims : commondims(A, dims) 
+                $mod.$fname(f, A; dims=layer_dims) 
+            end
         end
-                # ($_fname)(f, s, dims)
-            # Colon returns a NamedTuple
-            # ($_fname)(f::Function, s::AbstractDimStack, dims::Colon) =
-                # map(A -> ($mod.$fname)(f, A), data(s))
-            # Otherwise maybe return a DimStack
-            # function ($_fname)(f::Function, s::AbstractDimStack, dims) =
-            # end
-        # end
     end
 end
 
@@ -221,4 +185,11 @@ for fname in (:one, :oneunit, :zero, :copy)
     end
 end
 
-Base.reverse(s::AbstractDimStack; dims=1) = map(A -> reverse(A; dims=dims), s)
+Base.reverse(s::AbstractDimStack; dims=:) = map(A -> reverse(A; dims=dims), s)
+
+# Random
+Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =
+    Random.SamplerSimple(st, Random.Sampler(RNG, DimIndices(st), n))
+
+Random.rand(rng::AbstractRNG, sp::Random.SamplerSimple{<:AbstractDimStack,<:Random.Sampler}) =
+    @inbounds return sp[][rand(rng, sp.data)...]

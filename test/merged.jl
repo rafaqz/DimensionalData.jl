@@ -1,13 +1,14 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 using Statistics: mean
+using DimensionalData.Dimensions: SelOrStandard
 
 dim = Coord([(1.0,1.0,1.0), (1.0,2.0,2.0), (3.0,4.0,4.0), (1.0,3.0,4.0)], (X(), Y(), Z()))
 da = DimArray(0.1:0.1:0.4, dim)
-da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")))
+da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")); metadata=Dict())
 
 @testset "regular indexing" begin
-    @test da[Coord()] === da[Coord(:)] === da
+    @test da[Coord()] == da[Coord(:)] == da
     @test da[Coord([1, 2])] == [0.1, 0.2]
     @test da[Coord(4)] == 0.4
     @test da2[Coord(4), Ti(3)] ≈ 1.2
@@ -31,7 +32,7 @@ end
 @test bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
 
 @testset "merged named reduction" begin
-    m = mean(da2; dims = Coord)
+    m = mean(da2; dims=Coord)
     @test size(m) == (1,3)
     @test length(dims(m, Coord)) == 1
     @test dims(m, Coord).val == DimensionalData.NoLookup(Base.OneTo(1))
@@ -56,8 +57,6 @@ end
     sprint(show, dim)
     sp = sprint(show, MIME"text/plain"(), dim)
     @test occursin("Coord", sp)
-    @test occursin("X, Y, Z", sp)
-    da
     sp = sprint(show, MIME"text/plain"(), da)
     @test occursin("Coord", sp)
     @test occursin("X", sp)
@@ -67,7 +66,7 @@ end
 
 @testset "unmerge" begin
     a = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
-    merged = mergedims(a, (X,Y)=>:geometry)
+    merged = mergedims(a, (X, Y) => :geometry)
     unmerged = unmergedims(merged, dims(a))
     perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
     

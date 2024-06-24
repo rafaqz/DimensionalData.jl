@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Combinatorics, Dates, IntervalSets, Extents
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: between, touches, at, near, contains, bounds, SelectorError, cycle_val
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using .Lookups: between, touches, at, near, contains, bounds, SelectorError, cycle_val
 
 a = [1 2  3  4
      5 6  7  8
@@ -41,6 +41,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(startrev, At(29.9; atol=0.2)) == 1
             @test at(startfwd, At(30.1; atol=0.2)) == 20
             @test at(startrev, At(30.1; atol=0.2)) == 1
+            @test_throws ArgumentError at(startrev, At(0.0; atol=0.2))
+            @test at(startrev, At(0.0; atol=0.2); err=Lookups._False()) == nothing
         end
 
         @testset "Start between" begin
@@ -220,6 +222,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test_throws SelectorError contains(startfwd, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(10.9))
+            @test contains(startrev, Contains(10.9); err=Lookups._False()) == nothing
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
@@ -976,7 +979,7 @@ end
             (Near([13]), Near([1.3u"s", 3.3u"s"])),
             (Between(11, 20), At((2:3)u"s"))
         ]
-        positions =  [
+        locuss =  [
             (1:3, [3, 4]),
             (2, [3, 4]),
             (2, [2, 3]),
@@ -984,7 +987,7 @@ end
             ([1], [1, 3]),
             (2:2, [2, 3])
         ]
-        for (selector, pos) in zip(selectors, positions)
+        for (selector, pos) in zip(selectors, locuss)
             pairs = collect(zip(selector, pos))
             cases = [(i, j) for i in pairs[1], j in pairs[2]]
             for (case1, case2) in combinations(cases, 2)
@@ -1027,11 +1030,7 @@ end
         for idx in indices
             from2d = view(da, idx)
             @test from2d == view(parent(da), idx)
-            if idx isa Integer
-                @test from2d isa DimArray
-            else
-                @test from2d isa SubArray
-            end
+            @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(parent(da)[1, :], idx)
             @test from1d isa DimArray
@@ -1144,7 +1143,7 @@ end
     @testset "Extent indexing" begin
         # THese should be the same because da is the maximum size
         # we can index with `Touches`
-        da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        @test da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
     end
 
     @testset "with dim wrappers" begin
@@ -1183,8 +1182,22 @@ end
             ))
             da = DimArray(1:12, timedim)
             @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [5, 6, 7]
+            @test @inferred da[Near(Date(2001, 4, 7))] == 4
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
+
+            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
+                span=Regular(Month(1)), sampling=Intervals(Start())
+            ))
+            da = DimArray(1:12, timedim)
+            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
+            @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
+            @test @inferred da[Near(Date(2001, 4, 7))] == 4
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
         end
         @testset "End locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
@@ -1192,8 +1205,22 @@ end
             )
             da = DimArray(1:12, timedim)
             @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
-            @test @inferred da[Between(DateTime(2001, 4, 7), DateTime(2001, 8, 30))] == [6, 7, 8]
+            @test @inferred da[Near(Date(2001, 4, 7))] == 5
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
+
+            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
+                span=Regular(Month(1)), sampling=Intervals(End()))
+            )
+            da = DimArray(1:12, timedim)
+            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
+            @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
+            @test @inferred da[Near(Date(2001, 4, 7))] == 5
+            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
+            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
         end
     end
 
@@ -1292,38 +1319,27 @@ end
     using CoordinateTransformations
 
     m = LinearMap([0.5 0.0; 0.0 0.5])
-
-    dimz = Dim{:trans1}(Transformed(m, X())), 
-           Dim{:trans2}(Transformed(m, Y())), Z()
-    @test DimensionalData.dimsmatch(dimz[1], X())
-    @test DimensionalData.dimsmatch(dimz[2], Y())
-
-    @testset "permutedims works on lookup dimensions" begin
-        # @test @inferred sortdims((Y(), Z(), X()), dimz) == (X(), Y(), Z())
-    end
-
+    dimz = X(Transformed(m)), Y(Transformed(m)), Z()
     da = DimArray(reshape(a, 3, 4, 1), dimz)
     view(da, :, :, 1)
 
+    @testset "AutoDim attachs the dimension to " begin
+        Lookups.dim(lookup(da, X))
+    end
+
     @testset "Indexing with array dims indexes the array as usual" begin
-        da2 = da[1:3, 1:1, 1:1]
-        @test @inferred da2[Dim{:trans1}(3), Dim{:trans2}(1), Z(1)] == 9
-        # Using selectors works the same as indexing with lookup
-        # dims - it applies the transform function.
-        # It's not clear this should be allowed or makes sense,
-        # but it works anyway because the permutation is correct either way.
-        @test @inferred da[Dim{:trans1}(At(6)), Dim{:trans2}(At(2)), Z(1)] == 9
+        da2 = da[1:3, 1:1, 1:1];
+        @test @inferred da2[X(3), Y(1), Z(1)] == 9
     end
 
     @testset "Indexing with lookup dims uses the transformation" begin
         @test @inferred da[X(Near(6.1)), Y(Near(8.5)), Z(1)] == 12
         @test @inferred da[X(At(4.0)), Y(At(2.0)), Z(1)] == 5
-        @test_throws ArgumentError da[trans1=At(4.0)]
+        @test_throws ArgumentError da[X=At(4.0)]
         @test_throws InexactError da[X(At(6.1)), Y(At(8)), Z(1)]
         # Indexing directly with lookup dims also just works, but maybe shouldn't?
         @test @inferred da[X(2), Y(2), Z(1)] == 6
     end
-
 end
 
 @testset "Cyclic lookup" begin
@@ -1395,7 +1411,8 @@ end
     @test selectindices(l, Near(200.1)) == 100
     @test selectindices(l, Near(-200.1)) == 1
     @test selectindices(l, Contains(20)) == 20
-    @test_throws InexactError selectindices(l, Contains(20.1))
+    @test_throws SelectorError selectindices(l, Contains(20.1))
+    @test selectindices(l, Contains(20.1); err=Lookups._False()) === nothing
     @test_throws SelectorError selectindices(l, Contains(0)) 
     @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
@@ -1403,7 +1420,11 @@ end
 
 @testset "selectindices" begin
     @test selectindices(A[X(1)], Contains(7)) == (3,)
+    @test selectindices(A, (At(10), Contains(7))) == (1, 3)
     @test selectindices(dims_, ()) == ()
+    @test selectindices((), ()) == ()
+    @test selectindices(A, (At(90), Contains(7)); err=Lookups._False()) == nothing
+    @test selectindices(A[X(1)], Contains(10); err=Lookups._False()) == nothing
 end
 
 @testset "hasselection" begin

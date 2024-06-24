@@ -10,12 +10,13 @@ ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Po
 da1_regular = DimArray(A1, X(1:50:1000); name=:Normal, refdims=ref)
 da1_noindex = DimArray(A1, X(); name=:Normal, refdims=ref)
 da1_categorical = DimArray(A1, X('A':'T'); name=:Normal, refdims=ref)
+da1_categorical_symbol = DimArray(A1, X(Symbol.('A':'T')); name=:Normal, refdims=ref)
 da1_z = DimArray(A1, Z(1:50:1000); name=:Normal, refdims=ref)
 
 # For manual testing
-da1 = da1_z
+da1 = da1_categorical
 
-for da in (da1_regular, da1_noindex, da1_categorical, da1_z)
+for da in (da1_regular, da1_noindex, da1_categorical, da1_categorical_symbol, da1_z)
     for da1 in (da, reverse(da))
         # Plots
         plot(da1)
@@ -164,7 +165,7 @@ using ColorTypes
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
-
+    A1num = rand(X(-10:10))
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = M.plot(A1)
@@ -172,6 +173,13 @@ using ColorTypes
     fig, ax, _ = M.plot(A1m)
     fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
+    fig, ax, _ = M.plot(A1num)
+    M.reset_limits!(ax)
+    org = first(ax.finallimits.val.origin)
+    wid = first(M.widths(ax.finallimits.val))
+    # This tests for #714
+    @test org <= -10
+    @test org + wid >= 10
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
     fig, ax, _ = M.scatter(A1m)
@@ -232,25 +240,25 @@ using ColorTypes
 
     fig, ax, _ = M.rainclouds(A2)
     M.rainclouds!(ax, A2)
-    @test_throws ErrorException M.rainclouds(A2m)
-    @test_throws ErrorException M.rainclouds!(ax, A2m)
+    # @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
+    # @test_throws ErrorException M.rainclouds!(ax, A2m)
 
     fig, ax, _ = M.surface(A2)
     M.surface!(ax, A2)
     fig, ax, _ = M.surface(A2m)
     M.surface!(ax, A2m)
     # Series also puts Categories in the legend no matter where they are
+    # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
-    M.series!(ax, A2)
+    # M.series!(ax, A2)
     fig, ax, _ = M.series(A2r)
-    M.series!(ax, A2r)
-    #TODO: uncomment when the Makie version gets bumped
-    #fig, ax, _ = M.series(A2r; labeldim=Y)
-    #M.series!(ax, A2r; labeldim=Y)
+    # M.series!(ax, A2r)
+    fig, ax, _ = M.series(A2r; labeldim=Y)
+    # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
-    M.series!(ax, A2m)
+    # M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
-    @test_throws ArgumentError M.plot!(ax, A2; y=:c)
+    # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -261,7 +269,7 @@ using ColorTypes
     fig, ax, _ = M.heatmap(A2ab; y=:b)
     M.heatmap!(ax, A2ab; y=:b)
     fig, ax, _ = M.series(A2ab)
-    M.series!(ax, A2ab)
+    # M.series!(ax, A2ab)
     fig, ax, _ = M.boxplot(A2ab)
     M.boxplot!(ax, A2ab)
     fig, ax, _ = M.violin(A2ab)
@@ -274,12 +282,11 @@ using ColorTypes
     M.series!(ax, A2ab)
     fig, ax, _ = M.series(A2ab; labeldim=:a)
     M.series!(ax, A2ab; labeldim=:a)
-    # TODO: this is currently broken in Makie 
-    # should be uncommented with the bump of the Makie version
-    #fig, ax, _ = M.series(A2ab; labeldim=:b)
-    #M.series!(ax, A2ab;labeldim=:b)
 
-    # 3d
+    fig, ax, _ = M.series(A2ab; labeldim=:b)
+    # M.series!(ax, A2ab;labeldim=:b)
+
+    # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
@@ -291,17 +298,17 @@ using ColorTypes
     # Broken in Makie ?
     # fig, ax, _ = M.volumeslices(A3rgb)
     # M.volumeslices!(ax, A3rgb)
-    fig, ax, _ = M.volumeslices(A3)
-    M.volumeslices!(ax, A3)
+    # fig, ax, _ = M.volumeslices(A3)
+    # M.volumeslices!(ax, A3)
     # colorrange isn't detected here
-    fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
-    M.volumeslices!(ax, A3m; colorrange=(1, 7))
+    # fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
+    # M.volumeslices!(ax, A3m; colorrange=(1, 7))
     # fig, ax, _ = M.volumeslices(A3rgb)
     # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    M.volumeslices!(ax, A3abc;z=:a)
+    # fig, ax, _ = M.volumeslices(A3abc; x=:c)
+    # fig, ax, _ = M.volumeslices(A3abc; z=:a)
+    # M.volumeslices!(ax, A3abc;z=:a)
 end

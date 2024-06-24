@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using DimensionalData.LookupArrays: _slicespan, isrev, _bounds
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using DimensionalData.Lookups: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
 
 @testset "locus" begin
@@ -223,7 +223,7 @@ end
         @test bounds(dim) == (10, 15)
         dim = X(Sampled(ind; order=Unordered(), sampling=Points()))
         @test bounds(dim) == (nothing, nothing)
-        @test_throws ErrorException intervalbounds(dim)
+        @test intervalbounds(dim) == collect(zip(15:-1:10, 15:-1:10))
     end
 
     @testset "Categorical" begin
@@ -271,9 +271,6 @@ end
 end
 
 @testset "dims2indices with Transformed" begin
-    tdimz = Dim{:trans1}(Transformed(identity, X())), 
-            Dim{:trans2}(Transformed(identity, Y())), 
-            Z(NoLookup(1:1))
+    tdimz = X(Transformed(identity)), Y(Transformed(identity)), Z(NoLookup(1:1))
     @test dims2indices(tdimz, (X(1), Y(2), Z())) == (1, 2, Colon())
-    @test dims2indices(tdimz, (Dim{:trans1}(1), Dim{:trans2}(2), Z())) == (1, 2, Colon())
 end

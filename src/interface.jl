@@ -1,25 +1,48 @@
 # `rebuild` and `dims` are key methods to add for a new type
 
 """
-    rebuild(x, args...)
     rebuild(x; kw...)
 
 Rebuild an object struct with updated field values.
 
-`x` can be a `AbstractDimArray`, a `Dimension`, `LookupArray` or other custom types.
+`x` can be a `AbstractDimArray`, a `Dimension`, `Lookup` or other custom types.
 
 This is an abstraction that alows inbuilt and custom types to be rebuilt
 to update their fields, as most objects in DimensionalData.jl are immutable.
 
-The arguments version can be concise but depends on a fixed order defined for some
-DimensionalData objects. It should be defined based on the object type in DimensionalData,
-adding the fields specific to your object.
-
-The keyword version ignores order, and is mostly automated 
-using `ConstructionBase.setproperties`. It should only be defined if your object has 
-missing fields or fields with different names to DimensionalData objects.
+Rebuild is mostly automated using `ConstructionBase.setproperties`. 
+It should only be defined if your object has fields with 
+with different names to DimensionalData objects. Try not to do that!
 
 The arguments required are defined for the abstract type that has a `rebuild` method.
+
+#### `AbstractBasicDimArray`:
+- `dims`: a `Tuple` of `Dimension` 
+
+#### `AbstractDimArray`:
+
+- `data`: the parent object - an `AbstractArray`
+- `dims`: a `Tuple` of `Dimension` 
+- `refdims`: a `Tuple` of `Dimension` 
+- `name`: A Symbol, or `NoName` and `Name` on GPU.
+- `metadata`: A `Dict`-like object
+
+#### `AbstractDimStack`:
+
+- `data`: the parent object, often a `NamedTuple`
+- `dims`, `refdims`, `metadata`
+
+#### `Dimension`:
+
+- `val`: anything.
+
+#### `Lookup`:
+
+- `data`: the parent object, an `AbstractArray`
+
+* Note: argument `rebuild` is deprecated on `AbstractDimArray` and 
+`AbstractDimStack` in favour of allways using the keyword version. 
+In future the argument version will only be used on `Dimension`, which only have one argument.
 """
 function rebuild end
 
@@ -66,42 +89,30 @@ Objects that don't define a `val` method are returned unaltered.
 function val end
 
 """
-    lookup(x::Dimension) => LookupArray
-    lookup(x, [dims::Tuple]) => Tuple{Vararg{LookupArray}}
-    lookup(x::Tuple) => Tuple{Vararg{LookupArray}}
-    lookup(x, dim) => LookupArray
+    lookup(x::Dimension) => Lookup
+    lookup(x, [dims::Tuple]) => Tuple{Vararg{Lookup}}
+    lookup(x::Tuple) => Tuple{Vararg{Lookup}}
+    lookup(x, dim) => Lookup
 
-Returns the [`LookupArray`](@ref) of a dimension. This dictates
-properties of the dimension such as array axis and index order,
+Returns the [`Lookup`](@ref) of a dimension. This dictates
+properties of the dimension such as array axis and lookup order,
 and sampling properties.
 
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
+
+This is separate from `val` in that it will only work when dimensions
+actually contain an `AbstractArray` lookup, and can be used on a 
+`DimArray` or `DimStack` to retriev all lookups, as there is no ambiguity 
+of meaning as there is with `val`.
 """
 function lookup end
 
-# Methods to retreive Object/Dimension/LookupArray properties
+# Methods to retreive Object/Dimension/Lookup properties
 #
 # These work on AbstractDimStack, AbstractDimArray, Dimension
-# LookupArray, and tuples of Dimension/LookupArray. A `dims` argument
+# Lookup, and tuples of Dimension/Lookup. A `dims` argument
 # can be supplied to select a subset of dimensions or a single
 # Dimension.
-
-"""
-    index(x) => Tuple{Vararg{AbstractArray}}
-    index(x, dims::Tuple) => Tuple{Vararg{AbstractArray}}
-    index(dims::Tuple) => Tuple{Vararg{AbstractArray}}}
-    index(x, dim) => AbstractArray
-    index(dim::Dimension) => AbstractArray
-
-Return the contained index of a `Dimension`.
-
-Only valid when a `Dimension` contains an `AbstractArray`
-or a Val tuple like `Val{(:a, :b)}()`. The `Val` is unwrapped
-to return just the `Tuple`
-
-`dims` can be a `Dimension`, or a tuple of `Dimension`.
-"""
-function index end
 
 """
     metadata(x) => (object metadata)
@@ -163,7 +174,7 @@ function label end
     bounds(xs, [dims::Tuple]) => Tuple{Vararg{Tuple{T,T}}}
     bounds(xs::Tuple) => Tuple{Vararg{Tuple{T,T}}}
     bounds(x, dim) => Tuple{T,T}
-    bounds(dim::Union{Dimension,LookupArray}) => Tuple{T,T}
+    bounds(dim::Union{Dimension,Lookup}) => Tuple{T,T}
 
 Return the bounds of all dimensions of an object, of a specific dimension,
 or of a tuple of dimensions.
@@ -177,9 +188,9 @@ function bounds end
 """
     order(x, [dims::Tuple]) => Tuple
     order(xs::Tuple) => Tuple
-    order(x::Union{Dimension,LookupArray}) => Order
+    order(x::Union{Dimension,Lookup}) => Order
 
-Return the `Ordering` of the dimension index for each dimension:
+Return the `Ordering` of the dimension lookup for each dimension:
 `ForwardOrdered`, `ReverseOrdered`, or [`Unordered`](@ref) 
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
@@ -191,7 +202,7 @@ function order end
     sampling(x, [dims::Tuple]) => Tuple
     sampling(x, dim) => Sampling
     sampling(xs::Tuple) => Tuple{Vararg{Sampling}}
-    sampling(x:Union{Dimension,LookupArray}) => Sampling
+    sampling(x:Union{Dimension,Lookup}) => Sampling
 
 Return the [`Sampling`](@ref) for each dimension.
 
@@ -204,7 +215,7 @@ function sampling end
     span(x, [dims::Tuple]) => Tuple
     span(x, dim) => Span
     span(xs::Tuple) => Tuple{Vararg{Span,N}}
-    span(x::Union{Dimension,LookupArray}) => Span
+    span(x::Union{Dimension,Lookup}) => Span
 
 Return the [`Span`](@ref) for each dimension.
 
@@ -217,9 +228,9 @@ function span end
     locus(x, [dims::Tuple]) => Tuple
     locus(x, dim) => Locus
     locus(xs::Tuple) => Tuple{Vararg{Locus,N}}
-    locus(x::Union{Dimension,LookupArray}) => Locus
+    locus(x::Union{Dimension,Lookup}) => Locus
 
-Return the [`Locus`](@ref) for each dimension.
+Return the [`Position`](@ref) of lookup values for each dimension.
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
 or `Symbols` for `Dim{Symbol}`.

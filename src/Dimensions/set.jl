@@ -1,13 +1,13 @@
-const DimSetters = Union{LookupArraySetters,Type,UnionAll,Dimension,Symbol}
+const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
 set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     _set(dims_, args...; kw...)
 # Convert args/kw to dims and set
-_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kwdims(kw)...))
+_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kw2dims(kw)...))
 # Convert pairs to wrapped dims and set
 _set(dims_::DimTuple, p::Pair, ps::Vararg{Pair}) = _set(dims_, (p, ps...))
-_set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairdims(ps...))
+_set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairs2dims(ps...))
 _set(dims_::DimTuple, ::Tuple{}) = dims_
 # Set dims with (possibly unsorted) wrapper vals
 _set(dims::DimTuple, wrappers::DimTuple) = begin
@@ -28,12 +28,12 @@ _set(dim::Dimension, wrapper::Dimension{<:DimSetters}) =
 _set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim)))
 # Construct types
 _set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
-_set(dim::Dimension, key::Symbol) = _set(dim, key2dim(key))
+_set(dim::Dimension, key::Symbol) = _set(dim, name2dim(key))
 _set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
 _set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
 # Set the lookup
 # Otherwise pass this on to set fields on the lookup
-_set(dim::Dimension, x::LookupArrayTrait) = rebuild(dim, _set(lookup(dim), x))
+_set(dim::Dimension, x::LookupTrait) = rebuild(dim, _set(lookup(dim), x))
 
 # Metadata
 _set(dim::Dimension, newmetadata::AllMetadata) = rebuild(dim, _set(lookup(dim), newmetadata))

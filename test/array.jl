@@ -1,7 +1,8 @@
 using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
+using LinearAlgebra
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 a = [1 2; 3 4]
 a2 = [1 2 3 4
@@ -245,6 +246,10 @@ end
     @testset "similar with mixed DimUnitRange and Base.OneTo" begin
         x = randn(10)
         T = ComplexF64
+        ax1 = Base.OneTo(2)
+        ax1 = axes(X(1:2), 1)
+        ax2 = Base.OneTo(2)
+        ax2 = axes(X(1:2), 1)
         for ax1 in (Base.OneTo(2), axes(X(1:2), 1))
             s11 = @inferred(similar(x, (ax1,)))
             s12 = @inferred(similar(x, T, (ax1,)))
@@ -362,50 +367,54 @@ end
     @test convert(DimArray{eltype(da)}, da) === convert(DimArray, da) === da
 end
 
-if VERSION > v"1.1-"
-    @testset "copy!" begin
-        dimz = dims(da2)
-        A = zero(a2)
-        sp = sprand(Int, 4, 0.5)
-        db = DimArray(deepcopy(A), dimz)
-        dc = DimArray(deepcopy(A), dimz)
+@testset "copy!" begin
+    dimz = dims(da2)
+    A = zero(a2)
+    sp = sprand(Int, 4, 0.5)
+    db = DimArray(deepcopy(A), dimz)
+    dc = DimArray(deepcopy(A), dimz)
 
-        copy!(A, da2)
-        @test A == parent(da2)
-        copy!(db, da2)
-        @test parent(db) == parent(da2)
-        copy!(dc, a2)
-        @test parent(db) == a2
-        # Sparse vector has its own method for ambiguity
-        copy!(sp, da2[1, :])
-        @test sp == parent(da2[1, :])
+    @test copy!(A, da2) isa Matrix
+    @test A == parent(da2)
+    @test copy!(db, da2) isa DimMatrix
+    @test parent(db) == parent(da2)
+    @test copy!(dc, a2) isa DimMatrix
+    @test parent(db) == a2
+    # Sparse vector has its own method for ambiguity
+    copy!(sp, da2[1, :])
+    @test sp == parent(da2[1, :])
 
-        @testset "vector copy! (ambiguity fix)" begin
-            v = zeros(3)
-            dv = DimArray(zeros(3), X)
-            copy!(v, DimArray([1.0, 2.0, 3.0], X))
-            @test v == [1.0, 2.0, 3.0]
-            copy!(dv, DimArray([9.9, 9.9, 9.9], X))
-            @test dv == [9.9, 9.9, 9.9]
-            copy!(dv, [5.0, 5.0, 5.0])
-            @test dv == [5.0, 5.0, 5.0]
-        end
-
+    @testset "vector copy! (ambiguity fix)" begin
+        v = zeros(3)
+        dv = DimArray(zeros(3), X)
+        @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
+        @test v == [1.0, 2.0, 3.0]
+        @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
+        @test dv == [9.9, 9.9, 9.9]
+        @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
+        @test dv == [5.0, 5.0, 5.0]
     end
 end
 
 @testset "copyto!" begin
     A = zero(a2)
     da = DimArray(ones(size(A)), dims(da2))
-    copyto!(A, da)
+    @test copyto!(A, da) isa Matrix
     @test all(A .== 1)
-    copyto!(da, 1, zeros(5, 5), 1, 12)
+    @test copyto!(da, 1, zeros(5, 5), 1, 12) isa DimMatrix
     @test all(da .== 0)
     x = reshape(10:10:40, 1, 4)
-    copyto!(da, CartesianIndices(view(da, 1:1, 1:4)), x, CartesianIndices(x))
+    @test copyto!(da, CartesianIndices(view(da, 1:1, 1:4)), x, CartesianIndices(x)) isa DimMatrix
     @test da[1, 1:4] == 10:10:40
-    copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x))
+    @test copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x)) isa Matrix
     @test A[1, 1:4] == 10:10:40
+end
+
+@testset "copy_similar" begin
+    A = rand(Float32, X(10), Y(5))
+    cp = LinearAlgebra.copy_similar(A, Float64)
+    @test cp isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
+    @test A == cp
 end
 
 @testset "constructor" begin
@@ -415,6 +424,25 @@ end
     da_reconstructed = DimArray(da)
     @test da == da_reconstructed
     @test dims(da) == dims(da_reconstructed)
+    @test DimArray(zeros(5, 4), (X(1:5), Y(1:4))) ==
+        DimArray(zeros(5, 4), (X => 1:5, Y => 1:4)) ==
+        DimArray(zeros(5, 4), (:X => 1:5, :Y => 1:4)) ==
+        DimArray(zeros(5, 4), (X = 1:5, Y = 1:4))
+end
+
+@testset "DimVector and DimMatrix" begin
+    dv = DimVector([1, 2, 3], X);
+    @test dv isa DimArray{Int,1}
+    @test dv isa DimVector
+    @test dv isa DimVecOrMat
+    @test dv isa AbstractDimVector
+    @test dv isa AbstractDimVecOrMat
+    dm = DimMatrix(zeros(3, 4), (X(), Y()));
+    @test dm isa DimArray{Float64,2}
+    @test dm isa DimMatrix
+    @test dm isa DimVecOrMat
+    @test dm isa AbstractDimMatrix
+    @test dm isa AbstractDimVecOrMat
 end
 
 @testset "fill constructor" begin
@@ -470,6 +498,11 @@ end
     @test size(A) === size(da)
     @test A isa DimArray
     @test dims(A) === dims(da)
+    A = DimArray{Int}(undef, dimz)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
 end
 
 @testset "rand constructors" begin
@@ -495,6 +528,9 @@ end
     @test size(da) == (2, 3)
     @test maximum(da) in (1, 2)
     @test minimum(da) in (1, 2)
+    da = rand(MersenneTwister(), X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Float64
 end
 
 @testset "NamedTuple" begin

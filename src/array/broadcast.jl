@@ -39,13 +39,15 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     data = copy(_unwrap_broadcasted(bc))
     return if A isa Nothing || _dims isa Nothing || ndims(A) == 0
         data
+    elseif data isa AbstractDimArray
+        rebuild(A, parent(data), _dims, refdims(A), Symbol(""))
     else
         rebuild(A, data, _dims, refdims(A), Symbol(""))
     end
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true)
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
     copyto!(dest, _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
     if A isa Nothing || _dims isa Nothing
@@ -55,7 +57,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     end
 end
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true)
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
     copyto!(parent(dest), _unwrap_broadcasted(bc))
     A = _firstdimarray(bc)
     if A isa Nothing || _dims isa Nothing
@@ -83,7 +85,7 @@ _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
-_fistdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
+_firstdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
 function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
     found = _firstdimarray(x[1])
     if found isa Nothing
@@ -97,6 +99,7 @@ _firstdimarray(x::Tuple{}) = nothing
 
 # Make sure all arrays have the same dims, and return them
 _broadcasted_dims(bc::Broadcasted) = _broadcasted_dims(bc.args...)
-_broadcasted_dims(a, bs...) = comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true)
-_broadcasted_dims(a::AbstractDimArray) = dims(a)
+_broadcasted_dims(a, bs...) =
+    comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true, order=true)
+_broadcasted_dims(a::AbstractBasicDimArray) = dims(a)
 _broadcasted_dims(a) = nothing

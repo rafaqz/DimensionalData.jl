@@ -1,5 +1,45 @@
+const IDim = Dimension{<:StandardIndices}
+
 """
-    AbstractDimArray <: AbstractArray
+    AbstractBasicDimArray <: AbstractArray
+
+The abstract supertype for all arrays with a `dims` method that 
+returns a `Tuple` of `Dimension`
+
+Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
+"""
+abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+
+const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
+const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
+const AbstractBasicDimVecOrMat = Union{AbstractBasicDimVector,AbstractBasicDimMatrix}
+
+refdims(::AbstractBasicDimArray) = ()
+name(::AbstractBasicDimArray) = NoName()
+metadata(::AbstractBasicDimArray) = NoMetadata()
+
+# DimensionalData.jl interface methods ####################################################
+
+for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
+    @eval ($func)(A::AbstractBasicDimArray, args...) = ($func)(dims(A), args...)
+end
+
+Extents.extent(A::AbstractBasicDimArray, args...) = Extents.extent(dims(A), args...) 
+
+Base.size(A::AbstractBasicDimArray) = map(length, dims(A))
+Base.size(A::AbstractBasicDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
+Base.axes(A::AbstractBasicDimArray) = map(d -> axes(d, 1), dims(A))
+Base.axes(A::AbstractBasicDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
+# This is too slow using the default, as it calls `axes` and makes DimUnitRanges
+Base.CartesianIndices(s::AbstractBasicDimArray) = CartesianIndices(map(first ∘ axes, lookup(s)))
+
+Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
+    Base.checkbounds(Bool, A, dims2indices(A, (d1, dims...))...)
+Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
+    Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
+
+"""
+    AbstractDimArray <: AbstractBasicArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -17,23 +57,14 @@ A [`rebuild`](@ref) method for `AbstractDimArray` must accept
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
-abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractArray{T,N} end
+abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractBasicDimArray{T,N,D} end
 
 const AbstractDimVector = AbstractDimArray{T,1} where T
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
-
+const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
 
 # DimensionalData.jl interface methods ####################################################
-
-# Standard fields
-dims(A::AbstractDimArray) = A.dims
-refdims(A::AbstractDimArray) = A.refdims
-data(A::AbstractDimArray) = A.data
-name(A::AbstractDimArray) = A.name
-metadata(A::AbstractDimArray) = A.metadata
-
-layerdims(A::AbstractDimArray) = basedims(A)
-
+ 
 """
     rebuild(A::AbstractDimArray, data, [dims, refdims, name, metadata]) => AbstractDimArray
     rebuild(A::AbstractDimArray; kw...) => AbstractDimArray
@@ -54,16 +85,20 @@ For readability it is preferable to use keyword versions for any more than a few
     rebuild(A, data, dims, refdims, name, metadata(A))
 end
 
-@inline rebuildsliced(A::AbstractDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A)) =
-    rebuild(A, data, slicedims(f, A, I)..., name)
+# Standard fields
+dims(A::AbstractDimArray) = A.dims
+refdims(A::AbstractDimArray) = A.refdims
+data(A::AbstractDimArray) = A.data # Don't use this method directly, use `parent`
+name(A::AbstractDimArray) = A.name
+metadata(A::AbstractDimArray) = A.metadata
 
-for func in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
-    @eval ($func)(A::AbstractDimArray, args...) = ($func)(dims(A), args...)
+layerdims(A::AbstractDimArray) = basedims(A)
+
+@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
+    rebuild(A, data, slicedims(f, A, I1)..., name)
 end
-
-Extents.extent(A::AbstractDimArray, args...) = Extents.extent(dims(A), args...) 
- 
 
 # Array interface methods ######################################################
 
@@ -73,19 +108,9 @@ Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
-@inline Base.axes(A::AbstractDimArray, dims::DimOrDimType) = axes(A, dimnum(A, dims))
-@inline Base.size(A::AbstractDimArray, dims::DimOrDimType) = size(A, dimnum(A, dims))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
-const IDim = Dimension{<:StandardIndices}
-function Base.checkbounds(::Type{Bool}, A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(Bool, A, dims2indices(A, dims)...)
-end
-function Base.checkbounds(A::AbstractDimArray, dims::IDim...)
-    Base.checkbounds(A, dims2indices(A, dims)...)
-end
 
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
@@ -119,6 +144,12 @@ Base.similar(A::AbstractDimArray) =
     rebuild(A; data=similar(parent(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 Base.similar(A::AbstractDimArray, ::Type{T}) where T =
     rebuild(A; data=similar(parent(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+
+# We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
+Base.similar(A::AbstractBasicDimArray{T,N}) where {T,N} =
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+Base.similar(A::AbstractBasicDimArray{<:Any,N}, ::Type{T}) where {T,N} =
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
 # We can't resize the dims or add missing dims, so return the unwraped Array type?
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
@@ -141,13 +172,13 @@ const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
     s1 === :MaybeDimUnitRange || @eval begin
         function Base.similar(
-            A::AbstractArray, T::Type, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
-        )
+            A::AbstractArray, ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+        ) where T
             _similar(A, T, shape)
         end
         function Base.similar(
-            T::Type{<:AbstractArray}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
-        )
+            ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+        ) where T<:AbstractArray
             _similar(T, shape)
         end
     end
@@ -210,9 +241,9 @@ end
 _parent_range(r::Dimensions.DimUnitRange) = parent(r)
 _parent_range(r) = r
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractDimArray, ::Type{T}, D::Dimension...) where T =
+Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...) where T =
     Base.similar(A, T, D) 
 Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
     rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=(), metadata=NoMetadata())
@@ -220,7 +251,8 @@ Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
     rebuild(A; data=similar(parent(A), T, ()), dims=(), refdims=(), metadata=NoMetadata())
 
 # Keep the same type in `similar`
-_noname(A::AbstractDimArray) = _noname(name(A))
+_noname(A::AbstractBasicDimArray) = _noname(name(A))
+_noname(s::String) = ""
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
 _noname(name::Name) = name # Keep the name so the type doesn't change
@@ -241,48 +273,48 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
                (:AbstractDimArray, :AbstractArray),
                (:AbstractArray, :AbstractDimArray))
     @eval begin
-        Base.copy!(dst::$d{T,N}, src::$s{T,N}) where {T,N} = copy!(_maybeunwrap(dst), _maybeunwrap(src))
-        Base.copy!(dst::$d{T,1}, src::$s{T,1}) where T = copy!(_maybeunwrap(dst), _maybeunwrap(src))
-        Base.copyto!(dst::$d, src::$s) = copyto!(_maybeunwrap(dst), _maybeunwrap(src))
+        Base.copy!(dst::$d{T,N}, src::$s{T,N}) where {T,N} = (copy!(_maybeunwrap(dst), _maybeunwrap(src)); dst)
+        Base.copy!(dst::$d{T,1}, src::$s{T,1}) where T = (copy!(_maybeunwrap(dst), _maybeunwrap(src)); dst)
+        Base.copyto!(dst::$d, src::$s) = (copyto!(_maybeunwrap(dst), _maybeunwrap(src)); dst)
         Base.copyto!(dst::$d, dstart::Integer, src::$s) =
-            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src))
+            (copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src)); dst)
         Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer) =
-            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart)
+            (copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart); dst)
         Base.copyto!(dst::$d, dstart::Integer, src::$s, sstart::Integer, n::Integer) =
-            copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart, n)
+            (copyto!(_maybeunwrap(dst), dstart, _maybeunwrap(src), sstart, n); dst)
         Base.copyto!(dst::$d{T1,N}, Rdst::CartesianIndices{N}, src::$s{T2,N}, Rsrc::CartesianIndices{N}) where {T1,T2,N} =
-            copyto!(_maybeunwrap(dst), Rdst, _maybeunwrap(src), Rsrc)
+            (copyto!(_maybeunwrap(dst), Rdst, _maybeunwrap(src), Rsrc); dst)
     end
 end
 # Ambiguity
-@static if VERSION >= v"1.9.0"
-    Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-        copyto!(parent(dst), src)
-    Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-        copyto!(parent(dst), src)
-    Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
-        copyto!(parent(dst), src)
-    Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
-        copyto!(dst, parent(src))
-    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
-        copyto!(parent(dst), src)
-    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
-        copyto!(parent(dst), src)
-    function Base.copyto!(
-        dst::AbstractDimArray{<:Any,2}, 
-        dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
-        src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
-        src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
-    )
-        copyto!(parent(dst), dst_i, src, src_i)
-    end
-    Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
-        copy!(dst, parent(src))
+Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
+    (copyto!(dst, parent(src)); dst)
+Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
+    (copyto!(parent(dst), src); dst)
+function Base.copyto!(
+    dst::AbstractDimArray{<:Any,2}, 
+    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
+    src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
+    src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
+)
+    copyto!(parent(dst), dst_i, src, src_i)
+    return dst
 end
+Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
+    (copy!(dst, parent(src)); dst)
+
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
-    copy!(dst, parent(src))
+    (copy!(dst, parent(src)); dst)
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
-    copyto!(dst, parent(src))
+    (copyto!(dst, parent(src)); dst)
 
 ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
 
@@ -365,12 +397,20 @@ function DimArray(; data, dims, refdims=(), name=NoName(), metadata=NoMetadata()
 end
 # Construct from another AbstractDimArray
 function DimArray(A::AbstractDimArray;
-    data=data(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+    data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
     DimArray(data, dims; refdims, name, metadata)
 end
 DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
+# We collect other kinds of AbstractBasicDimArray 
+# to avoid complicated nesting of dims
+function DimArray(A::AbstractBasicDimArray;
+    data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
+)
+    newdata = collect(data)
+    DimArray(newdata, format(dims, newdata); refdims, name, metadata)
+end
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -381,6 +421,15 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+
+const DimVector = DimArray{T,1} where T
+const DimMatrix = DimArray{T,2} where T
+const DimVecOrMat = Union{DimVector,DimMatrix}
+
+DimVector(A::AbstractVector, dim::Dimension, args...; kw...) = 
+    DimArray(A, (dim,), args...; kw...)
+DimVector(A::AbstractVector, args...; kw...) = DimArray(A, args...; kw...)
+DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
@@ -421,14 +470,19 @@ There are two kinds of `Dimension` value acepted:
 Keywords are the same as for [`DimArray`](@ref).
 
 # Example
-```@doctest
-julia> using DimensionalData
 
+````@doctest
+julia> using DimensionalData, Random; Random.seed!(123)
 julia> rand(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
+ 0  0  0  0
  1  0  0  1
- 1  0  1  1
-```
+
+````
 """
 Base.fill
 
@@ -454,17 +508,25 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData
 
 julia> rand(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
- 1  0  0  1
- 1  0  1  1
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
+ 1  1  0  0
+ 0  1  1  0
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 0.43204   0.835111  0.624231
- 0.752868  0.471638  0.193652
- 0.484558  0.846559  0.455256
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0       150.0       200.0
+  :a    0.624539    0.559166    0.813246
+  :b    0.947442    0.664213    0.284669
+  :c    0.695604    0.564835    0.156286
 ```
 """
 Base.rand
@@ -487,19 +549,27 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```@doctest
 julia> using DimensionalData
-
 julia> zeros(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
  0  0  0  0
  0  0  0  0
 
 julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 0.0  0.0  0.0
- 0.0  0.0  0.0
- 0.0  0.0  0.0
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0  150.0  200.0
+  :a    0.0    0.0    0.0
+  :b    0.0    0.0    0.0
+  :c    0.0    0.0    0.0
+
 ```
 """
 Base.zeros
@@ -522,19 +592,27 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```@doctest
 julia> using DimensionalData
-
 julia> ones(Bool, X(2), Y(4))
-2×4 DimArray{Bool,2} with dimensions: X, Y
+╭──────────────────────╮
+│ 2×4 DimArray{Bool,2} │
+├──────────────── dims ┤
+  ↓ X, → Y
+└──────────────────────┘
  1  1  1  1
  1  1  1  1
 
 julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
-3×3 DimArray{Float64,2} with dimensions:
-  X: Symbol[a, b, c] Categorical: Unordered,
-  Y: 100.0:50.0:200.0 Sampled: Ordered Regular Points
- 1.0  1.0  1.0
- 1.0  1.0  1.0
- 1.0  1.0  1.0
+╭─────────────────────────╮
+│ 3×3 DimArray{Float64,2} │
+├─────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+  → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
+└─────────────────────────────────────────────────────────────────────┘
+ ↓ →  100.0  150.0  200.0
+  :a    1.0    1.0    1.0
+  :b    1.0    1.0    1.0
+  :c    1.0    1.0    1.0
+
 ```
 """
 Base.ones
@@ -592,7 +670,7 @@ function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...;
 end
 function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
     C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)), _maybestripval(dims); kw...)
+    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)
@@ -616,7 +694,7 @@ end
 # Allow customising constructors based on dimension types
 # Thed default constructor is DimArray
 dimconstructor(dims::DimTuple) = dimconstructor(tail(dims)) 
-dimconstructor(dims::Tuple{}) = DimArray 
+dimconstructor(::Tuple{}) = DimArray 
 
 """
     mergedims(old_dims => new_dim) => Dimension
@@ -641,12 +719,24 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 # Example
 
 ````jldoctest
-julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]));
-julia> mergedims(ds, Ti => :time, (X, Y) => :space)
-Dim{:time} MergedLookup{Tuple{Int64}} Tuple{Int64}[(0,), (3,), (4,)] Ti,
-Dim{:space} MergedLookup{Tuple{Float64, Int64}} Tuple{Float64, Int64}[(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] X, Y
+julia> using DimensionalData
+
+julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
+↓ X  0.0:0.1:0.4,
+→ Y  10:10:100,
+↗ Ti [0, 3, 4]
+
+julia> mergedims(ds, (X, Y) => :space)
+↓ Ti    [0, 3, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] ↓ X, → Y
 ````
 """
+function mergedims(x, dt1::Tuple, dts::Tuple...)
+    pairs = map((dt1, dts...)) do ds
+        ds => Dim{Symbol(map(name, ds)...)}()
+    end
+    mergedims(x, pairs...)
+end
 function mergedims(all_dims, dim_pairs::Pair...)
     # filter out dims completely missing
     dim_pairs = map(x -> _filter_dims(all_dims, first(x)) => last(x), dim_pairs)
@@ -683,8 +773,8 @@ function mergedims(A::AbstractDimArray, dim_pairs::Pair...)
     dimsmatch(all_dims, dims_new) && return A
     dims_perm = _unmergedims(dims_new, map(last, dim_pairs))
     Aperm = PermutedDimsArray(A, dims_perm)
-    data_merged = reshape(data(Aperm), map(length, dims_new))
-    rebuild(A, data_merged, dims_new)
+    data_merged = reshape(parent(Aperm), map(length, dims_new))
+    return rebuild(A, data_merged, dims_new)
 end
 
 """
@@ -704,10 +794,10 @@ end
 
 Return a new array or stack whose dimensions are restored to their original prior to calling [`mergedims(A, dim_pairs)`](@ref).
 """
-function unmergedims(A::AbstractDimArray, original_dims)
+function unmergedims(A::AbstractBasicDimArray, original_dims)
     merged_dims = dims(A)
     unmerged_dims = unmergedims(merged_dims)
-    reshaped = reshape(data(A), size(unmerged_dims))
+    reshaped = reshape(parent(A), size(unmerged_dims))
     permuted = permutedims(reshaped, dimnum(unmerged_dims, original_dims))
     return DimArray(permuted, original_dims)
 end

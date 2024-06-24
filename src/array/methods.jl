@@ -1,7 +1,7 @@
 # Array info
 for (m, f) in ((:Base, :size), (:Base, :axes), (:Base, :firstindex), (:Base, :lastindex))
     @eval begin
-        @inline $m.$f(A::AbstractDimArray, dims::AllDims) = $m.$f(A, dimnum(A, dims))
+        @inline $m.$f(A::AbstractBasicDimArray, dims::AllDims) = $m.$f(A, dimnum(A, dims))
     end
 end
 
@@ -13,17 +13,17 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
     _f = Symbol('_', f)
     @eval begin
         # Base methods
-        $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A::AbstractDimArray, dims; kw...)
-        $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A::AbstractDimArray, dims; kw...)
+        @inline $m.$f(A::AbstractDimArray; dims=:, kw...) = $_f(A, dims; kw...)
+        @inline $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
-        $_f(A::AbstractDimArray, dims; kw...) =
+        @inline $_f(A::AbstractDimArray, dims; kw...) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
-        $_f(f, A::AbstractDimArray, dims; kw...) =
+        @inline $_f(f, A::AbstractDimArray, dims; kw...) =
             rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
         # - Return a scalar
-        $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
-        $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
+        @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
+        @inline $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
     end
 end
 # With no function arg version
@@ -34,23 +34,22 @@ for (m, f) in ((:Statistics, :std), (:Statistics, :var))
         $m.$f(A::AbstractDimArray; corrected::Bool=true, mean=nothing, dims=:) =
             $_f(A, corrected, mean, dims)
         # Local dispatch methods - Returns a reduced array
-        $_f(A::AbstractDimArray, corrected, mean, dims) =
+        @inline $_f(A::AbstractDimArray, corrected, mean, dims) =
             rebuild(A, $m.$f(parent(A); corrected=corrected, mean=mean, dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
-        $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
+        @inline $_f(A::AbstractDimArray, corrected, mean, dims::Colon) =
             $m.$f(parent(A); corrected=corrected, mean=mean, dims=:)
     end
 end
 for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     _f = Symbol('_', f)
     @eval begin
-        # Base methods
-        $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
+        @inline $m.$f(A::AbstractDimArray; dims=:) = $_f(A, dims)
         # Local dispatch methods - Returns a reduced array
-        $_f(A::AbstractDimArray, dims) =
+        @inline $_f(A::AbstractDimArray, dims) =
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims))), reducedims(A, dims))
         # - Returns a scalar
-        $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
+        @inline $_f(A::AbstractDimArray, dims::Colon) = $m.$f(parent(A); dims=:)
     end
 end
 
@@ -68,14 +67,13 @@ function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
 
-@static if VERSION >= v"1.6"
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-        rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-    end
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-        Base._mapreduce_dim(f, op, nt, parent(A), dims)
-    end
+function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
+    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
 end
+function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
+    Base._mapreduce_dim(f, op, nt, parent(A), dims)
+end
+
 
 # TODO: Unfortunately Base/accumulate.jl kw methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
@@ -90,7 +88,7 @@ function Base.dropdims(A::AbstractDimArray; dims)
     rebuildsliced(A, data, _dropinds(A, dims))
 end
 
-@inline _dropinds(A, dims::DimTuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
+@inline _dropinds(A, dims::Tuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
 @inline _dropinds(A, dim::Dimension) = dims2indices(A, rebuild(dim, 1))
 
 
@@ -102,58 +100,97 @@ function Base.map(f, As::AbstractDimArray...)
     rebuild(first(As); data=newdata)
 end
 
-function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+
+@inline function Base.mapslices(f, A::AbstractDimArray; dims=1, kw...)
+    # Run `mapslices` on the parent array
     dimnums = dimnum(A, _astuple(dims))
-    data = mapslices(f, parent(A); dims=dimnums, kw...)
-    rebuild(A, data)
+    newdata = mapslices(f, parent(A); dims=dimnums, kw...)
+    ds = DD.dims(A, _astuple(dims))
+    # Run one slice with dimensions to get the transformed dim
+    d_inds = map(d -> rebuild(d, 1), otherdims(A, ds))
+    example_dims = length(d_inds) > 0 ? DD.dims(f(view(A, d_inds...))) : ()
+    replacement_dims = if isnothing(example_dims) || length(example_dims) != length(ds)
+        map(d -> rebuild(d, NoLookup()), ds)
+    else
+        example_dims
+    end
+    newdims = format(setdims(DD.dims(A), replacement_dims), newdata)
+
+    return rebuild(A, newdata, newdims)
 end
 
-@static if VERSION < v"1.9-alpha1"
-    """
-        Base.eachslice(A::AbstractDimArray; dims)
+"""
+    Base.eachslice(A::AbstractDimArray; dims,drop=true)
 
-    Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
-    select all the data from the other dimensions in `A` using views.
+Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
+select all the data from the other dimensions in `A` using views.
 
-    The generator has `size` and `axes` equivalent to those of the provided `dims`.
-    """
-    function Base.eachslice(A::AbstractDimArray; dims)
-        dimtuple = _astuple(dims)
+The generator has `size` and `axes` equivalent to those of the provided `dims` if `drop=true`.
+Otherwise it will have the same dimensionality as the underlying array with inner dimensions having size 1.
+"""
+@inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
+    dimtuple = _astuple(dims)
+    if !(dimtuple == ()) 
         all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-        _eachslice(A, dimtuple)
     end
-else
-    @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
-        dimtuple = _astuple(dims)
-        all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-        _eachslice(A, dimtuple, drop)
-    end
-    Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
-        slicedims = Dimensions.dims(A, dims)
-        Adims = Dimensions.dims(A)
-        if drop
-            ax = map(dim -> axes(A, dim), slicedims)
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
-        else
-            ax = map(Adims) do dim
-                hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
-            end
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
+    _eachslice(A, dimtuple, drop)
+end
+Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
+    slicedims = Dimensions.dims(A, dims)
+    Adims = Dimensions.dims(A)
+    if drop
+        ax = map(dim -> axes(A, dim), slicedims)
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
         end
+        return Slices(A, slicemap, ax)
+    else
+        ax = map(Adims) do dim
+            hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
+        end
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
+        end
+        return Slices(A, slicemap, ax)
     end
 end
+
 
 # works for arrays and for stacks
 function _eachslice(x, dims::Tuple)
     slicedims = Dimensions.dims(x, dims)
     return (view(x, d...) for d in DimIndices(slicedims))
 end
+
+# These just return the parent for now
+function Base.sort(A::AbstractDimVector; kw...)
+    newdims = (set(only(dims(A)), NoLookup()),)
+    newdata = sort(parent(A), kw...)
+    return rebuild(A, newdata, newdims)
+end
+function Base.sort(A::AbstractDimArray; dims, kw...)
+    newdata = sort(parent(A), dims=dimnum(A, dims), kw...)
+    replacement_dims = map(DD.dims(A, _astuple(dims))) do d
+        set(d, NoLookup())
+    end
+    newdims = setdims(DD.dims(A), replacement_dims)
+    return rebuild(A, newdata, newdims)
+end
+
+function Base.sortslices(A::AbstractDimArray; dims, kw...)
+    newdata = sortslices(parent(A), dims=dimnum(A, dims), kw...)
+    replacement_dims = map(DD.dims(A, _astuple(dims))) do d
+        set(d, NoLookup())
+    end
+    newdims = setdims(DD.dims(A), replacement_dims)
+    return rebuild(A, newdata, newdims)
+end
+
+                
+Base.cumsum(A::AbstractDimVector) = rebuild(A, Base.cumsum(parent(A)))
+Base.cumsum(A::AbstractDimArray; dims) = rebuild(A, cumsum(parent(A); dims=dimnum(A, dims)))
+Base.cumsum!(B::AbstractArray, A::AbstractDimVector) = cumsum!(B, parent(A))
+Base.cumsum!(B::AbstractArray, A::AbstractDimArray; dims) = cumsum!(B, parent(A); dims=dimnum(A, dims))
 
 # Duplicated dims
 
@@ -234,12 +271,11 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             if hasdim(A1, catdim)
                 catdim = basedims(dims(A1, catdim))
             else
-                return AnonDim(NoLookup())
+                return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
             end
         else
-            catdim = basedims(key2dim(catdim))
+            catdim = basedims(name2dim(catdim))
         end
-        # Dimension
         # Dimension Types and Symbols
         if all(x -> hasdim(x, catdim), Xin)
             # We concatenate an existing dimension
@@ -249,14 +285,14 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
                 if !check_cat_lookups(joindims...) 
-                    return Base.cat(map(parent, Xin)...; dims=dimnum(A1, catdims))
+                    return rebuild(catdim, NoLookup())
                 end
                 _vcat_dims(joindims...)
             end
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoIndex})
+                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoValues})
                     # Combine the refdims properties with the passed in catdim
                     set(refdims(first(Xin), catdim), catdim)
                 else
@@ -270,14 +306,13 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         end
     end
 
-    any(map(isnothing, newcatdims)) && return Base.cat(map(parent, Xin)...; dims=cat_dnums)
-
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
 
     inserted_dnums = dimnum(A1, inserted_dims)
     appended_dnums = ntuple(i -> i + length(dims(A1)), length(appended_dims))
     cat_dnums = (inserted_dnums..., appended_dnums...)
+
     # Warn if dims or val do not match, and cat the parent
     if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...;
         order=true, val=true, warn=" Can't `cat` AbstractDimArray, applying to `parent` object."
@@ -346,10 +381,11 @@ end
 check_cat_lookups(dims::Dimension...) =
     _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
 
-# LookupArrays may need adjustment for `cat`
-_check_cat_lookups(D, lookups::LookupArray...) = _check_cat_lookup_order(D, lookups...)
+# Lookups may need adjustment for `cat`
+_check_cat_lookups(D, lookups::Lookup...) = _check_cat_lookup_order(D, lookups...)
 _check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
 function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
+    length(lookups) > 0 || return true
     _check_cat_lookup_order(D, l1, lookups...) || return false
     _check_cat_lookups(D, span(l1), l1, lookups...)
 end
@@ -385,12 +421,14 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
     end |> all
 end
 
-function _check_cat_lookup_order(D, lookups::LookupArray...)
+function _check_cat_lookup_order(D, lookups::Lookup...)
     l1 = first(lookups)
+    length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)
     x = last(l1)
     if isordered(l1)
         map(Base.tail(lookups)) do lookup
+            length(lookup) > 0 || return true
             if isforward(lookup)
                 if isreverse(l1)
                     _cat_mixed_ordered_warn(D)
@@ -434,8 +472,8 @@ function _vcat_dims(d1::Dimension, ds::Dimension...)
     return rebuild(d1, newlookup)
 end
 
-# LookupArrays may need adjustment for `cat`
-function _vcat_lookups(lookups::LookupArray...)
+# Lookups may need adjustment for `cat`
+function _vcat_lookups(lookups::Lookup...)
     newindex = _vcat_index(lookups...)
     return rebuild(lookups[1]; data=newindex)
 end
@@ -473,10 +511,10 @@ end
 _vcat_index(A1::NoLookup, A::NoLookup...) = OneTo(mapreduce(length, +, (A1, A...)))
 # TODO: handle vcat OffsetArrays?
 # Otherwise just vcat. TODO: handle order breaking vcat?
-# function _vcat_index(lookup::LookupArray, lookups...)
+# function _vcat_index(lookup::Lookup, lookups...)
     # _vcat_index(span(lookup), lookup, lookups...)
 # end
-function _vcat_index(lookup1::LookupArray, lookups::LookupArray...)
+function _vcat_index(lookup1::Lookup, lookups::Lookup...)
     shifted = map((lookup1, lookups...)) do l
         parent(maybeshiftlocus(locus(lookup1), l))
     end
@@ -516,7 +554,9 @@ _unique(A::AbstractDimArray, dims) = unique(parent(A); dims=dimnum(A, dims))
 _unique(A::AbstractDimArray, dims::Colon) = unique(parent(A); dims=:)
 
 Base.diff(A::AbstractDimVector; dims=1) = _diff(A, dimnum(A, dims))
-Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
+Base.diff(A::AbstractDimArray; dims) = begin
+    _diff(A, dimnum(A, dims))
+end
 
 @inline function _diff(A::AbstractDimArray{<:Any,N}, dims::Integer) where {N}
     r = axes(A)
@@ -531,14 +571,21 @@ function Base._replace!(new::Base.Callable, res::AbstractDimArray, A::AbstractDi
     return res
 end
 
-function Base.reverse(A::AbstractDimArray; dims=1)
+Base.reverse(A::AbstractDimArray; dims=:) = _reverse(A, dims)
+
+function _reverse(A::AbstractDimArray, ::Colon)
+    newdims = _reverse(DD.dims(A))
+    newdata = reverse(parent(A))
+    # Use setdims here because newdims is not all the dims
+    setdims(rebuild(A, newdata), newdims)
+end
+function _reverse(A::AbstractDimArray, dims)
     newdims = _reverse(DD.dims(A, dims))
     newdata = reverse(parent(A); dims=dimnum(A, dims))
     # Use setdims here because newdims is not all the dims
     setdims(rebuild(A, newdata), newdims)
 end
-
-_reverse(dims::Tuple) = map(d -> reverse(d), dims)
+_reverse(dims::Tuple{Vararg{Dimension}}) = map(d -> reverse(d), dims)
 _reverse(dim::Dimension) = reverse(dim)
 
 # Dimension
@@ -546,3 +593,6 @@ Base.reverse(dim::Dimension) = rebuild(dim, reverse(lookup(dim)))
 
 Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A))
 
+# We need to override copy_similar because our `similar` doesn't work with size changes
+# Fixed in Base in https://github.com/JuliaLang/julia/pull/53210
+LinearAlgebra.copy_similar(A::AbstractDimArray, ::Type{T}) where {T} = copyto!(similar(A, T), A)

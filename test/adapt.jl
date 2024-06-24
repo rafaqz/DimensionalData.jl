@@ -1,6 +1,6 @@
 using DimensionalData, Test, Unitful, Adapt
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 struct CustomArray{T,N} <: AbstractArray{T,N}
     arr::Array
@@ -17,7 +17,7 @@ Base.count(x::CustomArray) = count(x.arr)
     @test adapt(CustomArray, Metadata(:a=>"1", :b=>"2")) == NoMetadata()
 end
 
-@testset "LookupArray" begin
+@testset "Lookup" begin
     l = Sampled([1:10...]; metadata=Metadata(:a=>"1", :b=>"2"))
     l1 = Adapt.adapt(CustomArray, l)
     @test parent(parent(l1)) isa CustomArray
@@ -43,7 +43,7 @@ end
     @test parent(parent(l1)) isa Base.OneTo
     l = AutoLookup()
     l1 = Adapt.adapt(CustomArray, l)
-    @test parent(l1) isa AutoIndex
+    @test parent(l1) isa AutoValues
 end
 
 @testset "Dimension" begin

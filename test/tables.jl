@@ -1,7 +1,7 @@
 using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using DimensionalData: DimTable, DimColumn, DimArrayColumn, dimstride
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using DimensionalData: DimTable, DimExtensionArray
 
 x = X([:a, :b, :c])
 y = Y([10.0, 20.0])
@@ -18,8 +18,6 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
     @test parent(t) === ds
 
     @test Tables.columns(t) === t
-    @test t[:X] isa DimColumn
-    @test t[:data] isa DimArrayColumn
     @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
 
     @test Tables.istable(typeof(t)) == Tables.istable(t) ==
@@ -63,29 +61,11 @@ end
     ds = DimStack(da)
     t = DimTable(ds)
     for x in (da, ds, t)
+        x = da
         @test IteratorInterfaceExtensions.isiterable(x)
         @test TableTraits.isiterabletable(x)
         @test collect(Tables.namedtupleiterator(x)) == collect(IteratorInterfaceExtensions.getiterator(x))
     end
-end
-
-@testset "DimColumn" begin
-    c = DimColumn(dims(da, Y), dims(da))
-    @test length(c) == length(da)
-    @test size(c) == (length(da),)
-    @test axes(c) == (Base.OneTo(length(da)),)
-    @test vec(c) == Array(c) == Vector(c) ==
-        repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
-    @test c[1] == 10.0
-    @test c[4] == 20.0
-    @test c[7] == 10.0
-    @test c[18] == 20.0
-    @test c[1:5] == [10.0, 10.0, 10.0, 20.0, 20.0]
-    @test_throws BoundsError c[-1]
-    @test_throws BoundsError c[19]
-
-    cX = DimColumn(dims(da, X), dims(da))
-    @test vec(cX) == Array(cX) == Vector(cX) == repeat([:a, :b, :c], 6)
 end
 
 @testset "DataFrame conversion" begin
@@ -134,6 +114,14 @@ end
     ds = DimStack(da)
     @test dims(ds) == dims(da)
     @test lookup(ds) == lookup(dims(da))
+end
+
+@testset "one dimension tables" begin
+    a = DimVector(1:3, x; name=:a)
+    b = DimVector(4:6, x; name=:b)
+    s = DimStack((a, b))
+    @test Tables.columntable(a) == (X=[:a, :b, :c], a=1:3,)
+    @test Tables.columntable(s) == (X=[:a, :b, :c], a=1:3, b=4:6)
 end
 
 @testset "zero dimension tables" begin

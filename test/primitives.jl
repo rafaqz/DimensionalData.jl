@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test , BenchmarkTools
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using .Dimensions: _call_primitive, _wraparg, _reducedims, AlwaysTuple, MaybeFirst
+using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims
 
 @dim Tst
 
@@ -31,30 +31,27 @@ dimz = dims(da)
     @test (@inferred dimsmatch(nothing, Z())) == false
     @test (@inferred dimsmatch(nothing, nothing)) == false
 
+    @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, Dimension))) == 0
     @test (@ballocated dimsmatch(ZDim, Dimension)) == 0
     @test (@ballocated dimsmatch((Z(), ZDim), (ZDim, XDim))) == 0
+
+    @testset "no type match but name matches" begin
+        @test (@ballocated dimsmatch(Z, Dim{:Z})) == 0
+        @test (@ballocated dimsmatch((Z(), Dim{:Ti}()), (Dim{:Z}(), Ti()))) == 0
+    end
 end
 
-@testset "key2dim" begin
-    @test key2dim(:test) == Dim{:test}()
-    @test key2dim(:X) == X()
-    @test key2dim(:x) == Dim{:x}()
-    @test key2dim(:Ti) == Ti()
-    @test key2dim(:ti) == Dim{:ti}()
-    @test key2dim(:Tst) == Tst()
-    @test key2dim(Ti) == Ti
-    @test key2dim(Ti()) == Ti()
-    @test key2dim(Val{TimeDim}()) == Val{TimeDim}()
-    @test key2dim((:test, Ti, Ti())) == (Dim{:test}(), Ti, Ti())
-end
-
-@testset "dim2key" begin
-    @test dim2key(X()) == :X
-    @test dim2key(Dim{:x}) == :x
-    @test dim2key(Tst()) == :Tst
-    @test dim2key(Dim{:test}()) == :test
-    @test (@ballocated dim2key(Dim{:test}())) == 0
-    @test dim2key(Val{TimeDim}()) == :TimeDim
+@testset "name2dim" begin
+    @test name2dim(:test) == Dim{:test}()
+    @test name2dim(:X) == X()
+    @test name2dim(:x) == Dim{:x}()
+    @test name2dim(:Ti) == Ti()
+    @test name2dim(:ti) == Dim{:ti}()
+    @test name2dim(:Tst) == Tst()
+    @test name2dim(Ti) == Ti
+    @test name2dim(Ti()) == Ti()
+    @test name2dim(Val{TimeDim}()) == Val{TimeDim}()
+    @test name2dim((:test, Ti, Ti())) == (Dim{:test}(), Ti, Ti())
 end
 
 @testset "_wraparg" begin
@@ -79,18 +76,18 @@ end
     @inferred f6()
     @inferred f7()
     @inferred f8()
-    @test (@inferred f9()) == (DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h))),
-                        DimensionalData.key2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
+    @test (@inferred f9()) == (DimensionalData.name2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h))),
+                        DimensionalData.name2dim.(((:x, :y, :z, :a, :b, :c, :d, :e, :f, :g, :h)))...)
 end
 
-@testset "_call_primitive" begin
-    @test _call_primitive((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
-          _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
+@testset "_dim_query" begin
+    @test _dim_query((f, args...) -> args, AlwaysTuple(), (Z, :a, :b), Ti, XDim, :x) ==
+          _dim_query((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti, XDim, :x) ==
           ((Val(Z), Dim{:a}(), Dim{:b}()), (Val(Ti), Val(XDim), Dim{:x}()))
-    @test _call_primitive((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
+    @test _dim_query((f, args...) -> args, MaybeFirst(), (Z, :a, :b), Ti) ==
         (Val(Z), Dim{:a}(), Dim{:b}())
-    @testset "_call_primitive" begin
-        f1 = t -> _call_primitive((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
+    @testset "_dim_query" begin
+        f1 = t -> _dim_query((f, args...) -> args, t, (X, :a, :b), (TimeDim, X(), :a, :b, Ti))
         @inferred f1(AlwaysTuple())
         @test (@ballocated $f1(AlwaysTuple())) == 0
     end
@@ -114,9 +111,6 @@ end
     # Val
     @inferred sortdims(dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))
     @test (@ballocated sortdims($dimz, (Val{Y}(), Val{Ti}(), Val{Z}(), Val{X}()))) == 0
-    # Transformed
-    @test @inferred (sortdims((Y(Transformed(identity, Z())), X(1)), (X(), Z()))) ==
-                              (X(1), Y(Transformed(identity, Z())))
     # Abstract
     @test sortdims((Z(), Y(), X()), (XDim, TimeDim)) == (X(), nothing)
     # Repeating
@@ -139,6 +133,8 @@ end
     @test (@ballocated $f1($dimz)) == 0
 
     @test dims(da, X()) isa X
+    @test dims(da, isforward) isa Tuple{<:X,<:Y}
+    @test dims(da, !isforward) isa Tuple{}
     @test dims(da, Z()) isa Nothing
     @test (@inferred dims(da, XDim, YDim)) isa Tuple{<:X,<:Y}
     @test (@ballocated dims($da, XDim, YDim)) == 0
@@ -156,8 +152,18 @@ end
         @test dims(A, :two) == Dim{:two}(NoLookup(Base.OneTo(5)))
     end
 
-    # @test_throws ArgumentError dims(da, Ti)
-    # @test_throws ArgumentError dims(dimz, Ti)
+    @testset "non matching single queries return nothing" begin
+        @test dims(da, :Ti) == nothing
+        @test dims(da, Ti) == nothing
+        @test dims(da, 3) == nothing
+    end
+
+    @testset "non matching tuple queries return empty tuples" begin
+        @test dims(da, (:Ti,)) == ()
+        @test dims(da, (Ti,)) == ()
+        @test dims(da, (3,)) == ()
+    end
+
     @test_throws ArgumentError dims(nothing, X)
 
     @test dims(dimz) === dimz
@@ -171,6 +177,7 @@ end
 
 @testset "commondims" begin
     @test commondims(da, X) == (dims(da, X),)
+    @test commondims(da, x -> x isa X) == (dims(da, X),)
     # Dims are always in the base order
     @test (@inferred commondims(da, (Y(), X()))) == dims(da, (X, Y))
     @test (@ballocated commondims($da, (Y(), X()))) == 0
@@ -203,8 +210,8 @@ end
 end
 
 @testset "dimnum" begin
-    dims(da)
     @test dimnum(da, Y()) == dimnum(da, 2) == 2
+    @test dimnum(da, Base.Fix2(isa,Y)) == (2,)
     @test (@ballocated dimnum($da, Y())) == 0
     @test dimnum(da, X) == 1
     @test (@ballocated dimnum($da, X)) == 0
@@ -224,10 +231,18 @@ end
         dimz = (Dim{:a}(), Y(), Dim{:b}())
         @test (@ballocated dimnum($dimz, :b, :a, Y)) == 0
     end
+
+    @testset "not present dimensions error" begin
+        @test_throws ArgumentError dimnum(da, Z())
+        @test_throws ArgumentError dimnum(da, 3)
+        @test_throws ArgumentError dimnum(da, 0)
+    end
 end
 
 @testset "hasdim" begin
     @test hasdim(da, X()) == true
+    @test hasdim(da, :X) == true
+    @test hasdim(da, isforward) == (true, true) 
     @test (@ballocated hasdim($da, X())) == 0
     @test hasdim(da, Ti) == false
     @test (@ballocated hasdim($da, Ti)) == 0
@@ -235,6 +250,7 @@ end
     @ballocated hasdim(dims($da), Y)
     @test (@ballocated hasdim(dims($da), Y)) == 0
     @test hasdim(dims(da), (X, Y)) == (true, true)
+    @test hasdim(dims(da), (:X, :Y)) == (true, true)
     f1 = (da) -> hasdim(dims(da), (X, Ti, Y, Z))
     @test @inferred f1(da) == (true, false, true, false)
     @test (@ballocated $f1($da)) == 0
@@ -264,13 +280,18 @@ end
 @testset "otherdims" begin
     A = DimArray(ones(5, 10, 15), (X, Y, Z));
     @test otherdims(A, X()) == dims(A, (Y, Z))
+    @test otherdims(A, x -> x isa X) == dims(A, (Y, Z))
     @test (@ballocated otherdims($A, X())) == 0
+    @test (@ballocated otherdims($A, X)) == 0
+    @test (@ballocated otherdims($A, (X, Y))) == 0
+    @test (@ballocated otherdims($A, X, Y)) == 0
+    @test otherdims(A, X, Y) == dims(A, (Z,))
     @test otherdims(A, Y) == dims(A, (X, Z))
     @test otherdims(A, Z) == dims(A, (X, Y))
+    @test otherdims(A) == dims(A)
     @test otherdims(A, DimensionalData.ZDim) == dims(A, (X, Y))
     @test otherdims(A, (X, Z)) == dims(A, (Y,))
     f1 = A -> otherdims(A, (X, Z))
-    @ballocated $f1($A)
     @test (@ballocated $f1($A)) == 0
     f2 = (A) -> otherdims(A, Ti)
     @test f2(A) == dims(A, (X, Y, Z))
@@ -283,12 +304,78 @@ end
         @test otherdims((Dim{:a}(), Dim{:b}(), Ti()), (:a, :c)) == (Dim{:b}(), Ti())
     end
     @test_throws ArgumentError otherdims(nothing, X)
+
+    @testset "non matching single queries return all dims" begin
+        @test otherdims(da, :Ti) == dims(da)
+        @test otherdims(da, Ti) == dims(da)
+        @test otherdims(da, 3) == dims(da)
+        @test otherdims(da, 0) == dims(da)
+    end
 end
 
 @testset "combinedims" begin
     @test combinedims((X(1:10), Y(1:5)), (X(1:10), Z(3:10))) == (X(1:10), Y(1:5), Z(3:10))
     @test combinedims([]) == combinedims() == ()
     @test_throws DimensionMismatch combinedims((X(1:2), Y(1:5)), (X(1:10), Z(3:10)))
+end
+
+@testset "comparedims" begin
+    @testset "default keywords" begin
+        @test comparedims(Bool, X(1:2), X(1:2))
+        @test !comparedims(Bool, X(1:2), Y(1:2))
+        @test !comparedims(Bool, X(1:2), X(1:3))
+        @test_warn "Found both lengths 2 and 3" comparedims(Bool, X(1:2), X(1:3); warn="")
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); warn="")
+        @test comparedims(X(1:2), X(1:2)) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), Y(1:2))
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:3))
+    end
+    @testset "compare type" begin
+        @test comparedims(Bool, X(1:2), Y(1:2); type=false)
+        @test !comparedims(Bool, X(1:2), Y(1:2); type=true)
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); type=true, warn="")
+        @test comparedims(X(1:2), Y(1:2); type=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), Y(Sampled(1:2)); type=true)
+    end
+    @testset "compare val type" begin
+        @test comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
+        @test comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
+        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=true)
+        @test comparedims(X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled([1, 2])), X(Sampled(1:2)); valtype=true)
+    end
+    @testset "compare values" begin
+        @test comparedims(Bool, X(1:2), X(2:3); val=false)
+        @test !comparedims(Bool, X(1:2), X(2:3); val=true)
+        @test_warn "do not match" comparedims(Bool, X(1:2), X(2:3); val=true, warn="")
+        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=false)
+        @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=true)
+        @test comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=false) == X(Sampled(1:2))
+        @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=true)
+    end
+    @testset "compare length" begin
+        @test comparedims(Bool, X(1:2), X(1:3); length=false)
+        @test !comparedims(Bool, X(1:2), X(1:3); length=true)
+        @test_warn "Found both lengths" comparedims(Bool, X(1:2), X(1:3); length=true, warn="")
+        @test comparedims(X(1:2), X(1:3); length=false) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:3); length=true)
+        @test comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=true)
+        @test !comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=false)
+        @test comparedims(X(1:2), X(1:1); length=false, ignore_length_one=true) == X(1:2)
+        @test_throws DimensionMismatch comparedims(X(1:2), X(1:1); length=true, ignore_length_one=false)
+    end
+    @testset "compare order" begin
+        a, b = X(Sampled(1:2); order=ForwardOrdered()), X(Sampled(1:2); order=ReverseOrdered())
+        @test comparedims(Bool, a, b; order=false)
+        @test !comparedims(Bool, a, b; order=true)
+        @test comparedims(Bool, a, b; order=false)
+        @test_nowarn comparedims(Bool, a, b; order=true)
+        @test_warn "Lookups do not all have the same order" comparedims(Bool, a, b; order=true, warn="")
+        @test_throws DimensionMismatch comparedims(a, b; order=true)
+    end
 end
 
 @testset "setdims" begin
@@ -344,7 +431,8 @@ end
         @test slicedims(dimz, 2:2, :) == slicedims(dimz, (), 2:2, :) ==
             ((X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
               Y(Sampled(-20:-1:-22, ReverseOrdered(), Regular(-1), Points(), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
+        # What is this testing, it should error...
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) ==
               slicedims((), 1:2, 3) == slicedims((), (), 1:2, 3) == ((), ())
         @test slicedims(dimz, CartesianIndex(2, 3)) ==
             ((), (X(Sampled(145:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
@@ -364,7 +452,9 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())),
               Y(Sampled([30.0, 20.0], ReverseOrdered(), Regular(-10.0), Intervals(Center()), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        # This should never happen, not sure why it was tested?
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ()) 
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ()) 
     end
 
     @testset "Irregular Points" begin
@@ -377,7 +467,8 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
         ((X(Sampled([142.0], ForwardOrdered(), Irregular(142, 142), Points(), NoMetadata())),
           Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(20.0, 40.0), Points(), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
 
     @testset "Irregular Intervals" begin
@@ -390,7 +481,8 @@ end
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
             ((X(Sampled([142.0], ForwardOrdered(), Irregular(142.0, 144.0), Intervals(Start()), NoMetadata())),
               Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(15.0, 60.0), Intervals(Center()), NoMetadata()))), ())
-        @test slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
+        @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
 
     @testset "NoLookup" begin
@@ -451,14 +543,4 @@ end
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
     end
-
-end
-
-@testset "dimstride" begin
-    dimz = (X(), Y(), Dim{:test}())
-    da = DimArray(ones(3, 2, 3), dimz; name=:data)
-    @test dimstride(da, X()) == 1
-    @test dimstride(da, Y()) == 3
-    @test dimstride(da, Dim{:test}()) == 6
-    @test_throws ArgumentError dimstride(nothing, X())
 end

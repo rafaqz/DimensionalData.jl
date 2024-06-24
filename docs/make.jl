@@ -1,29 +1,36 @@
-using Documenter, DocumenterMarkdown
+using DocumenterVitepress
+using Documenter
 using DimensionalData
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using CoordinateTransformations, Dates, Unitful
+using DimensionalData.Dimensions
+using DimensionalData.Lookups
 
-makedocs(
-    modules = [DimensionalData],
-    clean=true,
-    doctest=false,
-    #format   = Documenter.HTML(prettyurls = get(ENV, "CI", nothing) == "true"),
-    sitename="DimensionalData.jl",
-    authors="Rafael Schouten et al.",
-    strict=[
-        :doctest,
-        :linkcheck,
-        :parse_error,
-        :example_block,
-        # Other available options are
-        # :autodocs_block, :cross_references, :docs_block, :eval_block, :example_block,
-        # :footnote, :meta_block, :missing_docs, :setup_block
-    ], checkdocs=:all, format=Markdown(), draft=false,
-    build=joinpath(@__DIR__, "docs")
+# Names are available everywhere so that [`function`](@ref) works.
+# ====================
+
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.Lookups); recursive=true)
+
+# Build documentation.
+# ====================
+
+makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
+    modules=[DimensionalData],
+    checkdocs=:all,
+    format=DocumenterVitepress.MarkdownVitepress(
+        repo = "github.com/rafaqz/DimensionalData.jl",
+        devbranch = "main", 
+        devurl = "dev", 
+    ),
+    draft=false,
+    source="src", 
+    build="build",
 )
 
-deploydocs(; repo="github.com/rafaqz/DimensionalData.jl.git", push_preview=true,
-    deps=Deps.pip("mkdocs", "pygments", "python-markdown-math", "mkdocs-material",
-        "pymdown-extensions", "mkdocstrings", "mknotebooks",
-        "pytkdocs_tweaks", "mkdocs_include_exclude_files", "jinja2"),
-    make=() -> run(`mkdocs build`), target="site", devbranch="main")
+# Deploy built documentation.
+# ===========================
+deploydocs(; 
+    repo="github.com/rafaqz/DimensionalData.jl",
+    target="build", # this is where Vitepress stores its output
+    branch = "gh-pages",
+    devbranch = "main",
+    push_preview = true
+)

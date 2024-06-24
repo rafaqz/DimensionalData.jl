@@ -1,7 +1,7 @@
 using DimensionalData, Test 
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using DimensionalData.LookupArrays: _set
+using DimensionalData.Lookups: _set
 
 a = [1 2; 3 4]
 dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),
@@ -69,7 +69,7 @@ end
     cat_da = set(da, X=NoLookup(), Y=Categorical())
     @test index(cat_da) == 
         (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
-    cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoIndex(); metadata=Dict()))
+    cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
     @test metadata(cat_da_m) == Dict()
  
     @testset "span" begin
@@ -118,8 +118,8 @@ end
         @test set(Dim{:foo}(2:11), :bar) === Dim{:bar}(2:11)
         @test set(Dim{:foo}(), Dim{:bar}()) === Dim{:bar}()
         @test set(Dim{:foo}(2:11), Dim{:bar}()) === Dim{:bar}(2:11)
-        @test set(Dim{:foo}(LookupArrays.Sampled(2:11)), Dim{:bar}(LookupArrays.Sampled(0:9))) ===
-            set(set(Dim{:foo}(LookupArrays.Sampled(2:11)), :bar), LookupArrays.Sampled(0:9))
+        @test set(Dim{:foo}(Lookups.Sampled(2:11)), Dim{:bar}(Lookups.Sampled(0:9))) ===
+            set(set(Dim{:foo}(Lookups.Sampled(2:11)), :bar), Lookups.Sampled(0:9))
         @test set((Dim{:foo}(),), :foo => :bar) === (Dim{:bar}(),)
         @test set((Dim{:foo}(2:11),), :foo => :bar) === (Dim{:bar}(2:11),)
         @test set(dimz, :X => :foo, :Y => :bar) ===

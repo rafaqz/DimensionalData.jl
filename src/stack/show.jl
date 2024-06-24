@@ -1,50 +1,67 @@
-function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
+# Base show
+function Base.summary(io::IO, stack::AbstractDimStack)
+    print_ndims(io, size(stack))
     print(io, nameof(typeof(stack)))
-    Dimensions.print_dims(io, mime, dims(stack))
-    nlayers = length(keys(stack))
-    layers_str = nlayers == 1 ? "layer" : "layers"
-    printstyled(io, "\nand "; color=:light_black) 
-    print(io, "$nlayers $layers_str:\n")
-    maxlen = if length(keys(stack)) == 0
-        0
-    else
-        reduce(max, map(length ∘ string, collect(keys(stack))))
-    end
-    for key in keys(stack)
-        layer = stack[key]
-        pkey = rpad(key, maxlen)
-        printstyled(io, "  :$pkey", color=:yellow)
-        print(io, string(" ", eltype(layer)))
-        field_dims = DD.dims(layer)
-        n_dims = length(field_dims)
-        printstyled(io, " dims: "; color=:light_black)
-        if n_dims > 0
-            for (d, dim) in enumerate(field_dims)
-                Dimensions.print_dimname(io, dim)
-                d != length(field_dims) && print(io, ", ")
-            end
-            print(io, " (")
-            for (d, dim) in enumerate(field_dims)
-                print(io, "$(length(dim))")
-                d != length(field_dims) && print(io, '×')
-            end
-            print(io, ')')
-        end
-        print(io, '\n')
-    end
+end
 
-    md = metadata(stack)
-    if !(md isa NoMetadata)
-        n_metadata = length(md)
-        if n_metadata > 0
-            printstyled(io, "\nwith metadata "; color=:light_black)
-            show(io, mime, md)
-        end
-    end
-
+function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
+    # Show main blocks - summar, dims, layers, metadata
+    _, blockwidth = show_main(io, mime, stack)
     # Show anything else subtypes want to append
-    show_after(io, mime, stack)
+    ctx = IOContext(io, :blockwidth => blockwidth)
+    show_after(ctx, mime, stack)
     return nothing
 end
 
-show_after(io, mime, stack::DimStack) = nothing
+# Show customisation interface
+function show_main(io, mime, stack::AbstractDimStack)
+    lines, blockwidth, displaywidth = print_top(io, mime, stack)
+    blockwidth = print_layers_block(io, mime, stack; blockwidth, displaywidth)
+    _, blockwidth = print_metadata_block(io, mime, metadata(stack); displaywidth, blockwidth=min(displaywidth-2, blockwidth))
+end
+
+function show_after(io, mime, stack::AbstractDimStack)
+    blockwidth = get(io, :blockwidth, 0)
+    print_block_close(io, blockwidth)
+end
+
+# Show blocks
+function print_layers_block(io, mime, stack; blockwidth, displaywidth)
+    layers = DD.layers(stack)
+    keylen = if length(keys(layers)) == 0
+        0
+    else
+        reduce(max, map(length ∘ string, collect(keys(layers))))
+    end
+    newblockwidth = blockwidth
+    for key in keys(layers)
+        newblockwidth = min(displaywidth - 2, max(newblockwidth, length(sprint(print_layer, stack, key, keylen))))
+    end
+    newblockwidth = print_block_separator(io, "layers", blockwidth, newblockwidth)
+    println(io)
+    for key in keys(layers)
+        print_layer(io, stack, key, keylen)
+    end
+    return newblockwidth
+end
+
+function print_layer(io, stack, key, keylen)
+    layer = stack[key]
+    pkey = rpad(key, keylen)
+    printstyled(io, "  :$pkey", color=dimcolors(7))
+    printstyled(io, " eltype: "; color=:light_black)
+    print(io, string(eltype(layer)))
+    field_dims = DD.dims(layer)
+    n_dims = length(field_dims)
+    colors = map(dimcolors, dimnum(stack, field_dims))
+    printstyled(io, " dims: "; color=:light_black)
+    if n_dims > 0
+        for (i, (dim, color)) in enumerate(zip(field_dims, colors))
+            Dimensions.print_dimname(IOContext(io, :dimcolor => color), dim)
+            i != length(field_dims) && print(io, ", ")
+        end
+        printstyled(io, " size: "; color=:light_black)
+        print_sizes(io, size(field_dims); colors)
+    end
+    print(io, '\n')
+end

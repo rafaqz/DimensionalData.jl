@@ -1,17 +1,17 @@
-using DimensionalData, Test, Unitful
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData, Test, Unitful, BenchmarkTools
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 @dim TestDim "Testname"
 
 @testset "dims creation macro" begin
     @test parent(TestDim(1:10)) == 1:10
     @test val(TestDim(1:10)) == 1:10
-    @test name(TestDim) == :Testname
-    @test label(TestDim) == "Testname"
+    @test name(TestDim) == :TestDim
     @test val(TestDim(:testval)) == :testval
     @test metadata(TestDim(Sampled(1:1; metadata=Metadata(a=1)))) == Metadata(a=1)
     @test units(TestDim) == nothing
     @test label(TestDim) == "Testname"
+    @test label(TestDim()) == "Testname"
     @test eltype(TestDim(1)) == Int
     @test eltype(TestDim([1, 2, 3])) <: Int
     @test length(TestDim(1)) == 1
@@ -41,6 +41,15 @@ using DimensionalData.LookupArrays, DimensionalData.Dimensions
     @test TestDim(Sampled(5.0:7.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))[At(6.0)] == 6.0
 end
 
+@testset "name" begin
+    @test name(X()) == :X
+    @test name(Dim{:x}) == :x
+    @test name(TestDim()) == :TestDim
+    @test name(Dim{:test}()) == :test
+    @test (@ballocated name(Dim{:test}())) == 0
+    @test name(Val{TimeDim}()) == :TimeDim
+end
+
 @testset "format" begin
     A = [1 2 3; 4 5 6]
     @test format((X, Y), A) == (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(3))))
@@ -55,7 +64,7 @@ end
            Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1)))), A) ==
           (X(Categorical([:A, :B], ForwardOrdered(), Metadata(a=5))),
            Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1))))
-     @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) == 
+    @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) == 
         (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata())), 
          Y(NoLookup(Base.OneTo(3))))
 end
@@ -67,9 +76,9 @@ end
 
 @testset "AnonDim" begin
     @test val(AnonDim()) == Colon()
-    @test lookup(AnonDim()) == NoLookup()
+    @test lookup(AnonDim(NoLookup())) == NoLookup()
     @test metadata(AnonDim()) == NoMetadata()
-    @test name(AnonDim()) == :Anon
+    @test name(AnonDim()) == :AnonDim
 end
 
 @testset "Basic dim and array initialisation and methods" begin
@@ -81,9 +90,14 @@ end
     da = DimArray(a, (X(LinRange(140, 148, 5)), Y(LinRange(2, 11, 4))))
     dimz = dims(da)
 
-    for args in ((dimz,), (dimz, (X(), Y())), (dimz, X(), Y()), 
-                 (dimz, (X, Y)), (dimz, X, Y), 
-                 (dimz, (1, 2)), (dimz, 1, 2))
+    for args in ((dimz,), 
+                 (dimz, (X(), Y())), 
+                 (dimz, X(), Y()), 
+                 (dimz, (X, Y)) , 
+                 (dimz, X, Y), 
+                 (dimz, (1, 2)), 
+                 (dimz, 1, 2)
+        )
         @test index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
         @test name(args...) == (:X, :Y)
         @test units(args...) == (nothing, nothing)

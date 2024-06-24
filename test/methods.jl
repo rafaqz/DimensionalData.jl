@@ -1,5 +1,5 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
+using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using LinearAlgebra: Transpose
 
@@ -108,9 +108,9 @@ end
     a = [1 2 3; 4 5 6]
     dimz = X(143:2:145), Y(-38:-36)
     da = DimArray(a, dimz)
-    @test median(da) == 3.5
-    @test median(da; dims=X()) == [2.5 3.5 4.5]
-    @test median(da; dims=2) == [2.0 5.0]'
+    @test @inferred median(da) == 3.5
+    @test @inferred median(da; dims=X()) == [2.5 3.5 4.5]
+    @test @inferred median(da; dims=2) == [2.0 5.0]'
 
     a = Bool[0 1 1; 0 0 0]
     da = DimArray(a, dimz)
@@ -120,6 +120,11 @@ end
     @test all(da; dims=Y) == reshape([false, false], 2, 1)
     @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
 
+    @testset "inference" begin
+        x = DimArray(randn(2, 3, 4), (X, Y, Z));
+        foo(x) = maximum(x; dims=(1, 2))
+        @inferred foo(x)
+    end
 end
 
 @testset "dimension dropping methods" begin
@@ -154,7 +159,7 @@ end
         f2(x, dims) = eachslice(x; dims=dims, drop=false)
         @testset for dims in (y, ti, (y,), (ti,), (y, ti), (ti, y))
             @inferred f(da, dims)
-            VERSION ≥ v"1.9-alpha1" && @inferred f2(da, dims)
+            @inferred f2(da, dims)
         end
     end
 
@@ -173,14 +178,13 @@ end
             @test slices isa DimArray
             @test Dimensions.dims(slices) == (ti,)
             @test slices[1] == DimArray([2, 6, 10], y)
-            if VERSION ≥ v"1.9-alpha1"
-                @test eachslice(da; dims=dims) isa Slices
-                slices = eachslice(da; dims=dims, drop=false)
-                @test slices isa Slices
-                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
-                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
-                @test slices[1] == DimArray([1, 3, 5], y)
-            end
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+            @test slices[1] == DimArray([1, 3, 5], y)
+            
         end
     end
 
@@ -192,14 +196,13 @@ end
             @test slices[1] == DimArray([2, 4, 6, 8], ti)
             @test slices[2] == DimArray([6, 8, 10, 12], ti)
             @test slices[3] == DimArray([10, 12, 14, 16], ti)
-            if VERSION ≥ v"1.9-alpha1"
-                @test eachslice(da; dims=dims) isa Slices
-                slices = eachslice(da; dims=dims, drop=false)
-                @test slices isa Slices
-                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
-                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
-                @test slices[1] == DimArray([1, 2, 3, 4], ti)
-            end
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+            @test slices[1] == DimArray([1, 2, 3, 4], ti)
+        
         end
     end
 
@@ -214,14 +217,17 @@ end
             @test axes(slices) == map(x -> axes(da, x), dims)
             @test eltype(slices) <: DimArray{Int, 0}
             @test map(first, slices) == permutedims(da * 3, dims)
-            if VERSION ≥ v"1.9-alpha1"
-                @test eachslice(da; dims=dims) isa Slices
-                slices = eachslice(da; dims=dims, drop=false)
-                @test slices isa Slices
-                @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
-                @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
-            end
+            @test eachslice(da; dims=dims) isa Slices
+            slices = eachslice(da; dims=dims, drop=false)
+            @test slices isa Slices
+            @test slices == eachslice(parent(da); dims=dimnum(da, dims), drop=false)
+            @test axes(slices) == axes(sum(da; dims=otherdims(da, Dimensions.dims(da, dims))))
+        
         end
+    end
+    @testset "eachslice with empty tuple dims" begin
+        A = rand(X(10))
+        @test ndims(eachslice(A; dims=())) == 0
     end
 end
 
@@ -336,14 +342,67 @@ end
         ms = mapslices(sum, da; dims)
         @test ms == [9 12 15 18]
         @test DimensionalData.dims(ms) == 
-            (Y(Sampled(10:10:30, ForwardOrdered(), Regular(10), Intervals(Center()), NoMetadata())),
-             Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
+            (Y(NoLookup(Base.OneTo(1))), Ti(Sampled(1:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())))
         @test refdims(ms) == ()
     end
     for dims in tis
         ms = mapslices(sum, da; dims)
         @test parent(ms) == [10 18 26]'
     end
+
+    @testset "size changes" begin
+        x = DimArray(randn(4, 100, 2), (:chain, :draw, :x_dim_1));
+        y = mapslices(vec, x; dims=(:chain, :draw))
+        @test size(y) == size(dims(y))
+        x = rand(X(1:10), Y([:a, :b, :c]), Ti(10))
+        y = mapslices(sum, x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+        @test dims(y) == (X(NoLookup(Base.OneTo(1))), Y(NoLookup(Base.OneTo(1))), Ti(NoLookup(Base.OneTo(10))))
+
+        y = mapslices(A -> A[2:9, :], x; dims=(X, Y))
+        @test size(y) == size(dims(y))
+        @test dims(y) == dims(x[2:9, :, :])
+    end
+
+    @testset "single dim" begin
+        x = X(1:10)
+        A = DimArray(ones(10), x)
+        @test mapslices(sum, A; dims=X) == fill(10.0, X(1))
+    end
+end
+
+@testset "cumsum" begin
+    v = DimArray([10:-1:1...], X)
+    @test cumsum(v) == cumsum(parent(v))
+    @test dims(cumsum(v)) == dims(v)
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test cumsum(A; dims=X) == cumsum(parent(A); dims=1)
+    @test dims(cumsum(A; dims=X)) == dims(A)
+end
+
+@testset "cumsum!" begin
+    v = DimArray([10:-1:1...], X)
+    @test cumsum!(copy(v), v) == cumsum(parent(v))
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test cumsum!(copy(A), A; dims=X) == cumsum(parent(A); dims=1)
+end
+
+@testset "sort" begin
+    v = DimArray([10:-1:1...], X)
+    @test sort(v) == sort(parent(v))
+    @test dims(sort(v)) == (X(NoLookup(Base.OneTo(10))),)
+    A = rand((X(5:-1:1), Y(11:15)))
+    @test sort(A; dims=X) == sort(parent(A); dims=1)
+    @test dims(sort(A; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(A, Y)) 
+end
+
+@testset "sortslices" begin
+    M = rand((X(5:-1:1), Y(11:15)))
+    @test sortslices(M; dims=X) == sortslices(parent(M); dims=1)
+    @test dims(sort(M; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(M, Y)) 
+    M = rand((X(5:-1:1), Y(11:15), Ti(3:10)))
+    @test sortslices(M; dims=(X, Y)) == sortslices(parent(M); dims=(1, 2))
+    @test dims(sortslices(M; dims=(X, Y))) == (X(NoLookup(Base.OneTo(5))), Y(NoLookup(Base.OneTo(5))), dims(M, Ti))
 end
 
 @testset "cat" begin
@@ -462,6 +521,29 @@ end
         @test dims(cat(da, db; dims=X()), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(NoLookup())), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(1.0:4.0)), X) === X(Sampled(1.0:4.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
+    end
+
+    @testset "cat empty dimarrays" begin
+        a = rand(X([1, 2, 3]))
+        b = rand(X(Int64[]))
+        c = cat(a, b; dims=X)
+        @test c == a
+        @test dims(c) == dims(a)
+        a = rand(X(Int64[]; order=DimensionalData.ForwardOrdered()))
+        b = rand(X([1, 2, 3]))
+        c = cat(a, b; dims=X)
+        @test c == b
+        @test dims(c) == dims(b)
+        a = rand(X(1:3))
+        b = rand(X(4:0))
+        c = cat(a, b; dims=X)
+        @test c == a
+        @test dims(c) == dims(a)
+        a = rand(X(1:0))
+        b = rand(X(1:3))
+        c = cat(a, b; dims=X)
+        @test c == b
+        @test dims(c) == dims(b)
     end
 end
 

@@ -7,15 +7,14 @@ Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
 [`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
 
 `Dimension`s label the axes of an `AbstractDimArray`,
-or other dimensional objects, and are used to index into the array.
+or other dimensional objects, and are used to index into an array.
 
-They may also provide an alternate index to lookup for each array axis.
-This may be any `AbstractVector` matching the array axis length, or a `Val`
-holding a tuple for compile-time index lookups.
+They may also wrap lookup values for each array axis.
+This may be any `AbstractVector` matching the array axis length,
+but will usually be converted to a `Lookup` when use in a constructed
+object.
 
-`Dimension`s also have `lookup` and `metadata` fields.
-
-`lookup` gives more details about the dimension, such as that it is
+A `Lookup` gives more details about the dimension, such as that it is
 [`Categorical`](@ref) or [`Sampled`](@ref) as [`Points`](@ref) or
 [`Intervals`](@ref) along some transect. DimensionalData will
 attempt to guess the lookup from the passed-in index value.
@@ -33,16 +32,18 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-3×5×12 DimArray{Float64,3} with dimensions:
-  Y Categorical{Char} Char['a', 'b', 'c'] ForwardOrdered,
-  X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+╭────────────────────────────╮
+│ 3×5×12 DimArray{Float64,3} │
+├────────────────────────────┴─────────────────────────────────────────── dims ┐
+  ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
+  → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
+  ↗ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
 [:, :, 1]
-       2    4    6    8    10
+ ↓ →   2    4    6    8    10
   'a'  0.0  0.0  0.0  0.0   0.0
   'b'  0.0  0.0  0.0  0.0   0.0
   'c'  0.0  0.0  0.0  0.0   0.0
-[and 11 more slices...]
 ```
 
 For simplicity, the same `Dimension` types are also used as wrappers
@@ -53,16 +54,20 @@ x = A[X(2), Y(3)]
 
 # output
 
-12-element DimArray{Float64,1} with dimensions:
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-and reference dimensions:
-  Y Categorical{Char} Char['c'] ForwardOrdered,
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points
+╭────────────────────────────────╮
+│ 12-element DimArray{Float64,1} │
+├────────────────────────────────┴─────────────────────────────────────── dims ┐
+  ↓ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
  2021-01-01T00:00:00  0.0
  2021-02-01T00:00:00  0.0
  2021-03-01T00:00:00  0.0
  2021-04-01T00:00:00  0.0
- ⋮
+ 2021-05-01T00:00:00  0.0
+ 2021-06-01T00:00:00  0.0
+ 2021-07-01T00:00:00  0.0
+ 2021-08-01T00:00:00  0.0
+ 2021-09-01T00:00:00  0.0
  2021-10-01T00:00:00  0.0
  2021-11-01T00:00:00  0.0
  2021-12-01T00:00:00  0.0
@@ -75,17 +80,15 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-1×12 DimArray{Float64,2} with dimensions:
-  X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
-  Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
-and reference dimensions:
-  Y Categorical{Char} Char['b'] ForwardOrdered
-     2021-01-01T00:00:00  …   2021-12-01T00:00:00
- 4  0.0                                  0.0
+╭──────────────────────────╮
+│ 1×12 DimArray{Float64,2} │
+├──────────────────────────┴───────────────────────────────────────────── dims ┐
+  ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
+  → Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────┘
+ ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
+ 4    0.0                   0.0                      0.0
 ```
-
-`Dimension` objects may have [`lookup`](@ref) and [`metadata`](@ref) fields
-to track additional information about the data and the index, and their relationship.
 """
 abstract type Dimension{T} end
 
@@ -181,26 +184,24 @@ lookuptype(x) = NoLookup
 
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
+name(dim::Type{D}) where D<:Dimension = nameof(D)
 
-label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
+label(x) = string(name(x))
 
-# LookupArrays methods
-LookupArrays.metadata(dim::Dimension) = metadata(lookup(dim))
+# Lookups methods
+Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
 
-LookupArrays.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-LookupArrays.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
-
-LookupArrays.bounds(dim::Dimension) = bounds(val(dim))
-LookupArrays.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
+Lookups.bounds(dim::Dimension) = bounds(val(dim))
+Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
-    @eval function LookupArrays.$f(locus::Locus, x; dims=Dimensions.dims(x))
+    @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
         newdims = map(Dimensions.dims(x, dims)) do d
-            LookupArrays.$f(locus, d)
+            Lookups.$f(locus, d)
         end
         return setdims(x, newdims)
     end
-    @eval LookupArrays.$f(locus::Locus, d::Dimension) =
-        rebuild(d, LookupArrays.$f(locus, lookup(d)))
+    @eval Lookups.$f(locus::Locus, d::Dimension) =
+        rebuild(d, Lookups.$f(locus, lookup(d)))
 end
 
 function hasselection(x, selectors::Union{DimTuple,SelTuple,Selector,Dimension})
@@ -227,27 +228,45 @@ end
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
-        $f(ds::DimTuple) = map($f, ds)
-        $f(ds::Tuple{}) = ()
-        $f(ds::DimTuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::DimTuple, I) = $f(dims(ds, key2dim(I)))
+        $f(ds::Tuple) = map($f, ds)
+        $f(::Tuple{}) = ()
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
     end
 end
 
-@inline function selectindices(x, selectors)
+@inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
         # This object has no dimensions and no `selectindices` method.
-        # Just return whatever it is, maybe the underlying array can use it.
+        # Just return whatever selectors is, maybe the underlying array can use it.
         return selectors
     else
         # Otherwise select indices based on the object `Dimension`s
-        return selectindices(dims(x), selectors)
+        return selectindices(dims(x), selectors; kw...)
     end
 end
-@inline selectindices(ds::DimTuple, sel...) = selectindices(ds, sel)
-@inline selectindices(ds::DimTuple, sel::Tuple) = selectindices(val(ds), sel)
-@inline selectindices(dim::Dimension, sel) = selectindices(val(dim), sel)
+@inline selectindices(ds::Tuple, sel...; kw...) = selectindices(ds, sel; kw...)
+# Cant get this to compile away without a generated function
+# The nothing handling is for if `err=_False`, and we want to combine
+# multiple `nothing` into a single `nothing` return value
+@generated function selectindices(ds::Tuple, sel::Tuple; kw...) 
+    tuple_exp = Expr(:tuple)
+    for i in eachindex(ds.parameters)
+        expr = quote 
+            x = selectindices(ds[$i], sel[$i]; kw...)
+            isnothing(x) && return nothing
+            x
+        end
+        push!(tuple_exp.args, expr)
+    end
+    return tuple_exp
+end
+@inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
+@inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
+# Deprecated
+Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
+Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
@@ -256,7 +275,7 @@ Base.parent(d::Dimension) = val(d)
 Base.eltype(d::Type{<:Dimension{T}}) where T = T
 Base.eltype(d::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
 Base.size(d::Dimension, args...) = size(val(d), args...)
-Base.axes(d::Dimension) = (Dimensions.DimUnitRange(axes(val(d), 1), d),)
+Base.axes(d::Dimension) = (val(d) isa DimUnitRange ? val(d) : DimUnitRange(axes(val(d), 1), d),)
 Base.axes(d::Dimension, i) = axes(d)[i]
 Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
@@ -278,20 +297,21 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
 end
 
 Base.size(dims::DimTuple) = map(length, dims)
+Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
 # Extents.jl
 function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
-    return Extents.Extent{dim2key(extent_dims)}(extent_bounds)
+    return Extents.Extent{name(extent_dims)}(extent_bounds)
 end
 
-dims(extent::Extents.Extent{K}) where K = map(rebuild, key2dim(K), values(extent))
+dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
 dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
 dim2boundsmatrix(dim::Dimension)  = dim2boundsmatrix(lookup(dim))
-function dim2boundsmatrix(lookup::LookupArray)
+function dim2boundsmatrix(lookup::Lookup)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot create a bounds matrix for $(nameof(typeof(samp)))")
     _dim2boundsmatrix(locus(lookup), span(lookup), lookup)
@@ -301,7 +321,7 @@ _dim2boundsmatrix(::Locus, span::Explicit, lookup) = val(span)
 function _dim2boundsmatrix(::Locus, span::Regular, lookup)
     # Only offset starts and reuse them for ends, 
     # so floating point error is the same.
-    starts = LookupArrays._shiftindexlocus(Start(), lookup)
+    starts = Lookups._shiftlocus(Start(), lookup)
     dest = Array{eltype(starts),2}(undef, 2, length(starts))
     # Use `bounds` as the start/end values
     if order(lookup) isa ReverseOrdered
@@ -338,7 +358,7 @@ dim = Dim{:custom}(['a', 'b', 'c'])
 
 # output
 
-Dim{:custom} Char['a', 'b', 'c']
+custom ['a', 'b', 'c']
 ```
 """
 struct Dim{S,T} <: Dimension{T}
@@ -363,8 +383,7 @@ Dim{S}() where S = Dim{S}(:)
 
 name(::Type{<:Dim{S}}) where S = S
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
-key2dim(s::Val{S}) where S = Dim{S}()
-dim2key(::Type{D}) where D<:Dim{S} where S = S
+name2dim(s::Val{S}) where S = Dim{S}()
 
 """
     AnonDim <: Dimension
@@ -380,18 +399,22 @@ end
 AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
-lookup(::AnonDim) = NoLookup()
 metadata(::AnonDim) = NoMetadata()
-name(::AnonDim) = :Anon
 
 """
-    @dim typ [supertype=Dimension] [name::String=string(typ)]
+    @dim typ [supertype=Dimension] [label::String=string(typ)]
 
-Macro to easily define new dimensions. The supertype will be inserted
-into the type of the dim. The default is simply `YourDim <: Dimension`. Making
-a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
+Macro to easily define new dimensions. 
+
+The supertype will be inserted into the type of the dim. 
+The default is simply `YourDim <: Dimension`. 
+
+Making a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
+
+`label` is used in plots and similar, 
+if the dimension is short for a longer word.
 
 Example:
 ```jldoctest
@@ -405,19 +428,19 @@ using DimensionalData: @dim, YDim, XDim
 """
 macro dim end
 macro dim(typ::Symbol, args...)
-    dimmacro(typ::Symbol, :(DimensionalData.Dimension), args...)
+    dimmacro(typ::Symbol, Dimension, args...)
 end
 macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
 
-function dimmacro(typ, supertype, name::String=string(typ))
+function dimmacro(typ, supertype, label::String=string(typ))
     quote
         Base.@__doc__ struct $typ{T} <: $supertype{T}
             val::T
             function $typ(val; kw...)
                 if length(kw) > 0
-                    val = AutoVal(val, values(kw))
+                    val = $Dimensions.AutoVal(val, values(kw))
                 end
                 new{typeof(val)}(val)
             end
@@ -425,13 +448,15 @@ function dimmacro(typ, supertype, name::String=string(typ))
         end
         function $typ(val::AbstractArray; kw...)
             if length(kw) > 0
-                val = AutoLookup(val, values(kw))
+                val = $Dimensions.AutoLookup(val, values(kw))
             end
             $typ{typeof(val)}(val)
         end
         $typ() = $typ(:)
-        Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
-        Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(typ)))
+        $Dimensions.name2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.label(::$typ) = $label
+        $Dimensions.label(::Type{<:$typ}) = $label
     end |> esc
 end
 
@@ -445,6 +470,7 @@ end
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
 ## Example:
+
 ```julia
 xdim = X(2:2:10)
 # Or

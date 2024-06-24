@@ -1,6 +1,6 @@
 using DimensionalData, Test, Dates
-using DimensionalData.LookupArrays, DimensionalData.Dimensions
-using .LookupArrays: shiftlocus, maybeshiftlocus
+using DimensionalData.Lookups, DimensionalData.Dimensions
+using .Lookups: shiftlocus, maybeshiftlocus
 using DimensionalData: uniquekeys
 
 @testset "reverse" begin
@@ -15,13 +15,21 @@ using DimensionalData: uniquekeys
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)
 
-    rev = reverse(da; dims=Y)
-    @test rev == [3 2 1; 6 5 4]
-    @test index(rev, X) == 10:10:20
-    @test index(rev, Y) == 100:100:300
-    @test span(rev, Y) == Regular(100)
-    @test order(rev, Y) == ForwardOrdered()
-    @test order(rev, X) == ForwardOrdered()
+    rev_y = reverse(da; dims=Y)
+    @test rev_y == [3 2 1; 6 5 4]
+    @test index(rev_y, X) == 10:10:20
+    @test index(rev_y, Y) == 100:100:300
+    @test span(rev_y, Y) == Regular(100)
+    @test order(rev_y, Y) == ForwardOrdered()
+    @test order(rev_y, X) == ForwardOrdered()
+
+    rev = reverse(da; dims=:)
+    @test parent(rev) == reverse(parent(da))
+    @test all(index(rev, d) == reverse(index(da, d)) for d in (X,Y))
+    @test all(span(rev, d) == reverse(span(da, d)) for d in (X,Y))
+    @test all(order(rev, d) == reverse(order(da, d)) for d in (X,Y))
+    @test rev == reverse(da; dims=(X,Y))
+
 
     @testset "NoLookup dim index is not reversed" begin
         da = DimArray(A, (X(), Y()))
@@ -88,6 +96,12 @@ end
     @test rev_s != s
     @test reo_s == s
     @test dims(reo_s) == dims(s)
+
+
+    @testset "reorder handles extra dimensions" begin
+        @test reorder(da[X=1], X=>ReverseOrdered(), Y=>ForwardOrdered()) == rev[X=1]
+        @test reorder(rev_s[X=1], da) == s[X=1]
+    end
 end
 
 @testset "modify" begin
@@ -101,13 +115,13 @@ end
         @test typeof(parent(mda)) == BitArray{2}
         @test_throws ErrorException modify(A -> A[1, :], da)
     end
-    @testset "dataset" begin
+    @testset "stack" begin
         da1 = DimArray(A, dimz; name=:da1)
         da2 = DimArray(2A, dimz; name=:da2)
         s = DimStack(da1, da2)
         ms = modify(A -> A .> 3, s)
         @test parent(ms) == (da1=[false false false; true true true],
-                              da2=[false true  true ; true true true])
+                             da2=[false true  true ; true true true])
         @test typeof(parent(ms[:da2])) == BitArray{2}
     end
     @testset "dimension" begin
@@ -145,7 +159,7 @@ end
 
     @testset "works with permuted dims" begin
         db2p = permutedims(da2)
-        dc3p = dimwise(+, da3, db2p)
+        dc3p = broadcast_dims(+, da3, db2p)
         @test dc3p == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
     end
 
@@ -157,6 +171,19 @@ end
         @test broadcast_dims(+, da4, da4) == DimArray(fill(8), ())
         @test broadcast_dims(*, da4, da3) == parent(da4) .* parent(da3)
         @test dims(broadcast_dims(*, da4, da3)) == dims(da3)
+    end
+
+    @testset "DimStack" begin
+        A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
+        da3 = DimArray(A3, (X([20, 30]), Y([:a, :b, :c]), Z(10:10:20)))
+        db1 = DimArray(B1, (Y([:a, :b, :c]),))
+        stack1 = DimStack(da3, db1)
+        stack2 = DimStack(da3, db1, dc3)
+        @test broadcast_dims(+, stack1, da3, db1) == broadcast_dims(+, da3, db1, stack1)
+        @test broadcast_dims(+, stack1, da3, db1).layer1 == broadcast_dims(+, stack1.layer1, da3, db1)
+        @test broadcast_dims(+, stack1, da3, stack1, db1) == broadcast_dims(+, da3, stack1, db1, stack1)
+        # Cant mix numvers of stack layers
+        @test_throws ArgumentError broadcast_dims(+, stack1, da3, db1, stack2)
     end
 end
 
