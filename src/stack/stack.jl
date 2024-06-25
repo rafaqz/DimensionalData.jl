@@ -424,14 +424,10 @@ function DimStack(data::NamedTuple, dims::Tuple;
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
-function DimStack(table, dims::Tuple; missingval=missing)
-    arrays = Any[]
-    perm = _sort_coords(table, dims)
+function DimStack(table, dims::Tuple; missingval=missing, selector=DimensionalData.Contains)
     data_cols = _data_cols(table, dims)
-    for (name, data) in pairs(data_cols)
-        dst = _write_vals(data, dims, perm, missingval)
-        push!(arrays, reshape(dst, size(dims)))
-    end
+    indices = index_by_coords(table, dims; selector=selector)
+    arrays = [restore_array(d, indices, dims; missingval=missingval) for d in values(data_cols)]
     return DimStack(NamedTuple{keys(data_cols)}(arrays), dims)
 end
 
