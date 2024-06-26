@@ -161,7 +161,7 @@ aligned with the array, and is independent of other dimensions. [`Sampled`](@ref
 is provided by this package.
 
 `AbstractSampled` must have  `order`, `span` and `sampling` fields,
-or a `rebuild` method that accpts them as keyword arguments.
+or a `rebuild` method that accepts them as keyword arguments.
 """
 abstract type AbstractSampled{T,O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{T,O} end
 
@@ -248,9 +248,9 @@ A concrete implementation of the [`Lookup`](@ref)
 [`AbstractSampled`](@ref). It can be used to represent
 [`Points`](@ref) or [`Intervals`](@ref).
 
-`Sampled` is capable of representing gridded data from a wide range of sources, allowing
-correct `bounds` and [`Selector`](@ref)s for points or intervals of regular,
-irregular, forward and reverse lookups.
+`Sampled` is capable of representing gridded data from a wide range of sources,
+allowing correct `bounds` and [`Selector`](@ref)s for points or intervals of
+regular, irregular, forward and reverse lookups.
 
 On `AbstractDimArray` construction, `Sampled` lookup is assigned for all lookups of
 `AbstractRange` not assigned to [`Categorical`](@ref).
@@ -261,10 +261,10 @@ $SAMPLED_ARGUMENTS_DOC
 
 ## Example
 
-Create an array with [`Interval`] sampling, and `Regular` span for a vector with known spacing.
+Create an array with `Interval` sampling, and `Regular` span for a vector with known spacing.
 
 We set the [`locus`](@ref) of the `Intervals` to `Start` specifying
-that the lookup values are for the locuss at the start of each interval.
+that the lookup values are for the locus at the start of each interval.
 
 ```jldoctest Sampled
 using DimensionalData, DimensionalData.Lookups
@@ -309,16 +309,16 @@ function rebuild(l::Sampled;
 end
 
 # These are used to specialise dispatch:
-# When Cycling, we need to modify any `Selector`. after that
-# we swicth to `NotCycling` and use `AbstractSampled` fallbacks.
-# We could switch to `Sampled` ata that point, but its less extensible.
+# When Cycling, we need to modify any `Selector`. After that
+# we switch to `NotCycling` and use `AbstractSampled` fallbacks.
+# We could switch to `Sampled` at that point, but its less extensible.
 abstract type CycleStatus end
 
 struct Cycling <: CycleStatus end
 struct NotCycling <: CycleStatus end
 
 """
-    AbstractCyclic <: AbstractSampled end
+    AbstractCyclic <: AbstractSampled
 
 An abstract supertype for cyclic lookups.
 
@@ -441,7 +441,7 @@ end
 [`Lookup`](@ref)s where the values are categories.
 
 [`Categorical`](@ref) is the provided concrete implementation.
-but this can easily be extended - all methods are defined for `AbstractCategorical`.
+But this can easily be extended, all methods are defined for `AbstractCategorical`.
 
 All `AbstractCategorical` must provide a `rebuild`
 method with `data`, `order` and `metadata` keyword arguments.
@@ -473,7 +473,7 @@ This will be automatically assigned if the lookup contains `AbstractString`,
 
 ## Arguments
 
-- `data`: An `AbstractVector` matching the length of the curresponding
+- `data`: An `AbstractVector` matching the length of the corresponding
     array axis.
 - `order`: [`Order`](@ref)) indicating the order of the lookup,
     [`AutoOrder`](@ref) by default, detected from the order of `data`
@@ -549,7 +549,7 @@ from CoordinateTransformations.jl may be useful.
 
 ## Keyword Arguments
 
-- `metdata`:
+- `metadata`:
 
 ## Example
 
@@ -669,7 +669,7 @@ end
 
 _intervalbounds_no_interval_error() = error("Lookup does not have Intervals, `intervalbounds` cannot be applied")
 
-# Slicespan should only be called after `to_indices` has simplified indices
+# slicespan should only be called after `to_indices` has simplified indices
 slicespan(l::Lookup, i::Colon) = span(l)
 slicespan(l::Lookup, i) = _slicespan(span(l), l, i)
 

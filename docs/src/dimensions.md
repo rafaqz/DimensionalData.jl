@@ -3,7 +3,7 @@
 Dimensions are "wrapper types" that can be used to wrap any 
 object to associate it with a named dimension. 
 
-`X`, `Y`, `Z`, `Ti` are predefined as types :
+`X`, `Y`, `Z`, `Ti` are predefined as types:
 
 ```@ansi dimensions
 using DimensionalData
@@ -17,7 +17,7 @@ You can also make [`Dim`](@ref) dimensions with any name:
 Dim{:a}(1), Dim{:b}(1)
 ```
 
-The wrapped value can be retreived with `val`:
+The wrapped value can be retrieved with `val`:
 
 ```@ansi dimensions
 val(X(1))

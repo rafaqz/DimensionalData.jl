@@ -4,7 +4,7 @@
 Abstract supertype of all dimension types.
 
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
-[`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
+[`Ti`](@ref) (Time), and the custom [`Dim`](@ref) dimension.
 
 `Dimension`s label the axes of an `AbstractDimArray`,
 or other dimensional objects, and are used to index into an array.
@@ -95,14 +95,14 @@ abstract type Dimension{T} end
 """
     IndependentDim <: Dimension
 
-Abstract supertype for independent dimensions. Thise will plot on the X axis.
+Abstract supertype for independent dimensions. These will plot on the X axis.
 """
 abstract type IndependentDim{T} <: Dimension{T} end
 
 """
     DependentDim <: Dimension
 
-Abstract supertype for Dependent dimensions. These will plot on the Y axis.
+Abstract supertype for dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T} <: Dimension{T} end
 
@@ -224,7 +224,7 @@ for func in (:order, :span, :sampling, :locus)
     @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
 end
 
-# Dipatch on Tuple{<:Dimension}, and map to single dim methods
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
@@ -352,12 +352,7 @@ Dimension types take precedence over same named `Dim` types when indexing
 with symbols, or e.g. creating Tables.jl keys.
 
 ```jldoctest
-using DimensionalData
-
-dim = Dim{:custom}(['a', 'b', 'c'])
-
-# output
-
+julia> dim = Dim{:custom}(['a', 'b', 'c'])
 custom ['a', 'b', 'c']
 ```
 """
@@ -409,7 +404,7 @@ Macro to easily define new dimensions.
 The supertype will be inserted into the type of the dim. 
 The default is simply `YourDim <: Dimension`. 
 
-Making a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
+Making a Dimension inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
 
@@ -420,7 +415,7 @@ Example:
 ```jldoctest
 using DimensionalData
 using DimensionalData: @dim, YDim, XDim
-@dim Lat YDim "latitude"
+@dim Lat YDim "Latitude"
 @dim Lon XDim "Longitude"
 # output
 
@@ -469,13 +464,17 @@ end
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
-## Example:
+## Examples
 
 ```julia
 xdim = X(2:2:10)
-# Or
+```
+
+```julia
 val = A[X(1)]
-# Or
+```
+
+```julia
 mean(A; dims=X)
 ```
 """
@@ -488,12 +487,17 @@ mean(A; dims=X)
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
-## Example:
+## Examples
+
 ```julia
 ydim = Y(['a', 'b', 'c'])
-# Or
+```
+
+```julia
 val = A[Y(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Y)
 ```
 """
@@ -509,9 +513,13 @@ Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 ## Example:
 ```julia
 zdim = Z(10:10:100)
-# Or
+```
+
+```julia
 val = A[Z(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Z)
 ```
 """
@@ -530,9 +538,13 @@ We use `Ti` to avoid clashes.
 ## Example:
 ```julia
 timedim = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
-# Or
+```
+
+```julia
 val = A[Ti(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Ti)
 ```
 """

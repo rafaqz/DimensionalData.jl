@@ -28,9 +28,9 @@ Interface methods for adding the main part of `show`
 
 At the least, you likely want to call:
 
-'''julia
+```julia
 print_top(io, mime, A)
-'''
+```
 
 But read the DimensionalData.jl `show.jl` code for details.
 """
@@ -44,7 +44,7 @@ end
     show_after(io::IO, mime, A::AbstractDimArray)
     show_after(io::IO, mime, A::AbstractDimStack)
 
-Interface methods for adding addional `show` text
+Interface methods for adding additional `show` text
 for AbstractDimArray/AbstractDimStack subtypes.
 
 *Always include `kw` to avoid future breaking changes*
@@ -58,14 +58,14 @@ Additional keywords may be added at any time.
 blockwidth = get(io, :blockwidth, 10000)
 ```
 
-Note - a anssi box is left unclosed. This method needs to close it,
+Note - a ANSI box is left unclosed. This method needs to close it,
 or add more. `blockwidth` is the maximum length of the inner text.
 
 Most likely you always want to at least close the show blocks with:
 
-'''julia
+```julia
 print_block_close(io, blockwidth)
-'''
+```
 
 But read the DimensionalData.jl `show.jl` code for details.
 """

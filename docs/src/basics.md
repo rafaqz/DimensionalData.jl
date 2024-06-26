@@ -2,21 +2,22 @@
 
 If you want to use this package you need to install it first. You can do it using the following commands:
 
-````julia
-julia>] # ']' should be pressed
+````julia-repl
+julia> ] # ']' should be pressed
 pkg> add DimensionalData
 ````
+
 or
 
-````julia
+````julia-repl
 julia> using Pkg
 julia> Pkg.add("DimensionalData")
 ````
 
 Additionally, it is recommended to check the version that you have installed with the status command.
 
-````julia
-julia>]
+````julia-repl
+julia> ]
 pkg> status DimensionalData
 ````
 
@@ -46,5 +47,3 @@ or something a little bit more complicated:
 data = rand(Int8, 2, 10, 3) .|> abs
 B = DimArray(data, (channel=[:left, :right], time=1:10, iter=1:3))
 ````
-
-

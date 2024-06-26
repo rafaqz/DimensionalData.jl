@@ -7,7 +7,7 @@ Dimensions are kept in the sub-module `Dimensions`.
 Dimensions.Dimensions
 ```
 
-Dimensions have a type-heirarchy that organises plotting and
+Dimensions have a type-hierarchy that organises plotting and
 dimension matching.
 
 ```@docs

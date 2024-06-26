@@ -1,4 +1,4 @@
-# DiskArrays.jl compatability
+# DiskArrays.jl compatibility
 
 [DiskArrays.jl](https://github.com/meggart/DiskArrays.jl) enables lazy, chunked application of:
 
@@ -16,6 +16,7 @@ The combination of DiskArrays.jl and DimensionalData.jl is Julias answer to
 pythons [xarray](https://xarray.dev/). Rasters.jl and YAXArrays.jl are user-facing 
 tools building on this combination.
 
+
 They have no direct dependency relationships, with but are intentionally 
-designed to integrate via both adherence to julias `AbstractArray` 
+designed to integrate via both adherence to Julia's `AbstractArray` 
 interface, and by coordination during development of both packages.

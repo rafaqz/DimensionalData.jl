@@ -21,7 +21,7 @@ for f in (:getindex, :view, :dotview)
         # Otherwise its linear indexing, don't rebuild
         @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i::Integer) =
             Base.$f(parent(A), i)
-        # More Integera and we rebuild again
+        # More Integer and we rebuild again
         @eval @propagate_inbounds Base.$f(A::AbstractDimArray, i1::Integer, i2::Integer, I::Integer...) =
             rebuildsliced(Base.$f, A, Base.$f(parent(A), i1, i2, I...), (i1, i2, I...))
     else

@@ -26,8 +26,8 @@ Base.string(::NoName) = ""
     Name(name::Union{Symbol,Name) => Name
     Name(name::NoName) => NoName
 
-Name wrapper. This lets arrays keep symbol names when the array wrapper neeeds
-to be `isbits, like for use on GPUs. It makes the name a property of the type.
+Name wrapper. This lets arrays keep symbol names when the array wrapper needs
+to be `isbits`, like for use on GPUs. It makes the name a property of the type.
 It's not necessary to use in normal use, a symbol is probably easier.
 """
 struct Name{X} <: AbstractName end
