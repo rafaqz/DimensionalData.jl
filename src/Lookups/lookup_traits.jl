@@ -99,8 +99,7 @@ struct Center <: Position end
 
     Start()
 
-Used to specify lookup values correspond to the center 
-locus of an interval.
+Used to specify lookup values correspond to the start locus of an interval.
 """
 struct Start <: Position end
 
