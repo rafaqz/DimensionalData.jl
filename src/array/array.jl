@@ -567,6 +567,7 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```jldoctest
 julia> using DimensionalData
+
 julia> zeros(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -610,6 +611,7 @@ Keywords are the same as for [`DimArray`](@ref).
 
 ```jldoctest
 julia> using DimensionalData
+
 julia> ones(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
