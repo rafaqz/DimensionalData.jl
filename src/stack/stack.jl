@@ -420,5 +420,12 @@ function DimStack(data::NamedTuple, dims::Tuple;
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(table, dims::Tuple; missingval=missing, selector=DimensionalData.Contains)
+    data_cols = _data_cols(table, dims)
+    indices = index_by_coords(table, dims; selector=selector)
+    arrays = [restore_array(d, indices, dims; missingval=missingval) for d in values(data_cols)]
+    return DimStack(NamedTuple{keys(data_cols)}(arrays), dims)
+end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
