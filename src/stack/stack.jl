@@ -427,7 +427,7 @@ end
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
 function DimStack(table, dims::Tuple; selector=DimensionalData.Contains, kw...)
     data_cols = _data_cols(table, dims)
-    indices = index_by_coords(table, dims; selector=selector)
+    indices = coords_to_index(table, dims; selector=selector)
     arrays = [restore_array(d, indices, dims; missingval=missing) for d in values(data_cols)]
     return DimStack(NamedTuple{keys(data_cols)}(arrays), dims; kw...)
 end

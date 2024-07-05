@@ -77,6 +77,9 @@ export dimnum, hasdim, hasselection, otherdims
 # utils
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
 
+# table utils
+export restore_array, coords_to_index
+
 export groupby, seasons, months, hours, intervals, ranges
 
 const DD = DimensionalData

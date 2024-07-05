@@ -15,7 +15,7 @@ julia> d = DimArray(rand(256, 256), (X, Y));
 
 julia> t = DimTable(d);
 
-julia> indices = index_by_coords(t, dims(d));
+julia> indices = coords_to_index(t, dims(d));
 
 julia> restored = restore_array(Tables.getcolumn(t, :value), indices, dims(d));
 
@@ -40,7 +40,7 @@ function restore_array(data::AbstractVector, indices::AbstractVector{<:Integer},
 end
 
 """
-    index_by_coords(table, dims; selector=Contains)
+    coords_to_index(table, dims; selector=Contains)
 
 Return the flat index of each row in `table` based on its associated coordinates.
 Dimension columns are determined from the name of each dimension in `dims`.
@@ -57,7 +57,7 @@ julia> d = DimArray(rand(256, 256), (X, Y));
 
 julia> t = DimTable(d);
 
-julia> index_by_coords(t, dims(d))
+julia> coords_to_index(t, dims(d))
 65536-element Vector{Int64}:
      1
      2
@@ -66,7 +66,7 @@ julia> index_by_coords(t, dims(d))
  65536
 ```
 """
-function index_by_coords(table, dims::Tuple; selector=DimensionalData.Contains)
+function coords_to_index(table, dims::Tuple; selector=DimensionalData.Contains)
     return _sort_coords(table, dims, selector)
 end
 

@@ -414,7 +414,7 @@ function DimArray(A::AbstractBasicDimArray;
 end
 # Write a single column from a table with one or more coordinate columns to a DimArray
 function DimArray(table, dims; name=NoName(), selector=DimensionalData.Contains, kw...)
-    indices = index_by_coords(table, dims; selector=selector)
+    indices = coords_to_index(table, dims; selector=selector)
     col = name == NoName() ? _data_col_names(table, dims) |> first : Symbol(name)
     data = restore_array(Tables.getcolumn(table, col), indices, dims; missingval=missing)
     return DimArray(data, dims, name=col; kw...)
