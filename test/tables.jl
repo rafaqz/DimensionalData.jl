@@ -154,3 +154,48 @@ end
     @test Tables.columnnames(t3) == (:dimensions, :layer1, :layer2, :layer3)
     @test Tables.columnnames(t4) == (:band, :geometry, :value)
 end
+
+@testset "Materialize from table" begin
+    a = DimArray(rand(UInt8, 100, 100), (X(100:-1:1), Y(-250:5:249)))
+    b = DimArray(rand(Float32, 100, 100), (X(100:-1:1), Y(-250:5:249)))
+    c = DimArray(rand(Float64, 100, 100), (X(100:-1:1), Y(-250:5:249)))
+    ds = DimStack((a=a, b=b, c=c))
+    t = DataFrame(ds)
+    t1 = Random.shuffle(t)
+    t2 = t[101:end,:]
+
+    # Restore DimArray from shuffled table
+    @test all(DimArray(t1, dims(ds)) .== a)
+    @test all(DimArray(t1, dims(ds), name="a") .== a)
+    @test all(DimArray(t1, dims(ds), name="b") .== b)
+    @test all(DimArray(t1, dims(ds), name="c") .== c)
+
+    # Restore DimArray from table with missing rows
+    @test all(DimArray(t2, dims(ds), name="a")[Y(2:100)] .== a[Y(2:100)])
+    @test all(DimArray(t2, dims(ds), name="b")[Y(2:100)] .== b[Y(2:100)])
+    @test all(DimArray(t2, dims(ds), name="c")[Y(2:100)] .== c[Y(2:100)])
+    @test DimArray(t2, dims(ds), name="a")[Y(1)] .|> ismissing |> all
+    @test DimArray(t2, dims(ds), name="b")[Y(1)] .|> ismissing |> all
+    @test DimArray(t2, dims(ds), name="c")[Y(1)] .|> ismissing |> all
+    @test DimArray(t2, dims(ds), name="a")[Y(2:100)] .|> ismissing .|> (!) |> all
+    @test DimArray(t2, dims(ds), name="b")[Y(2:100)] .|> ismissing .|> (!) |> all
+    @test DimArray(t2, dims(ds), name="c")[Y(2:100)] .|> ismissing .|> (!) |> all
+
+    # Restore DimStack from shuffled table
+    restored_stack = DimStack(t1, dims(ds))
+    @test all(restored_stack.a .== ds.a)
+    @test all(restored_stack.b .== ds.b)
+    @test all(restored_stack.c .== ds.c)
+
+    # Restore DimStack from table with missing rows
+    restored_stack = DimStack(t2, dims(ds))
+    @test all(restored_stack.a[Y(2:100)] .== ds.a[Y(2:100)])
+    @test all(restored_stack.b[Y(2:100)] .== ds.b[Y(2:100)])
+    @test all(restored_stack.c[Y(2:100)] .== ds.c[Y(2:100)])
+    @test restored_stack.a[Y(1)] .|> ismissing |> all
+    @test restored_stack.b[Y(1)] .|> ismissing |> all
+    @test restored_stack.c[Y(1)] .|> ismissing |> all
+    @test restored_stack.a[Y(2:100)] .|> ismissing .|> (!) |> all
+    @test restored_stack.b[Y(2:100)] .|> ismissing .|> (!) |> all
+    @test restored_stack.c[Y(2:100)] .|> ismissing .|> (!) |> all
+end
