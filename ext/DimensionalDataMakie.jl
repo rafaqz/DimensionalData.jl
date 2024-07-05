@@ -62,7 +62,7 @@ end
 for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(A::AbstractDimArray{<:Any,1}; attributes...)
+        $f1(A::AbstractDimVector; attributes...)
         
     Plot a 1-dimensional `AbstractDimArray` with `Makie.$f2`.
 
@@ -73,13 +73,13 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,1}; axislegendkw=(;), attributes...)
+        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes)
             p = Makie.$f2(args...; merged_attributes...)
             axislegend(p.axis; merge=false, unique=false, axislegendkw...)
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,1}; axislegendkw=(;), attributes...)
+        function Makie.$f1!(axis, A::AbstractDimVector; axislegendkw=(;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
             return Makie.$f2!(axis, args...; merged_attributes...)
         end
@@ -121,7 +121,7 @@ end
 for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf, :spy, :surface)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
-        $f1(A::AbstractDimArray{<:Any,2}; attributes...)
+        $f1(A::AbstractDimMatrix; attributes...)
         
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
 
@@ -131,7 +131,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{T,2}; 
+        function Makie.$f1(A::AbstractDimMatrix{T}; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
@@ -153,13 +153,21 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,2}; 
+        function Makie.$f1!(axis, A::AbstractDimMatrix; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
+        end
+        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
+        )
+            replacements = _keywords2dimpairs(x,y)
+            args =  lift(x->_surface2(x, attributes, replacements)[3], A)
+            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
+            return p
         end
     end
 end
@@ -236,13 +244,13 @@ end
 # series
 
 """
-    series(A::AbstractDimArray{<:Any,2}; attributes...)
+    series(A::AbstractDimMatrix; attributes...)
     
 Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 
 $(_labeldim_detection_doc(series))
 """
-function Makie.series(A::AbstractDimArray{<:Any,2}; 
+function Makie.series(A::AbstractDimMatrix; 
     color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
@@ -256,7 +264,7 @@ function Makie.series(A::AbstractDimArray{<:Any,2};
     axislegend(p.axis; merge=true, unique=false, axislegendkw...)
     return p
 end
-function Makie.series!(axis, A::AbstractDimArray{<:Any,2}; axislegendkw=(;), labeldim=nothing, attributes...)
+function Makie.series!(axis, A::AbstractDimMatrix; axislegendkw=(;), labeldim=nothing, attributes...)
     args, _ = _series(A, attributes, labeldim)
     return Makie.series!(axis, args...; attributes...)
 end
@@ -291,7 +299,7 @@ end
 for f in (:violin, :boxplot, :rainclouds)
     f! = Symbol(f, '!')
     docstring = """
-        $f(A::AbstractDimArray{<:Any,2}; attributes...)
+        $f(A::AbstractDimMatrix; attributes...)
         
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f`.
 
@@ -299,11 +307,11 @@ for f in (:violin, :boxplot, :rainclouds)
     """
     @eval begin
         @doc $docstring
-        function Makie.$f(A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
+        function Makie.$f(A::AbstractDimMatrix; labeldim=nothing, attributes...)
             args, merged_attributes = _boxplotlike(A, attributes, labeldim)
             return Makie.$f(args...; merged_attributes...)
         end
-        function Makie.$f!(axis, A::AbstractDimArray{<:Any,2}; labeldim=nothing, attributes...)
+        function Makie.$f!(axis, A::AbstractDimMatrix; labeldim=nothing, attributes...)
             args, _ = _boxplotlike(A, attributes, labeldim)
             return Makie.$f!(axis, args...; attributes...)
         end
@@ -337,32 +345,32 @@ function _boxplotlike(A, attributes, labeldim)
 end
 
 # Plot type definitions. Not sure they will ever get called?
-Makie.plottype(A::AbstractDimArray{<:Any,1}) = Makie.Scatter
-Makie.plottype(A::AbstractDimArray{<:Any,2}) = Makie.Heatmap
+Makie.plottype(A::AbstractDimVector) = Makie.Scatter
+Makie.plottype(A::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
-function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimArray{<:Any,2})
+function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
-function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Any,1})
+function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     A = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
     return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
 end
-function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimArray{<:Number,2})
+function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
     return Makie.convert_arguments(t, parent(A))
 end
-function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimArray{<:Any,2})
+function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     # the following will not work for irregular spacings, we'll need to add a check for this.
     return xs[1]..xs[end], ys[1]..ys[end], last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
-    t::Makie.CellGrid, A::AbstractDimArray{<:Any,2}
+    t::Makie.CellGrid, A::AbstractDimMatrix
 )
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
@@ -380,6 +388,13 @@ function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<
     return Makie.convert_arguments(t, parent(A))
 end
 
+# We also implement expand_dimensions for recognized plot traits.
+# These can just forward to the relevant converts.
+Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
 
 # Utility methods
 
@@ -495,7 +510,7 @@ function _keywords2dimpairs(x, y)
     end
 end
 
-_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan32.(A)
+_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
 _floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
 _floatornan(A) = A
 _floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)

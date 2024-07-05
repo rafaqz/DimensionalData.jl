@@ -21,8 +21,8 @@ a `Tuple` of constructed `Dimension`s from `dims(obj)`.
 ### `Dimension` axes
 
 Dimensions return from `dims` should hold a `Lookup` or in some cases 
-just an `AbstractArray` (like wiht `DimIndices`). When attached to 
-mullti-dimensional objects, lookups must be the _same length_ as the axis 
+just an `AbstractArray` (like with `DimIndices`). When attached to 
+multi-dimensional objects, lookups must be the _same length_ as the axis 
 of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
 return the same values. 
 
@@ -91,7 +91,7 @@ Not calling `format` in the outer constructors of an `AbstractDimArray`
 has undefined behaviour.
 
 
-## Interfaces.jl interterface testing
+## Interfaces.jl interface testing
 
 DimensionalData defines explicit, testable Interfaces.jl interfaces:
 `DimArrayInterface` and `DimStackInterface`.

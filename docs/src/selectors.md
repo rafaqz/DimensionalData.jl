@@ -131,8 +131,8 @@ A[X=Not(Near(1.3)), Y=Not(Where(in((:a, :c))))]
 
 Selectors find indices in the `Lookup` of each dimension.
 Lookups wrap other `AbstractArray` (often `AbstractRange`) but add
-aditional traits to facilitate fast lookups or specifing point or interval
-behviour. These are usually detected automatically.
+additional traits to facilitate fast lookups or specifying point or interval
+behaviour. These are usually detected automatically.
 
 
 ````@example selectors
@@ -145,14 +145,14 @@ using DimensionalData.Lookups
 [`Sampled(x)`](@ref) lookups hold values sampled along an axis.
 They may be `Ordered`/`Unordered`, `Intervals`/`Points`, and `Regular`/`Irregular`.
 
-Most of these properties are usually detected autoatically,
+Most of these properties are usually detected automatically,
 but here we create a [`Sampled`](@ref) lookup manually:
 
 ````@ansi selectors
 l = Sampled(10.0:10.0:100.0; order=ForwardOrdered(), span=Regular(10.0), sampling=Intervals(Start()))
 ````
 
-TO specify `Irregular` `Intervals` we should include the outer bounds of the
+To specify `Irregular` `Intervals` we should include the outer bounds of the
 lookup, as we cant determine them from the vector.
 
 ````@ansi selectors
@@ -181,7 +181,7 @@ using Dates
 l = Cyclic(DateTime(2000):Month(1):DateTime(2000, 12); cycle=Month(12), sampling=Intervals(Start()))
 ````
 
-There is a shorthand to make a `DimArray` frome a `Dimension` with a function
+There is a shorthand to make a `DimArray` from a `Dimension` with a function
 of the lookup values. Here we convert the values to the month names:
 
 ````@ansi selectors
@@ -199,7 +199,7 @@ A[At(DateTime(3047, 9))]
 
 [`NoLookup(x)`](@ref) no lookup values provided, so `Selector`s will not work.
 When you create a `DimArray` without a lookup array, `NoLookup` will be used.
-It is also not show in repl printing.
+It is also not show in REPL printing.
 
 Here we create a [`NoLookup`](@ref):
 

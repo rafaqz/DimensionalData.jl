@@ -33,8 +33,7 @@ dimension to match. Use `reverse` and [`reorder`](@ref) to do this.
 ## Examples
 
 ```jldoctest set
-julia> using DimensionalData; const DD = DimensionalData
-DimensionalData
+julia> using DimensionalData; const DD = DimensionalData;
 
 julia> da = DimArray(zeros(3, 4), (custom=10.0:010.0:30.0, Z=-20:010.0:10.0));
 

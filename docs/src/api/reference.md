@@ -92,7 +92,7 @@ Base.eachslice
 ```
 
 Most base methods work as expected, using `Dimension` wherever a `dims`
-keyword is used. They are not allspecifically documented here.
+keyword is used. They are not all specifically documented here.
 
 ## Name
 

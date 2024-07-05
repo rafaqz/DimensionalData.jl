@@ -79,7 +79,7 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
-# `Not` form InvertedIndices.jr
+# `Not` form InvertedIndices.jl
 @inline function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
@@ -248,8 +248,7 @@ Selector that selects the nearest index to `x`.
 
 With [`Points`](@ref) this is simply the index values nearest to the `x`,
 however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
-This will be offset from the index value for `Start` and
-[`End`](@ref) locuss.
+This will be offset from the index value for `Start` and [`End`](@ref) locus.
 
 ## Example
 
@@ -287,7 +286,7 @@ function near(lookup::Lookup, sel::Near; kw...)
 end
 near(order::Order, ::NoSampling, lookup::Lookup, sel::Near; kw...) = at(lookup, At(val(sel)); kw...)
 function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near; kw...)
-    # Unwrap the selector value and adjust it for interval locus if neccessary
+    # Unwrap the selector value and adjust it for interval locus if necessary
     v = unwrap(val(sel))
     # Allow Date and DateTime to be used interchangeably
     if v isa Union{Dates.DateTime,Dates.Date}
@@ -299,7 +298,7 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
     # Search for the value
     found_i = _inbounds(searchfunc(lookup, v_adj), lookup)
 
-    # Check if this is the lowest possible value allready, and return if so
+    # Check if this is the lowest possible value already, and return if so
     if order isa ForwardOrdered
         found_i <= firstindex(lookup) && return found_i
     elseif order isa ReverseOrdered
@@ -520,9 +519,9 @@ Depreciated: use `a..b` instead of `Between(a, b)`. Other `Interval`
 objects from IntervalSets.jl, like `OpenInterval(a, b) will also work,
 giving the correct open/closed boundaries.
 
-`Between` will e removed in furture to avoid clashes with `DataFrames.Between`.
+`Between` will e removed in future to avoid clashes with `DataFrames.Between`.
 
-Selector that retreive all indices located between 2 values,
+Selector that retrieve all indices located between 2 values,
 evaluated with `>=` for the lower value, and `<` for the upper value.
 This means the same value will not be counted twice in 2 adjacent
 `Between` selections.
@@ -538,7 +537,7 @@ or previous (for [`End`](@ref) locus) value.
 
 For [`Center`](@ref), we take the mid point between two index values
 as the start and end of each interval. This may or may not make sense for
-the values in your indes, so use `Between` with `Irregular` `Intervals(Center())`
+the values in your index, so use `Between` with `Irregular` `Intervals(Center())`
 with caution.
 
 ## Example
@@ -694,7 +693,7 @@ end
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
-# Find the inteval the value falls in.
+# Find the interval the value falls in.
 # We need to special-case Center locus for Irregular
 _between_side(side, o, span::Irregular, ::Intervals, l, interval, v) =
     _between_irreg_side(side, locus(l), o, l, interval, v)
@@ -790,7 +789,7 @@ _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
 
     Touches(a, b)
 
-Selector that retreives all indices touching the closed interval 2 values,
+Selector that retrieves all indices touching the closed interval 2 values,
 for the maximum possible area that could interact with the supplied range.
 
 This can be better than `..` when e.g. subsetting an area to rasterize, as
@@ -926,7 +925,7 @@ end
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
-# Find the inteval the value falls in.
+# Find the interval the value falls in.
 # We need to special-case Center locus for Irregular
 _touches(side, o, span::Irregular, ::Intervals, l, sel, v) =
     _touches_irreg_side(side, locus(l), o, l, sel, v)
@@ -1076,9 +1075,9 @@ function selectindices end
 
 # Unaligned Lookup ------------------------------------------
 
-# select_unalligned_indices is callled directly from dims2indices
+# select_unalligned_indices is called directly from dims2indices
 
-# We use the transformation from the first unalligned dim.
+# We use the transformation from the first unaligned dim.
 # In practice the others could be empty.
 function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
     transformed = transformfunc(lookups[1])(map(val, sel))

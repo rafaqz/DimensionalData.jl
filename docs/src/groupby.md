@@ -20,6 +20,7 @@ using DimensionalData
 using Dates
 using Statistics
 const DD = DimensionalData
+nothing # hide
 ````
 
 Now create a demo `DateTime` range
@@ -88,7 +89,8 @@ yearmonthday.(tempo)
 We can create our own function that return tuples
 
 ````@example groupby
-yearday(x) = year(x), dayofyear(x)
+yearday(x) = (year(x), dayofyear(x))
+nothing # hide
 ````
 
 You can probably guess what it does:
@@ -118,7 +120,7 @@ Group by month, using the `month` function:
 groups = groupby(A, Ti=>month)
 ````
 
-We can take the mean of each group by broadcasting over them :
+We can take the mean of each group by broadcasting over them:
 
 ````@ansi groupby
 mean.(groups)
@@ -147,9 +149,9 @@ minimum.(groupby(A, Ti=>yearmonth))
 median.(groupby(A, Ti=>hour))
 ````
 
-We can also use the function we defined above
-
 == mean yearday
+
+We can also use the function we defined above
 
 ````@ansi groupby
 mean.(groupby(A, Ti=>yearday))
@@ -173,7 +175,7 @@ For quick analysis, we can break our groups into `N` bins.
 groupby(A, Ti=>Bins(month, 4))
 ````
 
-Doing this requires slighly padding the bin edges, so the lookup
+Doing this requires slightly padding the bin edges, so the lookup
 of the output is less than ideal.
 
 == specific values as bins
@@ -242,16 +244,16 @@ mean.(groups)
 == seasons
 
 There is a helper function for grouping by three-month seasons and getting
-nice keys for them: `season`. Note you have to call it, not just pass it!
+nice keys for them: `seasons`. Note you have to call it, not just pass it!
 
 ````@ansi groupby
-groupby(A, Ti => season())
+groupby(A, Ti => seasons())
 ````
 
 We could also start our seasons in January:
 
 ````@ansi groupby
-groupby(A, Ti => season(; start=January))
+groupby(A, Ti => seasons(; start=January))
 ````
 
 == months

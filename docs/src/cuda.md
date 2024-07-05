@@ -15,7 +15,7 @@ cuA = modify(CuArray, A)
 
 The result of a GPU broadcast is still a DimArray:
 
-```julia
+```julia-repl
 julia> cuA2 = cuA .* 2
 ╭───────────────────────────────╮
 │ 1000×2000 DimArray{Float32,2} │
@@ -41,7 +41,7 @@ julia> cuA2 = cuA .* 2
 
 But the data is on the GPU:
 
-```julia
+```julia-repl
 julia> typeof(parent(cuA2))
 CuArray{Float32, 2, CUDA.Mem.DeviceBuffer}
 ```
@@ -51,16 +51,16 @@ CuArray{Float32, 2, CUDA.Mem.DeviceBuffer}
 DimensionalData.jl has two GPU-related goals:
 
 1. Work seamlessly with Base julia broadcasts and other operations that already
-  work on GPU. 
-2. Work as arguments to custom GPU kernel funcions.
+   work on GPU.
+2. Work as arguments to custom GPU kernel functions.
 
-This means any `AbstractDimArray` must be automatically moved to the gpu and its
+This means any `AbstractDimArray` must be automatically moved to the GPU and its
 fields converted to GPU friendly forms whenever required, using [Adapt.jl](https://github.com/JuliaGPU/Adapt.jl)).
 
 - The array data must converts to the correct GPU array backend 
   when `Adapt.adapt(dimarray)` is called.
 - All DimensionalData.jl objects, except the actual parent array, need to be immutable `isbits` or
-  convertable to them. This is one reason DimensionalData.jl uses `rebuild` and a functional style,
+  convertible to them. This is one reason DimensionalData.jl uses `rebuild` and a functional style,
   rather than in-place modification of fields.
 - Symbols need to be moved to the type system `Name{:layer_name}()` replaces `:layer_name`
 - Metadata dicts need to be stripped, they are often too difficult to convert,

@@ -113,6 +113,10 @@ st[:]
 
 Base functions like `mean`, `maximum`, `reverse` are applied to all layers of the stack.
 
+````@example stack
+using Statistics
+````
+
 ::: tabs
 
 == maximum
@@ -197,7 +201,7 @@ does not match in the objects.
 
 == rotl90
 
-Only atrix layers can be rotaed
+Only matrix layers can be rotated
 
 ````@ansi stack
 rotl90(st[(:a, :b)])
@@ -251,7 +255,7 @@ PermutedDimsArray(st, (Y, X))
 ## Performance 
 
 Indexing stack is fast - indexing a single value return a `NamedTuple` from all 
-layers is usally measures in nanoseconds, and no slower than manually indexing
+layers is usually measures in nanoseconds, and no slower than manually indexing
 into each parent array directly.
 
 There are some compilation overheads to this though, and stacks with very many 

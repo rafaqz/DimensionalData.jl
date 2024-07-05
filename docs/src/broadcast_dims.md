@@ -12,8 +12,13 @@ As an added bonus, `broadcast_dims` even works on `DimStack`s.
 
 Define some dimensions:
 
+````@example bd
+using DimensionalData
+using Dates
+using Statistics
+````
+
 ````@ansi bd
-using DimensionalData, Dates, Statistics
 x, y, t = X(1:100), Y(1:25), Ti(DateTime(2000):Month(1):DateTime(2000, 12))
 ````
 
