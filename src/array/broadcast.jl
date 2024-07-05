@@ -103,3 +103,18 @@ _broadcasted_dims(a, bs...) =
     comparedims(_broadcasted_dims(a), _broadcasted_dims(bs...); ignore_length_one=true, order=true)
 _broadcasted_dims(a::AbstractBasicDimArray) = dims(a)
 _broadcasted_dims(a) = nothing
+
+
+macro d(expr)
+    _wrap_all(d)
+end
+
+_wrap_all(
+
+_maybe_dimensional_broadcast(x) = x
+_maybe_dimensional_broadcast(x::AbstractDimArray) = BroadcastDimensions(x)
+_maybe_dimensional_broadcast(d::Dimension) = BroadcastDimensions(DimArray(parent(d), d))
+
+struct BroadcastDimensions{A<:AbstractDimArray} <: AbstractArray
+    a::A
+end
