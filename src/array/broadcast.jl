@@ -105,16 +105,113 @@ _broadcasted_dims(a::AbstractBasicDimArray) = dims(a)
 _broadcasted_dims(a) = nothing
 
 
-macro d(expr)
-    _wrap_all(d)
+struct DimBroadcastWrapper{T,N,A<:AbstractDimArray{T,N}} <: AbstractArray{T,N}
+    a::A
 end
 
-_wrap_all(
+macro d(expr)
+    expr, wrapped = _wrap_all(expr)
+    wrapped_expr = Expr(:tuple, wrapped...)
+    quote
+        dims = _expand_dims($wrapped_expr)
+        $expr
+    end
+end
 
-_maybe_dimensional_broadcast(x) = x
-_maybe_dimensional_broadcast(x::AbstractDimArray) = BroadcastDimensions(x)
-_maybe_dimensional_broadcast(d::Dimension) = BroadcastDimensions(DimArray(parent(d), d))
+function _wrap_all(expr)
+    wrapped = []
+    arg1 = expr.args[1]
+    wrapped_args = if expr.head == :. 
+        tuple_args = map(expr.args[2]) do arg
+            Expr(:call, :_maybe_dimensional_broadcast, arg)
+        end
+        Expr(expr.head, expr.args[1], tuple_args)
+    else
+        map(expr.args) do arg
+            wrapped_arg = if arg isa Expr
+                expr, wrapped1 = _wrap_all(arg)
+                append!(wrapped, wrapped1)
+                expr
+            else
+                arg
+            end
+            if arg1 isa Symbol && string(arg1)[1] == '.' && arg != arg1
+                Expr(:call, :_maybe_dimensional_broadcast, wrapped_arg, :dims)
+            else
+                wrapped_arg
+            end
+        end
+    end
+    return Expr(expr.head, wrapped_args...), wrapped
+end
 
-struct BroadcastDimensions{A<:AbstractDimArray} <: AbstractArray
-    a::A
+_maybe_dimensional_broadcast(x, _) = x
+_maybe_dimensional_broadcast(x::AbstractDimArray, dims) = DimExtensionArray(x, dims)
+_maybe_dimensional_broadcast(d::Dimension, dims) = DimExtensionArray(DimArray(parent(d), d), dims)
+
+struct DMacroStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
+DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
+DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
+DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
+function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
+    inner_style = BroadcastStyle(a, b)
+    # if the inner style is Unknown then so is the outer style
+    if inner_style isa Unknown
+        return Unknown()
+    else
+        return DimensionalStyle(inner_style)
+    end
+end
+
+function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
+    inner_style = typeof(BroadcastStyle(A))
+    return DimensionalStyle{inner_style}()
+end
+
+BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
+BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
+BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
+BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
+BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
+# We need to implement copy because if the wrapper array type does not
+# support setindex then the `similar` based default method will not work
+function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
+    _dims = _broadcasted_dims(bc)
+    A = _firstdimarray(bc)
+    data = copy(_unwrap_broadcasted(bc))
+    return if A isa Nothing || _dims isa Nothing || ndims(A) == 0
+        data
+    elseif data isa AbstractDimArray
+        rebuild(A, parent(data), _dims, refdims(A), Symbol(""))
+    else
+        rebuild(A, data, _dims, refdims(A), Symbol(""))
+    end
+end
+
+function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
+    copyto!(dest, _unwrap_broadcasted(bc))
+    A = _firstdimarray(bc)
+    if A isa Nothing || _dims isa Nothing
+        dest
+    else
+        rebuild(A, dest, _dims, refdims(A))
+    end
+end
+function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
+    copyto!(parent(dest), _unwrap_broadcasted(bc))
+    A = _firstdimarray(bc)
+    if A isa Nothing || _dims isa Nothing
+        dest
+    else
+        rebuild(A, parent(dest), _dims, refdims(A))
+    end
+end
+
+function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
+    A = _firstdimarray(bc)
+    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
