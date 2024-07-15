@@ -69,13 +69,13 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, i2, I...))...)
 
-        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray; kw...) =
