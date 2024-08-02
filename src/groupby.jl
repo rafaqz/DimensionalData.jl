@@ -114,15 +114,9 @@ Specify bins to reduce groups after applying function `f`.
 ## Keywords
 
 - `pad`: fraction of the total interval to pad at each end when `Bins` contains an
-<<<<<<< HEAD
-  `Integer`. This avoids losing the edge values. Note this is a messy solution -
-  it will often be preferable to manually specify a `Vector` of chosen `Interval`s
-  rather than relying on passing an `Integer` and `pad`.
-=======
    `Integer`. This avoids losing the edge values. Note this is a messy solution -
    it will often be prefereble to manually specify a `Vector` of chosen `Interval`s
    rather than relying on passing an `Integer` and `pad`.
->>>>>>> parent of c54bc6c (Fix whitespace)
 - `labels`: a list of descriptive labels for the bins. The labels need to have the same length as `bins`.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
@@ -182,12 +176,7 @@ Generates `CyclicBins` for three month periods.
 ## Keywords
 
 - `start`: By default seasons start in December, but any integer `1:12` can be used.
-- `labels`: either a vector of four labels, or a function that generates labels
-<<<<<<< HEAD
-  from `Vector{Int}` of the selected quarters.
-=======
-    from `Vector{Int}` of the selected quartals.
->>>>>>> parent of c54bc6c (Fix whitespace)
+- `labels`: either a vector of four labels, or a function that generates labels from `Vector{Int}` of the selected quarters.
 """
 seasons(; start=December, kw...) = months(3; start, kw...)
 
