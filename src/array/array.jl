@@ -140,27 +140,39 @@ Base.read(A::AbstractDimArray) = A
 # Methods that create copies of an AbstractDimArray #######################################
 
 # Need to cover a few type signatures to avoid ambiguity with base
-Base.similar(A::AbstractDimArray) =
-    rebuild(A; data=similar(parent(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
-Base.similar(A::AbstractDimArray, ::Type{T}) where T =
-    rebuild(A; data=similar(parent(A), T), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+function Base.similar(A::AbstractDimArray; 
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A)
+)
+    rebuild(A; data=similar(parent(A)), dims, refdims, name, metadata)
+end
+function Base.similar(A::AbstractDimArray, ::Type{T}; 
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A)
+) where T
+    rebuild(A; data=similar(parent(A), T), dims, refdims, name, metadata)
+end
 
 # We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
-Base.similar(A::AbstractBasicDimArray{T,N}) where {T,N} =
-    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
-Base.similar(A::AbstractBasicDimArray{<:Any,N}, ::Type{T}) where {T,N} =
-    rebuild(A; data=similar(Array{T,N}, size(A)), dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A))
+function Base.similar(A::AbstractBasicDimArray{T,N}; 
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A)
+) where {T,N}
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims, refdims, name, metadata)
+end
+function Base.similar(A::AbstractBasicDimArray{<:Any,N}, ::Type{T}; 
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A)
+) where {T,N}
+    rebuild(A; data=similar(Array{T,N}, size(A)), dims, refdims, name, metadata)
+end
 # We can't resize the dims or add missing dims, so return the unwraped Array type?
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
-Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}) =
-    similar(A, eltype(A), (i, I...))
-Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}) = 
-    similar(A, eltype(A), I)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}) where T =
-    similar(A, T, (i, I...))
-Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
+Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}; kw...) =
+    similar(A, eltype(A), (i, I...); kw...)
+Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
+    similar(A, eltype(A), I; kw...)
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
+    similar(A, T, (i, I...); kw...)
+Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
     similar(parent(A), T, I)
 
 const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
@@ -172,83 +184,89 @@ const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
     s1 === :MaybeDimUnitRange || @eval begin
         function Base.similar(
-            A::AbstractArray, ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+            A::AbstractArray, ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}; kw...
         ) where T
-            _similar(A, T, shape)
+            _similar(A, T, shape; kw...)
         end
         function Base.similar(
-            ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}
+            ::Type{T}, shape::Tuple{$s1,Vararg{MaybeDimUnitRange}}; kw...
         ) where T<:AbstractArray
-            _similar(T, shape)
+            _similar(T, shape; kw...)
         end
     end
     for s2 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
         all(Base.Fix2(===, :MaybeDimUnitRange), (s1, s2)) || @eval begin
             function Base.similar(
-                A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,Vararg{MaybeDimUnitRange}}
+                A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,Vararg{MaybeDimUnitRange}}; kw...
             )
-                _similar(A, T, shape)
+                _similar(A, T, shape; kw...)
             end
             function Base.similar(
-                T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,Vararg{MaybeDimUnitRange}}
+                T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,Vararg{MaybeDimUnitRange}}; kw...
             )
-                _similar(T, shape)
+                _similar(T, shape; kw...)
             end
         end
         for s3 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
             all(Base.Fix2(===, :MaybeDimUnitRange), (s1, s2, s3)) || @eval begin
                 function Base.similar(
-                    A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,$s3,Vararg{MaybeDimUnitRange}}
+                    A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,$s3,Vararg{MaybeDimUnitRange}}; kw...
                 )
-                    _similar(A, T, shape)
+                    _similar(A, T, shape; kw...)
                 end
                 function Base.similar(
-                    T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,Vararg{MaybeDimUnitRange}}
+                    T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,Vararg{MaybeDimUnitRange}}; kw...
                 )
-                    _similar(T, shape)
+                    _similar(T, shape; kw...)
                 end        
             end    
             for s4 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
                 all(Base.Fix2(===, :MaybeDimUnitRange), (s1, s2, s3, s4)) && continue
                 @eval begin
                     function Base.similar(
-                        A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,$s3,$s4,Vararg{MaybeDimUnitRange}}
+                        A::AbstractArray, T::Type, shape::Tuple{$s1,$s2,$s3,$s4,Vararg{MaybeDimUnitRange}}; kw...
                     )
-                        _similar(A, T, shape)
+                        _similar(A, T, shape; kw...)
                     end
                     function Base.similar(
-                        T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,$s4,Vararg{MaybeDimUnitRange}}
+                        T::Type{<:AbstractArray}, shape::Tuple{$s1,$s2,$s3,$s4,Vararg{MaybeDimUnitRange}}; kw...
                     )
-                        _similar(T, shape)
+                        _similar(T, shape; kw...)
                     end            
                 end
             end
         end
     end
 end
-function _similar(A::AbstractArray, T::Type, shape::Tuple)
+function _similar(A::AbstractArray, T::Type, shape::Tuple; kw...)
     data = similar(parent(A), T, map(_parent_range, shape))
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
-    C = dimconstructor(dims(shape))
+    C = dimconstructor(dims(shape); kw...)
     return C(data, dims(shape))
 end
-function _similar(::Type{T}, shape::Tuple) where {T<:AbstractArray}
+function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
     data = similar(T, map(_parent_range, shape))
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
-    C = dimconstructor(dims(shape))
+    C = dimconstructor(dims(shape); kw...)
     return C(data, dims(shape))
 end
 _parent_range(r::Dimensions.DimUnitRange) = parent(r)
 _parent_range(r) = r
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractBasicDimArray, D::Dimension...) = Base.similar(A, eltype(A), D) 
-Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...) where T =
-    Base.similar(A, T, D) 
-Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple) where T =
-    rebuild(A; data=similar(parent(A), T, size(D)), dims=D, refdims=(), metadata=NoMetadata())
-Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
-    rebuild(A; data=similar(parent(A), T, ()), dims=(), refdims=(), metadata=NoMetadata())
+Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = Base.similar(A, eltype(A), D; kw...) 
+Base.similar(A::AbstractBasicDimArray, D::Dimension...; kw...) = Base.similar(A, eltype(A), D; kw...) 
+fuBase.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...; kw...) where T =
+    Base.similar(A, T, D; kw...) 
+function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
+    refdims=(), name=_noname(A), metadata=NoMetadata()
+) where T
+    rebuild(A; data=similar(parent(A), T, size(dims)), dims=D, refdims, metadata, name)
+end
+function Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}
+    refdims=(), name=_noname(A), metadata==NoMetadata()
+) where T
+    rebuild(A; data=similar(parent(A), T, ()), dims=D, refdims, metadata, name)
+end
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
