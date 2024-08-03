@@ -267,11 +267,25 @@ end
 
         a = da[X([2, 1]), Y([2, 1])] # Indexing with array works
         @test a == [4 3; 2 1]
+    end
 
+    @testset "dimindices and dimselectors" begin
         @test da[DimIndices(da)] == da
         da[DimIndices(da)[X(1)]]
         da[DimSelectors(da)]
         da[DimSelectors(da)[X(1)]]
+        da1 = da .* 0
+        da2 = da .* 0
+        da1[DimIndices(da)] += da
+        da2[DimSelectors(da)] += da
+        @test da == da1
+        @test da == da2
+        da1 *= 0
+        da2 *= 0
+        da1[DimIndices(da)] += da
+        da2[DimSelectors(da)] += da
+        @test da == da1
+        @test da == da2
     end
     
     @testset "selectors work" begin
