@@ -385,7 +385,7 @@ end
     end
 
     @testset "setindex!" begin
-        da_set = copy(da)
+        da_set = deepcopy(da)
         da_set[X(2), Y(2)] = 77 
         @test da_set == [1 2; 3 77]
         da_set[X(1:2), Y(1)] .= 99
@@ -687,15 +687,22 @@ end
         @test @inferred s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
         @test_throws ArgumentError s_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
 
-        s_set_mixed = deepcopy(s_mixed)
-        s_set_mixed[1, 1] = (one=9, two=10, three=11, four=12)
-        @test @inferred s_set_mixed[1, 1] === (one=9.0, two=10.0f0, three=11, four=12)
+        s_set_mixed1 = deepcopy(s_mixed)
+        s_set_mixed2 = deepcopy(s_mixed)
+        s_set_mixed3 = deepcopy(s_mixed)
+        s_set_mixed1[1, 1] = (one=9, two=10, three=11, four=12)
+        s_set_mixed2[X=1, Y=1] = (one=19, two=20, three=21, four=22)
+        s_set_mixed3[Y(1), X(1)] = (one=29, two=30, three=31, four=32)
+        @test @inferred s_set_mixed1[1] === (one=9.0, two=10.0f0, three=11, four=12)
+        @test @inferred s_set_mixed2[1] === (one=19.0, two=20.0f0, three=21, four=22)
+        @test @inferred s_set_mixed3[1] === (one=29.0, two=30.0f0, three=31, four=32)
     end
 
     @testset "Empty getindedex/view/setindex throws a BoundsError" begin
         @test_throws BoundsError s[]
         @test_throws BoundsError view(s)
-        @test_throws BoundsError s[] = 1
+        @test_throws BoundsError 
+        s[] = 1
     end
 end
 
