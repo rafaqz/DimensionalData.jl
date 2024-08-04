@@ -7,8 +7,6 @@ using DimensionalData, Test, Aqua, SafeTestsets
     Aqua.test_project_extras(DimensionalData)
     Aqua.test_stale_deps(DimensionalData)
     Aqua.test_deps_compat(DimensionalData)
-
-    
     
     @time @safetestset "interface" begin include("interface.jl") end
     @time @safetestset "metadata" begin include("metadata.jl") end

@@ -267,11 +267,25 @@ end
 
         a = da[X([2, 1]), Y([2, 1])] # Indexing with array works
         @test a == [4 3; 2 1]
+    end
 
+    @testset "dimindices and dimselectors" begin
         @test da[DimIndices(da)] == da
         da[DimIndices(da)[X(1)]]
         da[DimSelectors(da)]
         da[DimSelectors(da)[X(1)]]
+        da1 = da .* 0
+        da2 = da .* 0
+        da1[DimIndices(da)] += da
+        da2[DimSelectors(da)] += da
+        @test da == da1
+        @test da == da2
+        da1 *= 0
+        da2 *= 0
+        da1[DimIndices(da)] += da
+        da2[DimSelectors(da)] += da
+        @test da == da1
+        @test da == da2
     end
     
     @testset "selectors work" begin
@@ -371,7 +385,7 @@ end
     end
 
     @testset "setindex!" begin
-        da_set = copy(da)
+        da_set = deepcopy(da)
         da_set[X(2), Y(2)] = 77 
         @test da_set == [1 2; 3 77]
         da_set[X(1:2), Y(1)] .= 99
@@ -673,9 +687,15 @@ end
         @test @inferred s_set[2, 2] === (one=9.0, two=10.0f0, three=11)
         @test_throws ArgumentError s_set[CartesianIndex(2, 2)] = (seven=5, two=6, three=7)
 
-        s_set_mixed = deepcopy(s_mixed)
-        s_set_mixed[1, 1] = (one=9, two=10, three=11, four=12)
-        @test @inferred s_set_mixed[1, 1] === (one=9.0, two=10.0f0, three=11, four=12)
+        s_set_mixed1 = deepcopy(s_mixed)
+        s_set_mixed2 = deepcopy(s_mixed)
+        s_set_mixed3 = deepcopy(s_mixed)
+        s_set_mixed1[1, 1] = (one=9, two=10, three=11, four=12)
+        s_set_mixed2[X=1, Y=1] = (one=19, two=20, three=21, four=22)
+        s_set_mixed3[Y(1), X(1)] = (one=29, two=30, three=31, four=32)
+        @test @inferred s_set_mixed1[1] === (one=9.0, two=10.0f0, three=11, four=12)
+        @test @inferred s_set_mixed2[1] === (one=19.0, two=20.0f0, three=21, four=22)
+        @test @inferred s_set_mixed3[1] === (one=29.0, two=30.0f0, three=31, four=32)
     end
 
     @testset "Empty getindedex/view/setindex throws a BoundsError" begin
