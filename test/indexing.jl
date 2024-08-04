@@ -701,8 +701,7 @@ end
     @testset "Empty getindedex/view/setindex throws a BoundsError" begin
         @test_throws BoundsError s[]
         @test_throws BoundsError view(s)
-        @test_throws BoundsError 
-        s[] = 1
+        @test_throws BoundsError s[] = 1
     end
 end
 

@@ -148,6 +148,26 @@ end
     @test @inferred(z .+ x) === 6
 end
 
+@testset "DimIndices broadcasting" begin
+    ds = X(1.0:0.2:2.0), Y(10:2:20)
+    A = rand(ds)
+    B = zeros(ds)
+    C = zeros(ds)
+    B[DimIndices(B)] .+= A
+    C[DimSelectors(C)] .+= A
+    @test A == B == C
+    sub = A[1:4, 1:3]
+    B .= 0
+    C .= 0
+    B[DimIndices(sub)] .+= sub
+    C[DimSelectors(sub)] .+= sub
+    @test A[DimIndices(sub)] == B[DimIndices(sub)] == C[DimIndices(sub)]
+    sub = A[2:4, 2:5]
+    C .= 0
+    C[DimSelectors(sub)] .+= sub
+    @test A[DimSelectors(sub)] == C[DimSelectors(sub)]
+end
+
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))
