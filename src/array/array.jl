@@ -334,7 +334,7 @@ end
     DimArray <: AbstractDimArray
 
     DimArray(data, dims, refdims, name, metadata)
-    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata(), selector=Contains)
+    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata(), selector=Contains())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
