@@ -66,7 +66,7 @@ julia> coords_to_index(t, dims(d))
  65536
 ```
 """
-function coords_to_index(table, dims::Tuple; selector=DimensionalData.Contains)
+function coords_to_index(table, dims::Tuple; selector=DimensionalData.Contains())
     return _sort_coords(table, dims, selector)
 end
 
