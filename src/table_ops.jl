@@ -107,7 +107,6 @@ function _coords_to_ords(
     step = (last(dim) - first(dim)) / (length(dim) - 1)
     return floor.(Int, ((coords .- first(dim)) ./ step) .+ 1)
 end
-
 # Determine the ordinality of a set of regularly spaced numerical coordinates with a central locus
 function _coords_to_ords(
     coords::AbstractVector, 
