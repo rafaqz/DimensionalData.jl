@@ -111,7 +111,7 @@ end
 function _coords_to_ords(
     coords::AbstractVector, 
     dim::Dimension, 
-    ::Type{<:DimensionalData.Selector},
+    ::DimensionalData.Selector,
     ::Type{<:Real},
     ::DimensionalData.Center, 
     ::DimensionalData.Regular)
