@@ -100,19 +100,18 @@ end
 function _coords_to_ords(
     coords::AbstractVector, 
     dim::Dimension, 
-    ::Type{<:DimensionalData.Selector},
+    ::DimensionalData.Selector,
     ::Type{<:Real},
     ::DimensionalData.Start, 
     ::DimensionalData.Regular)
     step = (last(dim) - first(dim)) / (length(dim) - 1)
     return floor.(Int, ((coords .- first(dim)) ./ step) .+ 1)
 end
-
 # Determine the ordinality of a set of regularly spaced numerical coordinates with a central locus
 function _coords_to_ords(
     coords::AbstractVector, 
     dim::Dimension, 
-    ::Type{<:DimensionalData.Selector},
+    ::DimensionalData.Selector,
     ::Type{<:Real},
     ::DimensionalData.Center, 
     ::DimensionalData.Regular)
@@ -133,8 +132,8 @@ function _coords_to_ords(
 end
 
 # Determine the ordinality of a set of categorical or irregular coordinates
-function _coords_to_ords(coords::AbstractVector, dim::Dimension, ::Type{T}, ::Any, ::Any, ::Any) where {T<:DimensionalData.Selector}
-    return map(c -> DimensionalData.selectindices(dim, T(c)), coords)
+function _coords_to_ords(coords::AbstractVector, dim::Dimension, sel::DimensionalData.Selector, ::Any, ::Any, ::Any)
+    return map(c -> DimensionalData.selectindices(dim, rebuild(sel, c)), coords)
 end
 
 # Determine the ordinality of a set of coordinates
