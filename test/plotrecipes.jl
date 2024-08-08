@@ -1,4 +1,5 @@
-using DimensionalData, Test, Plots, Dates, StatsPlots, Unitful
+using DimensionalData, Test, Dates
+using Plots, StatsPlots, Unitful
 import Distributions
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
@@ -269,7 +270,7 @@ using ColorTypes
     fig, ax, _ = M.heatmap(A2ab; y=:b)
     M.heatmap!(ax, A2ab; y=:b)
     fig, ax, _ = M.series(A2ab)
-    # M.series!(ax, A2ab)
+    M.series!(ax, A2ab)
     fig, ax, _ = M.boxplot(A2ab)
     M.boxplot!(ax, A2ab)
     fig, ax, _ = M.violin(A2ab)

@@ -367,7 +367,7 @@ function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(parent, lookup(A1))
     # the following will not work for irregular spacings, we'll need to add a check for this.
-    return xs[1]..xs[end], ys[1]..ys[end], last(Makie.convert_arguments(t, parent(A1)))
+    return first(xs)..last(xs), first(ys)..last(ys), last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
@@ -380,7 +380,7 @@ function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(parent, lookup(A1))
     # the following will not work for irregular spacings
-    return xs[1]..xs[end], ys[1]..ys[end], zs[1]..zs[end], last(Makie.convert_arguments(t, parent(A1)))
+    return first(xs)..last(xs), first(ys)..last(ys), first(zs)..last(zs), last(Makie.convert_arguments(t, parent(A1)))
 end
 # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
@@ -388,13 +388,15 @@ function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<
     return Makie.convert_arguments(t, parent(A))
 end
 
-# We also implement expand_dimensions for recognized plot traits.
-# These can just forward to the relevant converts.
-Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
-Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
+@static if :expand_dimensions in names(Makie; all=true)
+    # We also implement expand_dimensions for recognized plot traits.
+    # These can just forward to the relevant converts.
+    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
+end
 
 # Utility methods
 

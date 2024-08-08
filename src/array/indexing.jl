@@ -69,13 +69,13 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, i2, I...))...)
 
-        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Touches{<:Extents.Extent}}) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
             Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray; kw...) =
@@ -114,7 +114,7 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function $_dim_f(
             A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
         )
-            return merge_and_index($f, A, dims)
+            return merge_and_index(Base.$f, A, dims)
         end
     end
     # Standard indices
@@ -252,10 +252,12 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
 #### setindex ####
 
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x) = setindex!(parent(A), x)
-@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, args::Dimension...; kw...) =
-    setindex!(A, x, dims2indices(A, (args..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i, I...) =
     setindex!(A, x, dims2indices(A, (i, I...))...)
+@propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::DimensionalIndices...; kw...) =
+    setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
+@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) =
+    setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 
