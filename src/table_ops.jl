@@ -132,7 +132,7 @@ function _coords_to_ords(
 end
 
 # Determine the ordinality of a set of categorical or irregular coordinates
-function _coords_to_ords(coords::AbstractVector, dim::Dimension, ::Type{T}, ::Any, ::Any, ::Any) where {T<:DimensionalData.Selector}
+function _coords_to_ords(coords::AbstractVector, dim::Dimension, sel::DimensionalData.Selector, ::Any, ::Any, ::Any)
     return map(c -> DimensionalData.selectindices(dim, T(c)), coords)
 end
 
