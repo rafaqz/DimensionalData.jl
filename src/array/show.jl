@@ -241,8 +241,50 @@ function print_name(io::IO, name)
     end
 end
 
+# A wrapper to show objects with dimension colors or arrows
+struct ShowWith <: AbstractString
+    val::Any
+    mode::Symbol
+    color::Union{Int,Symbol}
+end
+ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
+
+showdefault(x) = ShowWith(x, :nothing, :default)
+showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
+showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
+showarrows() = ShowWith(1.0, :print_arrows, :nothing)
+
+function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
+    if x.mode == :print_arrows
+        printstyled(io, dimsymbols(1); color=dimcolors(1))
+        print(io, " ")
+        printstyled(io, dimsymbols(2); color=dimcolors(2))
+    else
+        s = sprint(show, mime, x.val; context=io, kw...)
+        printstyled(io, s; color=x.color)
+    end
+end
+function Base.show(io::IO, x::ShowWith)
+    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
+end
+
+function Base.alignment(io::IO, x::ShowWith)
+    # Base bug means we need to special-case this
+    if x.val isa DateTime
+        0, textwidth(sprint(print, x.val))
+    else
+        Base.alignment(io, x.val)
+    end
+end
+function Base.print(io::IO, x::ShowWith)
+    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
+end
+
+Base.iterate(x::ShowWith) = iterate(string(x.val))
+Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)
+
 # A lazy array wrapper to print lookup values as an extra row and/or column
-struct LazyLabelledPrintMatrix{A,LL<:Lookup,LT<:Lookup} <: AbstractArray{Any,2}
+struct LazyLabelledPrintMatrix{A,LL,LT} <: AbstractArray{ShowWith,2}
     data::A
     rowlabels::LL
     collabels::LT
@@ -269,24 +311,24 @@ end
     oi = i + firstindex(A.data, 1) - 1
     if ndims(A.data) == 1 
         if A.rowlabels isa NoLookup
-            A.data[oi]
+            showdefault(A.data[oi])
         else
             if j == 1
                 showrowlabel(A.rowlabels[oi])
             elseif j == 2
-                A.data[oi]
+                showdefault(A.data[oi])
             end
         end
     else # N == 2
         oj = j + firstindex(A.data, 2) - 1
         if A.rowlabels isa NoLookup
             if A.collabels isa NoLookup
-                A.data[oi, oj]
+                showdefault(A.data[oi, oj])
             else
                 if i == 1
                     showcollabel(A.collabels[oj])
                 else # i > 1
-                    A.data[oi - 1, oj]
+                    showdefault(A.data[oi - 1, oj])
                 end
             end
         else # !(A.rowlabels isa NoLookup)
@@ -294,7 +336,7 @@ end
                 if j == 1
                     showrowlabel(A.rowlabels[oi])
                 else # j > 1
-                    A.data[oi, oj - 1]
+                    showdefault(A.data[oi, oj - 1])
                 end
             else
                 if j == 1
@@ -307,54 +349,10 @@ end
                     if i == 1
                         showcollabel(A.collabels[oj - 1])
                     else # i > 1
-                        A.data[oi - 1, oj - 1]
+                        showdefault(A.data[oi - 1, oj - 1])
                     end
                 end
             end
         end
     end
 end
-
-# A wrapper to print objects with dimension colors or arrows
-struct ShowWith <: AbstractString
-    val::Any
-    mode::Symbol
-    color::Union{Int,Symbol}
-end
-ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
-
-showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
-showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
-showarrows() = ShowWith(1.0, :print_arrows, :nothing)
-
-function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
-    if x.mode == :print_arrows
-        printstyled(io, dimsymbols(1); color=dimcolors(1))
-        print(io, " ")
-        printstyled(io, dimsymbols(2); color=dimcolors(2))
-    else
-        s = sprint(show, mime, x.val; context=io, kw...)
-        printstyled(io, s; color=x.color)
-    end
-end
-function Base.show(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
-end
-
-function Base.alignment(io::IO, x::ShowWith)
-    # Base bug means we need to special-case this...
-    if x.val isa DateTime
-        0, textwidth(sprint(print, x.val))
-    else
-        Base.alignment(io, x.val)
-    end
-end
-Base.length(x::ShowWith) = length(string(x.val))
-Base.textwidth(x::ShowWith) = textwidth(string(x.val))
-Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
-function Base.print(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
-end
-
-Base.iterate(x::ShowWith) = iterate(string(x.val))
-Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)
