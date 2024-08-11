@@ -241,6 +241,7 @@ function print_name(io::IO, name)
     end
 end
 
+# A lazy array wrapper to print lookup values as an extra row and/or column
 struct LazyLabelledPrintMatrix{A,LL<:Lookup,LT<:Lookup} <: AbstractArray{Any,2}
     data::A
     rowlabels::LL
@@ -251,6 +252,7 @@ function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,1})
 end
 function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,2})
     LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 2))
+end
 
 function Base.size(A::LazyLabelledPrintMatrix)
     n = ndims(A.data)
@@ -313,6 +315,7 @@ end
     end
 end
 
+# A wrapper to print objects with dimension colors or arrows
 struct ShowWith <: AbstractString
     val::Any
     mode::Symbol
