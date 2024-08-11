@@ -19,6 +19,10 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}
 end
 # Defer simple 2-arg show to the parent array
 Base.show(io::IO, A::AbstractDimArray) = show(io, parent(A))
+    
+Base.print_matrix(io::IO, A::AbstractBasicDimArray) =
+    Base.print_matrix(io, LazyLabelledPrintMatrix(A))
+
 
 """
     show_main(io::IO, mime, A::AbstractDimArray)
@@ -247,7 +251,6 @@ function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,1})
 end
 function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,2})
     LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 2))
-end
 
 function Base.size(A::LazyLabelledPrintMatrix)
     n = ndims(A.data)
@@ -308,10 +311,6 @@ end
             end
         end
     end
-end
-
-function Base.print_matrix(io::IO, A::AbstractBasicDimArray) 
-    Base.print_matrix(io, LazyLabelledPrintMatrix(A))
 end
 
 struct ShowWith <: AbstractString
