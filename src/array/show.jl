@@ -249,7 +249,6 @@ struct ShowWith <: AbstractString
 end
 ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
 
-showdefault(x) = ShowWith(x, :nothing, :default)
 showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
 showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
 showarrows() = ShowWith(1.0, :print_arrows, :nothing)
@@ -284,7 +283,7 @@ Base.iterate(x::ShowWith) = iterate(string(x.val))
 Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)
 
 # A lazy array wrapper to print lookup values as an extra row and/or column
-struct LazyLabelledPrintMatrix{A,LL,LT} <: AbstractArray{ShowWith,2}
+struct LazyLabelledPrintMatrix{A,LL,LT} <: AbstractArray{Any,2}
     data::A
     rowlabels::LL
     collabels::LT
@@ -311,24 +310,24 @@ end
     oi = i + firstindex(A.data, 1) - 1
     if ndims(A.data) == 1 
         if A.rowlabels isa NoLookup
-            showdefault(A.data[oi])
+            A.data[oi]
         else
             if j == 1
                 showrowlabel(A.rowlabels[oi])
             elseif j == 2
-                showdefault(A.data[oi])
+                A.data[oi]
             end
         end
     else # N == 2
         oj = j + firstindex(A.data, 2) - 1
         if A.rowlabels isa NoLookup
             if A.collabels isa NoLookup
-                showdefault(A.data[oi, oj])
+                A.data[oi, oj]
             else
                 if i == 1
                     showcollabel(A.collabels[oj])
                 else # i > 1
-                    showdefault(A.data[oi - 1, oj])
+                    A.data[oi - 1, oj]
                 end
             end
         else # !(A.rowlabels isa NoLookup)
@@ -336,7 +335,7 @@ end
                 if j == 1
                     showrowlabel(A.rowlabels[oi])
                 else # j > 1
-                    showdefault(A.data[oi, oj - 1])
+                    A.data[oi, oj - 1]
                 end
             else
                 if j == 1
@@ -349,7 +348,7 @@ end
                     if i == 1
                         showcollabel(A.collabels[oj - 1])
                     else # i > 1
-                        showdefault(A.data[oi - 1, oj - 1])
+                        A.data[oi - 1, oj - 1]
                     end
                 end
             end
