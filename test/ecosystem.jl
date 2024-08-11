@@ -19,6 +19,8 @@ end
     end
     odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
     oda = DimArray(oa, odimz)
+    size(DimensionalData.LazyLabelledPrintMatrix(oda[Y=End]))
+    size(oda[Y=End])
     @testset "Indexing and selectors work with offsets" begin
         @test axes(oda) == (-1:1, 5:8)
         @test oda[-1, 5] == oa[-1, 5] == 1

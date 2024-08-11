@@ -52,8 +52,8 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
     end
 end
 
-Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple) =
-    show_dims(io, mime, dims)
+Base.show(io::IO, dims::DimTuple) = show_dims(io, MIME"text/plain"(), dims)
+Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple) = show_dims(io, mime, dims)
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
     get(io, :compact, false) && return show_compact(io, mime, dim)
     print_dimname(io, dim)

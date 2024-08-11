@@ -1,5 +1,6 @@
 using DimensionalData, Test, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
+using DimensionalData: LazyLabelledPrintMatrix, ShowWith, showrowlabel, showcollabel, showarrows
 
 # define dims with both long name and Type name
 @dim Lon "Longitude"
@@ -14,6 +15,50 @@ z = Z('a':'d')
 ds = (x, y, z, t, n)
 A = DimArray(rand(length.(ds)...), ds; refdims=(Dim{:refdim}(1),), name=:test)
 ds = dims(A)
+
+@testset "LazyLabelledPrintMatrix" begin
+    A = LazyLabelledPrintMatrix(zeros(X(5)))
+    @test size(A) == (5, 1)
+    @test collect(A) == [0.0 0.0 0.0 0.0 0.0]'
+    A = LazyLabelledPrintMatrix(zeros(X(10:10:50)) .+ (1.0:1:5.0))
+    @test size(A) == (5, 2)
+    @test collect(A) == [
+        showrowlabel(10) 1.0
+        showrowlabel(20) 2.0
+        showrowlabel(30) 3.0
+        showrowlabel(40) 4.0
+        showrowlabel(50) 5.0
+    ]
+    A = LazyLabelledPrintMatrix(zeros(X(5), Y(10:10:30)))
+    @test size(A) == (6, 3)
+    @test collect(A) == [
+         showcollabel(10) showcollabel(20) showcollabel(30)
+         0.0              0.0              0.0
+         0.0              0.0              0.0
+         0.0              0.0              0.0
+         0.0              0.0              0.0
+         0.0              0.0              0.0
+    ]
+    A = LazyLabelledPrintMatrix(zeros(X(1:5), Y(3)))
+    @test size(A) == (5, 4)
+    @test collect(A) == [
+         showrowlabel(1) 0.0              0.0              0.0
+         showrowlabel(2) 0.0              0.0              0.0
+         showrowlabel(3) 0.0              0.0              0.0
+         showrowlabel(4) 0.0              0.0              0.0
+         showrowlabel(5) 0.0              0.0              0.0
+    ]
+    A = LazyLabelledPrintMatrix(zeros(X(1:5), Y(10:10:30)))
+    @test size(A) == (6, 4)
+    @test collect(A) == [
+         showarrows()    showcollabel(10) showcollabel(20) showcollabel(30)
+         showrowlabel(1) 0.0              0.0              0.0
+         showrowlabel(2) 0.0              0.0              0.0
+         showrowlabel(3) 0.0              0.0              0.0
+         showrowlabel(4) 0.0              0.0              0.0
+         showrowlabel(5) 0.0              0.0              0.0
+    ]
+end
 
 @testset "dims" begin
     sv = sprint(show, MIME("text/plain"), X())
