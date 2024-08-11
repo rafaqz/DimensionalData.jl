@@ -237,60 +237,72 @@ function print_name(io::IO, name)
     end
 end
 
-struct LazyLabelledPrintArray{N,LL<:Lookup,LT<:Lookup} <: AbstractArray{Any,2}
-    data::AbstractArray{<:Any,N}
+struct LazyLabelledPrintMatrix{A,LL<:Lookup,LT<:Lookup} <: AbstractArray{Any,2}
+    data::A
     rowlabels::LL
     collabels::LT
 end
+function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,1})
+    LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 1))
+end
+function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,2})
+    LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 2))
+end
 
-function Base.size(A::LazyLabelledPrintArray)
+function Base.size(A::LazyLabelledPrintMatrix)
     n = ndims(A.data)
     if n == 1
         return length(A.data), A.rowlabels isa NoLookup ? 1 : 2
     else
-        labelsize = A.rowlabels isa NoLookup ? 0 : 1, A.collabels isa NoLookup ? 0 : 1
+        labelsize = A.collabels isa NoLookup ? 0 : 1, A.rowlabels isa NoLookup ? 0 : 1
         return map(+, labelsize, size(A.data))
     end
 end
 
-@propagate_inbounds function Base.getindex(A::LazyLabelledPrintArray, i::Integer, j::Integer)
+@propagate_inbounds function Base.getindex(A::LazyLabelledPrintMatrix, i::Integer, j::Integer)
     @boundscheck checkbounds(A, i, j)
-    if ndims(A.data) == 1
+    oi = i + firstindex(A.data, 1) - 1
+    if ndims(A.data) == 1 
         if A.rowlabels isa NoLookup
-            A.data[i]
+            A.data[oi]
         else
-            if i == 1
-                showrowlabel(A.rowlabels[i])
-            elseif i == 2
-                A.data[i]
+            if j == 1
+                showrowlabel(A.rowlabels[oi])
+            elseif j == 2
+                A.data[oi]
             end
         end
     else # N == 2
+        oj = j + firstindex(A.data, 2) - 1
         if A.rowlabels isa NoLookup
             if A.collabels isa NoLookup
-                A.data[i, j]
+                A.data[oi, oj]
             else
                 if i == 1
-                    showcollabel(A.collabels[j])
-                else
-                    A.data[i, j - 1]
+                    showcollabel(A.collabels[oj])
+                else # i > 1
+                    A.data[oi - 1, oj]
                 end
             end
-        else
-            if j == 1
-                if i == 1
-                    showarrows()
-                else
-                    showrowlabel(A.rowlabels[i - 1])
+        else # !(A.rowlabels isa NoLookup)
+            if A.collabels isa NoLookup
+                if j == 1
+                    showrowlabel(A.rowlabels[oi])
+                else # j > 1
+                    A.data[oi, oj - 1]
                 end
             else
-                if A.collabels isa NoLookup
-                    A.data[i - 1, j]
-                else
+                if j == 1
                     if i == 1
-                        showcollabel(A.collabels[j - 1])
-                    else
-                        A.data[i - 1, j - 1]
+                        showarrows()
+                    else # i > 1
+                        showrowlabel(A.rowlabels[oi - 1])
+                    end
+                else # j > 1
+                    if i == 1
+                        showcollabel(A.collabels[oj - 1])
+                    else # i > 1
+                        A.data[oi - 1, oj - 1]
                     end
                 end
             end
@@ -298,24 +310,8 @@ end
     end
 end
 
-Base.print_matrix(io::IO, A::AbstractBasicDimArray) = _print_matrix(io, parent(A), lookup(A))
-# Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
-function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
-    lu = only(lookups)
-    if lu isa NoLookup
-        Base.print_matrix(io, A)
-    else
-        Base.print_matrix(io, LazyLabelledPrintArray(A, lu, lu))
-    end
-    return nothing
-end
-function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
-    if isnolookup(lookups)
-        Base.print_matrix(io, A)
-    else
-        Base.print_matrix(io, LazyLabelledPrintArray(A, lookups...))
-    end
-    return nothing
+function Base.print_matrix(io::IO, A::AbstractBasicDimArray) 
+    Base.print_matrix(io, LazyLabelledPrintMatrix(A))
 end
 
 struct ShowWith <: AbstractString
