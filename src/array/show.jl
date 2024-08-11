@@ -250,16 +250,25 @@ function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
         ibottom = 1:0
     end
     top = Array{eltype(A)}(undef, length(itop))
-    copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
+    for (i1, i2) in zip(eachindex(top), itop)
+        if isdefined(A, i2) 
+            top[i1] = A[i2]
+        end
+    end
     bottom = Array{eltype(A)}(undef, length(ibottom)) 
-    copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
+    for (i1, i2) in zip(eachindex(bottom), ibottom)
+        if isdefined(A, i2) 
+            top[i1] = A[i2]
+        end
+    end
     vals = vcat(A[itop], A[ibottom])
     lu = only(lookups)
     if lu isa NoLookup
         Base.print_matrix(io, vals)
     else
         labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu)[ibottom]))
-        Base.print_matrix(io, hcat(labels, vals))
+        A2 = hcat(labels, vals)
+        Base.print_matrix(io, A2)
     end
     return nothing
 end
