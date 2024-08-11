@@ -32,13 +32,8 @@ end
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
 )
-    if eltype(data) <: Union{AbstractDimArray,AbstractDimStack}
-        # We have DimArrays or DimStacks. Rebuild as a DimGroupArray
-        DimGroupByArray(data, dims, refdims, name, metadata)
-    else
-        # Some other values. Rebuild as a regular DimArray
-        dimconstructor(dims)(data, dims, refdims, name, metadata)
-    end
+    # Rebuild as a regular DimArray
+    dimconstructor(dims)(data, dims, refdims, name, metadata)
 end
 @inline function rebuild(A::DimGroupByArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
@@ -54,19 +49,27 @@ end
 function show_after(io::IO, mime, A::DimGroupByArray)
     displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
-    sorteddims = (dims(A)..., otherdims(first(A), dims(A))...)
-    colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
-    colors = collect(map(val, colordims))
-    lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(first(A));
-        displaywidth, blockwidth, label="group dims", colors
-    )
-    length(A) > 0 || return nothing
-    A1 = map(x -> DimSummariser(x, colors), A)
-    ctx = IOContext(io,
-        :blockwidth => blockwidth,
-        :displaysize => (displayheight - lines, displaywidth)
-    )
-    show_after(ctx, mime, A1)
+    if length(A) > 0 && isdefined(parent(A), 1)
+        x = A[1]
+        sorteddims = (dims(A)..., otherdims(x, dims(A))...)
+        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(x))
+        colors = collect(map(val, colordims))
+        lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
+            displaywidth, blockwidth, label="group dims", colors
+        )
+        A1 = map(x -> DimSummariser(x, colors), A)
+        ctx = IOContext(io,
+            :blockwidth => blockwidth,
+            :displaysize => (displayheight - lines, displaywidth)
+        )
+        show_after(ctx, mime, A1)
+    else
+        A1 = map(eachindex(A)) do i
+            isdefined(parent(A), i) ? DimSummariser(A[i], colors) : Base.undef_ref_str 
+        end
+        ctx = IOContext(io, :blockwidth => blockwidth)
+        show_after(ctx, mime, parent(A))
+    end
     return nothing
 end
 
