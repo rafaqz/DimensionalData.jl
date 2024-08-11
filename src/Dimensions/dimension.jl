@@ -351,7 +351,7 @@ data from a file. Can be used as keyword arguments for indexing.
 Dimension types take precedence over same named `Dim` types when indexing
 with symbols, or e.g. creating Tables.jl keys.
 
-```jldoctest
+```jldoctest; setup = :(using DimensionalData)
 julia> dim = Dim{:custom}(['a', 'b', 'c'])
 custom ['a', 'b', 'c']
 ```

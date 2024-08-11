@@ -69,7 +69,7 @@ Index a `DimArray` with `DimIndices`.
 Notice that unlike CartesianIndices, it doesn't matter if the dimensions
 are not in the same order. Or even if they are not all contained in each.
 
-```jldoctest; setup = :(using Random; Random.seed!(123))
+```jldoctest; setup = :(using DimensionalData, Random; Random.seed!(123))
 julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
 ╭─────────────────────────╮
 │ 4×6 DimArray{Float64,2} │
@@ -90,7 +90,7 @@ julia> di = DimIndices((X(1:2:4), Y(1:2:4)))
   ↓ X 1:2:3,
   → Y 1:2:3
 └─────────────────────────────────────────────┘
- ↓ →  1                            3
+ ↓ →  1              3
  1     ↓ X 1, → Y 1   ↓ X 1, → Y 3
  3     ↓ X 3, → Y 1   ↓ X 3, → Y 3
 
@@ -217,7 +217,7 @@ Here we can interpolate a `DimArray` to the lookups of another `DimArray`
 using `DimSelectors` with `Near`. This is essentially equivalent to
 nearest neighbour interpolation.
 
-```jldoctest; setup = :(using Random; Random.seed!(123))
+```jldoctest; setup = :(using DimensionalData, Random; Random.seed!(123))
 julia> A = rand(X(1.0:3.0:30.0), Y(1.0:5.0:30.0), Ti(1:2));
 
 julia> target = rand(X(1.0:10.0:30.0), Y(1.0:10.0:30.0));
