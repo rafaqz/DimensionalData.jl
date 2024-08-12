@@ -431,12 +431,12 @@ function DimArray(A::AbstractBasicDimArray;
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
 # Write a single column from a table with one or more coordinate columns to a DimArray
-function DimArray(table, dims; name=NoName(), selector=DimensionalData.Contains(), kw...)
-    indices = coords_to_index(table, dims; selector)
+function DimArray(table, dims; name=NoName(), selector=DimensionalData.Near(), precision=6, kw...)
+    data = restore_array(table, dims; selector=selector, missingval=missing, name=name, precision=precision)
     col = name == NoName() ? _data_col_names(table, dims) |> first : Symbol(name)
-    data = restore_array(Tables.getcolumn(table, col), indices, dims; missingval=missing)
     return DimArray(data, dims, name=col; kw...)
 end
+DimArray(table; kw...) = DimArray(table, _guess_dims(table; kw...); kw...)
 """
     DimArray(f::Function, dim::Dimension; [name])
 
