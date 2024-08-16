@@ -136,8 +136,6 @@ function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
     d = dims(di, 1)
     (rebuild(d, d[i]),)
 end
-# Dispatch to avoid linear indexing in multidimensional DimIndices
-Base.getindex(::DimIndices{<:Any,0}) = ()
 
 _dimindices_format(dims::Tuple{}) = ()
 _dimindices_format(dims::Tuple) = map(rebuild, dims, map(_dimindices_axis, dims))
