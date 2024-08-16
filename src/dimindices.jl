@@ -124,7 +124,6 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     dims = N > 0 ? _dimindices_format(dims) : dims
     DimIndices{T,N,typeof(dims)}(dims)
 end
-DimIndices(::Tuple{}) = DimIndices{Tuple{},0,Tuple{}}(())
 
 # Forces multiple indices not linear
 function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
