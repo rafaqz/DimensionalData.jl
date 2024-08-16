@@ -45,6 +45,7 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @testset "zero dimensional" begin
         di0 = DimIndices(())
         @test di0[] == ()
+        @test view(di0) == di0
         @test first(di0) == ()
         @test eltype(di0) == Tuple{}
         @test ndims(di0) == 0
@@ -68,6 +69,7 @@ end
     @testset "zero dimensional" begin
         dp0 = DimPoints(())
         @test dp0[] == ()
+        @test view(dp0) == dp0
         @test first(dp0) == ()
         @test eltype(dp0) == Tuple{}
         @test ndims(dp0) == 0
@@ -101,6 +103,7 @@ end
     @testset "zero dimensional" begin
         ds0 = DimSelectors(())
         @test ds0[] == ()
+        @test view(ds0) == ds0
         @test first(ds0) == ()
         @test eltype(ds0) == Tuple{}
         @test ndims(ds0) == 0

@@ -23,7 +23,11 @@ for f in (:getindex, :dotview, :view)
         rebuild(di; dims=(dims(di, 1)[i],))
     @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
         Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
-    @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
+    if f == :view
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator) = A
+    else
+        @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
+    end
 end
 
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
