@@ -127,11 +127,19 @@ function broadcast_dims(f, As::AbstractBasicDimArray...)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
 end
 
+function broadcast_dims(f, st::AbstractDimStack{K}, sts::AbstractDimStack{K}...) where K
+   layers = map(K) do name
+       broadcast_dims(f, st[name], map(s -> s[name], sts)...)
+   end
+    rebuild_from_arrays(st, layers)
+end
+# Mixed stack/array
 function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
     st = _firststack(As...)
     nts = _as_extended_nts(NamedTuple(st), As...)
-    layers = map(nts...) do as...
-        broadcast_dims(f, as...)
+    names = keys(st)
+    layers = map(names) do name
+        broadcast_dims(f, map(nt -> nt[name], nts)...)
     end
     rebuild_from_arrays(st, layers)
 end
@@ -216,7 +224,11 @@ _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K =
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
 function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
     extended_layers = map(layers(st)) do l
-        DimExtensionArray(l, dims(st))
+        if all(hasdim(l, dims(st)))
+            l
+        else
+            DimExtensionArray(l, dims(st))
+        end
     end
     return (extended_layers, _as_extended_nts(nt, As...)...)
 end
