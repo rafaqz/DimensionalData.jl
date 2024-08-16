@@ -23,6 +23,7 @@ for f in (:getindex, :dotview, :view)
         rebuild(di; dims=(dims(di, 1)[i],))
     @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
         Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+    @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
 end
 
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
@@ -119,6 +120,7 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     dims = N > 0 ? _dimindices_format(dims) : dims
     DimIndices{T,N,typeof(dims)}(dims)
 end
+DimIndices(::Tuple{}) = DimIndices{Tuple{},0,Tuple{}}(())
 
 # Forces multiple indices not linear
 function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
@@ -131,6 +133,8 @@ function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
     d = dims(di, 1)
     (rebuild(d, d[i]),)
 end
+# Dispatch to avoid linear indexing in multidimensional DimIndices
+Base.getindex(::DimIndices{<:Any,0}) = ()
 
 _dimindices_format(dims::Tuple{}) = ()
 _dimindices_format(dims::Tuple) = map(rebuild, dims, map(_dimindices_axis, dims))
@@ -163,12 +167,12 @@ that defines a `dims` method can be passed in.
 
 - `order`: determines the order of the points, the same as the order of `dims` by default.
 """
-struct DimPoints{T,N,D<:DimTuple,O} <: AbstractDimIndices{T,N,D}
+struct DimPoints{T,N,D<:Tuple{Vararg{Dimension}},O} <: AbstractDimIndices{T,N,D}
     dims::D
     order::O
 end
-DimPoints(dims::DimTuple; order=dims) = DimPoints(dims, order)
-function DimPoints(dims::DimTuple, order::DimTuple)
+DimPoints(dims::Tuple; order=dims) = DimPoints(dims, order)
+function DimPoints(dims::Tuple, order::Tuple)
     order = map(d -> basetypeof(d)(), order)
     T = Tuple{map(eltype, dims)...}
     N = length(dims)
@@ -239,15 +243,15 @@ Using `At` would make sure we only use exact interpolation,
 while `Contains` with sampling of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
-struct DimSelectors{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
+struct DimSelectors{T,N,D<:Tuple{Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
     dims::D
     selectors::S
 end
-function DimSelectors(dims::DimTuple; atol=nothing, selectors=At())
+function DimSelectors(dims::Tuple{Vararg{Dimension}}; atol=nothing, selectors=At())
     s = _format_selectors(dims, selectors, atol)
     DimSelectors(dims, s)
 end
-function DimSelectors(dims::DimTuple, selectors::Tuple)
+function DimSelectors(dims::Tuple{Vararg{Dimension}}, selectors::Tuple)
     T = typeof(map(rebuild, dims, selectors))
     N = length(dims)
     dims = N > 0 ? _format(dims) : dims
