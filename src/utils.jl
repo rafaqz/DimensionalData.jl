@@ -130,8 +130,7 @@ end
 function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
     st = _firststack(As...)
     nts = _as_extended_nts(NamedTuple(st), As...)
-    names = keys(st)
-    layers = map(names) do name
+    layers = map(keys(st)) do name
         broadcast_dims(f, map(nt -> nt[name], nts)...)
     end
     rebuild_from_arrays(st, layers)
@@ -215,7 +214,8 @@ uniquekeys(nt::NamedTuple) = keys(nt)
 
 _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
-function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
+function _as_extended_nts(nt::NamedTuple{K1}, st::AbstractDimStack{K2}, As...) where {K1,K2}
+    K1 == K2 || throw(ArgumentError("Keys of stack $K2 do not match the keys of the first stack $K1"))
     extended_layers = map(layers(st)) do l
         if all(hasdim(l, dims(st)))
             l
