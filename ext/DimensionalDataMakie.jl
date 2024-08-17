@@ -1,6 +1,8 @@
 module DimensionalDataMakie
 
-using DimensionalData, Makie
+using DimensionalData
+using Makie
+using IntervalSets
 using DimensionalData.Dimensions, DimensionalData.LookupArrays
 
 const DD = DimensionalData
@@ -345,18 +347,18 @@ function _boxplotlike(A, attributes, labeldim)
 end
 
 # Plot type definitions. Not sure they will ever get called?
-Makie.plottype(A::AbstractDimVector) = Makie.Scatter
-Makie.plottype(A::AbstractDimMatrix) = Makie.Heatmap
-Makie.plottype(A::AbstractDimArray{<:Any,3}) = Makie.Volume
+Makie.plottype(::AbstractDimVector) = Makie.Scatter
+Makie.plottype(::AbstractDimMatrix) = Makie.Heatmap
+Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 
 # Conversions
 function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(parent, lookup(A1))
+    xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
-    A = _prepare_for_makie(A)
+    A1 = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
     return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
 end
@@ -365,24 +367,30 @@ function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
 end
 function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(parent, lookup(A1))
+    xs, ys = map(_lookup_to_vector, lookup(A1))
     # the following will not work for irregular spacings, we'll need to add a check for this.
-    return first(xs)..last(xs), first(ys)..last(ys), last(Makie.convert_arguments(t, parent(A1)))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+end
+function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
+    A1 = _prepare_for_makie(A)
+    xs, ys = map(_lookup_to_intervals, lookup(A))
+    # the following will not work for irregular spacings, we'll need to add a check for this.
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
 )
     A1 = _prepare_for_makie(A)
-    xs, ys = map(parent, lookup(A1))
+    xs, ys = map(_lookup_to_axis, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
     A1 = _prepare_for_makie(A)
-    xs, ys, zs = map(parent, lookup(A1))
+    xs, ys, zs = map(_lookup_to_vector, lookup(A1))
     # the following will not work for irregular spacings
-    return first(xs)..last(xs), first(ys)..last(ys), first(zs)..last(zs), last(Makie.convert_arguments(t, parent(A1)))
+    return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
-# fallbacks with descriptive error messages
+# # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
     @warn "$t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
     return Makie.convert_arguments(t, parent(A))
@@ -510,6 +518,27 @@ function _keywords2dimpairs(x, y)
     reduce((x => X, y => Y); init=()) do acc, (source, dest)
         isnothing(source) ? acc : (acc..., source => dest)
     end
+end
+
+function _lookup_to_vector(l)
+    if isintervals(l)
+        bs = intervalbounds(l)
+        x = first.(bs)
+        push!(x, last(last(bs)))
+    else
+        collect(parent(l))
+    end
+end
+
+function _lookup_to_interval(l)
+    l1 = if isnolookup(l)
+        Sampled(parent(l); order=ForwardOrdered(), sampling=Intervals(Center()), span=Regular(1))
+    elseif ispoints(l)
+        set(l, Intervals())
+    else
+        l
+    end
+    return IntervalSets.Interval(bounds(l1)...)
 end
 
 _floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
