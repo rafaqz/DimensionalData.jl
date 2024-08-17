@@ -422,6 +422,7 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
 end
 
 function _check_cat_lookup_order(D, lookups::Lookup...)
+    length(lookups) > 1 || return true
     l1 = first(lookups)
     length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)

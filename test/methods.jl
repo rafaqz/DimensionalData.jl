@@ -545,6 +545,13 @@ end
         @test c == b
         @test dims(c) == dims(b)
     end
+
+    @testset "empty DimArrays" begin
+        empty = rand(X(Int64[]))
+        @test cat(empty, empty, dims=X) == empty
+        empty = rand(X(Int64[]), Y(Int64[]))
+        @test cat(empty, empty, dims=X) == empty
+    end
 end
 
 @testset "vcat" begin
