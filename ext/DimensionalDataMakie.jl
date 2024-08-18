@@ -355,40 +355,40 @@ Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_vector, lookup(A1))
-    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+    # Convert to array to catch any parent type weirdness before they go to Makie
+    A2 = convert(Array, parent(A1)) 
+    return xs, ys, last(Makie.convert_arguments(t, A2))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     A1 = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
-    return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
+    # Convert to array to catch any parent type weirdness before they go to Makie
+    A2 = convert(Array, parent(A1)) 
+    return Makie.convert_arguments(t, xs, A2)
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
-    return Makie.convert_arguments(t, parent(A))
+    # Here we are just ignoring the dimensions
+    A1 = convert(Array, parent(A)) 
+    return Makie.convert_arguments(t, A1)
 end
 function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_vector, lookup(A1))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
-    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+    # A2 = convert(Array, parent(A1))
+    return xs, ys, last(Makie.convert_arguments(t, A1))
 end
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_intervals, lookup(A))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
-    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
-end
-function Makie.convert_arguments(
-    t::Makie.CellGrid, A::AbstractDimMatrix
-)
-    A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_axis, lookup(A1))
-    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+    A2 = convert(Array, parent(A1))
+    return xs, ys, last(Makie.convert_arguments(t, A2))
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(_lookup_to_vector, lookup(A1))
+    A2 = convert(Array, parent(A1))
     # the following will not work for irregular spacings
-    return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
+    return xs, ys, zs, last(Makie.convert_arguments(t, A2))
 end
 # # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
@@ -526,7 +526,7 @@ function _lookup_to_vector(l)
         x = first.(bs)
         push!(x, last(last(bs)))
     else
-        collect(parent(l))
+        convert(Array, parent(l))
     end
 end
 
@@ -540,11 +540,5 @@ function _lookup_to_interval(l)
     end
     return IntervalSets.Interval(bounds(l1)...)
 end
-
-_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
-_floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
-_floatornan(A) = A
-_floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
-_floatornan64(x) = ismissing(x) ? NaN64 : Float64(x)
 
 end
