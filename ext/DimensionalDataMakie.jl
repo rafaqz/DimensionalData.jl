@@ -137,7 +137,8 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
-            A1, A2, args, merged_attributes = _surface2(A, attributes, replacements)
+            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            A1, A2, args, merged_attributes = _surface2(A, plottrait, attributes, replacements)
             p = if $(f1 == :surface)
                 # surface is an LScene so we cant pass attributes
                 p = Makie.$f2(args...; attributes...)
@@ -159,7 +160,8 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
-            _, _, args, _ = _surface2(A, attributes, replacements)
+            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            _, _, args, _ = _surface2(A, plottrait, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
         end
@@ -167,19 +169,21 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x,y)
-            args =  lift(x->_surface2(x, attributes, replacements)[3], A)
+            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            args =  lift(x->_surface2(x, plottrait, attributes, replacements)[3], A)
             p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
             return p
         end
     end
 end
 
-function _surface2(A, attributes, replacements)
+function _surface2(A, plottrait, attributes, replacements)
     # Array/Dimension manipulation
     A1 = _prepare_for_makie(A, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
-    args = Makie.convert_arguments(Makie.VertexGrid(), A2)
+
+    args = Makie.convert_arguments(plottrait, A2)
 
     # Plot attribute generation
     dx, dy = DD.dims(A2)
@@ -373,7 +377,7 @@ function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
 end
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_intervals, lookup(A))
+    xs, ys = map(_lookup_to_interval, lookup(A))
     # the following will not work for irregular spacings, we'll need to add a check for this.
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
@@ -381,7 +385,7 @@ function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
 )
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_axis, lookup(A1))
+    xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
