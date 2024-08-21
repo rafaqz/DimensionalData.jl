@@ -373,7 +373,7 @@ function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
 end
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_intervals, lookup(A))
+    xs, ys = map(_lookup_to_interval, lookup(A))
     # the following will not work for irregular spacings, we'll need to add a check for this.
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
@@ -381,7 +381,7 @@ function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
 )
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_axis, lookup(A1))
+    xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
