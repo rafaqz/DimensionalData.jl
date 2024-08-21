@@ -244,6 +244,19 @@ end
     A2m[3] = missing
     A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
 
+    #Test whether the conversion functions work
+    #TODO once surface2 is corrected to use the plottrait this should
+    #already be tested with the usual plotting functions
+    M.convert_arguments(M.CellGrid(), A2)
+    M.convert_arguments(M.VertexGrid(), A2)
+    M.convert_arguments(M.ImageLike(), A2)
+
+    M.convert_arguments(M.CellGrid(), A2u)
+    M.convert_arguments(M.VertexGrid(), A2u)
+    M.convert_arguments(M.ImageLike(), A2u)
+
+
+
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
