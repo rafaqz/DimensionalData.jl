@@ -244,6 +244,19 @@ end
     A2m[3] = missing
     A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
 
+    #Test whether the conversion functions work
+    #TODO once surface2 is corrected to use the plottrait this should
+    #already be tested with the usual plotting functions
+    M.convert_arguments(M.CellGrid(), A2)
+    M.convert_arguments(M.VertexGrid(), A2)
+    M.convert_arguments(M.ImageLike(), A2)
+
+    M.convert_arguments(M.CellGrid(), A2u)
+    M.convert_arguments(M.VertexGrid(), A2u)
+    M.convert_arguments(M.ImageLike(), A2u)
+
+
+
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
@@ -302,6 +315,8 @@ end
     @test_throws ArgumentError M.plot(A2; y=:c)
     # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
+
+
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
     fig, ax, _ = M.plot(A2ab)
@@ -328,6 +343,8 @@ end
     fig, ax, _ = M.series(A2ab; labeldim=:b)
     # M.series!(ax, A2ab;labeldim=:b)
 
+
+
     # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
     A3u = rand(X((1:7)u"m"), Z((1.0:1:10.0)u"m"), Y((1:5)u"g"))
@@ -352,6 +369,7 @@ end
     # Unitful volumeslices broken in Makie ?
     # fig, ax, _ = M.volumeslices(A3u)
     # M.volumeslices!(ax, A3u)
+
 
     # RGB volumeslices broken in Makie ?
     # fig, ax, _ = M.volumeslices(A3rgb)
