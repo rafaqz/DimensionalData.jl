@@ -42,12 +42,12 @@ Labels are found automatically, following this logic:
 
 $(_keyword_heading_doc(f))
 
-- `labeldim`: manual specify the dimension to use as series and get 
+- `labeldim`: manual specify the dimension to use as series and get
     the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
 
 # Only `heatmap` and `contourf` get a colorbar
-function _maybe_colorbar_doc(f) 
+function _maybe_colorbar_doc(f)
     if f in (:heatmap, :contourf)
         """
         - `colorbarkw`: keywords to pass to `Makie.Colorbar`.
@@ -65,13 +65,13 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(A::AbstractDimVector; attributes...)
-        
+
     Plot a 1-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     The X axis will be labelled with the dimension name and and use ticks from its lookup.
 
     $(_keyword_heading_doc(f1))
-    $AXISLEGENDKW_DOC     
+    $AXISLEGENDKW_DOC
     """
     @eval begin
         @doc $docstring
@@ -96,10 +96,10 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     args = Makie.convert_arguments(Makie.PointBased(), A2)
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
-    axis_attributes = if set_axis_attributes 
-        Attributes(; 
-            axis=(; 
-                xlabel=string(label(dims(A, 1))), 
+    axis_attributes = if set_axis_attributes
+        Attributes(;
+            axis=(;
+                xlabel=string(label(dims(A, 1))),
                 ylabel=DD.label(A),
                 title=DD.refdims_title(A),
             ),
@@ -107,7 +107,7 @@ function _pointbased1(A, attributes; set_axis_attributes=true)
     else
         Attributes()
     end
-    plot_attributes = Attributes(; 
+    plot_attributes = Attributes(;
         label=DD.label(A),
     )
     merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
@@ -124,7 +124,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(A::AbstractDimMatrix; attributes...)
-        
+
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     $(_keyword_heading_doc(f1))
@@ -133,11 +133,11 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimMatrix{T}; 
+        function Makie.$f1(A::AbstractDimMatrix{T};
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
-            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            plottrait = Makie.conversion_trait(Makie.Plot{$f2})
             A1, A2, args, merged_attributes = _surface2(A, plottrait, attributes, replacements)
             p = if $(f1 == :surface)
                 # surface is an LScene so we cant pass attributes
@@ -149,18 +149,18 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 Makie.$f2(args...; merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
-            if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
+            if T isa Real && $(f1 in (:plot, :heatmap, :contourf))
                 Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
                 )
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimMatrix; 
+        function Makie.$f1!(axis, A::AbstractDimMatrix;
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
-            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            plottrait = Makie.conversion_trait(Makie.Plot{$f2})
             _, _, args, _ = _surface2(A, plottrait, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
@@ -169,7 +169,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x,y)
-            plottrait = Makie.conversion_trait(Makie.Plot{$f1})
+            plottrait = Makie.conversion_trait(Makie.Plot{$f2})
             args =  lift(x->_surface2(x, plottrait, attributes, replacements)[3], A)
             p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
             return p
@@ -188,8 +188,8 @@ function _surface2(A, plottrait, attributes, replacements)
     # Plot attribute generation
     dx, dy = DD.dims(A2)
     user_attributes = Makie.Attributes(; attributes...)
-    plot_attributes = Makie.Attributes(; 
-        axis=(; 
+    plot_attributes = Makie.Attributes(;
+        axis=(;
             xlabel=DD.label(dx),
             ylabel=DD.label(dy),
             title=DD.refdims_title(A),
@@ -206,7 +206,7 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
     docstring = """
         $f1(A::AbstractDimArray{<:Any,3}; attributes...)
-        
+
     Plot a 3-dimensional `AbstractDimArray` with `Makie.$f2`.
 
     $(_keyword_heading_doc(f1))
@@ -239,7 +239,7 @@ function _volume3(A, attributes, replacements)
 
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
-    plot_attributes = Makie.Attributes(; 
+    plot_attributes = Makie.Attributes(;
         # axis=(; cant actually set much here for LScene)
     )
     merged_attributes = merge(user_attributes, plot_attributes)
@@ -251,18 +251,18 @@ end
 
 """
     series(A::AbstractDimMatrix; attributes...)
-    
+
 Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 
 $(_labeldim_detection_doc(series))
 """
-function Makie.series(A::AbstractDimMatrix; 
+function Makie.series(A::AbstractDimMatrix;
     color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
     n = size(last(args), 1)
     p = if n > 7
-            color = resample_cmap(color, n) 
+            color = resample_cmap(color, n)
             Makie.series(args...; color, merged_attributes...)
         else
             Makie.series(args...; color, merged_attributes...)
@@ -286,9 +286,9 @@ function _series(A, attributes, labeldim)
 
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
-    plot_attributes = Makie.Attributes(; 
+    plot_attributes = Makie.Attributes(;
         labels=string.(parent(categoricallookup)),
-        axis=(; 
+        axis=(;
             xlabel=DD.label(otherdim),
             ylabel=DD.label(A),
             title=DD.refdims_title(A),
@@ -306,7 +306,7 @@ for f in (:violin, :boxplot, :rainclouds)
     f! = Symbol(f, '!')
     docstring = """
         $f(A::AbstractDimMatrix; attributes...)
-        
+
     Plot a 2-dimensional `AbstractDimArray` with `Makie.$f`.
 
     $(_labeldim_detection_doc(f))
@@ -336,8 +336,8 @@ function _boxplotlike(A, attributes, labeldim)
 
     # Array/Dimension manipulation
     user_attributes = Makie.Attributes(; attributes...)
-    plot_attributes = Makie.Attributes(; 
-        axis=(; 
+    plot_attributes = Makie.Attributes(;
+        axis=(;
             xlabel=DD.label(categoricaldim),
             xticks=axes(categoricaldim, 1),
             xtickformat=I -> map(string, categoricallookup[map(Int, I)]),
@@ -388,7 +388,7 @@ function Makie.convert_arguments(
     xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
-function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
+function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(_lookup_to_vector, lookup(A1))
     # the following will not work for irregular spacings
@@ -441,7 +441,7 @@ end
 # Simplify dimension lookups and move information to axis attributes
 _split_attributes(A) = _split_attributes(dims(A))
 function _split_attributes(dims::DD.DimTuple)
-    reduce(dims; init=(Attributes(), ())) do (attr, ds), d  
+    reduce(dims; init=(Attributes(), ())) do (attr, ds), d
         l = lookup(d)
         if l isa AbstractCategorical
             ticks = axes(l, 1)
@@ -481,7 +481,7 @@ function _permute_xyz(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
 end
 
 # Give the data in A2 the names from A1 working backwards from what was replaced earlier
-_restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
+_restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,))
 _restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{T}}) where T<:Pair =
     _restore_dim_names(A2, A1, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
 function _restore_dim_names(A2, A1, replacements::Tuple=())
@@ -492,11 +492,11 @@ function _restore_dim_names(A2, A1, replacements::Tuple=())
         basetypeof(val(r))(basetypeof(r)())
     end
     # Set the dimensions back to the originals now they are in the right order
-    return set(A2, inverted_replacements...) 
+    return set(A2, inverted_replacements...)
 end
 
-# Replace the existing dimensions with X/Y/Z so we have a 1:1 
-# relationship with the possible Makie.jl plot axes. 
+# Replace the existing dimensions with X/Y/Z so we have a 1:1
+# relationship with the possible Makie.jl plot axes.
 function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     map(replacements) do d
