@@ -342,7 +342,7 @@ end
     # Units are broken in Makie ?
     # fig, ax, _ = M.volume(A3u)
     # M.volume!(ax, A3u)
-    
+
     fig, ax, _ = M.volumeslices(A3)
     M.volumeslices!(ax, A3)
     # Need to manually specify colorrange
