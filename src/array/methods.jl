@@ -53,26 +53,33 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     end
 end
 
-# These are not exported but it makes a lot of things easier using them
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kwargs...)
+    dims === Colon() && return mapreduce(f, op, parent(A); kwargs...)
+    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kwargs...), reducedims(A, dims))
 end
 
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
-end
+# These methods prevent mapreduce from working on the GPU so we will directly overload it.
+# # These are not exported but it makes a lot of things easier using them
+# function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
+#     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
+# end
+# function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
+#     Base._mapreduce_dim(f, op, nt, parent(A), dims)
+# end
+# function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
+#     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+# end
+# function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
+#     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+# end
+
+# function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
+#     rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+# end
+# function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
+#     Base._mapreduce_dim(f, op, nt, parent(A), dims)
+# end
+
 
 
 # TODO: Unfortunately Base/accumulate.jl kw methods all force dims to be Integer.

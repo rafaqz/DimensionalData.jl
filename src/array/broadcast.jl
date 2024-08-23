@@ -67,6 +67,20 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
     end
 end
 
+# This is needed for GPUs to prevent scalar indexing problems for things like
+# d .= 1:10
+function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{Nothing})
+    copyto!(parent(dest), bc)
+    dest
+end
+
+# Needed for things like d .= 0 when on the GPU
+function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{<:Broadcast.AbstractArrayStyle{0}})
+    copyto!(parent(dest), bc)
+    dest
+end
+
+
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
     rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))

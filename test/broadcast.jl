@@ -1,5 +1,5 @@
 using DimensionalData, Test
-
+using JLArrays
 using DimensionalData: NoLookup
 
 # Tests taken from NamedDims. Thanks @oxinabox
@@ -166,6 +166,19 @@ end
     C .= 0
     C[DimSelectors(sub)] .+= sub
     @test A[DimSelectors(sub)] == C[DimSelectors(sub)]
+end
+
+@testset "GPUArray broadcast" begin
+    arr = JLArray(rand(64, 64))
+    A = DimArray(arr, (X(1.0:1.0:64), Y(-32.0:1.0:31)))
+    @test arr.^2 ≈ parent(A.^2)
+    x = 1.0:1.0:64
+    A .= x.^2 .+ x'
+    @test parent(A) ≈ x.^2 .+ x'
+
+    A .= 1.0
+    # all gives scalar indexing so we use mapreduce
+    @test mapreduce(==(1.0), *, A)
 end
 
 # @testset "Competing Wrappers" begin

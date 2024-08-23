@@ -1,6 +1,6 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
-
+using JLArrays
 using LinearAlgebra: Transpose
 
 xs = (1, X, X(), :X)
@@ -707,5 +707,83 @@ end
             @test diff(x) == diff(x; dims) ==
                 DimArray([-179, 63, 16, -20, 134, -18, -100, -26, 160], X(2:2:18))
         end
+    end
+end
+
+
+@testset "mapreduce" begin
+    @testset "Array 2D" begin
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        ys = (1, Y, Y(), :Y, y)
+        tis = (2, Ti, Ti(), :Ti, ti)
+        data = [-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7]
+        A = DimArray(data, (y, ti))
+
+
+        @test mapreduce(identity, +, A) ≈ mapreduce(identity, +, parent(A))
+        @test mapreduce(x->x^3+5, +, A) ≈ mapreduce(x->x^3+5, +, parent(A))
+
+        for dims in ys
+            @test mapreduce(identity, +, A; dims) ≈ mapreduce(identity, +, parent(A); dims=1)
+        end
+
+        for dims in tis
+            @test mapreduce(identity, +, A; dims) ≈ mapreduce(identity, +, parent(A); dims=2)
+        end
+
+        @test mapreduce(identity, +, A; dims=Y) ≈ mapreduce(identity, +, parent(A); dims=1)
+        @test mapreduce(identity, +, A; dims=Ti) ≈ mapreduce(identity, +, parent(A); dims=2)
+        @test mapreduce(identity, +, A; dims=(Y, Ti)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2))
+
+        init = 5.0
+        @test mapreduce(identity, +, A; init) ≈ mapreduce(identity, +, parent(A); init)
+        @test mapreduce(x->x^3+5, +, A; init) ≈ mapreduce(x->x^3+5, +, parent(A); init)
+        @test mapreduce(identity, +, A; dims=Y, init) ≈ mapreduce(identity, +, parent(A); dims=1, init)
+        @test mapreduce(identity, +, A; dims=Ti, init) ≈ mapreduce(identity, +, parent(A); dims=2, init)
+        @test mapreduce(identity, +, A; dims=(Y, Ti), init) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
+    end
+    @testset "Vector" begin
+        x = DimArray([56, -123, -60, -44, -64, 70, 52, -48, -74, 86], X(2:2:20))
+        @test mapreduce(x->x^2, +, x) ≈ mapreduce(x->x^2, +, parent(x))
+        @test mapreduce(identity, +, x) ≈ mapreduce(identity, +, parent(x))
+        @test mapreduce(identity, +, x; dims=X) ≈ mapreduce(identity, +, parent(x); dims=1)
+        @test mapreduce(x->x^2, +, x; dims=X) ≈ mapreduce(x->x^2, +, parent(x); dims=1)
+        @test mapreduce(identity, +, x; init=5.0) ≈ mapreduce(identity, +, parent(x); init=5.0)
+    end
+
+    @testset "JLArray" begin
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        ys = (1, Y, Y(), :Y, y)
+        tis = (2, Ti, Ti(), :Ti, ti)
+        data = JLArray([-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7])
+        A = DimArray(data, (y, ti))
+
+        @test mapreduce(identity, +, A) ≈ mapreduce(identity, +, parent(A))
+        @test mapreduce(x->x^3+5, +, A) ≈ mapreduce(x->x^3+5, +, parent(A))
+        # Using parent since JLArray errors
+        for dims in ys
+            @test parent(mapreduce(identity, +, A; dims)) ≈ mapreduce(identity, +, parent(A); dims=1)
+        end
+
+        for dims in tis
+            @test parent(mapreduce(identity, +, A; dims)) ≈ mapreduce(identity, +, parent(A); dims=2)
+        end
+
+        @test parent(mapreduce(identity, +, A; dims=Y)) ≈ mapreduce(identity, +, parent(A); dims=1)
+        @test parent(mapreduce(identity, +, A; dims=Ti)) ≈ mapreduce(identity, +, parent(A); dims=2)
+        @test parent(mapreduce(identity, +, A; dims=(Y, Ti))) ≈ mapreduce(identity, +, parent(A); dims=(1, 2))
+
+        init = 5.0
+        @test mapreduce(identity, +, A; init) ≈ mapreduce(identity, +, parent(A); init)
+        @test mapreduce(x->x^3+5, +, A; init) ≈ mapreduce(x->x^3+5, +, parent(A); init)
+        @test parent(mapreduce(identity, +, A; dims=Y, init)) ≈ mapreduce(identity, +, parent(A); dims=1, init)
+        @test parent(mapreduce(identity, +, A; dims=Ti, init)) ≈ mapreduce(identity, +, parent(A); dims=2, init)
+        @test parent(mapreduce(identity, +, A; dims=(Y, Ti), init)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
     end
 end
