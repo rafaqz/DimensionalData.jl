@@ -17,6 +17,17 @@ xys = ((1, 2), (X, Y), (X(), Y()), (:X, :Y))
     @test map(*, da, da) isa DimArray{Int64,2}
 end
 
+@testset "JLArray map" begin
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(Sampled(-38:2:-36; span=Explicit([-38 -36; -36 -34])))
+    da = DimArray(a, dimz)
+    @test Array(map(x -> 2x, da)) == [2 4; 6 8]
+    @test map(x -> 2x, da) isa DimArray{Int64,2}
+    @test Array(map(*, da, da)) == [1 4; 9 16]
+    @test map(*, da, da) isa DimArray{Int64,2}
+end
+
+
 @testset "dimension reducing methods" begin
 
     # Test some reducing methods with Explicit spans
@@ -127,6 +138,117 @@ end
     end
 end
 
+@testset "JLArray dimension reducing methods" begin
+
+    # Test some reducing methods with Explicit spans
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(Sampled(-38:2:-36; span=Explicit([-38 -36; -36 -34])))
+    da = DimArray(a, dimz)
+
+    # Test all dime combinations with maxium
+    for dims in xs
+        @test Array(sum(da; dims)) == [4 6]
+        @test Array(minimum(da; dims)) == [1 2]
+
+        testdims = (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
+                    Y(Sampled(-38:2:-36, ForwardOrdered(), Explicit([-38 -36; -36 -34]), Intervals(Center()), NoMetadata())))
+        @test typeof(DimensionalData.dims(minimum(da; dims))) == typeof(testdims)
+        # @test val.(span(minimum(da; dims))) == val.(span(testdims))
+    end
+    for dims in ys
+        @test Array(minimum(da; dims)) == [1 3]'
+        @test Array(maximum(da; dims)) == [2 4]'
+        @test Array(maximum(x -> 2x, da; dims)) == [4 8]'
+        testdims = (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Explicit(reshape([-38, -34], 2, 1)), Intervals(Center()), NoMetadata())))
+        @test typeof(DimensionalData.dims(sum(da; dims))) == typeof(testdims)
+        @test index(sum(da; dims)) == index.(testdims)
+        # @test val.(span(sum(da; dims))) == val.(span(testdims))
+    end
+    for dims in xys
+        @test Array(maximum(da; dims)) == [4]'
+        @test Array(maximum(x -> 2x, da; dims)) == [8]'
+    end
+
+    @test minimum(da; dims=:) == 1
+    @test maximum(da; dims=:) == 4
+    @test sum(da; dims=:) == 10
+    @test sum(x -> 2x, da; dims=:) == 20
+
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(-38:2:-36)
+    da = DimArray(a, dimz)
+
+    @test reduce(+, da) == reduce(+, a)
+    @test mapreduce(x -> x > 3, +, da; dims=:) == 1
+    @test std(da) === std(a)
+
+    for dims in xs
+        @test Array(prod(da; dims)) == [3 8]
+        @test Array(mean(da; dims)) == [2.0 3.0]
+        @test Array(mean(x -> 2x, da; dims)) == [4.0 6.0]
+        @test Array(reduce(+, da; dims)) == [4 6]
+        @test Array(mapreduce(x -> x > 3, +, da; dims)) == [0 1]
+        @test Array(var(da; dims)) == [2.0 2.0]
+        @test Array(std(da; dims)) == [1.4142135623730951 1.4142135623730951]
+        @test Array(extrema(da; dims)) == [(1, 3) (2, 4)]
+        resultdimz =
+            (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
+             Y(Sampled(-38:2:-36, ForwardOrdered(), Regular(2), Points(), NoMetadata())))
+        @test typeof(DimensionalData.dims(prod(da; dims))) == typeof(resultdimz)
+        @test bounds(DimensionalData.dims(prod(da; dims))) == bounds(resultdimz)
+    end
+    for dims in ys
+        @test Array(prod(da; dims=2)) == [2 12]'
+        @test Array(mean(da; dims)) == [1.5 3.5]'
+        @test Array(mean(x -> 2x, da; dims)) == [3.0 7.0]'
+        @test DimensionalData.dims(mean(da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test DimensionalData.dims(reduce(+, da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:2.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test DimensionalData.dims(mapreduce(x -> x > 3, +, da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:2:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test Array(std(da; dims)) == [0.7071067811865476 0.7071067811865476]'
+        @test Array(var(da; dims)) == [0.5 0.5]'
+        @test DimensionalData.dims(var(da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test Array(extrema(da; dims)) == permutedims([(1, 2) (3, 4)])
+    end
+    for dims in xys
+        @test Array(mean(da; dims=dims)) == [2.5]'
+        @test Array(mean(x -> 2x, da; dims=dims)) == [5.0]'
+        @test Array(reduce(+, da; dims)) == [10]'
+        @test Array(mapreduce(x -> x > 3, +, da; dims))  == [1]'
+        @test Array(extrema(da; dims)) == reshape([(1, 4)], 1, 1)
+    end
+
+    a = JLArray([1 2 3; 4 5 6])
+    dimz = X(143:2:145), Y(-38:-36)
+    da = DimArray(a, dimz)
+    @test @inferred median(da) == 3.5
+    # median along a dimension doesn't have a gpu implementation
+    @test_broken @inferred Array(median(da; dims=X())) == [2.5 3.5 4.5]
+    @test_broken @inferred Array(median(da; dims=2)) == [2.0 5.0]'
+
+    a = JLArray(Bool[0 1 1; 0 0 0])
+    da = DimArray(a, dimz);
+    @test_broken any(da) === true # This is broken because GPUArrays didn't support any(da, dims=:) only any(da)
+    @test_broken any(da; dims=Y) == reshape([true, false], 2, 1)
+    @test_broken all(da) === false
+    @test_broken all(da; dims=Y) == reshape([false, false], 2, 1)
+    @test_broken all(da; dims=(X, Y)) == reshape([false], 1, 1)
+
+    @testset "inference" begin
+        x = DimArray(randn(2, 3, 4), (X, Y, Z));
+        foo(x) = maximum(x; dims=(1, 2))
+        @inferred foo(x)
+    end
+end
+
 @testset "dimension dropping methods" begin
     a = [1 2 3; 4 5 6]
     dimz = X(143:2:145), Y(-38:-36)
@@ -141,6 +263,22 @@ end
     @test dropped[1:2] == [1, 2]
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
+
+@testset "JLArray dimension dropping methods" begin
+    a = JLArray([1 2 3; 4 5 6])
+    dimz = X(143:2:145), Y(-38:-36)
+    da = DimArray(a, dimz);
+    # Dimensions must have length 1 to be dropped
+    @test Array(dropdims(da[X(1:1)]; dims=X)) == [1, 2, 3]
+    @test Array(dropdims(da[2:2, 1:1]; dims=(X(), Y())))[] == 4
+    @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimArray{Int,0,Tuple{}}
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
+        (X(Sampled(143:2:143, ForwardOrdered(), Regular(2), Points(), NoMetadata())),)
+    dropped = dropdims(da[X(1:1)]; dims=X)
+    @test Array(dropped[1:2]) == [1, 2]
+    @test length.(dims(dropped[1:2])) == size(dropped[1:2])
+end
+
 
 @testset "eachslice" begin
     a = [1 2 3 4
