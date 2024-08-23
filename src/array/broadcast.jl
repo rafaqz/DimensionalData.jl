@@ -73,7 +73,6 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{Nothing})
     copyto!(parent(dest), bc)
     dest
 end
-
 # Needed for things like d .= 0 when on the GPU
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{<:Broadcast.AbstractArrayStyle{0}})
     copyto!(parent(dest), bc)
