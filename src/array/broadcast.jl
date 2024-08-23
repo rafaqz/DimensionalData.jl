@@ -66,7 +66,6 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
         rebuild(A, parent(dest), _dims, refdims(A))
     end
 end
-
 # This is needed for GPUs to prevent scalar indexing problems for things like
 # d .= 1:10
 function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{Nothing})
