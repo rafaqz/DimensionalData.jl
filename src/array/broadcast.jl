@@ -56,9 +56,14 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
         rebuild(A, dest, _dims, refdims(A))
     end
 end
-function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+
+
+@inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
+    # needed because we need to check whether the dims are compatible in dest which are already 
+    # stripped when sent to copyto!
     _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
-    copyto!(parent(dest), _unwrap_broadcasted(bc))
+    style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
+    Base.Broadcast.materialize!(style, parent(dest), bc)
     A = _firstdimarray(bc)
     if A isa Nothing || _dims isa Nothing
         dest
@@ -66,17 +71,7 @@ function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S
         rebuild(A, parent(dest), _dims, refdims(A))
     end
 end
-# This is needed for GPUs to prevent scalar indexing problems for things like
-# d .= 1:10
-function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{Nothing})
-    copyto!(parent(dest), bc)
-    dest
-end
-# Needed for things like d .= 0 when on the GPU
-function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{<:Broadcast.AbstractArrayStyle{0}})
-    copyto!(parent(dest), bc)
-    dest
-end
+
 
 
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
