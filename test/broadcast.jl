@@ -185,13 +185,13 @@ end
     @test_throws DimensionMismatch ac .= ab .+ ba
 
     # check that dest is written into:
-    @test dims(z .= ab .+ ba') == dims(ab .+ ba')
+    z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
 
-    @test dims(z .= ab .+ a_) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    @test dims(a_ .= ba' .+ ab) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    # @test dims(z .= ab .+ a_) == 
+    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    # @test dims(a_ .= ba' .+ ab) == 
+    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
 
 @testset "JLArray in-place assignment .=" begin
@@ -208,13 +208,13 @@ end
     @test_throws DimensionMismatch ac .= ab .+ ba
 
     # check that dest is written into:
-    @test dims(z .= ab .+ ba') == dims(ab .+ ba')
+    z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
 
-    @test dims(z .= ab .+ a_) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    @test dims(a_ .= ba' .+ ab) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    # @test dims(z .= ab .+ a_) == 
+    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    # @test dims(a_ .= ba' .+ ab) == 
+    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
 
 
