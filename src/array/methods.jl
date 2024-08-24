@@ -53,25 +53,9 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     end
 end
 
-# These are not exported but it makes a lot of things easier using them
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
+function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
+    dims === Colon() && return mapreduce(f, op, parent(A); kw...)
+    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
 end
 
 
