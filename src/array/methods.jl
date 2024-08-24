@@ -53,9 +53,9 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     end
 end
 
-function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kwargs...)
-    dims === Colon() && return mapreduce(f, op, parent(A); kwargs...)
-    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kwargs...), reducedims(A, dims))
+function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
+    dims === Colon() && return mapreduce(f, op, parent(A); kw...)
+    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
 end
 
 
