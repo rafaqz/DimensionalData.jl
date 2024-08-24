@@ -1,7 +1,7 @@
 const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 
-set(dim::Dimension, x::DimSetters) = _set(dim, x)
-set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+Base.@assume_effects :foldable set(dim::Dimension, x::DimSetters) = _set(dim, x)
+Base.@assume_effects :foldable set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     _set(dims_, args...; kw...)
 # Convert args/kw to dims and set
 _set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kw2dims(kw)...))

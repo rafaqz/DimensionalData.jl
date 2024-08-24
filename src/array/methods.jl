@@ -53,25 +53,9 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     end
 end
 
-# These are not exported but it makes a lot of things easier using them
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
+function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
+    dims === Colon() && return mapreduce(f, op, parent(A); kw...)
+    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
 end
 
 
@@ -314,8 +298,8 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     cat_dnums = (inserted_dnums..., appended_dnums...)
 
     # Warn if dims or val do not match, and cat the parent
-    if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...;
-        order=true, val=true, warn=" Can't `cat` AbstractDimArray, applying to `parent` object."
+    if !comparedims(map(x -> otherdims(x, newcatdims), Xin)...;
+        order=true, val=true, msg=Dimensions.Warn(" Can't `cat` AbstractDimArray, applying to `parent` object.")
     )
         return Base.cat(map(parent, Xin)...; dims=cat_dnums)
     end
@@ -339,8 +323,8 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     end
     noncatdim = dims(A1, 1)
     # Make sure this is the same dimension for all arrays
-    if !comparedims(Bool, map(x -> dims(x, 1), As)...;
-        val=true, warn=" Can't `hcat` AbstractDimArray, applying to `parent` object."
+    if !comparedims(map(x -> dims(x, 1), As)...;
+        val=true, msg=Dimensions.Warn(" Can't `hcat` AbstractDimArray, applying to `parent` object.")
     )
         return Base.hcat(map(parent, As)...)
     end
@@ -358,8 +342,8 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
-            val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
+        if !comparedims(map(x -> dims(x, 2), As)...; 
+            val=true, msg=Dimensions.Warn(" Can't `vcat` AbstractDimArray, applying to `parent` object.")
         )
             return Base.vcat(map(parent, As)...)
         end

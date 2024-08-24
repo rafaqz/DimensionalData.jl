@@ -114,19 +114,19 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 ```
 """
 function set end
-set(A::DimArrayOrStack, x::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(x)
-set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
+Base.@assume_effects :effect_free set(A::DimArrayOrStack, x::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(x)
+Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
-set(A::AbstractDimStack, x::Lookup) = Lookups._cantseterror(A, x)
-set(A::AbstractDimArray, x::Lookup) = Lookups._cantseterror(A, x)
-set(A, x) = Lookups._cantseterror(A, x)
-set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+Base.@assume_effects :effect_free set(A::AbstractDimStack, x::Lookup) = Lookups._cantseterror(A, x)
+Base.@assume_effects :effect_free set(A::AbstractDimArray, x::Lookup) = Lookups._cantseterror(A, x)
+Base.@assume_effects :effect_free set(A, x) = Lookups._cantseterror(A, x)
+Base.@assume_effects :effect_free set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     rebuild(A, data(A), set(dims(A), args...; kw...))
-set(A::AbstractDimArray, newdata::AbstractArray) = begin
+Base.@assume_effects :effect_free set(A::AbstractDimArray, newdata::AbstractArray) = begin
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
 end
-set(s::AbstractDimStack, newdata::NamedTuple) = begin
+Base.@assume_effects :effect_free set(s::AbstractDimStack, newdata::NamedTuple) = begin
     dat = data(s)
     keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
     map(dat, newdata) do d, nd

@@ -256,13 +256,12 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::DimensionalIndices...; kw...) =
     setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
-@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) =
-    setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
+@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) = setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 
 # For @views macro to work with keywords
-Base.maybeview(A::AbstractDimArray, args...; kw...) =
+@propagate_inbounds Base.maybeview(A::AbstractDimArray, args...; kw...) =
     view(A, args...; kw...)
-Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
+@propagate_inbounds Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
     view(A, args...; kw...)
