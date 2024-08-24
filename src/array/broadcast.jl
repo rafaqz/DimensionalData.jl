@@ -47,23 +47,25 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    #TODO: this will cause a comparisson to happen twice. We should avoid that
-    comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
     copyto!(dest, _unwrap_broadcasted(bc))
-    return dest
+    A = _firstdimarray(bc)
+    if A isa Nothing || _dims isa Nothing
+        dest
+    else
+        rebuild(A, dest, _dims, refdims(A))
+    end
 end
-
-
-@inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
-    # needed because we need to check whether the dims are compatible in dest which are already 
-    # stripped when sent to copyto!
-    comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
-    style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
-    Base.Broadcast.materialize!(style, parent(dest), bc)
-    return dest
+function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{DimensionalStyle{S}}) where S
+    _dims = comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
+    copyto!(parent(dest), _unwrap_broadcasted(bc))
+    A = _firstdimarray(bc)
+    if A isa Nothing || _dims isa Nothing
+        dest
+    else
+        rebuild(A, parent(dest), _dims, refdims(A))
+    end
 end
-
-
 
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
