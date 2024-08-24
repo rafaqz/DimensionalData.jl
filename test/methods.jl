@@ -279,7 +279,6 @@ end
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
 
-
 @testset "eachslice" begin
     a = [1 2 3 4
          3 4 5 6
@@ -397,7 +396,6 @@ end
     @test dims(dsp) == reverse(dims(da))
 end
 
-
 @testset "dimension permuting methods with specified permutation" begin
     da = DimArray(ones(5, 2, 4), (Y(LinRange(10, 20, 5)), Ti(10:11), X(1:4)))
     dsp = permutedims(da, [3, 1, 2])
@@ -418,7 +416,6 @@ end
     @test dsp2 == PermutedDimsArray(parent(da), (3, 2, 1))
     @test typeof(dsp2) <: DimArray
 end
-
 
 @testset "dimension rotating methods" begin
     da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
@@ -847,7 +844,6 @@ end
         end
     end
 end
-
 
 @testset "mapreduce" begin
     @testset "Array 2D" begin

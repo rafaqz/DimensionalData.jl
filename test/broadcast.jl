@@ -25,7 +25,6 @@ end
     @test Array(da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
 end
 
-
 @testset "in place" begin
     @test parent(da .= 1 .* da .+ 7) == 8 * ones(3)
     @test dims(da .= 1 .* da .+ 7) == dims(da)
@@ -50,7 +49,6 @@ end
     end
 end
 
-
 @testset "dims and regular" begin
     da = DimArray(ones(3, 3, 3), (X, Y, Z))
     left_sum = da .+ ones(3, 3, 3)
@@ -70,7 +68,6 @@ end
     @test Array(right_sum) == fill(2, 3, 3, 3)
     @test dims(right_sum) == dims(da)
 end
-
 
 @testset "changing type" begin
     @test (da .> 0) isa DimArray
@@ -187,11 +184,6 @@ end
     # check that dest is written into:
     z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
-
-    # @test dims(z .= ab .+ a_) == 
-    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    # @test dims(a_ .= ba' .+ ab) == 
-    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
 
 @testset "JLArray in-place assignment .=" begin
@@ -210,13 +202,7 @@ end
     # check that dest is written into:
     z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
-
-    # @test dims(z .= ab .+ a_) == 
-    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    # @test dims(a_ .= ba' .+ ab) == 
-    #     (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
 end
-
 
 @testset "assign using named indexing and dotview" begin
     A = DimArray(zeros(3,2), (X, Y))
@@ -232,7 +218,6 @@ end
     @test Array(A) == [1.0 1.0; 2.0 2.0; 7.0 7.0]
 end
 
-
 @testset "0-dimensional array broadcasting" begin
     x = DimArray(fill(3), ())
     y = DimArray(fill(4), ())
@@ -243,7 +228,6 @@ end
     @test @inferred(x .+ z) === 6
     @test @inferred(z .+ x) === 6
 end
-
 
 @testset "DimIndices broadcasting" begin
     ds = X(1.0:0.2:2.0), Y(10:2:20)
@@ -289,7 +273,6 @@ end
     C[DimSelectors(sub)] .+= sub
     @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
 end
-
 
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
