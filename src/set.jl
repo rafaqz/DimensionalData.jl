@@ -118,7 +118,7 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 """
 function set end
 # Types are constructed
-Base.@assume_effects :effect_free set(x, ::Type{T}) where T = set(x, T())
+Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
 # Dimensions and pairs are set for dimensions 
 Base.@assume_effects :effect_free set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =

@@ -1,5 +1,7 @@
 const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 
+set(dim::Dimension, ::Type{T}) where T = set(dim, T())
+set(dims::DimTuple, ::Type{T}) where T = set(dims, T())
 set(dim::Dimension, x::DimSetters) = _set(dim, x)
 set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     _set(dims_, args...; kw...)

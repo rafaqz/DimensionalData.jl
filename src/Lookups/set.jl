@@ -1,5 +1,7 @@
 const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing,AbstractArray}
+
 set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
+set(lookup::Lookup, ::Type{T}) where T = _set(lookup, T())
 
 # _set(lookup::Lookup, newlookup::Lookup) = lookup
 _set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
@@ -82,8 +84,6 @@ _set(lookup::AbstractSampled, ::Regular{AutoStep}) = begin
     end
     rebuild(lookup; span=Regular(stp))
 end
-_set(lookup::AbstractSampled, span::Regular{AutoStep}) = 
-    rebuild(lookup; span=Regular(step(lookup)))
 _set(lookup::AbstractSampled, span::Span) = rebuild(lookup; span=span)
 _set(lookup::AbstractSampled, span::AutoSpan) = lookup
 _set(span::Span, newspan::Span) = newspan
