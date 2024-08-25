@@ -131,7 +131,8 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
         dim_lines = split(sprint(print_dims, mime, dims), '\n')
         new_blockwidth = max(blockwidth, min(displaywidth - 2, maximum(textwidth, dim_lines)))
         lines += print_block_top(io, label, blockwidth, new_blockwidth)
-        lines += print_dims(io, mime, dims; kw...)
+        ctx = IOContext(io, :dim_brackets=>false)
+        lines += print_dims(ctx, mime, dims; kw...)
         println(io)
         lines += 1
         printed = true
