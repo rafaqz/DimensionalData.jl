@@ -18,7 +18,9 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
 )
     ctx = IOContext(io, :compact => true)
     inset = get(io, :inset, "")
+    brackets = get(io, :dim_brackets, true)
     print(io, inset)
+    brackets && print(io, '(')
     if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
@@ -30,6 +32,7 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
             printstyled(io, dimsymbols(n), ' '; color=dc)
             show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, d)
         end
+        brackets && print(io, ')')
         return 0
     else # Dims get a line each
         lines = 3
@@ -48,6 +51,7 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
             dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len => maxname)
             show(dim_ctx, mime, d)
         end
+        brackets && print(io, ')')
         return lines
     end
 end
