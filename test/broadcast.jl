@@ -2,11 +2,14 @@ using DimensionalData
 using Test
 using Dates
 using JLArrays
+using GPUArrays
 
 using DimensionalData.Lookups
 using DimensionalData.Dimensions
 
 using DimensionalData: NoLookup
+
+GPUArrays.allowscalar(false)
 
 # Tests taken from NamedDims. Thanks @oxinabox
 
