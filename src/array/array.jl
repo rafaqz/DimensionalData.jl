@@ -742,13 +742,13 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 julia> using DimensionalData
 
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
-↓ X  0.0:0.1:0.4,
+(↓ X  0.0:0.1:0.4,
 → Y  10:10:100,
-↗ Ti [0, 3, 4]
+↗ Ti [0, 3, 4])
 
 julia> mergedims(ds, (X, Y) => :space)
-↓ Ti    [0, 3, 4],
-→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] ↓ X, → Y
+(↓ Ti    [0, 3, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] (↓ X, → Y))
 ```
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)

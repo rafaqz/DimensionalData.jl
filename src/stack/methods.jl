@@ -68,8 +68,8 @@ julia> size(slices)
 (4, 2)
 
 julia> map(dims, axes(slices))
-↓ Z Base.OneTo(4),
-→ X Base.OneTo(2)
+(↓ Z Base.OneTo(4),
+→ X Base.OneTo(2))
 
 julia> first(slices)
 ╭──────────────╮

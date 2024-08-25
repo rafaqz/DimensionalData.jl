@@ -141,7 +141,7 @@ julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
  1.0  1.0  1.0
 
 julia> dims(A, (X, Y))
-↓ X, → Y
+(↓ X, → Y)
 
 ```
 """
@@ -169,10 +169,10 @@ julia> using DimensionalData, .Dimensions
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> commondims(A, X)
-↓ X
+(↓ X)
 
 julia> commondims(A, (X, Z))
-↓ X, → Z
+(↓ X, → Z)
 
 julia> commondims(A, Ti)
 ()
@@ -285,10 +285,10 @@ julia> using DimensionalData, DimensionalData.Dimensions
 julia> A = DimArray(ones(10, 10, 10), (X, Y, Z));
 
 julia> otherdims(A, X)
-↓ Y, → Z
+(↓ Y, → Z)
 
 julia> otherdims(A, (Y, Z))
-↓ X
+(↓ X)
 ```
 """
 function otherdims end
