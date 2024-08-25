@@ -216,6 +216,8 @@ struct AutoStep end
 struct AutoBounds end
 struct AutoDim end
 
+Base.step(::AutoSpan) = AutoStep()
+
 """
     Regular <: Span
 

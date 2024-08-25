@@ -7,6 +7,7 @@ a = [1 2; 3 4]
 dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),
         Y(-38.0:2.0:-36.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "Y"))))
 da = DimArray(a, dimz; name=:test)
+interval_da = set(da, X=Intervals(), Y=Intervals())
 
 a2 = [1 2 3 4
       3 4 5 6
@@ -60,6 +61,9 @@ end
 end
 
 @testset "dim lookup" begin
+
+    @test lookup(set(dims(da2), NoLookup())) == 
+         (NoLookup(Base.OneTo(3)), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, NoLookup())) == 
          (NoLookup(Base.OneTo(3)), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, Categorical)) == 
@@ -78,14 +82,18 @@ end
     @test metadata(cat_da_m) == Dict()
  
     @testset "span" begin
+        @test span(set(da2, Irregular)) ==
+            (Irregular((10.0, 30.0)), Irregular((-2.0, 1.0)))
+        @test span(set(da2, Regular)) == (Regular(10.0), Regular(1.0))
         # TODO: should this error? the span step doesn't match the index step
         @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
             (Irregular(10, 12), Regular(9.9))
-        @test _set(Sampled(), AutoSpan()) == Sampled()
-        @test _set(Sampled(), Irregular()) == Sampled(; span= Irregular())
+        @test set(Sampled(), AutoSpan()) == Sampled()
+        @test set(Sampled(), Irregular()) == Sampled(; span=Irregular())
+        @test set(Sampled(), Regular()) == Sampled(; span=Regular())
+        @test set(Sampled(1:2:10), Regular()) == Sampled(1:2:10; span=Regular(2))
     end
 
-    interval_da = set(da, X=Intervals(), Y=Intervals())
     @testset "locus" begin
         @test_throws ArgumentError set(da2, (End(), Center()))
         @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
@@ -104,8 +112,8 @@ end
         @test sampling(interval_da) == (Intervals(Center()), Intervals(Center()))
         @test sampling(set(da, (X(Intervals(End())), Y(Intervals(Start()))))) == 
             (Intervals(End()), Intervals(Start())) 
-        @test _set(Sampled(), AutoSampling()) == Sampled()
-        @test _set(Sampled(), Intervals()) == Sampled(; sampling=Intervals())
+        @test set(Sampled(), AutoSampling()) == Sampled()
+        @test set(Sampled(), Intervals) == Sampled(; sampling=Intervals())
         @test _set(Points(), AutoSampling()) == Points()
         @test _set(AutoSampling(), Intervals()) == Intervals()
         @test _set(AutoSampling(), AutoSampling()) == AutoSampling()
@@ -157,11 +165,8 @@ end
 end
 
 @testset "errors with set" begin
-    @test_throws ArgumentError set(da, Sampled())
-    @test_throws ArgumentError set(s, Categorical())
-    @test_throws ArgumentError set(da, Irregular())
     @test_throws ArgumentError set(da, X=7)
-    @test_throws ArgumentError _set(dims(da, X), X(7))
+    @test_throws ArgumentError set(dims(da, X), X(7))
     @test_throws ArgumentError set(da, notadimname=Sampled())
 end
 

@@ -62,6 +62,28 @@ _set(order::Order, neworder::Order) = neworder
 _set(order::Order, neworder::AutoOrder) = order
 
 # Span
+_set(lookup::AbstractSampled, ::Irregular{AutoBounds}) = begin
+    bnds = if parent(lookup) isa AutoValues || span(lookup) isa AutoSpan
+        AutoBounds()
+    else
+        bounds(lookup)
+    end
+    rebuild(lookup; span=Irregular(bnds))
+end
+_set(lookup::AbstractSampled, ::Regular{AutoStep}) = begin
+    stp = if span(lookup) isa AutoSpan || step(lookup) isa AutoStep
+        if parent(lookup) isa AbstractRange
+            step(parent(lookup))
+        else
+            AutoStep()
+        end
+    else
+        step(lookup)
+    end
+    rebuild(lookup; span=Regular(stp))
+end
+_set(lookup::AbstractSampled, span::Regular{AutoStep}) = 
+    rebuild(lookup; span=Regular(step(lookup)))
 _set(lookup::AbstractSampled, span::Span) = rebuild(lookup; span=span)
 _set(lookup::AbstractSampled, span::AutoSpan) = lookup
 _set(span::Span, newspan::Span) = newspan
