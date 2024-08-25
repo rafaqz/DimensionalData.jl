@@ -611,7 +611,7 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
     pa, pb = parent(lookup(a)), parent(lookup(b))
     if val && !(isnolookup(a) || isnolookup(b)) && pa != pb
         if eltype(pa) <: Number && eltype(pb) <: Number
-            if !(all((a, b) -> a ≈ b, zip(pa, pb)))
+            if !all(((a, b),) -> a ≈ b, zip(pa, pb))
                 isnothing(msg) || _valaction(msg, a, b)
                 return false
             end
@@ -632,12 +632,12 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
 end
 
 @inline promotedims(; kw...) = ()
-@inline promotedims(dt1::DimTupleOrEmpty) = dt1
-@inline promotedims(dt1::DimTuple, dts::DimTuple...; kw...) =
+@inline promotedims(dt1::DimTuple, dts::DimTuple...; kw...)::DimTupleOrEmpty =
     (promotedims(first(dt1), map(first, dts)...; kw...), promotedims(tail(dt1), map(tail, dts)...; kw...)...)
-@inline promotedims(dts::DimTupleOrEmpty...; kw...) =
-    promotedims(_remove_empty(dts)...; kw...)
-@inline promotedims(dts::Tuple{}; kw...) = ()
+@inline promotedims(dt1::DimTupleOrEmpty, dts::DimTupleOrEmpty...; kw...)::DimTupleOrEmpty =
+    promotedims(_remove_empty(dt1, dts...)...; kw...)
+@inline promotedims(dt::DimTuple)::DimTupleOrEmpty = dt
+@inline promotedims(::Tuple{}; kw...) = ()
 
 @inline promotedims(d1::Dimension; kw...) = d1
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
@@ -648,6 +648,7 @@ end
     else
         l
     end
+
     return rebuild(d1, promoted_l)
 end
 
@@ -781,7 +782,7 @@ end
 @inline _remove_empty(::Tuple{}, xs...) = _remove_empty(xs...)
 @inline _remove_empty(x::Tuple, xs...) = (x, _remove_empty(xs...)...)
 @inline _remove_empty(::Tuple{}) = ()
-@inline _remove_empty(x::Tuple) = x
+@inline _remove_empty(x::Tuple) = (x,)
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)

@@ -825,6 +825,8 @@ ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
 # Promotion 
 
 # Fallback NoLookup if not identical type
+promote_first(l1::Lookup) = l1
+promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
 function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
     if all(map(l -> typeof(l) == L, ls))
         if length(ls) > 0
@@ -836,22 +838,30 @@ function promote_first(l1::L, ls::Lookup...) where {L<:Lookup}
         NoLookup(Base.OneTo(length(l1)))
     end
 end
-function promote_first(l1::AbstractCategorical, ls::AbstractCategorical...)
+promote_first(l1::AbstractCategorical) = l1
+promote_first(l1::C, ls::C...) where C<:AbstractCategorical = l1
+promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; metadata=NoMetadata())
+function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
+    @show "categorical"
+    ls = (l2, ls...)
     all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
-    data = promote_first(parent(l1), map(parent, ls)...)
+    data = promote_first_array(parent(l1), map(parent, ls)...)
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
         return rebuild(l1; data, metadata=NoMetadata())
     else # Fall back to standard Categorical
         return Categorical(data; order=order(l1), metadata=NoMetadata())
     end
 end
-function promote_first(l1::AbstractSampled, ls::AbstractSampled...)
+promote_first(l1::AbstractSampled) = l1
+promote_first(l1::S, ::S, ::S...) where S<:AbstractSampled = l1
+function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSampled...)
+    ls = (l2, ls...)
     all(map(l -> order(l) == order(l1), ls)) &&
         all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls))  &&
         all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) || 
         return NoLookup(Base.OneTo(length(l1)))
 
-    data = promote_first(parent(l1), map(parent, ls)...)
+    data = promote_first_array(parent(l1), map(parent, ls)...)
     kw = (;
         order=order(l1),
         span=promote_first(span(l1), map(span, ls)...),
@@ -880,8 +890,9 @@ for E in (Base.Number, Dates.AbstractTime)
 end
 promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
 # Data
-promote_first(a1::A, ::A...) where A<:AbstractArray = a1
-function promote_first(a1::AbstractArray, as::AbstractArray...) 
+promote_first_array(a1::A) where A<:AbstractArray = a1
+promote_first_array(a1::A, ::A, ::A...) where A<:AbstractArray = a1
+function promote_first_array(a1::AbstractArray, as::AbstractArray...) 
     T = promote_type(eltype(a1), map(eltype, as)...)
     promote_type(Int, UInt64)
     C = if a1 isa AbstractRange && all(map(a -> a isa AbstractRange, as))

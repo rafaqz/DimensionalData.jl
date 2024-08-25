@@ -223,7 +223,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
         @inline $pkg.$fname(A::AbstractDimArray{<:Any,2}) =
             rebuild(A, $pkg.$fname(parent(A)), reverse(dims(A)))
         @inline $pkg.$fname(A::AbstractDimArray{<:Any,1}) =
-            rebuild(A, $pkg.$fname(parent(A)), (AnonDim(Base.OneTo(1)), dims(A)...))
+            rebuild(A, $pkg.$fname(parent(A)), (AnonDim(NoLookup(Base.OneTo(1))), dims(A)...))
     end
 end
 @inline function Base.permutedims(A::AbstractDimArray, perm)
@@ -315,7 +315,7 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     Base.cat(As; dims=2)
     A1 = first(As)
     catdim = if A1 isa AbstractDimVector
-        AnonDim()
+        AnonDim(NoLookup())
     else
         joindims = map(last ∘ dims, As)
         check_cat_lookups(joindims...) || return Base.hcat(map(parent, As)...)

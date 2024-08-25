@@ -191,8 +191,8 @@ end
     b = DimArray(JLArray(1:3), Y)
     @test_throws DimensionMismatch a .* b
     @test_throws DimensionMismatch parent(a) .* parent(b)
-    @test Array(parent(a) .* parent(b)') == Array(parent(a .* b'))
-    @test dims(a .* b') == dims(a)
+    @test_nowarn Array(parent(a) .* parent(b)') == Array(parent(a .* b'))
+    @test_nowarn dims(a .* b') == dims(a)
 end
 
 
