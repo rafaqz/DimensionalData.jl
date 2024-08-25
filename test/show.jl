@@ -91,7 +91,7 @@ end
     @test occursin("Transformed", sv)
     nds = (X(NoLookup(Base.OneTo(10))), Y(NoLookup(Base.OneTo(5))))
     sv = sprint(show, MIME("text/plain"), nds)
-    @test sv == "↓ X, → Y"
+    @test sv == "(↓ X, → Y)"
 end
 
 @testset "arrays" begin

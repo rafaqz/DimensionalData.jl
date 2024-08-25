@@ -1,8 +1,13 @@
 const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
 
-Base.@assume_effects :foldable set(dim::Dimension, x::DimSetters) = _set(dim, x)
-Base.@assume_effects :foldable set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+set(dim::Dimension, ::Type{T}) where T = set(dim, T())
+set(dims::DimTuple, ::Type{T}) where T = set(dims, T())
+set(dim::Dimension, x::DimSetters) = _set(dim, x)
+set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+
     _set(dims_, args...; kw...)
+set(dims::DimTuple, l::Lookup) = set(dims, map(d -> basedims(d) => l, dims)...)
+set(dims::DimTuple, l::LookupTrait) = set(dims, map(d -> basedims(d) => l, dims)...)
 # Convert args/kw to dims and set
 _set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kw2dims(kw)...))
 # Convert pairs to wrapped dims and set
