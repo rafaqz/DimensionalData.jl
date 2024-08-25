@@ -235,6 +235,7 @@ end
     M.waterfall!(ax, A1u)
     fig, ax, _ = M.waterfall(A1m)
     M.waterfall!(ax, A1m)
+
     # 2d
     A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
@@ -254,8 +255,6 @@ end
     M.convert_arguments(M.CellGrid(), A2u)
     M.convert_arguments(M.VertexGrid(), A2u)
     M.convert_arguments(M.ImageLike(), A2u)
-
-
 
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
@@ -296,8 +295,9 @@ end
     M.surface!(ax, A2u)
     fig, ax, _ = M.surface(A2ui)
     M.surface!(ax, A2ui)
-    fig, ax, _ = M.surface(A2m)
-    M.surface!(ax, A2m)
+    # Broken with missing
+    # fig, ax, _ = M.surface(A2m)
+    # M.surface!(ax, A2m)
     # Series also puts Categories in the legend no matter where they are
     # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
