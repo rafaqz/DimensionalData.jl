@@ -40,7 +40,7 @@ end
     @test index(set(s, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
 end
 
-@testset "DimArray dim Dimension" begin
+@testset "DimArray Dimension" begin
     @test typeof(dims(set(da, X=:a, Y=:b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
     @test typeof(dims(set(da2, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
@@ -60,6 +60,11 @@ end
 end
 
 @testset "dim lookup" begin
+    @test lookup(set(da2, NoLookup())) == 
+         (NoLookup(Base.OneTo(3)), NoLookup(Base.OneTo(4)))
+    @test lookup(set(da2, Categorical)) == 
+        (Categorical(10.0:10.0:30.0, ForwardOrdered(), NoMetadata()), 
+         Categorical(-2.0:1.0:1.0, ForwardOrdered(), NoMetadata())) 
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled(sampling=Intervals(Center())))) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, column=NoLookup())) == 

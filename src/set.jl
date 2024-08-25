@@ -114,19 +114,26 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 ```
 """
 function set end
-set(A::DimArrayOrStack, x::T) where {T<:Union{Lookup,LookupTrait}} = _onlydimerror(x)
-set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
-
-set(A::AbstractDimStack, x::Lookup) = Lookups._cantseterror(A, x)
-set(A::AbstractDimArray, x::Lookup) = Lookups._cantseterror(A, x)
-set(A, x) = Lookups._cantseterror(A, x)
-set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+# Types are constructed
+Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
+# Dimensions and pairs are set for dimensions 
+Base.@assume_effects :effect_free set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
     rebuild(A, data(A), set(dims(A), args...; kw...))
-set(A::AbstractDimArray, newdata::AbstractArray) = begin
+# Single traits are set for all dimensions
+Base.@assume_effects :effect_free set(A::DimArrayOrStack, x::LookupTrait) = 
+    set(A, map(d -> basedims(d) => x, dims(A))...)
+# Single lookups are set for all dimensions
+Base.@assume_effects :effect_free set(A::AbstractDimArray, x::Lookup) = 
+    set(A, map(d -> basedims(d) => x, dims(A))...)
+Base.@assume_effects :effect_free set(A::AbstractDimStack, x::Lookup) = 
+    set(A, map(d -> basedims(d) => x, dims(A))...)
+# Arrays are set as data for AbstractDimArray
+Base.@assume_effects :effect_free set(A::AbstractDimArray, newdata::AbstractArray) = begin
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
 end
-set(s::AbstractDimStack, newdata::NamedTuple) = begin
+# NamedTuples are set as data for AbstractDimStack
+Base.@assume_effects :effect_free set(s::AbstractDimStack, newdata::NamedTuple) = begin
     dat = data(s)
     keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
     map(dat, newdata) do d, nd
@@ -134,7 +141,8 @@ set(s::AbstractDimStack, newdata::NamedTuple) = begin
     end
     rebuild(s; data=newdata)
 end
+# Other things error
+Base.@assume_effects :effect_free set(A, x) = Lookups._cantseterror(A, x)
 
-@noinline _onlydimerror(x) = throw(ArgumentError("Can only set $(typeof(x)) for a dimension. Specify which dimension you mean with `X => property`"))
 @noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))
