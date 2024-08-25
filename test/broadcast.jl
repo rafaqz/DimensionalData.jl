@@ -250,11 +250,7 @@ end
     # check that dest is written into:
     z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
-    @test_broken z == (ab.data .+ ba.data')
-    @test_broken dims(z .= ab .+ a_) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    @test_broken dims(a_ .= ba' .+ ab) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    @test z == (ab.data .+ ba.data')
 end
 
 @testset "assign using named indexing and dotview" begin

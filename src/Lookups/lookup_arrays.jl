@@ -869,7 +869,7 @@ function promote_first(s::Regular, ss::Regular...)
     T = promote_type(typeof(val(s)), map(typeof ∘ val, ss)...)
     Regular(convert(T, val(s)))
 end
-promote_first(a::T, b::T) where T<:Irregular = a 
+promote_first(a::T, b::T...) where T<:Irregular = a 
 for E in (Base.Number, Dates.AbstractTime)
     @eval function promote_first(
         s::Irregular{Tuple{<:$E,<:$E}}, ss::Irregular{Tuple{<:$E,<:$E}}...
@@ -878,7 +878,7 @@ for E in (Base.Number, Dates.AbstractTime)
         return Irregular(convert(T, val(a)[1]), convert(T, val(a)[2]))
     end
 end
-promote_first(::Irregular, ::Irregular) = Irregular((nothing, nothing))
+promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
 # Data
 promote_first(a1::A, ::A...) where A<:AbstractArray = a1
 function promote_first(a1::AbstractArray, as::AbstractArray...) 

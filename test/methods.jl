@@ -231,16 +231,16 @@ end
     da = DimArray(a, dimz)
     @test @inferred median(da) == 3.5
     # median along a dimension doesn't have a gpu implementation
-    @test_broken @inferred Array(median(da; dims=X())) == [2.5 3.5 4.5]
-    @test_broken @inferred Array(median(da; dims=2)) == [2.0 5.0]'
+    @test @inferred Array(median(da; dims=X())) == [2.5 3.5 4.5]
+    @test @inferred Array(median(da; dims=2)) == [2.0 5.0]'
 
     a = JLArray(Bool[0 1 1; 0 0 0])
     da = DimArray(a, dimz);
-    @test_broken any(da) === true # This is broken because GPUArrays didn't support any(da, dims=:) only any(da)
-    @test_broken any(da; dims=Y) == reshape([true, false], 2, 1)
-    @test_broken all(da) === false
-    @test_broken all(da; dims=Y) == reshape([false, false], 2, 1)
-    @test_broken all(da; dims=(X, Y)) == reshape([false], 1, 1)
+    @test any(da) === true # This is broken because GPUArrays didn't support any(da, dims=:) only any(da)
+    @test any(da; dims=Y) == reshape([true, false], 2, 1)
+    @test all(da) === false
+    @test all(da; dims=Y) == reshape([false, false], 2, 1)
+    @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
 
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));

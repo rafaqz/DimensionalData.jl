@@ -81,7 +81,7 @@ _asfunc(::Type{typeof(>:)}) = >:
 
 @inline function _sortdims(f, tosort, order::Tuple{<:Integer,Vararg})
     map(order) do i
-        if i in 1:length(tosort) 
+        if i in 1:length(tosort)
             tosort[i]
         else
             nothing
@@ -305,7 +305,7 @@ end
     (_dimifnothing(f, first(ds), first(query))..., _otherdims_from_nothing(f, tail(ds), tail(query))...)
 @inline _otherdims_from_nothing(f, ::Tuple{}, ::Tuple{}) = ()
 
-@inline _dimifnothing(f, dim, query) = () 
+@inline _dimifnothing(f, dim, query) = ()
 @inline _dimifnothing(f, dim, query::Nothing) = (dim,)
 
 
@@ -527,13 +527,13 @@ These are all `Bool` flags:
 - `ignore_length_one`: ignore length `1` in comparisons, and return whichever
     dimension is not length 1, if any. This is useful in e.g. broadcasting comparisons.
     `false` by default.
-- `msg`: DimensionalData.Warn or DimensionalData.Throw. Both may contain string, 
+- `msg`: DimensionalData.Warn or DimensionalData.Throw. Both may contain string,
     which will be added to error or warning mesages.
 """
 function comparedims end
-@inline comparedims(args...; kw...) = 
+@inline comparedims(args...; kw...)::Bool =
     _comparedims(args...; msg=Throw(), kw...)
-@inline comparedims(::Type{Bool}, args...; kw...) = 
+@inline comparedims(::Type{Bool}, args...; kw...)::Bool =
     _comparedims(args...; msg=nothing, kw...)
 
 abstract type AbstractMessage{M} end
@@ -565,17 +565,26 @@ _ordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(
 @noinline _valtypeaction(err, a, b) = _failed_comparedims(err, _valtypemsg(a, b))
 @noinline _orderaction(err, a, b) = _failed_comparedims(err, _ordermsg(a, b))
 
-_failed_comparedims(w::Warn, msg_intro) = @warn string(msg_intro, msg(2))
+_failed_comparedims(w::Warn, msg_intro) = @warn string(msg_intro, msg(w))
 _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_intro, msg(t))))
 
+@inline _comparedims(xs...; kw...) = _comparedims(map(dims, xs)...; kw...)
 @inline _comparedims(; kw...) = true
-@inline _comparedims((a1, as...)::DimTuple, (b1, bs...)::DimTuple; kw...) = 
+@inline _comparedims(dt::DimTupleOrEmpty, (dt1, dts...)::Union{DimTupleOrEmpty,Nothing}...; kw...) =
+    all((_comparedims(dt, dt1; kw...), _comparedims(dt, dts...; kw...)...))
+@inline _comparedims(dt::DimTupleOrEmpty, ::Nothing) = true
+@inline _comparedims(dt::Nothing, (dt1, dts...)::Union{DimTupleOrEmpty,Nothing}...; kw...) =
+    _comparedims(dt, dts...; kw...)
+@inline _comparedims(::Nothing, ::Nothing...; kw...) = true
+@inline _comparedims((a1, as...)::DimTupleOrEmpty, (b1, bs...)::DimTupleOrEmpty; kw...) =
     all((_comparedims(a1, b1; kw...), _comparedims(as, bs; kw...)...))
-@inline _comparedims(d1::Dimension, ds::Dimension...; kw...) =
+@inline _comparedims(dt::DimTupleOrEmpty; kw...) = true
+
+@inline _comparedims(d1::Dimension, ds::Union{Dimension,Nothing}...; kw...) =
     all(map(d -> _comparedims(d1, d; kw...), ds))
-@inline _comparedims(dims::Vararg{Tuple{Vararg{Dimension}}}; kw...) =
-    all(map(d -> _comparedims(first(dims), d; kw...), dims))
-@inline _comparedims(a::DimTupleOrEmpty, ::Nothing; kw...) = true
+@inline _comparedims(d1::Nothing, ds::Union{Dimension,Nothing}...; kw...) =
+    _comparedims(ds; kw...)
+@inline _comparedims()
 @inline _comparedims(::Nothing, b::DimTupleOrEmpty; kw...) = true
 @inline _comparedims(::Nothing, ::Nothing; kw...) = true
 @inline _comparedims(a::DimTuple, b::Tuple{}; kw...) = true
@@ -585,7 +594,7 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
 @inline _comparedims(a::Dimension, b::AnonDim; kw...) = true
 @inline _comparedims(a::AnonDim, b::Dimension; kw...) = true
 @inline function _comparedims(a::Dimension, b::Dimension;
-    type=true, valtype=false, val=false, length=true, order=false, 
+    type=true, valtype=false, val=false, length=true, order=false,
     ignore_length_one=false, msg
 )
     if type && basetypeof(a) != basetypeof(b)
@@ -599,8 +608,14 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
         isnothing(msg) || _valtypeaction(msg, a, b)
         return false
     end
-    if val && !(isnolookup(a) || isnolookup(b)) && parent(lookup(a)) != parent(lookup(b))
-        if !(parent(lookup(a)) ≈ parent(lookup(b)))
+    pa, pb = parent(lookup(a)), parent(lookup(b))
+    if val && !(isnolookup(a) || isnolookup(b)) && pa != pb
+        if eltype(pa) <: Number && eltype(pb) <: Number
+            if !(all((a, b) -> a ≈ b, zip(pa, pb)))
+                isnothing(msg) || _valaction(msg, a, b)
+                return false
+            end
+        else
             isnothing(msg) || _valaction(msg, a, b)
             return false
         end
@@ -617,20 +632,14 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
 end
 
 @inline promotedims(; kw...) = ()
-@inline function promotedims(dt1::DimTupleOrEmpty, dts::DimTupleOrEmpty...; 
-    skip_length_one=false, kw...
-)
-    # Combine dimensions
-    combined = combinedims(dt1, dts...; ignore_length_one=skip_length_one)
-    # Remove any anomymous
-    filtered = otherdims(combined, AnonDim())
-    sorted = map((dt1, dts...)) do dt
-        sortdims(dt, filtered)
-    end
-    return map(sorted...) do ds...
-        promotedims(_remove_nothing(ds)...; skip_length_one)
-    end
-end
+@inline promotedims(dt1::DimTupleOrEmpty) = dt1
+@inline promotedims(dt1::DimTuple, dts::DimTuple...; kw...) =
+    (promotedims(first(dt1), map(first, dts)...; kw...), promotedims(tail(dt1), map(tail, dts)...; kw...)...)
+@inline promotedims(dts::DimTupleOrEmpty...; kw...) =
+    promotedims(_remove_empty(dts)...; kw...)
+@inline promotedims(dts::Tuple{}; kw...) = ()
+
+@inline promotedims(d1::Dimension; kw...) = d1
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     ls = lookup(ds)
     l = promote_first(lookup(d1), ls...)
@@ -737,15 +746,15 @@ struct AlwaysTuple <: QueryMode end
 @inline _dim_query(f::F, op::O, t::QueryMode, a1, args::Tuple) where {F<:Function,O<:Union{typeof(<:),typeof(>:)}}  =
     _dim_query1(f, op, t::QueryMode, _wraparg(a1)..., _wraparg(args...))
 
-@inline _dim_query1(f::F, op::O, t, x, l1, l2, ls...) where {F,O} = 
+@inline _dim_query1(f::F, op::O, t, x, l1, l2, ls...) where {F,O} =
     _dim_query1(f, op, t, x, (l1, l2, ls...))
-@inline _dim_query1(f::F, op::O, t, x) where {F,O} = 
+@inline _dim_query1(f::F, op::O, t, x) where {F,O} =
     _dim_query1(f, op, t, dims(x))
-@inline _dim_query1(f::F, op::O, t, x, query::Q) where {F,O,Q} = 
+@inline _dim_query1(f::F, op::O, t, x, query::Q) where {F,O,Q} =
     _dim_query1(f, op, t, dims(x), query)
-@inline _dim_query1(f::F, op::O, t, x::Nothing) where {F,O} = 
+@inline _dim_query1(f::F, op::O, t, x::Nothing) where {F,O} =
     _dimsnotdefinederror()
-@inline _dim_query1(f::F, op::O, t, x::Nothing, query::Q) where {F,O,Q} = 
+@inline _dim_query1(f::F, op::O, t, x::Nothing, query::Q) where {F,O,Q} =
     _dimsnotdefinederror()
 @inline _dim_query1(f::F, op::O, t, ds::Tuple, query::Colon) where {F,O} =
     _dim_query1(f, op, t, ds, basedims(ds))
@@ -767,6 +776,12 @@ end
 
 
 # Utils
+
+# Remove empty tuples
+@inline _remove_empty(::Tuple{}, xs...) = _remove_empty(xs...)
+@inline _remove_empty(x::Tuple, xs...) = (x, _remove_empty(xs...)...)
+@inline _remove_empty(::Tuple{}) = ()
+@inline _remove_empty(x::Tuple) = x
 
 # Remove `nothing` from a `Tuple`
 @inline _remove_nothing(xs::Tuple) = _remove_nothing(xs...)
@@ -801,10 +816,12 @@ _astuple(x) = (x,)
 # Warnings and Error methods.
 
 _extradimsmsg(::Tuple{}) = "Some dims were not found in object."
+_extradimsmsg(extradims) = "$(map(basetypeof, extradims)) dims were not found in object."
 _metadatamsg(a, b) = "Metadata $(metadata(a)) and $(metadata(b)) do not match."
 _typemsg(a, b) = "Lookups do not all have the same type: $(order(a)), $(order(b))."
 
-_extradimsmsg(extradims) = "$(map(basetypeof, extradims)) dims were not found in object."
+# Warn
+@noinline _extradimswarn(dims, msg="") = @warn string(_extradimsmsg(dims), msg)
 
 # Error
 @noinline _metadataerror(a, b) = throw(DimensionMismatch(_metadatamsg(a, b)))

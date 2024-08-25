@@ -49,7 +49,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    comparedims(_broadcasted_dims(bc); ignore_length_one=true, order=true)
+    comparedims(_broadcasted_dims(bc)...; ignore_length_one=true, order=true)
     copyto!(dest, _unwrap_broadcasted(bc))
     return dest
 end
@@ -57,7 +57,7 @@ end
 @inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
     # Need to check whether the dims are compatible in dest, 
     # which are already stripped when sent to copyto!
-    comparedims(dims(dest), _broadcasted_dims(bc); ignore_length_one=true, order=true)
+    comparedims(dims(dest), _broadcasted_dims(bc)...; ignore_length_one=true, order=true)
     style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
     Base.Broadcast.materialize!(style, parent(dest), bc)
     return dest
