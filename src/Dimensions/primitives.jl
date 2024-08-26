@@ -149,8 +149,8 @@ function dims end
 @inline dims(a1, args...) = _dim_query(_dims, MaybeFirst(), a1, args...)
 @inline dims(::Tuple{}, ::Tuple{}) = ()
 
-@inline _dims(f, dims, query) = _remove_nothing(_sortdims(f, dims, query))
-@inline _dims(f, dims, query...) = _remove_nothing(_sortdims(f, dims, query))
+@inline _dims(f, dims, query) = _remove(Nothing, _sortdims(f, dims, query)...)
+@inline _dims(f, dims, query...) = _remove(Nothing, _sortdims(f, dims, query)...)
 
 """
     commondims([f], x, query) => Tuple{Vararg{Dimension}}
