@@ -112,7 +112,7 @@ boxplot(rand(X('a':'d'), Y(2:5:20)))
 
 And the plot will have the right ticks and labels.
 
-[See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/)
+[See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/stable/)
 
 > [!NOTE]
 > Recent changes have greatly reduced the exported API.
@@ -133,4 +133,4 @@ There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDim
 [AxisKeys.jl](https://github.com/mcabbott/AxisKeys.jl) and [AbstractIndices.jl](https://github.com/Tokazama/AbstractIndices.jl) are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this [thread](https://github.com/JuliaCollections/AxisArraysFuture/issues/1).
 
 The main functionality is explained here, but the full list of features is
-listed at the [API](https://rafaqz.github.io/DimensionalData.jl/reference) page.
+listed at the [API](https://rafaqz.github.io/DimensionalData.jl/stable/api/reference) page.
