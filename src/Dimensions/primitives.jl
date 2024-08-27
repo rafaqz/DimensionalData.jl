@@ -586,7 +586,7 @@ end
 @inline _comparedims(d1::Nothing; kw...) = true
 @inline _comparedims(dt::Tuple; kw...) = true
 
-@inline _comparedims2((a1, as)::DimTuple, (b1, bs)::DimTuple; kw...) = 
+@inline _comparedims2((a1, as...)::DimTuple, (b1, bs...)::DimTuple; kw...) = 
     _comparedims2(a1, b1; kw...) && _comparedims2(as, bs; kw...) 
 @inline _comparedims2(::Nothing, b::DimTupleOrEmpty; kw...) = true
 @inline _comparedims2(::Nothing, ::Nothing; kw...) = true
@@ -634,9 +634,8 @@ end
     return true
 end
 
-function promotedims(dts::DimTuple...; kw...) 
-    _promotedims(dts; kw...)
-end
+promotedims(; kw...) = () 
+promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims(dts; kw...)
 # Hard to get this stable without @generated
 @generated function _promotedims(dts::Tuple; kw...)
     n = maximum(Tuple(dts.parameters)) do p
@@ -645,7 +644,7 @@ end
     exprs = map(1:n) do j
         expr = Expr(:call, :promotedims, Expr(:parameters, Expr(:..., :kw)))
         for (i, p) in enumerate(dts.parameters)
-            if length(p.parameters) >= i 
+            if length(p.parameters) >= j
                 push!(expr.args, :(dts[$i][$j])) 
             end
         end
@@ -654,7 +653,7 @@ end
     return Expr(:tuple, exprs...)
 end
 
-@inline promotedims(d1::Dimension; kw...) = d1
+# @inline promotedims(d1::Dimension; kw...) = d1
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     ls = lookup(ds)
     l = promote_first(lookup(d1), ls...)

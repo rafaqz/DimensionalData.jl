@@ -25,7 +25,7 @@ dajl = rebuild(da, JLArray(parent(da)));
 end
 
 @testset "broadcast over length one dimension" begin
-    da2 = DimArray((1:4) * (1:2:8)', (X, Y))
+    da2 = DimArray((1:4) * (1:2:8)', (X, Y));
     @test (@inferred da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
     @test (@inferred da2[:, 1:1] .* da2) == [1, 4, 9, 16] * (1:2:8)'
 end
@@ -65,6 +65,7 @@ end
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered()),
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Intervals(Start()), order=ForwardOrdered()),
         )
+        l = first(ls)
         for l in ls
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(3),), X)) == NoLookup(Base.OneTo(3))
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(1),), X)) == NoLookup(Base.OneTo(3))

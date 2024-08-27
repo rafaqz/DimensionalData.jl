@@ -828,6 +828,7 @@ ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
 function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
+    length(ls) == 0 && return l1
     if all(map(l -> typeof(l) == L, ls))
         if length(ls) > 0
             rebuild(l1; metadata=NoMetadata())
@@ -838,11 +839,11 @@ function promote_first(l1::L, ls::Lookup...) where {L<:Lookup}
         NoLookup(Base.OneTo(length(l1)))
     end
 end
+# Categorical lookups
 promote_first(l1::AbstractCategorical) = l1
 promote_first(l1::C, ls::C...) where C<:AbstractCategorical = l1
 promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; metadata=NoMetadata())
 function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
-    @show "categorical"
     ls = (l2, ls...)
     all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
     data = promote_first_array(parent(l1), map(parent, ls)...)
