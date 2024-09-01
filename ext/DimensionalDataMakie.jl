@@ -143,7 +143,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 p = Makie.$f2(args...; attributes...)
                 # And instead set axisnames manually
                 if !isnothing(p.axis.scene[OldAxis])
-                    p.axis.scene[OldAxis[:names, :axisnames] = map(DD.label, DD.dims(A2))
+                    p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
             else
