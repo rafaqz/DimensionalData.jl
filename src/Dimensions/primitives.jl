@@ -586,7 +586,7 @@ end
 @inline _comparedims(d1::Nothing; kw...) = true
 @inline _comparedims(dt::Tuple; kw...) = true
 
-@inline _comparedims2((a1, as...)::DimTuple, (b1, bs...)::DimTuple; kw...) = 
+@inline _comparedims2((a1, as)::DimTuple, (b1, bs)::DimTuple; kw...) = 
     _comparedims2(a1, b1; kw...) && _comparedims2(as, bs; kw...) 
 @inline _comparedims2(::Nothing, b::DimTupleOrEmpty; kw...) = true
 @inline _comparedims2(::Nothing, ::Nothing; kw...) = true
@@ -634,17 +634,37 @@ end
     return true
 end
 
-promotedims(; kw...) = () 
-promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims(dts; kw...)
+"""
+    promotedims(dts::DimTuple...) 
+    promotedims(dts::Dimensions...) 
+
+Promote the types of dimensions and contained lookups so that 
+the returned type is always the same independent of order, but 
+that the lookup values come from the first argument.
+"""
+@inline promotedims(d1::Dimension) = d1
+@inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
+    vs = map(val, ds)
+    v = promote_first(val(d1), vs...)
+    promoted_v = if skip_length_one
+        _promote_non_length_one(v, v, vs...)
+    else
+        v
+    end
+
+    return rebuild(d1, promoted_v)
+end
+promotedims(dts::DimTuple...) = _promotedims_gen(dts)
+
 # Hard to get this stable without @generated
-@generated function _promotedims(dts::Tuple; kw...)
+@generated function _promotedims_gen(dts::Tuple)
     n = maximum(Tuple(dts.parameters)) do p
         length(p.parameters)
     end
     exprs = map(1:n) do j
-        expr = Expr(:call, :promotedims, Expr(:parameters, Expr(:..., :kw)))
+        expr = Expr(:call, :promotedims)
         for (i, p) in enumerate(dts.parameters)
-            if length(p.parameters) >= j
+            if length(p.parameters) >= i 
                 push!(expr.args, :(dts[$i][$j])) 
             end
         end
@@ -653,27 +673,14 @@ promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims(dts; kw...)
     return Expr(:tuple, exprs...)
 end
 
-# @inline promotedims(d1::Dimension; kw...) = d1
-@inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
-    ls = lookup(ds)
-    l = promote_first(lookup(d1), ls...)
-    promoted_l = if skip_length_one
-        _promote_non_length_one(l, l, ls...)
+@inline function _promote_non_length_one(template, v1, vs...)
+    if length(v1) > 1
+        promote_first(v1, template)
     else
-        l
-    end
-
-    return rebuild(d1, promoted_l)
-end
-
-@inline function _promote_non_length_one(template, l1, ls...)
-    if length(l1) > 1
-        promote_first(l1, template)
-    else
-        _promote_non_length_one(template, ls...)
+        _promote_non_length_one(template, vs...)
     end
 end
-@inline _promote_non_length_one(template, l1) = promote_first(l1, template)
+@inline _promote_non_length_one(template, v1) = promote_first(v1, template)
 
 
 """
@@ -720,10 +727,12 @@ See [`basetypeof`](@ref)
 """
 function basedims end
 @inline basedims(x) = basedims(dims(x))
+@inline basedims(::Nothing) = nothing
 @inline basedims(ds::Tuple) = map(basedims, ds)
 @inline basedims(d::Dimension) = basetypeof(d)()
 @inline basedims(d::Symbol) = name2dim(d)
 @inline basedims(T::Type{<:Dimension}) = basetypeof(T)()
+@inline basedims(x, y) = basedims(dims(x, dims(y)))
 
 @inline pairs2dims(pairs::Pair...) = map(p -> basetypeof(name2dim(first(p)))(last(p)), pairs)
 

@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims
+using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims, promotedims
 
 @dim Tst
 
@@ -338,7 +338,7 @@ end
     @testset "compare val type" begin
         @test @inferred !comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
         @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
-        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
+        @test @inferred comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
         @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=true)
         @test_throws DimensionMismatch comparedims(X(Sampled([1, 2])), X(Sampled(1:2)); valtype=true)
     end
@@ -535,4 +535,28 @@ end
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
     end
+end
+
+@testset "promotedims" begin
+    nl = NoLookup(Base.OneTo(2))
+    c = Categorical(["a", "b"]; order=ForwardOrdered())
+    c_sub = Categorical([view("a", 1:1), view("b", 1:1)]; order=ForwardOrdered())
+    s = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered())
+    s_int = Sampled(1:1:2; span=Regular(1), sampling=Points(), order=ForwardOrdered())
+    @test promotedims(X(nl), X(c)) === promotedims(X(c), X(nl)) === X(nl)
+    @test promotedims(X(nl), X(s)) === promotedims(X(s), X(nl)) === X(nl)
+    @test promotedims(X(c), X(s)) === promotedims(X(s), X(c)) === X(nl)
+    @test promotedims(X(s), X(s)) === X(s)
+    @test promotedims(X(s_int), X(s_int)) === X(s_int)
+    @test promotedims(X(s), X(s_int)) === promotedims(X(s_int), X(s)) === X(s)
+    @test promotedims(X(c), X(c_sub)) == promotedims(X(c_sub), X(c)) == X(c)
+    @test eltype(promotedims(X(c_sub), X(c))) == String
+    @test promotedims((X(c), Y(s)), (X(c), Y(s))) == (X(c), Y(s))
+    @test promotedims((X(c), Y(nl)), (X(nl), Y(s))) == (X(nl), Y(nl))
+    @test promotedims((X(c), Y(s_int)), (X(c_sub), Y(s))) == (X(c), Y(s))
+
+    @test promotedims(X(1), X(1.0)) == promotedims(X(1.0), X(1)) == X(1.0)
+    @test promotedims(X("a"), X(view("a", 1:1))) ==
+          promotedims(X(view("a", 1:1)), X("a")) == 
+          X("a")
 end

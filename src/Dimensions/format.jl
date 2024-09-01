@@ -56,6 +56,7 @@ format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 
 # Format Lookups
 # No more identification required for NoLookup
+format(m::Lookups.Length1NoLookup, D::Type, values, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, values, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, values::AutoValues, axis::AbstractRange) = NoLookup(axis)
 # # AutoLookup

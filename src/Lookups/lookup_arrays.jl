@@ -23,7 +23,6 @@ locus(l::Lookup) = Center()
 
 # Deprecated
 index(l::Lookup) = parent(l)
-@deprecate locus locus
 
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
@@ -108,6 +107,14 @@ abstract type Aligned{T,O} <: Lookup{T,1} end
 
 order(lookup::Aligned) = lookup.order
 
+
+abstract type AbstractNoLookup <: Aligned{Int,Order} end
+
+order(::AbstractNoLookup) = ForwardOrdered()
+span(::AbstractNoLookup) = Regular(1)
+
+Base.step(lookup::AbstractNoLookup) = 1
+
 """
     NoLookup <: Lookup
 
@@ -144,17 +151,20 @@ Dimensions.lookup(A)
 NoLookup, NoLookup
 ```
 """
-struct NoLookup{A<:AbstractVector{Int}} <: Aligned{Int,Order}
+struct NoLookup{A<:AbstractVector{Int}} <: AbstractNoLookup
     data::A
 end
 NoLookup() = NoLookup(AutoValues())
 
-order(lookup::NoLookup) = ForwardOrdered()
-span(lookup::NoLookup) = Regular(1)
-
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
-Base.step(lookup::NoLookup) = 1
+
+# Used in @d broadcasts
+struct Length1NoLookup <: AbstractNoLookup end
+Length1NoLookup(::AbstractVector) = Length1NoLookup()
+
+rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
+Base.parent(::Length1NoLookup) = Base.OneTo(1)
 
 """
     AbstractSampled <: Aligned
@@ -824,11 +834,20 @@ ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
 
 # Promotion 
 
+# General case 
+promote_first(x) = x
+promote_first(x1, x2, xs...) = 
+    convert(promote_type(typeof(x1), typeof(x2), map(typeof, xs)...), x1)
 # Fallback NoLookup if not identical type
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
 function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
-    length(ls) == 0 && return l1
+    ls = _remove(Length1NoLookup, l1, ls...)
+    if length(ls) > 1 
+        l1, ls... = ls
+    else
+        return first(ls)
+    end
     if all(map(l -> typeof(l) == L, ls))
         if length(ls) > 0
             rebuild(l1; metadata=NoMetadata())
@@ -846,7 +865,7 @@ promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; met
 function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
     ls = (l2, ls...)
     all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
-    data = promote_first_array(parent(l1), map(parent, ls)...)
+    data = promote_first(parent(l1), map(parent, ls)...)
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
         return rebuild(l1; data, metadata=NoMetadata())
     else # Fall back to standard Categorical
@@ -862,7 +881,7 @@ function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSam
         all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) || 
         return NoLookup(Base.OneTo(length(l1)))
 
-    data = promote_first_array(parent(l1), map(parent, ls)...)
+    data = promote_first(parent(l1), map(parent, ls)...)
     kw = (;
         order=order(l1),
         span=promote_first(span(l1), map(span, ls)...),
@@ -891,11 +910,11 @@ for E in (Base.Number, Dates.AbstractTime)
 end
 promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
 # Data
-promote_first_array(a1::A) where A<:AbstractArray = a1
-promote_first_array(a1::A, ::A, ::A...) where A<:AbstractArray = a1
-function promote_first_array(a1::AbstractArray, as::AbstractArray...) 
+promote_first(a1::A) where A<:AbstractArray = a1
+promote_first(a1::A, ::A, ::A...) where A<:AbstractArray = a1
+promote_first(a1::AbstractArray{<:AbstractString}, as::AbstractArray{<:AbstractString}...) = String.(a1)
+function promote_first(a1::AbstractArray, as::AbstractArray...) 
     T = promote_type(eltype(a1), map(eltype, as)...)
-    promote_type(Int, UInt64)
     C = if a1 isa AbstractRange && all(map(a -> a isa AbstractRange, as))
         if a1 isa AbstractUnitRange && all(map(a -> a isa AbstractUnitRange, as))
             UnitRange
@@ -910,5 +929,6 @@ function promote_first_array(a1::AbstractArray, as::AbstractArray...)
     else
         Vector{T}
     end
-    convert(C, a1)
+
+    return convert(C, a1)
 end
