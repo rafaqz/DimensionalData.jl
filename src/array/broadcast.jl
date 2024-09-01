@@ -40,22 +40,20 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
 # We need to implement copy because if the wrapper array type does not
 # support setindex then the `similar` based default method will not work
 function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
-    bdims = _broadcasted_dims(bc)
     A = _firstdimarray(bc)
     data = copy(_unwrap_broadcasted(bc))
 
-    if A isa Nothing || !(data isa AbstractArray) 
-        return data
-    end
+    A isa Nothing && return data # No AbstractDimArray
 
+    bdims = _broadcasted_dims(bc)
     _maybe_comparedims(A, bdims...)
-    dims = Dimensions.promotedims(bdims...; skip_length_one=true)
 
-    if data isa AbstractDimArray 
-        rebuild(A, parent(data), format(dims, data), refdims(A), Symbol(""))
-    else
-        rebuild(A, data, format(dims, data), refdims(A), Symbol(""))
-    end
+    data isa AbstractArray || return data # result is a scalar
+
+    # unwrap AbstractDimArray data
+    data1 = data isa AbstractDimArray ? parent(data) : data
+    dims = format(Dimensions.promotedims(bdims...; skip_length_one=true), data1)
+    return rebuild(A, data1, dims, refdims(A), Symbol(""))
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
