@@ -30,7 +30,6 @@ end
     @test map(*, da, da) isa DimArray{Int64,2}
 end
 
-
 @testset "dimension reducing methods" begin
 
     # Test some reducing methods with Explicit spans

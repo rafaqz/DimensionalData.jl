@@ -320,6 +320,14 @@ end
 end
 
 @testset "comparedims" begin
+
+    @testset "single dimensions" begin
+        z = Z(NoLookup(Base.OneTo(10)))
+        @test comparedims(z) == true
+        @test comparedims(z, z) == true
+        @test comparedims(z, z, z) == true
+    end
+
     @testset "default keywords" begin
         @test @inferred comparedims(Bool, X(1:2), X(1:2))
         @test @inferred !comparedims(Bool, X(1:2), Y(1:2))

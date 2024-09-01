@@ -79,7 +79,7 @@ function sortdims end
 _asfunc(::Type{typeof(<:)}) = <:
 _asfunc(::Type{typeof(>:)}) = >:
 
-@inline function _sortdims(f, tosort, order::Tuple{<:Integer,Vararg})
+@inline function _sortdims(f, tosort::Tuple, order::Tuple{<:Integer,Vararg})
     map(order) do i
         if i in 1:length(tosort)
             tosort[i]
@@ -88,9 +88,9 @@ _asfunc(::Type{typeof(>:)}) = >:
         end
     end
 end
-@inline _sortdims(f, tosort, order) = _sortdims_gen(f, tosort, order)
+@inline _sortdims(f, tosort::Tuple, order::Tuple) = _sortdims_gen(f, tosort, order)
 
-@generated _sortdims_gen(f, tosort::Tuple, order::Tuple) = begin
+@generated function _sortdims_gen(f, tosort::Tuple, order::Tuple)
     expr = Expr(:tuple)
     allreadyfound = Int[]
     for (i, ord) in enumerate(order.parameters)
@@ -570,7 +570,8 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
 
 @inline _comparedims(; kw...) = true
 @inline _comparedims(xs...; kw...) = _comparedims(map(dims, xs)...; kw...)
-@inline _comparedims(dt1::DimTupleOrEmpty, dts::DimTupleOrEmpty...; kw...) = 
+@inline _comparedims(dt1::DimTupleOrEmpty; kw...) = true
+@inline _comparedims(dt1::DimTupleOrEmpty, dts::DimTupleOrEmpty...; kw...) =
     _comparedims_gen(dt1, dts; kw...)
 @generated function _comparedims_gen(dt1::Tuple, dts::Tuple; kw...)
     n = length(dts.parameters)
@@ -580,14 +581,18 @@ _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_in
     return Expr(:call, :all, Expr(:tuple, exprs...))
 end
 
+@inline _comparedims(d1::Union{Dimension,Nothing}, d2::Union{Dimension,Nothing}; kw...) =
+    _comparedims2(d1, d2; kw...)
 @inline _comparedims(d1::Union{Dimension,Nothing}, d2::Union{Dimension,Nothing}, ds::Vararg{Union{Dimension,Nothing}}; kw...) =
     all((_comparedims2(d1, d2; kw...), _comparedims(d1, ds...; kw...)...))
 @inline _comparedims(d1::Dimension; kw...) = true
 @inline _comparedims(d1::Nothing; kw...) = true
 @inline _comparedims(dt::Tuple; kw...) = true
 
-@inline _comparedims2((a1, as)::DimTuple, (b1, bs)::DimTuple; kw...) = 
-    _comparedims2(a1, b1; kw...) && _comparedims2(as, bs; kw...) 
+@inline _comparedims2(as::Tuple{<:Dimension}, bs::Tuple{<:Dimension}; kw...) =
+    _comparedims2(as[1], bs[1]; kw...)
+@inline _comparedims2((a1, as...)::DimTuple, (b1, bs...)::DimTuple; kw...) =
+    _comparedims2(a1, b1; kw...) && _comparedims2(as, bs; kw...)
 @inline _comparedims2(::Nothing, b::DimTupleOrEmpty; kw...) = true
 @inline _comparedims2(::Nothing, ::Nothing; kw...) = true
 @inline _comparedims2(a::DimTuple, b::Tuple{}; kw...) = true
@@ -635,14 +640,20 @@ end
 end
 
 """
-    promotedims(dts::DimTuple...) 
-    promotedims(dts::Dimensions...) 
+    promotedims(dts::DimTuple...; skip_length_one=false)
+    promotedims(dts::Dimensions...; skip_length_one=false)
 
-Promote the types of dimensions and contained lookups so that 
-the returned type is always the same independent of order, but 
+Promote the types of dimensions and contained lookups so that
+the returned type is always the same independent of order, but
 that the lookup values come from the first argument.
+
+# Keywords
+
+- `skip_length_one`: the returned type will remain the same,
+    but the values from the first lookup with length larger than
+    one will be used.
 """
-@inline promotedims(d1::Dimension) = d1
+
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     vs = map(val, ds)
     v = promote_first(val(d1), vs...)
@@ -654,18 +665,18 @@ that the lookup values come from the first argument.
 
     return rebuild(d1, promoted_v)
 end
-promotedims(dts::DimTuple...) = _promotedims_gen(dts)
+promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims_gen(dts; kw...)
 
 # Hard to get this stable without @generated
-@generated function _promotedims_gen(dts::Tuple)
-    n = maximum(Tuple(dts.parameters)) do p
+@generated function _promotedims_gen(dts::Tuple; kw...)
+    maxlen = maximum(Tuple(dts.parameters)) do p
         length(p.parameters)
     end
-    exprs = map(1:n) do j
-        expr = Expr(:call, :promotedims)
+    exprs = map(1:maxlen) do j
+        expr = Expr(:call, :promotedims, Expr(:parameters, Expr(:..., :kw)))
         for (i, p) in enumerate(dts.parameters)
-            if length(p.parameters) >= i 
-                push!(expr.args, :(dts[$i][$j])) 
+            if length(p.parameters) >= j
+                push!(expr.args, :(dts[$i][$j]))
             end
         end
         expr
