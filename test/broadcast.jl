@@ -25,7 +25,7 @@ dajl = rebuild(da, JLArray(parent(da)));
 end
 
 @testset "broadcast over length one dimension" begin
-    da2 = DimArray((1:4) * (1:2:8)', (X, Y));
+    da2 = DimArray((1:4) * (1:2:8)', (X, Y))
     @test (@inferred da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
     @test (@inferred da2[:, 1:1] .* da2) == [1, 4, 9, 16] * (1:2:8)'
 end
@@ -65,7 +65,6 @@ end
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered()),
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Intervals(Start()), order=ForwardOrdered()),
         )
-        l = first(ls)
         for l in ls
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(3),), X)) == NoLookup(Base.OneTo(3))
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(1),), X)) == NoLookup(Base.OneTo(3))
@@ -325,6 +324,46 @@ end
     C .= 0
     C[DimSelectors(sub)] .+= sub
     @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
+end
+
+@testset "@d macro" begin
+    f(x, y) = x * y
+    da1 = ones(X(3))
+    da2 = fill(2, X(3), Y(4))
+    da2a = fill(2, Y(4), X(3))
+    da3 = fill(3, Y(4), Z(5), X(3))
+    @d da1 .* da2
+    @d f.(da1, da2)
+    @d 0 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)
+    @d da1 .* da2
+    @d da2
+    @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)
+
+    res = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; dims=(X, Y, Z),)
+    @test all(==(12.0), res)
+    @test DimensionalData.basedims(res) == (X(), Y(), Z())
+    @test size(res) == (3, 4, 5)
+    @test_throws ArgumentError @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y)
+
+    res = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; order=(X, Y, Z),)
+
+    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) dims=(X(), Y(), Z())
+    p(da1, da2, da3, n) = for i in 1:n p(da1, da2, da3) end
+    p(da1, da2, da3, 10000)
+
+    using ProfileView
+    @profview p(da1, da2, da3, 100000)
+
+    x, y, z = X(1:3), Y(DateTime(2000):Month(2):DateTime(2001)), Z(5)
+    da1 = ones(y) .* (1.0:7.0)
+    da2 = fill(2, x, y) .* (1:3)
+    da3 = fill(3, y, z, x) .* (1:7)
+    f(da1, da2, da3, 100)
+
+    # Shape and permutaton do not matter
+    @test f(da1, da2, da3) == 
+        f(da1, permutedims(da2, (Y, X)), da3)
+        f(da1, da2, permutedims(da3, (X, Y, Z)))
 end
 
 # @testset "Competing Wrappers" begin
