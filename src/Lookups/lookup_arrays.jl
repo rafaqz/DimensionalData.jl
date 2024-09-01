@@ -158,7 +158,6 @@ NoLookup() = NoLookup(AutoValues())
 
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
-
 # Used in @d broadcasts
 struct Length1NoLookup <: AbstractNoLookup end
 Length1NoLookup(::AbstractVector) = Length1NoLookup()
