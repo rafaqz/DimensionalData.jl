@@ -117,6 +117,7 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 ```
 """
 function set end
+
 # Types are constructed
 Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
 
@@ -136,6 +137,7 @@ Base.@assume_effects :effect_free set(A::AbstractDimArray, newdata::AbstractArra
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
 end
+
 # NamedTuples are set as data for AbstractDimStack
 Base.@assume_effects :effect_free set(s::AbstractDimStack, newdata::NamedTuple) = begin
     dat = data(s)

@@ -47,9 +47,11 @@ using Combinatorics: combinations
 
     # Test where results have an empty dim
     true_result = (parent(b1)' * parent(B1))
+    flip = adjoint
     for flip in (adjoint, transpose, permutedims)
         result = flip(b1) * B1
-        @test result ≈ true_result  # Permute dims is not exactly transpose
+        @test result ≈ true_result
+        # Permute dims is not exactly transpose
         @test dims(result) isa Tuple{<:AnonDim, <:X}
         @test length.(dims(result)) == (1, 6)
     end

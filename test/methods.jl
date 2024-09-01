@@ -1,7 +1,10 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
-
+using JLArrays
 using LinearAlgebra: Transpose
+using GPUArrays
+
+GPUArrays.allowscalar(false)
 
 xs = (1, X, X(), :X)
 ys = (2, Y, Y(), :Y)
@@ -14,6 +17,16 @@ xys = ((1, 2), (X, Y), (X(), Y()), (:X, :Y))
     @test map(x -> 2x, da) == [2 4; 6 8]
     @test map(x -> 2x, da) isa DimArray{Int64,2}
     @test map(*, da, da) == [1 4; 9 16]
+    @test map(*, da, da) isa DimArray{Int64,2}
+end
+
+@testset "JLArray map" begin
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(Sampled(-38:2:-36; span=Explicit([-38 -36; -36 -34])))
+    da = DimArray(a, dimz)
+    @test Array(map(x -> 2x, da)) == [2 4; 6 8]
+    @test map(x -> 2x, da) isa DimArray{Int64,2}
+    @test Array(map(*, da, da)) == [1 4; 9 16]
     @test map(*, da, da) isa DimArray{Int64,2}
 end
 
@@ -127,6 +140,117 @@ end
     end
 end
 
+@testset "JLArray dimension reducing methods" begin
+
+    # Test some reducing methods with Explicit spans
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(Sampled(-38:2:-36; span=Explicit([-38 -36; -36 -34])))
+    da = DimArray(a, dimz)
+
+    # Test all dime combinations with maxium
+    for dims in xs
+        @test Array(sum(da; dims)) == [4 6]
+        @test Array(minimum(da; dims)) == [1 2]
+
+        testdims = (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
+                    Y(Sampled(-38:2:-36, ForwardOrdered(), Explicit([-38 -36; -36 -34]), Intervals(Center()), NoMetadata())))
+        @test typeof(DimensionalData.dims(minimum(da; dims))) == typeof(testdims)
+        # @test val.(span(minimum(da; dims))) == val.(span(testdims))
+    end
+    for dims in ys
+        @test Array(minimum(da; dims)) == [1 3]'
+        @test Array(maximum(da; dims)) == [2 4]'
+        @test Array(maximum(x -> 2x, da; dims)) == [4 8]'
+        testdims = (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Explicit(reshape([-38, -34], 2, 1)), Intervals(Center()), NoMetadata())))
+        @test typeof(DimensionalData.dims(sum(da; dims))) == typeof(testdims)
+        @test index(sum(da; dims)) == index.(testdims)
+        # @test val.(span(sum(da; dims))) == val.(span(testdims))
+    end
+    for dims in xys
+        @test Array(maximum(da; dims)) == [4]'
+        @test Array(maximum(x -> 2x, da; dims)) == [8]'
+    end
+
+    @test minimum(da; dims=:) == 1
+    @test maximum(da; dims=:) == 4
+    @test sum(da; dims=:) == 10
+    @test sum(x -> 2x, da; dims=:) == 20
+
+    a = JLArray([1 2; 3 4])
+    dimz = X(143:2:145), Y(-38:2:-36)
+    da = DimArray(a, dimz)
+
+    @test reduce(+, da) == reduce(+, a)
+    @test mapreduce(x -> x > 3, +, da; dims=:) == 1
+    @test std(da) === std(a)
+
+    for dims in xs
+        @test Array(prod(da; dims)) == [3 8]
+        @test Array(mean(da; dims)) == [2.0 3.0]
+        @test Array(mean(x -> 2x, da; dims)) == [4.0 6.0]
+        @test Array(reduce(+, da; dims)) == [4 6]
+        @test Array(mapreduce(x -> x > 3, +, da; dims)) == [0 1]
+        @test Array(var(da; dims)) == [2.0 2.0]
+        @test Array(std(da; dims)) == [1.4142135623730951 1.4142135623730951]
+        @test Array(extrema(da; dims)) == [(1, 3) (2, 4)]
+        resultdimz =
+            (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
+             Y(Sampled(-38:2:-36, ForwardOrdered(), Regular(2), Points(), NoMetadata())))
+        @test typeof(DimensionalData.dims(prod(da; dims))) == typeof(resultdimz)
+        @test bounds(DimensionalData.dims(prod(da; dims))) == bounds(resultdimz)
+    end
+    for dims in ys
+        @test Array(prod(da; dims=2)) == [2 12]'
+        @test Array(mean(da; dims)) == [1.5 3.5]'
+        @test Array(mean(x -> 2x, da; dims)) == [3.0 7.0]'
+        @test DimensionalData.dims(mean(da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test DimensionalData.dims(reduce(+, da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:2.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test DimensionalData.dims(mapreduce(x -> x > 3, +, da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:2:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test Array(std(da; dims)) == [0.7071067811865476 0.7071067811865476]'
+        @test Array(var(da; dims)) == [0.5 0.5]'
+        @test DimensionalData.dims(var(da; dims)) ==
+            (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
+             Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
+        @test Array(extrema(da; dims)) == permutedims([(1, 2) (3, 4)])
+    end
+    for dims in xys
+        @test Array(mean(da; dims=dims)) == [2.5]'
+        @test Array(mean(x -> 2x, da; dims=dims)) == [5.0]'
+        @test Array(reduce(+, da; dims)) == [10]'
+        @test Array(mapreduce(x -> x > 3, +, da; dims))  == [1]'
+        @test Array(extrema(da; dims)) == reshape([(1, 4)], 1, 1)
+    end
+
+    a = JLArray([1 2 3; 4 5 6])
+    dimz = X(143:2:145), Y(-38:-36)
+    da = DimArray(a, dimz)
+    @test @inferred median(da) == 3.5
+    # median along a dimension doesn't have a gpu implementation
+    @test_broken @inferred Array(median(da; dims=X())) == [2.5 3.5 4.5]
+    @test_broken @inferred Array(median(da; dims=2)) == [2.0 5.0]'
+
+    a = JLArray(Bool[0 1 1; 0 0 0])
+    da = DimArray(a, dimz);
+    @test_broken any(da) === true # This is broken because GPUArrays didn't support any(da, dims=:) only any(da)
+    @test_broken any(da; dims=Y) == reshape([true, false], 2, 1)
+    @test_broken all(da) === false
+    @test_broken all(da; dims=Y) == reshape([false, false], 2, 1)
+    @test_broken all(da; dims=(X, Y)) == reshape([false], 1, 1)
+
+    @testset "inference" begin
+        x = DimArray(randn(2, 3, 4), (X, Y, Z));
+        foo(x) = maximum(x; dims=(1, 2))
+        @inferred foo(x)
+    end
+end
+
 @testset "dimension dropping methods" begin
     a = [1 2 3; 4 5 6]
     dimz = X(143:2:145), Y(-38:-36)
@@ -139,6 +263,21 @@ end
         (X(Sampled(143:2:143, ForwardOrdered(), Regular(2), Points(), NoMetadata())),)
     dropped = dropdims(da[X(1:1)]; dims=X)
     @test dropped[1:2] == [1, 2]
+    @test length.(dims(dropped[1:2])) == size(dropped[1:2])
+end
+
+@testset "JLArray dimension dropping methods" begin
+    a = JLArray([1 2 3; 4 5 6])
+    dimz = X(143:2:145), Y(-38:-36)
+    da = DimArray(a, dimz);
+    # Dimensions must have length 1 to be dropped
+    @test Array(dropdims(da[X(1:1)]; dims=X)) == [1, 2, 3]
+    @test Array(dropdims(da[2:2, 1:1]; dims=(X(), Y())))[] == 4
+    @test typeof(dropdims(da[2:2, 1:1]; dims=(X(), Y()))) <: DimArray{Int,0,Tuple{}}
+    @test refdims(dropdims(da[X(1:1)]; dims=X)) == 
+        (X(Sampled(143:2:143, ForwardOrdered(), Regular(2), Points(), NoMetadata())),)
+    dropped = dropdims(da[X(1:1)]; dims=X)
+    @test Array(dropped[1:2]) == [1, 2]
     @test length.(dims(dropped[1:2])) == size(dropped[1:2])
 end
 
@@ -233,7 +372,7 @@ end
 
 @testset "simple dimension permuting methods" begin
     da = DimArray(zeros(5, 4), (Y(LinRange(10, 20, 5)), X(1:4)))
-    tda = transpose(da)
+    tda = @inferred transpose(da)
     @test tda == transpose(parent(da))
     resultdims = (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                   Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
@@ -241,31 +380,30 @@ end
     @test dims(tda) == resultdims
     @test size(tda) == (4, 5)
 
-    tda = Transpose(da)
+    tda = @inferred Transpose(da)
     @test tda == Transpose(parent(da))
     @test dims(tda) == (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                         Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
     @test size(tda) == (4, 5)
     @test typeof(tda) <: DimArray
 
-    ada = adjoint(da)
+    ada = @inferred adjoint(da)
     @test ada == adjoint(parent(da))
     @test dims(ada) == (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                         Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())))
     @test size(ada) == (4, 5)
 
-    dsp = permutedims(da)
+    dsp = @inferred permutedims(da)
     @test permutedims(parent(da)) == parent(dsp)
     @test dims(dsp) == reverse(dims(da))
 end
-
 
 @testset "dimension permuting methods with specified permutation" begin
     da = DimArray(ones(5, 2, 4), (Y(LinRange(10, 20, 5)), Ti(10:11), X(1:4)))
     dsp = permutedims(da, [3, 1, 2])
     @test permutedims(da, [X, Y, Ti]) == permutedims(da, (X, Y, Ti))
     @test permutedims(da, [X(), Y(), Ti()]) == permutedims(da, (X(), Y(), Ti()))
-    dsp = permutedims(da, (X(), Y(), Ti()))
+    dsp = @inferred permutedims(da, (X(), Y(), Ti()))
     @test dsp == permutedims(parent(da), (3, 1, 2))
     @test dims(dsp) == (X(Sampled(1:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                         Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())),
@@ -281,13 +419,12 @@ end
     @test typeof(dsp2) <: DimArray
 end
 
-
 @testset "dimension rotating methods" begin
     da = DimArray([1 2; 3 4], (X([:a, :b]), Y([1.0, 2.0])))
 
-    l90 = rotl90(da)
-    r90 = rotr90(da)
-    r180_1 = rot180(da)
+    l90 = @inferred rotl90(da)
+    r90 = @inferred rotr90(da)
+    r180_1 = @inferred rot180(da)
     r180_2 = rotl90(da, 2)
     r180_3 = rotr90(da, 2)
     r270 = rotl90(da, 3)
@@ -314,7 +451,7 @@ end
     xs = (X, X(), :X)
     ys = (Y, Y(), :Y)
     for dims in xs
-        cvda = cov(da; dims=X)
+        cvda = cov(da; dims)
         @test cvda == cov(a; dims=2)
         @test DimensionalData.dims(cvda) == 
             (Y(Sampled(LinRange(10.0, 20.0, 5), ForwardOrdered(), Regular(2.5), Points(), NoMetadata())),
@@ -707,5 +844,82 @@ end
             @test diff(x) == diff(x; dims) ==
                 DimArray([-179, 63, 16, -20, 134, -18, -100, -26, 160], X(2:2:18))
         end
+    end
+end
+
+@testset "mapreduce" begin
+    @testset "Array 2D" begin
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        ys = (1, Y, Y(), :Y, y)
+        tis = (2, Ti, Ti(), :Ti, ti)
+        data = [-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7]
+        A = DimArray(data, (y, ti))
+
+
+        @test mapreduce(identity, +, A) ≈ mapreduce(identity, +, parent(A))
+        @test mapreduce(x->x^3+5, +, A) ≈ mapreduce(x->x^3+5, +, parent(A))
+
+        for dims in ys
+            @test mapreduce(identity, +, A; dims) ≈ mapreduce(identity, +, parent(A); dims=1)
+        end
+
+        for dims in tis
+            @test mapreduce(identity, +, A; dims) ≈ mapreduce(identity, +, parent(A); dims=2)
+        end
+
+        @test mapreduce(identity, +, A; dims=Y) ≈ mapreduce(identity, +, parent(A); dims=1)
+        @test mapreduce(identity, +, A; dims=Ti) ≈ mapreduce(identity, +, parent(A); dims=2)
+        @test mapreduce(identity, +, A; dims=(Y, Ti)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2))
+
+        init = 5.0
+        @test mapreduce(identity, +, A; init) ≈ mapreduce(identity, +, parent(A); init)
+        @test mapreduce(x->x^3+5, +, A; init) ≈ mapreduce(x->x^3+5, +, parent(A); init)
+        @test mapreduce(identity, +, A; dims=Y, init) ≈ mapreduce(identity, +, parent(A); dims=1, init)
+        @test mapreduce(identity, +, A; dims=Ti, init) ≈ mapreduce(identity, +, parent(A); dims=2, init)
+        @test mapreduce(identity, +, A; dims=(Y, Ti), init) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
+    end
+    @testset "Vector" begin
+        x = DimArray([56, -123, -60, -44, -64, 70, 52, -48, -74, 86], X(2:2:20))
+        @test mapreduce(x->x^2, +, x) ≈ mapreduce(x->x^2, +, parent(x))
+        @test mapreduce(identity, +, x) ≈ mapreduce(identity, +, parent(x))
+        @test mapreduce(identity, +, x; dims=X) ≈ mapreduce(identity, +, parent(x); dims=1)
+        @test mapreduce(x->x^2, +, x; dims=X) ≈ mapreduce(x->x^2, +, parent(x); dims=1)
+        @test mapreduce(identity, +, x; init=5.0) ≈ mapreduce(identity, +, parent(x); init=5.0)
+    end
+
+    @testset "JLArray" begin
+        y = Y(['a', 'b', 'c'])
+        ti = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 4))
+        ys = (1, Y, Y(), :Y, y)
+        tis = (2, Ti, Ti(), :Ti, ti)
+        data = JLArray([-87  -49  107  -18
+                24   44  -62  124
+                122  -11   48   -7])
+        A = DimArray(data, (y, ti))
+
+        @test mapreduce(identity, +, A) ≈ mapreduce(identity, +, parent(A))
+        @test mapreduce(x->x^3+5, +, A) ≈ mapreduce(x->x^3+5, +, parent(A))
+        # Using parent since JLArray errors
+        for dims in ys
+            @test parent(mapreduce(identity, +, A; dims)) ≈ mapreduce(identity, +, parent(A); dims=1)
+        end
+
+        for dims in tis
+            @test parent(mapreduce(identity, +, A; dims)) ≈ mapreduce(identity, +, parent(A); dims=2)
+        end
+
+        @test parent(mapreduce(identity, +, A; dims=Y)) ≈ mapreduce(identity, +, parent(A); dims=1)
+        @test parent(mapreduce(identity, +, A; dims=Ti)) ≈ mapreduce(identity, +, parent(A); dims=2)
+        @test parent(mapreduce(identity, +, A; dims=(Y, Ti))) ≈ mapreduce(identity, +, parent(A); dims=(1, 2))
+
+        init = 5.0
+        @test mapreduce(identity, +, A; init) ≈ mapreduce(identity, +, parent(A); init)
+        @test mapreduce(x->x^3+5, +, A; init) ≈ mapreduce(x->x^3+5, +, parent(A); init)
+        @test parent(mapreduce(identity, +, A; dims=Y, init)) ≈ mapreduce(identity, +, parent(A); dims=1, init)
+        @test parent(mapreduce(identity, +, A; dims=Ti, init)) ≈ mapreduce(identity, +, parent(A); dims=2, init)
+        @test parent(mapreduce(identity, +, A; dims=(Y, Ti), init)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
     end
 end

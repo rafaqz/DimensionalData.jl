@@ -21,7 +21,7 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
     brackets = get(io, :dim_brackets, true)
     print(io, inset)
     brackets && print(io, '(')
-    if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
+    if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa AbstractNoLookup), dims))
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
         show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, first(dims))
@@ -120,7 +120,7 @@ end
 function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
     Lookups.print_index(io, mime, lookup, nchars)
 end
-print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")
+print_dimval(io, mime, lookup::Union{AutoLookup,AbstractNoLookup}, nchars=0) = print(io, "")
 function print_dimval(io, mime, lookup::Lookup, nchars=0)
     print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)

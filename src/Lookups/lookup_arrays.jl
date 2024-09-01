@@ -23,7 +23,6 @@ locus(l::Lookup) = Center()
 
 # Deprecated
 index(l::Lookup) = parent(l)
-@deprecate locus locus
 
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
@@ -37,17 +36,20 @@ function Base.:(==)(l1::Lookup, l2::Lookup)
     basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
 end
 
-ordered_first(l::Lookup) = l[ordered_firstindex(l)]
-ordered_last(l::Lookup) = l[ordered_lastindex(l)]
+ordered_first(l::AbstractArray) = l[ordered_firstindex(l)]
+ordered_last(l::AbstractArray) = l[ordered_lastindex(l)]
 
+ordered_firstindex(l::AbstractArray) = firstindex(l)
 ordered_firstindex(l::Lookup) = ordered_firstindex(order(l), l)
+ordered_firstindex(::ForwardOrdered, l::Lookup) = firstindex(parent(l))
+ordered_firstindex(::ReverseOrdered, l::Lookup) = lastindex(parent(l))
+ordered_firstindex(::Unordered, l::Lookup) = firstindex(parent(l))
+
+ordered_lastindex(l::AbstractArray) = lastindex(l)
 ordered_lastindex(l::Lookup) = ordered_lastindex(order(l), l)
-ordered_firstindex(o::ForwardOrdered, l::Lookup) = firstindex(parent(l))
-ordered_firstindex(o::ReverseOrdered, l::Lookup) = lastindex(parent(l))
-ordered_firstindex(o::Unordered, l::Lookup) = firstindex(parent(l))
-ordered_lastindex(o::ForwardOrdered, l::Lookup) = lastindex(parent(l))
-ordered_lastindex(o::ReverseOrdered, l::Lookup) = firstindex(parent(l))
-ordered_lastindex(o::Unordered, l::Lookup) = lastindex(parent(l))
+ordered_lastindex(::ForwardOrdered, l::Lookup) = lastindex(parent(l))
+ordered_lastindex(::ReverseOrdered, l::Lookup) = firstindex(parent(l))
+ordered_lastindex(::Unordered, l::Lookup) = lastindex(parent(l))
 
 function Base.searchsortedfirst(lookup::Lookup, val; lt=<, kw...)
     searchsortedfirst(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt, kw...)
@@ -105,6 +107,14 @@ abstract type Aligned{T,O} <: Lookup{T,1} end
 
 order(lookup::Aligned) = lookup.order
 
+
+abstract type AbstractNoLookup <: Aligned{Int,Order} end
+
+order(::AbstractNoLookup) = ForwardOrdered()
+span(::AbstractNoLookup) = Regular(1)
+
+Base.step(lookup::AbstractNoLookup) = 1
+
 """
     NoLookup <: Lookup
 
@@ -141,17 +151,19 @@ Dimensions.lookup(A)
 NoLookup, NoLookup
 ```
 """
-struct NoLookup{A<:AbstractVector{Int}} <: Aligned{Int,Order}
+struct NoLookup{A<:AbstractVector{Int}} <: AbstractNoLookup
     data::A
 end
 NoLookup() = NoLookup(AutoValues())
 
-order(lookup::NoLookup) = ForwardOrdered()
-span(lookup::NoLookup) = Regular(1)
-
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
-Base.step(lookup::NoLookup) = 1
+# Used in @d broadcasts
+struct Length1NoLookup <: AbstractNoLookup end
+Length1NoLookup(::AbstractVector) = Length1NoLookup()
+
+rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
+Base.parent(::Length1NoLookup) = Base.OneTo(1)
 
 """
     AbstractSampled <: Aligned
@@ -686,11 +698,8 @@ function _slicespan(span::Irregular, l::Lookup, i::InvertedIndices.InvertedIndex
     i1 = collect(i) # We could do something more efficient here, but I'm not sure what
     _slicespan(sampling(l), span, l, i1)
 end
-function _slicespan(::Points, span::Irregular, l::Lookup, i::AbstractArray)
-    length(i) == 0 && return Irregular(nothing, nothing)
-    fi, la = first(i), last(i)
-    return Irregular(_maybeflipbounds(l, (l[fi], l[la])))
-end
+_slicespan(::Points, span::Irregular, l::Lookup, i::AbstractArray) = 
+    Irregular(nothing, nothing)
 _slicespan(::Intervals, span::Irregular, l::Lookup, i::AbstractArray) =
     Irregular(_slicebounds(span, l, i))
 
@@ -820,3 +829,105 @@ end
 
 ordering(::ForwardOrdered) = Base.Order.ForwardOrdering()
 ordering(::ReverseOrdered) = Base.Order.ReverseOrdering()
+
+
+# Promotion 
+
+# General case 
+promote_first(x) = x
+promote_first(x1, x2, xs...) = 
+    convert(promote_type(typeof(x1), typeof(x2), map(typeof, xs)...), x1)
+# Fallback NoLookup if not identical type
+promote_first(l1::Lookup) = l1
+promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
+function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
+    ls = _remove(Length1NoLookup, l1, ls...)
+    if length(ls) > 1 
+        l1, ls... = ls
+    else
+        return first(ls)
+    end
+    if all(map(l -> typeof(l) == L, ls))
+        if length(ls) > 0
+            rebuild(l1; metadata=NoMetadata())
+        else
+            l1 # Keep metadata if there is only one lookup
+        end
+    else
+        NoLookup(Base.OneTo(length(l1)))
+    end
+end
+# Categorical lookups
+promote_first(l1::AbstractCategorical) = l1
+promote_first(l1::C, ls::C...) where C<:AbstractCategorical = l1
+promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; metadata=NoMetadata())
+function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
+    ls = (l2, ls...)
+    all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
+    data = promote_first(parent(l1), map(parent, ls)...)
+    if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
+        return rebuild(l1; data, metadata=NoMetadata())
+    else # Fall back to standard Categorical
+        return Categorical(data; order=order(l1), metadata=NoMetadata())
+    end
+end
+promote_first(l1::AbstractSampled) = l1
+promote_first(l1::S, ::S, ::S...) where S<:AbstractSampled = l1
+function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSampled...)
+    ls = (l2, ls...)
+    all(map(l -> order(l) == order(l1), ls)) &&
+        all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls))  &&
+        all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) || 
+        return NoLookup(Base.OneTo(length(l1)))
+
+    data = promote_first(parent(l1), map(parent, ls)...)
+    kw = (;
+        order=order(l1),
+        span=promote_first(span(l1), map(span, ls)...),
+        sampling=sampling(l1),
+        metadata=NoMetadata(),
+    )
+    if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
+        return rebuild(l1; data, kw...)
+    else
+        return Sampled(data; kw...)
+    end
+end
+# Span
+function promote_first(s::Regular, ss::Regular...) 
+    T = promote_type(typeof(val(s)), map(typeof ∘ val, ss)...)
+    Regular(convert(T, val(s)))
+end
+promote_first(a::T, b::T...) where T<:Irregular = a 
+for E in (Base.Number, Dates.AbstractTime)
+    @eval function promote_first(
+        s::Irregular{Tuple{<:$E,<:$E}}, ss::Irregular{Tuple{<:$E,<:$E}}...
+    )
+        T = promote_type(maps(s -> promote_type(typeof(val(s)[1]), typeof(val(s)[2])), (s, ss...))...)
+        return Irregular(convert(T, val(a)[1]), convert(T, val(a)[2]))
+    end
+end
+promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
+# Data
+promote_first(a1::A) where A<:AbstractArray = a1
+promote_first(a1::A, ::A, ::A...) where A<:AbstractArray = a1
+promote_first(a1::AbstractArray{<:AbstractString}, as::AbstractArray{<:AbstractString}...) = String.(a1)
+function promote_first(a1::AbstractArray, as::AbstractArray...) 
+    T = promote_type(eltype(a1), map(eltype, as)...)
+    C = if a1 isa AbstractRange && all(map(a -> a isa AbstractRange, as))
+        if a1 isa AbstractUnitRange && all(map(a -> a isa AbstractUnitRange, as))
+            UnitRange
+        elseif a1 isa OrdinalRange  && all(map(a -> a isa OrdinalRange, as))
+            S = promote_type(typeof(step(a1)), map(typeof ∘ step, as)...)
+            StepRange{T,S}
+        elseif a1 isa LinRange || any(map(a -> a isa LinRange, as))
+            LinRange{T}
+        else
+            StepRangeLen{T}
+        end
+    else
+        Vector{T}
+    end
+
+    return convert(C, a1)
+end

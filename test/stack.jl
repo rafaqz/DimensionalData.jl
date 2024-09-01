@@ -56,8 +56,8 @@ end
 end
 
 @testset "broadcast over layer" begin
-    s[:one] .*= 2
-    s[:one] ./= 2
+    s[:one] .*= 2;
+    s[:one] ./= 2;
 end
 
 @testset "low level base methods" begin

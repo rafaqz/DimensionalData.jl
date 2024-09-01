@@ -38,6 +38,7 @@ format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(d
 format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N = map(_format, dims, axes)
 format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
 format(d::Dimension, axis::AbstractRange) = _format(d, axis)
+format(l::Lookup) = parent(format(AnonDim(l)))
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))
@@ -55,6 +56,7 @@ format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 
 # Format Lookups
 # No more identification required for NoLookup
+format(m::Lookups.Length1NoLookup, D::Type, values, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, values, axis::AbstractRange) = m
 format(m::NoLookup, D::Type, values::AutoValues, axis::AbstractRange) = NoLookup(axis)
 # # AutoLookup

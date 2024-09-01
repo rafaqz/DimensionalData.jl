@@ -296,6 +296,11 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
 
+LookupArrays.ordered_first(d::Dimension{<:AbstractArray}) = ordered_first(lookup(d))
+LookupArrays.ordered_last(d::Dimension{<:AbstractArray}) = ordered_last(lookup(d))
+LookupArrays.ordered_firstindex(d::Dimension{<:AbstractArray}) = ordered_firstindex(lookup(d))
+LookupArrays.ordered_lastindex(d::Dimension{<:AbstractArray}) = ordered_lastindex(lookup(d))
+
 Base.size(dims::DimTuple) = map(length, dims)
 Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
