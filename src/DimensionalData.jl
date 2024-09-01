@@ -79,8 +79,6 @@ export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims
 
 export groupby, seasons, months, hours, intervals, ranges
 
-export @d
-
 const DD = DimensionalData
 
 # Common

@@ -155,7 +155,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
         # comparedims(dest, dims(A, dims(dest)))
         # Lazily permute B dims to match the order in A, if required
-        _maybe_lazy_permute(A, dims(dest))
+        if !dimsmatch(commondims(A, dest), commondims(dest, A))
+            PermutedDimsArray(A, commondims(dest, A))
+        else
+            A
+        end
     end
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
@@ -169,11 +173,18 @@ function _broadcast_dims_inner!(f, dest, As, od)
     else
         not_shared_dims = combinedims(od...) 
         reshaped = map(As) do A
-            _maybe_insert_length_one_dims(A, dims(dest))
+            all(hasdim(A, dims(dest))) ? parent(A) : _insert_length_one_dims(A, dims(dest))
         end
         dest .= f.(reshaped...)
     end
     return dest
+end
+
+function _insert_length_one_dims(A, alldims)
+    lengths = map(alldims) do d 
+        hasdim(A, d) ? size(A, d) : 1
+    end
+    return reshape(parent(A), lengths)
 end
 
 @deprecate dimwise broadcast_dims
