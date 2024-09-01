@@ -137,7 +137,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
-            A1, A2, args, merged_attributes = _surface2(A, attributes, replacements)
+            A1, A2, args, merged_attributes = _surface2(A, $f2, attributes, replacements)
             p = if $(f1 == :surface)
                 # surface is an LScene so we cant pass attributes
                 p = Makie.$f2(args...; attributes...)
@@ -161,7 +161,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
-            _, _, args, _ = _surface2(A, attributes, replacements)
+            _, _, args, _ = _surface2(A, $f2, attributes, replacements)
             # No ColourBar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
         end
@@ -169,19 +169,30 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x,y)
-            args =  lift(x->_surface2(x, attributes, replacements)[3], A)
+            args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
             p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
             return p
         end
     end
 end
 
-function _surface2(A, attributes, replacements)
+function _surface2(A, plotfunc, attributes, replacements)
     # Array/Dimension manipulation
     A1 = _prepare_for_makie(A, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
-    args = Makie.convert_arguments(Makie.VertexGrid(), A2)
+    P = Plot{plotfunc}
+    args = Makie.convert_arguments(P, A2)
+    # PTrait = Makie.conversion_trait(P, A2)
+    # status = Makie.got_converted(P, PTrait, converted)
+
+    # if status === true
+    #     args = converted
+    # else
+    #     args = Makie.convert_arguments(P, converted...)
+    # end
+
+
 
     # Plot attribute generation
     dx, dy = DD.dims(A2)
@@ -215,7 +226,7 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
         @doc $docstring
         function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
             replacements = _keywords2dimpairs(x, y, z)
-            A1, A2, args, merged_attributes = _volume3(A, attributes, replacements)
+            A1, A2, args, merged_attributes = _volume3(A, $f2, attributes, replacements)
             p = Makie.$f2(args...; merged_attributes...)
             if !isnothing(p.axis.scene[OldAxis])
                 p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
@@ -224,18 +235,18 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
         end
         function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
             replacements = _keywords2dimpairs(x, y, z)
-            _, _, args, _ = _volume3(A, attributes, replacements)
+            _, _, args, _ = _volume3(A, $f2, attributes, replacements)
             return Makie.$f2!(axis, args...; attributes...)
         end
     end
 end
 
-function _volume3(A, attributes, replacements)
+function _volume3(A, plotfunc, attributes, replacements)
     # Array/Dimension manipulation
     A1 = _prepare_for_makie(A, replacements)
     _, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
-    args = Makie.convert_arguments(Makie.VolumeLike(), A2)
+    args = Makie.convert_arguments(Plot{plotfunc}, A2)
 
     # Plot attribute generation
     user_attributes = Makie.Attributes(; attributes...)
@@ -355,10 +366,19 @@ Makie.plottype(::AbstractDimVector) = Makie.Scatter
 Makie.plottype(::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 
+# TODO this needs to be added to Makie
+# Makie.to_endpoints(x::Tuple{Makie.Unitful.AbstractQuantity,Makie.Unitful.AbstractQuantity}) = (ustrip(x[1]), ustrip(x[2]))
+# Makie.expand_dimensions(::Makie.PointBased, y::IntervalSets.AbstractInterval) = (keys(y), y)
+
 # Conversions
 function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_vector, lookup(A1))
+    tr = Makie.conversion_trait(t, A)
+    if tr isa ImageLike
+        xs, ys = map(_lookup_to_interval, lookup(A1))
+    else
+        xs, ys = map(_lookup_to_vector, lookup(A1))
+    end
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
@@ -388,7 +408,14 @@ function Makie.convert_arguments(
     xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
-function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) 
+function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
+    A1 = _prepare_for_makie(A)
+    xs, ys, zs = map(_lookup_to_interval, lookup(A1))
+    # the following will not work for irregular spacings
+    return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
+end
+
+function Makie.convert_arguments(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
     xs, ys, zs = map(_lookup_to_vector, lookup(A1))
     # the following will not work for irregular spacings
