@@ -328,42 +328,59 @@ end
 
 @testset "@d macro" begin
     f(x, y) = x * y
+    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()))
+
     da1 = ones(X(3))
     da2 = fill(2, X(3), Y(4))
     da2a = fill(2, Y(4), X(3))
     da3 = fill(3, Y(4), Z(5), X(3))
-    @d da1 .* da2
-    @d f.(da1, da2)
-    @d 0 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)
-    @d da1 .* da2
-    @d da2
-    @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)
-
-    res = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; dims=(X, Y, Z),)
-    @test all(==(12.0), res)
-    @test DimensionalData.basedims(res) == (X(), Y(), Z())
-    @test size(res) == (3, 4, 5)
-    @test_throws ArgumentError @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y)
-
-    res = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; order=(X, Y, Z),)
-
-    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) dims=(X(), Y(), Z())
-    p(da1, da2, da3, n) = for i in 1:n p(da1, da2, da3) end
-    p(da1, da2, da3, 10000)
-
-    using ProfileView
-    @profview p(da1, da2, da3, 100000)
-
-    x, y, z = X(1:3), Y(DateTime(2000):Month(2):DateTime(2001)), Z(5)
-    da1 = ones(y) .* (1.0:7.0)
-    da2 = fill(2, x, y) .* (1:3)
-    da3 = fill(3, y, z, x) .* (1:7)
-    f(da1, da2, da3, 100)
 
     # Shape and permutaton do not matter
-    @test f(da1, da2, da3) == 
-        f(da1, permutedims(da2, (Y, X)), da3)
-        f(da1, da2, permutedims(da3, (X, Y, Z)))
+    @test p(da1, da2, da3) == 
+        p(da1, permutedims(da2, (Y, X)), da3)
+        p(da1, da2, permutedims(da3, (X, Y, Z)))
+
+    @test (@d da2) === da2
+    @test (@d da1 .* da2) == parent(da1) .* parent(da2)
+    @test (@d da1 .* da2a) == parent(da1) .* permutedims(parent(da2a))
+    @test (@d f.(da1, da2)) == f.(parent(da1), parent(da2))
+    @test (@d f.(da1, da2a)) == f.(parent(da1), permutedims(parent(da2a)))
+    @test (@d 0 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) == 0 .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, permutedims(parent(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y, Z)) ==
+        parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) ==
+        permutedims(parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a))), [2, 3, 1])
+
+    @test_throws ArgumentError xy = @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y)
+    xyz = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; dims=(X, Y, Z),)
+
+    @test all(==(12.0), xyz)
+    @test DimensionalData.basedims(xyz) == (X(), Y(), Z())
+    @test size(xyz) == (3, 4, 5)
+
+    @testset "permuted values give same results" begin
+        x, y, z = X(1:3), Y(StepRangeLen(DateTime(2000), Month(2), 7)), Z(5)
+        da1 = ones(y) .* (1.0:7.0)
+        da2 = fill(2, x, y) .* (1:3)
+        da3 = fill(3, y, z, x) .* (1:7)
+
+        @test p(da1, da2, da3) == 
+            p(da1, permutedims(da2, (Y, X)), da3)
+            p(da1, da2, permutedims(da3, (X, Y, Z)))
+    end
+
+    @testset "strict" begin
+        @test_nowarn @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=false
+        @test_throws DimensionMismatch @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=true
+        # NoLookup is never a strict comparison
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=true
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=false
+    end
+
+    @testset "Dimension" begin
+        @test (@d X(1:3) .* X(10:10:30) strict=false) == [10, 40, 90]
+    end
+
 end
 
 # @testset "Competing Wrappers" begin

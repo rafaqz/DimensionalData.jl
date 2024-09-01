@@ -76,6 +76,7 @@ For transforming DimensionalData objects:
 set
 rebuild
 modify
+@d
 broadcast_dims
 broadcast_dims!
 mergedims

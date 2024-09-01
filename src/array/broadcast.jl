@@ -1,5 +1,11 @@
 import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
+const STRICT_BROADCAST_CHECKS = Ref(true)
+
+const STRICT_COMPAREDIMS_KW = (; ignore_length_one=true, order=true, val=true, length=false, msg=Dimensions.Throw())
+const NONSTRICT_COMPAREDIMS_KW = (; ignore_length_one=false, order=false, val=false, length=false, msg=Dimensions.Throw())
+
+strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 
 # This is a `BroadcastStyle` for AbstractAbstractDimArray's
 # It preserves the dimension names.
@@ -35,13 +41,17 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
 # support setindex then the `similar` based default method will not work
 function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     bdims = _broadcasted_dims(bc)
-    comparedims(bdims...; ignore_length_one=true, order=true, val=true, msg=Dimensions.Throw())
-    dims = Dimensions.promotedims(bdims...; skip_length_one=true)
     A = _firstdimarray(bc)
     data = copy(_unwrap_broadcasted(bc))
-    return if A isa Nothing || dims isa Nothing || !(data isa AbstractArray)
-        data
-    elseif data isa AbstractDimArray
+
+    if A isa Nothing || !(data isa AbstractArray) 
+        return data
+    end
+
+    _maybe_comparedims(A, bdims...)
+    dims = Dimensions.promotedims(bdims...; skip_length_one=true)
+
+    if data isa AbstractDimArray 
         rebuild(A, parent(data), format(dims, data), refdims(A), Symbol(""))
     else
         rebuild(A, data, format(dims, data), refdims(A), Symbol(""))
@@ -49,26 +59,210 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    comparedims(_broadcasted_dims(bc)...; ignore_length_one=true, order=true)
+    _maybe_comparedims(_firstdimarray(bc), _broadcasted_dims(bc)...)
     copyto!(dest, _unwrap_broadcasted(bc))
-    return dest
 end
 
 @inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
     # Need to check whether the dims are compatible in dest, 
     # which are already stripped when sent to copyto!
-    comparedims(dims(dest), _broadcasted_dims(bc)...; ignore_length_one=true, order=true)
+    _maybe_comparedims(dest, dims(dest), _broadcasted_dims(bc)...)
     style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
     Base.Broadcast.materialize!(style, parent(dest), bc)
     return dest
 end
 
-
-
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
     rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
+
+
+# @d macro
+
+"""
+    @d broadcast_expression options
+
+Dimensional broadcast macro extending Base Julia
+broadcasting to work with missing and permuted dimensions.
+
+Will permute and resshape singleton dimensions
+so that all [`AbstractDimArray`](@ref) in a broadcast will
+broadcast over matching dimensions.
+
+It is possible to pass options as the second argument of 
+the macro to control the behaviour, as a single assignment
+or as a NamedTuple. Options names must be written explicitly,
+not passed in namedtuple variable.
+
+# Options
+
+- `dims`: Pass a Tuple of `Dimension`s, `Dimension` types or `Symbol`s
+    to fix the dimension order of the output array. Otherwise dimensions
+    will be in order of appearance.
+- `strict`: `true` or `false`. Check that all lookup values match explicitly.
+
+# Example
+
+```julia
+da1 = ones(X(3))
+da2 = fill(2, Y(4), X(3))
+
+@d da1 .* da2
+@d da1 .* da2 .+ 5 dims=(Y, X)
+@d da1 .* da2 .+ 5 (dims=(Y, X), strict=false)
+```
+
+"""
+macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
+    options_dict, options_expr = _process_d_macro_options(options)
+    broadcast_expr, var_list = _wrap_broadcast_vars(expr)
+    var_list_assignments = map(var_list) do (name, expr)
+        Expr(:(=), name, expr)
+    end
+    vars_expr = esc(Expr(:tuple, map(first, var_list)...))
+    var_list_expr = esc(Expr(:block, var_list_assignments...))
+    dims_expr = if haskey(options_dict, :dims)
+        order_dims = options_dict[:dims]
+        quote
+            order_dims = $order_dims
+            found_dims = _find_dims(vars)
+            all(hasdim(order_dims, found_dims)) || throw(ArgumentError("order $(basedims(order_dims)) dont match dimensions found in arrays $(basedims(found_dims))"))
+            dims = $DimensionalData.dims(found_dims, order_dims)
+        end
+    else
+        :(dims = _find_dims(vars))
+    end
+    quote
+        let
+            options = $options_expr
+            $var_list_expr
+            vars = $vars_expr
+            $dims_expr
+            $broadcast_expr
+        end
+    end
+end
+macro d(sym::Symbol, options::Union{Expr,Nothing}=nothing)
+    esc(sym)
+end
+
+_process_d_macro_options(::Nothing) = Dict{Symbol,Any}(), :(nothing)
+function _process_d_macro_options(options::Expr)
+    options_dict = Dict{Symbol,Any}()
+    if options.head == :tuple
+        if options.args[1].head == :parameters
+            # Keyword syntax `(; dims=..., strict=false)
+            for arg in options.args[1].args
+                arg.head == :kw || throw(ArgumentError("malformed options"))
+                options_dict[arg.args[1]] = esc(arg.args[2])
+            end
+        else
+            # Tuple syntax `(dims=..., strict=false)`
+            for arg in options.args
+                arg.head == :(=) || throw(ArgumentError("malformed options"))
+                options_dict[arg.args[1]] = esc(arg.args[2])
+            end
+        end
+    elseif options.head == :(=)
+        # Single assignment `strict=false`
+        options_dict[options.args[1]] = esc(options.args[2])
+    end
+
+    options_params = Expr(:parameters)
+    for (k, v) in options_dict
+        if k != :dims # We already handled this
+            push!(options_params.args, Expr(:kw, k, v))
+        end
+    end
+    options_expr = Expr(:tuple, options_params) 
+
+    return options_dict, options_expr
+end
+
+_wrap_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
+function _wrap_broadcast_vars(expr::Expr)
+    arg_list = Pair{Symbol,Any}[]
+    if expr.head == :. # function dot broadcast
+        if expr.args[2] isa Expr
+            wrapped_args = map(expr.args[2].args) do arg
+                var = Symbol(gensym(), :_d)
+                out = if arg isa Expr
+                    expr1, arg_list1 = _wrap_broadcast_vars(arg)
+                    append!(arg_list, arg_list1)
+                    expr1
+                else
+                    arg1 = arg
+                    push!(arg_list, var => arg1)
+                    esc(var)
+                end
+                Expr(:call, :($DimensionalData._maybe_dimensional_broadcast), out, :dims, :options)
+            end
+            expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
+            return expr2, arg_list
+        end
+    elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
+        wrapped_args = map(expr.args[2:end]) do arg
+            var = Symbol(gensym(), :_d)
+            out = if arg isa Expr
+                expr1, arg_list1 = _wrap_broadcast_vars(arg)
+                append!(arg_list, arg_list1)
+                expr1
+            else
+                push!(arg_list, var => arg)
+                esc(var)
+            end
+            Expr(:call, :($DimensionalData._maybe_dimensional_broadcast), out, :dims, :options)
+        end
+        expr2 = Expr(expr.head, expr.args[1], wrapped_args...)
+        return expr2, arg_list
+    else # Not part of the broadcast, just return it
+        expr2 = esc(expr)
+        return expr2, arg_list
+    end
+end
+
+# Only to be used in @d broadcasts, should never escape
+struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: AbstractDimArray{T,N,D,A}
+    data::A
+    options::O
+    function BroadcastOptionsDimArray(data::A, options::O) where {A<:AbstractDimArray{T,N},O} where {T,N}
+        D = typeof(dims(data))
+        new{T,N,D,A,O}(data, options)
+    end
+end
+
+# Forward DD methods to the parent array
+dims(A::BroadcastOptionsDimArray) = dims(parent(A))
+refdims(A::BroadcastOptionsDimArray) = refdims(parent(A))
+name(A::BroadcastOptionsDimArray) = name(parent(A))
+metadata(A::BroadcastOptionsDimArray) = metadata(parent(A))
+
+rebuild(A::BroadcastOptionsDimArray; kw...) = rebuild(parent(A); kw...) 
+rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...) 
+@inline function rebuild(
+    A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A)
+)
+    rebuild(parent(A), data, dims, refdims, name, metadata(A))
+end
+
+broadcast_options(_) = NamedTuple()
+broadcast_options(A::BroadcastOptionsDimArray) = A.options
+
+
+
+# Utils
+
+@inline function _maybe_comparedims(A, dims...)
+    if _is_strict(A)
+        comparedims(dims...; STRICT_COMPAREDIMS_KW...)
+    else
+        comparedims(dims...; NONSTRICT_COMPAREDIMS_KW...)
+    end
+end
+
+_is_strict(A::AbstractArray) = _is_strict(broadcast_options(A))
+_is_strict(options::NamedTuple) = get(options, :strict, true) && STRICT_BROADCAST_CHECKS[] 
 
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimArray`s with the wrapped array,
@@ -79,6 +273,7 @@ function _unwrap_broadcasted(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 _unwrap_broadcasted(x) = x
 _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
+_unwrap_broadcasted(boda::BroadcastOptionsDimArray) = parent(parent(boda))
 
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
@@ -101,149 +296,8 @@ _broadcasted_dims(a, bs...) = (_broadcasted_dims(a)..., _broadcasted_dims(bs...)
 _broadcasted_dims(a::AbstractBasicDimArray) = (dims(a),)
 _broadcasted_dims(a) = ()
 
-"""
-    @d broadcast_expression options
-
-Dimensional broadcast macro.
-
-Will permute and and singleton dimensions
-so that all `AbstractDimArray` in the broadcast will
-broadcast their matching dimensions.
-
-It is possible to pass options as the second argument of 
-the macro to control the behaviour, as a single assignment
-or as a NamedTuple. Options names must be written explicitly,
-not passed in namedtuple variable.
-
-# Options
-
-- `dims`: Pass a Tuple of `Dimension`s, `Dimension` types or `Symbol`s
-    to fix the dimension order of the output array. Otherwise dimensions
-    will be in order of appearance.
-- `strict`: `true` or `false`. Check that all lookup values match explicitly.
-
-# Example
-
-```julia
-da1 = ones(X(3))
-da2 = fill(2, Y(4), X(3))
-
-@d da1 .* da2
-@d da1 .* da2 .+ 5 dims=(Y, X)
-```
-
-"""
-macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
-    options_dict = _process_d_macro_options(options)
-    broadcast_expr, var_list = _wrap_broadcast_vars(expr)
-    var_list_assignments = map(var_list) do (name, expr)
-        Expr(:(=), name, expr)
-    end
-    vars_expr = Expr(:tuple, map(first, var_list)...)
-    var_list_expr = Expr(:block, var_list_assignments...)
-    dims_expr = if haskey(options_dict, :dims)
-        order_dims = options_dict[:dims]
-        quote
-            order_dims = $order_dims
-            found_dims = _find_dims(vars)
-            all(hasdim(order_dims, found_dims)) || throw(ArgumentError("order $(basedims(order_dims)) dont match dimensions found in arrays $(basedims(found_dims))"))
-            dims = $DimensionalData.dims(found_dims, order_dims)
-        end
-    else
-        :(dims = _find_dims(vars))
-    end
-    quote
-        let
-            $var_list_expr
-            vars = $vars_expr
-            $dims_expr
-            $broadcast_expr
-        end
-    end
-end
-macro d(sym::Symbol, options::Union{Expr,Nothing}=nothing)
-    esc(sym)
-end
-
-_process_d_macro_options(::Nothing) = Dict{Symbol,Any}()
-function _process_d_macro_options(options::Expr)
-    options_dict = Dict{Symbol,Any}()
-    if options.head == :tuple
-        if options.args[1].head == :parameters
-            # Keyword syntax (; order=...
-            for arg in options.args[1].args
-                arg.head == :kw || throw(ArgumentError("malformed options"))
-                options_dict[arg.args[1]] = esc(arg.args[2])
-            end
-        else
-            # Tuple syntax (order=...
-            for arg in options.args
-                arg.head == :(=) || throw(ArgumentError("malformed options"))
-                options_dict[arg.args[1]] = esc(arg.args[2])
-            end
-        end
-    elseif options.head == :(=)
-        # Single assignmen order=...
-        options_dict[options.args[1]] = esc(options.args[2])
-    end
-
-    return options_dict
-end
-
-_wrap_broadcast_vars(sym::Symbol) = esc(sym), Expr[]
-function _wrap_broadcast_vars(expr::Expr)
-    arg_list = Pair{Symbol,Expr}[]
-    if expr.head == :. # function dot broadcast
-        if expr.args[2] isa Expr
-            tuple_args = map(expr.args[2].args) do arg
-                if arg isa Expr
-                    expr1, arg_list1 = _wrap_broadcast_vars(arg)
-                    append!(arg_list, arg_list1)
-                    expr1
-                else
-                    var = Symbol(gensym(), :var)
-                    push!(arg_list, var => esc(arg))
-                    Expr(:call, :_maybe_dimensional_broadcast, var, :dims)
-                end
-            end
-            expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, tuple_args...))
-            return expr2, arg_list
-        end
-    elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
-        args = map(expr.args[2:end]) do arg
-            if arg isa Expr
-                expr1, arg_list1 = _wrap_broadcast_vars(arg)
-                append!(arg_list, arg_list1)
-                expr1
-            else
-                var = Symbol(gensym(), :var)
-                push!(arg_list, var => esc(arg))
-                Expr(:call, :_maybe_dimensional_broadcast, var, :dims)
-            end
-        end
-        expr2 = Expr(expr.head, expr.args[1], args...)
-        return expr2, arg_list
-    else # Not part of the broadcast, just wrap return it
-        expr2 = esc(expr)
-        return expr2, arg_list
-    end
-end
-
-@inline function _find_dims((A, args...)::Tuple{<:AbstractBasicDimArray,Vararg})::DimTupleOrEmpty
-    expanded = _find_dims(args)
-    if expanded === ()
-        dims(A)
-    else
-        (dims(A)..., otherdims(expanded, dims(A))...)
-    end
-end
-@inline _find_dims((d, args...)::Tuple{<:Dimension,Vararg}) =
-    (d, otherdims(_find_dims(args), (d,)))
-@inline _find_dims(::Tuple{}) = ()
-@inline _find_dims((_, args...)::Tuple) = _find_dims(args)
-
-_maybe_dimensional_broadcast(x, _) = x
-function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims) 
+_maybe_dimensional_broadcast(x, _, _) = x
+function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options) 
     len1s = basedims(otherdims(dest_dims, dims(A)))
     # Reshape first to avoid a ReshapedArray wrapper if possible
     A1 = _maybe_insert_length_one_dims(A, dest_dims)
@@ -251,10 +305,15 @@ function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims)
     A2 = _maybe_lazy_permute(A1, dest_dims)
     # Then rebuild with the new data and dims
     data = parent(A2)
-    return rebuild(A; data, dims=format(dims(A2), data))
+    A3 = rebuild(A; data, dims=format(dims(A2), data))
+    if isnothing(options)
+        return A3
+    else
+        return BroadcastOptionsDimArray(A3, options)
+    end
 end
-_maybe_dimensional_broadcast(d::Dimension, dims) = 
-    _maybe_dimensional_broadcast(DimArray(parent(d), d), dims)
+_maybe_dimensional_broadcast(d::Dimension, dims, options) = 
+    _maybe_dimensional_broadcast(DimArray(parent(d), d), dims, options)
 
 function _maybe_lazy_permute(A::AbstractBasicDimArray, dest)
     if dimsmatch(commondims(dims(A), dims(dest)), commondims(dims(dest), dims(A)))
@@ -289,3 +348,17 @@ function _insert_length_one_dims(A::AbstractBasicDimArray, alldims)
     A1 = rebuild(A, newdata, format(newdims, newdata))
     return A1
 end
+
+
+@inline function _find_dims((A, args...)::Tuple{<:AbstractBasicDimArray,Vararg})::DimTupleOrEmpty
+    expanded = _find_dims(args)
+    if expanded === ()
+        dims(A)
+    else
+        (dims(A)..., otherdims(expanded, dims(A))...)
+    end
+end
+@inline _find_dims((d, args...)::Tuple{<:Dimension,Vararg}) =
+    (d, otherdims(_find_dims(args), (d,)))
+@inline _find_dims(::Tuple{}) = ()
+@inline _find_dims((_, args...)::Tuple) = _find_dims(args)
