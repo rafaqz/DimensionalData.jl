@@ -142,7 +142,9 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 # surface is an LScene so we cant pass attributes
                 p = Makie.$f2(args...; attributes...)
                 # And instead set axisnames manually
-                p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+                if !isnothing(p.axis.scene[OldAxis])
+                    p.axis.scene[OldAxis[:names, :axisnames] = map(DD.label, DD.dims(A2))
+                end
                 p
             else
                 Makie.$f2(args...; merged_attributes...)
@@ -215,7 +217,9 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
             replacements = _keywords2dimpairs(x, y, z)
             A1, A2, args, merged_attributes = _volume3(A, attributes, replacements)
             p = Makie.$f2(args...; merged_attributes...)
-            p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+            if !isnothing(p.axis.scene[OldAxis])
+                p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+            end
             return p
         end
         function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
