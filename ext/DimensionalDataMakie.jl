@@ -432,8 +432,13 @@ end
     # These can just forward to the relevant converts.
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    @static if :SurfaceLike in names(Makie; all = true)
+        Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    else
+        Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+        Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+        Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    end
     Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
 end
 
