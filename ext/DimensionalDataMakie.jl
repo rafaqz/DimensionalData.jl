@@ -138,11 +138,17 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
         ) where T
             replacements = _keywords2dimpairs(x, y)
             A1, A2, args, merged_attributes = _surface2(A, $f2, attributes, replacements)
-            p = if $(f1 == :surface)
+            axis_type = if haskey(merged_attributes, :axis) && haskey(merged_attributes.axis, :type)
+                to_value(type)
+            else
+                Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
+            end
+
+            p = if axis_type <: Union{LScene, Makie.PolarAxis} # TODO: check `Makie.args_preferred_axis` here!
                 # surface is an LScene so we cant pass attributes
                 p = Makie.$f2(args...; attributes...)
                 # And instead set axisnames manually
-                if !isnothing(p.axis.scene[OldAxis])
+                if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
                     p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
@@ -150,11 +156,13 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 Makie.$f2(args...; merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
+            # TODO: why not surface too?
             if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
                 )
             end
+            p
             return p
         end
         function Makie.$f1!(axis, A::AbstractDimMatrix; 
@@ -162,7 +170,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, $f2, attributes, replacements)
-            # No ColourBar in the ! in-place versions
+            # No Colorbar in the ! in-place versions
             return Makie.$f2!(axis, args...; attributes...)
         end
         function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
