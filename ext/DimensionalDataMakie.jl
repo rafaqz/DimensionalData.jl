@@ -182,9 +182,10 @@ function _surface2(A, plotfunc, attributes, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
     P = Plot{plotfunc}
-    args = Makie.convert_arguments(P, A2)
-    # PTrait = Makie.conversion_trait(P, A2)
-    # status = Makie.got_converted(P, PTrait, converted)
+    PTrait = Makie.conversion_trait(P, A2)
+    # We define conversions by trait for all of the explicitly overridden functions,
+    # so we can just use the trait here.
+    args = Makie.convert_arguments(PTrait, A2)
 
     # if status === true
     #     args = converted
