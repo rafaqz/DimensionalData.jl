@@ -395,6 +395,16 @@ function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
     # the following will not work for irregular spacings, we'll need to add a check for this.
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+@static if :VertexGrid in names(Makie; all=true) # Makie 0.20+
+    function Makie.convert_arguments(t::Makie.VertexGrid, A::AbstractDimMatrix)
+        A1 = _prepare_for_makie(A)
+        # If the lookup is intervals, use the midpoint of each interval
+        # as the sampling point.
+        # If the lookup is points, just use the points.
+        xs, ys = map(_lookup_to_vertex_vector, lookup(A))
+        return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+    end
+end
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_interval, lookup(A))
@@ -566,7 +576,18 @@ function _lookup_to_vector(l)
     end
 end
 
+function _lookup_to_vertex_vector(l)
+    if isintervals(l)
+        bs = intervalbounds(l)
+        return @. first(bs) + (last(bs) - first(bs)) / 2
+    else # ispoints
+        return collect(parent(l))
+    end
+end
+
 function _lookup_to_interval(l)
+    # TODO: warn or error if not regular sampling.
+    # Maybe use Preferences.jl to determine if we should error or warn.
     l1 = if isnolookup(l)
         Sampled(parent(l); order=ForwardOrdered(), sampling=Intervals(Center()), span=Regular(1))
     elseif ispoints(l)
