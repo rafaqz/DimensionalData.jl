@@ -260,7 +260,13 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 end
 
 _is_strict(A::AbstractArray) = _is_strict(broadcast_options(A))
-_is_strict(options::NamedTuple) = get(options, :strict, true) && STRICT_BROADCAST_CHECKS[] 
+function _is_strict(options::NamedTuple) 
+    if haskey(options, :strict)
+        options[:string]
+    else
+        STRICT_BROADCAST_CHECKS[] 
+    end
+end
 
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimArray`s with the wrapped array,
