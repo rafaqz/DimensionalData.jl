@@ -492,14 +492,14 @@ Keywords are the same as for [`DimArray`](@ref).
 ```jldoctest
 julia> using DimensionalData, Random; Random.seed!(123);
 
-julia> rand(Bool, X(2), Y(4))
+julia> fill(true, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
 ├──────────────── dims ┤
   ↓ X, → Y
 └──────────────────────┘
- 0  0  0  0
- 1  0  0  1
+ 1  1  1  1
+ 1  1  1  1
 ```
 """
 Base.fill
