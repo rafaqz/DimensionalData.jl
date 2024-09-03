@@ -144,7 +144,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
             end
 
-            p = if axis_type <: Union{LScene, Makie.PolarAxis} # TODO: check `Makie.args_preferred_axis` here!
+            p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
                 # surface is an LScene so we cant pass attributes
                 p = Makie.$f2(args...; attributes...)
                 # And instead set axisnames manually
@@ -152,7 +152,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                     p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
-            else
+            else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
                 Makie.$f2(args...; merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
