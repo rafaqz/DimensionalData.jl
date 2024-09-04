@@ -7,11 +7,7 @@ using DimensionalData.Dimensions, DimensionalData.LookupArrays
 
 const DD = DimensionalData
 
-# Handle changes between Makie 0.19 and 0.20
-const SurfaceLikeCompat = isdefined(Makie, :SurfaceLike) ? Makie.SurfaceLike : Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}
-
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
-
 
 # Shared docstrings: keep things consistent.
 
@@ -400,28 +396,31 @@ end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
     return Makie.convert_arguments(t, parent(A))
 end
-function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
+# Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
+
+# VertexGrid is for e.g. contour and surface, it uses a position per vertex.
+function Makie.convert_arguments(t::Makie.VertexGrid, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_vector, lookup(A1))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
+    # If the lookup is intervals, use the midpoint of each interval
+    # as the sampling point.
+    # If the lookup is points, just use the points.
+    xs, ys = map(_lookup_to_vertex_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
-@static if :VertexGrid in names(Makie; all=true) # Makie 0.20+
-    function Makie.convert_arguments(t::Makie.VertexGrid, A::AbstractDimMatrix)
-        A1 = _prepare_for_makie(A)
-        # If the lookup is intervals, use the midpoint of each interval
-        # as the sampling point.
-        # If the lookup is points, just use the points.
-        xs, ys = map(_lookup_to_vertex_vector, lookup(A))
-        return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
-    end
-end
+# ImageLike is for e.g. image, meshimage, etc. It uses an interval based sampling method so requires regular spacing.
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_interval, lookup(A))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
+    xlookup, ylookup, = lookup(A1) # take the first two dimensions only
+    # We need to make sure the lookups are regular intervals.
+    _check_regular_sampling(xlookup; axis = :x)
+    _check_regular_sampling(ylookup; axis = :y)
+    # Convert the lookups to intervals (<: Makie.EndPoints).
+    xs, ys = map(_lookup_to_interval, (xlookup, ylookup))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+# CellGrid is for e.g. heatmap, contourf, etc. It uses vertices as corners of cells, so 
+# there have to be n+1 vertices for n cells on an axis.
 function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
 )
@@ -429,10 +428,15 @@ function Makie.convert_arguments(
     xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+# VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
-    xs, ys, zs = map(_lookup_to_interval, lookup(A1))
-    # the following will not work for irregular spacings
+    xl, yl, zl = lookup(A1)
+    _check_regular_sampling(xl; axis = :x)
+    _check_regular_sampling(yl; axis = :y)
+    _check_regular_sampling(zl; axis = :z)
+    xs, ys, zs = map(_lookup_to_interval, (xl, yl, zl))
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
 
@@ -453,14 +457,11 @@ end
     # These can just forward to the relevant converts.
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    @static if :SurfaceLike in names(Makie; all = true)
-        Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    else
-        Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-        Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-        Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    end
-    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
 end
 
 # Utility methods
