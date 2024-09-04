@@ -380,6 +380,7 @@ Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 # Makie.expand_dimensions(::Makie.PointBased, y::IntervalSets.AbstractInterval) = (keys(y), y)
 
 # Conversions
+# Generic conversion for arbitrary recipes that don't define a conversion trait
 function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     tr = Makie.conversion_trait(t, A)
@@ -390,6 +391,7 @@ function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMa
     end
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+# PointBased conversions (scatter, lines, poly, etc)
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     A1 = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
@@ -442,7 +444,7 @@ function Makie.convert_arguments(t::Type{Plot{Makie.volumeslices}}, A::AbstractD
 end
 # # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
-    @warn "$t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
+    @warn "Conversion trait $t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
     return Makie.convert_arguments(t, parent(A))
 end
 
@@ -488,6 +490,18 @@ function _categorical_or_dependent(A, ::Nothing)
     end
 end
 
+# Check for regular sampling on a lookup, throw an error if not.
+function _check_regular_sampling(l; axis = nothing)
+    if !DD.isregular(l)
+        throw(ArgumentError("""
+        DimensionalDataMakie: The $(isnothing(axis) ? "" : "$axis-axis ")lookup is not regularly spaced, which is required for image-like plot types in Makie.
+        The lookup was:
+        $l
+
+        You can solve this by resampling your raster, or by using a more permissive plot type like `surface`, `contour`, or `contourf`. 
+        """))
+    end
+end
 
 # Simplify dimension lookups and move information to axis attributes
 _split_attributes(A) = _split_attributes(dims(A))
