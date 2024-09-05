@@ -412,8 +412,8 @@ function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     xlookup, ylookup, = lookup(A1) # take the first two dimensions only
     # We need to make sure the lookups are regular intervals.
-    _check_regular_sampling(xlookup; axis = :x)
-    _check_regular_sampling(ylookup; axis = :y)
+    _check_regular_or_categorical_sampling(xlookup; axis = :x)
+    _check_regular_or_categorical_sampling(ylookup; axis = :y)
     # Convert the lookups to intervals (<: Makie.EndPoints).
     xs, ys = map(_lookup_to_interval, (xlookup, ylookup))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
@@ -433,9 +433,9 @@ end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
     xl, yl, zl = lookup(A1)
-    _check_regular_sampling(xl; axis = :x)
-    _check_regular_sampling(yl; axis = :y)
-    _check_regular_sampling(zl; axis = :z)
+    _check_regular_or_categorical_sampling(xl; axis = :x)
+    _check_regular_or_categorical_sampling(yl; axis = :y)
+    _check_regular_or_categorical_sampling(zl; axis = :z)
     xs, ys, zs = map(_lookup_to_interval, (xl, yl, zl))
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
@@ -492,8 +492,9 @@ function _categorical_or_dependent(A, ::Nothing)
 end
 
 # Check for regular sampling on a lookup, throw an error if not.
-function _check_regular_sampling(l; axis = nothing)
-    if !DD.isregular(l)
+# Here, we assume 
+function _check_regular_or_categorical_sampling(l; axis = nothing)
+    if !(DD.isregular(l) || DD.iscategorical(l))
         throw(ArgumentError("""
         DimensionalDataMakie: The $(isnothing(axis) ? "" : "$axis-axis ")lookup is not regularly spaced, which is required for image-like plot types in Makie.
         The lookup was:
