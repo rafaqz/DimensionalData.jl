@@ -273,11 +273,11 @@ metadata(A::BroadcastOptionsDimArray) = metadata(parent(A))
 
 function rebuild(A::BroadcastOptionsDimArray; kw...) 
     A1 = rebuild(parent(A); kw..., _rebuild_kw(A)...) 
-    @show broadcast_options(A)
-    if haskey(broadcast_options(A), :dims)
-        set(A1, broadcast_options(A).dims...)
+    D = get(broadcast_options(A), :dims, nothing)
+    if D isa DimTuple 
+        return set(A1, broadcast_options(A).dims...)
     else
-        A1
+        return A1
     end
 end
 rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...) 
