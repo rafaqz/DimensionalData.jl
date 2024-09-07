@@ -141,7 +141,7 @@ da2 = fill(2, Y(4), X(3))
 """
 macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
     options_dict, options_expr = _process_d_macro_options(options)
-    broadcast_expr, var_list = _wrap_broadcast_vars(expr)
+    broadcast_expr, var_list = _find_broadcast_vars(expr)
     var_list_assignments = map(var_list) do (name, expr)
         Expr(:(=), name, expr)
     end
@@ -173,6 +173,9 @@ macro d(sym::Symbol, options::Union{Expr,Nothing}=nothing)
     esc(sym)
 end
 
+# Process the options named tuple passed to the @d macro
+# returning a Dict of options, and an expression that makes
+# a NamedTuple of options
 _process_d_macro_options(::Nothing) = Dict{Symbol,Any}(), :(nothing)
 function _process_d_macro_options(options::Expr)
     options_dict = Dict{Symbol,Any}()
@@ -204,10 +207,14 @@ function _process_d_macro_options(options::Expr)
     return options_dict, options_expr
 end
 
-_wrap_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
-function _wrap_broadcast_vars(expr::Expr)
+# Walk the broadcast expression, finding broadcast arguments and 
+# pulling them out of the main broadcast into separate variables. 
+# This lets us get `dims` from all of them and use it to reshape 
+# and permute them so they all match.
+_find_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
+function _find_broadcast_vars(expr::Expr)
     if expr.head == :macrocall && expr.args[1] == Symbol("@__dot__")
-        return _wrap_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
+        return _find_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
     end
     mdb = :($DimensionalData._maybe_dimensional_broadcast)
     arg_list = Pair{Symbol,Any}[]
@@ -216,7 +223,7 @@ function _wrap_broadcast_vars(expr::Expr)
             wrapped_args = map(expr.args[2].args) do arg
                 var = Symbol(gensym(), :_d)
                 out = if arg isa Expr
-                    expr1, arg_list1 = _wrap_broadcast_vars(arg)
+                    expr1, arg_list1 = _find_broadcast_vars(arg)
                     append!(arg_list, arg_list1)
                     expr1
                 else
@@ -233,7 +240,7 @@ function _wrap_broadcast_vars(expr::Expr)
         wrapped_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
             out = if arg isa Expr
-                expr1, arg_list1 = _wrap_broadcast_vars(arg)
+                expr1, arg_list1 = _find_broadcast_vars(arg)
                 append!(arg_list, arg_list1)
                 expr1
             else
@@ -250,7 +257,9 @@ function _wrap_broadcast_vars(expr::Expr)
     end
 end
 
-# Only to be used in @d broadcasts, should never escape
+# A wrapper AbstractDimArray only to be used in @d broadcasts. 
+# It should never escape
+# options are both for broadcast tweaks and for keywords to the new DimArray
 struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: AbstractDimArray{T,N,D,A}
     data::A
     options::O
@@ -262,6 +271,7 @@ struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: Abstrac
     end
 end
 
+# Get keywords form options
 _rebuild_kw(A::BroadcastOptionsDimArray) = _rebuild_kw(; broadcast_options(A)...)
 _rebuild_kw(; dims=nothing, strict=nothing, kw...) = kw
 
@@ -271,6 +281,8 @@ refdims(A::BroadcastOptionsDimArray) = refdims(parent(A))
 name(A::BroadcastOptionsDimArray) = name(parent(A))
 metadata(A::BroadcastOptionsDimArray) = metadata(parent(A))
 
+# Rebuild returns the parent AbstractDimArray rebuilt with options keywords. 
+# Dimensions are updated with `set` if there is a dims keyword
 function rebuild(A::BroadcastOptionsDimArray; kw...) 
     A1 = rebuild(parent(A); kw..., _rebuild_kw(A)...) 
     D = get(broadcast_options(A), :dims, nothing)
@@ -284,14 +296,10 @@ rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...)
 @inline function rebuild(
     A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A),
 )
-    # Use the keyword syntax to deal with options keywords
-    # This lets keywords we don't know about get to extending AbstractDimArrays
-    # Option keywords override the original parent DimArray properties.
-    rebuild(A; 
-        data, dims, refdims, name, metadata, _rebuild_keywords(A)...
-    )
+    rebuild(A; data, dims, refdims, name, metadata, _rebuild_keywords(A)...)
 end
 
+# Get the options NamedTuple from BroadcastOptionsDimArray
 broadcast_options(_) = NamedTuple()
 broadcast_options(A::BroadcastOptionsDimArray) = A.options
 
@@ -299,6 +307,7 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 
 # Utils
 
+# Run comparedims with settings depending on stictness
 @inline function _comparedims_broadcast(A, dims...)
     isstrict = _is_strict(A)
     comparedims(dims...; 
@@ -306,6 +315,7 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
     )
 end
 
+# Check if a broadcast is strict, or use the global setting
 _is_strict(A::AbstractArray) = _is_strict(broadcast_options(A))
 function _is_strict(options::NamedTuple) 
     if haskey(options, :strict)
@@ -347,6 +357,8 @@ _broadcasted_dims(a, bs...) = (_broadcasted_dims(a)..., _broadcasted_dims(bs...)
 _broadcasted_dims(a::AbstractBasicDimArray) = (dims(a),)
 _broadcasted_dims(a) = ()
 
+# If an object is an AbstractBasicDimArray or a Dimension, reshape and permute 
+# its dimensions to match the rest of the @d broadcast, otherwise do nothing.
 _maybe_dimensional_broadcast(x, _, _) = x
 function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options) 
     len1s = basedims(otherdims(dest_dims, dims(A)))
@@ -366,6 +378,7 @@ end
 _maybe_dimensional_broadcast(d::Dimension, dims, options) = 
     _maybe_dimensional_broadcast(DimArray(parent(d), d), dims, options)
 
+# Permute lazily if we need to
 function _maybe_lazy_permute(A::AbstractBasicDimArray, dest)
     if dimsmatch(commondims(dims(A), dims(dest)), commondims(dims(dest), dims(A)))
         A
@@ -381,7 +394,8 @@ function _maybe_insert_length_one_dims(A::AbstractBasicDimArray, dims)
         _insert_length_one_dims(A, dims)
     end
 end
-
+# Insert `Length1NoLookup` and reshape the array where needed so 
+# that missing dimensions are not a problem.
 function _insert_length_one_dims(A::AbstractBasicDimArray, alldims)
     if basedims(dims(A)) == basedims(dims(A), alldims)
         lengths = map(alldims) do d 
@@ -400,7 +414,9 @@ function _insert_length_one_dims(A::AbstractBasicDimArray, alldims)
     return A1
 end
 
-
+# Find dimensions in the list of brodcast arguments
+# The returned dimension order is taken from the order dimensions 
+# are found, but this algorithm could be improved 
 @inline function _find_dims((A, args...)::Tuple{<:AbstractBasicDimArray,Vararg})::DimTupleOrEmpty
     expanded = _find_dims(args)
     if expanded === ()
