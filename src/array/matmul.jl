@@ -1,5 +1,33 @@
 using LinearAlgebra: AbstractTriangular, AbstractRotation
 
+const STRICT_MATMUL_CHECKS = Ref(true)
+const STRICT_MATMUL_DOCS = """
+With `strict=true` we check [`Lookup`](@ref) [`Order`](@ref) and values 
+before attempting matrix multiplication, to ensure that dimensions match closely. 
+
+We always check that dimension names match in matrix multiplication.
+If you don't want this either, explicitly use `parent(A)` before
+multiplying to remove the `AbstractDimArray` wrapper completely.
+"""
+
+"""
+    strict_matmul()
+
+Check if strickt broadcasting checks are active.
+
+$STRICT_MATMUL_DOCS
+"""
+strict_matmul() = STRICT_MATMUL_CHECKS[]
+
+"""
+    strict_matmul!(x::Bool)
+
+Set global matrix multiplication checks to `strict`, or not for all `AbstractDimArray`.
+
+$STRICT_MATMUL_DOCS
+"""
+strict_matmul!(x::Bool) = STRICT_MATMUL_CHECKS[] = x
+
 # Copied from symmetric.jl
 const AdjTransVec = Union{Transpose{<:Any,<:AbstractVector},Adjoint{<:Any,<:AbstractVector}}
 const RealHermSym{T<:Real,S} = Union{Hermitian{T,S}, Symmetric{T,S}}
@@ -54,17 +82,16 @@ Base.:*(A::Adjoint{T,<:AbstractRotation}, B::AbstractDimMatrix) where T = _rebui
 Base.:*(A::Transpose{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
 Base.:*(A::Adjoint{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {T,S} = _rebuildmul(A, B)
 
-
 function _rebuildmul(A::AbstractDimVector, B::AbstractDimMatrix)
     # Vector has no dim 2 to compare
     rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B)),))
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimVector)
-    comparedims(last(dims(A)), first(dims(B)); val=true)
+    _comparedims_mul(A, B)
     rebuild(A, parent(A) * parent(B), (first(dims(A)),))
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimMatrix)
-    comparedims(last(dims(A)), first(dims(B)); val=true)
+    _comparedims_mul(A, B)
     rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B))))
 end
 function _rebuildmul(A::AbstractDimVector, B::AbstractMatrix)
@@ -94,4 +121,12 @@ function _rebuildmul(A::AbstractMatrix, B::AbstractDimVector)
 end
 function _rebuildmul(A::AbstractMatrix, B::AbstractDimMatrix)
     rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))))
+end
+
+function _comparedims_mul(a, b)
+    # Dont need to compare length if we compare values
+    isstrict = strict_matmul()
+    comparedims(last(dims(a)), first(dims(b)); 
+        order=isstrict, val=isstrict, length=false
+    )
 end

@@ -1,10 +1,34 @@
 import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
 const STRICT_BROADCAST_CHECKS = Ref(true)
+const STRICT_BROADCAST_DOCS = """
+With `strict=true` we check [`Lookup`](@ref) [`Order`](@ref) and values 
+before brodcasting, to ensure that dimensions match closely. 
 
-const STRICT_COMPAREDIMS_KW = (; ignore_length_one=true, order=true, val=true, length=false, msg=Dimensions.Throw())
-const NONSTRICT_COMPAREDIMS_KW = (; ignore_length_one=false, order=false, val=false, length=false, msg=Dimensions.Throw())
+An exception to this rule is when dimension are of length one, 
+as these is ignored in broadcasts.
 
+We always check that dimension names match in broadcasts.
+If you don't want this either, explicitly use `parent(A)` before
+broadcasting to remove the `AbstractDimArray` wrapper completely.
+"""
+
+"""
+    strict_broadcast()
+
+Check if strict broadcasting checks are active.
+
+$STRICT_BROADCAST_DOCS
+"""
+strict_broadcast() = STRICT_BROADCAST_CHECKS[]
+
+"""
+    strict_broadcast!(x::Bool)
+
+Set global broadcasting checks to `strict`, or not for all `AbstractDimArray`.
+
+$STRICT_BROADCAST_DOCS
+"""
 strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 
 # This is a `BroadcastStyle` for AbstractAbstractDimArray's
@@ -46,25 +70,25 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     A isa Nothing && return data # No AbstractDimArray
 
     bdims = _broadcasted_dims(bc)
-    _maybe_comparedims(A, bdims...)
+    _comparedims_broadcast(A, bdims...)
 
     data isa AbstractArray || return data # result is a scalar
 
     # unwrap AbstractDimArray data
-    data1 = data isa AbstractDimArray ? parent(data) : data
-    dims = format(Dimensions.promotedims(bdims...; skip_length_one=true), data1)
-    return rebuild(A, data1, dims, refdims(A), Symbol(""))
+    data = data isa AbstractDimArray ? parent(data) : data
+    dims = format(Dimensions.promotedims(bdims...; skip_length_one=true), data)
+    return rebuild(A; data, dims, refdims=refdims(A), name=Symbol(""))
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _maybe_comparedims(_firstdimarray(bc), _broadcasted_dims(bc)...)
+    _comparedims_broadcast(_firstdimarray(bc), _broadcasted_dims(bc)...)
     copyto!(dest, _unwrap_broadcasted(bc))
 end
 
 @inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
     # Need to check whether the dims are compatible in dest, 
     # which are already stripped when sent to copyto!
-    _maybe_comparedims(dest, dims(dest), _broadcasted_dims(bc)...)
+    _comparedims_broadcast(dest, dims(dest), _broadcasted_dims(bc)...)
     style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
     Base.Broadcast.materialize!(style, parent(dest), bc)
     return dest
@@ -75,8 +99,6 @@ function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T})
     rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
 end
 
-
-# @d macro
 
 """
     @d broadcast_expression options
@@ -97,8 +119,13 @@ not passed in namedtuple variable.
 
 - `dims`: Pass a Tuple of `Dimension`s, `Dimension` types or `Symbol`s
     to fix the dimension order of the output array. Otherwise dimensions
-    will be in order of appearance.
+    will be in order of appearance. If dims with lookups are passed, these will 
+    be applied to the returned array with  `set`.
 - `strict`: `true` or `false`. Check that all lookup values match explicitly.
+
+All other keywords are passed to `DimensionalData.rebuild`. This means
+`name`, `metadata`, etc for the returned array can be set here, 
+or for example `missingval` in Rasters.jl.
 
 # Example
 
@@ -108,7 +135,7 @@ da2 = fill(2, Y(4), X(3))
 
 @d da1 .* da2
 @d da1 .* da2 .+ 5 dims=(Y, X)
-@d da1 .* da2 .+ 5 (dims=(Y, X), strict=false)
+@d da1 .* da2 .+ 5 (dims=(Y, X), strict=false, name=:testname)
 ```
 
 """
@@ -125,7 +152,8 @@ macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
         quote
             order_dims = $order_dims
             found_dims = _find_dims(vars)
-            all(hasdim(order_dims, found_dims)) || throw(ArgumentError("order $(basedims(order_dims)) dont match dimensions found in arrays $(basedims(found_dims))"))
+            all(hasdim(order_dims, found_dims)) || 
+                throw(ArgumentError("order $(basedims(order_dims)) dont match dimensions found in arrays $(basedims(found_dims))"))
             dims = $DimensionalData.dims(found_dims, order_dims)
         end
     else
@@ -152,13 +180,13 @@ function _process_d_macro_options(options::Expr)
         if options.args[1].head == :parameters
             # Keyword syntax `(; dims=..., strict=false)
             for arg in options.args[1].args
-                arg.head == :kw || throw(ArgumentError("malformed options"))
+                arg.head == :kw || throw(ArgumentError("Malformed options in $options"))
                 options_dict[arg.args[1]] = esc(arg.args[2])
             end
         else
             # Tuple syntax `(dims=..., strict=false)`
             for arg in options.args
-                arg.head == :(=) || throw(ArgumentError("malformed options"))
+                arg.head == :(=) || throw(ArgumentError("Malformed options in $options"))
                 options_dict[arg.args[1]] = esc(arg.args[2])
             end
         end
@@ -169,9 +197,7 @@ function _process_d_macro_options(options::Expr)
 
     options_params = Expr(:parameters)
     for (k, v) in options_dict
-        if k != :dims # We already handled this
-            push!(options_params.args, Expr(:kw, k, v))
-        end
+        push!(options_params.args, Expr(:kw, k, v))
     end
     options_expr = Expr(:tuple, options_params) 
 
@@ -180,6 +206,10 @@ end
 
 _wrap_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
 function _wrap_broadcast_vars(expr::Expr)
+    if expr.head == :macrocall && expr.args[1] == Symbol("@__dot__")
+        return _wrap_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
+    end
+    mdb = :($DimensionalData._maybe_dimensional_broadcast)
     arg_list = Pair{Symbol,Any}[]
     if expr.head == :. # function dot broadcast
         if expr.args[2] isa Expr
@@ -194,7 +224,7 @@ function _wrap_broadcast_vars(expr::Expr)
                     push!(arg_list, var => arg1)
                     esc(var)
                 end
-                Expr(:call, :($DimensionalData._maybe_dimensional_broadcast), out, :dims, :options)
+                Expr(:call, mdb, out, :dims, :options)
             end
             expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
             return expr2, arg_list
@@ -210,7 +240,7 @@ function _wrap_broadcast_vars(expr::Expr)
                 push!(arg_list, var => arg)
                 esc(var)
             end
-            Expr(:call, :($DimensionalData._maybe_dimensional_broadcast), out, :dims, :options)
+            Expr(:call, mdb, out, :dims, :options)
         end
         expr2 = Expr(expr.head, expr.args[1], wrapped_args...)
         return expr2, arg_list
@@ -224,11 +254,16 @@ end
 struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: AbstractDimArray{T,N,D,A}
     data::A
     options::O
-    function BroadcastOptionsDimArray(data::A, options::O) where {A<:AbstractDimArray{T,N},O} where {T,N}
+    function BroadcastOptionsDimArray(
+        data::A, options::O
+    ) where {A<:AbstractDimArray{T,N},O} where {T,N}
         D = typeof(dims(data))
         new{T,N,D,A,O}(data, options)
     end
 end
+
+_rebuild_kw(A::BroadcastOptionsDimArray) = _rebuild_kw(; broadcast_options(A)...)
+_rebuild_kw(; dims=nothing, strict=nothing, kw...) = kw
 
 # Forward DD methods to the parent array
 dims(A::BroadcastOptionsDimArray) = dims(parent(A))
@@ -236,12 +271,25 @@ refdims(A::BroadcastOptionsDimArray) = refdims(parent(A))
 name(A::BroadcastOptionsDimArray) = name(parent(A))
 metadata(A::BroadcastOptionsDimArray) = metadata(parent(A))
 
-rebuild(A::BroadcastOptionsDimArray; kw...) = rebuild(parent(A); kw...) 
+function rebuild(A::BroadcastOptionsDimArray; kw...) 
+    A1 = rebuild(parent(A); kw..., _rebuild_kw(A)...) 
+    @show broadcast_options(A)
+    if haskey(broadcast_options(A), :dims)
+        set(A1, broadcast_options(A).dims...)
+    else
+        A1
+    end
+end
 rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...) 
 @inline function rebuild(
-    A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A)
+    A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A),
 )
-    rebuild(parent(A), data, dims, refdims, name, metadata(A))
+    # Use the keyword syntax to deal with options keywords
+    # This lets keywords we don't know about get to extending AbstractDimArrays
+    # Option keywords override the original parent DimArray properties.
+    rebuild(A; 
+        data, dims, refdims, name, metadata, _rebuild_keywords(A)...
+    )
 end
 
 broadcast_options(_) = NamedTuple()
@@ -251,20 +299,19 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 
 # Utils
 
-@inline function _maybe_comparedims(A, dims...)
-    if _is_strict(A)
-        comparedims(dims...; STRICT_COMPAREDIMS_KW...)
-    else
-        comparedims(dims...; NONSTRICT_COMPAREDIMS_KW...)
-    end
+@inline function _comparedims_broadcast(A, dims...)
+    isstrict = _is_strict(A)
+    comparedims(dims...; 
+        ignore_length_one=isstrict, order=isstrict, val=isstrict, length=false
+    )
 end
 
 _is_strict(A::AbstractArray) = _is_strict(broadcast_options(A))
 function _is_strict(options::NamedTuple) 
     if haskey(options, :strict)
-        options[:string]
+        options[:strict]
     else
-        STRICT_BROADCAST_CHECKS[] 
+        strict_broadcast()
     end
 end
 
@@ -349,7 +396,7 @@ function _insert_length_one_dims(A::AbstractBasicDimArray, alldims)
         newdims = (dims(A)..., map(d -> rebuild(d, Lookups.Length1NoLookup()), odims)...)
     end
     newdata = reshape(parent(A), lengths)
-    A1 = rebuild(A, newdata, format(newdims, newdata))
+    A1 = rebuild(A; data=newdata, dims=format(newdims, newdata))
     return A1
 end
 

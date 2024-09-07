@@ -328,7 +328,7 @@ end
 
 @testset "@d macro" begin
     f(x, y) = x * y
-    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()))
+    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()), name=:test, metadata=Dict(:a => 1))
 
     da1 = ones(X(3))
     da2 = fill(2, X(3), Y(4))
@@ -339,6 +339,8 @@ end
     @test p(da1, da2, da3) == 
         p(da1, permutedims(da2, (Y, X)), da3)
         p(da1, da2, permutedims(da3, (X, Y, Z)))
+    @test name(p(da1, da2, da3)) == :test
+    @test metadata(p(da1, da2, da3)) == Dict(:a => 1)
 
     @test (@d da2) === da2
     @test (@d da1 .* da2) == parent(da1) .* parent(da2)
@@ -377,10 +379,19 @@ end
         @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=false
     end
 
+    @testset "set Dim properties" begin
+        @test isnolookup(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(NoLookup()),))
+        @test issampled(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(Sampled(1:3)),))
+    end
+
+    @testset "With @. macro" begin
+        @test (@d (@. da1 * da3 + 1)) == (@d da1 .* da3 .+ 1)
+        @test name(@d (@. da1 * da3 + 1) name=:test) == :test
+    end
+
     @testset "Dimension" begin
         @test (@d X(1:3) .* X(10:10:30) strict=false) == [10, 40, 90]
     end
-
 end
 
 # @testset "Competing Wrappers" begin
