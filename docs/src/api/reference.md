@@ -95,10 +95,10 @@ You can turn check the current setting and turn them on or off with these
 methods.
 
 ```@docs
-strict_broadcast
-strict_broadcast!
-strict_matmul
-strict_matmul!
+DimensionalData.strict_broadcast
+DimensionalData.strict_broadcast!
+DimensionalData.strict_matmul
+DimensionalData.strict_matmul!
 ```
 
 Base methods
