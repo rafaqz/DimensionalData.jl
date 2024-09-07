@@ -130,12 +130,28 @@ or for example `missingval` in Rasters.jl.
 # Example
 
 ```julia
+using DimensionalData
 da1 = ones(X(3))
 da2 = fill(2, Y(4), X(3))
 
 @d da1 .* da2
 @d da1 .* da2 .+ 5 dims=(Y, X)
 @d da1 .* da2 .+ 5 (dims=(Y, X), strict=false, name=:testname)
+```
+
+## Use with `@.`
+
+`@d` does not imply `@.`. You need to specify each broadcast. 
+But `@.` can be used with `@d` as the _inner_ macro.
+
+```julia
+using DimensionalData
+da1 = ones(X(3))
+da2 = fill(2, Y(4), X(3))
+
+@d @. da1 * da2
+# Use parentheses areound `@.` if you need to pass options
+@d (@. da1 * da2 .+ 5) dims=(Y, X)
 ```
 
 """
