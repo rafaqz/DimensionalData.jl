@@ -71,15 +71,23 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), attributes...)
+        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), axis = (;), figure = (;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes)
-            p = Makie.$f2(args...; merged_attributes...)
+            akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+            fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+            axis = merge(akw, axis)
+            figure = merge(fkw, figure)
+            p = Makie.$f2(args...; axis, figure, merged_attributes...)
             axislegend(p.axis; merge=false, unique=false, axislegendkw...)
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimVector; axislegendkw=(;), attributes...)
+        function Makie.$f1!(axis, A::AbstractDimVector; axislegendkw=(;), axis = (;), figure = (;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
-            return Makie.$f2!(axis, args...; merged_attributes...)
+            akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+            fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+            axis = merge(akw, axis)
+            figure = merge(fkw, figure)
+            return Makie.$f2!(axis, args...; axis, figure, merged_attributes...)
         end
     end
 end
@@ -130,11 +138,17 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimMatrix{T}; 
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
+            x=nothing, y=nothing, colorbarkw=(;), axis = (;), figure = (;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
             A1, A2, args, merged_attributes = _surface2(A, $f2, attributes, replacements)
-            axis_type = if haskey(merged_attributes, :axis) && haskey(merged_attributes.axis, :type)
+
+            akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+            fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+            axis = merge(akw, axis)
+            figure = merge(fkw, figure)
+
+            axis_type = if haskey(axis, :axis) && haskey(axis, :type)
                 to_value(type)
             else
                 Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
@@ -142,14 +156,14 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
 
             p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
                 # surface is an LScene so we cant pass attributes
-                p = Makie.$f2(args...; attributes...)
+                p = Makie.$f2(args...; axis, figure, attributes...)
                 # And instead set axisnames manually
                 if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
                     p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
             else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
-                Makie.$f2(args...; merged_attributes...)
+                Makie.$f2(args...; axis, figure, merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
             # TODO: why not surface too?
@@ -162,19 +176,19 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             return p
         end
         function Makie.$f1!(axis, A::AbstractDimMatrix; 
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
+            x=nothing, y=nothing, colorbarkw=(;), axis = (;), figure = (;),  attributes...
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, $f2, attributes, replacements)
             # No Colorbar in the ! in-place versions
-            return Makie.$f2!(axis, args...; attributes...)
+            return Makie.$f2!(axis, args...; axis, figure, attributes...)
         end
         function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
+            x=nothing, y=nothing, colorbarkw=(;),  axis = (;), figure = (;), attributes...
         )
             replacements = _keywords2dimpairs(x,y)
             args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
-            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
+            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); axis, figure, attributes...)
             return p
         end
     end
@@ -229,19 +243,23 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+        function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, axis = (;), figure = (;), attributes...)
             replacements = _keywords2dimpairs(x, y, z)
             A1, A2, args, merged_attributes = _volume3(A, $f2, attributes, replacements)
-            p = Makie.$f2(args...; merged_attributes...)
-            if !isnothing(p.axis.scene[OldAxis])
+            akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+            fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+            axis = merge(akw, axis)
+            figure = merge(fkw, figure)
+            p = Makie.$f2(args...; axis, figure, merged_attributes...)
+            if p.axis isa LScene
                 p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, axis = (;), figure = (;), attributes...)
             replacements = _keywords2dimpairs(x, y, z)
             _, _, args, _ = _volume3(A, $f2, attributes, replacements)
-            return Makie.$f2!(axis, args...; attributes...)
+            return Makie.$f2!(axis, args...; axis = (;), figure = (;), attributes...)
         end
     end
 end
@@ -273,15 +291,21 @@ Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 $(_labeldim_detection_doc(series))
 """
 function Makie.series(A::AbstractDimMatrix; 
-    color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
+    color=:lighttest, axislegendkw=(;), axis = (;), figure = (;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
+
+    akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+    fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+    axis = merge(akw, axis)
+    figure = merge(fkw, figure)
+
     n = size(last(args), 1)
     p = if n > 7
             color = resample_cmap(color, n) 
-            Makie.series(args...; color, merged_attributes...)
+            Makie.series(args...; axis, figure, color, merged_attributes...)
         else
-            Makie.series(args...; color, merged_attributes...)
+            Makie.series(args...; axis, figure, color, merged_attributes...)
         end
     axislegend(p.axis; merge=true, unique=false, axislegendkw...)
     return p
@@ -329,9 +353,13 @@ for f in (:violin, :boxplot, :rainclouds)
     """
     @eval begin
         @doc $docstring
-        function Makie.$f(A::AbstractDimMatrix; labeldim=nothing, attributes...)
+        function Makie.$f(A::AbstractDimMatrix; labeldim=nothing, axis = (;), figure = (;), attributes...)
             args, merged_attributes = _boxplotlike(A, attributes, labeldim)
-            return Makie.$f(args...; merged_attributes...)
+            akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis) : Attributes()
+            fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure) : Attributes()
+            axis = merge(akw, axis)
+            figure = merge(fkw, figure)
+            return Makie.$f(args...; axis, figure, merged_attributes...)
         end
         function Makie.$f!(axis, A::AbstractDimMatrix; labeldim=nothing, attributes...)
             args, _ = _boxplotlike(A, attributes, labeldim)
