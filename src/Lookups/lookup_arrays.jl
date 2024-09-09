@@ -27,6 +27,7 @@ index(l::Lookup) = parent(l)
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
 Base.size(l::Lookup) = size(parent(l))
+Base.length(l::Lookup) = length(parent(l))
 Base.axes(l::Lookup) = axes(parent(l))
 Base.first(l::Lookup) = first(parent(l))
 Base.last(l::Lookup) = last(parent(l))

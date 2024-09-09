@@ -76,11 +76,29 @@ For transforming DimensionalData objects:
 set
 rebuild
 modify
+@d
 broadcast_dims
 broadcast_dims!
 mergedims
 unmergedims
 reorder
+```
+
+# Global lookup strictness settings
+
+Control how strict DimensionalData when comparing [`Lookup`](@ref)s
+before doing broadcasts and matrix multipications.
+
+In some cases (especially `DimVector` and small `DimArray`) checking 
+lookup values match may be too costly compared to the operations.
+You can turn check the current setting and turn them on or off with these
+methods.
+
+```@docs
+DimensionalData.strict_broadcast
+DimensionalData.strict_broadcast!
+DimensionalData.strict_matmul
+DimensionalData.strict_matmul!
 ```
 
 Base methods

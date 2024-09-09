@@ -25,7 +25,7 @@ dajl = rebuild(da, JLArray(parent(da)));
 end
 
 @testset "broadcast over length one dimension" begin
-    da2 = DimArray((1:4) * (1:2:8)', (X, Y));
+    da2 = DimArray((1:4) * (1:2:8)', (X, Y))
     @test (@inferred da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
     @test (@inferred da2[:, 1:1] .* da2) == [1, 4, 9, 16] * (1:2:8)'
 end
@@ -65,7 +65,6 @@ end
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered()),
             Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Intervals(Start()), order=ForwardOrdered()),
         )
-        l = first(ls)
         for l in ls
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(3),), X)) == NoLookup(Base.OneTo(3))
             @test (@inferred lookup(zeros(X(l),) .* zeros(X(1),), X)) == NoLookup(Base.OneTo(3))
@@ -325,6 +324,74 @@ end
     C .= 0
     C[DimSelectors(sub)] .+= sub
     @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
+end
+
+@testset "@d macro" begin
+    f(x, y) = x * y
+    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()), name=:test, metadata=Dict(:a => 1))
+
+    da1 = ones(X(3))
+    da2 = fill(2, X(3), Y(4))
+    da2a = fill(2, Y(4), X(3))
+    da3 = fill(3, Y(4), Z(5), X(3))
+
+    # Shape and permutaton do not matter
+    @test p(da1, da2, da3) == 
+        p(da1, permutedims(da2, (Y, X)), da3)
+        p(da1, da2, permutedims(da3, (X, Y, Z)))
+    @test name(p(da1, da2, da3)) == :test
+    @test metadata(p(da1, da2, da3)) == Dict(:a => 1)
+
+    @test (@d da2) === da2
+    @test (@d da1 .* da2) == parent(da1) .* parent(da2)
+    @test (@d da1 .* da2a) == parent(da1) .* permutedims(parent(da2a))
+    @test (@d f.(da1, da2)) == f.(parent(da1), parent(da2))
+    @test (@d f.(da1, da2a)) == f.(parent(da1), permutedims(parent(da2a)))
+    @test (@d 0 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) == 0 .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, permutedims(parent(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y, Z)) ==
+        parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) ==
+        permutedims(parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a))), [2, 3, 1])
+
+    @test_throws ArgumentError xy = @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y)
+    xyz = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; dims=(X, Y, Z),)
+
+    @test all(==(12.0), xyz)
+    @test DimensionalData.basedims(xyz) == (X(), Y(), Z())
+    @test size(xyz) == (3, 4, 5)
+
+    @testset "permuted values give same results" begin
+        x, y, z = X(1:3), Y(StepRangeLen(DateTime(2000), Month(2), 7)), Z(5)
+        da1 = ones(y) .* (1.0:7.0)
+        da2 = fill(2, x, y) .* (1:3)
+        da3 = fill(3, y, z, x) .* (1:7)
+
+        @test p(da1, da2, da3) == 
+            p(da1, permutedims(da2, (Y, X)), da3)
+            p(da1, da2, permutedims(da3, (X, Y, Z)))
+    end
+
+    @testset "strict" begin
+        @test_nowarn @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=false
+        @test_throws DimensionMismatch @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=true
+        # NoLookup is never a strict comparison
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=true
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=false
+    end
+
+    @testset "set Dim properties" begin
+        @test isnolookup(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(NoLookup()),))
+        @test issampled(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(Sampled(1:3)),))
+    end
+
+    @testset "With @. macro" begin
+        @test (@d (@. da1 * da3 + 1)) == (@d da1 .* da3 .+ 1)
+        @test name(@d (@. da1 * da3 + 1) name=:test) == :test
+    end
+
+    @testset "Dimension" begin
+        @test (@d X(1:3) .* X(10:10:30) strict=false) == [10, 40, 90]
+    end
 end
 
 # @testset "Competing Wrappers" begin

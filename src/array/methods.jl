@@ -78,6 +78,12 @@ end
 
 # Function application
 
+#= TODO better `comparedims` here. 
+- What if one of these is not an `AbstractDimArray` but the rest are?
+- Should we check values as well like broadcast and matmul?
+- There are less problems with type stability in `map` as we can just 
+    take dims from the first, there are no length 1 dims.
+=#
 function Base.map(f, As::AbstractDimArray...)
     comparedims(As...)
     newdata = map(f, map(parent, As)...)

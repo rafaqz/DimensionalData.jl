@@ -64,6 +64,15 @@ using Combinatorics: combinations
         @test size(result) == (6, 8)
     end
 
+    @testset "strictness" begin
+        B2c = DimArray(rand(8, 12), (Y('a':'h'), Ti(1.0:12.0)))
+        DimensionalData.strict_matmul!(false)
+        @test !DimensionalData.strict_matmul()
+        @test_nowarn B2c * b1
+        DimensionalData.strict_matmul!(true)
+        @test DimensionalData.strict_matmul()
+        @test_throws DimensionMismatch B2c * b1
+    end
 end
 
 @testset "some matmul ambiguity methods" begin
@@ -104,4 +113,3 @@ end
     end
 
 end
-
