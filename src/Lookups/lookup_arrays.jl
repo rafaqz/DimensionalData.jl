@@ -878,26 +878,17 @@ promote_first(l1::S, ::S, ::S...) where S<:AbstractSampled = l1
 function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSampled...)
     ls = (l2, ls...)
 
-    sp = if any(map(isexplicit, (l1, ls...)))
-        # We cant always mix Explicit and other lookups
-        if isexplicit((l, ls...)) 
-            promote_first(spant(l1), map(span, ls)...) 
-        else
-            return NoLookup(Base.OneTo(length(l1)))
-        end
-    else
-        # We can always convert 
-        all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) ? span(l1) : Irregular(bounds(l1))
+    # We cant always convert explicit to something else
+    if any(map(isexplicit, (l1, ls...))) && !all(isexplicit, (l1, ls...))
+        return NoLookup(Base.OneTo(length(l1)))
     end
-    # Intervals always hold a Point
-    sa = all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls)) ? sampling(l1) : Points()
-    o = all(map(l -> order(l) == order(l1), ls)) ? order(l1) : Unordered()
 
     data = promote_first(parent(l1), map(parent, ls)...)
+    sa = promote_first(sampling(l1), map(sampling, ls)...)
     kw = (;
-        order=o,
-        span=promote_first(span(l1), map(span, ls)...),
-        sampling=sampling(l1),
+        order=promote_first(order(l1), map(order, ls)...),
+        sampling=sa,
+        span=promote_first(l1, sa, span(l1), map(span, ls)...),
         metadata=NoMetadata(),
     )
     # Check we have all the same type of AbstractSampled
@@ -907,21 +898,46 @@ function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSam
         return Sampled(data; kw...)
     end
 end
+
+# Order
+# Only matching Order remain the same
+promote_first(::O...) where O<:Order = O()
+# Everthing else is Unordered
+promote_first(::Order...) = Unordered()
+
+# Sampling 
+# Only matching locus Intervals remain Intervals
+promote_first(is::I...) where I<:Intervals = first(is)
+# Any other mix is Points
+promote_first(::Sampling...) = Points() 
+
 # Span
-function promote_first(s::Regular, ss::Regular...) 
+# Regular remains regular, eltype is promoted
+function promote_first(::Lookup, ::Sampling, s::Regular, ss::Regular...) 
     T = promote_type(typeof(val(s)), map(typeof ∘ val, ss)...)
     Regular(convert(T, val(s)))
 end
-promote_first(a::T, b::T...) where T<:Irregular = a 
+# # Matching irregular is returns
+promote_first(::Lookup, ::Sampling, a::T, b::T...) where T<:Irregular = a 
+# # Number and DateTime are promoted
 for E in (Base.Number, Dates.AbstractTime)
-    @eval function promote_first(
+    @eval function promote_first(::Lookup,
         s::Irregular{Tuple{<:$E,<:$E}}, ss::Irregular{Tuple{<:$E,<:$E}}...
     )
         T = promote_type(maps(s -> promote_type(typeof(val(s)[1]), typeof(val(s)[2])), (s, ss...))...)
         return Irregular(convert(T, val(a)[1]), convert(T, val(a)[2]))
     end
 end
-promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
+# Explicit promotes its matrix
+promote_first(::Lookup, ::Sampling, spans::Explicit...) = 
+    Explicit(promote_first(map(val, spans)...))
+# Mixed Regular/Irregular always become Irregular
+promote_first(l::Lookup, sampling::Sampling, ::Union{Regular,Irregular}...) = 
+    _irregular(sampling, l)
+   
+_irregular(::Points, l) = Irregular(nothing, nothing)
+_irregular(::Intervals, l) = Irregular(bounds(l))
+     
 # Data
 promote_first(a1::A) where A<:AbstractArray = a1
 promote_first(a1::A, ::A, ::A...) where A<:AbstractArray = a1

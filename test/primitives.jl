@@ -551,25 +551,64 @@ end
     c_unord = Categorical(["a", "b"]; order=Unordered())
     c_sub = Categorical([view("a", 1:1), view("b", 1:1)]; order=ForwardOrdered())
     s = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered())
-    s_unord = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=Unordered())
     s_int = Sampled(1:1:2; span=Regular(1), sampling=Points(), order=ForwardOrdered())
-    @test promotedims(X(nl), X(c)) === promotedims(X(c), X(nl)) === X(nl)
-    @test promotedims(X(nl), X(s)) === promotedims(X(s), X(nl)) === X(nl)
-    @test promotedims(X(c), X(s)) === promotedims(X(s), X(c)) === X(nl)
-    @test promotedims(X(s), X(s)) === X(s)
-    @test promotedims(X(s_int), X(s_int)) === X(s_int)
-    @test promotedims(X(s), X(s_int)) === promotedims(X(s_int), X(s)) === X(s)
-    @test promotedims(X(c), X(c_sub)) == promotedims(X(c_sub), X(c)) == X(c)
-    @test eltype(promotedims(X(c_sub), X(c))) == String
-    @test promotedims((X(c), Y(s)), (X(c), Y(s))) == (X(c), Y(s))
-    @test promotedims((X(c), Y(nl)), (X(nl), Y(s))) == (X(nl), Y(nl))
-    @test promotedims((X(c), Y(s_int)), (X(c_sub), Y(s))) == (X(c), Y(s))
+    s_intervals = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Intervals(), order=ForwardOrdered())
+    s_unord = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=Unordered())
+    s_irreg = Sampled(1.0:1.0:2.0; span=Irregular((nothing, nothing)), sampling=Points(), order=ForwardOrdered())
+    s_exp = Sampled(1.0:1.0:2.0; span=Explicit(), sampling=Intervals(Start()), order=ForwardOrdered())
+    s_exp_int = Sampled(1:1:2; span=Explicit(), sampling=Intervals(Start()), order=ForwardOrdered())
 
-    @test promotedims(X(s), X(s_unord)) == X(s_unord)
-    @test promotedims(X(c), X(c_unord)) == X(c_unord)
+    @testset "promote withe same is no change" begin
+        @test promotedims(X(s), X(s)) === X(s)
+        @test promotedims(X(s_int), X(s_int)) === X(s_int)
+    end
 
-    @test promotedims(X(1), X(1.0)) == promotedims(X(1.0), X(1)) == X(1.0)
-    @test promotedims(X("a"), X(view("a", 1:1))) ==
-          promotedims(X(view("a", 1:1)), X("a")) == 
-          X("a")
+    @testset "mixing returns NoLookup" begin
+        @test promotedims(X(nl), X(c)) === promotedims(X(c), X(nl)) === X(nl)
+        @test promotedims(X(nl), X(s)) === promotedims(X(s), X(nl)) === X(nl)
+        @test promotedims(X(c), X(s)) === promotedims(X(s), X(c)) === X(nl)
+    end
+
+    @testset "eltype: Float64 wins in Real" begin
+        @test promotedims(X(s), X(s_int)) === promotedims(X(s_int), X(s)) === X(s)
+    end
+
+    @testset "eltype: String wins in AbstractString" begin
+        @test promotedims(X(c), X(c_sub)) == promotedims(X(c_sub), X(c)) == X(c)
+        @test eltype(promotedims(X(c_sub), X(c))) == String
+    end
+
+    @testset "order: Unordered wins" begin
+        @test promotedims(X(s), X(s_unord)) == X(s_unord)
+        @test promotedims(X(c), X(c_unord)) == X(c_unord)
+    end
+
+    @testset "sampling: Points wins" begin
+        @test promotedims(X(s), X(s_intervals)) == X(s)
+        @test promotedims(X(s_intervals), X(s)) == X(s)
+    end
+
+    @testset "span: Irregular wins" begin
+        @test promotedims(X(s), X(s_irreg)) == X(s_irreg)
+        @test promotedims(X(s_irreg), X(s)) == X(s_irreg)
+    end
+
+    @testset "span: Explicit must be on its own" begin
+        @test promotedims(X(s), X(s_exp)) == X(nl)
+        @test promotedims(X(s_exp), X(s_exp)) == X(s_exp)
+        @test promotedims(X(s_exp), X(s_exp_int)) == X(s_exp)
+        @test promotedims(X(s_exp_int), X(s_exp)) == X(s_exp)
+    end
+
+    @testset "tuples of dims" begin
+        @test promotedims((X(c), Y(s)), (X(c), Y(s))) == (X(c), Y(s))
+        @test promotedims((X(c), Y(nl)), (X(nl), Y(s))) == (X(nl), Y(nl))
+        @test promotedims((X(c), Y(s_int)), (X(c_sub), Y(s))) == (X(c), Y(s))
+    end
+
+    @testset "non-Lookup val" begin
+        @test promotedims(X(1), X(1.0)) == promotedims(X(1.0), X(1)) == X(1.0)
+        @test promotedims(X("a"), X(view("a", 1:1))) ==
+            promotedims(X(view("a", 1:1)), X("a")) == X("a")
+    end
 end
