@@ -143,7 +143,6 @@ end
     @test dc1 == [2, 4, 6]
     dc2 = broadcast_dims(+, da2, db1)
     @test dc2 == [2 4 6; 5 7 9]
-    dc4 = broadcast_dims(+, da2, db1)
 
     A3 = cat([1 2 3; 4 5 6], [11 12 13; 14 15 16]; dims=3)
     da3 = DimArray(A3, (X, Y, Z))
@@ -157,6 +156,29 @@ end
     dc3 = broadcast_dims(+, da3, db1)
     @test dc3 == cat([2 4 6; 5 7 9], [12 14 16; 15 17 19]; dims=3)
 
+    @testset "works directly with Dimensions" begin
+        x, y, z = X([1, 2, 3]), Y([1, 2]), Z([0.1])
+
+        # construct a DimArray from dimensions, using `broadcast_dims`
+        da_from_dims = broadcast_dims(+, x, y)
+        @test da_from_dims == [2 3; 3 4; 4 5]
+
+        # different ways to refer to existing dimensions
+        da_with_reference_da = broadcast_dims(+, da_from_dims, DimArray(parent(y), y))  # reference computation
+        da_and_existing_dims = broadcast_dims(+, da_from_dims, Y)
+        da_and_existing_dims2 = broadcast_dims(+, da_from_dims, Y(:))
+        da_and_existing_dims3 = broadcast_dims(+, da_from_dims, :Y)
+        da_and_existing_dims4 = broadcast_dims(+, da_from_dims, y)
+        @test da_and_existing_dims == [3 5; 4 6; 5 7]
+        @test da_and_existing_dims == da_with_reference_da
+        @test da_and_existing_dims == da_and_existing_dims2
+        @test da_and_existing_dims == da_and_existing_dims3
+        @test da_and_existing_dims == da_and_existing_dims4
+
+        # combine `DimArray` and `Dimension`
+        da_and_new_dims = broadcast_dims(+, da_from_dims, z)
+        @test da_and_new_dims == [2.1 3.1; 3.1 4.1; 4.1 5.1;;;]
+    end
     @testset "works with permuted dims" begin
         db2p = permutedims(da2)
         dc3p = broadcast_dims(+, da3, db2p)

@@ -108,23 +108,109 @@ function modify(f, index::AbstractArray)
 end
 
 """
-    broadcast_dims(f, sources::AbstractDimArray...) => AbstractDimArray
+    broadcast_dims(f, sources::Union{AbstractDimArray, Dimension, Symbol}...) => AbstractDimArray
 
-Broadcast function `f` over the `AbstractDimArray`s in `sources`, permuting and reshaping
-dimensions to match where required. The result will contain all the dimensions in 
-all passed in arrays in the order in which they are found.
+Broadcast function `f` over the `AbstractDimArray`s, and/or `Dimension`s in `sources`, permuting and reshaping
+dimensions to match where required. The result will contain all the dimensions in all passed in arrays in the 
+order in which they are found.
 
-## Arguments
+Existing dimensions can be referenced by e.g. `X`, `:X`, `X(:)`, `X(1.0:0.5:10.0)`.
+New dimensions can be passed, but must have an explicit lookup, e.g. `X(1.0:0.5:10.0)`.
 
-- `sources`: `AbstractDimArrays` to broadcast over with `f`.
+# Arguments
 
-This is like broadcasting over every slice of `A` if it is
-sliced by the dimensions of `B`.
+- `sources`: `AbstractDimArrays`, `Dimension`s, `Symbol`s, to broadcast over with `f`.
+
+This is like broadcasting over every slice of `A` if it is sliced by the dimensions of `B`.
+
+# Throws
+- `ArgumentError` if a `Dimension` without explicit lookup values is passed and it is not found among the passed in `DimArray`s.
+
+# Extended help
+
+## Examples
+
+In the simplest use case, `broadcast_dims` can be used to construct a `DimArray` from multiple `Dimension`s:
+```julia
+julia> x, y, z = X(1:2:6), Y(10.5:1.0:13.5), Z(-0.5:0.5:0.5)
+↓ X 1:2:5,
+→ Y 10.5:1.0:13.5,
+↗ Z -0.5:0.5:0.5
+
+julia> A = broadcast_dims(*, x, y)
+╭─────────────────────────╮
+│ 3×4 DimArray{Float64,2} │
+├─────────────────────────┴────────────────────────────────── dims ┐
+  ↓ X Sampled{Int64} 1:2:5 ForwardOrdered Regular Points,
+  → Y Sampled{Float64} 10.5:1.0:13.5 ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────┘
+ ↓ →  10.5  11.5  12.5  13.5
+ 1    10.5  11.5  12.5  13.5
+ 3    31.5  34.5  37.5  40.5
+ 5    52.5  57.5  62.5  67.5
+```
+
+We can also implicitly refer to existing dimensions in `DimArray`s:
+```julia
+julia> B = ones(x, y);
+
+julia> broadcast_dims(+, B, Y)  # also `Y(:)`, or `:Y` works 
+╭─────────────────────────╮
+│ 3×4 DimArray{Float64,2} │
+├─────────────────────────┴────────────────────────────────── dims ┐
+  ↓ X Sampled{Int64} 1:2:5 ForwardOrdered Regular Points,
+  → Y Sampled{Float64} 10.5:1.0:13.5 ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────┘
+ ↓ →  10.5  11.5  12.5  13.5
+ 1    11.5  12.5  13.5  14.5
+ 3    11.5  12.5  13.5  14.5
+ 5    11.5  12.5  13.5  14.5
+```
+
+Finally, we can mix and match `DimArray`s and `Dimension`s:
+```julia
+julia> broadcast_dims(+, A, B, z)
+╭───────────────────────────╮
+│ 3×4×3 DimArray{Float64,3} │
+├───────────────────────────┴───────────────────────────────── dims ┐
+  ↓ X Sampled{Int64} 1:2:5 ForwardOrdered Regular Points,
+  → Y Sampled{Float64} 10.5:1.0:13.5 ForwardOrdered Regular Points,
+  ↗ Z Sampled{Float64} -0.5:0.5:0.5 ForwardOrdered Regular Points
+└───────────────────────────────────────────────────────────────────┘
+[:, :, 1]
+ ↓ →  10.5  11.5  12.5  13.5
+ 1    11.0  12.0  13.0  14.0
+ 3    32.0  35.0  38.0  41.0
+ 5    53.0  58.0  63.0  68.0
+```
 """
 function broadcast_dims(f, As::AbstractBasicDimArray...)
     dims = combinedims(As...)
     T = Base.Broadcast.combine_eltypes(f, As)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
+end
+
+function broadcast_dims(f, As::Union{AbstractBasicDimArray, Dimensions.Dimension, Type{<:Dimension}, Symbol}...)
+    # We have to look up dims for any actual DimArrays first if support for `X`, `Ti`, `:X`, etc, as input should work,
+    #   because we need the lookup array
+    existing_dims = combinedims(filter(Base.Fix2(isa, AbstractBasicDimArray), As)...)
+    Bs = map(As) do A
+        if A isa Dimension && !(parent(A) isa Colon)
+            # A dimension is explicitly passed, so use it
+            DimArray(parent(A), A)
+        elseif A isa Dimension || A isa Type{<:Dimension} || A isa Symbol
+            # If a reference to a dimension, e.g. `X(:)`, `X` or `:X` is passed, look up values from `existing_dims`
+            dim = dims(existing_dims, A)
+            # If `A` isn't among the existing dimensions, and since we don't have its lookup values, we can't proceed
+            isnothing(dim) && throw(ArgumentError("Dimension $A not found among the passed in `DimArray`s"))
+            # otherwise, construct a `DimArray` with the looked up values
+            DimArray(parent(dim), dim)
+        else
+            # finally, if it's actually a `DimArray`, just pass it through
+            A
+        end
+    end  # map(As)
+    broadcast_dims(f, Bs...)
 end
 
 function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)

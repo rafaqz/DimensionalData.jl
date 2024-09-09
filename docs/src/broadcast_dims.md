@@ -52,3 +52,16 @@ We can see the means of each month are scaled by the broadcast :
 mean(eachslice(data; dims=(X, Y)))
 mean(eachslice(scaled; dims=(X, Y)))
 ````
+
+Broadcasting also works directly over `Dimension`s (or references to them).
+For example, a new `DimArray` can be constructed by broadcasting a function over a set of dimensions:
+
+````@ansi bd
+broadcast_dims(*, x, y)
+````
+
+Existing dimensions can be referenced by name, in which case its lookup values are used:
+
+````@ansi bd
+broadcast_dims(*, data, X)  # or `:X` or `X(:)`
+````
