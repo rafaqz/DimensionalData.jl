@@ -596,16 +596,15 @@ function _lookup_to_vector(l)
         bs = intervalbounds(l)
         x = first.(bs)
         push!(x, last(last(bs)))
-    else
+    else # ispoints(l)
         collect(parent(l))
     end
 end
 
 function _lookup_to_vertex_vector(l)
     if isintervals(l)
-        bs = intervalbounds(l)
-        return @. first(bs) + (last(bs) - first(bs)) / 2
-    else # ispoints
+        return parent(DD.shiftlocus(DD.Center(), l))
+    else # ispoints(l)
         return collect(parent(l))
     end
 end
@@ -616,8 +615,8 @@ function _lookup_to_interval(l)
     l1 = if isnolookup(l)
         Sampled(parent(l); order=ForwardOrdered(), sampling=Intervals(Center()), span=Regular(1))
     elseif ispoints(l)
-        set(l, Intervals())
-    else
+        set(l, Intervals()) # this sets the intervals to be `Intervals(Center())` by default.  Same as heatmap behaviour.
+    else # isintervals(l)
         l
     end
     return IntervalSets.Interval(bounds(l1)...)
