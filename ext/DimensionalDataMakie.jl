@@ -500,7 +500,7 @@ function _check_regular_or_categorical_sampling(l; axis = nothing)
         The lookup was:
         $l
 
-        You can solve this by resampling your raster, or by using a more permissive plot type like `surface`, `contour`, or `contourf`. 
+        You can solve this by resampling your raster, or by using a more permissive plot type like `heatmap`, `surface`, `contour`, or `contourf`. 
         """))
     end
 end
