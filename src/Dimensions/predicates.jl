@@ -2,6 +2,7 @@ for f in (
     :isnolookup,
     :issampled,
     :iscategorical,
+    :isaligned,
     :iscyclic,
     :isintervals,
     :ispoints,

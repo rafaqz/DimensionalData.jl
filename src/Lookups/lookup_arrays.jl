@@ -864,33 +864,46 @@ promote_first(l1::C, ls::C...) where C<:AbstractCategorical = l1
 promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; metadata=NoMetadata())
 function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
     ls = (l2, ls...)
-    all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
+    o = all(map(l -> order(l) == order(l1), ls)) ? order(l1) : Unordered()
     data = promote_first(parent(l1), map(parent, ls)...)
+    # Check we have all the same type of AbstractCategorical
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
-        return rebuild(l1; data, metadata=NoMetadata())
-    else # Fall back to standard Categorical
-        return Categorical(data; order=order(l1), metadata=NoMetadata())
+        return rebuild(l1; data, order=o, metadata=NoMetadata())
+    else # Otherwise fall back to Categorical
+        return Categorical(data; order=o, metadata=NoMetadata())
     end
 end
 promote_first(l1::AbstractSampled) = l1
 promote_first(l1::S, ::S, ::S...) where S<:AbstractSampled = l1
 function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSampled...)
     ls = (l2, ls...)
-    all(map(l -> order(l) == order(l1), ls)) &&
-        all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls))  &&
-        all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) || 
-        return NoLookup(Base.OneTo(length(l1)))
+
+    sp = if any(map(isexplicit, (l1, ls...)))
+        # We cant always mix Explicit and other lookups
+        if isexplicit((l, ls...)) 
+            promote_first(spant(l1), map(span, ls)...) 
+        else
+            return NoLookup(Base.OneTo(length(l1)))
+        end
+    else
+        # We can always convert 
+        all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) ? span(l1) : Irregular(bounds(l1))
+    end
+    # Intervals always hold a Point
+    sa = all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls)) ? sampling(l1) : Points()
+    o = all(map(l -> order(l) == order(l1), ls)) ? order(l1) : Unordered()
 
     data = promote_first(parent(l1), map(parent, ls)...)
     kw = (;
-        order=order(l1),
+        order=o,
         span=promote_first(span(l1), map(span, ls)...),
         sampling=sampling(l1),
         metadata=NoMetadata(),
     )
+    # Check we have all the same type of AbstractSampled
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
         return rebuild(l1; data, kw...)
-    else
+    else # Otherwise fall back to Sampled
         return Sampled(data; kw...)
     end
 end

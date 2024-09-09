@@ -548,8 +548,10 @@ end
 @testset "promotedims" begin
     nl = NoLookup(Base.OneTo(2))
     c = Categorical(["a", "b"]; order=ForwardOrdered())
+    c_unord = Categorical(["a", "b"]; order=Unordered())
     c_sub = Categorical([view("a", 1:1), view("b", 1:1)]; order=ForwardOrdered())
     s = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered())
+    s_unord = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=Unordered())
     s_int = Sampled(1:1:2; span=Regular(1), sampling=Points(), order=ForwardOrdered())
     @test promotedims(X(nl), X(c)) === promotedims(X(c), X(nl)) === X(nl)
     @test promotedims(X(nl), X(s)) === promotedims(X(s), X(nl)) === X(nl)
@@ -562,6 +564,9 @@ end
     @test promotedims((X(c), Y(s)), (X(c), Y(s))) == (X(c), Y(s))
     @test promotedims((X(c), Y(nl)), (X(nl), Y(s))) == (X(nl), Y(nl))
     @test promotedims((X(c), Y(s_int)), (X(c_sub), Y(s))) == (X(c), Y(s))
+
+    @test promotedims(X(s), X(s_unord)) == X(s_unord)
+    @test promotedims(X(c), X(c_unord)) == X(c_unord)
 
     @test promotedims(X(1), X(1.0)) == promotedims(X(1.0), X(1)) == X(1.0)
     @test promotedims(X("a"), X(view("a", 1:1))) ==

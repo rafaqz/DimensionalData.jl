@@ -69,14 +69,6 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, i2, I...))...)
 
-        @propagate_inbounds Base.$f(A::AbstractDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
-            Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
-            Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
-            Base.$f(A, dims2indices(A, extent)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
-            Base.$f(A, dims2indices(A, extent)...)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray; kw...) =
             $_dim_f(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
@@ -92,19 +84,6 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(A, _simplify_dim_indices(i)...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimensionalIndices) =
             $_dim_f(A, _simplify_dim_indices(i)...)
-        # For ambiguity
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimIndices) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::DimSelectors) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimArray, i::_DimIndicesAmb) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimIndices) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimVector, i::DimSelectors) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractDimVector, i::_DimIndicesAmb) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::DimIndices) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::DimSelectors) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::_DimIndicesAmb) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimIndices) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimSelectors) = $_dim_f(A, i)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::_DimIndicesAmb) = $_dim_f(A, i)
 
         # Use underscore methods to minimise ambiguities
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
@@ -115,6 +94,16 @@ for f in (:getindex, :view, :dotview)
             A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
         )
             return merge_and_index(Base.$f, A, dims)
+        end
+    end
+    # Repeated methods for ambiguity
+    for T in (:AbstractDimArray, :AbstractDimVector, :AbstractBasicDimArray, :AbstractBasicDimVector)
+        @eval begin
+            @eval @propagate_inbounds Base.$f(A::$T, extent::Union{Extents.Extent,Near{<:Extents.Extent},Touches{<:Extents.Extent}}) =
+                Base.$f(A, dims2indices(A, extent)...)
+            @propagate_inbounds Base.$f(A::$T, i::DimIndices) = $_dim_f(A, _simplify_dim_indices(i)...)
+            @propagate_inbounds Base.$f(A::$T, i::DimSelectors) = $_dim_f(A, _simplify_dim_indices(i)...)
+            @propagate_inbounds Base.$f(A::$T, i::_DimIndicesAmb) = $_dim_f(A, _simplify_dim_indices(i)...)
         end
     end
     # Standard indices
@@ -237,7 +226,7 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices(d::DimIndices, ds..
     (dims(d)..., _simplify_dim_indices(ds)...)
 Base.@assume_effects :foldable @inline function _simplify_dim_indices(d::DimSelectors, ds...)
     seldims = map(dims(d), d.selectors) do d, s
-        # But the dimension values inside selectors
+        # Put the dimension values inside selectors
         rebuild(d, rebuild(s; val=val(d)))
     end
     return (seldims..., _simplify_dim_indices(ds)...)
