@@ -78,10 +78,9 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
             axislegend(p.axis; merge=false, unique=false, axislegendkw...)
             return p
         end
-        function Makie.$f1!(ax, A::AbstractDimVector; axislegendkw=(;), axis = (;), figure = (;), attributes...)
+        function Makie.$f1!(ax, A::AbstractDimVector; axislegendkw=(;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
-            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
-            return Makie.$f2!(ax, args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
+            return Makie.$f2!(ax, args...; merged_attributes...)
         end
     end
 end
@@ -167,12 +166,12 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             return p
         end
         function Makie.$f1!(ax, A::AbstractDimMatrix; 
-            x=nothing, y=nothing, colorbarkw=(;), axis = (;), figure = (;),  attributes...
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, $f2, attributes, replacements)
             # No Colorbar in the ! in-place versions
-            return Makie.$f2!(ax, args...; axis, figure, attributes...)
+            return Makie.$f2!(ax, args...; attributes...)
         end
         function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
             x=nothing, y=nothing, colorbarkw=(;), attributes...
