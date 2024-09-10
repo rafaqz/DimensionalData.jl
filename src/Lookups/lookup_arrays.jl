@@ -907,7 +907,7 @@ promote_first(::Order, ::Order...) = Unordered()
 
 # Sampling 
 # Only matching locus Intervals remain Intervals
-promote_first(i1::I, ::I...) where I<:Intervals = first(i1)
+promote_first(i1::I, ::I...) where I<:Intervals = i1
 # Any other mix is Points
 promote_first(::Sampling, ::Sampling...) = Points() 
 
