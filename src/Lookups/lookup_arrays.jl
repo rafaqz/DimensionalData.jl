@@ -901,15 +901,15 @@ end
 
 # Order
 # Only matching Order remain the same
-promote_first(::O...) where O<:Order = O()
+promote_first(::O, ::O...) where O<:Order = O()
 # Everthing else is Unordered
-promote_first(::Order...) = Unordered()
+promote_first(::Order, ::Order...) = Unordered()
 
 # Sampling 
 # Only matching locus Intervals remain Intervals
-promote_first(is::I...) where I<:Intervals = first(is)
+promote_first(i1::I, ::I...) where I<:Intervals = first(i1)
 # Any other mix is Points
-promote_first(::Sampling...) = Points() 
+promote_first(::Sampling, ::Sampling...) = Points() 
 
 # Span
 # Regular remains regular, eltype is promoted
@@ -929,10 +929,10 @@ for E in (Base.Number, Dates.AbstractTime)
     end
 end
 # Explicit promotes its matrix
-promote_first(::Lookup, ::Sampling, spans::Explicit...) = 
-    Explicit(promote_first(map(val, spans)...))
+promote_first(::Lookup, ::Sampling, s1::Explicit, ss::Explicit...) = 
+    Explicit(promote_first(val(s1), map(val, spans)...))
 # Mixed Regular/Irregular always become Irregular
-promote_first(l::Lookup, sampling::Sampling, ::Union{Regular,Irregular}...) = 
+promote_first(l::Lookup, sampling::Sampling, ::Union{Regular,Irregular}, ::Union{Regular,Irregular}...) = 
     _irregular(sampling, l)
    
 _irregular(::Points, l) = Irregular(nothing, nothing)
