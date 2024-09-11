@@ -146,7 +146,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
 
             p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
                 # surface is an LScene so we cant pass attributes
-                p = Makie.$f2(args...; axis = axis_kw, figure = figure_kw, attributes...)
+                p = Makie.$f2(args...; figure = figure_kw, attributes...)
                 # And instead set axisnames manually
                 if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
                     p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
