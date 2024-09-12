@@ -455,6 +455,12 @@ function Makie.convert_arguments(t::Type{Plot{Makie.volumeslices}}, A::AbstractD
     # the following will not work for irregular spacings
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+# the generic fallback for all plot types
+function Makie.convert_arguments(t::Makie.NoConversion, A::AbstractDimArray{<:Any,N}) where {N}
+    A1 = _prepare_for_makie(A)
+    return Makie.convert_arguments(t, parent(A1))
+end
 # # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
     @warn "Conversion trait $t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
@@ -464,6 +470,7 @@ end
 @static if :expand_dimensions in names(Makie; all=true)
     # We also implement expand_dimensions for recognized plot traits.
     # These can just forward to the relevant converts.
+    Makie.expand_dimensions(t::Makie.NoConversion, A::AbstractDimArray) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
