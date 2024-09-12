@@ -442,9 +442,9 @@ end
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
     xl, yl, zl = lookup(A1)
-    _check_regular_or_categorical_sampling(xl; axis = :x)
-    _check_regular_or_categorical_sampling(yl; axis = :y)
-    _check_regular_or_categorical_sampling(zl; axis = :z)
+    _check_regular_or_categorical_sampling(xl; axis = :x, conversiontrait = t)
+    _check_regular_or_categorical_sampling(yl; axis = :y, conversiontrait = t)
+    _check_regular_or_categorical_sampling(zl; axis = :z, conversiontrait = t)
     xs, ys, zs = map(_lookup_to_interval, (xl, yl, zl))
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
@@ -504,13 +504,13 @@ end
 # Here, we assume 
 function _check_regular_or_categorical_sampling(l; axis = nothing, conversiontrait = ImageLike())
     if !(DD.isregular(l) || DD.iscategorical(l))
-        throw(ArgumentError("""
-        DimensionalDataMakie: The $(isnothing(axis) ? "" : "$axis-axis ")lookup is not regularly spaced, which is required for image-like plot types in Makie.
+        @warn """
+        DimensionalDataMakie: The $(isnothing(axis) ? "" : "$axis-axis ")lookup is not regularly spaced, which is required for $(conversiontrait) plot types in Makie.
         The lookup was:
         $l
 
         You can solve this by resampling your raster, or by using a more permissive plot type like `heatmap`, `surface`, `contour`, or `contourf`. 
-        """))
+        """
     end
 end
 
