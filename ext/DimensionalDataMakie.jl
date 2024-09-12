@@ -438,6 +438,12 @@ function Makie.convert_arguments(
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 
+function Makie.convert_arguments(t::Type{<: Makie.Spy}, A::AbstractDimMatrix{<: Real})
+    A1 = _prepare_for_makie(A)
+    xs, ys = map(_lookup_to_interval, lookup(A1))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+end
+
 # VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
@@ -478,6 +484,7 @@ end
     Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Type{Makie.Spy}, A::AbstractDimArray{<:Real,2}) = Makie.convert_arguments(t, A)
 end
 
 # Utility methods
