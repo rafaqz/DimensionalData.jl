@@ -509,7 +509,10 @@ function _check_regular_or_categorical_sampling(l; axis = nothing, conversiontra
         The lookup was:
         $l
 
-        You can solve this by resampling your raster, or by using a more permissive plot type like `heatmap`, `surface`, `contour`, or `contourf`. 
+        You can solve this by resampling your raster, or by using a more permissive plot type like `heatmap`, `surface`, `contour`, or `contourf`.
+        
+        Currently, DimensionalData ignores that the lookup is irregular, and assumes a regular lookup.  This may be fine,
+        or it may give very incorrect results.  Be warned!
         """
     end
 end
