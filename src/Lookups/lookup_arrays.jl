@@ -864,51 +864,80 @@ promote_first(l1::C, ls::C...) where C<:AbstractCategorical = l1
 promote_first(l1::C, ::C, ::C...) where C<:AbstractCategorical = rebuild(l1; metadata=NoMetadata())
 function promote_first(l1::AbstractCategorical, l2::AbstractCategorical, ls::AbstractCategorical...)
     ls = (l2, ls...)
-    all(map(l -> order(l) == order(l1), ls)) || return NoLookup(Base.OneTo(length(l1)))
+    o = all(map(l -> order(l) == order(l1), ls)) ? order(l1) : Unordered()
     data = promote_first(parent(l1), map(parent, ls)...)
+    # Check we have all the same type of AbstractCategorical
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
-        return rebuild(l1; data, metadata=NoMetadata())
-    else # Fall back to standard Categorical
-        return Categorical(data; order=order(l1), metadata=NoMetadata())
+        return rebuild(l1; data, order=o, metadata=NoMetadata())
+    else # Otherwise fall back to Categorical
+        return Categorical(data; order=o, metadata=NoMetadata())
     end
 end
 promote_first(l1::AbstractSampled) = l1
 promote_first(l1::S, ::S, ::S...) where S<:AbstractSampled = l1
 function promote_first(l1::AbstractSampled, l2::AbstractSampled, ls::AbstractSampled...)
     ls = (l2, ls...)
-    all(map(l -> order(l) == order(l1), ls)) &&
-        all(map(l -> typeof(sampling(l)) == typeof(sampling(l1)), ls))  &&
-        all(map(l -> basetypeof(span(l)) == basetypeof(span(l1)), ls)) || 
+
+    # We cant always convert explicit to something else
+    if any(map(isexplicit, (l1, ls...))) && !all(isexplicit, (l1, ls...))
         return NoLookup(Base.OneTo(length(l1)))
+    end
 
     data = promote_first(parent(l1), map(parent, ls)...)
+    sa = promote_first(sampling(l1), map(sampling, ls)...)
     kw = (;
-        order=order(l1),
-        span=promote_first(span(l1), map(span, ls)...),
-        sampling=sampling(l1),
+        order=promote_first(order(l1), map(order, ls)...),
+        sampling=sa,
+        span=promote_first(l1, sa, span(l1), map(span, ls)...),
         metadata=NoMetadata(),
     )
+    # Check we have all the same type of AbstractSampled
     if all(map(l -> basetypeof(l) == basetypeof(l1), ls))
         return rebuild(l1; data, kw...)
-    else
+    else # Otherwise fall back to Sampled
         return Sampled(data; kw...)
     end
 end
+
+# Order
+# Only matching Order remain the same
+promote_first(::O, ::O...) where O<:Order = O()
+# Everthing else is Unordered
+promote_first(::Order, ::Order...) = Unordered()
+
+# Sampling 
+# Only matching locus Intervals remain Intervals
+promote_first(i1::I, ::I...) where I<:Intervals = i1
+# Any other mix is Points
+promote_first(::Sampling, ::Sampling...) = Points() 
+
 # Span
-function promote_first(s::Regular, ss::Regular...) 
+# Regular remains regular, eltype is promoted
+function promote_first(::Lookup, ::Sampling, s::Regular, ss::Regular...) 
     T = promote_type(typeof(val(s)), map(typeof ∘ val, ss)...)
     Regular(convert(T, val(s)))
 end
-promote_first(a::T, b::T...) where T<:Irregular = a 
+# # Matching irregular is returns
+promote_first(::Lookup, ::Sampling, a::T, b::T...) where T<:Irregular = a 
+# # Number and DateTime are promoted
 for E in (Base.Number, Dates.AbstractTime)
-    @eval function promote_first(
+    @eval function promote_first(::Lookup,
         s::Irregular{Tuple{<:$E,<:$E}}, ss::Irregular{Tuple{<:$E,<:$E}}...
     )
         T = promote_type(maps(s -> promote_type(typeof(val(s)[1]), typeof(val(s)[2])), (s, ss...))...)
         return Irregular(convert(T, val(a)[1]), convert(T, val(a)[2]))
     end
 end
-promote_first(::Irregular, ::Irregular...) = Irregular((nothing, nothing))
+# Explicit promotes its matrix
+promote_first(::Lookup, ::Sampling, s1::Explicit, ss::Explicit...) = 
+    Explicit(promote_first(val(s1), map(val, ss)...))
+# Mixed Regular/Irregular always become Irregular
+promote_first(l::Lookup, sampling::Sampling, ::Union{Regular,Irregular}, ::Union{Regular,Irregular}...) = 
+    _irregular(sampling, l)
+   
+_irregular(::Points, l) = Irregular(nothing, nothing)
+_irregular(::Intervals, l) = Irregular(bounds(l))
+     
 # Data
 promote_first(a1::A) where A<:AbstractArray = a1
 promote_first(a1::A, ::A, ::A...) where A<:AbstractArray = a1
