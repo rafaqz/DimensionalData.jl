@@ -930,7 +930,7 @@ for E in (Base.Number, Dates.AbstractTime)
 end
 # Explicit promotes its matrix
 promote_first(::Lookup, ::Sampling, s1::Explicit, ss::Explicit...) = 
-    Explicit(promote_first(val(s1), map(val, spans)...))
+    Explicit(promote_first(val(s1), map(val, ss)...))
 # Mixed Regular/Irregular always become Irregular
 promote_first(l::Lookup, sampling::Sampling, ::Union{Regular,Irregular}, ::Union{Regular,Irregular}...) = 
     _irregular(sampling, l)
