@@ -7,11 +7,7 @@ using DimensionalData.Dimensions, DimensionalData.LookupArrays
 
 const DD = DimensionalData
 
-# Handle changes between Makie 0.19 and 0.20
-const SurfaceLikeCompat = isdefined(Makie, :SurfaceLike) ? Makie.SurfaceLike : Union{Makie.VertexGrid,Makie.CellGrid,Makie.ImageLike}
-
 _paired(args...) = map(x -> x isa Pair ? x : x => x, args)
-
 
 # Shared docstrings: keep things consistent.
 
@@ -75,15 +71,16 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), attributes...)
+        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), axis = (;), figure = (;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes)
-            p = Makie.$f2(args...; merged_attributes...)
+            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
+            p = Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
             axislegend(p.axis; merge=false, unique=false, axislegendkw...)
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimVector; axislegendkw=(;), attributes...)
+        function Makie.$f1!(ax, A::AbstractDimVector; axislegendkw=(;), attributes...)
             args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
-            return Makie.$f2!(axis, args...; merged_attributes...)
+            return Makie.$f2!(ax, args...; merged_attributes...)
         end
     end
 end
@@ -134,36 +131,47 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     @eval begin
         @doc $docstring
         function Makie.$f1(A::AbstractDimMatrix{T}; 
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
+            x=nothing, y=nothing, colorbarkw=(;), axis = (;), figure = (;), attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
             A1, A2, args, merged_attributes = _surface2(A, $f2, attributes, replacements)
-            p = if $(f1 == :surface)
+
+            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
+
+            axis_type = if haskey(axis, :type)
+                to_value(axis.type)
+            else
+                Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
+            end
+
+            p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
                 # surface is an LScene so we cant pass attributes
-                p = Makie.$f2(args...; attributes...)
+                p = Makie.$f2(args...; figure = figure_kw, attributes...)
                 # And instead set axisnames manually
-                if !isnothing(p.axis.scene[OldAxis])
+                if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
                     p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
-            else
-                Makie.$f2(args...; merged_attributes...)
+            else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
+                Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
+            # TODO: why not surface too?
             if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
                 Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
                 )
             end
+            p
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimMatrix; 
+        function Makie.$f1!(ax, A::AbstractDimMatrix; 
             x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, $f2, attributes, replacements)
-            # No ColourBar in the ! in-place versions
-            return Makie.$f2!(axis, args...; attributes...)
+            # No Colorbar in the ! in-place versions
+            return Makie.$f2!(ax, args...; attributes...)
         end
         function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
             x=nothing, y=nothing, colorbarkw=(;), attributes...
@@ -182,9 +190,10 @@ function _surface2(A, plotfunc, attributes, replacements)
     lookup_attributes, newdims = _split_attributes(A1)
     A2 = _restore_dim_names(set(A1, map(Pair, newdims, newdims)...), A, replacements)
     P = Plot{plotfunc}
-    args = Makie.convert_arguments(P, A2)
-    # PTrait = Makie.conversion_trait(P, A2)
-    # status = Makie.got_converted(P, PTrait, converted)
+    PTrait = Makie.conversion_trait(P, A2)
+    # We define conversions by trait for all of the explicitly overridden functions,
+    # so we can just use the trait here.
+    args = Makie.convert_arguments(PTrait, A2)
 
     # if status === true
     #     args = converted
@@ -224,19 +233,20 @@ for (f1, f2) in _paired(:plot => :volume, :volume, :volumeslices)
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+        function Makie.$f1(A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, axis = (;), figure = (;), attributes...)
             replacements = _keywords2dimpairs(x, y, z)
             A1, A2, args, merged_attributes = _volume3(A, $f2, attributes, replacements)
-            p = Makie.$f2(args...; merged_attributes...)
-            if !isnothing(p.axis.scene[OldAxis])
+            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
+            p = Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
+            if p.axis isa LScene
                 p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
             end
             return p
         end
-        function Makie.$f1!(axis, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
+        function Makie.$f1!(ax, A::AbstractDimArray{<:Any,3}; x=nothing, y=nothing, z=nothing, attributes...)
             replacements = _keywords2dimpairs(x, y, z)
             _, _, args, _ = _volume3(A, $f2, attributes, replacements)
-            return Makie.$f2!(axis, args...; attributes...)
+            return Makie.$f2!(ax, args...; attributes...)
         end
     end
 end
@@ -268,15 +278,18 @@ Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 $(_labeldim_detection_doc(series))
 """
 function Makie.series(A::AbstractDimMatrix; 
-    color=:lighttest, axislegendkw=(;), labeldim=nothing, attributes...,
+    color=:lighttest, axislegendkw=(;), axis = (;), figure = (;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
+
+    axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
+
     n = size(last(args), 1)
     p = if n > 7
             color = resample_cmap(color, n) 
-            Makie.series(args...; color, merged_attributes...)
+            Makie.series(args...; axis = axis_kw, figure = figure_kw, color, merged_attributes...)
         else
-            Makie.series(args...; color, merged_attributes...)
+            Makie.series(args...; axis = axis_kw, figure = figure_kw, color, merged_attributes...)
         end
     axislegend(p.axis; merge=true, unique=false, axislegendkw...)
     return p
@@ -324,13 +337,14 @@ for f in (:violin, :boxplot, :rainclouds)
     """
     @eval begin
         @doc $docstring
-        function Makie.$f(A::AbstractDimMatrix; labeldim=nothing, attributes...)
+        function Makie.$f(A::AbstractDimMatrix; labeldim=nothing, axis = (;), figure = (;), attributes...)
             args, merged_attributes = _boxplotlike(A, attributes, labeldim)
-            return Makie.$f(args...; merged_attributes...)
+            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
+            return Makie.$f(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
         end
-        function Makie.$f!(axis, A::AbstractDimMatrix; labeldim=nothing, attributes...)
+        function Makie.$f!(ax, A::AbstractDimMatrix; labeldim=nothing, attributes...)
             args, _ = _boxplotlike(A, attributes, labeldim)
-            return Makie.$f!(axis, args...; attributes...)
+            return Makie.$f!(ax, args...; attributes...)
         end
     end
 end
@@ -371,6 +385,7 @@ Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 # Makie.expand_dimensions(::Makie.PointBased, y::IntervalSets.AbstractInterval) = (keys(y), y)
 
 # Conversions
+# Generic conversion for arbitrary recipes that don't define a conversion trait
 function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
     tr = Makie.conversion_trait(t, A)
@@ -381,6 +396,7 @@ function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMa
     end
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+# PointBased conversions (scatter, lines, poly, etc)
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     A1 = _prepare_for_makie(A)
     xs = parent(lookup(A, 1))
@@ -389,18 +405,31 @@ end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
     return Makie.convert_arguments(t, parent(A))
 end
-function Makie.convert_arguments(t::SurfaceLikeCompat, A::AbstractDimMatrix)
+# Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
+
+# VertexGrid is for e.g. contour and surface, it uses a position per vertex.
+function Makie.convert_arguments(t::Makie.VertexGrid, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_vector, lookup(A1))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
+    # If the lookup is intervals, use the midpoint of each interval
+    # as the sampling point.
+    # If the lookup is points, just use the points.
+    xs, ys = map(_lookup_to_vertex_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+# ImageLike is for e.g. image, meshimage, etc. It uses an interval based sampling method so requires regular spacing.
 function Makie.convert_arguments(t::Makie.ImageLike, A::AbstractDimMatrix)
     A1 = _prepare_for_makie(A)
-    xs, ys = map(_lookup_to_interval, lookup(A))
-    # the following will not work for irregular spacings, we'll need to add a check for this.
+    xlookup, ylookup, = lookup(A1) # take the first two dimensions only
+    # We need to make sure the lookups are regular intervals.
+    _check_regular_or_categorical_sampling(xlookup; axis = :x)
+    _check_regular_or_categorical_sampling(ylookup; axis = :y)
+    # Convert the lookups to intervals (<: Makie.EndPoints).
+    xs, ys = map(_lookup_to_interval, (xlookup, ylookup))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+# CellGrid is for e.g. heatmap, contourf, etc. It uses vertices as corners of cells, so 
+# there have to be n+1 vertices for n cells on an axis.
 function Makie.convert_arguments(
     t::Makie.CellGrid, A::AbstractDimMatrix
 )
@@ -408,10 +437,21 @@ function Makie.convert_arguments(
     xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+function Makie.convert_arguments(t::Type{<: Makie.Spy}, A::AbstractDimMatrix{<: Real})
+    A1 = _prepare_for_makie(A)
+    xs, ys = map(_lookup_to_interval, lookup(A1))
+    return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
+end
+
+# VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
 function Makie.convert_arguments(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})
     A1 = _prepare_for_makie(A)
-    xs, ys, zs = map(_lookup_to_interval, lookup(A1))
-    # the following will not work for irregular spacings
+    xl, yl, zl = lookup(A1)
+    _check_regular_or_categorical_sampling(xl; axis = :x, conversiontrait = t)
+    _check_regular_or_categorical_sampling(yl; axis = :y, conversiontrait = t)
+    _check_regular_or_categorical_sampling(zl; axis = :z, conversiontrait = t)
+    xs, ys, zs = map(_lookup_to_interval, (xl, yl, zl))
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
 
@@ -421,20 +461,30 @@ function Makie.convert_arguments(t::Type{Plot{Makie.volumeslices}}, A::AbstractD
     # the following will not work for irregular spacings
     return xs, ys, zs, last(Makie.convert_arguments(t, parent(A1)))
 end
+
+# the generic fallback for all plot types
+function Makie.convert_arguments(t::Makie.NoConversion, A::AbstractDimArray{<:Any,N}) where {N}
+    A1 = _prepare_for_makie(A)
+    return Makie.convert_arguments(t, parent(A1))
+end
 # # fallbacks with descriptive error messages
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
-    @warn "$t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
+    @warn "Conversion trait $t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
     return Makie.convert_arguments(t, parent(A))
 end
 
 @static if :expand_dimensions in names(Makie; all=true)
     # We also implement expand_dimensions for recognized plot traits.
     # These can just forward to the relevant converts.
+    Makie.expand_dimensions(t::Makie.NoConversion, A::AbstractDimArray) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::SurfaceLikeCompat, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
     Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3})  = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
+    Makie.expand_dimensions(t::Type{Makie.Spy}, A::AbstractDimArray{<:Real,2}) = Makie.convert_arguments(t, A)
 end
 
 # Utility methods
@@ -464,6 +514,22 @@ function _categorical_or_dependent(A, ::Nothing)
     end
 end
 
+# Check for regular sampling on a lookup, throw an error if not.
+# Here, we assume 
+function _check_regular_or_categorical_sampling(l; axis = nothing, conversiontrait = ImageLike())
+    if !(DD.isregular(l) || DD.iscategorical(l))
+        @warn """
+        DimensionalDataMakie: The $(isnothing(axis) ? "" : "$axis-axis ")lookup is not regularly spaced, which is required for $(conversiontrait) plot types in Makie.
+        The lookup was:
+        $l
+
+        You can solve this by resampling your raster, or by using a more permissive plot type like `heatmap`, `surface`, `contour`, or `contourf`.
+        
+        Currently, DimensionalData ignores that the lookup is irregular, and assumes a regular lookup.  This may be fine,
+        or it may give very incorrect results.  Be warned!
+        """
+    end
+end
 
 # Simplify dimension lookups and move information to axis attributes
 _split_attributes(A) = _split_attributes(dims(A))
@@ -489,6 +555,17 @@ end
 function _split_attributes(dim::Dimension)
     attributes, dims = _split_attributes((dim,))
     return attributes, dims[1]
+end
+
+function _handle_axis_figure_attrs(merged_attributes, axis, figure)
+    akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis)[] : Attributes()
+    fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure)[] : Attributes()
+    axis_kw = merge(akw, Attributes(axis)).attributes |> Dict{Symbol, Any} # to get a dict
+    if haskey(axis_kw, :type)
+        axis_kw[:type] = axis_kw[:type][]
+    end
+    figure_kw = merge(fkw, Attributes(figure)).attributes |> Dict{Symbol, Any} # to get a dict
+    return axis_kw, figure_kw
 end
 
 function _prepare_for_makie(A, replacements=())
@@ -556,17 +633,27 @@ function _lookup_to_vector(l)
         bs = intervalbounds(l)
         x = first.(bs)
         push!(x, last(last(bs)))
-    else
+    else # ispoints(l)
         collect(parent(l))
     end
 end
 
+function _lookup_to_vertex_vector(l)
+    if isintervals(l)
+        return parent(DD.shiftlocus(DD.Center(), l))
+    else # ispoints(l)
+        return collect(parent(l))
+    end
+end
+
 function _lookup_to_interval(l)
+    # TODO: warn or error if not regular sampling.
+    # Maybe use Preferences.jl to determine if we should error or warn.
     l1 = if isnolookup(l)
         Sampled(parent(l); order=ForwardOrdered(), sampling=Intervals(Center()), span=Regular(1))
     elseif ispoints(l)
-        set(l, Intervals())
-    else
+        set(l, Intervals()) # this sets the intervals to be `Intervals(Center())` by default.  Same as heatmap behaviour.
+    else # isintervals(l)
         l
     end
     return IntervalSets.Interval(bounds(l1)...)
