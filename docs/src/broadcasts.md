@@ -56,15 +56,28 @@ But `@d` knows to broadcast over the `Ti` dimension:
 scaled = @d data .* month_scalars
 ````
 
-YOu can also use `broadcast_dims` the same way:
-
-````@ansi bd
-scaled = broadcast_dims(*, data, month_scalars)
-````
-
 We can see the means of each month are scaled by the broadcast :
 
 ````@ansi bd
 mean(eachslice(data; dims=(X, Y)))
 mean(eachslice(scaled; dims=(X, Y)))
+````
+
+You can also use `broadcast_dims` the same way:
+
+````@ansi bd
+broadcast_dims(*, data, month_scalars)
+````
+
+And with the [`@d`](@ref) macro you can set the dimension order and other
+properties of the output array, by passing a single assignment or a `NamedTuple`
+argument to `@d` after the broadcast:
+
+````@ansi bd
+@d data .* month_scalars dims=(Ti, X, Y)
+````
+
+Or
+````@ansi bd
+@d data .* month_scalars (dims=(Ti, X, Y), name=:scaled)
 ````
