@@ -72,7 +72,7 @@ export default defineConfig({
           { text: 'DimArrays', link: '/dimarrays' },
           { text: 'DimStacks', link: '/stacks' },
           { text: 'GroupBy', link: '/groupby' },
-          { text: 'Dimension-aware broadcast', link: '/broadcast_dims.md' },
+          { text: 'Dimension-aware broadcast', link: '/broadcasts.md' },
           { text: 'Getting information', link: '/get_info' },
           { text: 'Object modification', link: '/object_modification' },
         ]},
