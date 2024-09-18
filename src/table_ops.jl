@@ -94,7 +94,8 @@ function coords_to_indices(table, dims::Tuple; selector=DimensionalData.Near())
 end
 
 # Find the order of the table's rows according to the coordinate values 
-_coords_to_indices(table, dims::Tuple, sel::DimensionalData.Selector) = _coords_to_indices(_dim_cols(table, dims), dims, sel)
+_coords_to_indices(table, dims::Tuple, sel::DimensionalData.Selector) = 
+    _coords_to_indices(_dim_cols(table, dims), dims, sel)
 function _coords_to_indices(coords::NamedTuple, dims::Tuple, sel::DimensionalData.Selector)
     ords = _coords_to_ords(coords, dims, sel)
     indices = _ords_to_indices(ords, dims)
