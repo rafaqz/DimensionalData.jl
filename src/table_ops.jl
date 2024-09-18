@@ -109,7 +109,7 @@ end
 Guesses the dimensions of an array based on the provided tabular representation.
 
 # Arguments
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other tabular data structure. 
+- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
 The dimensions will be inferred from the corresponding coordinate collumns in the table.
 - `dims`: One or more dimensions to be inferred. If no dimensions are specified, then `guess_dims` will default
 to any available dimensions in the set `(:X, :Y, :Z, :Ti, :Band)`. Dimensions can be given as either a singular
