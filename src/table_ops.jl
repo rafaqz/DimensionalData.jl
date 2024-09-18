@@ -271,7 +271,7 @@ end
 function _build_dim(vals::AbstractVector{<:Union{Number,DateTime}}, dim::Symbol, order::DD.Order, span::DD.Irregular)
     return Dim{dim}(DD.Sampled(vals, order=order, span=span, sampling=DD.Points()))
 end
-function _build_dim(vals::AbstractVector{<:Real}, dim::Symbol, order::DD.Order, span::DD.Regular)
+function _build_dim(vals::AbstractVector{<:Union{Number,DateTime}}, dim::Symbol, order::DD.Order, span::DD.Regular)
     n = round(Int, abs((last(vals) - first(vals)) / span.step) + 1)
     dim_vals = LinRange(first(vals), last(vals), n)
     return Dim{dim}(DD.Sampled(dim_vals, order=order, span=span, sampling=DD.Points()))
