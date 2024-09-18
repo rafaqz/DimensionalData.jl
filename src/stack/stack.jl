@@ -278,7 +278,7 @@ end
 """
     DimStack <: AbstractDimStack
 
-    DimStack(table, dims; kw...)
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Tuple{Vararg{AbstractDimArray}}; kw...)
     DimStack(data::NamedTuple{Keys,Vararg{AbstractDimArray}}; kw...)
