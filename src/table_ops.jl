@@ -258,7 +258,6 @@ end
 
 # Estimate the span between consecutive coordinates
 _guess_dim_span(::AbstractVector, ::DD.Order, ::Int) = DD.Irregular()
-_guess_dim_span(::AbstractVector{<:Real}, ::DD.Order, ::Int) = DD.Irregular()
 function _guess_dim_span(coords::AbstractVector{<:Real}, ::DD.Ordered, precision::Int)
     steps = round.((@view coords[2:end]) .- (@view coords[1:end-1]), digits=precision)
     span = argmin(abs, steps)
