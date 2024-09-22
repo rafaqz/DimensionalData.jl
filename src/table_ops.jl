@@ -281,10 +281,6 @@ _get_column(table, x::DD.Dimension) = Tables.getcolumn(table, DD.name(x))
 _get_column(table, x::Symbol) = Tables.getcolumn(table, x)
 _get_column(table, x::Pair) = _get_column(table, first(x))
 
-_dim_name(x::Symbol) = x
-_dim_name(x::DD.Dimension) = DD.name(x)
-_dim_name(x::Type{<:DD.Dimension}) = DD.name(x)
-_dim_name(x::Pair) = _dim_name(first(x)) => last(x)
 
 # Determine the index from a tuple of coordinate orders
 function _ords_to_indices(ords, dims)
