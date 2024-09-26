@@ -200,9 +200,9 @@ function _data_col_names(table, dims::Tuple)
 end
 
 # Determine the ordinality of a set of coordinates
-_coords_to_ords(coords::AbstractVector, dim::DD.Dimension, sel::DD.Selector) = _coords_to_ords(coords, dim, sel, DD.locus(dim), DD.span(dim))
-_coords_to_ords(coords::Tuple, dims::Tuple, sel::DimensionalData.Selector) = Tuple(_coords_to_ords(c, d, sel) for (c, d) in zip(coords, dims))
-_coords_to_ords(coords::NamedTuple, dims::Tuple, sel::DimensionalData.Selector) = _coords_to_ords(map(x -> coords[x], DD.name(dims)), dims, sel)
+_coords_to_ords(coords::AbstractVector, dim::Dimension, sel::DD.Selector) = _coords_to_ords(coords, dim, sel, DD.locus(dim), DD.span(dim))
+_coords_to_ords(coords::Tuple, dims::Tuple, sel::DD.Selector) = Tuple(_coords_to_ords(c, d, sel) for (c, d) in zip(coords, dims))
+_coords_to_ords(coords::NamedTuple, dims::Tuple, sel::DD.Selector) = _coords_to_ords(map(x -> coords[x], DD.name(dims)), dims, sel)
 
 # Determine the ordinality of a set of regularly spaced numerical coordinates
 function _coords_to_ords(
@@ -239,19 +239,20 @@ _dim_vals(coords::AbstractVector, ::DD.ForwardOrdered, precision::Int) = sort!(_
 _dim_vals(coords::AbstractVector, ::DD.ReverseOrdered, precision::Int) = sort!(_unique_vals(coords, precision), rev=true)
 
 # Extract all unique coordinates from the given vector
-_unique_vals(coords::AbstractVector, precision::Int) = _round_dim_val.(coords, precision) |> unique
-
-# Round dimension value within the specified precision
-_round_dim_val(x, ::Int) = x
-_round_dim_val(x::Real, precision::Int) = round(x, digits=precision)
+_unique_vals(coords::AbstractVector, ::Int) = unique(coords)
+_unique_vals(coords::AbstractVector{<:Real}, precision::Int) = round.(coords, digits=precision) |> unique
 
 # Determine if the given coordinates are forward ordered, reverse ordered, or unordered
 function _guess_dim_order(coords::AbstractVector)
-    if issorted(coords)
-        return DD.ForwardOrdered()
-    elseif issorted(coords, rev=true)
-        return DD.ReverseOrdered()
-    else
+    try
+        if issorted(coords)
+            return DD.ForwardOrdered()
+        elseif issorted(coords, rev=true)
+            return DD.ReverseOrdered()
+        else
+            return DD.Unordered()
+        end
+    catch 
         return DD.Unordered()
     end
 end
@@ -263,14 +264,19 @@ function _guess_dim_span(coords::AbstractVector{<:Real}, ::DD.Ordered, precision
     span = argmin(abs, steps)
     return all(isinteger, round.(steps ./ span, digits=precision)) ? DD.Regular(span) : DD.Irregular()
 end
+function _guess_dim_span(coords::AbstractVector{<:Dates.AbstractTime}, ::DD.Ordered, precision::Int)
+    steps = (@view coords[2:end]) .- (@view coords[1:end-1])
+    span = argmin(abs, steps)
+    return all(isinteger, round.(steps ./ span, digits=precision)) ? DD.Regular(span) : DD.Irregular()
+end
 
 function _build_dim(vals::AbstractVector, dim::Symbol, order::DD.Order, ::DD.Span)
     return Dim{dim}(DD.Categorical(vals, order=order))
 end
-function _build_dim(vals::AbstractVector{<:Union{Number,DateTime}}, dim::Symbol, order::DD.Order, span::DD.Irregular)
+function _build_dim(vals::AbstractVector{<:Union{Number,Dates.AbstractTime}}, dim::Symbol, order::DD.Order, span::DD.Irregular)
     return Dim{dim}(DD.Sampled(vals, order=order, span=span, sampling=DD.Points()))
 end
-function _build_dim(vals::AbstractVector{<:Union{Number,DateTime}}, dim::Symbol, order::DD.Order, span::DD.Regular)
+function _build_dim(vals::AbstractVector{<:Union{Number,Dates.AbstractTime}}, dim::Symbol, order::DD.Order, span::DD.Regular)
     n = round(Int, abs((last(vals) - first(vals)) / span.step) + 1)
     dim_vals = LinRange(first(vals), last(vals), n)
     return Dim{dim}(DD.Sampled(dim_vals, order=order, span=span, sampling=DD.Points()))
