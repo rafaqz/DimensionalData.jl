@@ -265,7 +265,7 @@ function _guess_dim_span(coords::AbstractVector{<:Real}, ::DD.Ordered, precision
 end
 
 function _build_dim(vals::AbstractVector, dim::Symbol, order::DD.Order, ::DD.Span)
-    return Dim{dim}(DD.Categorical(vals, order=order))
+    return rebuild(name2dim(dim), DD.Categorical(vals, order=order))
 end
 function _build_dim(vals::AbstractVector{<:Union{Number,DateTime}}, dim::Symbol, order::DD.Order, span::DD.Irregular)
     return Dim{dim}(DD.Sampled(vals, order=order, span=span, sampling=DD.Points()))
