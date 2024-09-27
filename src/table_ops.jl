@@ -274,12 +274,12 @@ function _build_dim(vals::AbstractVector, dim::Symbol, order::DD.Order, ::DD.Spa
     return rebuild(name2dim(dim), DD.Categorical(vals, order=order))
 end
 function _build_dim(vals::AbstractVector{<:Union{Number,Dates.AbstractTime}}, dim::Symbol, order::DD.Order, span::DD.Irregular)
-    return Dim{dim}(DD.Sampled(vals, order=order, span=span, sampling=DD.Points()))
+    return rebuild(name2dim(dim), DD.Sampled(vals, order=order, span=span, sampling=DD.Points()))
 end
 function _build_dim(vals::AbstractVector{<:Union{Number,Dates.AbstractTime}}, dim::Symbol, order::DD.Order, span::DD.Regular)
     n = round(Int, abs((last(vals) - first(vals)) / span.step) + 1)
-    dim_vals = LinRange(first(vals), last(vals), n)
-    return Dim{dim}(DD.Sampled(dim_vals, order=order, span=span, sampling=DD.Points()))
+    dim_vals = StepRangeLen(first(vals), span.step, n)
+    return rebuild(name2dim(dim), DD.Sampled(dim_vals, order=order, span=span, sampling=DD.Points()))
 end
 
 _get_column(table, x::Type{<:DD.Dimension}) = Tables.getcolumn(table, DD.name(x))
