@@ -53,7 +53,7 @@ end
 @assume_effects :foldable DD.layers(s::AbstractDimStack, k::Symbol) = s[k]
 
 @assume_effects :foldable data_eltype(nt::NamedTuple{K}) where K = NamedTuple{K,Tuple{map(eltype, Tuple(nt))...}}
-stacktype(s, data, dims, layerdims::NamedTuple{K}) where K = basetypeof(s){K,data_eltype(data),length(dims)}
+stacktype(s, data, dims, layerdims::NamedTuple{K}) where K = basetypeof(s){K,data_eltype(data),length(dims)} 
 
 const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
@@ -179,9 +179,9 @@ Base.vec(st::AbstractDimStack) = vec(collect(st))
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
 Base.merge(s::AbstractDimStack) = s
 function Base.merge(
-    x1::AbstractDimStack,
-    x2::Union{AbstractDimStack,NamedTuple},
-    xs::Union{AbstractDimStack,NamedTuple}...;
+    x1::AbstractDimStack, 
+    x2::Union{AbstractDimStack,NamedTuple}, 
+    xs::Union{AbstractDimStack,NamedTuple}...; 
     kw...
 )
     rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); kw...)
@@ -190,13 +190,13 @@ function Base.merge(s::AbstractDimStack, pairs; kw...)
     rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
 end
 function Base.merge(
-    x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...;
+    x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...; 
 )
     merge(map(layers, (x1, x2, xs...))...)
 end
 function Base.merge(
-    x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack,
-    xs::Union{AbstractDimStack,NamedTuple}...;
+    x1::NamedTuple, x2::NamedTuple, x3::AbstractDimStack, 
+    xs::Union{AbstractDimStack,NamedTuple}...; 
     kw...
 )
     merge(map(layers, (x1, x2, x3, xs...))...)
@@ -378,7 +378,7 @@ struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD<:NamedTuple{K},M,LM<:Union{Nothing,
         data, dims, refdims, layerdims::LD, metadata, layermetadata
     ) where LD<:NamedTuple{K} where K
         T = data_eltype(data)
-        N = length(dims)
+        N = length(dims)        
         DimStack{K,T,N}(data, dims, refdims, layerdims, metadata, layermetadata)
     end
     function DimStack{K,T,N}(
