@@ -204,7 +204,7 @@ end
 
 Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instad of map(f, stack)")
 Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) =
-    error("Use maplayers(f, stack)) instad of map(f, stack)")
+    error("Use maplayers(f, stack, args...)) instad of map(f, stack, args...)")
 
 maplayers(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
 function maplayers(
