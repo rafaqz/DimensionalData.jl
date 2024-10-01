@@ -29,8 +29,8 @@ abstract type AbstractDimStack{K,T,N,L} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-DimArray(st::AbstractDimStack) =
-    DimArray([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
+(::Type{T})(st::AbstractDimStack) where T<:AbstractDimArray =
+    T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
