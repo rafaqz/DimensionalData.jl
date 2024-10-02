@@ -72,9 +72,10 @@ show_compact(io::IO, mime, dim::Dimension{Colon}) = print_dimname(io, dim)
 function show_compact(io::IO, mime, dim::Dimension)
     # Print to a buffer and count lengths
     buf = IOBuffer()
-    print_dimname(buf, dim)
+    ctx = IOContext(buf, :compact => true)
+    print_dimname(ctx, dim)
     nchars = length(String(take!(buf)))
-    print_dimval(buf, mime, parent(dim), nchars)
+    print_dimval(ctx, mime, parent(dim), nchars)
     nvalchars = length(String(take!(buf)))
     # Actually print to IO
     print_dimname(io, dim)

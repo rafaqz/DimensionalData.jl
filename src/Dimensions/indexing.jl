@@ -35,9 +35,10 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline dims2indices(dims::DimTuple, I) = dims2indices(dims, (I,))
 # Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, I::Tuple{Vararg{StandardIndices}}) = I
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as(Interval, first(I)))
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Touches, val(first(I))))
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Near{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Near, val(first(I))))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = 
+    dims2indices(dims, _extent_as(Interval, only(I)))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:T}) where T <: Selector{<:Extents.Extent} = 
+    dims2indices(dims, _extent_as(basetypeof(T), val(only(I))))
 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
 @inline dims2indices(dims::DimTuple, sel::Tuple) = 
