@@ -13,7 +13,7 @@
 
 DimensionalData.jl provides tools and abstractions for working with datasets that have named dimensions, and optionally a lookup index. It provides no-cost abstractions for named indexing, and fast index lookups.
 
-DimensionalData is a pluggable, generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner syntax, and additional functionality found in NamedDims.jl. It has similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
+DimensionalData is a pluggable, generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner syntax, and additional functionality found in NamedDims.jl. It has similar goals to pythons [xarray](https://xarray.dev/), and is primarily written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
 ## Installation
 
