@@ -128,9 +128,11 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
         printed = false
         new_blockwidth = blockwidth
     else
-        ctx = IOContext(io, :dim_brackets=>false)
-        dim_lines = split(sprint(print_dims, mime, dims; context=ctx), '\n')
-        new_blockwidth = max(blockwidth, min(displaywidth - 2, maximum(textwidth, dim_lines)))
+        ctx = IOContext(io, :compact => true, :dim_brackets => false)
+        new_blockwidth = 100
+        printed=false
+        dim_width = maximum(textwidth, split(sprint(print_dims, mime, dims; context=ctx), '\n'))
+        new_blockwidth = max(blockwidth, min(displaywidth - 2, dim_width))
         lines += print_block_top(ctx, label, blockwidth, new_blockwidth)
         lines += print_dims(ctx, mime, dims; kw...)
         println(io)
