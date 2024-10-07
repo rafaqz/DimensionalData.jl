@@ -761,6 +761,7 @@ end
 
 # reducing methods
 @inline reducelookup(lookup::NoLookup) = NoLookup(OneTo(1))
+@inline reducelookup(lookup::Length1NoLookup) = NoLookup(OneTo(1))
 # TODO what should this do?
 @inline reducelookup(lookup::Unaligned) = NoLookup(OneTo(1))
 # Categories are combined.
