@@ -334,7 +334,7 @@ end
     DimArray <: AbstractDimArray
 
     DimArray(data, dims, refdims, name, metadata)
-    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata(), selector=Contains())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -344,12 +344,13 @@ moves dimensions to reference dimension `refdims` after reducing operations
 
 ## Arguments
 
-- `data`: An `AbstractArray`.
+- `data`: An `AbstractArray` or a table with coordinate columns corresponding to `dims`.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
+- `selector`: The coordinate selector type to use when materializing from a table.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
@@ -429,6 +430,13 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Write a single column from a table with one or more coordinate columns to a DimArray
+function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, kw...)
+    data = restore_array(table, dims; selector=selector, missingval=missing, name=name, precision=precision)
+    col = name == NoName() ? _data_col_names(table, dims) |> first : Symbol(name)
+    return DimArray(data, dims, name=col; kw...)
+end
+DimArray(table; kw...) = DimArray(table, _guess_dims(table; kw...); kw...)
 """
     DimArray(f::Function, dim::Dimension; [name])
 
