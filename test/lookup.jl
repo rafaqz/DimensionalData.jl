@@ -36,7 +36,9 @@ end
 
 @testset "isrev" begin
     @test isrev(ForwardOrdered()) == false
-    @test isrev(ForwardOrdered()) == false
+    @test isrev(ReverseOrdered()) == true
+    @test isrev(Unordered()) == false
+    @test_throws MethodError isrev(1)
 end
 
 @testset "reverse" begin
