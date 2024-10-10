@@ -67,9 +67,9 @@ or similar optimised methods - instead it will use `findfirst`.
 """
 struct Unordered <: Order end
 
-isrev(x) = isrev(typeof(x))
-isrev(::Type{<:ForwardOrdered}) = false
+isrev(x::Order) = isrev(typeof(x))
 isrev(::Type{<:ReverseOrdered}) = true
+isrev(::Type{<:Order}) = false
 
 """
     Position <: LookupTrait
