@@ -29,6 +29,9 @@ abstract type AbstractDimStack{K,T,N,L} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
+(::Type{T})(st::AbstractDimStack) where T<:AbstractDimArray =
+    T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
+
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
 name(s::AbstractDimStack) = keys(s)
@@ -141,6 +144,7 @@ Base.eltype(::AbstractDimStack{<:Any,T}) where T = T
 Base.ndims(::AbstractDimStack{<:Any,<:Any,N}) where N = N
 Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
 Base.LinearIndices(s::AbstractDimStack) = LinearIndices(CartesianIndices(map(l -> axes(l, 1), lookup(s))))
+Base.IteratorSize(::AbstractDimStack{<:Any,<:Any,N}) where N = Base.HasShape{N}()
 function Base.eachindex(s::AbstractDimStack)
     li = LinearIndices(s)
     first(li):last(li)
@@ -161,12 +165,15 @@ Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianI
 
 @inline Base.keys(s::AbstractDimStack{K}) where K = K
 @inline Base.propertynames(s::AbstractDimStack{K}) where K = K
-Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, name) =
+@inline Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, name::Symbol) =
     rebuild_from_arrays(s, Base.setindex(layers(s), val, name))
 Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
-
-# Remove these, but explain
-Base.iterate(::AbstractDimStack, args...) = error("Use iterate(layers(s)) rather than `iterate(s)`") #iterate(layers(s), args...)
+Base.collect(st::AbstractDimStack) = parent([st[D] for D in DimIndices(st)])
+Base.Array(st::AbstractDimStack) = collect(st)
+Base.vec(st::AbstractDimStack) = vec(collect(st))
+@propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
+@propagate_inbounds Base.iterate(st::AbstractDimStack, i) = 
+    i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
@@ -195,8 +202,12 @@ function Base.merge(
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
 
-Base.map(f, s::AbstractDimStack) = _maybestack(s,map(f, values(s)))
-function Base.map(
+Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instad of map(f, stack)")
+Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) =
+    error("Use maplayers(f, stack, args...)) instad of map(f, stack, args...)")
+
+maplayers(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
+function maplayers(
     f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...
 )
     stacks = (x1, xs...)
