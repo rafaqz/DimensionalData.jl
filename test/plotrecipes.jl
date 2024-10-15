@@ -380,7 +380,7 @@ end
 end
 
 @testset "AlgebraOfGraphics" begin
-    using AlgebraOfGraphics
+    using AlgebraOfGraphics, CairoMakie
     using DimensionalData
 
     # 1d
