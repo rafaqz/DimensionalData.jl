@@ -378,3 +378,25 @@ end
     # fig, ax, _ = M.volumeslices(A3abc; z=:a)
     # M.volumeslices!(ax, A3abc;z=:a)
 end
+
+@testset "AlgebraOfGraphics" begin
+    using AlgebraOfGraphics
+    using DimensionalData
+
+    # 1d
+    A1 = rand(X(1:5); name=:test)
+    A1c = rand(X('a':'e'); name=:test)
+
+    @testset "1d, symbol indexing" begin
+        @test_nowarn data(A1) * mapping(:X, :test) * visual(Lines) |> draw
+        @test_nowarn data(A1c) * mapping(:X, :test) * visual(Lines) |> draw
+    end
+
+    @testset "1d, dim indexing" begin
+        @test_nowarn data(A1) * mapping(X, Dim{:test}) * visual(Lines) |> draw
+        @test_nowarn data(A1c) * mapping(X, Dim{:test}) * visual(Lines) |> draw
+
+        @test_nowarn data(A1) * mapping(X, :test) * visual(Lines) |> draw
+        @test_nowarn data(A1c) * mapping(X, :test) * visual(Lines) |> draw
+    end
+end
