@@ -399,4 +399,12 @@ end
         @test_nowarn data(A1) * mapping(X, :test) * visual(Lines) |> draw
         @test_nowarn data(A1c) * mapping(X, :test) * visual(Lines) |> draw
     end
+
+    A3 = DimArray(rand(21, 5, 4), (X, Y, Dim{:p}); name = :RandomData)
+    
+    @testset "3d faceting" begin
+        @test_nowarn data(A3) * visual(Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        fg = data(A3) * visual(Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        @test sum(x -> x isa AoG.Makie.Axis, AoG.Makie.contents(fg.figure.layout)) == size(A3, Y)
+    end
 end
