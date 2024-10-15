@@ -405,6 +405,6 @@ end
     @testset "3d faceting" begin
         @test_nowarn data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
         fg = data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
-        @test sum(x -> x isa AoG.Makie.Axis, AoG.Makie.contents(fg.figure.layout)) == size(A3, Y)
+        @test sum(x -> x isa AoG.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
     end
 end
