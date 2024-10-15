@@ -431,12 +431,34 @@ function DimArray(A::AbstractBasicDimArray;
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
 # Write a single column from a table with one or more coordinate columns to a DimArray
-function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, kw...)
-    data = restore_array(table, dims; selector=selector, missingval=missing, name=name, precision=precision)
-    col = name == NoName() ? _data_col_names(table, dims) |> first : Symbol(name)
-    return DimArray(data, dims, name=col; kw...)
+function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, missingval=missing, kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+
+    # Get array dimensions
+    dims = guess_dims(table, dims, precision=precision)
+
+    # Determine row indices based on coordinate values
+    indices = coords_to_indices(table, dims; selector=selector)
+
+    # Extract the data column correspondong to `name`
+    col = name == NoName() ? data_col_names(table, dims) |> first : Symbol(name)
+    data = Tables.getcolumn(table, col)
+
+    # Restore array data
+    array = restore_array(data, indices, dims, missingval)
+
+    # Return DimArray
+    return DimArray(array, dims, name=col; kw...)
 end
-DimArray(table; kw...) = DimArray(table, _guess_dims(table; kw...); kw...)
+# Same as above, but guess dimension names
+function DimArray(table; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+
+    # Use default dimension 
+    return DimArray(table, guess_dims(table; kw...); kw...)
+end
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -445,7 +467,7 @@ Apply function `f` across the values of the dimension `dim`
 the given dimension. Optionally provide a name for the result.
 """
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
-     DimArray(f.(val(dim)), (dim,); name)
+    DimArray(f.(val(dim)), (dim,); name)
 end
 
 const DimVector = DimArray{T,1} where T

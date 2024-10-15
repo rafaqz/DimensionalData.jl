@@ -1,52 +1,19 @@
 """
-    restore_array(table; kw...)
-    restore_array(table, dims::Tuple; name=NoName(), missingval=missing, selector=Near(), precision=6)
+    restore_array(data::AbstractVector, indices::AbstractVector{<:Integer}, dims::Tuple, missingval)
 
 Restore a dimensional array from its tabular representation.
 
 # Arguments
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other tabular data structure. 
-Rows can be missing or out of order.
-- `dims`: The dimensions of the corresponding `DimArray`. The dimensions may be explicitly defined, or they
-may be inferred from the data. In the second case, `restore_array` accepts the same arguments as `guess_dims`.
-  
-# Keyword Arguments
-- `name`: The name of the column in `table` from which to restore the array. Defaults to the 
-first non-dimensional column.
-- `missingval`: The value to store for missing rows.
-- `selector`: The `Selector` to use when matching coordinates in `table` to their corresponding
-indices in `dims`.
-- `precision`: Specifies the number of digits to use for guessing dimensions (default = `6`).
+- `data`: An `AbstractVector` containing the flat data to be written to a `DimArray`.
+- `indices`: An `AbstractVector` containing the flat indices corresponding to each element in `data`.
+- `dims`: The dimensions of the destination `DimArray`.
+- `missingval`: The value to write for missing elements in `data`.
 
-# Example
-```julia
-julia> d = DimArray(rand(256, 256), (X, Y));
-
-julia> t = DimTable(d);
-
-julia> restored = restore_array(t);
-
-julia> all(restored .== d)
-true
+# Returns
+An `Array` containing the ordered valued in `data` with the size specified by `dims`.
 ```
 """
-restore_array(table; kw...) = restore_array(table, _dim_col_names(table); kw...)
-function restore_array(table, dims::Tuple; name=NoName(), missingval=missing, selector=DimensionalData.Near(), precision=6)
-    # Get array dimensions
-    dims = guess_dims(table, dims, precision=precision)
-
-    # Determine row indices based on coordinate values
-    indices = coords_to_indices(table, dims; selector=selector)
-
-    # Extract the data column correspondong to `name`
-    col = name == NoName() ? _data_col_names(table, dims) |> first : Symbol(name)
-    data = _get_column(table, col)
-
-    # Restore array data
-    return _restore_array(data, indices, dims, missingval)
-end
-
-function _restore_array(data::AbstractVector, indices::AbstractVector{<:Integer}, dims::Tuple, missingval)
+function restore_array(data::AbstractVector, indices::AbstractVector{<:Integer}, dims::Tuple, missingval)
     # Allocate Destination Array
     dst_size = prod(map(length, dims))
     dst = Vector{eltype(data)}(undef, dst_size)
@@ -143,28 +110,63 @@ julia> dims(d)
 ↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
 
 julia> DD.guess_dims(t)
-↓ X    Sampled{Float64} LinRange{Float64}(610000.0, 661180.0, 2560) ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} LinRange{Float64}(6.84142e6, 6.79024e6, 2560) ReverseOrdered Regular Points,
+↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
+→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
 ↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
 
-julia> DD.guess_dims(t, (X, Y, :Band))
-↓ X    Sampled{Float64} LinRange{Float64}(610000.0, 661180.0, 2560) ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} LinRange{Float64}(6.84142e6, 6.79024e6, 2560) ReverseOrdered Regular Points,
+julia> DD.guess_dims(t, X, Y, :Band)
+↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
+→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
 ↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
 
-julia> DD.guess_dims(t_rand, (X => DD.ForwardOrdered(), Y => DD.ReverseOrdered(), :Band => DD.ForwardOrdered()))
-↓ X    Sampled{Float64} LinRange{Float64}(610000.0, 661180.0, 2560) ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} LinRange{Float64}(6.84142e6, 6.79024e6, 2560) ReverseOrdered Regular Points,
+julia> DD.guess_dims(t_rand, X => DD.ForwardOrdered, Y => DD.ReverseOrdered, :Band => DD.ForwardOrdered)
+↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
+→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
 ↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
 ```
 """
-guess_dims(table; kw...) = guess_dims(table, filter(x -> x in Tables.columnnames(table), (:X,:Y,:Z,:Ti,:Band)); kw...)
-guess_dims(table, dims::Tuple; kw...) = map(dim -> guess_dims(table, dim; kw...), dims)
-guess_dims(table, dim; precision=6) = _guess_dims(_get_column(table, dim), dim, precision)
+guess_dims(table; kw...) = guess_dims(table, _dim_col_names(table); kw...)
+function guess_dims(table, dims::Tuple; precision=6)
+    map(dim -> _guess_dims(get_column(table, dim), dim, precision), dims)
+end
+
+"""
+    get_column(table, dim::Type{<:DD.Dimension})
+    get_column(table, dim::DD.Dimension)
+    get_column(table, dim::Symbol)
+    get_column(table, dim::Pair)
+
+Retrieve the coordinate data stored in the column specified by `dim`.
+
+# Arguments
+- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+- `dim`: A single dimension to be retrieved, which may be a `Symbol`, a `Dimension`, or a `Dimension => Order` pair.
+"""
+get_column(table, x::Type{<:DD.Dimension}) = Tables.getcolumn(table, DD.name(x))
+get_column(table, x::DD.Dimension) = Tables.getcolumn(table, DD.name(x))
+get_column(table, x::Symbol) = Tables.getcolumn(table, x)
+get_column(table, x::Pair) = get_column(table, first(x))
+
+"""
+    data_col_names(table, dims::Tuple)
+
+Return the names of all columns that don't matched the dimensions given by `dims`.
+
+# Arguments
+- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+- `dims`: A `Tuple` of one or more `Dimensions`.
+"""
+function data_col_names(table, dims::Tuple)
+    dim_cols = DD.name(dims)
+    return filter(x -> !(x in dim_cols), Tables.columnnames(table))
+end
 
 _guess_dims(coords::AbstractVector, dim::DD.Dimension, args...) = dim
 _guess_dims(coords::AbstractVector, dim::Type{<:DD.Dimension}, args...) = _guess_dims(coords, DD.name(dim), args...)
 _guess_dims(coords::AbstractVector, dim::Pair, args...) = _guess_dims(coords, first(dim), last(dim), args...)
+function _guess_dims(coords::AbstractVector, dim::Symbol, ::Type{T}, precision::Int) where {T <: DD.Order}
+    return _guess_dims(coords, dim, T(), precision)
+end
 function _guess_dims(coords::AbstractVector, dim::Symbol, precision::Int)
     dim_vals = _dim_vals(coords, precision)
     order = _guess_dim_order(dim_vals)
@@ -189,14 +191,8 @@ _dim_col_names(table, dims::Tuple) = map(col -> Tables.getcolumn(table, col), DD
 
 # Extract data columns from table
 function _data_cols(table, dims::Tuple)
-    data_cols = _data_col_names(table, dims)
+    data_cols = data_col_names(table, dims)
     return NamedTuple{Tuple(data_cols)}(Tables.getcolumn(table, col) for col in data_cols)
-end
-
-# Get names of data columns from table
-function _data_col_names(table, dims::Tuple)
-    dim_cols = DD.name(dims)
-    return filter(x -> !(x in dim_cols), Tables.columnnames(table))
 end
 
 # Determine the ordinality of a set of coordinates
@@ -281,12 +277,6 @@ function _build_dim(vals::AbstractVector{<:Union{Number,Dates.AbstractTime}}, di
     dim_vals = StepRangeLen(first(vals), span.step, n)
     return rebuild(name2dim(dim), DD.Sampled(dim_vals, order=order, span=span, sampling=DD.Points()))
 end
-
-_get_column(table, x::Type{<:DD.Dimension}) = Tables.getcolumn(table, DD.name(x))
-_get_column(table, x::DD.Dimension) = Tables.getcolumn(table, DD.name(x))
-_get_column(table, x::Symbol) = Tables.getcolumn(table, x)
-_get_column(table, x::Pair) = _get_column(table, first(x))
-
 
 # Determine the index from a tuple of coordinate orders
 function _ords_to_indices(ords, dims)
