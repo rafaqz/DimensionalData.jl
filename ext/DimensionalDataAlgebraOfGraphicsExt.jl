@@ -3,6 +3,11 @@ module DimensionalDataAlgebraOfGraphicsExt
 import AlgebraOfGraphics as AoG
 import DimensionalData as DD
 
+# We can't use `DD.Dimensions.DimOrDimType` because that's a union with Symbol,
+# which causes an ambiguity and would otherwise override the dedicated Symbol 
+# `select` method in AoG.
+const DimOrType = Union{DD.Dimensions.Dimension, Type{<: DD.Dimensions.Dimension}}
+
 #=
 
 This extension allows DimensionalData `Dimension` types to be used
@@ -14,7 +19,7 @@ objects, which is the type that `AlgebraOfGraphics.data` returns.
 =#
 
 # The generic selector, to enable this to work even in `DataFrame(dimarray)`
-function AoG.select(data::AoG.Columns, dim::DD.Dimensions.DimOrDimType)
+function AoG.select(data::AoG.Columns, dim::DimOrType)
     name = DD.name(dim)
     v = AoG.getcolumn(data.columns, Symbol(name))
     return (v,) => identity => AoG.to_string(name) => nothing
@@ -23,7 +28,7 @@ end
 # The specific selector for `DimTable`s.
 # This searches the dimensions of the dimtable for the appropriate dimension,
 # so that e.g. `X` also applies to any `XDim`, and so forth.
-function AoG.select(data::AoG.Columns{<: DD.DimTable}, dim::DD.Dimensions.DimOrDimType)
+function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
     available_dimension = DD.dims(data.columns, dim)
     name = DD.name(available_dimension)
     v = AoG.getcolumn(data.columns, Symbol(name))
