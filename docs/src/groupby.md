@@ -1,19 +1,19 @@
 # Group By
 
 DimensionalData.jl provides a `groupby` function for dimensional
-grouping. This guide will cover:
+grouping. This guide covers:
 
 - simple grouping with a function
 - grouping with `Bins`
-- grouping with another existing `AbstractDimArry` or `Dimension`
+- grouping with another existing `AbstractDimArray` or `Dimension`
 
 
 ## Grouping functions
 
-Lets look at the kind of functions that can be used to group `DateTime`.
+Let's look at the kind of functions that can be used to group `DateTime`.
 Other types will follow the same principles, but are usually simpler.
 
-First load some packages:
+First, load some packages:
 
 ````@example groupby
 using DimensionalData
@@ -29,9 +29,9 @@ Now create a demo `DateTime` range
 tempo = range(DateTime(2000), step=Hour(1), length=365*24*2)
 ````
 
-Lets see how some common functions work.
+Let's see how some common functions work.
 
-The `hour` function will transform values to hour of the day - the integers `0:23`
+The `hour` function will transform values to the hour of the day - the integers `0:23`
 
 :::tabs
 
@@ -86,7 +86,7 @@ yearmonthday.(tempo)
 
 == custom
 
-We can create our own function that return tuples
+We can create our own function that returns tuples
 
 ````@example groupby
 yearday(x) = (year(x), dayofyear(x))
@@ -104,7 +104,7 @@ yearday.(tempo)
 
 ## Grouping and reducing
 
-Lets define an array with a time dimension of the times used above:
+Let's define an array with a time dimension of the times used above:
 
 ````@ansi groupby
 A = rand(X(1:0.01:2), Ti(tempo))
@@ -195,7 +195,7 @@ mean.(groupby(A, Ti=>Bins(month, [1, 3, 5])))
 == bin groups
 
 We can also specify an `AbstractArray` of grouping `AbstractArray`:
-Her we group by month, and bin the summer and winter months:
+Here we group by month, and bin the summer and winter months:
 
 ````@ansi groupby
 groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]]; labels=x -> string.(x)))
@@ -203,7 +203,7 @@ groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]]; labels=x -> string.(x)))
 
 == range bins
 
-First, lets see what [`ranges`](@ref) does:
+First, let's see what [`ranges`](@ref) does:
 
 ````@ansi groupby
 ranges(1:8:370)
@@ -285,7 +285,7 @@ We can also select by `Dimension`s and any objects with `dims` methods.
 
 == groupby dims
 
-Trivially, grouping by an objects own dimension is similar to `eachslice`:
+Trivially, grouping by an object's own dimension is similar to `eachslice`:
 
 ````@ansi groupby
 groupby(A, dims(A, Ti))
@@ -293,7 +293,7 @@ groupby(A, dims(A, Ti))
 
 == groupby AbstractDimArray
 
-But we can also group by other objects dimensions:
+But we can also group by other objects' dimensions:
 
 ````@ansi groupby
 B = A[:, 1:3:100]
