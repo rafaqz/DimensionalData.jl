@@ -34,7 +34,7 @@ function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
     # If the dimension is not found, it might be the name of the 
     # underlying array.
     name = if isnothing(available_dimension)
-        if DD.name(dim) == DD.name(parent(data.columns))
+        if DD.name(dim) in DD.name(parent(data.columns))
             # TODO: should we error here, and tell the user they should
             # use a symbol instead of a dimension?
             return DD.name(dim)
