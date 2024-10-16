@@ -29,9 +29,25 @@ end
 # This searches the dimensions of the dimtable for the appropriate dimension,
 # so that e.g. `X` also applies to any `XDim`, and so forth.
 function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
+    # Query the dimensions in the table for the dimension
     available_dimension = DD.dims(data.columns, dim)
-    name = DD.name(available_dimension)
+    # If the dimension is not found, it might be the name of the 
+    # underlying array.
+    name = if isnothing(available_dimension)
+        if DD.name(dim) == DD.name(parent(data.columns))
+            # TODO: should we error here, and tell the user they should
+            # use a symbol instead of a dimension?
+            return DD.name(dim)
+        else
+            error("Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), and neither was it the name of the array ($(DD.name(parent(data.columns)))).")
+        end
+    else
+        # The dimension was found, so use that name.
+        DD.name(available_dimension)
+    end
+    # Get the column from the table
     v = AoG.getcolumn(data.columns, Symbol(name))
+    # Return the column, with the appropriate labels
     return (v,) => identity => AoG.to_string(name) => nothing
 end
 
