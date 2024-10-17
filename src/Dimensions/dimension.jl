@@ -286,6 +286,7 @@ Base.first(d::Dimension) = val(d)
 Base.first(d::Dimension{<:AbstractArray}) = first(lookup(d))
 Base.last(d::Dimension) = val(d)
 Base.last(d::Dimension{<:AbstractArray}) = last(lookup(d))
+Base.IteratorSize(d::Dimension{<:AbstractArray}) = Base.IteratorSize(parent(d))
 Base.firstindex(d::Dimension) = 1
 Base.lastindex(d::Dimension) = 1
 Base.firstindex(d::Dimension{<:AbstractArray}) = firstindex(lookup(d))
