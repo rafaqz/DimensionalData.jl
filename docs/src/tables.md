@@ -4,7 +4,7 @@
 
 DimensionalData.jl implements the Tables.jl interface for `AbstractDimArray` and `AbstractDimStack`. `DimStack` layers are unrolled so they are all the same size, and dimensions loop to match the length of the largest layer.
 
-Columns are given the [`name`](@ref) of the array or the stack layer key, or the result of `DD.name(dimension)` for `Dimension` columns.
+Columns are given the [`name`](@ref) of the array or stack layer, and the result of `DD.name(dimension)` for `Dimension` columns.
 
 Looping of dimensions and stack layers is done _lazily_,
 and does not allocate unless collected.
