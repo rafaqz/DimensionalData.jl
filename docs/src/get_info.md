@@ -2,9 +2,9 @@
 
 DimensionalData.jl defines consistent methods to retrieve information
 from objects like `DimArray`, `DimStack`, `Tuple`s of `Dimension`,
-`Dimension` and `Lookup`.
+`Dimension`, and `Lookup`.
 
-First we will define an example `DimArray`.
+First, we will define an example `DimArray`.
 
 ```@example getters
 using DimensionalData
@@ -22,8 +22,8 @@ A = rand(x, y)
 
 `dims` retrieves dimensions from any object that has them.
 
-What makes it so useful is you can filter which dimensions
-you want in what order, using any `Dimension`, `Type{Dimension}`
+What makes it so useful is that you can filter which dimensions
+you want, and specify in what order, using any `Dimension`, `Type{Dimension}`
 or `Symbol`.
 
 ```@ansi getters
@@ -113,8 +113,8 @@ span(lookup(A, Y))
 Get the locus of a `Lookup`, or a `Tuple`
 from a `DimArray` or `DimTuple`.
 
-(locus is our term for distinguishing if an lookup value
-specifies the start, center or end of an interval)
+(`locus` is our term for distinguishing if an lookup value
+specifies the start, center, or end of an interval)
 
 ```@ansi getters
 locus(A)
@@ -166,7 +166,7 @@ extent(dims(A, Y))
 ## Predicates
 
 These always return `true` or `false`. With multiple
-dimensions, `fale` means `!all` and `true` means `all`.
+dimensions, `false` means `!all` and `true` means `all`.
 
 `dims` and all other methods listed above can use predicates
 to filter the returned dimensions.

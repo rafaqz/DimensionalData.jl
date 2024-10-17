@@ -1,21 +1,20 @@
 # Dimensional broadcasts with `@d` and `broadcast_dims`
 
 Broadcasting over AbstractDimArray works as usual with Base Julia broadcasts,
-except that dimensions are checked for compatibility with eachother, and that
-values match. Strict checks can be turned of globally with
+except that dimensions are checked for compatibility with each other, and that
+values match. Strict checks can be turned off globally with
 `strict_broadcast!(false)`. 
 To avoid even dimension name checks, broadcast over `parent(dimarray)`.
 
-The [`@d`](@ref) macro is a dimension-aware extension to regular dot brodcasting.
-[`broadcast_dims`](@ref) and [`broadcast_dims`](@ref) are analagous to Base
-julia `broadcast`. 
+The [`@d`](@ref) macro is a dimension-aware extension to regular dot broadcasting.
+[`broadcast_dims`](@ref) is analogous to Base Julia's `broadcast`. 
 
-Because we know the names of the dimensions, there is no ambiguity in which one
+Because we know the names of the dimensions, there is no ambiguity in which ones
 we mean to broadcast together. This means we can permute and reshape dims so
 that broadcasts that would fail with a regular `Array` just work with a
 `DimArray`. 
 
-As an added bonus, `broadcast_dims` even works on `DimStack`s. Currently `@d` 
+As an added bonus, `broadcast_dims` even works on `DimStack`s. Currently, `@d` 
 does not work on `DimStack`.
 
 ## Example: scaling along the time dimension
