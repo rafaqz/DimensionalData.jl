@@ -115,7 +115,7 @@ A[X=Where(>=(1.5)), Y=Where(x -> x in (:a, :c))]
 
 == Not
 
-The [`Not(x)`](@ref) selector gets all indices _not_ selected by `x`, which can be another selector.
+The `Not(x)` selector gets all indices _not_ selected by `x`, which can be another selector.
 `Not` is like indexing with a `Vector{Bool}`.
 
 ````@ansi selectors
