@@ -50,7 +50,7 @@ CuArray{Float32, 2, CUDA.Mem.DeviceBuffer}
 
 DimensionalData.jl has two GPU-related goals:
 
-1. Work seamlessly with base Julia broadcasts and other operations that already
+1. Work seamlessly with `Base` Julia broadcasts and other operations that already
    work on GPU.
 2. Work as arguments to custom GPU kernel functions.
 
