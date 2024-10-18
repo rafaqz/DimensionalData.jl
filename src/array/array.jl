@@ -334,7 +334,7 @@ end
     DimArray <: AbstractDimArray
 
     DimArray(data, dims, refdims, name, metadata)
-    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata(), selector=Contains())
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -344,12 +344,13 @@ moves dimensions to reference dimension `refdims` after reducing operations
 
 ## Arguments
 
-- `data`: An `AbstractArray`.
+- `data`: An `AbstractArray` or a table with coordinate columns corresponding to `dims`.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
+- `selector`: The coordinate selector type to use when materializing from a table.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
@@ -429,6 +430,35 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Write a single column from a table with one or more coordinate columns to a DimArray
+function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, missingval=missing, kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+
+    # Get array dimensions
+    dims = guess_dims(table, dims, precision=precision)
+
+    # Determine row indices based on coordinate values
+    indices = coords_to_indices(table, dims; selector=selector)
+
+    # Extract the data column correspondong to `name`
+    col = name == NoName() ? data_col_names(table, dims) |> first : Symbol(name)
+    data = Tables.getcolumn(table, col)
+
+    # Restore array data
+    array = restore_array(data, indices, dims, missingval)
+
+    # Return DimArray
+    return DimArray(array, dims, name=col; kw...)
+end
+# Same as above, but guess dimension names
+function DimArray(table; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+
+    # Use default dimension 
+    return DimArray(table, guess_dims(table; kw...); kw...)
+end
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -437,7 +467,7 @@ Apply function `f` across the values of the dimension `dim`
 the given dimension. Optionally provide a name for the result.
 """
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
-     DimArray(f.(val(dim)), (dim,); name)
+    DimArray(f.(val(dim)), (dim,); name)
 end
 
 const DimVector = DimArray{T,1} where T
