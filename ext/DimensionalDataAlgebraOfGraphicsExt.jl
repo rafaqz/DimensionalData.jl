@@ -37,7 +37,7 @@ function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
         if DD.name(dim) in DD.name(parent(data.columns))
             # TODO: should we error here, and tell the user they should
             # use a symbol instead of a dimension?
-            return DD.name(dim)
+            DD.name(dim)
         else
             error("Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), and neither was it the name of the array ($(DD.name(parent(data.columns)))).")
         end
