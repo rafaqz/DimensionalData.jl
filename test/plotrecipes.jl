@@ -378,3 +378,31 @@ end
     # fig, ax, _ = M.volumeslices(A3abc; z=:a)
     # M.volumeslices!(ax, A3abc;z=:a)
 end
+
+@testset "AlgebraOfGraphics" begin
+    using AlgebraOfGraphics, CairoMakie
+    using DimensionalData
+
+    # 1d
+    A1 = rand(X(1:5); name=:test)
+    A1c = rand(X('a':'e'); name=:test)
+
+    @testset "1d, symbol indexing" begin
+        @test_nowarn data(A1) * mapping(:X, :test) * visual(CairoMakie.Lines) |> draw
+        @test_nowarn data(A1c) * mapping(:X, :test) * visual(CairoMakie.Lines) |> draw
+    end
+
+    @testset "1d, dim indexing" begin
+        @test_nowarn data(A1) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
+        @test_nowarn data(A1c) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
+    end
+
+    A3 = DimArray(rand(21, 5, 4), (X, Y, Dim{:p}); name = :RandomData)
+    
+    @testset "3d faceting" begin
+        @test_nowarn data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        fg = data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        # Test that the number of axes is equal to the size of A3 in the y dimension.
+        @test sum(x -> x isa AlgebraOfGraphics.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
+    end
+end
