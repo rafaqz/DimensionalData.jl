@@ -35,9 +35,11 @@ function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
     # underlying array.
     name = if isnothing(available_dimension)
         if DD.name(dim) in DD.name(parent(data.columns))
-            # TODO: should we error here, and tell the user they should
-            # use a symbol instead of a dimension?
-            DD.name(dim)
+            error(
+                "Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), **but** it is" *
+                (length(DD.name(parent(data.columns))) > 1 ? "a layer of the parent array" : "the name of the parent array") *
+                ".\n\nYou can pass this directly as a `Symbol`, i.e. **`:$(DD.name(dim))`**."
+            )
         else
             error("Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), and neither was it the name of the array ($(DD.name(parent(data.columns)))).")
         end
