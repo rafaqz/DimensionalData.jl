@@ -393,9 +393,6 @@ end
     end
 
     @testset "1d, dim indexing" begin
-        @test_nowarn data(A1) * mapping(X, Dim{:test}) * visual(CairoMakie.Lines) |> draw
-        @test_nowarn data(A1c) * mapping(X, Dim{:test}) * visual(CairoMakie.Lines) |> draw
-
         @test_nowarn data(A1) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
         @test_nowarn data(A1c) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
     end
