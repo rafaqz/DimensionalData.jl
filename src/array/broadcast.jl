@@ -106,7 +106,7 @@ end
 Dimensional broadcast macro extending Base Julia
 broadcasting to work with missing and permuted dimensions.
 
-Will permute and resshape singleton dimensions
+Will permute and reshape singleton dimensions
 so that all [`AbstractDimArray`](@ref) in a broadcast will
 broadcast over matching dimensions.
 
@@ -150,7 +150,7 @@ da1 = ones(X(3))
 da2 = fill(2, Y(4), X(3))
 
 @d @. da1 * da2
-# Use parentheses areound `@.` if you need to pass options
+# Use parentheses around `@.` if you need to pass options
 @d (@. da1 * da2 .+ 5) dims=(Y, X)
 ```
 
