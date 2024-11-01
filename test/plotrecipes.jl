@@ -408,6 +408,8 @@ end
 
     @testset "DimPoints" begin
         DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> scatter
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> plot
         DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> scatter
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> plot
     end
 end

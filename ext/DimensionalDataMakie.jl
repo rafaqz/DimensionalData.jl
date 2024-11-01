@@ -379,6 +379,7 @@ end
 Makie.plottype(::AbstractDimVector) = Makie.Scatter
 Makie.plottype(::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
+Makie.plottype(::DimPoints) = Makie.Scatter
 
 # TODO this needs to be added to Makie
 # Makie.to_endpoints(x::Tuple{Makie.Unitful.AbstractQuantity,Makie.Unitful.AbstractQuantity}) = (ustrip(x[1]), ustrip(x[2]))
