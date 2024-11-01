@@ -223,29 +223,34 @@ function _process_d_macro_options(options::Expr)
     return options_dict, options_expr
 end
 
+# Handle existing variable names
+_find_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
+# Handle e.g. 1 in the expression
+function _find_broadcast_vars(x)
+    var = Symbol(gensym(), :_d)
+    esc(var), Pair{Symbol,Any}[var => x]
+end
 # Walk the broadcast expression, finding broadcast arguments and 
 # pulling them out of the main broadcast into separate variables. 
 # This lets us get `dims` from all of them and use it to reshape 
 # and permute them so they all match.
-_find_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
 function _find_broadcast_vars(expr::Expr)
     if expr.head == :macrocall && expr.args[1] == Symbol("@__dot__")
         return _find_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
     end
     mdb = :($DimensionalData._maybe_dimensional_broadcast)
     arg_list = Pair{Symbol,Any}[]
-    if expr.head == :. # function dot broadcast
+    if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
         if expr.args[2] isa Expr
             wrapped_args = map(expr.args[2].args) do arg
                 var = Symbol(gensym(), :_d)
-                out = if arg isa Expr
-                    expr1, arg_list1 = _find_broadcast_vars(arg)
+                expr1, arg_list1 = _find_broadcast_vars(arg)
+                out = if isempty(arg_list1)
+                    push!(arg_list, var => arg)
+                    esc(var)
+                else
                     append!(arg_list, arg_list1)
                     expr1
-                else
-                    arg1 = arg
-                    push!(arg_list, var => arg1)
-                    esc(var)
                 end
                 Expr(:call, mdb, out, :dims, :options)
             end
@@ -255,13 +260,13 @@ function _find_broadcast_vars(expr::Expr)
     elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
         wrapped_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
-            out = if arg isa Expr
-                expr1, arg_list1 = _find_broadcast_vars(arg)
-                append!(arg_list, arg_list1)
-                expr1
-            else
+            expr1, arg_list1 = _find_broadcast_vars(arg)
+            out = if isempty(arg_list1)
                 push!(arg_list, var => arg)
                 esc(var)
+            else
+                append!(arg_list, arg_list1)
+                expr1
             end
             Expr(:call, mdb, out, :dims, :options)
         end
@@ -442,6 +447,6 @@ end
     end
 end
 @inline _find_dims((d, args...)::Tuple{<:Dimension,Vararg}) =
-    (d, otherdims(_find_dims(args), (d,)))
+    (d, otherdims(_find_dims(args), (d,))...)
 @inline _find_dims(::Tuple{}) = ()
 @inline _find_dims((_, args...)::Tuple) = _find_dims(args)

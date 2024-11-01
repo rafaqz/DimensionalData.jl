@@ -391,6 +391,21 @@ end
 
     @testset "Dimension" begin
         @test (@d X(1:3) .* X(10:10:30) strict=false) == [10, 40, 90]
+        da = @d string.(X(10:10:30), Y([:a, :b, :c]), Z(1:2:5))
+        @test da == (xs -> string(xs...)).(DimPoints((X(10:10:30), Y([:a, :b, :c]), Z(1:2:5))))
+    end
+
+    @testset "stack fields" begin
+        xs = 1.0:10.0
+        v1 = DimVector(identity, X(xs); name=:v1)
+        v2 = DimVector(x -> 2x, X(xs); name=:v2)
+        ds = DimStack(v1)
+        @test (@d v1 .* v2) == (@d ds.v1 .* v2)
+    end
+
+    @testset "numbers etc" begin
+        dv = DimArray(identity, X(1.0:10.0); name=:x)
+        @test (@d dv .* 2) == (dv .* 2) 
     end
 end
 
