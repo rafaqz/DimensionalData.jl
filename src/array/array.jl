@@ -439,6 +439,7 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+DimVector(f::Function, dim::Dimension; kw...) = DimArray(f::Function, dim::Dimension; kw...) 
 
 const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
