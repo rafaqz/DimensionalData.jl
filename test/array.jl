@@ -456,6 +456,11 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
+
+@testset "generator constructor" begin
+    [(x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0)]
+end
+
 @testset "ones, zeros, trues, falses constructors" begin
     da = @inferred zeros(X(4), Y(40.0:10.0:80.0; order=ForwardOrdered()); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
