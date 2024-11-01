@@ -42,7 +42,7 @@ end
 @propagate_inbounds function Base.getindex(s::AbstractDimStack{<:Any,<:Any,N}, i::Integer) where N
     if N == 1 && hassamedims(s)
         # This is a few ns faster when possible
-        map(l -> l[i], s)
+        map(l -> l[i], data(s))
     else
         # Otherwise use dimensional indexing
         s[DimIndices(s)[i]]
@@ -117,7 +117,7 @@ for f in (:getindex, :view, :dotview)
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
         @propagate_inbounds function $_dim_f(s::AbstractDimStack)
-            map(Base.$f, s)
+            map(Base.$f, data(s))
         end
         Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(s::AbstractDimStack{K}, d1::Dimension, ds::Dimension...) where K
             D = (d1, ds...)
