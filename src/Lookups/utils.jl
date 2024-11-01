@@ -113,3 +113,8 @@ _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).lef
 
 @deprecate maybeshiftlocus maybeshiftlocus
 @deprecate shiftlocus shiftlocus
+
+# Remove objects of type T from a 
+Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)
+Base.@assume_effects :foldable _remove(::Type{T}, ::T, xs...) where T = _remove(T, xs...)
+Base.@assume_effects :foldable _remove(::Type) = ()

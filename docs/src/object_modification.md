@@ -1,4 +1,4 @@
-# Modifying objects
+# Modifying Objects
 
 DimensionalData.jl objects are all `struct` rather than
 `mutable struct`. The only things you can modify in-place
@@ -28,7 +28,7 @@ parent(A_mod)
 
 == stack
 
-For a stack this applied to all layers, and is where `modify`
+For a stack, this applies to all layers, and is where `modify`
 starts to be more powerful:
 
 ````@ansi helpers
@@ -42,8 +42,8 @@ parent(modify(Array, st).b)
 
 ## `reorder`
 
-[`reorder`](@ref) is like reverse but declaritive, rather than
-imperitive: we tell it how we want the object to be, not what to do.
+[`reorder`](@ref) is like reverse but declarative, rather than
+imperative: we tell it how we want the object to be, not what to do.
 
 ::::tabs
 
@@ -75,11 +75,13 @@ dimensions into a single combined dimension with a lookup holding
 ## `rebuild`
 
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
-Basically everything uses it somewhere. And you can to, with a few caveats.
+Basically everything uses it somewhere. And you can too, with a few caveats.
 
-`rebuild` assumes you _know what you are doing_. You can quite eaily set
-values to things that don't make sense. The constructor may check a few things,
-like the number of dimensions matches the axes of the array. But not much else.
+!!! warning
+
+    `rebuild` assumes you _know what you are doing_. You can quite easily set
+    values to things that don't make sense. The constructor may check a few things,
+    like the number of dimensions matches the axes of the array. But not much else.
 
 :::: tabs
 
@@ -100,7 +102,7 @@ metadata(A1)
 ::::
 
 The most common use internally is the arg version on `Dimension`.
-This is _very_ useful in dimension-based algorithmsas a way
+This is _very_ useful in dimension-based algorithms as a way
 to transform a dimension wrapper from one object to another:
 
 ```@ansi helpers
@@ -113,13 +115,13 @@ rebuild(d, 1:10)
 but those in [ ] brackets may be thrown away if not needed.
 Keywords in ( ) will error if used where they are not accepted.
 
-| Type                       | Keywords                                                    | Arguments            |
-|--------------------------- |------------------------------------------------------------ |----------------------|
-| [`AbstractDimArray`](@ref) | data, dims, [refdims, name, metadata]                       | as with kw, in order |
-| [`AbstractDimStack`](@ref) | data, dims, [refdims], layerdims, [metadata, layermetadata] | as with kw, in order |
-| [`Dimension`](@ref)        | val                                                         | val                  |
-| [`Selector`](@ref)         | val, (atol)                                                 | val                  |
-| [`Lookup`](@ref)      | data, (order, span, sampling, metadata)                     | keywords only        |
+| Type                       | Keywords                                                                | Arguments            |
+|:-------------------------- |:----------------------------------------------------------------------- |:---------------------|
+| [`AbstractDimArray`](@ref) | `data`, `dims`, [`refdims`, `name`, `metadata`]                         | as with kw, in order |
+| [`AbstractDimStack`](@ref) | `data`, `dims`, [`refdims`], `layerdims`, [`metadata`, `layermetadata`] | as with kw, in order |
+| [`Dimension`](@ref)        | `val`                                                                   | val                  |
+| [`Selector`](@ref)         | `val`, (`atol`)                                                         | val                  |
+| [`Lookup`](@ref)           | `data`, (`order`, `span`, `sampling`, `metadata`)                       | keywords only        |
 
 ### `rebuild` magic
 
@@ -140,11 +142,12 @@ the process.
 [`set`](@ref) gives us a way to set the values of the immutable objects
 in DD, like `Dimension` and `LookupArray`. Unlike `rebuild` it tries its best
 to _do the right thing_. You don't have to specify what field you want to set.
-just pass in the object you want to be part of the lookup. Usually, there is
+Just pass in the object you want to be part of the lookup. Usually, there is
 no possible ambiguity.
 
 `set` is still improving. Sometimes it may not do the right thing.
-If you think this is the case, make a github issue.
+If you think this is the case, create a
+[GitHub issue](https://github.com/rafaqz/DimensionalData.jl/issues).
 
 :::: tabs
 

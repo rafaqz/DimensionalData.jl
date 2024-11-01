@@ -4,7 +4,7 @@
 Abstract supertype of all dimension types.
 
 Example concrete implementations are [`X`](@ref), [`Y`](@ref), [`Z`](@ref),
-[`Ti`](@ref) (Time), and the custom [`Dim`]@ref) dimension.
+[`Ti`](@ref) (Time), and the custom [`Dim`](@ref) dimension.
 
 `Dimension`s label the axes of an `AbstractDimArray`,
 or other dimensional objects, and are used to index into an array.
@@ -95,14 +95,14 @@ abstract type Dimension{T} end
 """
     IndependentDim <: Dimension
 
-Abstract supertype for independent dimensions. Thise will plot on the X axis.
+Abstract supertype for independent dimensions. These will plot on the X axis.
 """
 abstract type IndependentDim{T} <: Dimension{T} end
 
 """
     DependentDim <: Dimension
 
-Abstract supertype for Dependent dimensions. These will plot on the Y axis.
+Abstract supertype for dependent dimensions. These will plot on the Y axis.
 """
 abstract type DependentDim{T} <: Dimension{T} end
 
@@ -184,8 +184,9 @@ lookuptype(x) = NoLookup
 
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
+name(dim::Type{D}) where D<:Dimension = nameof(D)
 
-label(x) = string(string(name(x)), (units(x) === nothing ? "" : string(" ", units(x))))
+label(x) = string(name(x))
 
 # Lookups methods
 Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
@@ -223,30 +224,45 @@ for func in (:order, :span, :sampling, :locus)
     @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
 end
 
-# Dipatch on Tuple{<:Dimension}, and map to single dim methods
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
 for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
           :name, :label, :units)
     @eval begin
-        $f(ds::DimTuple) = map($f, ds)
+        $f(ds::Tuple) = map($f, ds)
         $f(::Tuple{}) = ()
-        $f(ds::DimTuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::DimTuple, I) = $f(dims(ds, key2dim(I)))
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
     end
 end
 
-@inline function selectindices(x, selectors)
+@inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
         # This object has no dimensions and no `selectindices` method.
-        # Just return whatever it is, maybe the underlying array can use it.
+        # Just return whatever selectors is, maybe the underlying array can use it.
         return selectors
     else
         # Otherwise select indices based on the object `Dimension`s
-        return selectindices(dims(x), selectors)
+        return selectindices(dims(x), selectors; kw...)
     end
 end
-@inline selectindices(ds::DimTuple, sel...) = selectindices(ds, sel)
-@inline selectindices(ds::DimTuple, sel::Tuple) = selectindices(val(ds), sel)
-@inline selectindices(dim::Dimension, sel) = selectindices(val(dim), sel)
+@inline selectindices(ds::Tuple, sel...; kw...) = selectindices(ds, sel; kw...)
+# Cant get this to compile away without a generated function
+# The nothing handling is for if `err=_False`, and we want to combine
+# multiple `nothing` into a single `nothing` return value
+@generated function selectindices(ds::Tuple, sel::Tuple; kw...) 
+    tuple_exp = Expr(:tuple)
+    for i in eachindex(ds.parameters)
+        expr = quote 
+            x = selectindices(ds[$i], sel[$i]; kw...)
+            isnothing(x) && return nothing
+            x
+        end
+        push!(tuple_exp.args, expr)
+    end
+    return tuple_exp
+end
+@inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
+@inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
 # Deprecated
 Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
@@ -280,6 +296,11 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
 
+LookupArrays.ordered_first(d::Dimension{<:AbstractArray}) = ordered_first(lookup(d))
+LookupArrays.ordered_last(d::Dimension{<:AbstractArray}) = ordered_last(lookup(d))
+LookupArrays.ordered_firstindex(d::Dimension{<:AbstractArray}) = ordered_firstindex(lookup(d))
+LookupArrays.ordered_lastindex(d::Dimension{<:AbstractArray}) = ordered_lastindex(lookup(d))
+
 Base.size(dims::DimTuple) = map(length, dims)
 Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
@@ -287,10 +308,10 @@ Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), di
 function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
-    return Extents.Extent{dim2key(extent_dims)}(extent_bounds)
+    return Extents.Extent{name(extent_dims)}(extent_bounds)
 end
 
-dims(extent::Extents.Extent{K}) where K = map(rebuild, key2dim(K), values(extent))
+dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
 dims(extent::Extents.Extent, ds) = dims(dims(extent), ds)
 
 # Produce a 2 * length(dim) matrix of interval bounds from a dim
@@ -335,13 +356,8 @@ data from a file. Can be used as keyword arguments for indexing.
 Dimension types take precedence over same named `Dim` types when indexing
 with symbols, or e.g. creating Tables.jl keys.
 
-```jldoctest
-using DimensionalData
-
-dim = Dim{:custom}(['a', 'b', 'c'])
-
-# output
-
+```jldoctest; setup = :(using DimensionalData)
+julia> dim = Dim{:custom}(['a', 'b', 'c'])
 custom ['a', 'b', 'c']
 ```
 """
@@ -367,8 +383,7 @@ Dim{S}() where S = Dim{S}(:)
 
 name(::Type{<:Dim{S}}) where S = S
 basetypeof(::Type{<:Dim{S}}) where S = Dim{S}
-key2dim(s::Val{S}) where S = Dim{S}()
-dim2key(::Type{D}) where D<:Dim{S} where S = S
+name2dim(s::Val{S}) where S = Dim{S}()
 
 """
     AnonDim <: Dimension
@@ -385,22 +400,27 @@ AnonDim() = AnonDim(Colon())
 AnonDim(val, arg1, args...) = AnonDim(val)
 
 metadata(::AnonDim) = NoMetadata()
-name(::AnonDim) = :Anon
 
 """
-    @dim typ [supertype=Dimension] [name::String=string(typ)]
+    @dim typ [supertype=Dimension] [label::String=string(typ)]
 
-Macro to easily define new dimensions. The supertype will be inserted
-into the type of the dim. The default is simply `YourDim <: Dimension`. Making
-a Dimesion inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
+Macro to easily define new dimensions. 
+
+The supertype will be inserted into the type of the dim. 
+The default is simply `YourDim <: Dimension`. 
+
+Making a Dimension inherit from `XDim`, `YDim`, `ZDim` or `TimeDim` will affect
 automatic plot layout and other methods that dispatch on these types. `<: YDim`
 are plotted on the Y axis, `<: XDim` on the X axis, etc.
+
+`label` is used in plots and similar, 
+if the dimension is short for a longer word.
 
 Example:
 ```jldoctest
 using DimensionalData
 using DimensionalData: @dim, YDim, XDim
-@dim Lat YDim "latitude"
+@dim Lat YDim "Latitude"
 @dim Lon XDim "Longitude"
 # output
 
@@ -414,7 +434,7 @@ macro dim(typ::Symbol, supertyp::Symbol, args...)
     dimmacro(typ, supertyp, args...)
 end
 
-function dimmacro(typ, supertype, name::String=string(typ))
+function dimmacro(typ, supertype, label::String=string(typ))
     quote
         Base.@__doc__ struct $typ{T} <: $supertype{T}
             val::T
@@ -433,8 +453,10 @@ function dimmacro(typ, supertype, name::String=string(typ))
             $typ{typeof(val)}(val)
         end
         $typ() = $typ(:)
-        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(name)))
-        $Dimensions.key2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.name(::Type{<:$typ}) = $(QuoteNode(Symbol(typ)))
+        $Dimensions.name2dim(::Val{$(QuoteNode(typ))}) = $typ()
+        $Dimensions.label(::$typ) = $label
+        $Dimensions.label(::Type{<:$typ}) = $label
     end |> esc
 end
 
@@ -447,12 +469,17 @@ end
 
 X [`Dimension`](@ref). `X <: XDim <: IndependentDim`
 
-## Example:
+## Examples
+
 ```julia
 xdim = X(2:2:10)
-# Or
+```
+
+```julia
 val = A[X(1)]
-# Or
+```
+
+```julia
 mean(A; dims=X)
 ```
 """
@@ -465,12 +492,17 @@ mean(A; dims=X)
 
 Y [`Dimension`](@ref). `Y <: YDim <: DependentDim`
 
-## Example:
+## Examples
+
 ```julia
 ydim = Y(['a', 'b', 'c'])
-# Or
+```
+
+```julia
 val = A[Y(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Y)
 ```
 """
@@ -486,9 +518,13 @@ Z [`Dimension`](@ref). `Z <: ZDim <: Dimension`
 ## Example:
 ```julia
 zdim = Z(10:10:100)
-# Or
+```
+
+```julia
 val = A[Z(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Z)
 ```
 """
@@ -507,9 +543,13 @@ We use `Ti` to avoid clashes.
 ## Example:
 ```julia
 timedim = Ti(DateTime(2021, 1):Month(1):DateTime(2021, 12))
-# Or
+```
+
+```julia
 val = A[Ti(1)]
-# Or
+```
+
+```julia
 mean(A; dims=Ti)
 ```
 """

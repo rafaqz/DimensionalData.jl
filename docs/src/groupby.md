@@ -1,25 +1,26 @@
 # Group By
 
 DimensionalData.jl provides a `groupby` function for dimensional
-grouping. This guide will cover:
+grouping. This guide covers:
 
 - simple grouping with a function
 - grouping with `Bins`
-- grouping with another existing `AbstractDimArry` or `Dimension`
+- grouping with another existing `AbstractDimArray` or `Dimension`
 
 
 ## Grouping functions
 
-Lets look at the kind of functions that can be used to group `DateTime`.
+Let's look at the kind of functions that can be used to group `DateTime`.
 Other types will follow the same principles, but are usually simpler.
 
-First load some packages:
+First, load some packages:
 
 ````@example groupby
 using DimensionalData
 using Dates
 using Statistics
 const DD = DimensionalData
+nothing # hide
 ````
 
 Now create a demo `DateTime` range
@@ -28,9 +29,9 @@ Now create a demo `DateTime` range
 tempo = range(DateTime(2000), step=Hour(1), length=365*24*2)
 ````
 
-Lets see how some common functions work.
+Let's see how some common functions work.
 
-The `hour` function will transform values to hour of the day - the integers `0:23`
+The `hour` function will transform values to the hour of the day - the integers `0:23`
 
 :::tabs
 
@@ -85,10 +86,11 @@ yearmonthday.(tempo)
 
 == custom
 
-We can create our own function that return tuples
+We can create our own function that returns tuples
 
 ````@example groupby
-yearday(x) = year(x), dayofyear(x)
+yearday(x) = (year(x), dayofyear(x))
+nothing # hide
 ````
 
 You can probably guess what it does:
@@ -102,7 +104,7 @@ yearday.(tempo)
 
 ## Grouping and reducing
 
-Lets define an array with a time dimension of the times used above:
+Let's define an array with a time dimension of the times used above:
 
 ````@ansi groupby
 A = rand(X(1:0.01:2), Ti(tempo))
@@ -118,7 +120,7 @@ Group by month, using the `month` function:
 groups = groupby(A, Ti=>month)
 ````
 
-We can take the mean of each group by broadcasting over them :
+We can take the mean of each group by broadcasting over them:
 
 ````@ansi groupby
 mean.(groups)
@@ -147,9 +149,9 @@ minimum.(groupby(A, Ti=>yearmonth))
 median.(groupby(A, Ti=>hour))
 ````
 
-We can also use the function we defined above
-
 == mean yearday
+
+We can also use the function we defined above
 
 ````@ansi groupby
 mean.(groupby(A, Ti=>yearday))
@@ -173,7 +175,7 @@ For quick analysis, we can break our groups into `N` bins.
 groupby(A, Ti=>Bins(month, 4))
 ````
 
-Doing this requires slighly padding the bin edges, so the lookup
+Doing this requires slightly padding the bin edges, so the lookup
 of the output is less than ideal.
 
 == specific values as bins
@@ -193,7 +195,7 @@ mean.(groupby(A, Ti=>Bins(month, [1, 3, 5])))
 == bin groups
 
 We can also specify an `AbstractArray` of grouping `AbstractArray`:
-Her we group by month, and bin the summer and winter months:
+Here we group by month, and bin the summer and winter months:
 
 ````@ansi groupby
 groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]]; labels=x -> string.(x)))
@@ -201,7 +203,7 @@ groupby(A, Ti => Bins(month, [[12, 1, 2], [6, 7, 8]]; labels=x -> string.(x)))
 
 == range bins
 
-First, lets see what [`ranges`](@ref) does:
+First, let's see what [`ranges`](@ref) does:
 
 ````@ansi groupby
 ranges(1:8:370)
@@ -242,16 +244,16 @@ mean.(groups)
 == seasons
 
 There is a helper function for grouping by three-month seasons and getting
-nice keys for them: `season`. Note you have to call it, not just pass it!
+nice keys for them: `seasons`. Note you have to call it, not just pass it!
 
 ````@ansi groupby
-groupby(A, Ti => season())
+groupby(A, Ti => seasons())
 ````
 
 We could also start our seasons in January:
 
 ````@ansi groupby
-groupby(A, Ti => season(; start=January))
+groupby(A, Ti => seasons(; start=January))
 ````
 
 == months
@@ -283,7 +285,7 @@ We can also select by `Dimension`s and any objects with `dims` methods.
 
 == groupby dims
 
-Trivially, grouping by an objects own dimension is similar to `eachslice`:
+Trivially, grouping by an object's own dimension is similar to `eachslice`:
 
 ````@ansi groupby
 groupby(A, dims(A, Ti))
@@ -291,7 +293,7 @@ groupby(A, dims(A, Ti))
 
 == groupby AbstractDimArray
 
-But we can also group by other objects dimensions:
+But we can also group by other objects' dimensions:
 
 ````@ansi groupby
 B = A[:, 1:3:100]

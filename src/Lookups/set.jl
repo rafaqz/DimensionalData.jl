@@ -1,5 +1,7 @@
 const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing,AbstractArray}
+
 set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
+set(lookup::Lookup, ::Type{T}) where T = _set(lookup, T())
 
 # _set(lookup::Lookup, newlookup::Lookup) = lookup
 _set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
@@ -62,6 +64,26 @@ _set(order::Order, neworder::Order) = neworder
 _set(order::Order, neworder::AutoOrder) = order
 
 # Span
+_set(lookup::AbstractSampled, ::Irregular{AutoBounds}) = begin
+    bnds = if parent(lookup) isa AutoValues || span(lookup) isa AutoSpan
+        AutoBounds()
+    else
+        bounds(lookup)
+    end
+    rebuild(lookup; span=Irregular(bnds))
+end
+_set(lookup::AbstractSampled, ::Regular{AutoStep}) = begin
+    stp = if span(lookup) isa AutoSpan || step(lookup) isa AutoStep
+        if parent(lookup) isa AbstractRange
+            step(parent(lookup))
+        else
+            AutoStep()
+        end
+    else
+        step(lookup)
+    end
+    rebuild(lookup; span=Regular(stp))
+end
 _set(lookup::AbstractSampled, span::Span) = rebuild(lookup; span=span)
 _set(lookup::AbstractSampled, span::AutoSpan) = lookup
 _set(span::Span, newspan::Span) = newspan
@@ -91,7 +113,7 @@ _set(locus::Locus, newlocus::AutoPosition) = locus
 _set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
 _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
-# Looup values
+# Lookup values
 _set(values::AbstractArray, newvalues::AbstractArray) = newvalues
 _set(values::AbstractArray, newvalues::AutoLookup) = values
 _set(values::AbstractArray, newvalues::Colon) = values

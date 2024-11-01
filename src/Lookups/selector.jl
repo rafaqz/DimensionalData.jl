@@ -1,4 +1,4 @@
-struct SelectorError{L,S} <: Exception 
+struct SelectorError{L,S} <: Exception
     lookup::L
     selector::S
 end
@@ -10,7 +10,7 @@ function Base.showerror(io::IO, ex::SelectorError)
         println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with values $(ex.lookup)")
     end
 end
-Base.showerror(io::IO, ex::SelectorError{<:Categorical}) = 
+Base.showerror(io::IO, ex::SelectorError{<:Categorical}) =
     println(io, "SelectorError: attempt to select $(ex.selector) from lookup $(typeof(ex.lookup)) with categories $(ex.lookup)")
 
 """
@@ -19,7 +19,7 @@ Base.showerror(io::IO, ex::SelectorError{<:Categorical}) =
 Abstract supertype for all selectors.
 
 Selectors are wrappers that indicate that passed values are not the array indices,
-but values to be selected from the dimension index, such as `DateTime` objects for
+but values to be selected from the dimension lookup, such as `DateTime` objects for
 a `Ti` dimension.
 
 Selectors provided in DimensionalData are:
@@ -31,6 +31,13 @@ Selectors provided in DimensionalData are:
 - [`Where`](@ref)
 - [`Contains`](@ref)
 
+Note: Selectors can be modified using:
+- `Not`: as in `Not(At(x))`
+And IntervalSets.jl `Interval` can be used instead of `Between`
+- `..`
+- `Interval`
+- `OpenInterval`
+- `ClosedInterval`
 """
 abstract type Selector{T} end
 
@@ -72,8 +79,8 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
-# `Not` form InvertedIndices.jr
-function selectindices(l::Lookup, sel::Not; kw...)
+# `Not` form InvertedIndices.jl
+@inline function selectindices(l::Lookup, sel::Not; kw...)
     indices = selectindices(l, sel.skip; kw...)
     return first(to_indices(l, (Not(indices),)))
 end
@@ -85,18 +92,17 @@ end
 """
     At <: IntSelector
 
-    At(x, atol, rtol)
     At(x; atol=nothing, rtol=nothing)
+    At(a, b; kw...)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
 For ranges and arrays, every intermediate value must match an existing value -
 not just the end points.
 
-`x` can be any value or `Vector` of values.
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b` are used, the range between them will be selected.
 
-`atol` and `rtol` are passed to `isapprox`.
-For `Number` `rtol` will be set to `Base.rtoldefault`, otherwise `nothing`,
-and wont be used.
+Keyword `atol` is passed to `isapprox`.
 
 ## Example
 
@@ -117,28 +123,42 @@ struct At{T,A,R} <: IntSelector{T}
     rtol::R
 end
 At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
-At() = At(nothing)
+At(; kw...) = At(nothing; kw...)
+At(a, b; kw...) = At((a, b); kw...)
 
 rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
-Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")  
+Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")
 
 struct _True end
 struct _False end
 
-selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
-selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = 
+    _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
+    _selecttuple(l, sel; kw...)
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple}; kw...) = at(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
+    at(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Tuple,<:Tuple}}; kw...) = 
+    _selecttuple(l, sel; kw...)
 
-_selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
-
-function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...) 
-    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    return at(no_cycling(lookup), cycled_sel; kw...) 
+@inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
+@inline function _selecttuple(l, sel; kw...) 
+    v1, v2 = _maybeflipbounds(l, val(sel))
+    selectindices(l, rebuild(sel, v1); kw...):selectindices(l, rebuild(sel, v2); kw...)
 end
-function at(lookup::NoLookup, sel::At; err=_True(), kw...) 
+
+function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
+    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
+    return at(no_cycling(lookup), cycled_sel; kw...)
+end
+function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     v = val(sel)
     r = round(Int, v)
     at = atol(sel)
@@ -148,8 +168,15 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
         at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=at) || _selnotfound_or_nothing(err, lookup, v)
     end
-    r in lookup || err isa _False || throw(SelectorError(lookup, sel))
-    return r
+    if r in lookup 
+        return r
+    else
+        if err isa _False
+            return nothing
+        else
+            throw(SelectorError(lookup, sel))
+        end
+    end
 end
 function at(lookup::Lookup, sel::At; kw...)
     at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
@@ -174,7 +201,7 @@ function at(
 )
     x = unwrap(selval)
     i = searchsortedlast(lookup, x; lt=(a, b) -> a.left < b.left)
-    if lookup[i].left == x.left && lookup[i].right == x.right 
+    if lookup[i].left == x.left && lookup[i].right == x.right
         return i
     else
         return _selnotfound_or_nothing(err, lookup, selval)
@@ -223,19 +250,23 @@ end
 
 _selnotfound_or_nothing(err::_True, lookup, selval) = _selnotfound(lookup, selval)
 _selnotfound_or_nothing(err::_False, lookup, selval) = nothing
-@noinline _selnotfound(lookup, selval) = throw(ArgumentError("$selval for not found in $lookup"))
+@noinline _selnotfound(l, selval) = throw(SelectorError(l, selval))
 
 """
     Near <: IntSelector
 
     Near(x)
+    Near(a, b)
 
 Selector that selects the nearest index to `x`.
 
-With [`Points`](@ref) this is simply the index values nearest to the `x`,
+With [`Points`](@ref) this is simply the lookup values nearest to the `x`,
 however with [`Intervals`](@ref) it is the interval _center_ nearest to `x`.
-This will be offset from the index value for `Start` and
-[`End`](@ref) locuss.
+This will be offset from the index value for `Start` and [`End`](@ref) locus.
+
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b`  are used, the range between the nearsest value
+to each of them will be selected.
 
 ## Example
 
@@ -253,25 +284,32 @@ struct Near{T} <: IntSelector{T}
     val::T
 end
 Near() = Near(nothing)
+Near(a, b) = Near((a, b))
 
-selectindices(l::Lookup, sel::Near) = near(l, sel)
-selectindices(l::Lookup, sel::Near{<:AbstractVector}) = _selectvec(l, sel)
+@inline selectindices(l::Lookup, sel::Near; kw...) = near(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Near{<:Tuple}; kw...)  = _selecttuple(l, sel; kw...) 
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple}; kw...) = near(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
-function near(lookup::AbstractCyclic{Cycling}, sel::Near) 
+function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    near(no_cycling(lookup), cycled_sel) 
+    near(no_cycling(lookup), cycled_sel; kw...)
 end
-near(lookup::NoLookup, sel::Near{<:Real}) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
-function near(lookup::Lookup, sel::Near)
-    !isregular(lookup) && !iscenter(lookup) &&
+near(lookup::NoLookup, sel::Near{<:Real}; kw...) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
+function near(lookup::Lookup, sel::Near; kw...)
+    # We ignore err keyword in near, as these are a different class of errors
+    if !isregular(lookup) && !iscenter(lookup)
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End locus. Use Contains"))
-    near(order(lookup), sampling(lookup), lookup, sel)
+    end
+    return near(order(lookup), sampling(lookup), lookup, sel; kw...)
 end
-near(order::Order, ::NoSampling, lookup::Lookup, sel::Near) = at(lookup, At(val(sel)))
-function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
-    # Unwrap the selector value and adjust it for interval locus if neccessary
+near(order::Order, ::NoSampling, lookup::Lookup, sel::Near; kw...) = at(lookup, At(val(sel)); kw...)
+function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near; kw...)
+    # Unwrap the selector value and adjust it for interval locus if necessary
     v = unwrap(val(sel))
     # Allow Date and DateTime to be used interchangeably
     if v isa Union{Dates.DateTime,Dates.Date}
@@ -283,7 +321,7 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
     # Search for the value
     found_i = _inbounds(searchfunc(lookup, v_adj), lookup)
 
-    # Check if this is the lowest possible value allready, and return if so
+    # Check if this is the lowest possible value already, and return if so
     if order isa ForwardOrdered
         found_i <= firstindex(lookup) && return found_i
     elseif order isa ReverseOrdered
@@ -301,10 +339,10 @@ function near(order::Ordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Ne
 
     return closest_i
 end
-function near(order::Ordered, ::Intervals, lookup::Lookup{<:IntervalSets.Interval}, sel::Near)
+function near(order::Ordered, ::Intervals, lookup::Lookup{<:IntervalSets.Interval}, sel::Near; kw...)
     throw(ArgumentError("`Near` is not yet implemented for lookups of `IntervalSets.Interval`"))
 end
-function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near)
+function near(::Unordered, ::Union{Intervals,Points}, lookup::Lookup, sel::Near; kw...)
     throw(ArgumentError("`Near` has no meaning in an `Unordered` lookup"))
 end
 
@@ -320,13 +358,18 @@ _adjust_locus(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - 
     Contains <: IntSelector
 
     Contains(x)
+    Contains(a, b)
 
 Selector that selects the interval the value is contained by. If the
-interval is not present in the index, an error will be thrown.
+interval is not present in the lookup, an error will be thrown.
 
 Can only be used for [`Intervals`](@ref) or [`Categorical`](@ref).
 For [`Categorical`](@ref) it falls back to using [`At`](@ref).
-`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` to check for if values are contain in categorical values like strings.
+`Contains` should not be confused with `Base.contains` - use `Where(contains(x))` 
+to check for if values are contain in categorical values like strings.
+
+`x` can be any value to select a single index, or a `Vector` of values to select vector of indices.
+If two values `a` and `b`  are used, the range between them will be selected.
 
 ## Example
 
@@ -345,21 +388,32 @@ struct Contains{T} <: IntSelector{T}
     val::T
 end
 Contains() = Contains(nothing)
+Contains(a, b) = Contains((a, b))
 
 # Filter based on sampling and selector -----------------
-selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
-selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
+@inline selectindices(l::Lookup, sel::Contains{<:Tuple}; kw...) = _selecttuple(l, sel; kw...)
+# Handle lookups of Tuple
+@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple}; kw...) = contains(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
-function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...) 
+function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
-    return contains(no_cycling(lookup), cycled_sel; kw...) 
+    return contains(no_cycling(lookup), cycled_sel; kw...)
 end
-function contains(l::NoLookup, sel::Contains; kw...) 
-    i = Int(val(sel))
-    i in l || throw(SelectorError(l, i))
-    return i
+function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
+    if isinteger(val(sel))
+        i = Int(val(sel))
+        i in l && return i
+    end
+    if err isa _False
+        return nothing
+    else
+        throw(SelectorError(l, val(sel)))
+    end
 end
 contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
 # NoSampling (e.g. Categorical) just uses `at`
@@ -373,7 +427,7 @@ end
 function contains(::Order, ::Points, l::Lookup, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
 end
-function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<:AbstractArray}; 
+function contains(::Order, ::Points, l::Lookup{<:AbstractArray}, sel::Contains{<:AbstractArray};
     kw...
 )
     at(l, At(val(sel)); kw...)
@@ -384,22 +438,22 @@ function contains(sampling::Intervals, l::Lookup, sel::Contains; err=_True())
     contains(order(l), span(l), sampling, locus(l), l, sel; err)
 end
 function contains(
-    sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains; 
-    err=_True()
+    sampling::Intervals, l::Lookup{<:IntervalSets.Interval}, sel::Contains;
+    kw...
 )
     v = val(sel)
     interval_sel = Contains(Interval{:closed,:open}(v, v))
-    contains(sampling, l, interval_sel; err)
+    contains(sampling, l, interval_sel; kw...)
 end
 function contains(
-    ::Intervals, 
-    l::Lookup{<:IntervalSets.Interval}, 
-    sel::Contains{<:IntervalSets.Interval}; 
+    ::Intervals,
+    l::Lookup{<:IntervalSets.Interval},
+    sel::Contains{<:IntervalSets.Interval};
     err=_True()
 )
     v = val(sel)
     i = searchsortedlast(l, v; by=_by)
-   
+
     if i in eachindex(l) && _in(v, l[i])
         return i
     else
@@ -498,9 +552,9 @@ Depreciated: use `a..b` instead of `Between(a, b)`. Other `Interval`
 objects from IntervalSets.jl, like `OpenInterval(a, b) will also work,
 giving the correct open/closed boundaries.
 
-`Between` will e removed in furture to avoid clashes with `DataFrames.Between`.
+`Between` will e removed in future to avoid clashes with `DataFrames.Between`.
 
-Selector that retreive all indices located between 2 values,
+Selector that retrieve all indices located between 2 values,
 evaluated with `>=` for the lower value, and `<` for the upper value.
 This means the same value will not be counted twice in 2 adjacent
 `Between` selections.
@@ -516,7 +570,7 @@ or previous (for [`End`](@ref) locus) value.
 
 For [`Center`](@ref), we take the mid point between two index values
 as the start and end of each interval. This may or may not make sense for
-the values in your indes, so use `Between` with `Irregular` `Intervals(Center())`
+the values in your index, so use `Between` with `Irregular` `Intervals(Center())`
 with caution.
 
 ## Example
@@ -552,8 +606,8 @@ abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
 
-selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
-function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
+@inline selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -569,12 +623,12 @@ end
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
     x = intersect(sel, first(axes(l, 1))..last(axes(l, 1)))
-    return ceil(Int, x.left):floor(Int, x.right) 
+    return ceil(Int, x.left):floor(Int, x.right)
 end
-# function between(l::AbstractCyclic{Cycling}, sel::Interval) 
+# function between(l::AbstractCyclic{Cycling}, sel::Interval)
 #     cycle_val(l, sel.x)..cycle_val(l, sel.x)
 #     cycled_sel = rebuild(sel; val=)
-#     near(no_cycling(lookup), cycled_sel; kw...) 
+#     near(no_cycling(lookup), cycled_sel; kw...)
 # end
 between(l::Lookup, interval::Interval) = between(sampling(l), l, interval)
 # This is the main method called above
@@ -668,11 +722,11 @@ end
 
 # Irregular Intervals -----------------------
 #
-# This works a little differently to Regular variants, 
+# This works a little differently to Regular variants,
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
-# Find the inteval the value falls in.
+# Find the interval the value falls in.
 # We need to special-case Center locus for Irregular
 _between_side(side, o, span::Irregular, ::Intervals, l, interval, v) =
     _between_irreg_side(side, locus(l), o, l, interval, v)
@@ -685,7 +739,7 @@ function _between_irreg_side(side, locus::Union{Start,End}, o, l, interval, v)
         i = ordered_lastindex(l)
         cellbound = v
     else
-        s = _ordscalar(o) 
+        s = _ordscalar(o)
         # Search for the value and offset per order/locus/side
         i = _searchfunc(o)(l, v; lt=_lt(side))
         i -= s * (_posscalar(locus) + _sideshift(side))
@@ -768,7 +822,7 @@ _maybeflipbounds(o::Unordered, (a, b)) = (a, b)
 
     Touches(a, b)
 
-Selector that retreives all indices touching the closed interval 2 values,
+Selector that retrieves all indices touching the closed interval 2 values,
 for the maximum possible area that could interact with the supplied range.
 
 This can be better than `..` when e.g. subsetting an area to rasterize, as
@@ -807,8 +861,8 @@ Touches(a, b) = Touches((a, b))
 Base.first(sel::Touches) = first(val(sel))
 Base.last(sel::Touches) = last(val(sel))
 
-selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
+@inline selectindices(l::Lookup, sel::Touches) = touches(l, sel)
+@inline function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
         append!(inds, selectindices(lookup, rebuild(sel, v)))
@@ -900,11 +954,11 @@ end
 
 # Irregular Intervals -----------------------
 #
-# This works a little differently to Regular variants, 
+# This works a little differently to Regular variants,
 # as we have to work with unequal step sizes, calculating them
 # as we find close values.
 #
-# Find the inteval the value falls in.
+# Find the interval the value falls in.
 # We need to special-case Center locus for Irregular
 _touches(side, o, span::Irregular, ::Intervals, l, sel, v) =
     _touches_irreg_side(side, locus(l), o, l, sel, v)
@@ -929,7 +983,7 @@ function _touches_irreg_side(side, locus::Center, o, l, sel, v)
         i = _searchfunc(o)(l, v; lt=_lt(side))
         i1 = i - _ordscalar(o)
         # We are at the start or end, return i
-        if (i1 < firstindex(l) ||  i1 > lastindex(l)) 
+        if (i1 < firstindex(l) ||  i1 > lastindex(l))
             i
         else
             # Calculate the size of the current step
@@ -993,7 +1047,7 @@ end
 
     All(selectors::Selector...)
 
-Selector that combines the results of other selectors. 
+Selector that combines the results of other selectors.
 The indices used will be the union of all result sorted in ascending order.
 
 ## Example
@@ -1054,9 +1108,9 @@ function selectindices end
 
 # Unaligned Lookup ------------------------------------------
 
-# select_unalligned_indices is callled directly from dims2indices
+# select_unalligned_indices is called directly from dims2indices
 
-# We use the transformation from the first unalligned dim.
+# We use the transformation from the first unaligned dim.
 # In practice the others could be empty.
 function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
     transformed = transformfunc(lookups[1])(map(val, sel))
@@ -1126,9 +1180,9 @@ _in(needle::Interval{<:Any,:open}, haystack::Interval{:closed,:open}) = needle.l
 _in(needle::Interval{:open,<:Any}, haystack::Interval{:open,:closed}) = needle.left in haystack && needle.right in haystack
 _in(needle::OpenInterval, haystack::OpenInterval) = needle.left in haystack && needle.right in haystack
 
-hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
-hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
+@inline hasselection(lookup::Lookup, sel::At) = at(lookup, sel; err=_False()) === nothing ? false : true
+@inline hasselection(lookup::Lookup, sel::Contains) = contains(lookup, sel; err=_False()) === nothing ? false : true
 # Near and Between only fail on Unordered
 # Otherwise Near returns the nearest index, and Between an empty range
-hasselection(lookup::Lookup, ::Near) = isordered(lookup) ? true : false
-hasselection(lookup::Lookup, ::Union{Interval,Between}) = isordered(lookup) ? true : false
+@inline hasselection(lookup::Lookup, ::Near) = isordered(lookup) ? true : false
+@inline hasselection(lookup::Lookup, ::Union{Interval,Between}) = isordered(lookup) ? true : false

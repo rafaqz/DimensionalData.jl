@@ -2,7 +2,7 @@
 
 An `AbstractDimStack` represents a collection of `AbstractDimArray`
 layers that share some or all dimensions. For any two layers, a dimension
-of the same name must have the identical lookup - in fact only one is stored
+of the same name must have the identical lookup - in fact, only one is stored
 for all layers to enforce this consistency.
 
 
@@ -12,8 +12,8 @@ x, y = X(1.0:10.0), Y(5.0:10.0)
 st = DimStack((a=rand(x, y), b=rand(x, y), c=rand(y), d=rand(x)))
 ````
 
-The behaviour of a `DimStack` is at times like a `NamedTuple` of
-`DimArray` and, others an `AbstractArray` of `NamedTuple`.
+The behavior of a `DimStack` is at times like a `NamedTuple` of
+`DimArray` and, at other times, an `AbstractArray` of `NamedTuple`.
 
 ## NamedTuple-like indexing
 
@@ -113,6 +113,10 @@ st[:]
 
 Base functions like `mean`, `maximum`, `reverse` are applied to all layers of the stack.
 
+````@example stack
+using Statistics
+````
+
 ::: tabs
 
 == maximum
@@ -187,7 +191,7 @@ dropdims(sum_st; dims=Y)
 
 :::
 
-`broadcast_dims` broadcasts functions over any mix of `AbstractDimStack` and
+[`broadcast_dims`](@ref) broadcasts functions over any mix of `AbstractDimStack` and
 `AbstractDimArray` returning a new `AbstractDimStack` with layers the size of
 the largest layer in the broadcast. This will work even if dimension permutation 
 does not match in the objects.
@@ -197,7 +201,7 @@ does not match in the objects.
 
 == rotl90
 
-Only atrix layers can be rotaed
+Only matrix layers can be rotated
 
 ````@ansi stack
 rotl90(st[(:a, :b)])
@@ -250,8 +254,8 @@ PermutedDimsArray(st, (Y, X))
 
 ## Performance 
 
-Indexing stack is fast - indexing a single value return a `NamedTuple` from all 
-layers is usally measures in nanoseconds, and no slower than manually indexing
+Indexing a stack is fast - indexing a single value and returning a `NamedTuple` from all 
+layers is usually measured in nanoseconds, and no slower than manually indexing
 into each parent array directly.
 
 There are some compilation overheads to this though, and stacks with very many 

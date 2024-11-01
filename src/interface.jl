@@ -7,7 +7,7 @@ Rebuild an object struct with updated field values.
 
 `x` can be a `AbstractDimArray`, a `Dimension`, `Lookup` or other custom types.
 
-This is an abstraction that alows inbuilt and custom types to be rebuilt
+This is an abstraction that allows inbuilt and custom types to be rebuilt
 to update their fields, as most objects in DimensionalData.jl are immutable.
 
 Rebuild is mostly automated using `ConstructionBase.setproperties`. 
@@ -41,7 +41,7 @@ The arguments required are defined for the abstract type that has a `rebuild` me
 - `data`: the parent object, an `AbstractArray`
 
 * Note: argument `rebuild` is deprecated on `AbstractDimArray` and 
-`AbstractDimStack` in favour of allways using the keyword version. 
+`AbstractDimStack` in favour of always using the keyword version. 
 In future the argument version will only be used on `Dimension`, which only have one argument.
 """
 function rebuild end
@@ -67,7 +67,7 @@ Reference dimensions for an array that is a slice or view of another
 array with more dimensions.
 
 `slicedims(a, dims)` returns a tuple containing the current new dimensions
-and the new reference dimensions. Refdims can be stored in a field or disgarded,
+and the new reference dimensions. Refdims can be stored in a field or discarded,
 as it is mostly to give context to plots. Ignoring refdims will simply leave some
 captions empty.
 
@@ -102,12 +102,12 @@ and sampling properties.
 
 This is separate from `val` in that it will only work when dimensions
 actually contain an `AbstractArray` lookup, and can be used on a 
-`DimArray` or `DimStack` to retriev all lookups, as there is no ambiguity 
+`DimArray` or `DimStack` to retrieve all lookups, as there is no ambiguity 
 of meaning as there is with `val`.
 """
 function lookup end
 
-# Methods to retreive Object/Dimension/Lookup properties
+# Methods to retrieve Object/Dimension/Lookup properties
 #
 # These work on AbstractDimStack, AbstractDimArray, Dimension
 # Lookup, and tuples of Dimension/Lookup. A `dims` argument

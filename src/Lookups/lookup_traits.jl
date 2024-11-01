@@ -67,12 +67,12 @@ or similar optimised methods - instead it will use `findfirst`.
 """
 struct Unordered <: Order end
 
-isrev(x) = isrev(typeof(x))
-isrev(::Type{<:ForwardOrdered}) = false
+isrev(x::Order) = isrev(typeof(x))
 isrev(::Type{<:ReverseOrdered}) = true
+isrev(::Type{<:Order}) = false
 
 """
-   Position <: LookupTrait
+    Position <: LookupTrait
 
 Abstract supertype of types that indicate the locus of index values
 where they represent [`Intervals`](@ref).
@@ -81,7 +81,7 @@ These allow for values array cells to align with the [`Start`](@ref),
 [`Center`](@ref), or [`End`](@ref) of values in the lookup index.
 
 This means they can be plotted with correct axis markers, and allows automatic
-converrsions to between formats with different standards (such as NetCDF and GeoTiff).
+conversions to between formats with different standards (such as NetCDF and GeoTiff).
 """
 abstract type Position <: LookupTrait end
 
@@ -99,8 +99,7 @@ struct Center <: Position end
 
     Start()
 
-Used to specify lookup values correspond to the center 
-locus of an interval.
+Used to specify lookup values correspond to the start locus of an interval.
 """
 struct Start <: Position end
 
@@ -109,7 +108,7 @@ struct Start <: Position end
 
     Begin()
 
-Used to specify the `begin` index of a `Dimension` axis. 
+Used to specify the `begin` index of a `Dimension` axis, 
 as regular `begin` will not work with named dimensions.
 
 Can be used with `:` to create a `BeginEndRange` or 
@@ -217,6 +216,8 @@ struct AutoStep end
 struct AutoBounds end
 struct AutoDim end
 
+Base.step(::AutoSpan) = AutoStep()
+
 """
     Regular <: Span
 
@@ -240,10 +241,10 @@ Base.:(==)(l1::Regular, l2::Regular) = val(l1) == val(l2)
     Irregular(bounds::Tuple)
     Irregular(lowerbound, upperbound)
 
-`Points` or `Intervals` that have an `Irrigular` step size. To enable bounds tracking
-and accuract selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
+`Points` or `Intervals` that have an `Irregular` step size. To enable bounds tracking
+and accurate selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
 `(nothing, nothing)` is acceptable input, the bounds will be guessed from the index,
-but may be innaccurate.
+but may be inaccurate.
 """
 struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},AutoBounds}} <: Span
     bounds::B
@@ -257,7 +258,7 @@ val(span::Irregular) = span.bounds
 Base.:(==)(l1::Irregular, l2::Irregular) = val(l1) == val(l2)
 
 """
-    Explicit(bounds::AbstractMatix)
+    Explicit(bounds::AbstractMatrix)
 
 Intervals where the span is explicitly listed for every interval.
 

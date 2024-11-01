@@ -32,18 +32,13 @@ end
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
 )
-    if eltype(data) <: Union{AbstractDimArray,AbstractDimStack}
-        # We have DimArrays or DimStacks. Rebuild as a DimGroupArray
-        DimGroupByArray(data, dims, refdims, name, metadata)
-    else
-        # Some other values. Rebuild as a reguilar DimArray
-        dimconstructor(dims)(data, dims, refdims, name, metadata)
-    end
+    # Rebuild as a regular DimArray
+    dimconstructor(dims)(data, dims, refdims, name, metadata)
 end
 @inline function rebuild(A::DimGroupByArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
-    rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a reguilar DimArray
+    rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a regular DimArray
 end
 
 function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
@@ -54,19 +49,27 @@ end
 function show_after(io::IO, mime, A::DimGroupByArray)
     displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
-    sorteddims = (dims(A)..., otherdims(first(A), dims(A))...)
-    colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
-    colors = collect(map(val, colordims))
-    lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(first(A));
-        displaywidth, blockwidth, label="group dims", colors
-    )
-    length(A) > 0 || return nothing
-    A1 = map(x -> DimSummariser(x, colors), A)
-    ctx = IOContext(io,
-        :blockwidth => blockwidth,
-        :displaysize => (displayheight - lines, displaywidth)
-    )
-    show_after(ctx, mime, A1)
+    if length(A) > 0 && isdefined(parent(A), 1)
+        x = A[1]
+        sorteddims = (dims(A)..., otherdims(x, dims(A))...)
+        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(x))
+        colors = collect(map(val, colordims))
+        lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
+            displaywidth, blockwidth, label="group dims", colors
+        )
+        A1 = map(x -> DimSummariser(x, colors), A)
+        ctx = IOContext(io,
+            :blockwidth => blockwidth,
+            :displaysize => (displayheight - lines, displaywidth)
+        )
+        show_after(ctx, mime, A1)
+    else
+        A1 = map(eachindex(A)) do i
+            isdefined(parent(A), i) ? DimSummariser(A[i], colors) : Base.undef_ref_str 
+        end
+        ctx = IOContext(io, :blockwidth => blockwidth)
+        show_after(ctx, mime, parent(A))
+    end
     return nothing
 end
 
@@ -81,15 +84,16 @@ end
 Base.alignment(io::IO, s::DimSummariser) = (textwidth(sprint(show, s)), 0)
 
 # An array that doesn't know what it holds, to simplify dispatch
-struct OpaqueArray{T,N,A<:AbstractArray{T,N}} <: AbstractArray{T,N}
-    parent::A
+# It can also hold something that is not an AbstractArray itself.
+struct OpaqueArray{T,N,P} <: AbstractArray{T,N}
+    parent::P
 end
-Base.parent(A::OpaqueArray) = A.parent
-Base.size(A::OpaqueArray) = size(parent(A))
-for f in (:getindex, :view, :dotview)
-    @eval Base.$f(A::OpaqueArray, args...) = Base.$f(parent(A), args...)
-end
-Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(parent(A), args...)
+OpaqueArray(A::P) where P<:AbstractArray{T,N} where {T,N} = OpaqueArray{T,N,P}(A)
+OpaqueArray(st::P) where P<:AbstractDimStack{<:Any,T,N} where {T,N} = OpaqueArray{T,N,P}(st)
+
+Base.size(A::OpaqueArray) = size(A.parent)
+Base.getindex(A::OpaqueArray, args...) = Base.getindex(A.parent, args...)
+Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(A.parent, args...)
 
 
 abstract type AbstractBins <: Function end
@@ -102,13 +106,13 @@ abstract type AbstractBins <: Function end
 
 Specify bins to reduce groups after applying function `f`.
 
-- `f` a grouping function of the lookup values, by default `identity`.
+- `f`: a grouping function of the lookup values, by default `identity`.
 - `bins`:
    * an `Integer` will divide the group values into equally spaced sections.
    * an `AbstractArray` of values will be treated as exact
        matches for the return value of `f`. For example, `1:3` will create 3 bins - 1, 2, 3.
    * an `AbstractArray` of `IntervalSets.Interval` can be used to
-       explictly define the intervals. Overlapping intervals have undefined behaviour.
+       explicitly define the intervals. Overlapping intervals have undefined behaviour.
 
 ## Keywords
 
@@ -116,6 +120,7 @@ Specify bins to reduce groups after applying function `f`.
    `Integer`. This avoids losing the edge values. Note this is a messy solution -
    it will often be prefereble to manually specify a `Vector` of chosen `Interval`s
    rather than relying on passing an `Integer` and `pad`.
+- `labels`: a list of descriptive labels for the bins. The labels need to have the same length as `bins`.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
 """
@@ -140,7 +145,7 @@ Cyclic bins to reduce groups after applying function `f`. Groups can wrap around
 the cycle. This is used for grouping in [`seasons`](@ref), [`months`](@ref)
 and [`hours`](@ref) but can also be used for custom cycles.
 
-- `f` a grouping function of the lookup values, by default `identity`.
+- `f`: a grouping function of the lookup values, by default `identity`.
 
 ## Keywords
 
@@ -148,7 +153,7 @@ and [`hours`](@ref) but can also be used for custom cycles.
 - `start`: the start of the cycle: a return value of `f`.
 - `step` the number of sequential values to group.
 - `labels`: either a vector of labels matching the number of groups, 
-    or a function that generates labels from `Vector{Int}` of the selected months.
+    or a function that generates labels from `Vector{Int}` of the selected bins.
 
 When the return value of `f` is a tuple, binning is applied to the _last_ value of the tuples.
 """
@@ -174,8 +179,7 @@ Generates `CyclicBins` for three month periods.
 ## Keywords
 
 - `start`: By default seasons start in December, but any integer `1:12` can be used.
-- `labels`: either a vector of four labels, or a function that generates labels
-    from `Vector{Int}` of the selected months.
+- `labels`: either a vector of four labels, or a function that generates labels from `Vector{Int}` of the selected quarters.
 """
 seasons(; start=December, kw...) = months(3; start, kw...)
 
@@ -190,7 +194,7 @@ These can wrap around the end of a year.
 ## Keywords
 
 - `start`: By default months start in January, but any integer `1:12` can be used.
-- `labels`: either a vector of labels matching the numver of groups, 
+- `labels`: either a vector of labels matching the number of groups, 
     or a function that generates labels from `Vector{Int}` of the selected months.
 """
 months(step; start=January, labels=Dict(1:12 .=> monthabbr.(1:12))) = CyclicBins(month; cycle=12, step, start, labels)
@@ -205,9 +209,9 @@ These can wrap around the end of the day.
 
 ## Keywords
 
-- `start`: By default seasons start in December, but any integer `1:12` can be used.
+- `start`: By default seasons start at `0`, but any integer `1:24` can be used.
 - `labels`: either a vector of four labels, or a function that generates labels
-    from `Vector{Int}` of the selected months.
+    from `Vector{Int}` of the selected hours of the day.
 """
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 
@@ -219,15 +223,15 @@ Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 
 ## Arguments
 
-- `A`: any `AbstractDimArray` or `AbsractDimStack`.
+- `A`: any `AbstractDimArray` or `AbstractDimStack`.
 - `dims`: `Pair`s such as `groups = groupby(A, :dimname => groupingfunction)` or wrapped
-    [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
-    a grouping function [`Bins`](@ref) can be used to specify group bins.
+  [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
+  a grouping function [`Bins`](@ref) can be used to specify group bins.
 
 ## Return value
 
 A [`DimGroupByArray`](@ref) is returned, which is basically a regular `AbstractDimArray`
-but holding the grouped `AbstractDimArray` or `AbstractDimStrack`. Its `dims`
+but holding the grouped `AbstractDimArray` or `AbstractDimStack`. Its `dims`
 hold the sorted values returned by the grouping function/s.
 
 Base julia and package methods work on `DimGroupByArray` as for any other
@@ -243,36 +247,33 @@ keyword is used in the reducing function or it otherwise returns an
 
 Group some data along the time dimension:
 
-```julia
+```jldoctest groupby; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData, Dates
 
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
-╭────────────────────────────────────────╮
-│ 12-element DimGroupByArray{DimArray,1} │
-├────────────────────────────────────────┴──────────────────────── dims ┐
+╭───────────────────────────────────────────────────╮
+│ 12-element DimGroupByArray{DimArray{Float64,2},1} │
+├───────────────────────────────────────────────────┴───────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
-  :groupby => (Ti{typeof(month)}(month),)
+  :groupby => :Ti=>month
 ├─────────────────────────────────────────────────────────── group dims ┤
   ↓ X, → Y, ↗ Ti
 └───────────────────────────────────────────────────────────────────────┘
   1  191×20×32 DimArray
   2  191×20×28 DimArray
   3  191×20×31 DimArray
-  4  191×20×30 DimArray
   ⋮
-  9  191×20×30 DimArray
- 10  191×20×31 DimArray
  11  191×20×30 DimArray
  12  191×20×31 DimArray
 ```
 
 And take the mean:
 
-```
+```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
 ╭────────────────────────────────╮
 │ 12-element DimArray{Float64,1} │
@@ -280,46 +281,46 @@ julia> groupmeans = mean.(groups) # Take the monthly mean
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
-  :groupby => (Ti{typeof(month)}(month),)
+  :groupby => :Ti=>month
 └───────────────────────────────────────────────────────────────────────┘
-  1  0.499943
-  2  0.499352
-  3  0.499289
-  4  0.499899
+  1  0.500064
+  2  0.499762
+  3  0.500083
+  4  0.499985
   ⋮
- 10  0.500755
- 11  0.498912
- 12  0.500352
+ 10  0.500874
+ 11  0.498704
+ 12  0.50047
 ```
 
 Calculate daily anomalies from the monthly mean. Notice we map a broadcast
 `.-` rather than `-`. This is because the size of the arrays to not
 match after application of `mean`.
 
-```julia
+```jldoctest groupby
 julia> map(.-, groupby(A, Ti=>month), mean.(groupby(A, Ti=>month), dims=Ti));
 ```
 
 Or do something else with Y:
 
-```julia
+```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
 ╭──────────────────────────╮
 │ 12×2 DimArray{Float64,2} │
 ├──────────────────────────┴─────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
   → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
-├──────────────────────────────────────────────────────────────────────── metadata ┐
+├────────────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
-  :groupby => (Ti{typeof(month)}(month), Y{typeof(isodd)}(isodd))
-└──────────────────────────────────────────────────────────────────────────────────┘
+  :groupby => (:Ti=>month, :Y=>isodd)
+└────────────────────────────────────────────────────────────────────────┘
   ↓ →  false         true
-  1        0.500465     0.499421
-  2        0.498681     0.500024
+  1        0.499594     0.500533
+  2        0.498145     0.501379
   ⋮
- 10        0.500183     0.501327
- 11        0.497746     0.500079
- 12        0.500287     0.500417
+ 10        0.501105     0.500644
+ 11        0.498606     0.498801
+ 12        0.501643     0.499298
 ```
 """
 DataAPI.groupby(A::DimArrayOrStack, x) = groupby(A, dims(x))
@@ -348,7 +349,7 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
     # Hide that the parent is a DimSlices
     views = OpaqueArray(DimSlices(A, indices))
     # Put the groupby query in metadata
-    meta = map(d -> dim2key(d) => val(d), dimfuncs)
+    meta = map(d -> name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
     # Return a DimGroupByArray
     return DimGroupByArray(views, format(group_dims, views), (), :groupby, metadata)
@@ -452,7 +453,7 @@ Generate a `Vector` of `UnitRange` with length `step(A)`
 intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
 
 """
-    ranges(A::AbsttactRange{<:Integer})
+    ranges(A::AbstractRange{<:Integer})
 
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """

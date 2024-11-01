@@ -351,31 +351,30 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 # Ambiguity
-@static if VERSION >= v"1.9.0"
-    Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-        (copyto!(parent(dst), src); dst)
-    Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-        (copyto!(parent(dst), src); dst)
-    Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
-        (copyto!(parent(dst), src); dst)
-    Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
-        (copyto!(dst, parent(src)); dst)
-    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
-        (copyto!(parent(dst), src); dst)
-    Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
-        (copyto!(parent(dst), src); dst)
-    function Base.copyto!(
-        dst::AbstractDimArray{<:Any,2}, 
-        dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
-        src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
-        src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
-    )
-        copyto!(parent(dst), dst_i, src, src_i)
-        return dst
-    end
-    Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
-        (copy!(dst, parent(src)); dst)
+Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
+    (copyto!(dst, parent(src)); dst)
+Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
+    (copyto!(parent(dst), src); dst)
+Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
+    (copyto!(parent(dst), src); dst)
+function Base.copyto!(
+    dst::AbstractDimArray{<:Any,2}, 
+    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
+    src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
+    src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
+)
+    copyto!(parent(dst), dst_i, src, src_i)
+    return dst
 end
+Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
+    (copy!(dst, parent(src)); dst)
+
 Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
     (copy!(dst, parent(src)); dst)
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
@@ -424,16 +423,34 @@ on the `Dimension` index. Use forward-ordered arrays only"
 
 Example:
 
-```julia
-using Dates, DimensionalData
+```jldoctest; setup = :(using Random; Random.seed!(123))
+julia> using Dates, DimensionalData
 
-ti = (Ti(DateTime(2001):Month(1):DateTime(2001,12)),
-x = X(10:10:100))
-A = DimArray(rand(12,10), (ti, x), "example")
+julia> ti = Ti(DateTime(2001):Month(1):DateTime(2001,12));
 
-julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))];
+julia> x = X(10:10:100);
 
-julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)];
+julia> A = DimArray(rand(12,10), (ti, x), name="example");
+
+julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))]
+╭───────────────────────────────────────╮
+│ 2-element DimArray{Float64,1} example │
+├───────────────────────────────────────┴─────────────── dims ┐
+  ↓ X Sampled{Int64} [10, 40] ForwardOrdered Irregular Points
+└─────────────────────────────────────────────────────────────┘
+ 10  0.253849
+ 40  0.637077
+
+julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
+╭───────────────────────────────────────╮
+│ 4-element DimArray{Float64,1} example │
+├───────────────────────────────────────┴───────────── dims ┐
+  ↓ X Sampled{Int64} 20:10:50 ForwardOrdered Regular Points
+└───────────────────────────────────────────────────────────┘
+ 20  0.774092
+ 30  0.823656
+ 40  0.637077
+ 50  0.692235
 ```
 """
 struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
@@ -508,6 +525,8 @@ const DimVecOrMat = Union{DimVector,DimMatrix}
 DimVector(A::AbstractVector, dim::Dimension, args...; kw...) = 
     DimArray(A, (dim,), args...; kw...)
 DimVector(A::AbstractVector, args...; kw...) = DimArray(A, args...; kw...)
+DimVector(f::Function, dim::Dimension; kw...) = 
+    DimArray(f::Function, dim::Dimension; kw...) 
 DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
@@ -556,8 +575,9 @@ Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 
-````@doctest
-julia> using DimensionalData, Random; Random.seed!(123)
+```jldoctest
+julia> using DimensionalData, Random; Random.seed!(123);
+
 julia> rand(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -566,8 +586,7 @@ julia> rand(Bool, X(2), Y(4))
 └──────────────────────┘
  0  0  0  0
  1  0  0  1
-
-````
+```
 """
 Base.fill
 
@@ -589,7 +608,7 @@ Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 
-```julia
+```jldoctest; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData
 
 julia> rand(Bool, X(2), Y(4))
@@ -598,8 +617,8 @@ julia> rand(Bool, X(2), Y(4))
 ├──────────────── dims ┤
   ↓ X, → Y
 └──────────────────────┘
- 1  1  0  0
- 0  1  1  0
+ 0  0  0  0
+ 1  0  0  1
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
 ╭─────────────────────────╮
@@ -609,9 +628,9 @@ julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
 └─────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0       150.0       200.0
-  :a    0.624539    0.559166    0.813246
-  :b    0.947442    0.664213    0.284669
-  :c    0.695604    0.564835    0.156286
+  :a    0.443494    0.253849    0.867547
+  :b    0.745673    0.334152    0.0802658
+  :c    0.512083    0.427328    0.311448
 ```
 """
 Base.rand
@@ -632,8 +651,9 @@ Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 
-```@doctest
+```jldoctest
 julia> using DimensionalData
+
 julia> zeros(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -675,8 +695,9 @@ Keywords are the same as for [`DimArray`](@ref).
 
 # Example
 
-```@doctest
+```jldoctest
 julia> using DimensionalData
+
 julia> ones(Bool, X(2), Y(4))
 ╭──────────────────────╮
 │ 2×4 DimArray{Bool,2} │
@@ -755,7 +776,7 @@ function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...;
 end
 function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
     C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)), _maybestripval(dims); kw...)
+    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)
@@ -821,22 +842,22 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 
 # Example
 
-````jldoctest
+```jldoctest
 julia> using DimensionalData
 
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
-↓ X  0.0:0.1:0.4,
+(↓ X  0.0:0.1:0.4,
 → Y  10:10:100,
-↗ Ti [0, 3, 4]
+↗ Ti [0, 3, 4])
 
 julia> mergedims(ds, (X, Y) => :space)
-↓ Ti    [0, 3, 4],
-→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] ↓ X, → Y
-````
+(↓ Ti    [0, 3, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] (↓ X, → Y))
+```
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)
     pairs = map((dt1, dts...)) do ds
-        ds => Dim{Symbol(map(dim2key, ds)...)}()
+        ds => Dim{Symbol(map(name, ds)...)}()
     end
     mergedims(x, pairs...)
 end

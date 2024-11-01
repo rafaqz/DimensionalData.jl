@@ -1,18 +1,10 @@
 # Tables and DataFrames
 
-[Tables.jl](https://github.com/JuliaData/Tables.jl) provides an 
-ecosystem-wide interface to tabular data in Julia, giving interoperability with 
-[DataFrames.jl](https://dataframes.juliadata.org/stable/), 
-[CSV.jl](https://csv.juliadata.org/stable/) and hundreds of other 
-packages that implement the standard.
+[Tables.jl](https://github.com/JuliaData/Tables.jl) provides an ecosystem-wide interface to tabular data in Julia, ensuring interoperability with [DataFrames.jl](https://dataframes.juliadata.org/stable/), [CSV.jl](https://csv.juliadata.org/stable/), and hundreds of other packages that implement the standard.
 
-DimensionalData.jl implements the Tables.jl interface for
-`AbstractDimArray` and `AbstractDimStack`. `DimStack` layers
-are unrolled so they are all the same size, and dimensions
-loop to match the length of the largest layer.
+DimensionalData.jl implements the Tables.jl interface for `AbstractDimArray` and `AbstractDimStack`. `DimStack` layers are unrolled so they are all the same size, and dimensions loop to match the length of the largest layer.
 
-Columns are given the [`name`](@ref) or the array or the stack layer key.
-`Dimension` columns use the `Symbol` version (the result of `DD.dim2key(dimension)`).
+Columns are given the [`name`](@ref) of the array or stack layer, and the result of `DD.name(dimension)` for `Dimension` columns.
 
 Looping of dimensions and stack layers is done _lazily_,
 and does not allocate unless collected.
@@ -20,7 +12,9 @@ and does not allocate unless collected.
 ## Example
 
 ````@example dataframe
-using DimensionalData, Dates, DataFrames
+using DimensionalData
+using Dates
+using DataFrames
 ````
 
 Define some dimensions:
@@ -31,13 +25,13 @@ x, y, c = X(1:10), Y(1:10), Dim{:category}('a':'z')
 
 ::: tabs
 
-== create a `DimArray`
+== Create a `DimArray`
 
 ````@ansi dataframe
 A = rand(x, y, c; name=:data)
 ````
 
-== create a `DimStack`
+== Create a `DimStack`
 
 ````@ansi dataframe
 st = DimStack((data1 = rand(x, y), data2=rand(x, y, c)))
@@ -49,7 +43,7 @@ st = DimStack((data1 = rand(x, y), data2=rand(x, y, c)))
 
 ::: tabs
 
-== array default
+== Array Default
 
 Arrays will have columns for each dimension, and only one data column
 
@@ -57,10 +51,9 @@ Arrays will have columns for each dimension, and only one data column
 DataFrame(A)
 ````
 
-== stack default
+== Stack Default
 
-Stacks will become a table with a column for each dimension, 
-and one for each layer:
+Stacks will become a table with a column for each dimension, and one for each layer:
 
 ````@ansi dataframe
 DataFrame(st)
@@ -89,10 +82,9 @@ DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 
 ## Converting to CSV
 
-We can also write arrays and stacks directly to CSV.jl, or 
-any other data type supporting the Tables.jl interface.
+We can also write arrays and stacks directly to CSV.jl, or any other data type supporting the Tables.jl interface.
 
-````@ansi dataframe
+````@example dataframe
 using CSV
 CSV.write("dimstack.csv", st)
 readlines("dimstack.csv")

@@ -3,6 +3,43 @@ import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import mathjax3 from "markdown-it-mathjax3";
 import footnote from "markdown-it-footnote";
 // import del from 'rollup-plugin-delete';
+function getBaseRepository(base: string): string {
+  if (!base) return '/';
+  // I guess if deploy_url is available. From where do I check this ?
+  const parts = base.split('/').filter(Boolean);
+  return parts.length > 0 ? `/${parts[0]}/` : '/';
+}
+
+const baseTemp = {
+  base: 'REPLACE_ME_DOCUMENTER_VITEPRESS',// TODO: replace this in makedocs!
+}
+
+const navTemp = {
+  nav: [
+    { text: 'Home', link: '/' },
+    { text: 'Getting Started', link: '/basics' },
+    { text: 'Dimensions', link: '/dimensions' },
+    { text: 'DimArrays', link: '/dimarrays' },
+    { text: 'Selectors', link: '/selectors' },
+    { text: 'Integrations',
+      items: [
+        { text: 'Integrations', link: '/integrations'},
+        { text: 'Plots and Makie', link: '/plots' },
+        { text: 'Tables and DataFrames', link: '/tables' },
+        { text: 'CUDA and GPUs', link: '/cuda' },
+        { text: 'DiskArrays', link: '/diskarrays' },
+        { text: 'Extending DimensionalData', link: '/extending_dd' },
+      ],
+    },
+  ],
+}
+
+const nav = [
+  ...navTemp.nav,
+  {
+    component: 'VersionPicker'
+  }
+]
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
@@ -12,17 +49,11 @@ export default defineConfig({
   lastUpdated: true,
   cleanUrls: true,
   outDir: 'REPLACE_ME_DOCUMENTER_VITEPRESS', // This is required for MarkdownVitepress to work correctly...
-  head: [['link', { rel: 'icon', href: '/DimensionalData.jl/dev/favicon.ico' }]],
-
-  // vite: {
-  //   build: {
-  //     rollupOptions: {
-  //       plugins: [
-  //         del({ targets: ['dist/*', 'build/*'], verbose: true })
-  //       ]
-  //     },
-  //   },
-  // },
+  head: [
+    ['link', { rel: 'icon', href: '/DimensionalData.jl/dev/favicon.ico' }],
+    ['script', {src: `${getBaseRepository(baseTemp.base)}versions.js`}],
+    ['script', {src: `${baseTemp.base}siteinfo.js`}]
+  ],
 
   markdown: {
     math: true,
@@ -45,24 +76,7 @@ export default defineConfig({
         detailedView: true
       }
     },
-    nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Getting Started', link: '/basics' },
-      { text: 'Dimensions', link: '/dimensions' },
-      { text: 'DimArrays', link: '/dimarrays' },
-      { text: 'Selectors', link: '/selectors' },
-      { text: 'Integrations',
-        items: [
-          { text: 'Integrations', link: '/integrations'},
-          { text: 'Plots and Makie', link: '/plots' },
-          { text: 'Tables and DataFrames', link: '/tables' },
-          { text: 'CUDA and GPUs', link: '/cuda' },
-          { text: 'DiskArrays', link: '/diskarrays' },
-          { text: 'Extending DimensionalData', link: '/extending_dd' },
-        ],
-      },
-    ],
-
+    nav,
     sidebar: [
       {
         text: 'Getting Started', link: '/basics',
@@ -72,6 +86,7 @@ export default defineConfig({
           { text: 'DimArrays', link: '/dimarrays' },
           { text: 'DimStacks', link: '/stacks' },
           { text: 'GroupBy', link: '/groupby' },
+          { text: 'Dimension-aware broadcast', link: '/broadcasts.md' },
           { text: 'Getting information', link: '/get_info' },
           { text: 'Object modification', link: '/object_modification' },
         ]},

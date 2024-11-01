@@ -159,7 +159,7 @@ end
 
     @testset "works with permuted dims" begin
         db2p = permutedims(da2)
-        dc3p = dimwise(+, da3, db2p)
+        dc3p = broadcast_dims(+, da3, db2p)
         @test dc3p == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
     end
 

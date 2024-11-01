@@ -22,10 +22,6 @@ axdims = [
     @test axes(r) === (r,)
     @test axes(r, 1) === r
     @test Base.axes1(r) === r
-    if VERSION < v"1.8.2"
-        @test firstindex(r) == firstindex(ax)
-        @test lastindex(r) == lastindex(ax)
-    end
     @test iterate(r) === iterate(ax)
     @test iterate(r, iterate(r)[2]) === iterate(ax, iterate(r)[2])
     @test r[begin] == ax[begin]
@@ -38,9 +34,7 @@ axdims = [
     @test dims(bigr) === dim
     @test bigr == ax
     @test DimUnitRange{eltype(r)}(r) === r
-    if VERSION >= v"1.6"
-        @test Base.OrdinalRange{Int,Int}(r) == r
-    end
+    @test Base.OrdinalRange{Int,Int}(r) == r
     @test AbstractUnitRange{BigInt}(r) isa DimUnitRange{BigInt}
     @test parent(AbstractUnitRange{BigInt}(r)) == AbstractUnitRange{BigInt}(parent(r))
     @test dims(AbstractUnitRange{BigInt}(r)) === dim

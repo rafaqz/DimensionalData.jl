@@ -2,33 +2,22 @@
 
 ## Rasters.jl
 
-[Rasters.jl](https://rafaqz.github.io/Rasters.jl/stable) extends DD
-for geospatial data manipulation, providing file load/save for
-a wide range of raster data sources and common GIS tools like
-polygon rasterization and masking. `Raster` types are aware
-of `crs` and their `missingval` (which is often not `missing`
-for performance and storage reasons).
+[Rasters.jl](https://rafaqz.github.io/Rasters.jl/stable) extends DimensionalData for geospatial data manipulation, providing file load/save capabilities for a wide range of raster data sources and common GIS tools like polygon rasterization and masking. `Raster` types are aware of their `crs` and their `missingval` (which is often not `missing` for performance and storage reasons).
 
-Rasters.jl is also the reason DimensionalData.jl exists at all! 
-But it always made sense to separate out spatial indexing from
-GIS tools and dependencies.
+Rasters.jl is also the reason DimensionalData.jl exists at all! But it always made sense to separate out spatial indexing from GIS tools and dependencies.
 
-A `Raster` is a `AbstractDimArray`, a `RasterStack` is a `AbstractDimStack`,
-and `Projected` and `Mapped` are `AbstractSample` lookups.
+A `Raster` is a `AbstractDimArray`, a `RasterStack` is a `AbstractDimStack`, and `Projected` and `Mapped` are `AbstractSampled` lookups.
 
 ## YAXArrays.jl
 
-[YAXArrays.jl](https://juliadatacubes.github.io/YAXArrays.jl/dev/) is another
-spatial data package aimed more at (very) large datasets. It's functionality
-is slowly converging with Rasters.jl (both wrapping DiskArray.jl/DimensionalData.jl)
-and we work closely with the developers.
+[YAXArrays.jl](https://juliadatacubes.github.io/YAXArrays.jl/dev/) is another spatial data package aimed more at (very) large datasets. Its functionality is slowly converging with Rasters.jl (both wrapping DiskArrays.jl/DimensionalData.jl) and we work closely with the developers.
 
 `YAXArray` is a `AbstractDimArray` and inherits its behaviours.
 
 ## ClimateBase.jl
 
 [ClimateBase.jl](https://juliaclimate.github.io/ClimateBase.jl/dev/)
-Extends DD with methods for analysis of climate data.
+Extends DimensionalData.jl with methods for analysis of climate data.
 
 ## ArviZ.jl
 
