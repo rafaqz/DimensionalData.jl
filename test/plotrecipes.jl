@@ -405,4 +405,9 @@ end
         # Test that the number of axes is equal to the size of A3 in the y dimension.
         @test sum(x -> x isa AlgebraOfGraphics.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
     end
+
+    @testset "DimPoints" begin
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> scatter
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> scatter
+    end
 end
