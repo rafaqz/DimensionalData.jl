@@ -87,7 +87,7 @@ end
 end
 
 @testset "similar" begin
-    @test all(map(similar(mixed), mixed) do s, m
+    @test all(maplayers(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
     @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
@@ -221,14 +221,15 @@ end
     end
 end
 
-@testset "map" begin
-    @test values(map(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
-    @test dims(map(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
-    @test map(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
-    @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
-    @test map(+, s, s, s) == map(a -> a .* 3, s)
-    @test_throws ArgumentError map(+, s, mixed)
-    @test map((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
+@testset "maplayers" begin
+    @test values(maplayers(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
+    @test dims(maplayers(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
+    @test values(maplayers(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(+, s, s, s) == maplayers(a -> a .* 3, s)
+    @test_throws ArgumentError maplayers(+, s, mixed)
+    @test maplayers((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == 
+        (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
 end
 
 @testset "methods with no arguments" begin
