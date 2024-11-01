@@ -26,6 +26,7 @@ elements of type T. Alias for AbstractBasicDimArray{T,2}.
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
 """
     AbstractBasicDimVecOrMat
+    
 Union type of AbstractBasicDimVector and AbstractBasicDimMatrix
 """
 const AbstractBasicDimVecOrMat = Union{AbstractBasicDimVector,AbstractBasicDimMatrix}
@@ -90,6 +91,7 @@ elements of type T. Alias for AbstractDimArray{T,2}.
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
 """
     AbstractDimVecOrMat
+    
 Union type of AbstractDimVector and AbstractDimMatrix
 """
 const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
@@ -512,12 +514,14 @@ This is an alias for DimArray{T,1}.
 const DimVector = DimArray{T,1} where T
 """
     DimMatrix{T}
+
 Two-dimensional concrete `DimArray` with elements of type `T`.
 This is an alias for DimArray{T,2}.
 """
 const DimMatrix = DimArray{T,2} where T
 """
     DimVecOrMat
+    
 Union of one and two dimensional concrete `DimArray`
 """
 const DimVecOrMat = Union{DimVector,DimMatrix}
