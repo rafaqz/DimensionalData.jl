@@ -1177,7 +1177,7 @@ end
         @test view(da, Between(40, 45), At((2:3)u"s")) isa DimArray{Int64,2}
     end
 
-    @testset "with DateTime index" begin
+    @testset "with DateTime lookup" begin
         @testset "Start locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(Start())
@@ -1190,16 +1190,9 @@ end
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
 
-            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
-                span=Regular(Month(1)), sampling=Intervals(Start())
-            ))
-            da = DimArray(1:12, timedim)
-            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
-            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
-            @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
-            @test @inferred da[Near(Date(2001, 4, 7))] == 4
-            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
-            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
+            @test_throws SelectorError da[Ti(At(Date(2001, 3, 4); atol=Day(2)))]
+            @test @inferred da[Ti(At(Date(2001, 3, 4); atol=Day(3)))] == 3
+            @test @inferred da[Ti(At(DateTime(2001, 3, 4); atol=Day(3)))] == 3
         end
         @testset "End locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
@@ -1264,7 +1257,7 @@ end
         @test @inferred view(da, Between((11, 26)), Between((1.4u"s", 4u"s"))) == [6 7]
     end
 
-    @testset "with DateTime index" begin
+    @testset "with DateTime lookup" begin
         span_ti = Explicit(vcat(
             reshape((DateTime(2001, 1):Month(1):DateTime(2001, 12)), 1, 12),
             reshape((DateTime(2001, 2):Month(1):DateTime(2002, 1)), 1, 12)

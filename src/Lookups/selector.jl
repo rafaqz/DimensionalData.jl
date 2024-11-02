@@ -208,7 +208,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.TimeType,AbstractString}}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.AbstractTime,AbstractString}}, selval, atol, rtol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -244,6 +244,8 @@ function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_T
 end
 
 @inline _is_at(x, y, atol) = x == y
+@inline _is_at(x::Dates.AbstractTime, y::Dates.AbstractTime, atol::Dates.Period) = 
+    x >= y - atol && x <= y + atol 
 @inline _is_at(x::Real, y::Real, atol::Real) = abs(x - y) <= atol
 @inline _is_at(x::Real, ys::AbstractArray, atol) = any(y -> _is_at(x, y, atol), ys)
 @inline _is_at(xs::AbstractArray, y::Real, atol) = any(x -> _is_at(x, y, atol), xs)
@@ -349,8 +351,8 @@ end
 _adjust_locus(locus::Center, v, lookup) = v
 _adjust_locus(locus::Start, v, lookup) = v - abs(step(lookup)) / 2
 _adjust_locus(locus::End, v, lookup) = v + abs(step(lookup)) / 2
-_adjust_locus(locus::Start, v::Dates.TimeType, lookup) = v - (v - (v - abs(step(lookup)))) / 2
-_adjust_locus(locus::End, v::Dates.TimeType, lookup) = v + (v + abs(step(lookup)) - v) / 2
+_adjust_locus(locus::Start, v::Dates.AbstractTime, lookup) = v - (v - (v - abs(step(lookup)))) / 2
+_adjust_locus(locus::End, v::Dates.AbstractTime, lookup) = v + (v + abs(step(lookup)) - v) / 2
 _adjust_locus(locus::Start, v::Dates.Date, lookup) = v - (v - (v - abs(step(lookup)))) ÷ 2
 _adjust_locus(locus::End, v::Dates.Date, lookup) = v + (v + abs(step(lookup)) - v) ÷ 2
 
@@ -1172,7 +1174,7 @@ _by(x::AbstractRange) = first(x)
 _by(x::IntervalSets.Interval) = x.left
 _by(x) = x
 
-_in(needle::Dates.TimeType, haystack::Dates.TimeType) = needle == haystack
+_in(needle::Dates.AbstractTime, haystack::Dates.AbstractTime) = needle == haystack
 _in(needle, haystack) = needle in haystack
 _in(needles::Tuple, haystacks::Tuple) = all(map(_in, needles, haystacks))
 _in(needle::Interval, haystack::ClosedInterval) = needle.left in haystack && needle.right in haystack
