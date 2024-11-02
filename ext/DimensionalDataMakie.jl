@@ -379,6 +379,7 @@ end
 Makie.plottype(::AbstractDimVector) = Makie.Scatter
 Makie.plottype(::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
+Makie.plottype(::DimPoints) = Makie.Scatter
 
 # TODO this needs to be added to Makie
 # Makie.to_endpoints(x::Tuple{Makie.Unitful.AbstractQuantity,Makie.Unitful.AbstractQuantity}) = (ustrip(x[1]), ustrip(x[2]))
@@ -438,7 +439,7 @@ function Makie.convert_arguments(
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
 
-function Makie.convert_arguments(t::Type{<: Makie.Spy}, A::AbstractDimMatrix{<: Real})
+function Makie.convert_arguments(t::Type{<:Makie.Spy}, A::AbstractDimMatrix{<:Real})
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_interval, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
@@ -471,6 +472,14 @@ end
 function Makie.convert_arguments(t::Makie.ConversionTrait, A::AbstractDimArray{<:Any,N}) where {N}
     @warn "Conversion trait $t not implemented for `AbstractDimArray` with $N dims, falling back to parent array type"
     return Makie.convert_arguments(t, parent(A))
+end
+
+function Makie.convert_arguments(t::Makie.PointBased, A::DimPoints)
+    return Makie.convert_arguments(t, vec(A))
+end
+# This doesn't work, but it will at least give the normal Makie error
+function Makie.convert_arguments(t::Makie.PointBased, A::DimPoints{<:Any,1})
+    return Makie.convert_arguments(t, collect(A))
 end
 
 @static if :expand_dimensions in names(Makie; all=true)
