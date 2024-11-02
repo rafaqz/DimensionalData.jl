@@ -307,6 +307,7 @@ function near(lookup::Lookup, sel::Near; kw...)
     if !isregular(lookup) && !iscenter(lookup)
         throw(ArgumentError("Near is not implemented for Irregular or Explicit with Start or End locus. Use Contains"))
     end
+    val(sel) isa AbstractFloat && isnan(val(sel)) && throw(ArgumentError("NaN not allowed in `Near`"))
     return near(order(lookup), sampling(lookup), lookup, sel; kw...)
 end
 near(order::Order, ::NoSampling, lookup::Lookup, sel::Near; kw...) = at(lookup, At(val(sel)); kw...)
@@ -417,7 +418,10 @@ function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
         throw(SelectorError(l, val(sel)))
     end
 end
-contains(l::Lookup, sel::Contains; kw...) = contains(sampling(l), l, sel; kw...)
+function contains(l::Lookup, sel::Contains; kw...)
+    val(sel) isa AbstractFloat && isnan(val(sel)) && throw(ArgumentError("NaN not allowed in `Contains`"))
+    contains(sampling(l), l, sel; kw...)
+end
 # NoSampling (e.g. Categorical) just uses `at`
 function contains(::NoSampling, l::Lookup, sel::Contains; kw...)
     at(l, At(val(sel)); kw...)
@@ -632,7 +636,11 @@ end
 #     cycled_sel = rebuild(sel; val=)
 #     near(no_cycling(lookup), cycled_sel; kw...)
 # end
-between(l::Lookup, interval::Interval) = between(sampling(l), l, interval)
+function between(l::Lookup, interval::Interval)
+    interval.left isa AbstractFloat && (isnan(interval.left) || isnan(interval.right)) &&
+        throw(ArgumentError("NaN not allowed in selectors"))
+    between(sampling(l), l, interval)
+end
 # This is the main method called above
 function between(sampling::Sampling, l::Lookup, interval::Interval)
     isordered(l) || throw(ArgumentError("Cannot use an interval or `Between` with `Unordered`"))
