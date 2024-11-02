@@ -10,8 +10,25 @@ Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
 abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
 
+""" 
+    AbstractBasicDimVector
+
+Supertype for basic dimensional arrays with one dimension and
+elements of type T. Alias for AbstractBasicDimArray{T,1}.
+"""
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
+""" 
+    AbstractBasicDimMatrix
+
+Supertype for basic dimensional arrays with two dimension and
+elements of type T. Alias for AbstractBasicDimArray{T,2}.
+"""
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
+"""
+    AbstractBasicDimVecOrMat
+    
+Union type of AbstractBasicDimVector and AbstractBasicDimMatrix
+"""
 const AbstractBasicDimVecOrMat = Union{AbstractBasicDimVector,AbstractBasicDimMatrix}
 
 refdims(::AbstractBasicDimArray) = ()
@@ -58,9 +75,25 @@ Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 """
 abstract type AbstractDimArray{T,N,D<:Tuple,A} <: AbstractBasicDimArray{T,N,D} end
+""" 
+    AbstractBasicDimVector
 
+Supertype for dimensional arrays with one dimension and
+elements of type T. Alias for AbstractDimArray{T,1}.
+"""
 const AbstractDimVector = AbstractDimArray{T,1} where T
+""" 
+    AbstractBasicDimMatrix
+
+Supertype for dimensional arrays with two dimension and
+elements of type T. Alias for AbstractDimArray{T,2}.
+"""
 const AbstractDimMatrix = AbstractDimArray{T,2} where T
+"""
+    AbstractDimVecOrMat
+    
+Union type of AbstractDimVector and AbstractDimMatrix
+"""
 const AbstractDimVecOrMat = Union{AbstractDimVector,AbstractDimMatrix}
 
 # DimensionalData.jl interface methods ####################################################
@@ -163,6 +196,16 @@ Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}) whe
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}) where T =
     similar(parent(A), T, I)
 
+
+"""
+    MaybeDimUnitRange
+Internal union type
+
+# Extended Help
+
+Union of Integer, Base.OneTo and Dimensions.DimUnitRange
+This unit is used to determine if return types should be an `AbstractDimArray`
+"""
 const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 # when all axes are DimUnitRanges we can return an `AbstractDimArray`
 # This code covers the likely most common cases where at least one DimUnitRange is in the
@@ -226,6 +269,14 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
         end
     end
 end
+"""
+    _similar
+Internal function
+
+# Extended help
+Internal implementatin of `similar` which returns a DimArray when the `shape` is a Tuple of Dimensions.
+"""
+
 function _similar(A::AbstractArray, T::Type, shape::Tuple)
     data = similar(parent(A), T, map(_parent_range, shape))
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
@@ -251,6 +302,14 @@ Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{}) where T =
     rebuild(A; data=similar(parent(A), T, ()), dims=(), refdims=(), metadata=NoMetadata())
 
 # Keep the same type in `similar`
+"""
+    _noname
+Internal function
+
+# Extended Help
+Return an empty name of the same type of the input. 
+This is used in `_similar` to ensure the same type of the name entry.
+"""
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
 _noname(s::String) = ""
 _noname(::NoName) = NoName()
@@ -266,6 +325,13 @@ end
 Base.Array(A::AbstractDimArray) = Array(parent(A))
 Base.collect(A::AbstractDimArray) = collect(parent(A))
 
+"""
+Internal function
+# Extended help
+
+    maybeunwrap(A)
+Unwrap the array if it is an `AbstractDimArray`.
+"""
 _maybeunwrap(A::AbstractDimArray) = parent(A)
 _maybeunwrap(A::AbstractArray) = A
 
@@ -440,8 +506,24 @@ function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(
      DimArray(f.(val(dim)), (dim,); name)
 end
 
+"""
+    DimVector{T}
+One-dimensional concrete `DimArray` with elements of type `T`.
+This is an alias for DimArray{T,1}.
+"""
 const DimVector = DimArray{T,1} where T
+"""
+    DimMatrix{T}
+
+Two-dimensional concrete `DimArray` with elements of type `T`.
+This is an alias for DimArray{T,2}.
+"""
 const DimMatrix = DimArray{T,2} where T
+"""
+    DimVecOrMat
+    
+Union of one and two dimensional concrete `DimArray`
+"""
 const DimVecOrMat = Union{DimVector,DimMatrix}
 
 DimVector(A::AbstractVector, dim::Dimension, args...; kw...) = 
@@ -454,6 +536,12 @@ DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
 
+"""
+Internal function
+# Extended Help
+    checkdims(A, dims)
+Check whether the length of the provided tuple of dimensions is the same as the number of dimension of the array `A`.
+"""
 checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(n::Integer, dims::Tuple) = length(dims) == n || _dimlengtherror(n, length(dims))
@@ -699,6 +787,13 @@ function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C(rand(r, T, _dimlength(dims)), _maybestripval(dims); kw...)
 end
 
+"""
+Internal function
+
+# Extended help
+    _dimlength(dim)
+Return the length of the dimension `dim` or in case of a Tuple the length of every dimension in the Tuple.
+"""
 _dimlength(dims::Tuple) = map(_dimlength, dims)
 _dimlength(dim::Dimension{<:AbstractArray}) = length(dim)
 _dimlength(dim::Dimension{<:Val{Keys}}) where Keys = length(Keys)
@@ -706,15 +801,26 @@ _dimlength(dim::Dimension{<:Integer}) = val(dim)
 @noinline _dimlength(dim::Dimension) =
     throw(ArgumentError("$(basetypeof(dim)) must hold an Integer or an AbstractArray, instead holds: $(val(dim))"))
 
+
+"""
+Internal function
+
+# Extended Help
+    Return the `basetypeof` for every dimension in `dims`.
+"""
 function _maybestripval(dims)
     dims = map(dims) do d
         val(d) isa AbstractArray ? d : basetypeof(d)()
     end
 end
+"""
+Internal function
 
-# dimconstructor
-# Allow customising constructors based on dimension types
-# Thed default constructor is DimArray
+# Extended Help
+    dimconstructor
+Allow customising constructors based on dimension types
+The default constructor is DimArray
+"""
 dimconstructor(dims::DimTuple) = dimconstructor(tail(dims)) 
 dimconstructor(::Tuple{}) = DimArray 
 
@@ -824,6 +930,13 @@ function unmergedims(A::AbstractBasicDimArray, original_dims)
     return DimArray(permuted, original_dims)
 end
 
+"""
+Internal function
+
+# Extended Help
+    _mergedims
+Internal implementation of `mergedims`.
+"""
 function _mergedims(all_dims, dim_pair::Pair, dim_pairs::Pair...)
     old_dims, new_dim = dim_pair
     dims_to_merge = dims(all_dims, _astuple(old_dims))
@@ -832,7 +945,13 @@ function _mergedims(all_dims, dim_pair::Pair, dim_pairs::Pair...)
     isempty(dim_pairs) && return all_dims_new
     return _mergedims(all_dims_new, dim_pairs...)
 end
+"""
 
+Internal function
+
+# Extended Help
+Internal implementation of `unmergedims`.
+"""
 function _unmergedims(all_dims, merged_dims)
     _merged_dims = dims(all_dims, merged_dims)
     unmerged_dims = map(all_dims) do d
@@ -844,6 +963,21 @@ end
 
 _unmergedims(all_dims, dim_pairs::Pair...) = _cat_tuples(replace(all_dims, dim_pairs...))
 
+
+"""
+Internal function
+
+# Extended Help
+Concatenate the Tuples in `tuples` recursively. 
+"""
 _cat_tuples(tuples...) = mapreduce(_astuple, (x, y) -> (x..., y...), tuples)
 
+
+"""
+Internal function
+
+# Extended Help
+    _filter_dims(alldims, dims)
+Filter the list of Dimensions `dims` to only return the dimensions which are in `alldims`.
+"""
 _filter_dims(alldims, dims) = filter(dim -> hasdim(alldims, dim), dims)

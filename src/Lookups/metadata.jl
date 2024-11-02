@@ -14,6 +14,12 @@ objects to [`set`](@ref) without ambiguity about where to put them.
 abstract type AbstractMetadata{X,T} end
 
 const _MetadataContents = Union{AbstractDict,NamedTuple}
+"""
+Internal type union.
+
+Possible types that can be used as metadata. 
+Contains AbstractMetadata an AbstractDict
+"""
 const AllMetadata = Union{AbstractMetadata,AbstractDict}
 
 Base.get(m::AbstractMetadata, args...) = get(val(m), args...)
@@ -96,6 +102,14 @@ end
 
 # Metadata utils
 
+"""
+Internal function.
+
+# Extended help
+
+    metadatadict(dict)
+Convert all keys of dict to Symbol and wrap it into a standard Dict.
+""" 
 function metadatadict(dict)
     symboldict = Dict{Symbol,Any}()
     for (k, v) in dict
