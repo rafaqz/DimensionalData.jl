@@ -9,9 +9,6 @@ a = [1 2 3; 4 5 6]
 da = DimArray(a, (X(143:2:145), Y(-38:-36)))
 dimz = dims(da)
 
-@dim Tst
-
-
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
     @test (@inferred dimsmatch(X(), Y())) == false
