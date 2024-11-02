@@ -10,6 +10,17 @@ end
 
 @inline Base.parent(r::DimUnitRange) = r.range
 
+function Base.reduced_index(dur::DimUnitRange) 
+    r = Base.reduced_index(parent(dur))
+    d = dims(dur)
+    d1 = if isreverse(d)
+        d[end:end]
+    else
+        d[begin:begin]
+    end
+    return DimUnitRange(r, d1)
+end
+
 @inline dims(r::DimUnitRange) = r.dim
 @inline dims(rs::Tuple{DimUnitRange,Vararg{DimUnitRange}}) = map(dims, rs)
 

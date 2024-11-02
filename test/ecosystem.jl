@@ -1,4 +1,12 @@
-using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterface, DimensionalData, Test
+using DimensionalData
+using Test
+
+using OffsetArrays
+using ImageFiltering
+using ImageTransformations
+using ArrayInterface
+using StatsBase
+
 using DimensionalData.Lookups
 
 @testset "ArrayInterface" begin
@@ -69,4 +77,10 @@ end
     imresize(da, ratio=2) isa Matrix
     imresize(parent(dims(da, X)), ratio=2)
     imrotate(da, 0.3)
+end
+
+@testset "StatsBase" begin
+    da = rand(X(1:10), Y(1:3))
+    @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
+    @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
 end
