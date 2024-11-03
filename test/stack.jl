@@ -1,5 +1,4 @@
-using DimensionalData, Test
-, LinearAlgebra, Statistics, ConstructionBase, Random
+using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
