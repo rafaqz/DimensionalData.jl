@@ -35,7 +35,7 @@ DimensionalDataCategoricalArraysExt = "CategoricalArrays"
 DimensionalDataMakie = "Makie"
 DimensionalDataStatsBase = "StatsBase"
 DimensionalDataSparseArraysExt = "SparseArrays"
-DimensionalDataLinearALgebraExt = "LinearAlgebra"
+DimensionalDataLinearAlgebraExt = "LinearAlgebra"
 
 [compat]
 Adapt = "2, 3.0, 4"
