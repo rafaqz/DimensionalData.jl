@@ -2,10 +2,8 @@ module DimensionalData
 
 # Standard lib
 using Dates,
-      LinearAlgebra,
       Random,
-      Statistics,
-      SparseArrays
+      Statistics
 
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
