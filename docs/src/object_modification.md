@@ -190,3 +190,43 @@ set(A, Y => Unordered)
 ````
 
 :::
+
+
+### `shiftlocus`
+
+Sometimes we want to change to position of the lookup values within the
+intervals they represent. (what we call the "locus" in DimensionalData.jl). 
+For example, the coordinates of pixels in GDAL rasters are specified by their 
+corners. But in NetCDF files, the standard is to use the center of the pixel. 
+So, to write from one to the other, we need to call [`shiftlocus`](@ref). 
+This will update the values of the range or vector in the lookup, and change 
+the `sampling` from e.g. `Intervals{Start}()` to `Intervals{Center}()`.
+
+First define an array with `Start` locii:
+
+```julia shiftlocus
+using DimensionalData
+using DimensionalData.Lookups # Make more functions and types available
+A = ones(X(1.0:3.0; sampling=Intervals(Start())), 
+         Y(10.0:2:20.0; sampling=Intervals(Start())))
+```
+
+Then we can shift the locii to the center of each interval
+```julia
+shiftlocus(Center, A)
+```
+
+Or just shift X
+```julia
+shiftlocus(A)
+```
+
+You can also use [`maybeshiftlocus`](@ref) to do the same thing, 
+but only where it is absolutely needed:
+
+```julia shiftlocus
+maybeshiftlocus(Center, A)
+```
+
+The difference is if the locus is already what you specify `maybeshiftlocus` will 
+not give you a new `Array`, instead just returning the input object unchanged.
