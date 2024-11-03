@@ -218,7 +218,7 @@ end
         throw(ArgumentError("There is no table column $i"))
     end
 end
-@inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)
+@inline function Tables.getcolumn(t::DimTable, dim::Union{Dimension,Type{<:Dimension}})
     dimcolumns(t)[dimnum(t, dim)]
 end
 @inline function Tables.getcolumn(t::DimTable{Rows}, key::Symbol)
