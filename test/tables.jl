@@ -1,4 +1,9 @@
-using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
+using DimensionalData
+using Test
+using Tables
+using IteratorInterfaceExtensions
+using TableTraits
+using DataFrames
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimExtensionArray

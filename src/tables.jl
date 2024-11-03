@@ -116,7 +116,6 @@ function DimTable(s::AbstractDimStack;
 end
 function DimTable(As::Vararg{AbstractDimArray};
     layernames=nothing,
-    name=layernames,
     mergedims=nothing,
 )
     # Check that dims are compatible
@@ -124,7 +123,7 @@ function DimTable(As::Vararg{AbstractDimArray};
     # Construct Layer Names
     layernames = isnothing(layernames) ? uniquekeys(As) : layernames
     # Construct dimension and array columns with DimExtensionArray
-    As = isnothing(mergedims) ? As : map(x -> DimensionalData.mergedims(x, mergedims), As)
+    As = isnothing(mergedims) ? As : map(x -> DD.mergedims(x, mergedims), As)
     dims_ = dims(first(As))
     dimcolumns = collect(_dimcolumns(dims_))
     dimnames = collect(map(name, dims_))
