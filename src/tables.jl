@@ -156,7 +156,6 @@ function DimTable(A::AbstractDimArray;
             return DimTable{Rows}(A, colnames, dimcolumns, dimarrayrows)
         else
             dimarraycolumns = [vec(parent(A))]
-            @show colnames dimcolumns dimarraycolumns
             return DimTable{Columns}(A, colnames, dimcolumns, dimarraycolumns)
         end
     end
