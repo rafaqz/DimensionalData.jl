@@ -377,13 +377,13 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD<:NamedTuple{K},M,LM<:Union{Nothing,NamedTuple{K}}} <: AbstractDimStack{K,T,N,L}
+struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
     data::L
     dims::D
     refdims::R
-    layerdims::LD
+    layerdims::NamedTuple{K,LD}
     metadata::M
-    layermetadata::LM
+    layermetadata::NamedTuple{K,LM}
     function DimStack(
         data, dims, refdims, layerdims::LD, metadata, layermetadata
     ) where LD<:NamedTuple{K} where K
@@ -392,9 +392,9 @@ struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD<:NamedTuple{K},M,LM<:Union{Nothing,
         DimStack{K,T,N}(data, dims, refdims, layerdims, metadata, layermetadata)
     end
     function DimStack{K,T,N}(
-        data::L, dims::D, refdims::R, layerdims::LD, metadata::M, layermetadata::LM
-    ) where {K,T,N,L,D,R,LD<:NamedTuple{K},M,LM}
-        new{K,T,N,L,D,R,LD,M,LM}(data, dims, refdims, layerdims, metadata, layermetadata)
+        data::L, dims::D, refdims::R, layerdims::NamedTuple, metadata::M, layermetadata::NamedTuple
+    ) where {K,T,N,L,D,R,M}
+        new{K,T,N,L,D,R,typeof(values(layerdims)),M,typeof(values(layermetadata))}(data, dims, refdims, layerdims, metadata, layermetadata)
     end
 end
 DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)

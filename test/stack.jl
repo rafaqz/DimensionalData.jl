@@ -1,4 +1,5 @@
-using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
+using DimensionalData, Test
+, LinearAlgebra, Statistics, ConstructionBase, Random
 
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
@@ -16,6 +17,7 @@ da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
 s = DimStack((da1, da2, da3))
 mixed = DimStack(da1, da2, da4)
+typeof(s)
 
 @testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) ==
