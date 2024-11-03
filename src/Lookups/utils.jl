@@ -1,3 +1,4 @@
+
 """
     shiftlocus(locus::Locus, x)
 
@@ -12,6 +13,7 @@ function shiftlocus(locus::Locus, lookup::Lookup)
     newlookup = rebuild(lookup; data=newvalues)
     return set(newlookup, locus)
 end
+shiftlocus(locus::Type{T}, lookup) where T<:Locus = shiftlocus(T(), lookup)
 
 # Fallback - no shifting
 _shiftlocus(locus::Locus, lookup::Lookup) = parent(lookup)
@@ -55,6 +57,7 @@ _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
 
 maybeshiftlocus(locus::Locus, l::Lookup) = _maybeshiftlocus(locus, sampling(l), l)
+maybeshiftlocus(locus::Type{T}, l) where T<:Locus = maybeshiftlocus(T(), l)
 
 _maybeshiftlocus(locus::Locus, sampling::Intervals, l::Lookup) = shiftlocus(locus, l)
 _maybeshiftlocus(locus::Locus, sampling::Sampling, l::Lookup) = l
@@ -110,9 +113,6 @@ end
 
 _order(A) = first(A) <= last(A) ? ForwardOrdered() : ReverseOrdered()
 _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).left ? ForwardOrdered() : ReverseOrdered()
-
-@deprecate maybeshiftlocus maybeshiftlocus
-@deprecate shiftlocus shiftlocus
 
 # Remove objects of type T from a 
 Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)
