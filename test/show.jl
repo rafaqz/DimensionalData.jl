@@ -63,6 +63,10 @@ end
 @testset "dims" begin
     sv = sprint(show, MIME("text/plain"), X())
     @test occursin("X", sv)
+    sv = sprint(show, MIME("text/plain"), X(fill(0)))
+    @test occursin("X", sv)
+    sv = sprint(show, MIME("text/plain"), X(1:5))
+    @test occursin("X", sv)
 end
 
 @testset "show lookups" begin

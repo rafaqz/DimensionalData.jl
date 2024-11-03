@@ -118,9 +118,10 @@ function print_dimval(io, mime, val, nchars=0)
     val isa Colon || print(io, " ")
     printstyled(io, val; color=get(io, :dimcolor, 1))
 end
-function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
+print_dimval(io, mime, lookup::AbstractArray, nchars=0) =
     Lookups.print_index(io, mime, lookup, nchars)
-end
+print_dimval(io, mime, lookup::AbstractArray{<:Any,0}, nchars=0) =
+    printstyled(io, " ", lookup; color=get(io, :dimcolor, 1))
 print_dimval(io, mime, lookup::Union{AutoLookup,AbstractNoLookup}, nchars=0) = print(io, "")
 function print_dimval(io, mime, lookup::Lookup, nchars=0)
     print(io, " ")
