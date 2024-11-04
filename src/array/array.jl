@@ -263,12 +263,15 @@ Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...; kw...) where 
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    rebuild(A; data=similar(parent(A), T, size(dims)), dims=D, refdims, metadata, name, kw...)
+    data = similar(parent(A), T, _dimlength(dims))
+    dims = _maybestripval(D)
+    return rebuild(A; data, dims, refdims, metadata, name, kw...)
 end
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{};
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    rebuild(A; data=similar(parent(A), T, ()), dims=D, refdims, metadata, name, kw...)
+    data = similar(parent(A), T, ())
+    rebuild(A; data, dims=(), refdims, metadata, name, kw...)
 end
 
 # Keep the same type in `similar`
