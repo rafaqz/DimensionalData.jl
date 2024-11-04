@@ -1,6 +1,7 @@
 using LinearAlgebra: AbstractTriangular, AbstractRotation
 
-using DimensionalData: strict_matmul
+using DimensionalData.Dimensions
+using DimensionalData: strict_matmul, AnonDim
 
 # Copied from symmetric.jl
 const AdjTransVec = Union{Transpose{<:Any,<:AbstractVector},Adjoint{<:Any,<:AbstractVector}}
