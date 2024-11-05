@@ -223,14 +223,23 @@ _bounds(::ReverseOrdered, ::Intervals, span::Explicit, ::AbstractSampled) =
     (val(span)[1, end], val(span)[2, 1])
 _bounds(::Intervals, span::Regular, lookup::AbstractSampled) =
     _bounds(locus(lookup), order(lookup), span, lookup)
-_bounds(::Start, ::ForwardOrdered, span, lookup) = first(lookup), last(lookup) + step(span)
-_bounds(::Start, ::ReverseOrdered, span, lookup) = last(lookup), first(lookup) - step(span)
-_bounds(::Center, ::ForwardOrdered, span, lookup) =
+_bounds(::Start, ::ForwardOrdered, span::Regular, lookup) = first(lookup), last(lookup) + step(span)
+_bounds(::Start, ::ReverseOrdered, span::Regular, lookup) = last(lookup), first(lookup) - step(span)
+_bounds(::Center, ::ForwardOrdered, span::Regular, lookup) =
     first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
-_bounds(::Center, ::ReverseOrdered, span, lookup) =
+_bounds(::Center, ::ReverseOrdered, span::Regular, lookup) =
     last(lookup) + step(span) / 2, first(lookup) - step(span) / 2
-_bounds(::End, ::ForwardOrdered, span, lookup) = first(lookup) - step(span), last(lookup)
-_bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), first(lookup)
+# DateTime handling
+function _bounds(::Center, ::ForwardOrdered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
+    f, l, s = first(lookup), last(lookup), step(span)
+    (f - (f - (f - s)) / 2, l - (l - (l + s)) / 2)
+end
+function _bounds(::Center, ::ReverseOrdered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
+    f, l, s = first(lookup), last(lookup), step(span)
+    (l - (l - (l + s)) / 2, f - (f - (f - s)) / 2)
+end
+_bounds(::End, ::ForwardOrdered, span::Regular, lookup) = first(lookup) - step(span), last(lookup)
+_bounds(::End, ::ReverseOrdered, span::Regular, lookup) = last(lookup) + step(span), first(lookup)
 
 
 const SAMPLED_ARGUMENTS_DOC = """
