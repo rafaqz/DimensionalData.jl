@@ -142,13 +142,13 @@ Base.read(A::AbstractDimArray) = A
 # Need to cover a few type signatures to avoid ambiguity with base
 function Base.similar(A::AbstractDimArray; 
     data=similar(parent(A)), 
-    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=NoMetadata(), kw...
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
 )
     rebuild(A; dims=format(dims, data), refdims, name, metadata, kw...)
 end
 function Base.similar(A::AbstractDimArray, ::Type{T}; 
     data=similar(parent(A), T),
-    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=NoMetadata(), kw...
+    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
 ) where T
     rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end

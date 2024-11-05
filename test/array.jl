@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
@@ -130,7 +130,6 @@ end
         @test eltype(da_sim) == eltype(da)
         @test size(da_sim) == size(da)
         @test dims(da_sim) === dims(da)
-        @test refdims(da_sim) === refdims(da)
         @test refdims(da_sim) === refdims(da)
         @test metadata(da_sim) === metadata(da)
     end
