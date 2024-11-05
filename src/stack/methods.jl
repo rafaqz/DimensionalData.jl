@@ -120,13 +120,10 @@ function Base.cat(s1::AbstractDimStack, stacks::AbstractDimStack...; keys=keys(s
 end
 
 # Methods with no arguments that return a DimStack
-for (mod, fnames) in
-    (:Base => (:inv, :adjoint, :transpose, :permutedims, :PermutedDimsArray), :LinearAlgebra => (:Transpose,))
-    for fname in fnames
-        @eval function ($mod.$fname)(s::AbstractDimStack)
-            maplayers(s) do l
-                ndims(l) > 1 ? ($mod.$fname)(l) : l
-            end
+for fname in (:inv, :adjoint, :transpose, :permutedims, :PermutedDimsArray)
+    @eval function (Base.$fname)(s::AbstractDimStack)
+        maplayers(s) do l
+            ndims(l) > 1 ? (Base.$fname)(l) : l
         end
     end
 end
