@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
@@ -131,8 +131,23 @@ end
         @test size(da_sim) == size(da)
         @test dims(da_sim) === dims(da)
         @test refdims(da_sim) === refdims(da)
-        @test refdims(da_sim) === refdims(da)
         @test metadata(da_sim) === metadata(da)
+    end
+
+    @testset "similar with keywords" begin
+        for x in (da, DimPoints(da))
+            md = Dict(:new_meta => "b")
+            rd = (format(Ti(1:1)),)
+            da_named = similar(x; name=:new_name, metadata=md, refdims=rd)
+            @test name(da_named) === :new_name
+            @test metadata(da_named) === md
+            @test refdims(da_named) === rd
+            da_float_named = similar(x, Float64; name=:new_name, metadata=md, refdims=rd)
+            @test eltype(da_float_named) === Float64
+            @test name(da_float_named) === :new_name
+            @test metadata(da_float_named) === md
+            @test refdims(da_float_named) === rd
+        end
     end
 
     @testset "similar with a type" begin
