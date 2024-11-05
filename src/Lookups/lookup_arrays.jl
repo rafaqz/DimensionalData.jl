@@ -225,18 +225,15 @@ _bounds(::Intervals, span::Regular, lookup::AbstractSampled) =
     _bounds(locus(lookup), order(lookup), span, lookup)
 _bounds(::Start, ::ForwardOrdered, span::Regular, lookup) = first(lookup), last(lookup) + step(span)
 _bounds(::Start, ::ReverseOrdered, span::Regular, lookup) = last(lookup), first(lookup) - step(span)
-_bounds(::Center, ::ForwardOrdered, span::Regular, lookup) =
-    first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
-_bounds(::Center, ::ReverseOrdered, span::Regular, lookup) =
-    last(lookup) + step(span) / 2, first(lookup) - step(span) / 2
-# DateTime handling
-function _bounds(::Center, ::ForwardOrdered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
-    f, l, s = first(lookup), last(lookup), step(span)
-    (f - (f - (f - s)) / 2, l - (l - (l + s)) / 2)
+function _bounds(::Center, order::Ordered, span::Regular, lookup)
+    bounds = first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
+    return _maybeflipbounds(order, bounds)
 end
-function _bounds(::Center, ::ReverseOrdered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
+# DateTime handling
+function _bounds(::Center, order::Ordered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
     f, l, s = first(lookup), last(lookup), step(span)
-    (l - (l - (l + s)) / 2, f - (f - (f - s)) / 2)
+    bounds = (f - (f - (f - s)) / 2, l - (l - (l + s)) / 2)
+    _maybeflipbounds(order, bounds)
 end
 _bounds(::End, ::ForwardOrdered, span::Regular, lookup) = first(lookup) - step(span), last(lookup)
 _bounds(::End, ::ReverseOrdered, span::Regular, lookup) = last(lookup) + step(span), first(lookup)
