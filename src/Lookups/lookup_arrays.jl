@@ -223,14 +223,20 @@ _bounds(::ReverseOrdered, ::Intervals, span::Explicit, ::AbstractSampled) =
     (val(span)[1, end], val(span)[2, 1])
 _bounds(::Intervals, span::Regular, lookup::AbstractSampled) =
     _bounds(locus(lookup), order(lookup), span, lookup)
-_bounds(::Start, ::ForwardOrdered, span, lookup) = first(lookup), last(lookup) + step(span)
-_bounds(::Start, ::ReverseOrdered, span, lookup) = last(lookup), first(lookup) - step(span)
-_bounds(::Center, ::ForwardOrdered, span, lookup) =
-    first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
-_bounds(::Center, ::ReverseOrdered, span, lookup) =
-    last(lookup) + step(span) / 2, first(lookup) - step(span) / 2
-_bounds(::End, ::ForwardOrdered, span, lookup) = first(lookup) - step(span), last(lookup)
-_bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), first(lookup)
+_bounds(::Start, ::ForwardOrdered, span::Regular, lookup) = first(lookup), last(lookup) + step(span)
+_bounds(::Start, ::ReverseOrdered, span::Regular, lookup) = last(lookup), first(lookup) - step(span)
+function _bounds(::Center, order::Ordered, span::Regular, lookup)
+    bounds = first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
+    return _maybeflipbounds(order, bounds)
+end
+# DateTime handling
+function _bounds(::Center, order::Ordered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
+    f, l, s = first(lookup), last(lookup), step(span)
+    bounds = (f - (f - (f - s)) / 2, l - (l - (l + s)) / 2)
+    _maybeflipbounds(order, bounds)
+end
+_bounds(::End, ::ForwardOrdered, span::Regular, lookup) = first(lookup) - step(span), last(lookup)
+_bounds(::End, ::ReverseOrdered, span::Regular, lookup) = last(lookup) + step(span), first(lookup)
 
 
 const SAMPLED_ARGUMENTS_DOC = """
@@ -649,6 +655,11 @@ function intervalbounds(order::Ordered, locus::Center, span::Regular, l::Lookup,
     halfstep = step(span) / 2
     x = l[i]
     bounds = (x - halfstep, x + halfstep)
+    return _maybeflipbounds(order, bounds)
+end
+function intervalbounds(order::Ordered, locus::Center, span::Regular, l::LookupArray{<:Dates.AbstractTime}, i::Int)
+    x = l[i]
+    bounds = (x - (x - step(span))) / 2 + x, (x - (x + step(span))) / 2 + x
     return _maybeflipbounds(order, bounds)
 end
 # Irregular Center
