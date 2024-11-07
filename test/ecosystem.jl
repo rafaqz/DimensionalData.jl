@@ -95,10 +95,10 @@ end
         @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
         @test DiskArrays.cache(da) isa DimArray
         @test parent(DiskArrays.cache(da)) isa DiskArrays.CachedDiskArray
-        @test all(==, da, DiskArrays.cache(da))
+        @test da == DiskArrays.cache(da)
     end
     @testset "chunks" begin
-        @test DiskArrays.haschunks(da)
-        @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(raw_data)
+        @test DiskArrays.haschunks(da) == DiskArrays.haschunks(chunked_data)
+        @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(chunked_data)
     end
 end
