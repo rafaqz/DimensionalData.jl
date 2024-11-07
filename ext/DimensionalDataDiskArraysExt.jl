@@ -9,7 +9,7 @@ using DimensionalData
 import DimensionalData: AbstractBasicDimArray
 import DiskArrays
 
-DiskArrays.cache(da::AbstractBasicDimArray; kwargs...) = rebuild(da; data = DiskArrays.cache(parent(da); kwargs...))
+DiskArrays.cache(x::Union{AbstractDimStack,AbstractArray}; kw...) = modify(A -> DiskArrays.cache(A); kw...))
 
 DiskArrays.haschunks(da::AbstractBasicDimArray) = DiskArrays.haschunks(parent(da))
 DiskArrays.eachchunk(da::AbstractBasicDimArray) = DiskArrays.eachchunk(parent(da))
