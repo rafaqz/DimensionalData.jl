@@ -6,6 +6,7 @@ using ImageFiltering
 using ImageTransformations
 using ArrayInterface
 using StatsBase
+using DiskArrays
 
 using DimensionalData.Lookups
 
@@ -83,4 +84,21 @@ end
     da = rand(X(1:10), Y(1:3))
     @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
     @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
+end
+
+@testset "DiskArrays" begin
+    raw_data = rand(100, 100)
+    chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10))
+    da = DimArray(chunked_data, (X, Y))
+
+    @testset "cache" begin
+        @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
+        @test DiskArrays.cache(da) isa DimArray
+        @test parent(DiskArrays.cache(da)) isa DiskArrays.CachedDiskArray
+        @test all(==, da, DiskArrays.cache(da))
+    end
+    @testset "chunks" begin
+        @test DiskArrays.haschunks(da)
+        @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(raw_data)
+    end
 end
