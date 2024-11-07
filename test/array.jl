@@ -474,6 +474,12 @@ end
 
 @testset "generator constructor" begin
     [(x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0)]
+    DimArray(x for x in X(10:10:50))
+    DimArray(x for x in X(10:10:50); name = :Value)
+    DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0))
+    DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0); name = :Value)
+    DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0), z in Z(100:10:500))
+    DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0), z in Z(100:10:500); name = :Value)
 end
 
 @testset "ones, zeros, trues, falses constructors" begin
