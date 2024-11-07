@@ -467,6 +467,8 @@ function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(
      DimArray(f.(val(dim)), (dim,); name)
 end
 
+DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
+
 const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
 const DimVecOrMat = Union{DimVector,DimMatrix}
