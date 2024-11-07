@@ -362,6 +362,7 @@ end
 
     DimArray(data, dims, refdims, name, metadata)
     DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(itr; kws...)
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -372,17 +373,22 @@ moves dimensions to reference dimension `refdims` after reducing operations
 ## Arguments
 
 - `data`: An `AbstractArray`.
+- `itr`: A generator expression.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
+- `kws...`: keywords as above.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
 
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
+
+Note that the generator expression syntax requires usage of the semi-colon `;`
+to distinguish dimensions from keywords.
 
 Example:
 
@@ -414,6 +420,24 @@ julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
  30  0.823656
  40  0.637077
  50  0.692235
+```
+
+Generator expression:
+
+```jldoctest
+julia> DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0); name = :Value)
+╭──────────────────────────────────────────────╮
+│ 5×11 DimArray{Tuple{Int64, Float64},2} Value │
+├──────────────────────────────────────────────┴───────────────────────────────────────────────────────── dims ┐
+  ↓ X Sampled{Int64} 10:10:50 ForwardOrdered Regular Points,
+  → Y Sampled{Float64} 0.0:0.1:1.0 ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+  ↓ →  0.0         0.1         0.2         0.3         …  0.7         0.8         0.9         1.0
+ 10     (10, 0.0)   (10, 0.1)   (10, 0.2)   (10, 0.3)      (10, 0.7)   (10, 0.8)   (10, 0.9)   (10, 1.0)        
+ 20     (20, 0.0)   (20, 0.1)   (20, 0.2)   (20, 0.3)      (20, 0.7)   (20, 0.8)   (20, 0.9)   (20, 1.0)        
+ 30     (30, 0.0)   (30, 0.1)   (30, 0.2)   (30, 0.3)      (30, 0.7)   (30, 0.8)   (30, 0.9)   (30, 1.0)        
+ 40     (40, 0.0)   (40, 0.1)   (40, 0.2)   (40, 0.3)      (40, 0.7)   (40, 0.8)   (40, 0.9)   (40, 1.0)        
+ 50     (50, 0.0)   (50, 0.1)   (50, 0.2)   (50, 0.3)  …   (50, 0.7)   (50, 0.8)   (50, 0.9)   (50, 1.0)
 ```
 """
 struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}

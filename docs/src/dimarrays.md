@@ -58,6 +58,13 @@ fill(7, X(5), Y(10))
 fill(7, X(5), Y(10); name=:fill, metadata=Dict())
 ```
 
+== generator expression
+
+```@ansi dimarray
+DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0))
+DimArray((x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0); name = :Value)
+```
+
 :::
 
 ## Constructing DimArray with arbitrary dimension names
