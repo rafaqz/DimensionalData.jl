@@ -373,7 +373,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 ## Arguments
 
 - `data`: An `AbstractArray`.
-- `itr`: A generator expression.
+- `gen`: A generator expression. Where source iterators are `Dimension`s the dim args or kw is not needed.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
