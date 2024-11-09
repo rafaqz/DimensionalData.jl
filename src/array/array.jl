@@ -387,7 +387,7 @@ Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
 
 Note that the generator expression syntax requires usage of the semi-colon `;`
-to distinguish dimensions from keywords.
+to distinguish generator dimensions from keywords.
 
 Example:
 
