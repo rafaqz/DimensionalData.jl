@@ -362,7 +362,7 @@ end
 
     DimArray(data, dims, refdims, name, metadata)
     DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
-    DimArray(itr; kws...)
+    DimArray(gen; kw...)
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
