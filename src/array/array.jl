@@ -379,7 +379,6 @@ moves dimensions to reference dimension `refdims` after reducing operations
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
-- `kws...`: keywords as above.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
