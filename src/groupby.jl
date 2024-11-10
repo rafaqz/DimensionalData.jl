@@ -275,9 +275,9 @@ And take the mean:
 
 ```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
-╭────────────────────────────────╮
-│ 12-element DimArray{Float64,1} │
-├────────────────────────────────┴──────────────────────────────── dims ┐
+╭─────────────────────────────────╮
+│ 12-element DimArray{Float64, 1} │
+├─────────────────────────────────┴─────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
@@ -305,9 +305,9 @@ Or do something else with Y:
 
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
-╭──────────────────────────╮
-│ 12×2 DimArray{Float64,2} │
-├──────────────────────────┴─────────────────────────────────────── dims ┐
+╭───────────────────────────╮
+│ 12×2 DimArray{Float64, 2} │
+├───────────────────────────┴────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
   → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
 ├────────────────────────────────────────────────────────────── metadata ┤

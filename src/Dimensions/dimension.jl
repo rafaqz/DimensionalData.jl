@@ -32,9 +32,9 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-╭────────────────────────────╮
-│ 3×5×12 DimArray{Float64,3} │
-├────────────────────────────┴─────────────────────────────────────────── dims ┐
+╭─────────────────────────────╮
+│ 3×5×12 DimArray{Float64, 3} │
+├─────────────────────────────┴────────────────────────────────────────── dims ┐
   ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
   → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
   ↗ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
@@ -54,9 +54,9 @@ x = A[X(2), Y(3)]
 
 # output
 
-╭────────────────────────────────╮
-│ 12-element DimArray{Float64,1} │
-├────────────────────────────────┴─────────────────────────────────────── dims ┐
+╭─────────────────────────────────╮
+│ 12-element DimArray{Float64, 1} │
+├─────────────────────────────────┴────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
  2021-01-01T00:00:00  0.0
@@ -80,9 +80,9 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-╭──────────────────────────╮
-│ 1×12 DimArray{Float64,2} │
-├──────────────────────────┴───────────────────────────────────────────── dims ┐
+╭───────────────────────────╮
+│ 1×12 DimArray{Float64, 2} │
+├───────────────────────────┴──────────────────────────────────────────── dims ┐
   ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
   → Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
