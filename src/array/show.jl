@@ -19,7 +19,7 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}
 end
 # Defer simple 2-arg show to the parent array
 Base.show(io::IO, A::AbstractDimArray) = show(io, parent(A))
-    
+
 Base.print_matrix(io::IO, A::AbstractBasicDimArray) =
     Base.print_matrix(io, LazyLabelledPrintMatrix(A))
 
@@ -80,7 +80,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
     print_array(io, mime, A)
 end
 
-function print_ndims(io, size::Tuple; 
+function print_ndims(io, size::Tuple;
     colors=map(dimcolors, ntuple(identity, length(size)))
 )
     if length(size) > 1
@@ -93,7 +93,7 @@ function print_ndims(io, size::Tuple;
     end
 end
 
-print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T,$N}"))
+print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T, $N}"))
 print_type(io, x) = print(io, string(nameof(typeof(x))))
 
 function print_top(io, mime, A)
@@ -165,8 +165,8 @@ function print_block_top(io, label, prev_width, new_width)
     corner = (new_width > prev_width) ? '┐' : '┤'
     top_line = if new_width > prev_width
         string(
-            '├', '─'^(prev_width), '┴', 
-            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)), 
+            '├', '─'^(prev_width), '┴',
+            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)),
             ' ', label, ' ', corner
         )
     else
@@ -179,7 +179,7 @@ function print_block_top(io, label, prev_width, new_width)
 end
 
 function print_block_separator(io, label, prev_width, new_width=prev_width)
-    if new_width > prev_width 
+    if new_width > prev_width
         line = string('├', '─'^max(0, prev_width), '┴', '─'^max(0, new_width - prev_width - textwidth(label) - 3) )
         corner = '┐'
     else
@@ -311,7 +311,7 @@ end
 @propagate_inbounds function Base.getindex(A::LazyLabelledPrintMatrix, i::Integer, j::Integer)
     @boundscheck checkbounds(A, i, j)
     oi = i + firstindex(A.data, 1) - 1
-    if ndims(A.data) == 1 
+    if ndims(A.data) == 1
         if A.rowlabels isa NoLookup
             A.data[oi]
         else

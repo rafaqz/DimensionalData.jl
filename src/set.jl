@@ -41,9 +41,9 @@ julia> using DimensionalData; const DD = DimensionalData;
 julia> da = DimArray(zeros(3, 4), (custom=10.0:010.0:30.0, Z=-20:010.0:10.0));
 
 julia> set(da, ones(3, 4))
-╭─────────────────────────╮
-│ 3×4 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 3×4 DimArray{Float64, 2} │
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
   → Z      Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
 └─────────────────────────────────────────────────────────────────────────┘
@@ -57,9 +57,9 @@ Change the `Dimension` wrapper type:
 
 ```jldoctest set
 julia> set(da, :Z => Ti, :custom => Z)
-╭─────────────────────────╮
-│ 3×4 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 3×4 DimArray{Float64, 2} │
+├──────────────────────────┴──────────────────────────────────── dims ┐
   ↓ Z  Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
   → Ti Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
 └─────────────────────────────────────────────────────────────────────┘
@@ -73,9 +73,9 @@ Change the lookup `Vector`:
 
 ```jldoctest set
 julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
-╭─────────────────────────╮
-│ 3×4 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 3×4 DimArray{Float64, 2} │
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ custom Sampled{Int64} [4, 5, 6] ForwardOrdered Regular Points,
   → Z      Sampled{Symbol} [:a, :b, :c, :d] ForwardOrdered Regular Points
 └─────────────────────────────────────────────────────────────────────────┘
@@ -89,9 +89,9 @@ Change the `Lookup` type:
 
 ```jldoctest set
 julia> set(da, Z=DD.NoLookup(), custom=DD.Sampled())
-╭─────────────────────────╮
-│ 3×4 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 3×4 DimArray{Float64, 2} │
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
   → Z
 └─────────────────────────────────────────────────────────────────────────┘
@@ -104,9 +104,9 @@ Change the `Sampling` trait:
 
 ```jldoctest set
 julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
-╭─────────────────────────╮
-│ 3×4 DimArray{Float64,2} │
-├─────────────────────────┴─────────────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 3×4 DimArray{Float64, 2} │
+├──────────────────────────┴────────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Irregular Points,
   → Z      Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
 └───────────────────────────────────────────────────────────────────────────┘

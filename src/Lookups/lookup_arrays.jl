@@ -293,9 +293,9 @@ y = Y(Sampled([1, 4, 7, 10]; span=Regular(3), sampling=Intervals(Start())))
 A = ones(x, y)
 
 # output
-╭─────────────────────────╮
-│ 5×4 DimArray{Float64,2} │
-├─────────────────────────┴────────────────────────────────────────── dims ┐
+╭──────────────────────────╮
+│ 5×4 DimArray{Float64, 2} │
+├──────────────────────────┴───────────────────────────────────────── dims ┐
   ↓ X Sampled{Int64} 100:-20:20 ReverseOrdered Regular Intervals{Start},
   → Y Sampled{Int64} [1, 4, 7, 10] ForwardOrdered Regular Intervals{Start}
 └──────────────────────────────────────────────────────────────────────────┘
