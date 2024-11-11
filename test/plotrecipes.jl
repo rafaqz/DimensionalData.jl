@@ -377,6 +377,12 @@ end
     # fig, ax, _ = M.volumeslices(A3abc; x=:c)
     # fig, ax, _ = M.volumeslices(A3abc; z=:a)
     # M.volumeslices!(ax, A3abc;z=:a)
+
+    @testset "LScene support" begin
+        f, a, p = M.heatmap(A2ab; axis = (; type = LScene, show_axis = false))
+        @test a isa Makie.LScene
+        @test isnothing(a.scene[OldAxis])
+    end
 end
 
 @testset "AlgebraOfGraphics" begin
