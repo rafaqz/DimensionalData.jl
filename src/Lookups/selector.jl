@@ -79,16 +79,6 @@ const SelectorOrInterval = Union{Selector,Interval,Not}
 
 const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 
-# `Not` form InvertedIndices.jl
-@inline function selectindices(l::Lookup, sel::Not; kw...)
-    indices = selectindices(l, sel.skip; kw...)
-    return first(to_indices(l, (Not(indices),)))
-end
-@inline function selectindices(l::Lookup, sel; kw...)
-    selstr = sprint(show, sel)
-    throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
-end
-
 """
     At <: IntSelector
 
@@ -1004,7 +994,7 @@ val(sel::Where) = sel.f
 Base.show(io::IO, x::Where) = print(io, "Where(", repr(val(x)), ")")
 
 # Yes this is everything. `Where` doesn't need lookup specialisation
-@inline function selectindices(lookup::Lookup, sel::Where)
+@inline function _selectindices(lookup::Lookup, sel::Where)
     [i for (i, v) in enumerate(parent(lookup)) if sel.f(v)]
 end
 
@@ -1045,11 +1035,10 @@ All(args::SelectorOrInterval...) = All(args)
 
 Base.show(io::IO, x::All) = print(io, "All(", x.selectors, ")")
 
-@inline function selectindices(lookup::Lookup, sel::All)
+@inline function _selectindices(lookup::Lookup, sel::All)
     results = map(s -> selectindices(lookup, s), sel.selectors)
     sort!(union(results...))
 end
-
 
 # selectindices ==========================================================================
 
@@ -1067,6 +1056,7 @@ function selectindices end
 # @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.
 @inline selectindices(::Lookup, sel::StandardIndices) = sel
+
 # Vectors are mapped
 @inline selectindices(lookup::Lookup, sel::Selector{<:AbstractVector}) =
     Int[selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
@@ -1078,6 +1068,15 @@ function selectindices end
 @inline selectindices(l::Lookup{<:Tuple}, sel::IntSelector{<:Tuple{<:Tuple,<:Tuple}}; kw...) = 
     _selecttuple(l, sel; kw...)
 selectindices(l::Lookup, sel::Selector) = _selectindices(l, sel)
+# `Not` form InvertedIndices.jl
+@inline function selectindices(l::Lookup, sel::Not; kw...)
+    indices = selectindices(l, sel.skip; kw...)
+    return first(to_indices(l, (Not(indices),)))
+end
+@inline function selectindices(l::Lookup, sel; kw...)
+    selstr = sprint(show, sel)
+    throw(ArgumentError("Invalid index `$selstr`. Did you mean `At($selstr)`? Use stardard indices, `Selector`s, or `Val` for compile-time `At`."))
+end
 
 @inline _selectindices(l::Lookup, sel::Touches) = touches(l, sel)
 @inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
