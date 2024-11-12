@@ -144,7 +144,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
             end
 
-            p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
+            p = if axis_type isa Type && axis_type <: Union{Makie.LScene, Makie.PolarAxis}
                 # LScene can only take a limited set of attributes
                 # so we extract those that can be passed.
                 # TODO: do the same for polaraxis,
@@ -156,8 +156,8 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 # surface is an LScene so we cant pass some axis attributes
                 p = Makie.$f2(args...; figure = figure_kw, axis = lscene_attrs, merged_attributes...)
                 # And instead set axisnames manually
-                if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
-                    p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+                if p.axis isa Makie.LScene && !isnothing(p.axis.scene[Makie.OldAxis])
+                    p.axis.scene[Makie.OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
             else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
