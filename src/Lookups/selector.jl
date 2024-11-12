@@ -136,24 +136,6 @@ Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x)
 struct _True end
 struct _False end
 
-@inline selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::At{<:AbstractVector}; kw...) = 
-    _selectvec(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
-    _selecttuple(l, sel; kw...)
-# Handle lookups of Tuple
-@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple}; kw...) = at(l, sel; kw...)
-@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Any,<:Any}}; kw...) = 
-    at(l, sel; kw...)
-@inline selectindices(l::Lookup{<:Tuple}, sel::At{<:Tuple{<:Tuple,<:Tuple}}; kw...) = 
-    _selecttuple(l, sel; kw...)
-
-@inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
-@inline function _selecttuple(l, sel; kw...) 
-    v1, v2 = _maybeflipbounds(l, val(sel))
-    selectindices(l, rebuild(sel, v1); kw...):selectindices(l, rebuild(sel, v2); kw...)
-end
-
 function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     return at(no_cycling(lookup), cycled_sel; kw...)
@@ -288,13 +270,6 @@ end
 Near() = Near(nothing)
 Near(a, b) = Near((a, b))
 
-@inline selectindices(l::Lookup, sel::Near; kw...) = near(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::Near{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::Near{<:Tuple}; kw...)  = _selecttuple(l, sel; kw...) 
-# Handle lookups of Tuple
-@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple}; kw...) = near(l, sel; kw...)
-@inline selectindices(l::Lookup{<:Tuple}, sel::Near{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
-
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
@@ -392,14 +367,11 @@ struct Contains{T} <: IntSelector{T}
 end
 Contains() = Contains(nothing)
 Contains(a, b) = Contains((a, b))
-
-# Filter based on sampling and selector -----------------
-@inline selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::Contains{<:AbstractVector}; kw...) = _selectvec(l, sel; kw...)
-@inline selectindices(l::Lookup, sel::Contains{<:Tuple}; kw...) = _selecttuple(l, sel; kw...)
-# Handle lookups of Tuple
-@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple}; kw...) = contains(l, sel; kw...)
-@inline selectindices(l::Lookup{<:Tuple}, sel::Contains{<:Tuple{<:Tuple,<:Tuple}}; kw...) = _selecttuple(l, sel; kw...)
+@inline _selectvec(l, sel; kw...) = [selectindices(l, rebuild(sel, v); kw...) for v in val(sel)]
+@inline function _selecttuple(l, sel; kw...) 
+    v1, v2 = _maybeflipbounds(l, val(sel))
+    selectindices(l, rebuild(sel, v1); kw...):selectindices(l, rebuild(sel, v2); kw...)
+end
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 
@@ -611,14 +583,6 @@ Base.last(sel::Between) = last(val(sel))
 abstract type _Side end
 struct _Upper <: _Side end
 struct _Lower <: _Side end
-
-@inline selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
-@inline function selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
-    inds = Int[]
-    for v in val(sel)
-        append!(inds, selectindices(lookup, rebuild(sel, v)))
-    end
-end
 
 # between
 # returns a UnitRange from an Interval
@@ -871,14 +835,6 @@ Touches(a, b) = Touches((a, b))
 Base.first(sel::Touches) = first(val(sel))
 Base.last(sel::Touches) = last(val(sel))
 
-@inline selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-@inline function selectindices(lookup::Lookup, sel::Touches{<:AbstractVector})
-    inds = Int[]
-    for v in val(sel)
-        append!(inds, selectindices(lookup, rebuild(sel, v)))
-    end
-end
-
 # touches for tuple intervals
 # returns a UnitRange like Touches/Interval but for cells contained
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
@@ -1113,8 +1069,27 @@ function selectindices end
 @inline selectindices(::Lookup, sel::StandardIndices) = sel
 # Vectors are mapped
 @inline selectindices(lookup::Lookup, sel::Selector{<:AbstractVector}) =
-    [selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
+    Int[selectindices(lookup, rebuild(sel; val=v)) for v in val(sel)]
+# Tuples may become ranges, unless the lookup is a tuple
+@inline selectindices(l::Lookup, sel::IntSelector{<:Tuple}; kw...) = 
+    _selecttuple(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::IntSelector{<:Tuple}; kw...) = 
+    _selectindices(l, sel; kw...)
+@inline selectindices(l::Lookup{<:Tuple}, sel::IntSelector{<:Tuple{<:Tuple,<:Tuple}}; kw...) = 
+    _selecttuple(l, sel; kw...)
+selectindices(l::Lookup, sel::Selector) = _selectindices(l, sel)
 
+@inline _selectindices(l::Lookup, sel::Touches) = touches(l, sel)
+@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline function _selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
+    inds = Int[]
+    for v in val(sel)
+        append!(inds, selectindices(lookup, rebuild(sel, v)))
+    end
+end
+@inline _selectindices(l::Lookup, sel::Contains; kw...) = contains(l, sel; kw...)
+@inline _selectindices(l::Lookup, sel::Near; kw...) = near(l, sel; kw...)
+@inline _selectindices(l::Lookup, sel::At; kw...) = at(l, sel; kw...)
 
 # Unaligned Lookup ------------------------------------------
 
