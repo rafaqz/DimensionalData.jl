@@ -473,7 +473,41 @@ end
 
 
 @testset "generator constructor" begin
-    [(x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0)]
+    Xs = X(10:10:50)
+    Ys = Y(0.0:0.1:1.0)
+    Zs = Z(100:10:500)
+    name = :Value
+
+    A = [(x, y) for x in Xs, y in Ys]
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray(x for x in Xs)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+
+    A = DimArray(x for x in Xs; name)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y) for x in Xs, y in Ys)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray((x, y) for x in Xs, y in Ys; name)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs; name)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+    @test A.name == name
 end
 
 @testset "ones, zeros, trues, falses constructors" begin

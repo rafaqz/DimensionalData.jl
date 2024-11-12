@@ -362,6 +362,7 @@ end
 
     DimArray(data, dims, refdims, name, metadata)
     DimArray(data, dims::Tuple; refdims=(), name=NoName(), metadata=NoMetadata())
+    DimArray(gen; kw...)
 
 The main concrete subtype of [`AbstractDimArray`](@ref).
 
@@ -372,6 +373,7 @@ moves dimensions to reference dimension `refdims` after reducing operations
 ## Arguments
 
 - `data`: An `AbstractArray`.
+- `gen`: A generator expression. Where source iterators are `Dimension`s the dim args or kw is not needed.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
@@ -383,6 +385,9 @@ and/or [`Selector`](@ref)s.
 
 Indexing `AbstractDimArray` with non-range `AbstractArray` has undefined effects
 on the `Dimension` index. Use forward-ordered arrays only"
+
+Note that the generator expression syntax requires usage of the semi-colon `;`
+to distinguish generator dimensions from keywords.
 
 Example:
 
@@ -414,6 +419,22 @@ julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
  30  0.823656
  40  0.637077
  50  0.692235
+```
+
+Generator expression:
+
+```jldoctest
+julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
+╭───────────────────────────────────────────╮
+│ 3×2 DimArray{Tuple{Int64, Int64},2} Value │
+├───────────────────────────────────────────┴───── dims ┐
+  ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
+└───────────────────────────────────────────────────────┘
+ ↓ →  1        2
+ 1     (1, 1)   (1, 2)
+ 2     (2, 1)   (2, 2)
+ 3     (3, 1)   (3, 2)
 ```
 """
 struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
@@ -466,6 +487,8 @@ the given dimension. Optionally provide a name for the result.
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
      DimArray(f.(val(dim)), (dim,); name)
 end
+
+DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
 
 const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
