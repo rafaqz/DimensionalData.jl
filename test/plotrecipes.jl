@@ -379,9 +379,9 @@ end
     # M.volumeslices!(ax, A3abc;z=:a)
 
     @testset "LScene support" begin
-        f, a, p = M.heatmap(A2ab; axis = (; type = LScene, show_axis = false))
-        @test a isa Makie.LScene
-        @test isnothing(a.scene[OldAxis])
+        f, a, p = M.heatmap(A2ab; axis = (; type = M.LScene, show_axis = false))
+        @test a isa M.LScene
+        @test isnothing(a.scene[M.OldAxis])
     end
 end
 
