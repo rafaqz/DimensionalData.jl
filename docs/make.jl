@@ -1,6 +1,7 @@
 using DocumenterVitepress
 using Documenter
 using DimensionalData
+using Dates
 using DimensionalData.Dimensions
 using DimensionalData.Lookups
 
