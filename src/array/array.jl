@@ -391,7 +391,7 @@ to distinguish generator dimensions from keywords.
 
 Example:
 
-```jldoctest; setup = :(using Random; Random.seed!(123))
+```jldoctest dimarray; setup = :(using Random; Random.seed!(123))
 julia> using Dates, DimensionalData
 
 julia> ti = Ti(DateTime(2001):Month(1):DateTime(2001,12));
@@ -423,12 +423,18 @@ julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 
 Generator expression:
 
-```jldoctest
+```jldoctest dimarray
 julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
-ERROR: UndefVarError: `X` not defined
-Stacktrace:
- [1] top-level scope
-   @ none:1
+╭────────────────────────────────────────────╮
+│ 3×2 DimArray{Tuple{Int64, Int64}, 2} Value │
+├────────────────────────────────────────────┴──── dims ┐
+  ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
+└───────────────────────────────────────────────────────┘
+ ↓ →  1        2
+ 1     (1, 1)   (1, 2)
+ 2     (2, 1)   (2, 2)
+ 3     (3, 1)   (3, 2)
 ```
 """
 struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
