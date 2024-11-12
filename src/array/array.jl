@@ -425,16 +425,10 @@ Generator expression:
 
 ```jldoctest
 julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
-╭───────────────────────────────────────────╮
-│ 3×2 DimArray{Tuple{Int64, Int64},2} Value │
-├───────────────────────────────────────────┴───── dims ┐
-  ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
-  → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────┘
- ↓ →  1        2
- 1     (1, 1)   (1, 2)
- 2     (2, 1)   (2, 2)
- 3     (3, 1)   (3, 2)
+ERROR: UndefVarError: `X` not defined
+Stacktrace:
+ [1] top-level scope
+   @ none:1
 ```
 """
 struct DimArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
