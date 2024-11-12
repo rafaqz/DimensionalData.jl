@@ -138,18 +138,26 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
 
             axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
 
-            axis_type = if haskey(axis, :type)
-                to_value(axis.type)
+            axis_type = if haskey(axis_kw, :type)
+                to_value(axis_kw[:type])
             else
                 Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
             end
 
-            p = if axis_type isa Type && axis_type <: Union{LScene, Makie.PolarAxis}
-                # surface is an LScene so we cant pass attributes
-                p = Makie.$f2(args...; figure = figure_kw, attributes...)
+            p = if axis_type isa Type && axis_type <: Union{Makie.LScene, Makie.PolarAxis}
+                # LScene can only take a limited set of attributes
+                # so we extract those that can be passed.
+                # TODO: do the same for polaraxis,
+                # or filter out shared attributes from axis_kw somehow.
+                lscene_attrs = Dict{Symbol, Any}()
+                lscene_attrs[:type] = axis_type
+                haskey(axis_kw, :scenekw) && (lscene_attrs[:scenekw] = axis_kw[:scenekw])
+                haskey(axis_kw, :show_axis) && (lscene_attrs[:show_axis] = axis_kw[:show_axis])
+                # surface is an LScene so we cant pass some axis attributes
+                p = Makie.$f2(args...; figure = figure_kw, axis = lscene_attrs, merged_attributes...)
                 # And instead set axisnames manually
-                if p.axis isa LScene && !isnothing(p.axis.scene[OldAxis])
-                    p.axis.scene[OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
+                if p.axis isa Makie.LScene && !isnothing(p.axis.scene[Makie.OldAxis])
+                    p.axis.scene[Makie.OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
             else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
