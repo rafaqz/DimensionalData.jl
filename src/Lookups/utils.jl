@@ -1,47 +1,47 @@
 """
     shiftlocus(locus::Locus, x)
 
-Shift the index of `x` from the current locus to the new locus.
+Shift the values of `x` from the current locus to the new locus.
 
 We only shift `Sampled`, `Regular` or `Explicit`, `Intervals`. 
 """
 function shiftlocus(locus::Locus, lookup::Lookup)
     samp = sampling(lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
-    newindex = _shiftindexlocus(locus, lookup)
-    newlookup = rebuild(lookup; data=newindex)
+    newvalues = _shiftlocus(locus, lookup)
+    newlookup = rebuild(lookup; data=newvalues)
     return set(newlookup, locus)
 end
 
 # Fallback - no shifting
-_shiftindexlocus(locus::Locus, lookup::Lookup) = index(lookup)
+_shiftlocus(locus::Locus, lookup::Lookup) = parent(lookup)
 # Sampled
-function _shiftindexlocus(locus::Locus, lookup::AbstractSampled)
-    _shiftindexlocus(locus, span(lookup), sampling(lookup), lookup)
+function _shiftlocus(locus::Locus, lookup::AbstractSampled)
+    _shiftlocus(locus, span(lookup), sampling(lookup), lookup)
 end
 # TODO:
-_shiftindexlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::Lookup) = index(lookup)
+_shiftlocus(locus::Locus, span::Irregular, sampling::Sampling, lookup::Lookup) = parent(lookup)
 # Sampled Regular
-function _shiftindexlocus(destlocus::Center, span::Regular, sampling::Intervals, dim::Lookup)
+function _shiftlocus(destlocus::Center, span::Regular, sampling::Intervals, l::Lookup)
     if destlocus === locus(sampling)
-        return index(dim)
+        return parent(l)
     else
         offset = _offset(locus(sampling), destlocus)
-        shift = ((index(dim) .+ abs(step(span))) .- index(dim)) .* offset
-        return index(dim) .+ shift
+        shift = ((parent(l) .+ abs(step(span))) .- parent(l)) .* offset
+        return parent(l) .+ shift
     end
 end
-function _shiftindexlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::Lookup)
-    index(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
+function _shiftlocus(destlocus::Locus, span::Regular, sampling::Intervals, lookup::Lookup)
+    parent(lookup) .+ (abs(step(span)) * _offset(locus(sampling), destlocus))
 end
 # Sampled Explicit
-_shiftindexlocus(::Start, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[1, :]
-_shiftindexlocus(::End, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[2, :]
-function _shiftindexlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::Lookup)
-    _shiftindexlocus(destlocus, locus(lookup), span, sampling, lookup)
+_shiftlocus(::Start, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[1, :]
+_shiftlocus(::End, span::Explicit, sampling::Intervals, lookup::Lookup) = val(span)[2, :]
+function _shiftlocus(destlocus::Center, span::Explicit, sampling::Intervals, lookup::Lookup)
+    _shiftlocus(destlocus, locus(lookup), span, sampling, lookup)
 end
-_shiftindexlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::Lookup) = index(lookup)
-function _shiftindexlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::Lookup)
+_shiftlocus(::Center, ::Center, span::Explicit, sampling::Intervals, lookup::Lookup) = parent(lookup)
+function _shiftlocus(::Center, ::Locus, span::Explicit, sampling::Intervals, lookup::Lookup)
     # A little complicated so that DateTime works
     (view(val(span), 2, :)  .- view(val(span), 1, :)) ./ 2 .+ view(val(span), 1, :)
 end
@@ -67,7 +67,7 @@ define the object without it's fields. By default this is the full
 `UnionAll` for the type. But custom `basetypeof` methods can be
 defined for types with free type parameters.
 
-In DimensionalData this is primariliy used for comparing `Dimension`s,
+In DimensionalData this is primarily used for comparing `Dimension`s,
 where `Dim{:x}` is different from `Dim{:y}`.
 """
 @inline basetypeof(x::T) where T = basetypeof(T)
@@ -110,3 +110,11 @@ end
 
 _order(A) = first(A) <= last(A) ? ForwardOrdered() : ReverseOrdered()
 _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).left ? ForwardOrdered() : ReverseOrdered()
+
+@deprecate maybeshiftlocus maybeshiftlocus
+@deprecate shiftlocus shiftlocus
+
+# Remove objects of type T from a 
+Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)
+Base.@assume_effects :foldable _remove(::Type{T}, ::T, xs...) where T = _remove(T, xs...)
+Base.@assume_effects :foldable _remove(::Type) = ()

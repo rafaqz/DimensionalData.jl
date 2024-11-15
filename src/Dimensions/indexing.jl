@@ -14,9 +14,9 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i::SelectorOrInterval)
             Base.$f(d, selectindices(val(d), i))
         end
-        # Everything else (like custom indexing from other packages) passes through to the parent
         @propagate_inbounds function Base.$f(d::Dimension{<:AbstractArray}, i)
-            Base.$f(parent(d), i)
+            x = Base.$f(parent(d), i)
+            x isa AbstractArray ? rebuild(d, x) : x
         end
     end
 end
@@ -28,17 +28,16 @@ end
 
 Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or `Colon`.
 """
-@inline dims2indices(dim::Dimension, I::StandardIndices) = I
 @inline dims2indices(dim::Dimension, I) = _dims2indices(dim, I)
-
 @inline dims2indices(x, I) = dims2indices(dims(x), I)
 @inline dims2indices(::Nothing, I) = _dimsnotdefinederror()
 @inline dims2indices(::Tuple{}, I) = ()
 @inline dims2indices(dims::DimTuple, I) = dims2indices(dims, (I,))
 # Standard array indices are simply returned
 @inline dims2indices(dims::DimTuple, I::Tuple{Vararg{StandardIndices}}) = I
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as_intervals(first(I)))
-@inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as_touches(val(first(I))))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Extents.Extent}) = dims2indices(dims, _extent_as(Interval, first(I)))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Touches{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Touches, val(first(I))))
+@inline dims2indices(dims::DimTuple, I::Tuple{<:Near{<:Extents.Extent}}) = dims2indices(dims, _extent_as(Near, val(first(I))))
 
 @inline dims2indices(dims::DimTuple, I::Tuple{<:CartesianIndex}) = I
 @inline dims2indices(dims::DimTuple, sel::Tuple) = 
@@ -100,28 +99,30 @@ end
 end
 
 _unalligned_all_selector_error(dims) =
-    throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(string ∘ dim2key, dims), ", ")) dims, or none of them"))
+    throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(name, dims), ", ")) dims, or none of them"))
 
 _unwrapdim(dim::Dimension) = val(dim)
 _unwrapdim(x) = x
 
 # Single dim methods
+# Simply unwrap dimensions
+@inline _dims2indices(dim::Dimension, seldim::Dimension) = _dims2indices(dim, val(seldim))
 # A Dimension type always means Colon(), as if it was constructed with the default value.
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
+@inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
+@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End},LU.LazyMath}) = 
+    to_indices(parent(dim), LU._construct_types(i))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
-# Simply unwrap dimensions
-@inline _dims2indices(dim::Dimension, seldim::Dimension) = 
-    Lookups.selectindices(val(dim), val(seldim))
+@inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 
-function _extent_as_intervals(extent::Extents.Extent{Keys}) where Keys
-    map(map(key2dim, Keys), values(extent)) do k, v
+function _extent_as(::Type{Lookups.Interval}, extent::Extents.Extent{Keys}) where Keys
+    map(map(name2dim, Keys), values(extent)) do k, v
         rebuild(k, Lookups.Interval(v...))
     end    
 end
-
-function _extent_as_touches(extent::Extents.Extent{Keys}) where Keys
-    map(map(key2dim, Keys), values(extent)) do k, v
-        rebuild(k, Touches(v))
+function _extent_as(::Type{T}, extent::Extents.Extent{Keys}) where {T,Keys}
+    map(map(name2dim, Keys), values(extent)) do k, v
+        rebuild(k, T(v))
     end    
 end

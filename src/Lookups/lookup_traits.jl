@@ -67,63 +67,83 @@ or similar optimised methods - instead it will use `findfirst`.
 """
 struct Unordered <: Order end
 
-isrev(x) = isrev(typeof(x))
-isrev(::Type{<:ForwardOrdered}) = false
+isrev(x::Order) = isrev(typeof(x))
 isrev(::Type{<:ReverseOrdered}) = true
+isrev(::Type{<:Order}) = false
 
 """
-   Locus <: LookupTrait
+    Position <: LookupTrait
 
-Abstract supertype of types that indicate the position of index values 
+Abstract supertype of types that indicate the locus of index values
 where they represent [`Intervals`](@ref).
 
 These allow for values array cells to align with the [`Start`](@ref),
 [`Center`](@ref), or [`End`](@ref) of values in the lookup index.
 
 This means they can be plotted with correct axis markers, and allows automatic
-converrsions to between formats with different standards (such as NetCDF and GeoTiff).
+conversions to between formats with different standards (such as NetCDF and GeoTiff).
 """
-abstract type Locus <: LookupTrait end
+abstract type Position <: LookupTrait end
 
 """
-    Center <: Locus
+    Center <: Position
 
     Center()
 
-Indicates a lookup value is for the center of its corresponding array cell.
+Used to specify lookup values correspond to the center locus in an interval.
 """
-struct Center <: Locus end
+struct Center <: Position end
 
 """
-    Start <: Locus
+    Start <: Position
 
     Start()
 
-Indicates a lookup value is for the start of its corresponding array cell,
-in the direction of the lookup index order.
+Used to specify lookup values correspond to the start locus of an interval.
 """
-struct Start <: Locus end
+struct Start <: Position end
 
 """
-    End <: Locus
+    Begin <: Position
+
+    Begin()
+
+Used to specify the `begin` index of a `Dimension` axis, 
+as regular `begin` will not work with named dimensions.
+
+Can be used with `:` to create a `BeginEndRange` or 
+`BeginEndStepRange`.
+"""
+struct Begin <: Position end
+
+"""
+    End <: Position
 
     End()
 
-Indicates a lookup value is for the end of its corresponding array cell,
-in the direction of the lookup index order.
+Used to specify the `end` index of a `Dimension` axis, 
+as regular `end` will not work with named dimensions.
+Can be used with `:` to create a `BeginEndRange` or 
+`BeginEndStepRange`.
+
+Also used to specify lookup values correspond to the end 
+locus of an interval.
 """
-struct End <: Locus end
+struct End <: Position end
 
 """
-    AutoLocus <: Locus
+    AutoPosition <: Position
 
-    AutoLocus()
+    AutoPosition()
 
-Indicates a interval where the index position is not yet known.
+Indicates a interval where the index locus is not yet known.
 This will be filled with a default value on object construction.
 """
-struct AutoLocus <: Locus end
+struct AutoPosition <: Position end
 
+# Locus does not include `Begin` 
+const Locus = Union{AutoPosition,Start,Center,End}
+const AutoLocus = AutoPosition
 
 """
     Sampling <: LookupTrait
@@ -137,7 +157,7 @@ struct NoSampling <: Sampling end
 locus(sampling::NoSampling) = Center()
 
 struct AutoSampling <: Sampling end
-locus(sampling::AutoSampling) = AutoLocus()
+locus(sampling::AutoSampling) = AutoPosition()
 
 """
     Points <: Sampling
@@ -155,18 +175,18 @@ locus(sampling::Points) = Center()
 """
     Intervals <: Sampling
 
-    Intervals(locus::Locus)
+    Intervals(locus::Position)
 
 [`Sampling`](@ref) specifying that sampled values are the mean (or similar)
 value over an _interval_, rather than at one specific point.
 
-Intervals require a [`Locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
+Intervals require a [`locus`](@ref) of [`Start`](@ref), [`Center`](@ref) or
 [`End`](@ref) to define the location in the interval that the index values refer to.
 """
-struct Intervals{L} <: Sampling
-    locus::L
+struct Intervals{P} <: Sampling
+    locus::P
 end
-Intervals() = Intervals(AutoLocus())
+Intervals() = Intervals(AutoPosition())
 
 locus(sampling::Intervals) = sampling.locus
 rebuild(::Intervals, locus) = Intervals(locus)
@@ -196,6 +216,8 @@ struct AutoStep end
 struct AutoBounds end
 struct AutoDim end
 
+Base.step(::AutoSpan) = AutoStep()
+
 """
     Regular <: Span
 
@@ -219,10 +241,10 @@ Base.:(==)(l1::Regular, l2::Regular) = val(l1) == val(l2)
     Irregular(bounds::Tuple)
     Irregular(lowerbound, upperbound)
 
-`Points` or `Intervals` that have an `Irrigular` step size. To enable bounds tracking
-and accuract selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
+`Points` or `Intervals` that have an `Irregular` step size. To enable bounds tracking
+and accurate selectors, the starting bounds are provided as a 2 tuple, or 2 arguments.
 `(nothing, nothing)` is acceptable input, the bounds will be guessed from the index,
-but may be innaccurate.
+but may be inaccurate.
 """
 struct Irregular{B<:Union{<:Tuple{<:Any,<:Any},AutoBounds}} <: Span
     bounds::B
@@ -236,7 +258,7 @@ val(span::Irregular) = span.bounds
 Base.:(==)(l1::Irregular, l2::Irregular) = val(l1) == val(l2)
 
 """
-    Explicit(bounds::AbstractMatix)
+    Explicit(bounds::AbstractMatrix)
 
 Intervals where the span is explicitly listed for every interval.
 
@@ -254,12 +276,12 @@ Base.:(==)(l1::Explicit, l2::Explicit) = val(l1) == val(l2)
 Adapt.adapt_structure(to, s::Explicit) = Explicit(Adapt.adapt_structure(to, val(s)))
 
 """
-    AutoIndex
+    AutoValues
 
-Detect a `Lookup` index from the context. This is used in `NoLookup` to simply
+Detect `Lookup` values from the context. This is used in `NoLookup` to simply
 use the array axis as the index when the array is constructed, and in `set` to
 change the `Lookup` type without changing the index values.
 """
-struct AutoIndex <: AbstractVector{Int} end
+struct AutoValues <: AbstractVector{Int} end
 
-Base.size(::AutoIndex) = (0,)
+Base.size(::AutoValues) = (0,)

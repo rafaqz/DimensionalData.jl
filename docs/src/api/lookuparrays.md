@@ -19,7 +19,7 @@ Lookups.Transformed
 Dimensions.MergedLookup
 Lookups.NoLookup
 Lookups.AutoLookup
-Lookups.AutoIndex
+Lookups.AutoValues
 ```
 
 The generic value getter `val`
@@ -33,7 +33,6 @@ Lookup methods:
 ```@docs
 bounds
 hasselection
-Lookups.index
 Lookups.sampling
 Lookups.span
 Lookups.order
@@ -91,14 +90,15 @@ Lookups.Points
 Lookups.Intervals
 ```
 
-### Loci
+### Positions
 
 ```@docs
-Lookups.Locus
+Position
 Lookups.Center
 Lookups.Start
+Lookups.Begin
 Lookups.End
-Lookups.AutoLocus
+Lookups.AutoPosition
 ```
 
 ## Metadata

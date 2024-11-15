@@ -80,17 +80,16 @@ a = rand(5, 4, 3);
 da = DimArray(a, (Y((1u"m", 5u"m")), X(1:4), Ti(1:3)))
 dimz = dims(da)
 
-if VERSION > v"1.1-"
-    suite["eachslice"] = BenchmarkGroup()
-    suite["eachslice"]["array_intdim"] = @benchmarkable (()->eachslice($a; dims = 2))();
-    suite["eachslice"]["dimarray_intdim"] = @benchmarkable (()->eachslice($da; dims = 2))();
-    suite["eachslice"]["dimarray_dim"] = @benchmarkable (()->eachslice($da; dims = Y()))();
-    suite["eachslice_to_vector"] = BenchmarkGroup()
-    suite["eachslice_to_vector"]["array_intdim"] = @benchmarkable [slice for slice in eachslice($a; dims = 2)];
-    suite["eachslice_to_vector"]["dimarray_intdim"] = @benchmarkable [slice for slice in eachslice($da; dims = 2)];
-    suite["eachslice_to_vector"]["dimarray_dim"] = @benchmarkable [slice for slice in eachslice($da; dims = X())];
-    # @test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
-end
+suite["eachslice"] = BenchmarkGroup()
+suite["eachslice"]["array_intdim"] = @benchmarkable (()->eachslice($a; dims = 2))();
+suite["eachslice"]["dimarray_intdim"] = @benchmarkable (()->eachslice($da; dims = 2))();
+suite["eachslice"]["dimarray_dim"] = @benchmarkable (()->eachslice($da; dims = Y()))();
+suite["eachslice_to_vector"] = BenchmarkGroup()
+suite["eachslice_to_vector"]["array_intdim"] = @benchmarkable [slice for slice in eachslice($a; dims = 2)];
+suite["eachslice_to_vector"]["dimarray_intdim"] = @benchmarkable [slice for slice in eachslice($da; dims = 2)];
+suite["eachslice_to_vector"]["dimarray_dim"] = @benchmarkable [slice for slice in eachslice($da; dims = X())];
+# @test [slice for slice in eachslice(da; dims=1)] == [slice for slice in eachslice(da; dims=Y)]
+
 
 
 suite["mean"] = BenchmarkGroup()

@@ -5,7 +5,7 @@ function Base.summary(io::IO, stack::AbstractDimStack)
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", stack::AbstractDimStack)
-    # Show main blocks - summar, dims, layers, metadata
+    # Show main blocks - summary, dims, layers, metadata
     _, blockwidth = show_main(io, mime, stack)
     # Show anything else subtypes want to append
     ctx = IOContext(io, :blockwidth => blockwidth)
@@ -37,7 +37,7 @@ function print_layers_block(io, mime, stack; blockwidth, displaywidth)
     for key in keys(layers)
         newblockwidth = min(displaywidth - 2, max(newblockwidth, length(sprint(print_layer, stack, key, keylen))))
     end
-    print_block_separator(io, "layers", blockwidth, newblockwidth)
+    newblockwidth = print_block_separator(io, "layers", blockwidth, newblockwidth)
     println(io)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)

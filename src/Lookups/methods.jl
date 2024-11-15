@@ -3,7 +3,7 @@
 Base.reverse(lookup::NoLookup) = lookup
 Base.reverse(lookup::AutoLookup) = lookup
 function Base.reverse(lookup::AbstractCategorical)
-    i = reverse(index(lookup))
+    i = reverse(parent(lookup))
     o = reverse(order(lookup))
     rebuild(lookup; data=i, order=o)
 end

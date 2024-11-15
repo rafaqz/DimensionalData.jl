@@ -1,17 +1,17 @@
 // .vitepress/theme/index.ts
-import { h } from 'vue'
-import Theme from 'vitepress/theme'
+import type { Theme } from 'vitepress'
+import DefaultTheme from 'vitepress/theme'
 import { enhanceAppWithTabs } from 'vitepress-plugin-tabs/client'
+import VersionPicker from "./VersionPicker.vue"
 import './style.css'
 
+// taken from
+// https://github.com/MakieOrg/Makie.jl/blob/master/docs/src/.vitepress/theme/index.ts
+
 export default {
-  extends: Theme,
-  Layout: () => {
-    return h(Theme.Layout, null, {
-      // https://vitepress.dev/guide/extending-default-theme#layout-slots
-    })
-  },
+  extends: DefaultTheme,
   enhanceApp({ app, router, siteData }) {
-    enhanceAppWithTabs(app)
-  }
-}
+      enhanceAppWithTabs(app);
+      app.component('VersionPicker', VersionPicker);
+    }
+} satisfies Theme;

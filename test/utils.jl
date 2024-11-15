@@ -115,13 +115,13 @@ end
         @test typeof(parent(mda)) == BitArray{2}
         @test_throws ErrorException modify(A -> A[1, :], da)
     end
-    @testset "dataset" begin
+    @testset "stack" begin
         da1 = DimArray(A, dimz; name=:da1)
         da2 = DimArray(2A, dimz; name=:da2)
         s = DimStack(da1, da2)
         ms = modify(A -> A .> 3, s)
         @test parent(ms) == (da1=[false false false; true true true],
-                              da2=[false true  true ; true true true])
+                             da2=[false true  true ; true true true])
         @test typeof(parent(ms[:da2])) == BitArray{2}
     end
     @testset "dimension" begin
@@ -159,7 +159,7 @@ end
 
     @testset "works with permuted dims" begin
         db2p = permutedims(da2)
-        dc3p = dimwise(+, da3, db2p)
+        dc3p = broadcast_dims(+, da3, db2p)
         @test dc3p == cat([2 4 6; 8 10 12], [12 14 16; 18 20 22]; dims=3)
     end
 

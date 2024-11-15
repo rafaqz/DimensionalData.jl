@@ -1,9 +1,16 @@
-using DimensionalData, Test, Plots, Dates, StatsPlots, Unitful
+using DimensionalData, Test, Dates
+using Unitful
 import Distributions
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
+
+
+@testset "Plots.jl" begin
+
+using Plots
+using StatsPlots
 
 A1 = rand(Distributions.Normal(), 20)
 ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Points())),)
@@ -130,8 +137,6 @@ for da in (da3_regular, da3_noindex, da3_ni_r_ni, da3_c_c_c, da3_XYZ, da3_XTiZ, 
     end
 end
 
-nothing
-
 # Not sure how recipes work for this
 # andrewsplot(da2)
 
@@ -158,14 +163,20 @@ nothing
 # da_im2 = DimArray(im2, (X(10:10:100), Y(10:10:100)), "Image")
 # da_im2 |> plot
 
-using CairoMakie: CairoMakie as M
-using ColorTypes
+end
+
+
 @testset "Makie" begin
+
+    using CairoMakie: CairoMakie as M
+    using ColorTypes
 
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
-
+    A1u = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"); name=:test)
+    A1ui = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"; sampling=Intervals(Start())); name=:test)
+    A1num = rand(X(-10:10))
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = M.plot(A1)
@@ -173,45 +184,86 @@ using ColorTypes
     fig, ax, _ = M.plot(A1m)
     fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
+    fig, ax, _ = M.plot(A1u)
+    M.plot!(ax, A1u)
+    fig, ax, _ = M.plot(A1ui)
+    M.plot!(ax, A1ui)
+    fig, ax, _ = M.plot(A1num)
+    M.reset_limits!(ax)
+    org = first(ax.finallimits.val.origin)
+    wid = first(M.widths(ax.finallimits.val))
+    # This tests for #714
+    @test org <= -10
+    @test org + wid >= 10
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
     fig, ax, _ = M.scatter(A1m)
     M.scatter!(ax, A1m)
     fig, ax, _ = M.lines(A1)
     M.lines!(ax, A1)
+    fig, ax, _ = M.lines(A1u)
+    M.lines!(ax, A1u)
     fig, ax, _ = M.lines(A1m)
     M.lines!(ax, A1m)
     fig, ax, _ = M.scatterlines(A1)
     M.scatterlines!(ax, A1)
+    fig, ax, _ = M.scatterlines(A1u)
+    M.scatterlines!(ax, A1u)
     fig, ax, _ = M.scatterlines(A1m)
     M.scatterlines!(ax, A1m)
     fig, ax, _ = M.stairs(A1)
     M.stairs!(ax, A1)
+    fig, ax, _ = M.stairs(A1u)
+    M.stairs!(ax, A1u)
     fig, ax, _ = M.stairs(A1m)
     M.stairs!(ax, A1m)
     fig, ax, _ = M.stem(A1)
     M.stem!(ax, A1)
+    fig, ax, _ = M.stem(A1u)
+    M.stem!(ax, A1u)
     fig, ax, _ = M.stem(A1m)
     M.stem!(ax, A1m)
     fig, ax, _ = M.barplot(A1)
     M.barplot!(ax, A1)
+    fig, ax, _ = M.barplot(A1u)
+    M.barplot!(ax, A1u)
     fig, ax, _ = M.barplot(A1m)
     M.barplot!(ax, A1m)
     fig, ax, _ = M.waterfall(A1)
     M.waterfall!(ax, A1)
+    fig, ax, _ = M.waterfall(A1u)
+    M.waterfall!(ax, A1u)
     fig, ax, _ = M.waterfall(A1m)
     M.waterfall!(ax, A1m)
+
     # 2d
     A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
     A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
+    A2u = rand(Y(10u"km":10u"km":100u"km"), X(['a', 'b', 'c']))
+    A2ui = rand(Y(10u"km":10u"km":100u"km"; sampling=Intervals(Start())), X(['a', 'b', 'c']))
     A2m[3] = missing
     A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
+
+    #Test whether the conversion functions work
+    #TODO once surface2 is corrected to use the plottrait this should
+    #already be tested with the usual plotting functions
+    M.convert_arguments(M.CellGrid(), A2)
+    M.convert_arguments(M.VertexGrid(), A2)
+    M.convert_arguments(M.ImageLike(), A2)
+
+    M.convert_arguments(M.CellGrid(), A2u)
+    M.convert_arguments(M.VertexGrid(), A2u)
+    M.convert_arguments(M.ImageLike(), A2u)
 
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
     M.plot!(ax, A2m)
+    fig, ax, _ = M.plot(A2u)
+    M.plot!(ax, A2u)
+    fig, ax, _ = M.plot(A2ui)
+    M.plot!(ax, A2ui)
     fig, ax, _ = M.plot(A2rgb)
     M.plot!(ax, A2rgb)
     fig, ax, _ = M.heatmap(A2)
@@ -233,25 +285,35 @@ using ColorTypes
 
     fig, ax, _ = M.rainclouds(A2)
     M.rainclouds!(ax, A2)
-    @test_throws ErrorException M.rainclouds(A2m)
-    @test_throws ErrorException M.rainclouds!(ax, A2m)
+    fig, ax, _ = M.rainclouds(A2u)
+    M.rainclouds!(ax, A2u)
+    @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
 
     fig, ax, _ = M.surface(A2)
     M.surface!(ax, A2)
-    fig, ax, _ = M.surface(A2m)
-    M.surface!(ax, A2m)
+    fig, ax, _ = M.surface(A2u)
+    M.surface!(ax, A2u)
+    fig, ax, _ = M.surface(A2ui)
+    M.surface!(ax, A2ui)
+    # Broken with missing
+    # fig, ax, _ = M.surface(A2m)
+    # M.surface!(ax, A2m)
     # Series also puts Categories in the legend no matter where they are
+    # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
-    M.series!(ax, A2)
+    # M.series!(ax, A2)
+    fig, ax, _ = M.series(A2u)
+    # M.series!(ax, A2u)
+    fig, ax, _ = M.series(A2ui)
+    # M.series!(ax, A2u)
     fig, ax, _ = M.series(A2r)
-    M.series!(ax, A2r)
-    #TODO: uncomment when the Makie version gets bumped
-    #fig, ax, _ = M.series(A2r; labeldim=Y)
-    #M.series!(ax, A2r; labeldim=Y)
+    # M.series!(ax, A2r)
+    fig, ax, _ = M.series(A2r; labeldim=Y)
+    # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
-    M.series!(ax, A2m)
+    # M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
-    @test_throws ArgumentError M.plot!(ax, A2; y=:c)
+    # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -275,13 +337,13 @@ using ColorTypes
     M.series!(ax, A2ab)
     fig, ax, _ = M.series(A2ab; labeldim=:a)
     M.series!(ax, A2ab; labeldim=:a)
-    # TODO: this is currently broken in Makie 
-    # should be uncommented with the bump of the Makie version
-    #fig, ax, _ = M.series(A2ab; labeldim=:b)
-    #M.series!(ax, A2ab;labeldim=:b)
 
-    # 3d
+    fig, ax, _ = M.series(A2ab; labeldim=:b)
+    # M.series!(ax, A2ab;labeldim=:b)
+
+    # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
+    A3u = rand(X((1:7)u"m"), Z((1.0:1:10.0)u"m"), Y((1:5)u"g"))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
     A3rgb = rand(RGB, X(7), Z(10), Y(5))
@@ -289,20 +351,71 @@ using ColorTypes
     M.volume!(ax, A3)
     fig, ax, _ = M.volume(A3m)
     M.volume!(ax, A3m)
-    # Broken in Makie ?
-    # fig, ax, _ = M.volumeslices(A3rgb)
-    # M.volumeslices!(ax, A3rgb)
+
+    # Units are broken in Makie ?
+    # fig, ax, _ = M.volume(A3u)
+    # M.volume!(ax, A3u)
+
     fig, ax, _ = M.volumeslices(A3)
     M.volumeslices!(ax, A3)
-    # colorrange isn't detected here
+    # Need to manually specify colorrange
     fig, ax, _ = M.volumeslices(A3m; colorrange=(1, 7))
     M.volumeslices!(ax, A3m; colorrange=(1, 7))
+
+    # Unitful volumeslices broken in Makie ?
+    # fig, ax, _ = M.volumeslices(A3u)
+    # M.volumeslices!(ax, A3u)
+
+    # RGB volumeslices broken in Makie ?
+    # fig, ax, _ = M.volumeslices(A3rgb)
+    # M.volumeslices!(ax, A3rgb)
     # fig, ax, _ = M.volumeslices(A3rgb)
     # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    M.volumeslices!(ax, A3abc;z=:a)
+    # fig, ax, _ = M.volumeslices(A3abc; x=:c)
+    # fig, ax, _ = M.volumeslices(A3abc; z=:a)
+    # M.volumeslices!(ax, A3abc;z=:a)
+
+    @testset "LScene support" begin
+        f, a, p = M.heatmap(A2ab; axis = (; type = M.LScene, show_axis = false))
+        @test a isa M.LScene
+        @test isnothing(a.scene[M.OldAxis])
+    end
+end
+
+@testset "AlgebraOfGraphics" begin
+    using AlgebraOfGraphics, CairoMakie
+    using DimensionalData
+
+    # 1d
+    A1 = rand(X(1:5); name=:test)
+    A1c = rand(X('a':'e'); name=:test)
+
+    @testset "1d, symbol indexing" begin
+        @test_nowarn data(A1) * mapping(:X, :test) * visual(CairoMakie.Lines) |> draw
+        @test_nowarn data(A1c) * mapping(:X, :test) * visual(CairoMakie.Lines) |> draw
+    end
+
+    @testset "1d, dim indexing" begin
+        @test_nowarn data(A1) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
+        @test_nowarn data(A1c) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
+    end
+
+    A3 = DimArray(rand(21, 5, 4), (X, Y, Dim{:p}); name = :RandomData)
+    
+    @testset "3d faceting" begin
+        @test_nowarn data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        fg = data(A3) * visual(CairoMakie.Heatmap) * mapping(X, :RandomData, Dim{:p}, layout = Y => nonnumeric) |> draw
+        # Test that the number of axes is equal to the size of A3 in the y dimension.
+        @test sum(x -> x isa AlgebraOfGraphics.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
+    end
+
+    @testset "DimPoints" begin
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.scatter
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.plot
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.scatter
+        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
+    end
 end

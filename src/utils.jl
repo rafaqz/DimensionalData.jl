@@ -5,11 +5,11 @@
     reorder(A::Dimension, order::Order)
 
 Reorder every dims index/array to `order`, or reorder index for
-the the given dimension(s) in `order`.
+the given dimension(s) in `order`.
 
 `order` can be an [`Order`](@ref), `Dimension => Order` pairs.
 A Tuple of Dimensions or any object that defines `dims` can be used
-in which case dimensions are
+in which case the dimensions of this object are used for reordering.
 
 If no axis reversal is required the same objects will be returned, without allocation.
 
@@ -85,7 +85,11 @@ modify(CuArray, A)
 This also works for all the data layers in a `DimStack`.
 """
 function modify end
-modify(f, s::AbstractDimStack) = map(a -> modify(f, a), s)
+modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
+# Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
+# layers, and instead just modify the parent data directly.
+modify(f, s::AbstractDimStack{<:Any,<:NamedTuple}) = 
+    rebuild(s; data=map(a -> modify(f, a), parent(s)))
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
     size(newdata) == size(A) || error("$f returns an array with a different size")
@@ -126,8 +130,8 @@ end
 function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
     st = _firststack(As...)
     nts = _as_extended_nts(NamedTuple(st), As...)
-    layers = map(nts...) do as...
-        broadcast_dims(f, as...)
+    layers = map(keys(st)) do name
+        broadcast_dims(f, map(nt -> nt[name], nts)...)
     end
     rebuild_from_arrays(st, layers)
 end
@@ -151,11 +155,7 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
         # comparedims(dest, dims(A, dims(dest)))
         # Lazily permute B dims to match the order in A, if required
-        if !dimsmatch(commondims(A, dest), commondims(dest, A))
-            PermutedDimsArray(A, commondims(dest, A))
-        else
-            A
-        end
+        _maybe_lazy_permute(A, dims(dest))
     end
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
@@ -169,18 +169,11 @@ function _broadcast_dims_inner!(f, dest, As, od)
     else
         not_shared_dims = combinedims(od...) 
         reshaped = map(As) do A
-            all(hasdim(A, dims(dest))) ? parent(A) : _insert_length_one_dims(A, dims(dest))
+            _maybe_insert_length_one_dims(A, dims(dest))
         end
         dest .= f.(reshaped...)
     end
     return dest
-end
-
-function _insert_length_one_dims(A, alldims)
-    lengths = map(alldims) do d 
-        hasdim(A, d) ? size(A, d) : 1
-    end
-    return reshape(parent(A), lengths)
 end
 
 @deprecate dimwise broadcast_dims
@@ -210,9 +203,14 @@ uniquekeys(nt::NamedTuple) = keys(nt)
 
 _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
-function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
+function _as_extended_nts(nt::NamedTuple{K1}, st::AbstractDimStack{K2}, As...) where {K1,K2}
+    K1 == K2 || throw(ArgumentError("Keys of stack $K2 do not match the keys of the first stack $K1"))
     extended_layers = map(layers(st)) do l
-        DimExtensionArray(l, dims(st))
+        if all(hasdim(l, dims(st)))
+            l
+        else
+            DimExtensionArray(l, dims(st))
+        end
     end
     return (extended_layers, _as_extended_nts(nt, As...)...)
 end

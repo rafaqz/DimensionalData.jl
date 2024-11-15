@@ -16,6 +16,7 @@ da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
 s = DimStack((da1, da2, da3))
 mixed = DimStack(da1, da2, da4)
+typeof(s)
 
 @testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) ==
@@ -38,6 +39,7 @@ end
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
     @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
+    @test name(s)== (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
@@ -55,34 +57,38 @@ end
 end
 
 @testset "broadcast over layer" begin
-    s[:one] .*= 2
-    s[:one] ./= 2
+    s[:one] .*= 2;
+    s[:one] ./= 2;
 end
 
 @testset "low level base methods" begin
-    @test keys(data(s)) == (:one, :two, :three)
-    @test keys(data(mixed)) == (:one, :two, :extradim)
+    @test keys(s) == (:one, :two, :three)
+    @test keys(mixed) == (:one, :two, :extradim)
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
-    @test_throws ErrorException length(s) == 3
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
+    @test length(mixed) === 24
+    @test firstindex(mixed) === 1
+    @test lastindex(mixed) === 24
+    @test eachindex(mixed) === 1:24
     @test axes(mixed) == (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
     @test eltype(axes(mixed)) <: Dimensions.DimUnitRange
     @test dims(axes(mixed)) == dims(mixed)
     @test axes(mixed, X) == Base.OneTo(2)
     @test dims(axes(mixed, X)) == dims(mixed, X)
     @test axes(mixed, 2) == Base.OneTo(3)
+    @test lastindex(mixed, 2) == 3
     @test dims(axes(mixed, 2)) == dims(mixed, 2)
-    @test_throws ErrorException first(s) == da1 # first/last are for the NamedTuple
-    @test_throws ErrorException last(s) == da3
+    @test first(mixed) == mixed[Begin] 
+    @test last(mixed) == mixed[End]
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 
 @testset "similar" begin
-    @test all(map(similar(mixed), mixed) do s, m
+    @test all(maplayers(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
     @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
@@ -216,14 +222,15 @@ end
     end
 end
 
-@testset "map" begin
-    @test values(map(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
-    @test dims(map(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
-    @test map(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
-    @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
-    @test map(+, s, s, s) == map(a -> a .* 3, s)
-    @test_throws ArgumentError map(+, s, mixed)
-    @test map((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
+@testset "maplayers" begin
+    @test values(maplayers(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
+    @test dims(maplayers(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
+    @test values(maplayers(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(+, s, s, s) == maplayers(a -> a .* 3, s)
+    @test_throws ArgumentError maplayers(+, s, mixed)
+    @test maplayers((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == 
+        (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
 end
 
 @testset "methods with no arguments" begin

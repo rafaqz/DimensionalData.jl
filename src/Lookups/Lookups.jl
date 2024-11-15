@@ -6,7 +6,7 @@ Module for [`Lookup`](@ref)s and [`Selector`](@ref)s used in DimensionalData.jl
 `Lookup` defines traits and `AbstractArray` wrappers
 that give specific behaviours for a lookup index when indexed with [`Selector`](@ref).
 
-For example, these allow tracking over array order so fast indexing works evne when 
+For example, these allow tracking over array order so fast indexing works even when 
 the array is reversed.
 
 To load `Lookup` types and methods into scope:
@@ -25,9 +25,15 @@ import InvertedIndices
 using InvertedIndices: Not
 using Base: tail, OneTo, @propagate_inbounds
 
-export order, sampling, span, bounds, locus, hasselection, dim,
-    metadata, units, sort, selectindices, val, index, reducelookup, 
-    shiftlocus, maybeshiftlocus, intervalbounds
+export order, sampling, span, bounds, dim,
+    metadata, units, sort, val, locus, intervalbounds
+
+export hasselection, selectindices
+
+export reducelookup, shiftlocus, maybeshiftlocus, promote_first
+
+# Deprecated
+export index
 
 export issampled, iscategorical, iscyclic, isnolookup, isintervals, ispoints, isregular,
     isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse
@@ -41,12 +47,12 @@ export LookupTrait
 export Order, Ordered, ForwardOrdered, ReverseOrdered, Unordered, AutoOrder
 export Sampling, Points, Intervals, AutoSampling, NoSampling
 export Span, Regular, Irregular, Explicit, AutoSpan, NoSpan
-export Locus, Center, Start, End, AutoLocus
+export Position, Locus, Center, Start, End, AutoLocus, AutoPosition
 export Metadata, NoMetadata
-export AutoStep, AutoBounds, AutoIndex
+export AutoStep, AutoBounds, AutoValues
 
 export Lookup
-export AutoLookup, NoLookup
+export AutoLookup, AbstractNoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
 export Unaligned, Transformed
 
@@ -63,6 +69,7 @@ include("lookup_traits.jl")
 include("lookup_arrays.jl")
 include("predicates.jl")
 include("selector.jl")
+include("beginend.jl")
 include("indexing.jl")
 include("methods.jl")
 include("utils.jl")

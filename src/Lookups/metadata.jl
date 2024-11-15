@@ -5,7 +5,7 @@
 Abstract supertype for all metadata wrappers.
 
 Metadata wrappers allow tracking the contents and origin of metadata. This can 
-facilitate conversion between metadata types (for saving a file to a differenet format)
+facilitate conversion between metadata types (for saving a file to a different format)
 or simply saving data back to the same file type with identical metadata.
 
 Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata 

@@ -41,6 +41,8 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test at(startrev, At(29.9; atol=0.2)) == 1
             @test at(startfwd, At(30.1; atol=0.2)) == 20
             @test at(startrev, At(30.1; atol=0.2)) == 1
+            @test_throws SelectorError at(startrev, At(0.0; atol=0.2))
+            @test at(startrev, At(0.0; atol=0.2); err=Lookups._False()) == nothing
         end
 
         @testset "Start between" begin
@@ -220,6 +222,7 @@ A = DimArray([1 2 3; 4 5 6], dims_)
             @test_throws SelectorError contains(startfwd, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(31))
             @test_throws SelectorError contains(startrev, Contains(10.9))
+            @test contains(startrev, Contains(10.9); err=Lookups._False()) == nothing
             @test contains(startfwd, Contains(11)) == 1
             @test contains(startfwd, Contains(11.9)) == 1
             @test contains(startfwd, Contains(12.0)) == 2
@@ -948,7 +951,7 @@ end
 
     @testset "selectors with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Near(17)), Ti(Near([1.5u"s", 3.1u"s"]))) == [6, 7]
         @test @inferred view(da, Y(Between(9, 21)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
@@ -976,7 +979,7 @@ end
             (Near([13]), Near([1.3u"s", 3.3u"s"])),
             (Between(11, 20), At((2:3)u"s"))
         ]
-        positions =  [
+        locuss =  [
             (1:3, [3, 4]),
             (2, [3, 4]),
             (2, [2, 3]),
@@ -984,7 +987,7 @@ end
             ([1], [1, 3]),
             (2:2, [2, 3])
         ]
-        for (selector, pos) in zip(selectors, positions)
+        for (selector, pos) in zip(selectors, locuss)
             pairs = collect(zip(selector, pos))
             cases = [(i, j) for i in pairs[1], j in pairs[2]]
             for (case1, case2) in combinations(cases, 2)
@@ -1027,11 +1030,7 @@ end
         for idx in indices
             from2d = view(da, idx)
             @test from2d == view(parent(da), idx)
-            if idx isa Integer
-                @test from2d isa DimArray
-            else
-                @test from2d isa SubArray
-            end
+            @test from2d isa SubArray
             from1d = view(da[Y(At(10))], idx)
             @test from1d == view(parent(da)[1, :], idx)
             @test from1d isa DimArray
@@ -1142,14 +1141,16 @@ end
                       Ti(Sampled((1:4)u"s"; sampling=Intervals()))))
 
     @testset "Extent indexing" begin
-        # THese should be the same because da is the maximum size
+        # These should be the same because da is the maximum size
         # we can index with `Touches`
-        da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        @test da[Near(Extents.extent(da))] == da[Touches(Extents.extent(da))] == da[Extents.extent(da)] == da
+        rda = reverse(da; dims=Y)
+        @test rda[Near(Extents.extent(rda))] == rda[Touches(Extents.extent(rda))] == rda[Extents.extent(rda)] == rda
     end
 
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.9u"s", 3.1u"s"]))) == [5, 7]
         @test @inferred view(da, Y(Between(4, 26)), Ti(At((3:4)u"s"))) == [3 4; 7 8]
@@ -1176,7 +1177,7 @@ end
         @test view(da, Between(40, 45), At((2:3)u"s")) isa DimArray{Int64,2}
     end
 
-    @testset "with DateTime index" begin
+    @testset "with DateTime lookup" begin
         @testset "Start locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
                 span=Regular(Month(1)), sampling=Intervals(Start())
@@ -1189,16 +1190,9 @@ end
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
 
-            timedim = Ti(Sampled(Date(2001):Month(1):Date(2001, 12); 
-                span=Regular(Month(1)), sampling=Intervals(Start())
-            ))
-            da = DimArray(1:12, timedim)
-            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
-            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
-            @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
-            @test @inferred da[Near(Date(2001, 4, 7))] == 4
-            @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
-            @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
+            @test_throws SelectorError da[Ti(At(Date(2001, 3, 4); atol=Day(2)))]
+            @test @inferred da[Ti(At(Date(2001, 3, 4); atol=Day(3)))] == 3
+            @test @inferred da[Ti(At(DateTime(2001, 3, 4); atol=Day(3)))] == 3
         end
         @testset "End locus" begin
             timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
@@ -1245,7 +1239,7 @@ end
 
     @testset "with dim wrappers" begin
         @test @inferred da[Y(At([10, 30])), Ti(At([1u"s", 4u"s"]))] == [1 4; 9 12]
-        @test_throws ArgumentError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
+        @test_throws SelectorError da[Y(At([9, 30])), Ti(At([1u"s", 4u"s"]))]
         @test @inferred view(da, Y(At(20)), Ti(At((3:4)u"s"))) == [7, 8]
         @test @inferred view(da, Y(Contains(17)), Ti(Contains([1.4u"s", 3.1u"s"]))) == [5, 7]
     end
@@ -1263,7 +1257,7 @@ end
         @test @inferred view(da, Between((11, 26)), Between((1.4u"s", 4u"s"))) == [6 7]
     end
 
-    @testset "with DateTime index" begin
+    @testset "with DateTime lookup" begin
         span_ti = Explicit(vcat(
             reshape((DateTime(2001, 1):Month(1):DateTime(2001, 12)), 1, 12),
             reshape((DateTime(2001, 2):Month(1):DateTime(2002, 1)), 1, 12)
@@ -1412,7 +1406,8 @@ end
     @test selectindices(l, Near(200.1)) == 100
     @test selectindices(l, Near(-200.1)) == 1
     @test selectindices(l, Contains(20)) == 20
-    @test_throws InexactError selectindices(l, Contains(20.1))
+    @test_throws SelectorError selectindices(l, Contains(20.1))
+    @test selectindices(l, Contains(20.1); err=Lookups._False()) === nothing
     @test_throws SelectorError selectindices(l, Contains(0)) 
     @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
@@ -1420,7 +1415,20 @@ end
 
 @testset "selectindices" begin
     @test selectindices(A[X(1)], Contains(7)) == (3,)
+    @test selectindices(A, (At(10), Contains(7))) == (1, 3)
     @test selectindices(dims_, ()) == ()
+    @test selectindices((), ()) == ()
+    @test selectindices(A, (At(90), Contains(7)); err=Lookups._False()) == nothing
+    @test selectindices(A[X(1)], Contains(10); err=Lookups._False()) == nothing
+end
+
+@testset "selectindices with Tuple" begin
+    @test selectindices(lookup(A, Y), At(6, 7)) == 2:3
+    @test_throws SelectorError selectindices(lookup(A, Y), At(5.3, 8))
+    @test selectindices(lookup(A, Y), At(5.1, 7.1; atol=0.1)) == 1:3
+    @test selectindices(lookup(A, Y), Near(5.3, 8)) == 1:3
+    @test selectindices(lookup(A, Y), Contains(4.7, 6.1)) == 1:2
+    @test_throws SelectorError selectindices(lookup(A, Y), Contains(5.3, 8)) == 1:3
 end
 
 @testset "hasselection" begin

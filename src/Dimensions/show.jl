@@ -18,8 +18,10 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
 )
     ctx = IOContext(io, :compact => true)
     inset = get(io, :inset, "")
+    brackets = get(io, :dim_brackets, true)
     print(io, inset)
-    if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa NoLookup), dims))
+    brackets && print(io, '(')
+    if all(map(d -> !(parent(d) isa AbstractArray) || (parent(d) isa AbstractNoLookup), dims))
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
         show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, first(dims))
@@ -30,12 +32,13 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
             printstyled(io, dimsymbols(n), ' '; color=dc)
             show(IOContext(ctx, :dimcolor => dc, :dimname_len => 0), mime, d)
         end
+        brackets && print(io, ')')
         return 0
     else # Dims get a line each
         lines = 3
         dc = colors[1]
         printstyled(io, dimsymbols(1), ' '; color=dc)
-        maxname = maximum(length ∘ string ∘ dim2key, dims) 
+        maxname = maximum(length ∘ string ∘ name, dims) 
         dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len=> maxname)
         show(dim_ctx, mime, first(dims))
         lines += 1
@@ -48,12 +51,13 @@ function show_dims(io::IO, mime::MIME"text/plain", dims::DimTuple;
             dim_ctx = IOContext(ctx, :dimcolor => dc, :dimname_len => maxname)
             show(dim_ctx, mime, d)
         end
+        brackets && print(io, ')')
         return lines
     end
 end
 
-Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple) =
-    show_dims(io, mime, dims)
+Base.show(io::IO, dims::DimTuple) = show_dims(io, MIME"text/plain"(), dims)
+Base.show(io::IO, mime::MIME"text/plain", dims::DimTuple) = show_dims(io, mime, dims)
 function Base.show(io::IO, mime::MIME"text/plain", dim::Dimension)
     get(io, :compact, false) && return show_compact(io, mime, dim)
     print_dimname(io, dim)
@@ -68,9 +72,10 @@ show_compact(io::IO, mime, dim::Dimension{Colon}) = print_dimname(io, dim)
 function show_compact(io::IO, mime, dim::Dimension)
     # Print to a buffer and count lengths
     buf = IOBuffer()
-    print_dimname(buf, dim)
+    ctx = IOContext(buf, :compact => true)
+    print_dimname(ctx, dim)
     nchars = length(String(take!(buf)))
-    print_dimval(buf, mime, parent(dim), nchars)
+    print_dimval(ctx, mime, parent(dim), nchars)
     nvalchars = length(String(take!(buf)))
     # Actually print to IO
     print_dimname(io, dim)
@@ -104,7 +109,7 @@ end
 # print a dimension name
 function print_dimname(io, dim::Dimension)
     dimname_len = get(io, :dimname_len, 0)
-    printstyled(io, rpad(dim2key(dim), dimname_len); color=dimcolor(io))
+    printstyled(io, rpad(name(dim), dimname_len); color=dimcolor(io))
 end
 
 
@@ -113,10 +118,11 @@ function print_dimval(io, mime, val, nchars=0)
     val isa Colon || print(io, " ")
     printstyled(io, val; color=get(io, :dimcolor, 1))
 end
-function print_dimval(io, mime, lookup::AbstractArray, nchars=0) 
+print_dimval(io, mime, lookup::AbstractArray, nchars=0) =
     Lookups.print_index(io, mime, lookup, nchars)
-end
-print_dimval(io, mime, lookup::Union{AutoLookup,NoLookup}, nchars=0) = print(io, "")
+print_dimval(io, mime, lookup::AbstractArray{<:Any,0}, nchars=0) =
+    printstyled(io, " ", lookup; color=get(io, :dimcolor, 1))
+print_dimval(io, mime, lookup::Union{AutoLookup,AbstractNoLookup}, nchars=0) = print(io, "")
 function print_dimval(io, mime, lookup::Lookup, nchars=0)
     print(io, " ")
     ctx = IOContext(io, :nchars=>nchars)

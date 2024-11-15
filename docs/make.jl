@@ -1,13 +1,19 @@
 using DocumenterVitepress
 using Documenter
 using DimensionalData
+using Dates
 using DimensionalData.Dimensions
 using DimensionalData.Lookups
 
 # Names are available everywhere so that [`function`](@ref) works.
 # ====================
 
-DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, :(using DimensionalData, DimensionalData.Dimensions, DimensionalData.Dimensions.Lookups); recursive=true)
+doctest_setup = quote
+    using DimensionalData
+    using DimensionalData.Dimensions
+    using DimensionalData.Dimensions.Lookups
+end
+DocMeta.setdocmeta!(DimensionalData, :DocTestSetup, doctest_setup; recursive=true)
 
 # Build documentation.
 # ====================
@@ -22,8 +28,7 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
     ),
     draft=false,
     source="src", 
-    build="build", 
-    # warnonly = true,
+    build="build",
 )
 
 # Deploy built documentation.

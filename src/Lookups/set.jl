@@ -1,5 +1,7 @@
 const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing,AbstractArray}
+
 set(lookup::Lookup, x::LookupSetters) = _set(lookup, x)
+set(lookup::Lookup, ::Type{T}) where T = _set(lookup, T())
 
 # _set(lookup::Lookup, newlookup::Lookup) = lookup
 _set(lookup::AbstractCategorical, newlookup::AutoLookup) = begin
@@ -15,7 +17,7 @@ _set(lookup::Lookup, newlookup::AbstractCategorical) = begin
     rebuild(newlookup; data=parent(lookup), order=o, metadata=md)
 end
 _set(lookup::AbstractSampled, newlookup::AutoLookup) = begin
-    # Update index
+    # Update lookup values
     lookup = _set(lookup, parent(newlookup))
     o = _set(order(lookup), order(newlookup))
     sa = _set(sampling(lookup), sampling(newlookup))
@@ -34,24 +36,24 @@ _set(lookup::Lookup, newlookup::AbstractSampled) = begin
     # Rebuild the new lookup with the merged fields
     rebuild(newlookup; data=parent(lookup), order=o, span=sp, sampling=sa, metadata=md)
 end
-_set(lookup::AbstractArray, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
-_set(lookup::Lookup, newlookup::NoLookup{<:AutoIndex}) = NoLookup(axes(lookup, 1))
+_set(lookup::AbstractArray, newlookup::NoLookup{<:AutoValues}) = NoLookup(axes(lookup, 1))
+_set(lookup::Lookup, newlookup::NoLookup{<:AutoValues}) = NoLookup(axes(lookup, 1))
 _set(lookup::Lookup, newlookup::NoLookup) = newlookup
 
-# Set the index
-_set(lookup::Lookup, index::Val) = rebuild(lookup; data=index)
-_set(lookup::Lookup, index::Colon) = lookup
-_set(lookup::Lookup, index::AutoLookup) = lookup
-_set(lookup::Lookup, index::AbstractArray) = rebuild(lookup; data=index)
+# Set the lookup values
+_set(lookup::Lookup, values::Val) = rebuild(lookup; data=values)
+_set(lookup::Lookup, values::Colon) = lookup
+_set(lookup::Lookup, values::AutoLookup) = lookup
+_set(lookup::Lookup, values::AbstractArray) = rebuild(lookup; data=values)
 
-_set(lookup::Lookup, index::AutoIndex) = lookup
-_set(lookup::Lookup, index::AbstractRange) =
-    rebuild(lookup; data=_set(parent(lookup), index), order=orderof(index))
+_set(lookup::Lookup, values::AutoValues) = lookup
+_set(lookup::Lookup, values::AbstractRange) =
+    rebuild(lookup; data=_set(parent(lookup), values), order=orderof(values))
 # Update the Sampling lookup of Sampled dims - it must match the range.
-_set(lookup::AbstractSampled, index::AbstractRange) = begin
-    i = _set(parent(lookup), index)
-    o = orderof(index)
-    sp = Regular(step(index))
+_set(lookup::AbstractSampled, values::AbstractRange) = begin
+    i = _set(parent(lookup), values)
+    o = orderof(values)
+    sp = Regular(step(values))
     rebuild(lookup; data=i, span=sp, order=o)
 end
 
@@ -62,6 +64,26 @@ _set(order::Order, neworder::Order) = neworder
 _set(order::Order, neworder::AutoOrder) = order
 
 # Span
+_set(lookup::AbstractSampled, ::Irregular{AutoBounds}) = begin
+    bnds = if parent(lookup) isa AutoValues || span(lookup) isa AutoSpan
+        AutoBounds()
+    else
+        bounds(lookup)
+    end
+    rebuild(lookup; span=Irregular(bnds))
+end
+_set(lookup::AbstractSampled, ::Regular{AutoStep}) = begin
+    stp = if span(lookup) isa AutoSpan || step(lookup) isa AutoStep
+        if parent(lookup) isa AbstractRange
+            step(parent(lookup))
+        else
+            AutoStep()
+        end
+    else
+        step(lookup)
+    end
+    rebuild(lookup; span=Regular(stp))
+end
 _set(lookup::AbstractSampled, span::Span) = rebuild(lookup; span=span)
 _set(lookup::AbstractSampled, span::AutoSpan) = lookup
 _set(span::Span, newspan::Span) = newspan
@@ -79,26 +101,26 @@ _set(sampling::Sampling, newsampling::Intervals) =
 # Locus
 _set(lookup::AbstractSampled, locus::Locus) =
     rebuild(lookup; sampling=_set(sampling(lookup), locus))
-_set(sampling::Points, locus::Union{AutoLocus,Center}) = Points()
+_set(sampling::Points, locus::Union{AutoPosition,Center}) = Points()
 _set(sampling::Points, locus::Locus) = _locuserror()
 _set(sampling::Intervals, locus::Locus) = Intervals(locus)
-_set(sampling::Intervals, locus::AutoLocus) = sampling
+_set(sampling::Intervals, locus::AutoPosition) = sampling
 
 _set(locus::Locus, newlocus::Locus) = newlocus
-_set(locus::Locus, newlocus::AutoLocus) = locus
+_set(locus::Locus, newlocus::AutoPosition) = locus
 
 # Metadata
 _set(lookup::Lookup, newmetadata::AllMetadata) = rebuild(lookup; metadata=newmetadata)
 _set(metadata::AllMetadata, newmetadata::AllMetadata) = newmetadata
 
-# Index
-_set(index::AbstractArray, newindex::AbstractArray) = newindex
-_set(index::AbstractArray, newindex::AutoLookup) = index
-_set(index::AbstractArray, newindex::Colon) = index
-_set(index::Colon, newindex::AbstractArray) = newindex
-_set(index::Colon, newindex::Colon) = index
+# Lookup values
+_set(values::AbstractArray, newvalues::AbstractArray) = newvalues
+_set(values::AbstractArray, newvalues::AutoLookup) = values
+_set(values::AbstractArray, newvalues::Colon) = values
+_set(values::Colon, newvalues::AbstractArray) = newvalues
+_set(values::Colon, newvalues::Colon) = values
 
 _set(A, x) = _cantseterror(A, x)
 
-@noinline _locuserror() = throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the index values are the exact points"))
+@noinline _locuserror() = throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the lookup values are the exact points"))
 @noinline _cantseterror(a, b) = throw(ArgumentError("Can not set any fields of $(typeof(a)) to $(typeof(b))"))

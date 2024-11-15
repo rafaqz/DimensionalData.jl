@@ -1,4 +1,5 @@
 using DimensionalData, Test, Unitful
+using Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData.Lookups: _slicespan, isrev, _bounds
 using DimensionalData.Dimensions: _slicedims
@@ -36,7 +37,9 @@ end
 
 @testset "isrev" begin
     @test isrev(ForwardOrdered()) == false
-    @test isrev(ForwardOrdered()) == false
+    @test isrev(ReverseOrdered()) == true
+    @test isrev(Unordered()) == false
+    @test_throws MethodError isrev(1)
 end
 
 @testset "reverse" begin
@@ -110,6 +113,18 @@ end
 @testset "bounds and intervalbounds" begin
     @testset "Intervals" begin
         @testset "Regular bounds are calculated from interval type and span value" begin
+            @testset "Forward Center DateTime" begin
+                ind = DateTime(2000):Month(1):DateTime(2000, 11)
+                dim = format(X(ind; sampling=Intervals(Center())))
+                @test bounds(dim) == (DateTime(1999, 12, 16, 12), DateTime(2000, 11, 16))
+                @test intervalbounds(dim, 3) == (DateTime(2000, 03, 15, 12), DateTime(2000, 02, 14, 12))
+            end
+            @testset "Reverse Center DateTime" begin
+                ind = DateTime(2000, 11):Month(-1):DateTime(2000, 1)
+                dim = format(X(ind; sampling=Intervals(Center())))
+                @test bounds(dim) == (DateTime(1999, 12, 16, 12), DateTime(2000, 11, 16))
+                @test intervalbounds(dim, 3) == (DateTime(2000, 09, 16, 12), DateTime(2000, 08, 17))
+            end
             @testset "forward ind" begin
                 ind = 10.0:10.0:50.0
                 dim = X(Sampled(ind, order=ForwardOrdered(), sampling=Intervals(Start()), span=Regular(10.0)))

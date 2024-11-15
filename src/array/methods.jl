@@ -53,28 +53,11 @@ for (m, f) in ((:Statistics, :median), (:Base, :any), (:Base, :all))
     end
 end
 
-# These are not exported but it makes a lot of things easier using them
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, _astuple(dims))), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt::NamedTuple{(),<:Tuple}, A::AbstractDimArray, dims::Colon)
-    Base._mapreduce_dim(f, op, nt, parent(A), dims)
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-end
-function Base._mapreduce_dim(f, op, nt, A::AbstractDimArray, dims::Colon)
-    rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
+function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
+    dims === Colon() && return mapreduce(f, op, parent(A); kw...)
+    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
 end
 
-@static if VERSION >= v"1.6"
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims)
-        rebuild(A, Base._mapreduce_dim(f, op, nt, parent(A), dimnum(A, dims)), reducedims(A, dims))
-    end
-    function Base._mapreduce_dim(f, op, nt::Base._InitialValue, A::AbstractDimArray, dims::Colon)
-        Base._mapreduce_dim(f, op, nt, parent(A), dims)
-    end
-end
 
 # TODO: Unfortunately Base/accumulate.jl kw methods all force dims to be Integer.
 # accumulate wont work unless that is relaxed, or we copy half of the file here.
@@ -95,6 +78,12 @@ end
 
 # Function application
 
+#= TODO better `comparedims` here. 
+- What if one of these is not an `AbstractDimArray` but the rest are?
+- Should we check values as well like broadcast and matmul?
+- There are less problems with type stability in `map` as we can just 
+    take dims from the first, there are no length 1 dims.
+=#
 function Base.map(f, As::AbstractDimArray...)
     comparedims(As...)
     newdata = map(f, map(parent, As)...)
@@ -120,50 +109,42 @@ end
     return rebuild(A, newdata, newdims)
 end
 
-@static if VERSION < v"1.9-alpha1"
-    """
-        Base.eachslice(A::AbstractDimArray; dims)
+"""
+    Base.eachslice(A::AbstractDimArray; dims,drop=true)
 
-    Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
-    select all the data from the other dimensions in `A` using views.
+Create a generator that iterates over dimensions `dims` of `A`, returning arrays that
+select all the data from the other dimensions in `A` using views.
 
-    The generator has `size` and `axes` equivalent to those of the provided `dims`.
-    """
-    function Base.eachslice(A::AbstractDimArray; dims)
-        dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
-            all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
-        end
-        _eachslice(A, dimtuple)
+The generator has `size` and `axes` equivalent to those of the provided `dims` if `drop=true`.
+Otherwise it will have the same dimensionality as the underlying array with inner dimensions having size 1.
+"""
+@inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
+    dimtuple = _astuple(dims)
+    if !(dimtuple == ()) 
+        all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
     end
-else
-    @inline function Base.eachslice(A::AbstractDimArray; dims, drop=true)
-        dimtuple = _astuple(dims)
-        if !(dimtuple == ()) 
-            all(hasdim(A, dimtuple...)) || throw(DimensionMismatch("A doesn't have all dimensions $dims"))
+    _eachslice(A, dimtuple, drop)
+end
+Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
+    slicedims = Dimensions.dims(A, dims)
+    Adims = Dimensions.dims(A)
+    if drop
+        ax = map(dim -> axes(A, dim), slicedims)
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
         end
-        _eachslice(A, dimtuple, drop)
-    end
-    Base.@constprop :aggressive function _eachslice(A::AbstractDimArray{T,N}, dims, drop) where {T,N}
-        slicedims = Dimensions.dims(A, dims)
-        Adims = Dimensions.dims(A)
-        if drop
-            ax = map(dim -> axes(A, dim), slicedims)
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(slicedims, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
-        else
-            ax = map(Adims) do dim
-                hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
-            end
-            slicemap = map(Adims) do dim
-                hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
-            end
-            return Slices(A, slicemap, ax)
+        return Slices(A, slicemap, ax)
+    else
+        ax = map(Adims) do dim
+            hasdim(slicedims, dim) ? axes(A, dim) : axes(reducedims(dim, dim), 1)
         end
+        slicemap = map(Adims) do dim
+            hasdim(slicedims, dim) ? dimnum(A, dim) : (:)
+        end
+        return Slices(A, slicemap, ax)
     end
 end
+
 
 # works for arrays and for stacks
 function _eachslice(x, dims::Tuple)
@@ -248,7 +229,7 @@ for (pkg, fname) in [(:Base, :permutedims), (:Base, :adjoint),
         @inline $pkg.$fname(A::AbstractDimArray{<:Any,2}) =
             rebuild(A, $pkg.$fname(parent(A)), reverse(dims(A)))
         @inline $pkg.$fname(A::AbstractDimArray{<:Any,1}) =
-            rebuild(A, $pkg.$fname(parent(A)), (AnonDim(Base.OneTo(1)), dims(A)...))
+            rebuild(A, $pkg.$fname(parent(A)), (AnonDim(NoLookup(Base.OneTo(1))), dims(A)...))
     end
 end
 @inline function Base.permutedims(A::AbstractDimArray, perm)
@@ -283,7 +264,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
             end
         else
-            catdim = basedims(key2dim(catdim))
+            catdim = basedims(name2dim(catdim))
         end
         # Dimension Types and Symbols
         if all(x -> hasdim(x, catdim), Xin)
@@ -301,7 +282,7 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
         else
             # Concatenate new dims
             if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoIndex})
+                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoValues})
                     # Combine the refdims properties with the passed in catdim
                     set(refdims(first(Xin), catdim), catdim)
                 else
@@ -323,8 +304,8 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     cat_dnums = (inserted_dnums..., appended_dnums...)
 
     # Warn if dims or val do not match, and cat the parent
-    if !comparedims(Bool, map(x -> otherdims(x, newcatdims), Xin)...;
-        order=true, val=true, warn=" Can't `cat` AbstractDimArray, applying to `parent` object."
+    if !comparedims(map(x -> otherdims(x, newcatdims), Xin)...;
+        order=true, val=true, msg=Dimensions.Warn(" Can't `cat` AbstractDimArray, applying to `parent` object.")
     )
         return Base.cat(map(parent, Xin)...; dims=cat_dnums)
     end
@@ -340,7 +321,7 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     Base.cat(As; dims=2)
     A1 = first(As)
     catdim = if A1 isa AbstractDimVector
-        AnonDim()
+        AnonDim(NoLookup())
     else
         joindims = map(last ∘ dims, As)
         check_cat_lookups(joindims...) || return Base.hcat(map(parent, As)...)
@@ -348,8 +329,8 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     end
     noncatdim = dims(A1, 1)
     # Make sure this is the same dimension for all arrays
-    if !comparedims(Bool, map(x -> dims(x, 1), As)...;
-        val=true, warn=" Can't `hcat` AbstractDimArray, applying to `parent` object."
+    if !comparedims(map(x -> dims(x, 1), As)...;
+        val=true, msg=Dimensions.Warn(" Can't `hcat` AbstractDimArray, applying to `parent` object.")
     )
         return Base.hcat(map(parent, As)...)
     end
@@ -367,8 +348,8 @@ function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         (catdim,)
     else
         # Make sure this is the same dimension for all arrays
-        if !comparedims(Bool, map(x -> dims(x, 2), As)...; 
-            val=true, warn = " Can't `vcat` AbstractDimArray, applying to `parent` object."
+        if !comparedims(map(x -> dims(x, 2), As)...; 
+            val=true, msg=Dimensions.Warn(" Can't `vcat` AbstractDimArray, applying to `parent` object.")
         )
             return Base.vcat(map(parent, As)...)
         end
@@ -431,6 +412,7 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
 end
 
 function _check_cat_lookup_order(D, lookups::Lookup...)
+    length(lookups) > 1 || return true
     l1 = first(lookups)
     length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
     L = basetypeof(l1)
@@ -657,7 +639,9 @@ _unique(A::AbstractDimArray, dims) = unique(parent(A); dims=dimnum(A, dims))
 _unique(A::AbstractDimArray, dims::Colon) = unique(parent(A); dims=:)
 
 Base.diff(A::AbstractDimVector; dims=1) = _diff(A, dimnum(A, dims))
-Base.diff(A::AbstractDimArray; dims) = _diff(A, dimnum(A, dims))
+Base.diff(A::AbstractDimArray; dims) = begin
+    _diff(A, dimnum(A, dims))
+end
 
 @inline function _diff(A::AbstractDimArray{<:Any,N}, dims::Integer) where {N}
     r = axes(A)

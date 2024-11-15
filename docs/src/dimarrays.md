@@ -58,6 +58,14 @@ fill(7, X(5), Y(10))
 fill(7, X(5), Y(10); name=:fill, metadata=Dict())
 ```
 
+== generator construction
+
+```@ansi dimarray
+[x + y for x in X(1:5), y in Y(1:10)]
+DimArray(x + y for x in X(1:5), y in Y(1:10))
+DimArray(x + y for x in X(1:5), y in Y(1:10); name=:sum, metadata=Dict())
+```
+
 :::
 
 ## Constructing DimArray with arbitrary dimension names
@@ -84,7 +92,7 @@ order of our objects axes. These are the same:
 da[X(2), Y(1)] == da[Y(1), X(2)]
 ```
 
-We also can use Tuples of dimensions like `CartesianIndex`,
+We also can use `Tuples` of dimensions, like `CartesianIndex`,
 but they don't have to be in order of consecutive axes.
 
 ```@ansi dimarray
@@ -115,6 +123,23 @@ Mixing them will throw an error:
 ```@ansi dimarray
 da1[X(3), 4]
 ```
+
+## Begin End indexing
+
+```@ansi dimarray
+da1[X=Begin+1, Y=End]
+```
+
+It also works in ranges, even with basic math:
+
+```@ansi dimarray
+da1[X=Begin:Begin+1, Y=Begin+1:End-1]
+```
+
+In base julia the keywords `begin` and `end` can be used to
+index the first or last element of an array. But this doesn't 
+work when named indexing is used. Instead you can use the types
+`Begin` and `End`.
 
 ::: info Indexing
 
@@ -152,7 +177,7 @@ Methods where dims, dim types, or `Symbol`s can be used to indicate the array di
 
 ## Performance
 
-Indexing with `Dimension`s has no runtime cost. Lets benchmark it:
+Indexing with `Dimension`s has no runtime cost. Let's benchmark it:
 
 ```@ansi dimarray
 using BenchmarkTools

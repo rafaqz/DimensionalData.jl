@@ -1,16 +1,12 @@
 using DimensionalData, Test, Aqua, SafeTestsets
 
 @testset "DimensionalData" begin
-    if VERSION >= v"1.9.0"
-        Aqua.test_ambiguities([DimensionalData, Base, Core])
-        Aqua.test_unbound_args(DimensionalData)
-        Aqua.test_undefined_exports(DimensionalData)
-        Aqua.test_project_extras(DimensionalData)
-        Aqua.test_stale_deps(DimensionalData)
-        Aqua.test_deps_compat(DimensionalData)
-        Aqua.test_project_extras(DimensionalData)
-        Aqua.test_stale_deps(DimensionalData)
-    end
+    Aqua.test_ambiguities([DimensionalData, Base, Core])
+    Aqua.test_unbound_args(DimensionalData)
+    Aqua.test_undefined_exports(DimensionalData)
+    Aqua.test_project_extras(DimensionalData)
+    Aqua.test_stale_deps(DimensionalData)
+    Aqua.test_deps_compat(DimensionalData)
 
     @time @safetestset "interface" begin include("interface.jl") end
     @time @safetestset "metadata" begin include("metadata.jl") end
@@ -37,6 +33,7 @@ using DimensionalData, Test, Aqua, SafeTestsets
     @time @safetestset "show" begin include("show.jl") end
     @time @safetestset "adapt" begin include("adapt.jl") end
     @time @safetestset "ecosystem" begin include("ecosystem.jl") end
+    @time @safetestset "categorical" begin include("categorical.jl") end
     if Sys.islinux()
         # Unfortunately this can hang on other platforms.
         # Maybe ram use of all the plots on the small CI machine? idk

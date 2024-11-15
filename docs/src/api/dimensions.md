@@ -7,7 +7,7 @@ Dimensions are kept in the sub-module `Dimensions`.
 Dimensions.Dimensions
 ```
 
-Dimensions have a type-heirarchy that organises plotting and
+Dimensions have a type-hierarchy that organises plotting and
 dimension matching.
 
 ```@docs
@@ -57,8 +57,7 @@ They are not guaranteed to keep their interface, but usually will.
 
 ```@docs
 Dimensions.commondims
-Dimensions.dim2key
-Dimensions.key2dim
+Dimensions.name2dim
 Dimensions.reducedims
 Dimensions.swapdims
 Dimensions.slicedims

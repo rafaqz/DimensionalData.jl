@@ -38,7 +38,7 @@ using .Dimensions.Lookups
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
 import .Lookups: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, intervalbounds,
-    hasselection, units, SelectorOrInterval
+    hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
 
 import DataAPI.groupby
@@ -55,6 +55,8 @@ export X, Y, Z, Ti, Dim, Coord
 
 # Selector
 export At, Between, Touches, Contains, Near, Where, All, .., Not, Bins, CyclicBins
+
+export Begin, End
 
 export AbstractDimArray, DimArray
 
@@ -73,9 +75,13 @@ export dims, refdims, metadata, name, lookup, bounds, val, layers
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!, mergedims, unmergedims
+export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
+    mergedims, unmergedims, maplayers
 
 export groupby, seasons, months, hours, intervals, ranges
+
+
+export @d
 
 const DD = DimensionalData
 

@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
@@ -22,8 +22,8 @@ val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
 @testset "checkbounds" begin
-    @test checkbounds(Bool, da, X(2), Y(1)) == true
-    @test checkbounds(Bool, da, X(10), Y(1)) == false
+    @test @inferred checkbounds(Bool, da, X(2), Y(1)) == true
+    @test @inferred checkbounds(Bool, da, X(10), Y(1)) == false
     checkbounds(da, X(2), Y(1))
     @test_throws BoundsError checkbounds(da, X(10), Y(20))
     @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
@@ -37,8 +37,8 @@ end
 end
 
 @testset "rebuild" begin
-    @test rebuild(da2, parent(da2)) === da2
-    @test rebuild(da2; dims=dims(da2)) === da2
+    @test @inferred rebuild(da2, parent(da2)) === da2
+    @test @inferred rebuild(da2; dims=dims(da2)) === da2
     @test_throws ArgumentError rebuild(da2; dims=dims(da2, (Y,))) === da2
 end
 
@@ -81,12 +81,13 @@ end
     @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test layerdims(da) == (X(), Y())
     @test index(da, Y) == LinRange(-38.0, -36.0, 2)
-    da_intervals = set(da, X => Intervals, Y => Intervals)
+    @test_broken @inferred set(da, X => Intervals(), Y => Intervals())
+    da_intervals = set(da, X => Intervals(), Y => Intervals())
     @test intervalbounds(da_intervals) == ([(142.0, 144.0), (144.0, 146.0)], [(-39.0, -37.0), (-37.0, -35.0)])
 end
 
 @testset "copy and friends" begin
-    dac = copy(da2)
+    dac = @inferred copy(da2)
     @test dac == da2
     @test dims(dac) == dims(da2)
     @test refdims(dac) == refdims(da2) == (Ti(1:1),)
@@ -130,12 +131,27 @@ end
         @test size(da_sim) == size(da)
         @test dims(da_sim) === dims(da)
         @test refdims(da_sim) === refdims(da)
-        @test refdims(da_sim) === refdims(da)
         @test metadata(da_sim) === metadata(da)
     end
 
+    @testset "similar with keywords" begin
+        for x in (da, DimPoints(da))
+            md = Dict(:new_meta => "b")
+            rd = (format(Ti(1:1)),)
+            da_named = similar(x; name=:new_name, metadata=md, refdims=rd)
+            @test name(da_named) === :new_name
+            @test metadata(da_named) === md
+            @test refdims(da_named) === rd
+            da_float_named = similar(x, Float64; name=:new_name, metadata=md, refdims=rd)
+            @test eltype(da_float_named) === Float64
+            @test name(da_float_named) === :new_name
+            @test metadata(da_float_named) === md
+            @test refdims(da_float_named) === rd
+        end
+    end
+
     @testset "similar with a type" begin
-        da_float = similar(da, Float64)
+        da_float = @inferred similar(da, Float64)
         @test eltype(da_float) == Float64
         @test size(da_float) == size(da)
         @test dims(da_float) === dims(da)
@@ -146,7 +162,7 @@ end
     @testset "similar with a size" begin
         # Changing the axis size removes dims.
         # TODO we can keep dims, but with NoLookup?
-        da_size = similar(da2, (5, 5))
+        da_size = @inferred similar(da2, (5, 5))
         @test eltype(da_size) == Int
         @test size(da_size) == (5, 5)
         da_size_splat = similar(da2, 5, 5)
@@ -162,7 +178,7 @@ end
     end
 
     @testset "similar with sparse arrays" begin
-        sda = DimArray(sprand(Float64, 10, 10, 0.5), (X, Y))
+        sda = @inferred DimArray(sprand(Float64, 10, 10, 0.5), (X(), Y()))
         sparse_size_int = similar(sda, Int64, (5, 5))
         @test eltype(sparse_size_int) == Int64 != eltype(sda)
         @test size(sparse_size_int) == (5, 5)
@@ -170,16 +186,16 @@ end
     end
 
     @testset "similar with dims" begin
-        da_sim_dims = similar(da, dims(da))
-        da_sim_dims_splat = similar(da, dims(da))
+        da_sim_dims = @inferred similar(da, dims(da))
+        da_sim_dims_splat = @inferred similar(da, dims(da))
         for A in (da_sim_dims, da_sim_dims_splat)
             @test eltype(A) == eltype(da)
             @test size(A) == size(da)
             @test dims(A) === dims(da)
             @test refdims(A) == ()
         end
-        da_sim_type_dims = similar(da2, Bool, dims(da))
-        da_sim_type_dims_splat = similar(da2, Bool, dims(da)...)
+        da_sim_type_dims = @inferred similar(da2, Bool, dims(da))
+        da_sim_type_dims_splat = @inferred similar(da2, Bool, dims(da)...)
         for A in (da_sim_type_dims, da_sim_type_dims_splat)
             @test eltype(A) == Bool
             @test size(A) == size(da)
@@ -367,34 +383,32 @@ end
     @test convert(DimArray{eltype(da)}, da) === convert(DimArray, da) === da
 end
 
-if VERSION > v"1.1-"
-    @testset "copy!" begin
-        dimz = dims(da2)
-        A = zero(a2)
-        sp = sprand(Int, 4, 0.5)
-        db = DimArray(deepcopy(A), dimz)
-        dc = DimArray(deepcopy(A), dimz)
+@testset "copy!" begin
+    dimz = dims(da2)
+    A = zero(a2)
+    sp = sprand(Int, 4, 0.5)
+    db = DimArray(deepcopy(A), dimz)
+    dc = DimArray(deepcopy(A), dimz)
 
-        @test copy!(A, da2) isa Matrix
-        @test A == parent(da2)
-        @test copy!(db, da2) isa DimMatrix
-        @test parent(db) == parent(da2)
-        @test copy!(dc, a2) isa DimMatrix
-        @test parent(db) == a2
-        # Sparse vector has its own method for ambiguity
-        copy!(sp, da2[1, :])
-        @test sp == parent(da2[1, :])
+    @test copy!(A, da2) isa Matrix
+    @test A == parent(da2)
+    @test copy!(db, da2) isa DimMatrix
+    @test parent(db) == parent(da2)
+    @test copy!(dc, a2) isa DimMatrix
+    @test parent(db) == a2
+    # Sparse vector has its own method for ambiguity
+    copy!(sp, da2[1, :])
+    @test sp == parent(da2[1, :])
 
-        @testset "vector copy! (ambiguity fix)" begin
-            v = zeros(3)
-            dv = DimArray(zeros(3), X)
-            @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
-            @test v == [1.0, 2.0, 3.0]
-            @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
-            @test dv == [9.9, 9.9, 9.9]
-            @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
-            @test dv == [5.0, 5.0, 5.0]
-        end
+    @testset "vector copy! (ambiguity fix)" begin
+        v = zeros(3)
+        dv = DimArray(zeros(3), X)
+        @test copy!(v, DimArray([1.0, 2.0, 3.0], X)) isa Vector
+        @test v == [1.0, 2.0, 3.0]
+        @test copy!(dv, DimArray([9.9, 9.9, 9.9], X)) isa DimVector
+        @test dv == [9.9, 9.9, 9.9]
+        @test copy!(dv, [5.0, 5.0, 5.0]) isa DimVector
+        @test dv == [5.0, 5.0, 5.0]
     end
 end
 
@@ -457,8 +471,47 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
+
+@testset "generator constructor" begin
+    Xs = X(10:10:50)
+    Ys = Y(0.0:0.1:1.0)
+    Zs = Z(100:10:500)
+    name = :Value
+
+    A = [(x, y) for x in Xs, y in Ys]
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray(x for x in Xs)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+
+    A = DimArray(x for x in Xs; name)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y) for x in Xs, y in Ys)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray((x, y) for x in Xs, y in Ys; name)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs; name)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+    @test A.name == name
+end
+
 @testset "ones, zeros, trues, falses constructors" begin
-    da = zeros(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
+    da = @inferred zeros(X(4), Y(40.0:10.0:80.0; order=ForwardOrdered()); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
     @test metadata(da) == (a=1, b=2)
     @test all(==(0), da) 
@@ -500,10 +553,15 @@ end
     @test size(A) === size(da)
     @test A isa DimArray
     @test dims(A) === dims(da)
+    A = DimArray{Int}(undef, dimz)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
 end
 
 @testset "rand constructors" begin
-    da = rand(1:10, X(8), Y(11:20); metadata=(a=1, b=2))
+    da = @inferred rand(1:10, X(8), Y(11:20); metadata=(a=1, b=2))
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
     @test metadata(da) == (a=1, b=2)
@@ -511,7 +569,7 @@ end
          X(NoLookup(Base.OneTo(8))), 
          Y(Sampled(11:20, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
     )
-    da = rand(X([:a, :b]), Y(3))
+    da = @inferred rand(X([:a, :b]; order=ForwardOrdered()), Y(3))
     @test size(da) == (2, 3)
     @test eltype(da) <: Float64
     da = rand(Bool, X([:a, :b]), Y(3))
@@ -525,6 +583,9 @@ end
     @test size(da) == (2, 3)
     @test maximum(da) in (1, 2)
     @test minimum(da) in (1, 2)
+    da = rand(MersenneTwister(), X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Float64
 end
 
 @testset "NamedTuple" begin

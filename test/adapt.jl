@@ -43,7 +43,7 @@ end
     @test parent(parent(l1)) isa Base.OneTo
     l = AutoLookup()
     l1 = Adapt.adapt(CustomArray, l)
-    @test parent(l1) isa AutoIndex
+    @test parent(l1) isa AutoValues
 end
 
 @testset "Dimension" begin

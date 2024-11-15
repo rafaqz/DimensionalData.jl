@@ -7,7 +7,7 @@ Rebuild an object struct with updated field values.
 
 `x` can be a `AbstractDimArray`, a `Dimension`, `Lookup` or other custom types.
 
-This is an abstraction that alows inbuilt and custom types to be rebuilt
+This is an abstraction that allows inbuilt and custom types to be rebuilt
 to update their fields, as most objects in DimensionalData.jl are immutable.
 
 Rebuild is mostly automated using `ConstructionBase.setproperties`. 
@@ -41,7 +41,7 @@ The arguments required are defined for the abstract type that has a `rebuild` me
 - `data`: the parent object, an `AbstractArray`
 
 * Note: argument `rebuild` is deprecated on `AbstractDimArray` and 
-`AbstractDimStack` in favour of allways using the keyword version. 
+`AbstractDimStack` in favour of always using the keyword version. 
 In future the argument version will only be used on `Dimension`, which only have one argument.
 """
 function rebuild end
@@ -67,7 +67,7 @@ Reference dimensions for an array that is a slice or view of another
 array with more dimensions.
 
 `slicedims(a, dims)` returns a tuple containing the current new dimensions
-and the new reference dimensions. Refdims can be stored in a field or disgarded,
+and the new reference dimensions. Refdims can be stored in a field or discarded,
 as it is mostly to give context to plots. Ignoring refdims will simply leave some
 captions empty.
 
@@ -95,36 +95,24 @@ function val end
     lookup(x, dim) => Lookup
 
 Returns the [`Lookup`](@ref) of a dimension. This dictates
-properties of the dimension such as array axis and index order,
+properties of the dimension such as array axis and lookup order,
 and sampling properties.
 
 `dims` can be a `Dimension`, a dimension type, or a tuple of either.
+
+This is separate from `val` in that it will only work when dimensions
+actually contain an `AbstractArray` lookup, and can be used on a 
+`DimArray` or `DimStack` to retrieve all lookups, as there is no ambiguity 
+of meaning as there is with `val`.
 """
 function lookup end
 
-# Methods to retreive Object/Dimension/Lookup properties
+# Methods to retrieve Object/Dimension/Lookup properties
 #
 # These work on AbstractDimStack, AbstractDimArray, Dimension
 # Lookup, and tuples of Dimension/Lookup. A `dims` argument
 # can be supplied to select a subset of dimensions or a single
 # Dimension.
-
-"""
-    index(x) => Tuple{Vararg{AbstractArray}}
-    index(x, dims::Tuple) => Tuple{Vararg{AbstractArray}}
-    index(dims::Tuple) => Tuple{Vararg{AbstractArray}}}
-    index(x, dim) => AbstractArray
-    index(dim::Dimension) => AbstractArray
-
-Return the contained index of a `Dimension`.
-
-Only valid when a `Dimension` contains an `AbstractArray`
-or a Val tuple like `Val{(:a, :b)}()`. The `Val` is unwrapped
-to return just the `Tuple`
-
-`dims` can be a `Dimension`, or a tuple of `Dimension`.
-"""
-function index end
 
 """
     metadata(x) => (object metadata)
@@ -202,7 +190,7 @@ function bounds end
     order(xs::Tuple) => Tuple
     order(x::Union{Dimension,Lookup}) => Order
 
-Return the `Ordering` of the dimension index for each dimension:
+Return the `Ordering` of the dimension lookup for each dimension:
 `ForwardOrdered`, `ReverseOrdered`, or [`Unordered`](@ref) 
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
@@ -242,7 +230,7 @@ function span end
     locus(xs::Tuple) => Tuple{Vararg{Locus,N}}
     locus(x::Union{Dimension,Lookup}) => Locus
 
-Return the [`Locus`](@ref) for each dimension.
+Return the [`Position`](@ref) of lookup values for each dimension.
 
 Second argument `dims` can be `Dimension`s, `Dimension` types,
 or `Symbols` for `Dim{Symbol}`.
