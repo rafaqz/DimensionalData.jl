@@ -809,27 +809,25 @@ end
     ca = DimArray(b, (X(4.0:5.0), Y(6.0:8.0)))
     db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
 
-    @test stack([da, db]; dims=3) == stack([parent(da), parent(db)], dims=3)
-    @test stack([da, db]; dims=3) == stack([da, db]) # Test default dims
-    @test_warn "Lookup values for X" stack([da, db]; dims=3)
+    x = DimArray([da, db], (Z(4.0:5.0)))
+    @test_warn "Lookup values" stack(x)
 
-    @test stack([da, ca]; dims=1) == stack([parent(da), parent(ca)], dims=1)
-    @test_warn "Lookup values for X" stack([da, db]; dims=1)
+    x = DimArray(fill(da, 2, 2), (Dim{:a}(4.0:5.0), Dim{:b}(6.0:7.0)))
+    sx = stack(x)
+    @test sx isa AbstractDimArray
+    @test dims(sx) == (dims(first(x))..., dims(x)...)
 
-    dc = stack([da, ca], dims=Z(1:2))
-    @test dims(dc, ndims(da)+1) == Z(1:2)
-    @test parent(dc) == stack(map(parent, [da, db]))
+    x = DimArray([da, ca], (Dim{:a}(1:2),))
+    sx = stack(x; dims=1)
+    @test sx == stack([parent(da), parent(ca)], dims=1)
+    @test sx isa AbstractDimArray
+    @test dims(sx) == (dims(x)..., dims(first(x))...)
 
     for d = 1:3
-        dc = stack([da, ca], dims=d)
+        x = DimArray([da, ca], (AnonDim(),))
+        dc = stack(x, dims=d)
         @test dims(dc, d) isa AnonDim
-        @test parent(dc) == stack(map(parent, [da, db]), dims=d)
-    end
-
-    for d = 1:3
-        dc = stack([da, ca], dims=d=>Z(1:2))
-        @test dims(dc, d) == Z(1:2)
-        @test parent(dc) == stack(map(parent, [da, db]), dims=d)
+        @test parent(dc) == stack([da, db], dims=d)
     end
 end
 
