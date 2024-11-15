@@ -529,99 +529,13 @@ $message on dimension $D.
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
 
-function Base._typed_stack(::Colon, ::Type{T}, ::Type{S}, A, Aax=_iterator_axes(A)) where {T,S<:AbstractDimArray}
-    origdims = map(dims, A)
-    _A = parent.(A)
-    t = eltype(_A)
-    _A = Base._typed_stack(:, T, t, A)
-
-    if !comparedims(Bool, origdims...;
-        order=true, val=true, warn=" Can't `stack` AbstractDimArray, applying to `parent` object."
-    )
-        return _A
-    else
-        rebuild(A, _A, format((first(origdims)..., AnonDim()), _A))
-    end
+function check_stack_dims(iter)
+    comparedims(Bool, dims.(iter)...; order=true, val=true, msg=Dimensions.Warn(" Can't `stack` AbstractDimArray, applying to `parent` object."))
+    iter
 end
-
-function Base._dim_stack(newdim::Integer, ::Type{T}, ::Type{S}, A) where {T,S<:AbstractDimArray}
-    origdims = dims.(A)
-    _A = parent.(A)
-    t = eltype(_A)
-    _A = Base._dim_stack(newdim, T, t, A)
-
-    if !comparedims(Bool, origdims...;
-        order=true, val=true, warn=" Can't `stack` AbstractDimArray, applying to `parent` object."
-    )
-        return _A
-    end
-
-    newdims = first(origdims)
-    newdims = ntuple(length(newdims) + 1) do d
-        if d == newdim
-            AnonDim()
-        else # Return the old dimension, shifted across once if it comes after the new dim
-            newdims[d-(d>newdim)]
-        end
-    end
-    rebuild(A, _A, format(newdims, _A))
-end
-
-"""
-    Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()))
-
-Stack arrays along a new axis while preserving the dimensional information of other axes.
-
-The optional keyword argument `dims` has the following behavior:
-- `dims isa Integer`: The dimension of the new axis is an `AnonDim` at position `dims`
-- `dims isa Dimension`: The new axis is at `ndims(A[1])+1` and has a dimension of `dims`.
-- `dims isa Pair{Integer, Dimension}`: The new axis is at `first(dims)` and has a dimension
-  of `last(dims)`.
-
-If `dims` contains a `Dimension`, that `Dimension` must have the same length as A.
-
-# Examples
-```julia-repl
-julia> da = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(300:-100:100)));
-julia> db = DimArray([6 5 4; 3 2 1], (X(10:10:20), Y(300:-100:100)));
-
-# Stack along a new dimension `Z`
-julia> dc = stack([da, db], dims=3=>Z(1:2))
-╭─────────────────────────╮
-│ 2×3×2 DimArray{Int64,3} │
-├─────────────────────────┴──────────────────────────────── dims ┐
-  ↓ X Sampled{Int64} 10:10:20 ForwardOrdered Regular Points,
-  → Y Sampled{Int64} 300:-100:100 ReverseOrdered Regular Points,
-  ↗ Z 1:2
-└────────────────────────────────────────────────────────────────┘
-
-julia> dims(dc, 3) == Z(1:2)
-true
-julia> parent(dc) == stack(map(parent, [da, db]), dims=3)
-true
-```
-"""
-function Base.stack(A::AbstractVector{<:AbstractDimArray}; dims=Pair(ndims(A[1])+1, AnonDim()))
-    if dims isa Integer
-        dims = dims => AnonDim()
-    elseif dims isa Dimension
-        dims = ndims(A[1])+1 => dims
-    end
-
-    B = Base._stack(first(dims), A)
-
-    if B isa AbstractDimArray
-        newdims = ntuple(ndims(B)) do d
-            if d == first(dims) # Use the new provided dimension
-                last(dims)
-            else
-                DimensionalData.dims(B, d)
-            end
-        end
-        B = rebuild(B; dims=format(newdims, B))
-    end
-    return B
-end
+Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, check_stack_dims(iter))
+Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, f(x) for x in check_stack_dims(iter))
+Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; dims=:) = _stack(dims, f(xy...) |> check_stack_dims for xy in zip(xs, yzs...))
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
