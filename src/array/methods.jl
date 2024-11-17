@@ -529,6 +529,11 @@ $message on dimension $D.
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
 
+function check_stack_dims(iter)
+    comparedims(Bool, dims.(iter)...; order=true, val=true, msg=Dimensions.Warn(" Can't `stack` AbstractDimArray, applying to `parent` object."))
+    iter
+end
+
 """
     stack(x::AbstractDimArray; [dims])
 
