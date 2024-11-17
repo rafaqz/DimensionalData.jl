@@ -821,7 +821,7 @@ end
     sx = stack(x; dims=1)
     sy = @test_nowarn stack(x; dims=:)
     sz = @test_nowarn stack(x; dims=X)
-    sw = @test_nowarn stack(X, dims=:X)
+    sw = @test_nowarn stack(x; dims=:X)
     @test sx == sz
     @test sz == sw
     @test sx == stack([parent(da), parent(ca)], dims=1)
