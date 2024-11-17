@@ -559,7 +559,7 @@ Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, 
 Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, f(x) for x in check_stack_dims(iter))
 Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; dims=:) = Base._stack(dims, check_stack_dims(f(xy...) for xy in zip(xs, yzs...)))
 Base._stack(dims::Dimension, iter) = Base._stack(typeof(dims), iter)
-Base._stack(dims::Type{<:Dimension}, iter) = Base._stack(dimnum(first(iter), dims), iter)
+Base._stack(dims::Union{Symbol,Type{<:Dimension}}, iter) = Base._stack(dimnum(first(iter), dims), iter)
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
