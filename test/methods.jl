@@ -819,6 +819,9 @@ end
 
     x = DimArray([da, ca], (Dim{:a}(1:2),))
     sx = stack(x; dims=1)
+    sy = @test_nowarn stack(x; dims=:)
+    sz = @test_nowarn stack(x; dims=X)
+    @test sx == sz
     @test sx == stack([parent(da), parent(ca)], dims=1)
     @test sx isa AbstractDimArray
     @test dims(sx) == (dims(x)..., dims(first(x))...)
@@ -828,6 +831,9 @@ end
         dc = stack(x, dims=d)
         @test dims(dc, d) isa AnonDim
         @test parent(dc) == stack([da, db], dims=d)
+
+        @test stack(x -> x .^ 2, x) == stack(parent(x)) .^ 2
+        @test stack(+, x, x, x) == stack(x + x + x)
     end
 end
 
