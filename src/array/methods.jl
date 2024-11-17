@@ -529,13 +529,32 @@ $message on dimension $D.
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
 
-function check_stack_dims(iter)
-    comparedims(Bool, dims.(iter)...; order=true, val=true, msg=Dimensions.Warn(" Can't `stack` AbstractDimArray, applying to `parent` object."))
-    iter
-end
+"""
+    stack(x::AbstractDimArray; [dims])
+
+Combine a nested `AbstractDimArray` into a single array by arranging the inner arrays
+along one or more new dimensions taken from the outer array.
+The inner `AbstractDimArray`s must all have the same dimensions.
+
+The keyword `dims` specifies where the new dimensions will be placed in the resulting array.
+The index of all existing dimensions equal to or greater than `dims` will be increased to
+accomodate the new dimensions.
+The default `dims` places the new dimensions at the end of the resulting array.
+
+# Examples
+```julia
+using DimensionalData
+a = DimArray([1 2 3; 4 5 6], (X(4.0:5.0), Y(6.0:8.0)))
+b = DimArray([7 8 9; 10 11 12], (X(4.0:5.0), Y(6.0:8.0)))
+x = DimArray([a, b], Z(4.0:5.0)) # Construct a nested DimArray
+y = stack(x; dims=2) # Resulting array has dims (X, *Z*, Y)
+```
+"""
 Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, check_stack_dims(iter))
 Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, f(x) for x in check_stack_dims(iter))
-Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; dims=:) = _stack(dims, f(xy...) |> check_stack_dims for xy in zip(xs, yzs...))
+Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; dims=:) = Base._stack(dims, check_stack_dims(f(xy...) for xy in zip(xs, yzs...)))
+Base._stack(dims::Dimension, iter) = Base._stack(typeof(dims), iter)
+Base._stack(dims::Type{<:Dimension}, iter) = Base._stack(dimnum(first(iter), dims), iter)
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
