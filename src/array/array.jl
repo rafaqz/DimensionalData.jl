@@ -144,7 +144,7 @@ function Base.similar(A::AbstractDimArray;
     data=similar(parent(A)), 
     dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
 )
-    rebuild(A; dims=format(dims, data), refdims, name, metadata, kw...)
+    rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end
 function Base.similar(A::AbstractDimArray, ::Type{T}; 
     data=similar(parent(A), T),

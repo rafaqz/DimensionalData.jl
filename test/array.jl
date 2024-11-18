@@ -127,6 +127,7 @@ end
 @testset "similar" begin
     @testset "similar with no args" begin
         da_sim = similar(da)
+        @test parent(da_sim) !== parent(da) # check if the same memory
         @test eltype(da_sim) == eltype(da)
         @test size(da_sim) == size(da)
         @test dims(da_sim) === dims(da)
@@ -152,6 +153,7 @@ end
 
     @testset "similar with a type" begin
         da_float = @inferred similar(da, Float64)
+        @test parent(da_float) !== parent(da) # check if the same memory
         @test eltype(da_float) == Float64
         @test size(da_float) == size(da)
         @test dims(da_float) === dims(da)
