@@ -821,9 +821,7 @@ end
     sx = stack(x; dims=1)
     sy = @test_nowarn stack(x; dims=:)
     sz = @test_nowarn stack(x; dims=X)
-    sw = @test_nowarn stack(x; dims=:X)
     @test sx == sz
-    @test sz == sw
     @test sx == stack([parent(da), parent(ca)], dims=1)
     @test sx isa AbstractDimArray
     @test dims(sx) == (dims(x)..., dims(first(x))...)
@@ -834,8 +832,12 @@ end
         @test dims(dc, d) isa AnonDim
         @test parent(dc) == stack([da, db], dims=d)
 
-        @test stack(x -> x .^ 2, x) == stack(parent(x)) .^ 2
-        @test stack(+, x, x, x) == stack(x + x + x)
+        dc = stack(x -> x .^ 2, x; dims=d)
+        @test dims(dc, d) isa AnonDim
+        @test dc == stack(parent(x); dims=d) .^ 2
+        dc = stack(+, x, x, x; dims=d)
+        @test dims(dc, d) isa AnonDim
+        @test dc == stack(x + x + x; dims=d)
     end
 end
 
