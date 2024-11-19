@@ -817,6 +817,8 @@ end
     @test sx isa AbstractDimArray
     @test dims(sx) == (dims(first(x))..., dims(x)...)
 
+    @test_throws "ArgumentError" stack(x; dims=4)
+
     x = DimArray([da, ca], (Dim{:a}(1:2),))
     sx = stack(x; dims=1)
     sy = @test_nowarn stack(x; dims=:)
