@@ -534,6 +534,10 @@ function check_stack_dims(iter)
     iter
 end
 
+_maybe_dimnum(x, dim) = hasdim(x, dim) ? dimnum(x, dim) : ndims(x) + 1
+_maybe_dimnum(_, ::Colon) = Colon()
+_maybe_dimnum(x, dims::Tuple) = _maybe_dimnum.([x], dims)
+
 """
     stack(x::AbstractDimArray; [dims])
 
@@ -555,11 +559,15 @@ x = DimArray([a, b], Z(4.0:5.0)) # Construct a nested DimArray
 y = stack(x; dims=2) # Resulting array has dims (X, *Z*, Y)
 ```
 """
-Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, check_stack_dims(iter))
-Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; dims=:) = Base._stack(dims, f(x) for x in check_stack_dims(iter))
-Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; dims=:) = Base._stack(dims, check_stack_dims(f(xy...) for xy in zip(xs, yzs...)))
-Base._stack(dims::Dimension, iter) = Base._stack(typeof(dims), iter)
-Base._stack(dims::Union{Symbol,Type{<:Dimension}}, iter) = Base._stack(dimnum(first(iter), dims), iter)
+function Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:)
+    Base._stack(_maybe_dimnum(first(iter), dims), check_stack_dims(iter))
+end
+function Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; kwargs...)
+    Base.stack(f(x) for x in check_stack_dims(iter); kwargs...)
+end
+function Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; kwargs...)
+    Base.stack(f(xy...) for xy in zip(xs, yzs...); kwargs...)
+end
 
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
