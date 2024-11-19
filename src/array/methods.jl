@@ -535,6 +535,13 @@ function check_stack_dims(iter)
 end
 
 _maybe_dimnum(x, dim) = hasdim(x, dim) ? dimnum(x, dim) : ndims(x) + 1
+function _maybe_dimnum(x, dim::Integer)
+    if dim < ndims(x) + 2
+        return dim
+    else
+        throw(ArgumentError(LazyString("cannot stack slices ndims(x) = ", ndims(x) + 1, " along dims = ", dim)))
+    end
+end
 _maybe_dimnum(_, ::Colon) = Colon()
 _maybe_dimnum(x, dims::Tuple) = _maybe_dimnum.([x], dims)
 
