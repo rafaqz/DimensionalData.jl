@@ -543,7 +543,7 @@ function _maybe_dimnum(x, dim::Integer)
     end
 end
 _maybe_dimnum(_, ::Colon) = Colon()
-_maybe_dimnum(x, dims::Tuple) = _maybe_dimnum.([x], dims)
+_maybe_dimnum(x, dims::Tuple) = map(d -> _maybe_dimnum(x, d), dims)
 
 """
     stack(x::AbstractDimArray; [dims])
