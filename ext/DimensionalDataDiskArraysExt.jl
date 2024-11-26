@@ -9,8 +9,10 @@ using DimensionalData
 import DimensionalData: AbstractBasicDimArray
 import DiskArrays
 
-DiskArrays.cache(x::Union{AbstractDimStack,AbstractDimArray}; kw...) = 
-    modify(A -> DiskArrays.cache(A; kw...), x)
+@static if isdefined(DiskArrays, :cache)
+    DiskArrays.cache(x::Union{AbstractDimStack,AbstractDimArray}; kw...) = 
+        modify(A -> DiskArrays.cache(A; kw...), x)
+end
 
 DiskArrays.haschunks(da::AbstractBasicDimArray) = DiskArrays.haschunks(parent(da))
 DiskArrays.eachchunk(da::AbstractBasicDimArray) = DiskArrays.eachchunk(parent(da))
