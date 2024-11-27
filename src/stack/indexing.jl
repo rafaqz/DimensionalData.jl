@@ -128,11 +128,12 @@ for f in (:getindex, :view, :dotview)
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
                 Base.$f(A, I...)
             end
-            newlayers = map(f, values(s))
+            newlayers = unrolled_map(f, values(s))
             # Decide to rewrap as an AbstractDimStack, or return a scalar
-            if any(map(v -> v isa AbstractDimArray, newlayers))
+            if _any_dimarray(newlayers)
+                # TODO rethink this for many-layered stacks
                 # Some scalars, re-wrap them as zero dimensional arrays
-                non_scalar_layers = map(values(s), newlayers) do l, nl
+                non_scalar_layers = unrolled_map(values(s), newlayers) do l, nl
                     nl isa AbstractDimArray ? nl : rebuild(l, fill(nl), ())
                 end
                 rebuildsliced(Base.$f, s, NamedTuple{K}(non_scalar_layers), (dims2indices(dims(s), D)))
@@ -143,6 +144,11 @@ for f in (:getindex, :view, :dotview)
         end
     end
 end
+
+@generated function _any_dimarray(v::Union{NamedTuple,Tuple})
+    any(T -> T <: AbstractDimArray, v.types)
+end
+
 
 
 #### setindex ####

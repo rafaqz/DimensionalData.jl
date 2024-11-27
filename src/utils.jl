@@ -215,3 +215,24 @@ function _as_extended_nts(nt::NamedTuple{K1}, st::AbstractDimStack{K2}, As...) w
     return (extended_layers, _as_extended_nts(nt, As...)...)
 end
 _as_extended_nts(::NamedTuple) = ()
+
+
+# Tuple map that is always unrolled
+# mostly for stack indexing performance
+_unrolled_map_inner(f, v::Type{T}) where T = 
+    Expr(:tuple, (:(f(v[$i])) for i in eachindex(T.types))...)
+_unrolled_map_inner(f, v1::Type{T}, v2::Type) where T = 
+    Expr(:tuple, (:(f(v1[$i], v2[$i])) for i in eachindex(T.types))...)
+
+@generated function unrolled_map(f, v::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v)
+    :(NamedTuple{K}($exp))
+end
+@generated function unrolled_map(f, v1::NamedTuple{K}, v2::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v1, v2)
+    :(NamedTuple{K}($exp))
+end
+@generated unrolled_map(f, v::Tuple) =
+    _unrolled_map_inner(f, v)
+@generated unrolled_map(f, v1::Tuple, v2::Tuple) = 
+    _unrolled_map_inner(f, v1, v2)
