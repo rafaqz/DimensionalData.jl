@@ -265,3 +265,7 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     view(A, args...; kw...)
 @propagate_inbounds Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
     view(A, args...; kw...)
+@propagate_inbounds Base.maybeview(A::AbstractDimStack, args...; kw...) =
+    view(A, args...; kw...)
+@propagate_inbounds Base.maybeview(A::AbstractDimStack, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
+    view(A, args...; kw...)
