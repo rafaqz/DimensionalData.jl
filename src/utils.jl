@@ -85,7 +85,6 @@ modify(CuArray, A)
 This also works for all the data layers in a `DimStack`.
 """
 function modify end
-modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
 # Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
 # layers, and instead just modify the parent data directly.
 modify(f, s::AbstractDimStack{<:Any,<:NamedTuple}) = 

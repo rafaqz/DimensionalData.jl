@@ -95,7 +95,7 @@ metadata(A::AbstractDimArray) = A.metadata
 layerdims(A::AbstractDimArray) = basedims(A)
 
 @inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data, I, name=name(A))
     I1 = to_indices(A, I)
     rebuild(A, data, slicedims(f, A, I1)..., name)
 end
