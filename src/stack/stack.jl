@@ -358,7 +358,7 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
+struct DimStack{K,T<:NamedTuple,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
     data::L
     dims::D
     refdims::R
