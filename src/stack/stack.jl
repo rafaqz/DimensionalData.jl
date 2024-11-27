@@ -53,7 +53,7 @@ end
 @assume_effects :foldable DD.layers(s::AbstractDimStack, k::Symbol) = s[k]
 
 @assume_effects :foldable data_eltype(nt::NamedTuple{K}) where K =
-    NamedTuple{K,Tuple{map(eltype, Tuple(nt))...}}
+    NamedTuple{K,Tuple{unrolled_map(eltype, Tuple(nt))...}}
 stacktype(s, data, dims, layerdims::NamedTuple{K}) where K =
     basetypeof(s){K,data_eltype(data),length(dims)}
 
@@ -82,10 +82,15 @@ function rebuild(s::AbstractDimStack;
     return T(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
-function rebuildsliced(f::Function, s::AbstractDimStack, layers, I)
-    layerdims = map(basedims, layers)
+function rebuildsliced(f::Function, s::AbstractDimStack, layers::NamedTuple, I)
+    layerdims = unrolled_map(basedims, layers)
     dims, refdims = slicedims(f, s, I)
-    return rebuild(s; data=map(parent, layers), dims, refdims, layerdims)
+    return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
+end
+function rebuildsliced(f::Function, s::AbstractDimStack{K}, layers::Tuple, I) where K
+    layerdims = NamedTuple{K}(unrolled_map(basedims, layers))
+    dims, refdims = slicedims(f, s, I)
+    return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
 end
 
 """
@@ -169,7 +174,10 @@ Base.copy(s::AbstractDimStack) = modify(copy, s)
 # NamedTuple-like
 @assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.haskey(s::AbstractDimStack{K}, k) where K = k in K
-Base.values(s::AbstractDimStack) = values(layers(s))
+Base.values(s::AbstractDimStack) = _values_gen(s)
+@generated function _values_gen(s::AbstractDimStack{K}) where K
+    Expr(:tuple, map(k -> :(s[$(QuoteNode(k))]), K)...)
+end
 Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I...)
 Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 
@@ -216,7 +224,8 @@ Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instad of map
 Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) =
     error("Use maplayers(f, stack, args...)) instad of map(f, stack, args...)")
 
-maplayers(f, s::AbstractDimStack) = _maybestack(s, map(f, values(s)))
+maplayers(f, s::AbstractDimStack) =
+    _maybestack(s, unrolled_map(f, values(s)))
 function maplayers(
     f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...
 )
