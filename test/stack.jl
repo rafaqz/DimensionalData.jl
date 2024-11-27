@@ -83,8 +83,8 @@ end
     @test axes(mixed, 2) == Base.OneTo(3)
     @test lastindex(mixed, 2) == 3
     @test dims(axes(mixed, 2)) == dims(mixed, 2)
-    @test first(mixed) == mixed[Begin] 
-    @test last(mixed) == mixed[End]
+    @test first(mixed) == mixed[Begin()] 
+    @test last(mixed) == mixed[End()]
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 

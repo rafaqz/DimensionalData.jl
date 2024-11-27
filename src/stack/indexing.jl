@@ -28,17 +28,6 @@ Base.@assume_effects :effect_free @propagate_inbounds function Base.getindex(s::
     # Use dimensional indexing
     Base.getindex(s, rebuild(only(dims(s)), i))
 end
-Base.@assume_effects :effect_free @propagate_inbounds function Base.getindex(
-    s::AbstractDimStack{<:Any,T}, i::Union{AbstractArray,Colon}
-) where {T}
-    ls = _maybe_extented_layers(s)
-    inds = to_indices(first(ls), (i,))[1]
-    out = similar(inds, T)
-    for (i, ind) in enumerate(inds)
-        out[i] = T(map(v -> v[ind], ls))
-    end
-    return out
-end
 @propagate_inbounds function Base.getindex(s::AbstractDimStack{<:Any,<:Any,N}, i::Integer) where N
     if N == 1 && hassamedims(s)
         # This is a few ns faster when possible
@@ -52,28 +41,10 @@ end
 @propagate_inbounds function Base.view(s::AbstractVectorDimStack, i::Union{AbstractVector{<:Integer},Colon,Integer})
     Base.view(s, DimIndices(s)[i])
 end
-@propagate_inbounds function Base.view(s::AbstractDimStack, i::Union{AbstractArray{<:Integer},Colon,Integer})
-    # Pretend the stack is an AbstractArray so `SubArray` accepts it.
-    Base.view(OpaqueArray(s), i)
-end
 
 for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     @eval begin
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
-            Base.$f(s, to_indices(CartesianIndices(s), Lookups._construct_types(i))...)
-        end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
-            Base.$f(s, dims2indices(s, i)...)
-        end
-        @propagate_inbounds function Base.$f(s::AbstractVectorDimStack, i::Union{CartesianIndices,CartesianIndex})
-            I = to_indices(CartesianIndices(s), (i,))
-            Base.$f(s, I...)
-        end
-        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{CartesianIndices,CartesianIndex})
-            I = to_indices(CartesianIndices(s), (i,))
-            Base.$f(s, I...)
-        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i1, i2, Is...)
             I = to_indices(CartesianIndices(s), Lookups._construct_types(i1, i2, Is...))
             # Check we have the right number of dimensions
@@ -95,12 +66,10 @@ for f in (:getindex, :view, :dotview)
             # Convert to Dimension wrappers to handle mixed size layers
             Base.$f(s, map(rebuild, dims(s), I)...)
         end
-        @propagate_inbounds function Base.$f(
-            s::AbstractDimStack, D::DimensionalIndices...; kw...
-        )
-            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
-        end
         # Ambiguities
+        @propagate_inbounds Base.$f(A::AbstractDimStack, d1::DimensionalIndices, d2::DimensionalIndices, D::DimensionalIndices...; kw...) =
+            $_dim_f(A, _simplify_dim_indices(d1, d2, D..., kw2dims(values(kw))...)...)
+
         @propagate_inbounds function Base.$f(s::DimensionalData.AbstractVectorDimStack, 
             i::Union{AbstractVector{<:DimensionalData.Dimensions.Dimension},
             AbstractVector{<:Tuple{DimensionalData.Dimensions.Dimension, Vararg{DimensionalData.Dimensions.Dimension}}}, 
@@ -109,11 +78,10 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(s, _simplify_dim_indices(i)...)
         end
 
-
         @propagate_inbounds function $_dim_f(
             A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
         )
-            return merge_and_index(Base.$f, A, (a1, args...))
+            return merge_and_index($_dim_f, A, (a1, args...))
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
         @propagate_inbounds function $_dim_f(s::AbstractDimStack)
@@ -174,9 +142,6 @@ function _setindex_mixed!(s::AbstractDimStack, x, i::Colon)
 end
 
 @noinline _keysmismatch(K1, K2) = throw(ArgumentError("NamedTuple keys $K2 do not mach stack keys $K1"))
-
-# For @views macro to work with keywords
-Base.maybeview(A::AbstractDimStack, args...; kw...) = view(A, args...; kw...)
 
 function merge_and_index(f, s::AbstractDimStack, ds)
     ds, inds_arrays = _separate_dims_arrays(_simplify_dim_indices(ds...)...)

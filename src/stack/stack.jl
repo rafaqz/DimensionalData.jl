@@ -25,12 +25,19 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{K,T,N,L,D} <: AbstractBasicDimArray{T,N,D} end
+abstract type AbstractDimStack{K,T<:NamedTuple,N,L,D} <: AbstractBasicDimArray{T,N,D} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-(::Type{T})(st::AbstractDimStack) where T<:AbstractDimArray =
+(::Type{T})(st::AbstractDimStack) where {T<:AbstractDimArray} =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
+DimArray(st::AbstractDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+DimMatrix(st::AbstractMatrixDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+DimVector(st::AbstractVectorDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
