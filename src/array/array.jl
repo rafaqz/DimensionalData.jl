@@ -475,7 +475,7 @@ function DimArray(A::AbstractBasicDimArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
     newdata = collect(data)
-    T(newdata, format(dims, newdata); refdims, name, metadata)
+    DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
 """
     DimArray(f::Function, dim::Dimension; [name])

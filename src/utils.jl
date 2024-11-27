@@ -123,17 +123,17 @@ sliced by the dimensions of `B`.
 """
 function broadcast_dims(f, As::AbstractBasicDimArray...)
     dims = combinedims(As...)
-    T = Base.Broadcast.combine_eltypes(f, As)
-    broadcast_dims!(f, similar(first(As), T, dims), As...)
-end
-
-function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
-    st = _firststack(As...)
-    nts = _as_extended_nts(NamedTuple(st), As...)
-    layers = map(keys(st)) do name
-        broadcast_dims(f, map(nt -> nt[name], nts)...)
+    if any(map(A -> A isa AbstractDimStack, As))
+        st = _firststack(As...)
+        nts = _as_extended_nts(NamedTuple(st), As...)
+        layers = map(keys(st)) do name
+            broadcast_dims(f, map(nt -> nt[name], nts)...)
+        end
+        rebuild_from_arrays(st, layers)
+    else
+        T = Base.Broadcast.combine_eltypes(f, As)
+        broadcast_dims!(f, similar(first(As), T, dims), As...)
     end
-    rebuild_from_arrays(st, layers)
 end
 
 """
