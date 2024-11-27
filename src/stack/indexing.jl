@@ -161,7 +161,7 @@ end
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 end
 
-_map_setindex!(s, xs, i) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
+_map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
 
 _setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
