@@ -25,7 +25,7 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{K,T,N,L} <: AbstractArray{T,N} end
+abstract type AbstractDimStack{K,T,N,L,D} <: AbstractBasicDimArray{T,N,D} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
@@ -140,50 +140,24 @@ Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
 Base.read(s::AbstractDimStack) = maplayers(read, s)
 
-# Array-like
-Base.size(s::AbstractDimStack) = map(length, dims(s))
-Base.size(s::AbstractDimStack, dims::DimOrDimType) = size(s, dimnum(s, dims))
-Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
-Base.length(s::AbstractDimStack) = prod(size(s))
-Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
-Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
-Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack, args...) = maplayers(A -> similar(A, args...), s)
-Base.eltype(::AbstractDimStack{<:Any,T}) where T = T
-Base.ndims(::AbstractDimStack{<:Any,<:Any,N}) where N = N
-Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
-Base.LinearIndices(s::AbstractDimStack) = 
-    LinearIndices(CartesianIndices(map(l -> axes(l, 1), lookup(s))))
-Base.IteratorSize(::AbstractDimStack{<:Any,<:Any,N}) where N = Base.HasShape{N}()
-function Base.eachindex(s::AbstractDimStack)
-    li = LinearIndices(s)
-    first(li):last(li)
-end
-Base.firstindex(s::AbstractDimStack) = first(LinearIndices(s))
-Base.lastindex(s::AbstractDimStack) = last(LinearIndices(s))
-Base.first(s::AbstractDimStack) = s[firstindex((s))]
-Base.last(s::AbstractDimStack) = s[lastindex(LinearIndices(s))]
-Base.copy(s::AbstractDimStack) = modify(copy, s)
-# all of methods.jl is also Array-like...
+# Array interface methods
+Base.IndexStyle(A::AbstractDimStack) = Base.IndexStyle(first(layers(A)))
+
+Base.similar(s::AbstractDimStack; kw...) = maplayers(A -> similar(A; kw...), s)
+Base.similar(s::AbstractDimStack, ::Type{T}; kw...) where T = maplayers(A -> similar(A, T; kw...), s)
+Base.similar(s::AbstractDimStack, ::Type{T}, dt::DimTuple; kw...) where T = maplayers(A -> similar(A, T, dt; kw...), s)
 
 # NamedTuple-like
 @assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
 Base.haskey(s::AbstractDimStack{K}, k) where K = k in K
 Base.values(s::AbstractDimStack) = values(layers(s))
-Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I...)
-Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 
 @inline Base.keys(s::AbstractDimStack{K}) where K = K
 @inline Base.propertynames(s::AbstractDimStack{K}) where K = K
 @inline Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, name::Symbol) =
     rebuild_from_arrays(s, Base.setindex(layers(s), val, name))
 Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
-Base.collect(st::AbstractDimStack) = parent([st[D] for D in DimIndices(st)])
 Base.Array(st::AbstractDimStack) = collect(st)
-Base.vec(st::AbstractDimStack) = vec(collect(st))
-@propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
-@propagate_inbounds Base.iterate(st::AbstractDimStack, i) =
-    i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
@@ -377,7 +351,7 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
+struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
     data::L
     dims::D
     refdims::R

@@ -133,8 +133,10 @@ end
 
 # Methods with an argument that return a DimStack
 for fname in (:rotl90, :rotr90, :rot180)
-    @eval (Base.$fname)(s::AbstractDimStack, args...) =
-        maplayers(A -> (Base.$fname)(A, args...), s)
+    @eval (Base.$fname)(s::AbstractDimStack) =
+        maplayers(A -> (Base.$fname)(A), s)
+    @eval (Base.$fname)(s::AbstractDimStack, k::Integer) =
+        maplayers(A -> (Base.$fname)(A, k), s)
 end
 for fname in (:PermutedDimsArray, :permutedims)
     @eval function (Base.$fname)(s::AbstractDimStack, perm)
