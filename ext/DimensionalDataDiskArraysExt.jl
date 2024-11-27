@@ -12,7 +12,7 @@ import DiskArrays
 # cache was only introduced in DiskArrays v0.4, so
 # we lock out the method definition if the method does
 # not exist.
-@static if :cache in names(DiskArrays)
+@static if isdefined(DiskArrays, :cache)
     DiskArrays.cache(x::Union{AbstractDimStack,AbstractDimArray}; kw...) = 
         modify(A -> DiskArrays.cache(A; kw...), x)
 end
