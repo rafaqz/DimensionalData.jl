@@ -675,6 +675,8 @@ end
 
     @testset "setindex!" begin
         s_set = deepcopy(s)
+        s_set[1] = (one=4, two=5, three=6)
+        @test s_set[1, 1] === (one=4.0, two=5.0f0, three=6)
         s_set[1, 1] = (one=9, two=10, three=11)
         @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
         s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)
