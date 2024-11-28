@@ -49,11 +49,6 @@ for f in (:getindex, :view, :dotview)
             I = to_indices(CartesianIndices(s), Lookups._construct_types(i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
-        @propagate_inbounds function $_dim_f(
-            A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
-        )
-            return merge_and_index(Base.$f, A, (a1, args...))
-        end
                 throw(BoundsError(dims(s), I))
             elseif length(dims(s)) < length(I)
                 # Allow trailing ones
@@ -78,11 +73,6 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(s, _simplify_dim_indices(i)...)
         end
 
-        @propagate_inbounds function $_dim_f(
-            A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
-        )
-            return merge_and_index($_dim_f, A, (a1, args...))
-        end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
         @propagate_inbounds function $_dim_f(s::AbstractDimStack)
             map(Base.$f, data(s))
@@ -129,7 +119,7 @@ end
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 end
 
-_map_setindex!(s, xs, i) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
+_map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
 
 _setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
@@ -160,3 +150,8 @@ function merge_and_index(f, s::AbstractDimStack, ds)
     end
     return rebuild_from_arrays(s, newlayers)
 end
+
+@propagate_inbounds Base.maybeview(A::AbstractDimStack, args...; kw...) =
+    view(A, args...; kw...)
+@propagate_inbounds Base.maybeview(A::AbstractDimStack, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
+    view(A, args...; kw...)
