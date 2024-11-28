@@ -166,8 +166,6 @@ Base.values(s::AbstractDimStack) = _values_gen(s)
 @generated function _values_gen(s::AbstractDimStack{K}) where K
     Expr(:tuple, map(k -> :(s[$(QuoteNode(k))]), K)...)
 end
-Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I...)
-Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 
 @inline Base.keys(s::AbstractDimStack{K}) where K = K
 @inline Base.propertynames(s::AbstractDimStack{K}) where K = K
