@@ -208,13 +208,29 @@ Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,Nam
 maplayers(f, s::AbstractDimStack) =
     _maybestack(s, unrolled_map(f, values(s)))
 function maplayers(
-    f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...
+    f, x1::Union{AbstractBasicDimArray,NamedTuple}, xs::Union{AbstractBasicDimArray,NamedTuple}...
 )
-    stacks = (x1, xs...)
-    _check_same_names(stacks...)
-    vals = map(f, map(values, stacks)...)
-    return _maybestack(_firststack(stacks...), vals)
+    xs = (x1, xs...)
+    firststack = _firststack(xs...)
+    if isnothing(firststack) 
+        if all(map(x -> x isa AbstractArray, xs))
+            # all arguments are arrays, but none are stacks, just apply the function
+            f(xs...)
+        else
+            # Arguments are some mix of arrays and NamedTuple
+            throw(ArgumentError("Cannot apply maplayers to NamedTuple and AbstractBasicDimArray"))
+        end
+    else
+        # There is at least one stack, we apply layer-wise
+        _check_same_names(xs...)
+        l = length(values(firststack))
+        vals = map(f, map(s -> _values_or_tuple(s, l), xs)...)
+        return _maybestack(firststack, vals)
+    end
 end
+
+_values_or_tuple(x::Union{AbstractDimStack, NamedTuple}, l) = values(x)
+_values_or_tuple(x::Union{AbstractBasicDimArray}, l) = Tuple(Iterators.repeated(x, l))
 
 # Other interfaces
 
@@ -264,6 +280,9 @@ _check_same_names(::Union{AbstractDimStack{names},NamedTuple{names}},
     ::Union{AbstractDimStack{names},NamedTuple{names}}...) where {names} = nothing
 _check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) =
     throw(ArgumentError("Named tuple names do not match."))
+_check_same_names(xs::Union{AbstractDimStack,NamedTuple,AbstractBasicDimArray}...) = 
+    _check_same_names((x for x in xs if x isa Union{AbstractDimStack,NamedTuple})...)
+
 
 _firststack(s::AbstractDimStack, args...) = s
 _firststack(arg1, args...) = _firststack(args...)
