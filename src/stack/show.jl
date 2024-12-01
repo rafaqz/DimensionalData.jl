@@ -20,7 +20,7 @@ function show_main(io, mime, stack::AbstractDimStack)
     _, blockwidth = print_metadata_block(io, mime, metadata(stack); displaywidth, blockwidth=min(displaywidth-2, blockwidth))
 end
 
-function show_after(io, mime, stack::AbstractDimStack)
+function show_after(io::IO, mime, stack::AbstractDimStack)
     blockwidth = get(io, :blockwidth, 0)
     print_block_close(io, blockwidth)
 end
