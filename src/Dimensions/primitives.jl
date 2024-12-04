@@ -558,12 +558,18 @@ _valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
 _valtypemsg(a, b) = "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match."
 _ordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
+function _valtypenameaction(a, b)
+    typenamea = Base.nameof(typeof(parent(a)))
+    typenameb = Base.nameof(typeof(parent(b)))
+    return "Lookup types for $(basetypeof(a)) do not match: $typenamea and $typenameb."
+end
 
 @noinline _dimsmismatchaction(err, a, b) = _failed_comparedims(err, _dimsmismatchmsg(a, b))
 @noinline _valaction(err, a, b) = _failed_comparedims(err, _valmsg(a, b))
 @noinline _dimsizeaction(err, a, b) = _failed_comparedims(err, _dimsizemsg(a, b))
 @noinline _valtypeaction(err, a, b) = _failed_comparedims(err, _valtypemsg(a, b))
 @noinline _orderaction(err, a, b) = _failed_comparedims(err, _ordermsg(a, b))
+@noinline _valtypenameaction(err, a, b) = _failed_comparedims(err, _valtypenameaction(a, b))
 
 _failed_comparedims(w::Warn, msg_intro) = @warn string(msg_intro, msg(w))
 _failed_comparedims(t::Throw, msg_intro) = throw(DimensionMismatch(string(msg_intro, msg(t))))
@@ -602,7 +608,7 @@ end
 @inline _comparedims2(a::Dimension, b::AnonDim; kw...) = true
 @inline _comparedims2(a::AnonDim, b::Dimension; kw...) = true
 @inline function _comparedims2(a::Dimension, b::Dimension;
-    type=true, valtype=false, val=false, length=true, order=false,
+    type=true, valtypename = false, valtype=false, val=false, length=true, order=false,
     ignore_length_one=false, msg
 )
     if type && basetypeof(a) != basetypeof(b)
@@ -614,6 +620,10 @@ end
     end
     if order && !(isnolookup(a) || isnolookup(b) || Lookups.order(a) == Lookups.order(b))
         isnothing(msg) || _orderaction(msg, a, b)
+        return false
+    end
+    if valtypename && Base.typename(typeof(parent(a))) != Base.typename(typeof(parent(b)))
+        isnothing(msg) || _valtypenameaction(msg, a, b)
         return false
     end
     if valtype && typeof(parent(a)) != typeof(parent(b))
