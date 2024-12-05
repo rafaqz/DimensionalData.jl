@@ -188,5 +188,14 @@ function refdims_title(lookup::Lookup, refdim::Dimension; kw...)
 end
 
 const PLOT_DIMENSION_ORDER = (TimeDim, XDim, IndependentDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension)
-forward_order_plot_dims(x) = dims(dims(x), PLOT_DIMENSION_ORDER)
+function forward_order_plot_dims(x)
+    # Wrap dimensions as X/Y/Z/Ti/AnonDim
+    ds = map(dims(x)) do d
+        rebuild(dimtrait(d), d)
+    end
+    # Sort
+    sorted = dims(ds, PLOT_DIMENSION_ORDER)
+    # Unwrap
+    map(val, sorted)
+end
 reverse_order_plot_dims(x) = reverse(forward_order_plot_dims(reverse(dims(x))))
