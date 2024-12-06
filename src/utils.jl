@@ -88,7 +88,7 @@ function modify end
 modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
 # Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
 # layers, and instead just modify the parent data directly.
-modify(f, s::AbstractDimStack{<:Any,<:NamedTuple}) = 
+modify(f, s::AbstractDimStack{<:Any,<:Any,<:NamedTuple}) = 
     rebuild(s; data=map(a -> modify(f, a), parent(s)))
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
