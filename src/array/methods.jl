@@ -17,10 +17,14 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         @inline $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
-        @inline $_f(A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
-        @inline $_f(f, A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
+        @inline function $_f(A::AbstractDimArray, dims; kw...)
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds)), kw...), reducedims(A, ds)
+        end
+        @inline function $_f(f, A::AbstractDimArray, dims; kw...)
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+        end
         # - Return a scalar
         @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
         @inline $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
