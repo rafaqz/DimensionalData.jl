@@ -253,8 +253,7 @@ julia> using DimensionalData, Dates
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
-╭───────────────────────────────────────────────────╮
-│ 12-element DimGroupByArray{DimArray{Float64,2},1} │
+┌ 12-element DimGroupByArray{DimArray{Float64,2},1} ┐
 ├───────────────────────────────────────────────────┴───────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
@@ -275,8 +274,7 @@ And take the mean:
 
 ```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
-╭─────────────────────────────────╮
-│ 12-element DimArray{Float64, 1} │
+┌ 12-element DimArray{Float64, 1} ┐
 ├─────────────────────────────────┴─────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
@@ -305,8 +303,7 @@ Or do something else with Y:
 
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
-╭───────────────────────────╮
-│ 12×2 DimArray{Float64, 2} │
+┌ 12×2 DimArray{Float64, 2} ┐
 ├───────────────────────────┴────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
   → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
