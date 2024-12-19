@@ -41,7 +41,7 @@ import .Lookups: metadata, set, _set, rebuild, basetypeof,
     hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
 
-import DataAPI.groupby
+import DataAPI: groupby, metadata
 
 export Lookups, Dimensions
 
