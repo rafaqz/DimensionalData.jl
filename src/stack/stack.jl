@@ -189,6 +189,10 @@ Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
 Base.collect(st::AbstractDimStack) = parent([st[D] for D in DimIndices(st)])
 Base.Array(st::AbstractDimStack) = collect(st)
 Base.vec(st::AbstractDimStack) = vec(collect(st))
+Base.get(st::AbstractDimStack, k::Symbol, default) =
+    haskey(st, k) ? st[k] : default
+Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
+    haskey(st, k) ? st[k] : f()
 @propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
 @propagate_inbounds Base.iterate(st::AbstractDimStack, i) =
     i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
