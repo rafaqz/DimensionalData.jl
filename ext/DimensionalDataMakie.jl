@@ -154,14 +154,14 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 haskey(axis_kw, :scenekw) && (lscene_attrs[:scenekw] = axis_kw[:scenekw])
                 haskey(axis_kw, :show_axis) && (lscene_attrs[:show_axis] = axis_kw[:show_axis])
                 # surface is an LScene so we cant pass some axis attributes
-                p = Makie.$f2(args...; figure = figure_kw, axis = lscene_attrs, merged_attributes...)
+                p = Makie.$f2(A2; figure = figure_kw, axis = lscene_attrs, merged_attributes...)
                 # And instead set axisnames manually
                 if p.axis isa Makie.LScene && !isnothing(p.axis.scene[Makie.OldAxis])
                     p.axis.scene[Makie.OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
                 p
             else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
-                Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
+                Makie.$f2(A2; axis = axis_kw, figure = figure_kw, merged_attributes...)
             end
             # Add a Colorbar for heatmaps and contourf
             # TODO: why not surface too?
@@ -171,22 +171,6 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 )
             end
             p
-            return p
-        end
-        function Makie.$f1!(ax, A::AbstractDimMatrix; 
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
-        )
-            replacements = _keywords2dimpairs(x, y)
-            _, _, args, _ = _surface2(A, $f2, attributes, replacements)
-            # No Colorbar in the ! in-place versions
-            return Makie.$f2!(ax, args...; attributes...)
-        end
-        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
-        )
-            replacements = _keywords2dimpairs(x,y)
-            args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
-            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
             return p
         end
     end
