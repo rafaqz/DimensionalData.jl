@@ -348,3 +348,13 @@ end
     @test rand(mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test rand(MersenneTwister(), mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
 end
+
+# https://github.com/rafaqz/DimensionalData.jl/issues/891
+@testset "DimStack of nested DimArrays" begin
+    nested_da = DimArray([da1, da2], Z(1:2))
+    ds = DimStack((a = nested_da, b = nested_da))
+    @test ds[1] == (a = da1, b = da1)
+    @test ds[Z = 1] == (a = da1, b = da1)
+    @test ds[Z = 1:2] == ds
+
+end
