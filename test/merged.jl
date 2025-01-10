@@ -69,6 +69,7 @@ end
     merged = mergedims(a, (X, Y) => :geometry)
     unmerged = unmergedims(merged, dims(a))
     perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
+    merged[X(At(1))]
     
     # Test Merge
     @test hasdim(merged, Dim{:band})

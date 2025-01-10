@@ -294,11 +294,13 @@ struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator
     dims::D
 end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
-function DimSlices(x, dims; drop=true)
+DimSlices(x, dim; kw...) = DimSlices(x, (dim,); kw...)
+function DimSlices(x, dims::Tuple; drop=true)
+    dims1 = DD.dims(x, dims)
     newdims = if length(dims) == 0
         map(d  -> rebuild(d, :), DD.dims(x))
     else
-        dims
+        dims1
     end 
     inds = map(basedims(newdims)) do d
         rebuild(d, first(axes(x, d)))
