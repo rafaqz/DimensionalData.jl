@@ -215,6 +215,8 @@ function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_T
     end
 end
 
+
+_is_at(at::At, v) = _is_at(val(at), v, atol(at))
 @inline _is_at(x, y, atol) = x == y
 @inline _is_at(x::Dates.AbstractTime, y::Dates.AbstractTime, atol::Dates.Period) = 
     x >= y - atol && x <= y + atol 
@@ -1108,14 +1110,11 @@ function select_unalligned_indices(
 )
     # TODO: this is completely unoptimised
     # It may be better to use some kind of spatial index
-    sa, sb = map(val, selectors)
-    ata, atb = map(atol, selectors)
     A = ArrayOfPoints(map(matrix, lookups))
     i = findfirst(A) do (a, b)
-        isnothing(ata) ? a == sa : isapprox(a, sa; atol=ata) &&
-        isnothing(atb) ? b == sb : isapprox(b, sb; atol=atb)
+        _is_at(selectors[1], a) && _is_at(selectors[2], b)
     end
-    isnothing(i) && throw(ArgumentError("($sa, $sb) not found in lookup")) 
+    isnothing(i) && throw(ArgumentError("$(map(val, selectors)) not found in lookup")) 
     return Tuple(CartesianIndices(A)[i])
 end
 function select_unalligned_indices(
@@ -1131,38 +1130,22 @@ function select_unalligned_indices(
 end
 function select_unalligned_indices(
     lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
-    selectors::Tuple{<:Near,<:At}
+    selectors::Union{Tuple{<:At,<:Near},Tuple{<:Near,<:At}}
 )
-    near, at = selectors
     A = ArrayOfPoints(map(matrix, lookups))
     _, i = findmin(A) do (a, b)
-        _at_near_dist(at, near, b, a)
-    end
-    return Tuple(CartesianIndices(A)[i])
-end
-function select_unalligned_indices(
-    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
-    selectors::Tuple{<:At,<:Near}
-)
-    at, near = selectors
-    A = ArrayOfPoints(map(matrix, lookups))
-    _, i = findmin(A) do (a, b)
-        _at_near_dist(at, near, a, b)
+        _at_near_dist(selectors..., a, b)
     end
     return Tuple(CartesianIndices(A)[i])
 end
 
-function _at_near_dist(at, near, at_x, near_x)
-    atdist = if isnothing(atol(at)) 
-        at_x == val(at) ? zero(at_x) : typemax(at_x)
-    else
-        isapprox(at_x, val(at); atol=atol(at)) ? zero(at_x) : typemax(at_x)
-    end
+_at_near_dist(near::Near, at::At, near_x, at_x) =
+    _at_near_dist(at, near, at_x, near_x)
+function _at_near_dist(at::At, near::Near, at_x, near_x)
+    atdist = _is_at(at, at_x) ? zero(at_x) : typemax(at_x)
     neardist = abs(val(near) - near_x)
     atdist + neardist
 end
-
-
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
 _transform2int(lookup::AbstractArray, ::Contains, x) = round(Int, x)

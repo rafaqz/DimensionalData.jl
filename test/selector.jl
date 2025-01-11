@@ -1449,3 +1449,27 @@ end
     @test all(map(d -> !hasselection(d, Contains(400.0)), cases))
     @test all(map(d -> hasselection(d, Near(0.0)), cases))
 end
+
+@testset "MatrixLookup selectors" begin
+    y = -100:100
+    x = -200:200
+    xs = [x + 0.01y^3 for x in x, y in y]
+    ys = [y + 10cos(x/40) for x in x, y in y]
+    xdim = X(DD.Dimensions.Lookups.MatrixLookup(xs))
+    ydim = Y(DD.Dimensions.Lookups.MatrixLookup(ys))
+    A = rand(xdim, ydim)
+    xval = xs[end-10]
+    yval = ys[end-10]
+    @test A[Y=At(yval; atol=0.001), X=At(xval; atol=0.001)] ==
+        A[Y=Near(yval), X=Near(xval)] ==
+        A[Y=At(yval; atol=0.001), X=Near(xval)] ==
+        A[Y=Near(yval), X=At(xval; atol=0.001)] ==
+        A[end-10]
+    xval = xs[end-10] + 0.0005
+    yval = ys[end-10] + 0.0005
+    @test A[Y=At(yval; atol=0.001), X=At(xval; atol=0.001)] ==
+        A[Y=Near(yval), X=Near(xval)] ==
+        A[Y=At(yval; atol=0.001), X=Near(xval)] ==
+        A[Y=Near(yval), X=At(xval; atol=0.001)] ==
+        A[end-10]
+end
