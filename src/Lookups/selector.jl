@@ -1102,6 +1102,67 @@ end
 function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}})
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
+function select_unalligned_indices(
+    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
+    selectors::Tuple{<:At,<:At}
+)
+    # TODO: this is completely unoptimised
+    # It may be better to use some kind of spatial index
+    sa, sb = map(val, selectors)
+    ata, atb = map(atol, selectors)
+    A = ArrayOfPoints(map(matrix, lookups))
+    i = findfirst(A) do (a, b)
+        isnothing(ata) ? a == sa : isapprox(a, sa; atol=ata) &&
+        isnothing(atb) ? b == sb : isapprox(b, sb; atol=atb)
+    end
+    isnothing(i) && throw(ArgumentError("($sa, $sb) not found in lookup")) 
+    return Tuple(CartesianIndices(A)[i])
+end
+function select_unalligned_indices(
+    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
+    selectors::Tuple{<:Near,<:Near}
+)
+    sa, sb = map(val, selectors)
+    A = ArrayOfPoints(map(matrix, lookups))
+    _, i = findmin(A) do (a, b)
+        abs(sa - a) + abs(sb - b)
+    end
+    return Tuple(CartesianIndices(A)[i])
+end
+function select_unalligned_indices(
+    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
+    selectors::Tuple{<:Near,<:At}
+)
+    near, at = selectors
+    A = ArrayOfPoints(map(matrix, lookups))
+    _, i = findmin(A) do (a, b)
+        _at_near_dist(at, near, b, a)
+    end
+    return Tuple(CartesianIndices(A)[i])
+end
+function select_unalligned_indices(
+    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
+    selectors::Tuple{<:At,<:Near}
+)
+    at, near = selectors
+    A = ArrayOfPoints(map(matrix, lookups))
+    _, i = findmin(A) do (a, b)
+        _at_near_dist(at, near, a, b)
+    end
+    return Tuple(CartesianIndices(A)[i])
+end
+
+function _at_near_dist(at, near, at_x, near_x)
+    atdist = if isnothing(atol(at)) 
+        at_x == val(at) ? zero(at_x) : typemax(at_x)
+    else
+        isapprox(at_x, val(at); atol=atol(at)) ? zero(at_x) : typemax(at_x)
+    end
+    neardist = abs(val(near) - near_x)
+    atdist + neardist
+end
+
+
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
 _transform2int(lookup::AbstractArray, ::Contains, x) = round(Int, x)

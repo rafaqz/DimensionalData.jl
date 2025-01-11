@@ -719,7 +719,8 @@ for f in (:fill, :rand)
     end
 end
 # AbstractRNG rand DimArray creation methods
-Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = rand(r, x, (d1, dims...); kw...)
+Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = 
+    rand(r, x, (d1, dims...); kw...)
 function Base.rand(r::AbstractRNG, x, dims::DimTuple; kw...)
     C = dimconstructor(dims)
     C(rand(r, x, _dimlength(dims)), _maybestripval(dims); kw...)
@@ -739,6 +740,17 @@ function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C(rand(r, T, _dimlength(dims)), _maybestripval(dims); kw...)
 end
 
+function _dimlength(
+    dims::Tuple{<:Dimension{<:Lookups.MatrixLookup},Vararg{Dimension{<:Lookups.MatrixLookup}}}
+) 
+    lookups = lookup(dims)
+    sz1 = size(first(lookups).matrix)
+    foreach(lookups) do l
+        sz = size(l.matrix)
+        sz1 == sz || throw(ArgumentError("MatrixLookup matrix sizes must match. Got $sz1 and $sz"))
+    end
+    return sz1
+end
 _dimlength(dims::Tuple) = map(_dimlength, dims)
 _dimlength(dim::Dimension{<:AbstractArray}) = length(dim)
 _dimlength(dim::Dimension{<:Val{Keys}}) where Keys = length(Keys)

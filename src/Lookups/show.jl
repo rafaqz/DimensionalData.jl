@@ -8,8 +8,18 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
     show_compact(io, mime, lookup)
     show(io, mime, lookup.f)
     print(io, " ")
-    ctx = IOContext(io, :compact=>true)
+    ctx = IOContext(io, :compact => true)
     show(ctx, mime, dim(lookup))
+end
+
+function Base.show(io::IO, mime::MIME"text/plain", lookup::MatrixLookup)
+    show_compact(io, mime, lookup)
+    if !get(io, :compact, false)
+        println(io)
+        ctx = IOContext(io, :compact => true)
+        show(ctx, mime, lookup.matrix)
+        show(ctx, mime, dim(lookup))
+    end
 end
 
 function Base.show(io::IO, mime::MIME"text/plain", lookup::Lookup)
