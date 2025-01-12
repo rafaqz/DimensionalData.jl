@@ -37,6 +37,14 @@ layers(dt::AbstractDimTree) = Dict(pairs(dt))
 (::Type{T})(dt::AbstractDimTree) where {T<:AbstractDimStack} =
     T(dt[keys(dt)])
 
+function Extents.extent(dt::AbstractDimTree)
+    ext = Extents.extent(dims(dt))
+    for (key, group) in pairs(groups(dt))
+        ext = Extents.union(ext, Extents.extent(group))
+    end
+    return ext
+end
+
 Base.pairs(dt) = (k => dt[k] for k in keys(dt))
 Base.keys(dt::AbstractDimTree) = getfield(dt, :keys)
 function Base.copy(dt::AbstractDimTree) 
