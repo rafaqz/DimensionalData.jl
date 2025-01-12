@@ -624,12 +624,14 @@ dim(lookup::MatrixLookup) = lookup.dim
 matrix(l::MatrixLookup) = l.matrix
 
 # An array to lazily combine dimension matrices into points
-struct ArrayOfPoints{T,N,M,A<:AbstractArray{<:Any,N}} <: AbstractArray{T,N}
-    arrays::NTuple{M,A}
-    function ArrayOfPoints(arrays::NTuple{M,A}) where {M,A<:AbstractArray{T1,N}} where {T1,N}
+struct ArrayOfPoints{T,N,M,A<:Tuple{AbstractArray{<:Any,N},Vararg}} <: AbstractArray{T,N}
+    arrays::A
+    function ArrayOfPoints(arrays::A) where A<:Tuple
         all(x -> size(x) == size(first(arrays)), arrays) ||
             throw(ArgumentError("Size of matrices must match"))
-        T = NTuple{M,T1}
+        T = Tuple{map(eltype, arrays)...}
+        N = ndims(first(arrays))
+        M = length(arrays)
         new{T,N,M,A}(arrays)
     end
 end
