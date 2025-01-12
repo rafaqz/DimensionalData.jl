@@ -25,28 +25,31 @@ end
 function show_branches(io, mime, tree::AbstractDimTree)
     blockwidth = get(io, :blockwidth, 0)
     if !isempty(groups(tree))
-        newblockwidth = print_block_separator(io, "branches", blockwidth, blockwidth)
+        blockwidth = print_block_separator(io, "branches", blockwidth, blockwidth)
         println(io)
         for key in keys(groups(tree))
             print_group(io, groups(tree, key), key)
         end
     end
+    return blockwidth
 end
 
 function show_trunk(io, mime, tree::AbstractDimTree)
-    p = getindex(tree, :parent)
+    blockwidth = get(io, :blockwidth, 0)
+    p = getfield(tree, :parent)
     if !isnothing(p)
-        newblockwidth = print_block_separator(io, "branches", blockwidth, blockwidth)
+        blockwidth = print_block_separator(io, "branches", blockwidth, blockwidth)
         println(io)
-        for key in keys(groups(tree))
-            print_group(io, groups(tree, key), key)
-        end
+        print_group(io, p, nothing)
     end
+    return blockwidth
 end
 
 function print_group(io, group::AbstractDimTree, key)
-    pkey = rpad(key, _keylen(keys(group)))
-    printstyled(io, "  :$pkey", color=dimcolors(7))
+    if !isnothing(key)
+        pkey = rpad(key, _keylen(keys(group)))
+        printstyled(io, "  :$pkey", color=dimcolors(7))
+    end
     # printstyled(io, " layers: "; color=:light_black)
     field_dims = DD.dims(group)
     colors = map(dimcolors, eachindex(field_dims))

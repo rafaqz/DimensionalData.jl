@@ -38,6 +38,7 @@ layers(dt::AbstractDimTree) = Dict(pairs(dt))
     T(dt[keys(dt)])
 
 Base.pairs(dt) = (k => dt[k] for k in keys(dt))
+Base.keys(dt::AbstractDimTree) = getfield(dt, :keys)
 function Base.copy(dt::AbstractDimTree) 
     rebuild(dt; 
         keys=copy(keys(dt)),
@@ -48,7 +49,7 @@ function Base.copy(dt::AbstractDimTree)
         parent=isnothing(getfield(dt, :parent)) ? nothing : copy(getfield(dt, :parent)),
     )
 end
-Base.keys(dt::AbstractDimTree) = getfield(dt, :keys)
+# If we select a single name we get a DimArray
 function Base.getindex(dt::AbstractDimTree, name::Symbol)
     data = DD.data(dt, name)
     dims = DD.dims(dt, layerdims(dt, name))
@@ -56,6 +57,7 @@ function Base.getindex(dt::AbstractDimTree, name::Symbol)
     metadata = layermetadata(dt, name)
     DimArray(data, dims; refdims, name, metadata) 
 end
+# If we select a Tuple or Vector of names we get a DimStack
 function Base.getindex(
     dt::AbstractDimTree, names::Union{AbstractArray{Symbol},NTuple{<:Any,Symbol}}
 )
@@ -70,7 +72,7 @@ function Base.getindex(
     dims = reduce(names; init=Symbol[]) do acc, n
         union(acc, collect(DD.layerdims(dt, n)))
     end |> Tuple
-    return DimStack(data, dims; 
+    return DimStack(data, DD.dims(dt, dims); 
         refdims=DD.refdims(dt),
         metadata=metadata(dt),
         layerdims,

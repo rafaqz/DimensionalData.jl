@@ -21,6 +21,7 @@ using DimensionalData, Test, Aqua, SafeTestsets
 
     @time @safetestset "array" begin include("array.jl") end
     @time @safetestset "stack" begin include("stack.jl") end
+    @time @safetestset "tree" begin include("tree.jl") end
     @time @safetestset "indexing" begin include("indexing.jl") end
     @time @safetestset "methods" begin include("methods.jl") end
     @time @safetestset "broadcast" begin include("broadcast.jl") end

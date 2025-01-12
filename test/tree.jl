@@ -12,8 +12,6 @@ dt = DimensionalData.DimTree(st)
 DimensionalData.setgroup(dt, :g1, dt)
 DimensionalData.setgroup(dt, :g2, st)
 
-dims(DimStack(DimensionalData.groups(dt, :g2)))
- === 
-st
-
-DimensionalData.groups(dt)
+# We get an identical DimStack back out after conversion to/from DimTree
+@test DimStack(DimensionalData.groups(dt, :g1)) === 
+      DimStack(DimensionalData.groups(dt, :g2)) === st
