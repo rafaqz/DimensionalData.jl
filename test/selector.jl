@@ -1451,12 +1451,14 @@ end
 end
 
 @testset "MatrixLookup selectors" begin
+    # Generate a warped matrix
     y = -100:100
     x = -200:200
     xs = [x + 0.01y^3 for x in x, y in y]
     ys = [y + 10cos(x/40) for x in x, y in y]
-    xdim = X(DD.Dimensions.Lookups.MatrixLookup(xs))
-    ydim = Y(DD.Dimensions.Lookups.MatrixLookup(ys))
+    # Define x and y lookup dimensions
+    xdim = X(MatrixLookup(xs))
+    ydim = Y(MatrixLookup(ys))
     A = rand(xdim, ydim)
     xval = xs[end-10]
     yval = ys[end-10]
