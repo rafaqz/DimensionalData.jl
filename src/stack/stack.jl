@@ -454,5 +454,7 @@ function DimStack(data::NamedTuple, dims::Tuple;
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
+DimStack(st::AbstractDimStack) = 
+    DimStack(data(st), dims(st), refdims(st), layerdims(st), metadata(st), layermetadata(st))
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
