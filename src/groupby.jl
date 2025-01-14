@@ -447,7 +447,8 @@ end
 
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
-intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
+intervals(rng::AbstractRange) =
+    IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
 
 """
     ranges(A::AbstractRange{<:Integer})
@@ -455,3 +456,32 @@ intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
 ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)
+
+
+"""
+    combine(f::Function, gb::DimGroupByArray; dims=:)
+
+Combine the `DimGroupByArray` using funciton `f` over the group dimensions.
+
+If `dims` is given, combine only the dimensions in `dims`. The reducing function
+`f` must accept a `dims` keyword.
+"""
+function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
+    # This works for both arrays and stacks
+    # Combine the remaining dimensions after reduction and the group dimensions
+    destdims = (otherdims(DD.dims(first(gb)), dims)..., DD.dims(gb)...)
+    # Get the output eltype 
+    T = Base.promote_op(f, G)
+    # Create a output array with the combined dimensions
+    dest = similar(first(gb), T, destdims)
+    for D in DimIndices(gb)
+        if dims isa Colon
+            # Assigned reduced scalar to dest
+            dest[D...] = f(gb[D])
+        else
+            # Broadcast the reduced array to dest
+            dest[D...] .= f(gb[D]; dims)
+        end
+    end
+    return dest
+end

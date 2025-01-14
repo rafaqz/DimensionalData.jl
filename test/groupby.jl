@@ -19,6 +19,10 @@ st = DimStack((a=A, b=A, c=A[X=1]))
         mean(st[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1])
     end
     @test mean.(groupby(st, Ti=>month)) == manualmeans_st
+    combined_st = combine(mean, groupby(st, Ti=>month))
+    @test combined_st isa DimStack{(:a, :b, :c), @NamedTuple{a::Float64, b::Float64, c::Float64}}
+    @test collect(combined_st) == manualmeans_st
+    st[1] = (a= 1, b=2, c=3)
 
     manualsums = mapreduce(hcat, months) do m
         vcat(sum(A[Ti=dayofyear(m):dayofyear(m)+daysinmonth(m)-1, X=1 .. 1.5]), 
@@ -52,6 +56,7 @@ end
     @test mean.(groupby(A, Ti=>Bins(month, ranges(1:3:12)))) == manualmeans
     @test mean.(groupby(A, Ti=>Bins(month, intervals(1:3:12)))) == manualmeans
     @test mean.(groupby(A, Ti=>Bins(month, 4))) == manualmeans
+    @test DimensionalData.combine(mean, groupby(A, Ti=>Bins(month, ranges(1:3:12)))) == manualmeans
 end
 
 @testset "dimension matching groupby" begin
