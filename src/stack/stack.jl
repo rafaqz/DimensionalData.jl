@@ -197,23 +197,26 @@ Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
     i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
 
 Base.similar(s::AbstractDimStack) = similar(s, eltype(s))
+Base.similar(s::AbstractDimStack, dims::Dimension...) = similar(s, dims)
+Base.similar(s::AbstractDimStack, ::Type{T},dims::Dimension...) where T =
+    similar(s, T, dims)
 Base.similar(s::AbstractDimStack, dims::Tuple{Vararg{Dimension}}) = 
     similar(s, eltype(s), dims)
 Base.similar(s::AbstractDimStack, ::Type{T}) where T = 
     similar(s, T, dims(s))
 function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T
     # Any dims not in the stack are added to all layers
-    ods = otherdims(s, dims)
+    ods = otherdims(dims, DD.dims(s))
     maplayers(s) do A
         # Original layer dims are maintained, other dims are added
-        D = DD.commondims(dims, (dims(A)..., ods))
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
         similar(A, T, D)
     end
 end
 function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T<:NamedTuple
-    ods = otherdims(s, dims)
+    ods = otherdims(dims, DD.dims(s))
     maplayers(s, _nt_types(T)) do A, Tx 
-        D = DD.commondims(dims, (DD.dims(A)..., ods))
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
         similar(A, Tx, D)
     end
 end

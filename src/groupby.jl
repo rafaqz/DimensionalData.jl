@@ -356,6 +356,7 @@ end
 function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
     orig_lookup = lookup(dim)
     k1 = f(first(orig_lookup))
+    # TODO: using a Dict here is a bit slow
     indices_dict = Dict{typeof(k1),Vector{Int}}()
     for (i, x) in enumerate(orig_lookup)
          k = f(x)
@@ -457,7 +458,6 @@ Generate a `Vector` of `UnitRange` with length `step(A)`
 """
 ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)
 
-
 """
     combine(f::Function, gb::DimGroupByArray; dims=:)
 
@@ -467,6 +467,9 @@ If `dims` is given, combine only the dimensions in `dims`. The reducing function
 `f` must accept a `dims` keyword.
 """
 function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
+    targetdims = DD.commondims(first(gb), dims)
+    all(hasdim(first(gb), targetdims)) || throw(ArgumentError("dims must be a subset of the groupby dimensions"))
+    all(hasdim(targetdims, DD.dims(gb))) || throw(ArgumentError("grouped dimensions $(DD.basedims(gb)) must be included in dims"))
     # This works for both arrays and stacks
     # Combine the remaining dimensions after reduction and the group dimensions
     destdims = (otherdims(DD.dims(first(gb)), dims)..., DD.dims(gb)...)
@@ -475,12 +478,14 @@ function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
     # Create a output array with the combined dimensions
     dest = similar(first(gb), T, destdims)
     for D in DimIndices(gb)
-        if dims isa Colon
+        if all(hasdim(targetdims, DD.dims(first(gb))))
             # Assigned reduced scalar to dest
             dest[D...] = f(gb[D])
         else
+            # Reduce with `f` and drop length 1 dimensions
+            xs = dropdims(f(gb[D]; dims); dims)
             # Broadcast the reduced array to dest
-            dest[D...] .= f(gb[D]; dims)
+            broadcast_dims!(identity, view(dest, D...), xs)
         end
     end
     return dest
