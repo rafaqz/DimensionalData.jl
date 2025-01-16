@@ -45,7 +45,7 @@ function Extents.extent(dt::AbstractDimTree)
     return ext
 end
 
-Base.pairs(dt) = (k => dt[k] for k in keys(dt))
+Base.pairs(dt::AbstractDimTree) = (k => dt[k] for k in keys(dt))
 Base.keys(dt::AbstractDimTree) = getfield(dt, :keys)
 function Base.copy(dt::AbstractDimTree) 
     rebuild(dt; 
@@ -86,6 +86,15 @@ function Base.getindex(
         layerdims,
         layermetadata,
     ) 
+end
+function Base.getindex(dt::AbstractDimTree, D::Dimension{<:SelectorOrInterval}...)
+    newlayers = map(collect(pairs(layers(dt)))) do (name, A)
+        name => A[D...]
+    end
+    newgroups = map(collect(pairs(groups(dt)))) do (name, group)
+        name => group[D...]
+    end |> Dict{Symbol,AbstractDimTree}
+    rebuild_from_arrays(dt, newlayers; groups=newgroups)
 end
 Base.getproperty(dt::AbstractDimTree, name::Symbol) =
     dt[name]
@@ -151,3 +160,23 @@ function rebuild(dt::AbstractDimTree;
         groups,
     )
 end
+
+function rebuild_from_arrays(dt::AbstractDimTree, layers::AbstractArray{<:Pair}; 
+    data=Dict(k => parent(v) for (k, v) in layers),
+    dims=DD.combinedims(map(last, layers)),
+    refdims=refdims(dt), 
+    metadata=metadata(dt), 
+    layerdims=layerdims(layers), 
+    layermetadata=layermetadata(layers),
+    groups=groups(dt),
+    # TODO these need better names
+    keys=first.(layers),
+    parent=nothing,
+)
+    rebuild(dt; data, dims, refdims, layerdims, metadata, layermetadata, groups, keys, parent)
+end
+
+layerdims(layers::AbstractArray{<:Pair}) = 
+    Dict{Symbol,Tuple}(map(((k, v),) -> k => basedims(v), layers))
+layermetadata(layers::AbstractArray{<:Pair}) = 
+    Dict{Symbol,Any}(map(((k, v),) -> k => metadata(v), layers))

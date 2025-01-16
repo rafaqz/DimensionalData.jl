@@ -17,3 +17,5 @@ DimensionalData.setgroup(dt, :g2, st)
 # We get an identical DimStack back out after conversion to/from DimTree
 @test DimStack(DimensionalData.groups(dt, :g1)) === 
       DimStack(DimensionalData.groups(dt, :g2)) === st
+
+dt_sliced = dt[X(Between(2, 4))]
