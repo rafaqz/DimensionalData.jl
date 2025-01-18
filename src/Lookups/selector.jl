@@ -121,7 +121,12 @@ rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
-Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")
+function Base.show(io::IO, x::At)
+    print(io, "At(")
+    isnothing(val(x)) || print(io, val(x))
+    isnothing(atol(x)) || print(io, "; atol=", atol(x))
+    print(io, ")")
+end
 
 struct _True end
 struct _False end
