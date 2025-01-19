@@ -159,7 +159,7 @@ locus(sampling::NoSampling) = Center()
 """
     AutoSampling <: Sampling
 
-Sampling will be detected from context in `format`.
+Sampling will be detected from context during dimension `format`.
 """
 struct AutoSampling <: Sampling end
 locus(sampling::AutoSampling) = AutoPosition()
