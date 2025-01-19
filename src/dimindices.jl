@@ -211,7 +211,8 @@ is similar to doing an interpolation.
 
 - `selectors`: `Near`, `At` or `Contains`, or a mixed tuple of these.
   `At` is the default, meaning only exact or within `atol` values are used.
-- `atol`: used for `At` selectors only, as the `atol` value.
+- `atol`: used for `At` selectors only, as the `atol` value. Ignored where 
+    `atol` is set inside individual `At` selectors.
 
 ## Example
 
@@ -249,10 +250,31 @@ function DimSelectors(dims::Tuple{Vararg{Dimension}}; atol=nothing, selectors=At
     DimSelectors(dims, s)
 end
 function DimSelectors(dims::Tuple{Vararg{Dimension}}, selectors::Tuple)
-    T = typeof(map(rebuild, dims, selectors))
+    T = _selector_eltype(dims, selectors)
     N = length(dims)
     dims = N > 0 ? _format(dims) : dims
     DimSelectors{T,N,typeof(dims),typeof(selectors)}(dims, selectors)
+end
+
+_selector_eltype(dims::Tuple, selectors::Tuple) =
+    Tuple{map(_selector_eltype, dims, selectors)...}
+_selector_eltype(d::D, ::S) where {D,S} =
+    basetypeof(D){basetypeof(S){eltype(d)}}
+_selector_eltype(d::D, ::At{<:Any,A,R}) where {D,A,R} =
+    basetypeof(D){At{eltype(d),A,R}}
+
+function show_after(io::IO, mime, A::DimSelectors)
+    _, displaywidth = displaysize(io)
+    blockwidth = get(io, :blockwidth, 0)
+    selector_lines = split(sprint(show, mime, A.selectors), "\n")
+    new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, selector_lines) + 4))
+    new_blockwidth = print_block_separator(io, "selectors", blockwidth, new_blockwidth)
+    print(io, "  ")
+    show(io, mime, A.selectors)
+    println(io)
+    print_block_close(io, new_blockwidth)
+    ndims(A) > 0 && println(io)
+    print_array(io, mime, A)
 end
 
 @inline _format_selectors(dims::Tuple, selector, atol) =
@@ -263,18 +285,17 @@ end
     map(_format_selectors, dims, selectors, atol)
 
 _format_selectors(d::Dimension, T::Type, atol) = _format_selectors(d, T(), atol)
-@inline _format_selectors(d::Dimension, ::Near, atol) =
-    Near(zero(eltype(d)))
-@inline _format_selectors(d::Dimension, ::Contains, atol) =
-    Contains(zero(eltype(d)))
-@inline function _format_selectors(d::Dimension, ::At, atol)
-    atolx = _atol(eltype(d), atol)
-    v = first(val(d))
-    At{typeof(v),typeof(atolx),Nothing}(v, atolx, nothing)
+@inline _format_selectors(d::Dimension, ::Near, atol) = Near(nothing)
+@inline _format_selectors(d::Dimension, ::Contains, atol) = Contains(nothing)
+@inline function _format_selectors(d::Dimension, at::At, atol)
+    atolx = _atol(eltype(d), Lookups.atol(at), atol)
+    At(nothing, atolx, nothing)
 end
 
-_atol(::Type, atol) = atol
-_atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
+_atol(::Type, atol1, atol2) = atol1
+_atol(T::Type{<:AbstractFloat}, atol, ::Nothing) = atol
+_atol(T::Type{<:AbstractFloat}, ::Nothing, atol) = atol
+_atol(T::Type{<:AbstractFloat}, ::Nothing, ::Nothing) = eps(T)
 
 @propagate_inbounds function Base.getindex(di::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
     map(dims(di), di.selectors, (i1, i2, I...)) do d, s, i
