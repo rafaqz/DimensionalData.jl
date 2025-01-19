@@ -250,11 +250,18 @@ function DimSelectors(dims::Tuple{Vararg{Dimension}}; atol=nothing, selectors=At
     DimSelectors(dims, s)
 end
 function DimSelectors(dims::Tuple{Vararg{Dimension}}, selectors::Tuple)
-    T = typeof(map(rebuild, dims, selectors))
+    T = _selector_eltype(dims, selectors)
     N = length(dims)
     dims = N > 0 ? _format(dims) : dims
     DimSelectors{T,N,typeof(dims),typeof(selectors)}(dims, selectors)
 end
+
+_selector_eltype(dims::Tuple, selectors::Tuple) =
+    Tuple{map(_selector_eltype, dims, selectors)...}
+_selector_eltype(d::D, ::S) where {D,S} =
+    basetypeof(D){basetypeof(S){eltype(d)}}
+_selector_eltype(d::D, ::At{<:Any,A,R}) where {D,A,R} =
+    basetypeof(D){At{eltype(d),A,R}}
 
 function show_after(io::IO, mime, A::DimSelectors)
     _, displaywidth = displaysize(io)

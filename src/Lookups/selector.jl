@@ -582,7 +582,7 @@ struct _Lower <: _Side end
 # returns a UnitRange from an Interval
 function between(l::Lookup, sel::Between)
     a, b = _sorttuple(sel)
-    return between(l, a..b)
+    return between(l, a .. b)
 end
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
@@ -1083,7 +1083,8 @@ selectindices(l::Lookup, sel::SelectorOrInterval; kw...) = _selectindices(l, sel
     return first(to_indices(l, (Not(indices),)))
 end
 @inline _selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = 
+    between(l, sel)
 @inline function _selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
