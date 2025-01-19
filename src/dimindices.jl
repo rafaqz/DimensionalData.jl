@@ -285,13 +285,11 @@ end
     map(_format_selectors, dims, selectors, atol)
 
 _format_selectors(d::Dimension, T::Type, atol) = _format_selectors(d, T(), atol)
-@inline _format_selectors(d::Dimension, ::Near, atol) =
-    Near(zero(eltype(d)))
-@inline _format_selectors(d::Dimension, ::Contains, atol) =
-    Contains(zero(eltype(d)))
+@inline _format_selectors(d::Dimension, ::Near, atol) = Near(nothing)
+@inline _format_selectors(d::Dimension, ::Contains, atol) = Contains(nothing)
 @inline function _format_selectors(d::Dimension, at::At, atol)
     atolx = _atol(eltype(d), Lookups.atol(at), atol)
-    At{Nothing,typeof(atolx),Nothing}(nothing, atolx, nothing)
+    At(nothing, atolx, nothing)
 end
 
 _atol(::Type, atol1, atol2) = atol1

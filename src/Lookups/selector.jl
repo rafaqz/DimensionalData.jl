@@ -266,6 +266,7 @@ Near() = Near(nothing)
 Near(a, b) = Near((a, b))
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
+Base.show(io::IO, x::Near{Nothing}) = print(io, "Near()")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -369,6 +370,7 @@ Contains(a, b) = Contains((a, b))
 end
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
+Base.show(io::IO, x::Contains{Nothing}) = print(io, "Contains()")
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -568,7 +570,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
     val::T
 end
-Between(args...) = Between(args)
+Between(a, b) = Between((a, b))
 
 Base.show(io::IO, x::Between) = print(io, "Between(", val(x), ")")
 Base.first(sel::Between) = first(val(sel))
