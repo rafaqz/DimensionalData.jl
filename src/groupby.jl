@@ -249,7 +249,6 @@ Group some data along the time dimension:
 
 ```jldoctest groupby; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData, Dates
-
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
@@ -461,10 +460,21 @@ ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)
 """
     combine(f::Function, gb::DimGroupByArray; dims=:)
 
-Combine the `DimGroupByArray` using funciton `f` over the group dimensions.
+Combine the `DimGroupByArray` using function `f` over the group dimensions.
+Unlike broadcasting a reducing function over a `DimGroupByArray`, this function
+always returns a new flattened `AbstractDimArray` even where not all dimensions 
+are reduced. It will also work over grouped `AbstractDimStack`.
 
-If `dims` is given, combine only the dimensions in `dims`. The reducing function
-`f` must accept a `dims` keyword.
+If `dims` is given, it will combine only the dimensions in `dims`, the 
+others will be present in the final array. Note that all grouped dimensions
+must be reduced and included in `dims`.
+
+The reducing function `f` must also accept a `dims` keyword.
+
+# Example
+
+```jldoctest groupby
+````
 """
 function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
     targetdims = DD.commondims(first(gb), dims)
