@@ -156,6 +156,11 @@ abstract type Sampling <: LookupTrait end
 struct NoSampling <: Sampling end
 locus(sampling::NoSampling) = Center()
 
+"""
+    AutoSampling <: Sampling
+
+Sampling will be detected from context in `format`.
+"""
 struct AutoSampling <: Sampling end
 locus(sampling::AutoSampling) = AutoPosition()
 
