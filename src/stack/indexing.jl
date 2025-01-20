@@ -112,25 +112,15 @@ end
 #### setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Integer; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Colon; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::AbstractArray; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
-
-@propagate_inbounds function Base.setindex!(
-    s::AbstractDimStack, xs::NamedTuple, I...; kw...
-)
-    map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
-end
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i...; kw...) =
+    hassamedims(s) ? _map_setindex!(s, xs, i...; kw...) : _setindex_mixed!(s, xs, i...; kw...)
 
 _map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
 
-_setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
-    map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
-_setindex_mixed!(s::AbstractDimStack, i::Integer) =
-    map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
+_setindex_mixed!(s::AbstractDimStack, x, i...; kw...) =
+    map(layers(s), x) do A, x
+        A[dims(DimIndices(s)[i...], dims(A))] = x
+    end
 function _setindex_mixed!(s::AbstractDimStack, x, i::Colon)
     map(DimIndices(dims(s))) do D
         map(A -> setindex!(A, D), x, layers(s))
