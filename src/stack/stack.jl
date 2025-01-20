@@ -173,6 +173,10 @@ end
     rebuild_from_arrays(s, Base.setindex(layers(s), val, name))
 Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
 Base.Array(st::AbstractDimStack) = collect(st)
+Base.get(st::AbstractDimStack, k::Symbol, default) =
+    haskey(st, k) ? st[k] : default
+Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
+    haskey(st, k) ? st[k] : f()
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.

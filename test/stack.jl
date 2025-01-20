@@ -17,7 +17,6 @@ da4 = DimArray(cat(4A, 5A, 6A, 7A; dims=3), (x, y, z); name=:extradim)
 
 s = DimStack((da1, da2, da3))
 mixed = DimStack(da1, da2, da4)
-typeof(s)
 
 @testset "constructors" begin
     @test DimStack((one=A, two=2A, three=3A), dimz) ==
@@ -68,6 +67,10 @@ end
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
+    @test get(mixed, :one, nothing) == mixed.one
+    @test get(mixed, :five, nothing) == nothing
+    @test get(() -> nothing, mixed, :two) == mixed.two
+    @test get(() -> nothing, mixed, :ten) == nothing
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
@@ -345,4 +348,14 @@ end
     @test rand(Xoshiro(), s) isa @NamedTuple{one::Float64, two::Float32, three::Int}
     @test rand(mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test rand(MersenneTwister(), mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+end
+
+# https://github.com/rafaqz/DimensionalData.jl/issues/891
+@testset "DimStack of nested DimArrays" begin
+    nested_da = DimArray([da1, da2], Z(1:2))
+    ds = DimStack((a = nested_da, b = nested_da))
+    @test ds[1] == (a = da1, b = da1)
+    @test ds[Z = 1] == (a = da1, b = da1)
+    @test ds[Z = 1:2] == ds
+
 end

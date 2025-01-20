@@ -401,8 +401,7 @@ julia> x = X(10:10:100);
 julia> A = DimArray(rand(12,10), (ti, x), name="example");
 
 julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))]
-╭────────────────────────────────────────╮
-│ 2-element DimArray{Float64, 1} example │
+┌ 2-element DimArray{Float64, 1} example ┐
 ├────────────────────────────────────────┴────────────── dims ┐
   ↓ X Sampled{Int64} [10, 40] ForwardOrdered Irregular Points
 └─────────────────────────────────────────────────────────────┘
@@ -410,8 +409,7 @@ julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))]
  40  0.637077
 
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
-╭────────────────────────────────────────╮
-│ 4-element DimArray{Float64, 1} example │
+┌ 4-element DimArray{Float64, 1} example ┐
 ├────────────────────────────────────────┴──────────── dims ┐
   ↓ X Sampled{Int64} 20:10:50 ForwardOrdered Regular Points
 └───────────────────────────────────────────────────────────┘
@@ -425,8 +423,7 @@ Generator expression:
 
 ```jldoctest dimarray
 julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
-╭────────────────────────────────────────────╮
-│ 3×2 DimArray{Tuple{Int64, Int64}, 2} Value │
+┌ 3×2 DimArray{Tuple{Int64, Int64}, 2} Value ┐
 ├────────────────────────────────────────────┴──── dims ┐
   ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
@@ -545,8 +542,7 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData, Random; Random.seed!(123);
 
 julia> fill(true, X(2), Y(4))
-╭───────────────────────╮
-│ 2×4 DimArray{Bool, 2} │
+┌ 2×4 DimArray{Bool, 2} ┐
 ├───────────────── dims ┤
   ↓ X, → Y
 └───────────────────────┘
@@ -578,8 +574,7 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData
 
 julia> rand(Bool, X(2), Y(4))
-╭───────────────────────╮
-│ 2×4 DimArray{Bool, 2} │
+┌ 2×4 DimArray{Bool, 2} ┐
 ├───────────────── dims ┤
   ↓ X, → Y
 └───────────────────────┘
@@ -587,8 +582,7 @@ julia> rand(Bool, X(2), Y(4))
  1  0  0  1
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
-╭──────────────────────────╮
-│ 3×3 DimArray{Float64, 2} │
+┌ 3×3 DimArray{Float64, 2} ┐
 ├──────────────────────────┴──────────────────────────────────── dims ┐
   ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
@@ -621,8 +615,7 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData
 
 julia> zeros(Bool, X(2), Y(4))
-╭───────────────────────╮
-│ 2×4 DimArray{Bool, 2} │
+┌ 2×4 DimArray{Bool, 2} ┐
 ├───────────────── dims ┤
   ↓ X, → Y
 └───────────────────────┘
@@ -630,8 +623,7 @@ julia> zeros(Bool, X(2), Y(4))
  0  0  0  0
 
 julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
-╭──────────────────────────╮
-│ 3×3 DimArray{Float64, 2} │
+┌ 3×3 DimArray{Float64, 2} ┐
 ├──────────────────────────┴──────────────────────────────────── dims ┐
   ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
@@ -665,8 +657,7 @@ Keywords are the same as for [`DimArray`](@ref).
 julia> using DimensionalData
 
 julia> ones(Bool, X(2), Y(4))
-╭───────────────────────╮
-│ 2×4 DimArray{Bool, 2} │
+┌ 2×4 DimArray{Bool, 2} ┐
 ├───────────────── dims ┤
   ↓ X, → Y
 └───────────────────────┘
@@ -674,8 +665,7 @@ julia> ones(Bool, X(2), Y(4))
  1  1  1  1
 
 julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
-╭──────────────────────────╮
-│ 3×3 DimArray{Float64, 2} │
+┌ 3×3 DimArray{Float64, 2} ┐
 ├──────────────────────────┴──────────────────────────────────── dims ┐
   ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points

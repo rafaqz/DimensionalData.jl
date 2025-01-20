@@ -112,15 +112,19 @@ end
     end
 
     @testset "atol" begin
-        dsa = @inferred DimSelectors(A; atol=0.3)
-        # Mess up the lookups a little...
-        B = zeros(X(4.25:1:7.27), Y(9.95:1:12.27))
-        @test dsa[4, 3] == (X(At(7.0; atol=0.3)), Y(At(12.0, atol=0.3)))
-        @test broadcast(ds -> B[ds...] + 2, dsa) == fill(2.0, 4, 3)
-        @test broadcast(ds -> B[ds...], dsa[X(At(7.0))]) == [0.0 for i in 1:3]
-        @test_throws SelectorError broadcast(ds -> B[ds...] + 2, ds) == fill(2.0, 4, 3)
-        @test_throws ArgumentError DimSelectors(zeros(2, 2))
-        @test_throws ArgumentError DimSelectors(nothing)
+        dsa1 = @inferred DimSelectors(A; atol=0.3)
+        dsa2 = @inferred DimSelectors(A; selectors=At(; atol=0.3))
+        dsa3 = @inferred DimSelectors(A; selectors=At(; atol=0.3), atol=0.000001)
+        for dsa in (dsa1, dsa2, dsa3)
+            # Mess up the lookups a little...
+            B = zeros(X(4.25:1:7.27), Y(9.95:1:12.27))
+            @test dsa[4, 3] == (X(At(7.0; atol=0.3)), Y(At(12.0, atol=0.3)))
+            @test broadcast(ds -> B[ds...] + 2, dsa) == fill(2.0, 4, 3)
+            @test broadcast(ds -> B[ds...], dsa[X(At(7.0))]) == [0.0 for i in 1:3]
+            @test_throws SelectorError broadcast(ds -> B[ds...] + 2, ds) == fill(2.0, 4, 3)
+            @test_throws ArgumentError DimSelectors(zeros(2, 2))
+            @test_throws ArgumentError DimSelectors(nothing)
+        end
     end
 
     @testset "mixed atol" begin
