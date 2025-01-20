@@ -179,14 +179,14 @@ end
         db1 = DimArray(B1, (Y([:a, :b, :c]),))
         stack1 = DimStack(da3, db1)
         stack2 = DimStack(da3, db1, dc3)
-        @test broadcast_dims((s, x1, x2) -> s.layer1, stack1, da3, db1) == 
-            broadcast_dims((x1, x2, s) -> s.layer1, da3, db1, stack1)
-        @test broadcast_dims((s, x1, x2) -> s.layer1 + x1 + x2, stack1, da3, db1) == 
-            broadcast_dims(+, stack1.layer1, da3, db1)
-        @test broadcast_dims((s1, x1, s2, x2) -> s1.layer1+x2, stack1, da3, stack1, db1) == 
-            broadcast_dims((x1, s1, x2, s2) -> s1.layer1+x2, da3, stack1, db1, stack1)
+        # currently == returns false because the order of the dimensions is different!
+        @test all(broadcast_dims(+, stack1, da3, stack1, db1; bylayer = true) .== broadcast_dims(+, da3, stack1, db1, stack1; bylayer = true))
+        @test broadcast_dims(+, stack1, da3, db1; bylayer = true).layer1 == broadcast_dims(+, stack1.layer1, da3, db1)
+        @test broadcast_dims(+, stack1, da3, stack1, db1; bylayer = true) == broadcast_dims(+, da3, stack1, db1, stack1; bylayer = true)
         # Cant mix numvers of stack layers
-        @test_throws ArgumentError broadcast_dims(+, stack1, da3, db1, stack2)
+        @test_throws ArgumentError broadcast_dims(+, stack1, da3, db1, stack2; bylayer = true)
+        # If bylayer = false this is performed element-wise and throws a MethodError
+        @test_throws MethodError broadcast_dims(+, stack1, da3, db1, stack2)
     end
 end
 
