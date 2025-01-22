@@ -332,7 +332,7 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 @inline function _comparedims_broadcast(A, dims...)
     isstrict = _is_strict(A)
     comparedims(dims...; 
-        ignore_length_one=isstrict, order=isstrict, val=isstrict, length=false
+        ignore_length_one=isstrict, order=isstrict, val=isstrict, valtypename=isstrict, length=false
     )
 end
 
