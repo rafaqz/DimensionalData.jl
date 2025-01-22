@@ -1,4 +1,3 @@
-
 """
     Lookup
 
@@ -612,6 +611,35 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
 
 # TODO Transformed bounds
+
+struct MatrixLookup{T,A,D,Ma<:AbstractMatrix{T},Me} <: Unaligned{T,1}
+    data::A
+    dim::D
+    matrix::Ma
+    metadata::Me
+end
+MatrixLookup(matrix; metadata=NoMetadata()) =
+    MatrixLookup(AutoValues(), AutoDim(), matrix, metadata)
+dim(lookup::MatrixLookup) = lookup.dim
+matrix(l::MatrixLookup) = l.matrix
+
+# An array to lazily combine dimension matrices into points
+struct ArrayOfPoints{T,N,M,A<:Tuple{AbstractArray{<:Any,N},Vararg}} <: AbstractArray{T,N}
+    arrays::A
+    function ArrayOfPoints(arrays::A) where A<:Tuple
+        all(x -> size(x) == size(first(arrays)), arrays) ||
+            throw(ArgumentError("Size of matrices must match"))
+        T = Tuple{map(eltype, arrays)...}
+        N = ndims(first(arrays))
+        M = length(arrays)
+        new{T,N,M,A}(arrays)
+    end
+end
+Base.size(aop::ArrayOfPoints) = size(first(aop.arrays))
+@propagate_inbounds function Base.getindex(aop::ArrayOfPoints, I::Int...)
+    @boundscheck checkbounds(first(aop.arrays), I...)
+    map(A -> (@inbounds A[I...]), aop.arrays)
+end
 
 # Shared methods
 
