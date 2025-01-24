@@ -58,6 +58,7 @@ For transforming DimensionalData objects:
 
 ```@docs
 groupby
+combine
 DimensionalData.DimGroupByArray
 Bins
 ranges

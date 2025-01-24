@@ -249,7 +249,6 @@ Group some data along the time dimension:
 
 ```jldoctest groupby; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData, Dates
-
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
@@ -356,6 +355,7 @@ end
 function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
     orig_lookup = lookup(dim)
     k1 = f(first(orig_lookup))
+    # TODO: using a Dict here is a bit slow
     indices_dict = Dict{typeof(k1),Vector{Int}}()
     for (i, x) in enumerate(orig_lookup)
          k = f(x)
@@ -447,7 +447,8 @@ end
 
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
-intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
+intervals(rng::AbstractRange) =
+    IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
 
 """
     ranges(A::AbstractRange{<:Integer})
@@ -455,3 +456,47 @@ intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
 ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)
+
+"""
+    combine(f::Function, gb::DimGroupByArray; dims=:)
+
+Combine the `DimGroupByArray` using function `f` over the group dimensions.
+Unlike broadcasting a reducing function over a `DimGroupByArray`, this function
+always returns a new flattened `AbstractDimArray` even where not all dimensions 
+are reduced. It will also work over grouped `AbstractDimStack`.
+
+If `dims` is given, it will combine only the dimensions in `dims`, the 
+others will be present in the final array. Note that all grouped dimensions
+must be reduced and included in `dims`.
+
+The reducing function `f` must also accept a `dims` keyword.
+
+# Example
+
+```jldoctest groupby
+````
+"""
+function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
+    targetdims = DD.commondims(first(gb), dims)
+    all(hasdim(first(gb), targetdims)) || throw(ArgumentError("dims must be a subset of the groupby dimensions"))
+    all(hasdim(targetdims, DD.dims(gb))) || throw(ArgumentError("grouped dimensions $(DD.basedims(gb)) must be included in dims"))
+    # This works for both arrays and stacks
+    # Combine the remaining dimensions after reduction and the group dimensions
+    destdims = (otherdims(DD.dims(first(gb)), dims)..., DD.dims(gb)...)
+    # Get the output eltype 
+    T = Base.promote_op(f, G)
+    # Create a output array with the combined dimensions
+    dest = similar(first(gb), T, destdims)
+    for D in DimIndices(gb)
+        if all(hasdim(targetdims, DD.dims(first(gb))))
+            # Assigned reduced scalar to dest
+            dest[D...] = f(gb[D])
+        else
+            # Reduce with `f` and drop length 1 dimensions
+            xs = dropdims(f(gb[D]; dims); dims)
+            # Broadcast the reduced array to dest
+            broadcast_dims!(identity, view(dest, D...), xs)
+        end
+    end
+    return dest
+end
