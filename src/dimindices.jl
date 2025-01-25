@@ -46,10 +46,6 @@ end
 
 abstract type AbstractDimIndices{T,N,D} <: AbstractDimArrayGenerator{T,N,D} end
 
-(::Type{T})(::Nothing; kw...) where T<:AbstractDimIndices = throw(ArgumentError("Object has no `dims` method"))
-(::Type{T})(x; kw...) where T<:AbstractDimIndices = T(dims(x); kw...)
-(::Type{T})(dim::Dimension; kw...) where T<:AbstractDimIndices = T((dim,); kw...)
-
 """
     DimIndices <: AbstractArray
 
@@ -121,6 +117,9 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     dims = N > 0 ? _dimindices_format(dims) : dims
     DimIndices{T,N,typeof(dims)}(dims)
 end
+DimIndices(x) = DimIndices(dims(x))
+DimIndices(dim::Dimension) = DimIndices((dim,))
+DimIndices(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
 
 # Forces multiple indices not linear
 function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
@@ -146,6 +145,11 @@ _dimindices_axis(x::Lookup) = axes(x, 1)
 _dimindices_axis(x) =
     throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `Lookup` (the `axes` will be used)"))
 
+abstract type AbstractDimVals{T,N,D} <: AbstractDimIndices{T,N,D} end
+
+(::Type{T})(::Nothing; kw...) where T<:AbstractDimVals = throw(ArgumentError("Object has no `dims` method"))
+(::Type{T})(x; kw...) where T<:AbstractDimVals = T(dims(x); kw...)
+(::Type{T})(dim::Dimension; kw...) where T<:AbstractDimVals = T((dim,); kw...)
 
 """
     DimPoints <: AbstractArray
@@ -165,7 +169,7 @@ that defines a `dims` method can be passed in.
 
 - `order`: determines the order of the points, the same as the order of `dims` by default.
 """
-struct DimPoints{T,N,D<:Tuple{Vararg{Dimension}},O} <: AbstractDimIndices{T,N,D}
+struct DimPoints{T,N,D<:Tuple{Vararg{Dimension}},O} <: AbstractDimVals{T,N,D}
     dims::D
     order::O
 end
@@ -241,7 +245,7 @@ Using `At` would make sure we only use exact interpolation,
 while `Contains` with sampling of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
-struct DimSelectors{T,N,D<:Tuple{Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
+struct DimSelectors{T,N,D<:Tuple{Vararg{Dimension}},S<:Tuple} <: AbstractDimVals{T,N,D}
     dims::D
     selectors::S
 end
