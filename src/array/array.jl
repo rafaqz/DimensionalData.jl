@@ -38,6 +38,13 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
 
+# Promote element types 
+function Base.promote_rule(
+    a::Type{<:AbstractBasicDimArray{T,n}}, b::Type{<:AbstractBasicDimArray{S,n}}
+) where {T,n,S}
+    Base.el_same(promote_type(T, S), a, b)
+end
+
 """
     AbstractDimArray <: AbstractBasicArray
 
@@ -464,7 +471,7 @@ function DimArray(A::AbstractDimArray;
 )
     DimArray(data, dims; refdims, name, metadata)
 end
-DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
+DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A); kw...)
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
@@ -485,7 +492,7 @@ function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(
      DimArray(f.(val(dim)), (dim,); name)
 end
 
-DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
+DimArray(itr::Base.Generator; kw...) = rebuild(collect(itr); kw...)
 
 const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
@@ -500,6 +507,12 @@ DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
+funciton Base.convert(
+    ::Type{<:DimArray{T,n,D,R,A,Na,Me}, A::AbstractDimArray{S,n}
+) where {T,n,S,D,R,A,Na,Me}
+    DimArray(convert(T, parent(A)), dims(A); refdims, name, metadata)
+end
+
 
 checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)

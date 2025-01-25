@@ -17,6 +17,8 @@ value for all `AbstractDimArray`s.
 """
 struct NoName <: AbstractName end
 
+Base.convert(::Type{NoName}, s::Symbol) = NoName()
+Base.convert(::Type{Symbol}, ::NoName) = Symbol("")
 Base.Symbol(::NoName) = Symbol("")
 Base.string(::NoName) = ""
 
@@ -35,6 +37,9 @@ Name(name::Symbol) = Name{name}()
 Name(name::NoName) = NoName()
 Name(name::Name) = name
 
+Base.convert(::Type{Name{X}}, ::Symbol) where X = Name{X}()
+Base.convert(::Type{Name}, s::Symbol) = Name{s}()
+Base.convert(::Type{Symbol}, x::Name{X}) where X = X
 Base.Symbol(::Name{X}) where X = X
 Base.string(::Name{X}) where X = string(X)
 

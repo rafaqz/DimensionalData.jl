@@ -1,4 +1,4 @@
-using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random, Statistics
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
@@ -602,3 +602,14 @@ end
     @test Base.dataids(a) == Base.dataids(parent(a))
     @test Base.mightalias(a, parent(a))
 end
+
+#@testset "promotion" begin
+    a = rand(X(1:10))
+    b = rand(Int, X(1:10))
+    @test promote_type(typeof(a), typeof(b)) == typeof(a)
+
+    M = fill(UInt16(32000), 2)
+    D = DimArray(M, X(1:2))
+    mean([D, D, D])
+     == 
+    mean([M, M, M])
