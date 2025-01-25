@@ -326,7 +326,7 @@ end
     @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
 end
 
-# @testset "@d macro" begin
+@testset "@d macro" begin
     f(x, y) = x * y
     p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()), name=:test, metadata=Dict(:a => 1))
 
