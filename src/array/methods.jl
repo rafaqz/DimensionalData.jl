@@ -9,7 +9,7 @@ end
 
 # With a function arg version
 for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum),
-                     (:Base, :extrema), (:Statistics, :mean))
+               (:Base, :extrema), (:Statistics, :mean))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
@@ -19,7 +19,7 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # - Return a reduced DimArray
         @inline function $_f(A::AbstractDimArray, dims; kw...)
             ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds)), kw...), reducedims(A, ds)
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
         end
         @inline function $_f(f, A::AbstractDimArray, dims; kw...)
             ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`

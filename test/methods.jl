@@ -1,4 +1,4 @@
-using DimensionalData , Statistics, Test, Unitful, SparseArrays, Dates
+using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using JLArrays
 using LinearAlgebra: Transpose
@@ -8,7 +8,7 @@ GPUArrays.allowscalar(false)
 
 xs = (1, X, X(), :X)
 ys = (2, Y, Y(), :Y)
-xys = ((1, 2), (X, Y), (X(), Y()), (:X, :Y))
+xys = ((1, 2), (1, 2, 3), (X, Y), (X(), Y()), (X(), Y(), Dim{:notaddim}()), (:X, :Y), (:X, :Y, :notaddim))
 
 @testset "map" begin
     a = [1 2; 3 4]
