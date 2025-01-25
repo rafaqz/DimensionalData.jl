@@ -2,6 +2,7 @@ using DimensionalData, Test
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
 using DimensionalData.Lookups: _set
+using DimensionalData: layerdims
 
 a = [1 2; 3 4]
 dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),
@@ -32,13 +33,17 @@ end
 end
 
 @testset "DimStack Dimension" begin
-    @test typeof(dims(set(s, row=X, column=Z))) <: Tuple{<:X,<:Z}
+    s1 = set(s, row=X, column=Z)
+    @test typeof(dims(s1)) <: Tuple{<:X,<:Z}
+    @test layerdims(s1) == (; test2=(X(), Z()), test3=(X(), Z()))
     @test typeof(dims(set(s, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(s, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+    s1 = set(s, row=:row2, column=:column2)
+    @test typeof(dims(s)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+    @test layerdims(s1) == (; test2=(Dim{:row2}(), Dim{:column2}()), test3=(Dim{:row2}(), Dim{:column2}()))
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(s, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
-    @test index(set(s, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test parent(lookup(set(s, Dim{:row}([:x, :y, :z])), :row)) == [:x, :y, :z] 
 end
 
 @testset "DimArray Dimension" begin
