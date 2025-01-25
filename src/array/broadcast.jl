@@ -81,7 +81,8 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _comparedims_broadcast(_firstdimarray(bc), _broadcasted_dims(bc)...)
+    fda = _firstdimarray(bc) 
+    isnothing(fda) || _comparedims_broadcast(fda, _broadcasted_dims(bc)...)
     copyto!(dest, _unwrap_broadcasted(bc))
 end
 
@@ -242,7 +243,6 @@ function _find_broadcast_vars(expr::Expr)
     arg_list = Pair{Symbol,Any}[]
     if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
         if expr.args[2] isa Expr
-            dump(expr.args[2])
             wrapped_args = map(expr.args[2].args) do arg
                 if arg isa Expr && arg.head == :parameters
                     arg
@@ -262,6 +262,22 @@ function _find_broadcast_vars(expr::Expr)
             expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
             return expr2, arg_list
         end
+    elseif expr.head == :.= 
+        # Destinaion array
+        dest_var = Symbol(gensym(), :_d)
+        push!(arg_list, dest_var => expr.args[1])
+        dest_expr = Expr(:call, mdb, esc(dest_var), :dims, :options)
+        # Source expression
+        expr2, arg_list2 = _find_broadcast_vars(expr.args[2])
+        source_expr = if isempty(arg_list2)
+            var2 = Symbol(gensym(), :_d)
+            push!(arg_list, var2 => arg)
+            esc(var2)
+        else
+            append!(arg_list, arg_list2)
+            expr2
+        end
+        return Expr(expr.head, dest_expr, source_expr), arg_list
     elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
         wrapped_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
@@ -286,18 +302,12 @@ end
 # A wrapper AbstractDimArray only to be used in @d broadcasts. 
 # It should never escape
 # options are both for broadcast tweaks and for keywords to the new DimArray
-struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: AbstractDimArray{T,N,D,A}
+struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractBasicDimArray{T,N,D},O} <: AbstractDimArray{T,N,D,A}
     data::A
     options::O
-    function BroadcastOptionsDimArray(
-        data::A, options::O
-    ) where {A<:AbstractDimArray{T,N},O} where {T,N}
-        D = typeof(dims(data))
-        new{T,N,D,A,O}(data, options)
-    end
 end
 
-# Get keywords form options
+# Get keywords from options
 _rebuild_kw(A::BroadcastOptionsDimArray) = _rebuild_kw(; broadcast_options(A)...)
 _rebuild_kw(; dims=nothing, strict=nothing, kw...) = kw
 
@@ -335,6 +345,7 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 
 # Run comparedims with settings depending on stictness
 @inline function _comparedims_broadcast(A, dims...)
+    @show typeof(A)
     isstrict = _is_strict(A)
     comparedims(dims...; 
         ignore_length_one=isstrict, order=isstrict, val=isstrict, length=false

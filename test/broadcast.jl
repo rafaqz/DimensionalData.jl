@@ -413,6 +413,16 @@ end
         z = Z(1:10)
         @test f.(z; b = 2) == @d f.(z; b = 2)
     end
+
+    @testset "strict=false in assignment" begin
+        dv1 = rand(X(1:3))
+        dv2 = rand(X(2:4))
+        dv3 = rand(X(7:9))
+        @test_throws DimensionMismatch dv1 .= dv2 .* dv3
+        @d dv1 .= dv2 .* dv3 strict=false
+        @test dv1 == parent(dv2) .* parent(dv3)
+    end
+
 end
 
 # @testset "Competing Wrappers" begin
