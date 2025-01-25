@@ -52,6 +52,9 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
         @test dims(di0) == ()
         @test size(di0) == ()
     end
+    @testset "keywords error" begin
+        @test_throws MethodError DimIndices(A; order=ForwardOrdered())
+    end
 end
 
 @testset "DimPoints" begin
