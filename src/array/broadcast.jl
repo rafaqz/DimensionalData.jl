@@ -345,7 +345,6 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
 
 # Run comparedims with settings depending on stictness
 @inline function _comparedims_broadcast(A, dims...)
-    @show typeof(A)
     isstrict = _is_strict(A)
     comparedims(dims...; 
         ignore_length_one=isstrict, order=isstrict, val=isstrict, length=false
