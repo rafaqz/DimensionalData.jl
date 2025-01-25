@@ -38,7 +38,7 @@ end
     @test layerdims(s1) == (; test2=(X(), Z()), test3=(X(), Z()))
     @test typeof(dims(set(s, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
     s1 = set(s, row=:row2, column=:column2)
-    @test typeof(dims(s)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+    @test typeof(dims(s1)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
     @test layerdims(s1) == (; test2=(Dim{:row2}(), Dim{:column2}()), test3=(Dim{:row2}(), Dim{:column2}()))
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
