@@ -305,6 +305,11 @@ end
 struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractBasicDimArray{T,N,D},O} <: AbstractDimArray{T,N,D,A}
     data::A
     options::O
+    function BroadcastOptionsDimArray(
+        data::A, options::O
+    ) where {A<:AbstractDimArray{T,N,D},O} where {T,N,D}
+        new{T,N,D,A,O}(data, options)
+    end
 end
 
 # Get keywords from options
