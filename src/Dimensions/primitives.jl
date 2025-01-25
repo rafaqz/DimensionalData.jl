@@ -228,6 +228,7 @@ end
     end
     map(val, _dims(f, numbered, query))
 end
+_dimnum(f::Function, ds::Tuple) = ()
 
 """
     hasdim([f], x, query::Tuple) => NTuple{Bool}
