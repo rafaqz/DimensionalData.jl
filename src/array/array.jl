@@ -38,12 +38,6 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
 
-# Promote element types 
-function Base.promote_rule(
-    a::Type{<:AbstractBasicDimArray{T,n}}, b::Type{<:AbstractBasicDimArray{S,n}}
-) where {T,n,S}
-    Base.el_same(promote_type(T, S), a, b)
-end
 
 """
     AbstractDimArray <: AbstractBasicArray
@@ -507,12 +501,31 @@ DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
-funciton Base.convert(
-    ::Type{<:DimArray{T,n,D,R,A,Na,Me}, A::AbstractDimArray{S,n}
-) where {T,n,S,D,R,A,Na,Me}
-    DimArray(convert(T, parent(A)), dims(A); refdims, name, metadata)
+
+function Base.convert(
+    ::Type{<:DimArray{T,N,DT,RT,AT,NaT,MeT}}, a::DimArray{S,N}
+) where {T,N,S,DT,RT,AT,NaT,MeT}
+    rebuild(a; 
+        data=convert(AT, parent(a)), 
+        dims=convert(DT, dims(a)), 
+        name=convert(NaT, name(a)),
+        refdims=RT <: Tuple{} ? () : convert(RT, refdims(a)),
+        metadata=convert(MeT, metadata(a)),
+    )
 end
 
+# Promote element types 
+function Base.promote_rule(
+    a::Type{<:DimArray{T,N,DT,RT,AT,NaT,MeT}}, b::Type{<:DimArray{S,N,DS,RS,AS,NaS,MeS}}
+) where {T,S,N,DT,DS,RT,RS,AT,AS,NaT,NaS,MeT,MeS}
+    A = promote_type(AT, AS)
+    TS = eltype(A) 
+    D = promote_type(DT, DS) 
+    R = RT <: Tuple{} || RS <: Tuple{} ? Tuple{} : promote_type(RT, RS) 
+    Na = promote_type(NaT, NaS)
+    M = promote_type(MeT, MeS)
+    return DimArray{TS,N,D,R,A,Na,M}
+end
 
 checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)

@@ -1,5 +1,7 @@
 using DimensionalData, Test , Unitful, SparseArrays, Dates, Random, Statistics
-using DimensionalData: layerdims, checkdims
+using DimensionalData: layerdims, checkdims, Name, NoName
+using DimensionalData.Lookups
+using DimensionalData.Dimensions
 using LinearAlgebra
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
@@ -610,6 +612,15 @@ end
 
     M = fill(UInt16(32000), 2)
     D = DimArray(M, X(1:2))
-    mean([D, D, D])
-     == 
-    mean([M, M, M])
+    Dmean = mean([D, D, D])
+    @test Dmean == mean([M, M, M])
+    D2 = DimArray(M, X(1:2); name=:testname, refdims=(Z(1:1),))
+    @test typeof(convert(typeof(D), D2)) == typeof(D)
+    # @test typeof(convert(typeof(D2), D)) == typeof(D2)
+
+    @test promote_type(typeof(D), typeof(D2)) ==
+        DimVector{UInt16, Tuple{X{Sampled{Int64, UnitRange{Int64}, ForwardOrdered, Regular{Int64}, Points, NoMetadata}}}, Tuple{}, Vector{UInt16}, NoName, NoMetadata}
+    Dmean = mean([D, D2])
+    Dmean = mean([D2, D])
+    convert(typeof(D), D2)
+end

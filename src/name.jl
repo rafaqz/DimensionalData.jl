@@ -17,8 +17,6 @@ value for all `AbstractDimArray`s.
 """
 struct NoName <: AbstractName end
 
-Base.convert(::Type{NoName}, s::Symbol) = NoName()
-Base.convert(::Type{Symbol}, ::NoName) = Symbol("")
 Base.Symbol(::NoName) = Symbol("")
 Base.string(::NoName) = ""
 
@@ -37,10 +35,22 @@ Name(name::Symbol) = Name{name}()
 Name(name::NoName) = NoName()
 Name(name::Name) = name
 
-Base.convert(::Type{Name{X}}, ::Symbol) where X = Name{X}()
-Base.convert(::Type{Name}, s::Symbol) = Name{s}()
-Base.convert(::Type{Symbol}, x::Name{X}) where X = X
 Base.Symbol(::Name{X}) where X = X
 Base.string(::Name{X}) where X = string(X)
 
 name(x::Name) = x
+
+
+Base.convert(::Type{NoName}, s::Symbol) = NoName()
+Base.convert(::Type{Symbol}, ::NoName) = Symbol("")
+# TODO should we check that X and s match?
+Base.convert(::Type{Name{X}}, s::Symbol) where X = Name{X}()
+Base.convert(::Type{Name}, s::Symbol) = Name{s}()
+Base.convert(::Type{Symbol}, x::Name{X}) where X = X
+
+Base.promote_rule(::Type{NoName}, ::Type{Symbol}) = NoName
+Base.promote_rule(::Type{NoName}, ::Type{<:Name}) = NoName
+Base.promote_rule(::Type{Symbol}, ::Type{NoName}) = NoName
+Base.promote_rule(::Type{<:Name}, ::Type{NoName}) = NoName
+Base.promote_rule(::Type{<:Name}, ::Type{Symbol}) = Symbol
+Base.promote_rule(::Type{Symbol}, ::Type{<:Name}) = Symbol

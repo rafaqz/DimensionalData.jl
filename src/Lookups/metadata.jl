@@ -1,6 +1,6 @@
 
 """
-    AbstractMetadata{X,T}
+    AbstractMetadata{X,K,V,T}
 
 Abstract supertype for all metadata wrappers.
 
@@ -11,10 +11,14 @@ or simply saving data back to the same file type with identical metadata.
 Using a wrapper instead of `Dict` or `NamedTuple` also lets us pass metadata 
 objects to [`set`](@ref) without ambiguity about where to put them.
 """
-abstract type AbstractMetadata{X,T} end
+abstract type AbstractMetadata{X,K,V,T} <: AbstractDict{K,V} end
 
-const _MetadataContents = Union{AbstractDict,NamedTuple}
+const MetadataContents = Union{AbstractDict,NamedTuple}
+const DefaultDict = Dict{Symbol,Any}
 const AllMetadata = Union{AbstractMetadata,AbstractDict}
+
+valtype(::AbstractMetadata{<:Any,<:Any,<:Any,T}) where T = T
+valtype(::Type{<:AbstractMetadata{<:Any,<:Any,<:Any,T}})where T  = T
 
 Base.get(m::AbstractMetadata, args...) = get(val(m), args...)
 Base.getindex(m::AbstractMetadata, key) = getindex(val(m), key)
@@ -38,20 +42,24 @@ Base.:(==)(m1::AbstractMetadata, m2::AbstractMetadata) = m1 isa typeof(m2) && va
 General [`Metadata`](@ref) object. The `X` type parameter
 categorises the metadata for method dispatch, if required. 
 """
-struct Metadata{X,T<:_MetadataContents} <: AbstractMetadata{X,T}
+struct Metadata{X,T<:MetadataContents,K,V} <: AbstractMetadata{X,T,K,V}
     val::T
 end
-Metadata(val::T) where {T<:_MetadataContents} = Metadata{Nothing,T}(val)
-Metadata{X}(val::T) where {X,T<:_MetadataContents} = Metadata{X,T}(val)
+Metadata{X,T}(val::T) where {X,T<:NamedTuple} =
+    Metadata{X,T,Symbol,Any}(val)
+Metadata{X,T}(val::T) where {X,T<:AbstractDict{K,V}} where {K,V} =
+    Metadata{X,T,K,V}(val)
+Metadata(val::T) where {T<:MetadataContents} = Metadata{Nothing,T}(val)
+Metadata{X}(val::T) where {X,T<:MetadataContents} = Metadata{X,T}(val)
 
 # NamedTuple/Dict constructor
-# We have to combine these because the no-arg method is overwritten by empty kw.
-function (::Type{M})(ps...; kw...) where M <: Metadata
-    if length(ps) > 0 && length(kw) > 0
-        throw(ArgumentError("Metadata can be constructed with args of Pair to make a Dict, or kw for a NamedTuple. But not both."))
-    end
-    length(kw) > 0 ? M((; kw...)) : M(Dict(ps...))
+(::Type{M})(p1::Pair, ps::Pair...) where M <: Metadata = M(Dict(p1, ps...))
+function (::Type{M})(; kw...) where M <: Metadata
+    M((; kw...))
 end
+Metadata() = Metadata(DefaultDict())
+Metadata{X}() where X = Metadata{X}(DefaultDict())
+Metadata{X,T}() where {X,T} = Metadata{X,T}(T())
 
 ConstructionBase.constructorof(::Type{<:Metadata{X}}) where {X} = Metadata{X}
 
@@ -74,7 +82,7 @@ Indicates an object has no metadata. But unlike using `nothing`,
 returning the fallback argument. `keys` returns `()` while `haskey`
 always returns `false`.
 """
-struct NoMetadata <: AbstractMetadata{Nothing,NamedTuple{(),Tuple{}}} end
+struct NoMetadata <: AbstractMetadata{Nothing,Dict{Symbol,Any},Symbol,Any} end
 
 val(m::NoMetadata) = NamedTuple()
 
@@ -82,6 +90,21 @@ Base.keys(::NoMetadata) = ()
 Base.haskey(::NoMetadata, args...) = false
 Base.get(::NoMetadata, key, fallback) = fallback
 Base.length(::NoMetadata) = 0
+Base.convert(::Type{NoMetadata}, s::Union{AbstractMetadata,AbstractDict}) =
+    NoMetadata()
+
+
+Base.convert(::Type{Metadata}, ::NoMetadata) = Metadata()
+Base.convert(::Type{Metadata}, m::MetadataContents) = Metadata(m)
+Base.convert(::Type{Metadata{X}}, m::MetadataContents) where X = Metadata{X}(m)
+Base.convert(::Type{Metadata{X,T}}, m::AbstractDict) where {X,T<:AbstractDict} =
+    Metadata{X,T}(T(m))
+Base.convert(::Type{Metadata{X,T}}, m::NamedTuple) where {X,T<:AbstractDict} = 
+    Metadata{X,T}(T(metadatadict(m)))
+Base.convert(::Type{Metadata{X,T}}, m::NamedTuple) where {X,T<:NamedTuple} = 
+    Metadata{X,T}(T(m))
+Base.convert(::Type{Metadata{X,T}}, m::AbstractDict) where {X,T<:NamedTuple} = 
+    Metadata{X,T}(T(pairs(metadatadict(m))))
 
 function Base.show(io::IO, mime::MIME"text/plain", metadata::Metadata{N}) where N
     print(io, "Metadata")
@@ -96,12 +119,13 @@ end
 
 # Metadata utils
 
-function metadatadict(dict)
-    symboldict = Dict{Symbol,Any}()
-    for (k, v) in dict
+metadatadict(dict) = metadatadict(DefaultDict, dict)
+function metadatadict(::Type{T}, dict) where T
+    symboldict = T()
+    for (k, v) in pairs(dict)
         symboldict[Symbol(k)] = v
     end
-    symboldict
+    return symboldict
 end
 
 metadata(x) = NoMetadata()

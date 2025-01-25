@@ -77,7 +77,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     # unwrap AbstractDimArray data
     data = data isa AbstractDimArray ? parent(data) : data
     dims = format(Dimensions.promotedims(bdims...; skip_length_one=true), data)
-    return rebuild(A; data, dims, refdims=refdims(A), name=Symbol(""))
+    return rebuild(A; data, dims, refdims=refdims(A), name=_noname(name(A)))
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
@@ -96,7 +96,7 @@ end
 
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
-    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
+    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), _noname(name(A)))
 end
 
 
