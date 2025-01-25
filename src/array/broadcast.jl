@@ -242,17 +242,22 @@ function _find_broadcast_vars(expr::Expr)
     arg_list = Pair{Symbol,Any}[]
     if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
         if expr.args[2] isa Expr
+            dump(expr.args[2])
             wrapped_args = map(expr.args[2].args) do arg
-                var = Symbol(gensym(), :_d)
-                expr1, arg_list1 = _find_broadcast_vars(arg)
-                out = if isempty(arg_list1)
-                    push!(arg_list, var => arg)
-                    esc(var)
+                if arg isa Expr && arg.head == :parameters
+                    arg
                 else
-                    append!(arg_list, arg_list1)
-                    expr1
+                    var = Symbol(gensym(), :_d)
+                    expr1, arg_list1 = _find_broadcast_vars(arg)
+                    out = if isempty(arg_list1)
+                        push!(arg_list, var => arg)
+                        esc(var)
+                    else
+                        append!(arg_list, arg_list1)
+                        expr1
+                    end
+                    Expr(:call, mdb, out, :dims, :options)
                 end
-                Expr(:call, mdb, out, :dims, :options)
             end
             expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
             return expr2, arg_list

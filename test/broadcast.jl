@@ -326,7 +326,7 @@ end
     @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
 end
 
-@testset "@d macro" begin
+# @testset "@d macro" begin
     f(x, y) = x * y
     p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()), name=:test, metadata=Dict(:a => 1))
 
@@ -406,6 +406,12 @@ end
     @testset "numbers etc" begin
         dv = DimArray(identity, X(1.0:10.0); name=:x)
         @test (@d dv .* 2) == (dv .* 2) 
+    end
+
+    @testset "keywords" begin
+        f(a; b=1) = a * b
+        z = Z(1:10)
+        @test f.(z; b = 2) == @d f.(z; b = 2)
     end
 end
 
