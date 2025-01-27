@@ -25,12 +25,19 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{K,T,N,L} end
+abstract type AbstractDimStack{K,T<:NamedTuple,N,L,D} <: AbstractBasicDimArray{T,N,D} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-(::Type{T})(st::AbstractDimStack) where T<:AbstractDimArray =
+(::Type{T})(st::AbstractDimStack) where {T<:AbstractDimArray} =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
+DimArray(st::AbstractDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+DimMatrix(st::AbstractMatrixDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+DimVector(st::AbstractVectorDimStack) =
+    DimArray(collect(st), dims(st); metadata=metadata(st))
+
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
@@ -145,31 +152,12 @@ Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
     data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
 Base.read(s::AbstractDimStack) = maplayers(read, s)
 
-# Array-like
-Base.size(s::AbstractDimStack) = map(length, dims(s))
-Base.size(s::AbstractDimStack, dims::DimOrDimType) = size(s, dimnum(s, dims))
-Base.size(s::AbstractDimStack, dims::Integer) = size(s)[dims]
-Base.length(s::AbstractDimStack) = prod(size(s))
-Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
-Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
-Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack, args...) = maplayers(A -> similar(A, args...), s)
-Base.eltype(::AbstractDimStack{<:Any,T}) where T = T
-Base.ndims(::AbstractDimStack{<:Any,<:Any,N}) where N = N
-Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
-Base.LinearIndices(s::AbstractDimStack) = 
-    LinearIndices(CartesianIndices(map(l -> axes(l, 1), lookup(s))))
-Base.IteratorSize(::AbstractDimStack{<:Any,<:Any,N}) where N = Base.HasShape{N}()
-function Base.eachindex(s::AbstractDimStack)
-    li = LinearIndices(s)
-    first(li):last(li)
-end
-Base.firstindex(s::AbstractDimStack) = first(LinearIndices(s))
-Base.lastindex(s::AbstractDimStack) = last(LinearIndices(s))
-Base.first(s::AbstractDimStack) = s[firstindex((s))]
-Base.last(s::AbstractDimStack) = s[lastindex(LinearIndices(s))]
-Base.copy(s::AbstractDimStack) = modify(copy, s)
-# all of methods.jl is also Array-like...
+# Array interface methods
+Base.IndexStyle(A::AbstractDimStack) = Base.IndexStyle(first(layers(A)))
+
+Base.similar(s::AbstractDimStack; kw...) = maplayers(A -> similar(A; kw...), s)
+Base.similar(s::AbstractDimStack, ::Type{T}; kw...) where T = maplayers(A -> similar(A, T; kw...), s)
+Base.similar(s::AbstractDimStack, ::Type{T}, dt::DimTuple; kw...) where T = maplayers(A -> similar(A, T, dt; kw...), s)
 
 # NamedTuple-like
 @assume_effects :foldable Base.getproperty(s::AbstractDimStack, x::Symbol) = s[x]
@@ -178,24 +166,17 @@ Base.values(s::AbstractDimStack) = _values_gen(s)
 @generated function _values_gen(s::AbstractDimStack{K}) where K
     Expr(:tuple, map(k -> :(s[$(QuoteNode(k))]), K)...)
 end
-Base.checkbounds(s::AbstractDimStack, I...) = checkbounds(CartesianIndices(s), I...)
-Base.checkbounds(T::Type, s::AbstractDimStack, I...) = checkbounds(T, CartesianIndices(s), I...)
 
 @inline Base.keys(s::AbstractDimStack{K}) where K = K
 @inline Base.propertynames(s::AbstractDimStack{K}) where K = K
 @inline Base.setindex(s::AbstractDimStack, val::AbstractBasicDimArray, name::Symbol) =
     rebuild_from_arrays(s, Base.setindex(layers(s), val, name))
 Base.NamedTuple(s::AbstractDimStack) = NamedTuple(layers(s))
-Base.collect(st::AbstractDimStack) = parent([st[D] for D in DimIndices(st)])
 Base.Array(st::AbstractDimStack) = collect(st)
-Base.vec(st::AbstractDimStack) = vec(collect(st))
 Base.get(st::AbstractDimStack, k::Symbol, default) =
     haskey(st, k) ? st[k] : default
 Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
     haskey(st, k) ? st[k] : f()
-@propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
-@propagate_inbounds Base.iterate(st::AbstractDimStack, i) =
-    i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
@@ -231,13 +212,29 @@ Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,Nam
 maplayers(f, s::AbstractDimStack) =
     _maybestack(s, unrolled_map(f, values(s)))
 function maplayers(
-    f, x1::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...
+    f, x1::Union{AbstractBasicDimArray,NamedTuple}, xs::Union{AbstractBasicDimArray,NamedTuple}...
 )
-    stacks = (x1, xs...)
-    _check_same_names(stacks...)
-    vals = map(f, map(values, stacks)...)
-    return _maybestack(_firststack(stacks...), vals)
+    xs = (x1, xs...)
+    firststack = _firststack(xs...)
+    if isnothing(firststack) 
+        if all(map(x -> x isa AbstractArray, xs))
+            # all arguments are arrays, but none are stacks, just apply the function
+            f(xs...)
+        else
+            # Arguments are some mix of arrays and NamedTuple
+            throw(ArgumentError("Cannot apply maplayers to NamedTuple and AbstractBasicDimArray"))
+        end
+    else
+        # There is at least one stack, we apply layer-wise
+        _check_same_names(xs...)
+        l = length(values(firststack))
+        vals = map(f, map(s -> _values_or_tuple(s, l), xs)...)
+        return _maybestack(firststack, vals)
+    end
 end
+
+_values_or_tuple(x::Union{AbstractDimStack, NamedTuple}, l) = values(x)
+_values_or_tuple(x::Union{AbstractBasicDimArray}, l) = Tuple(Iterators.repeated(x, l))
 
 # Other interfaces
 
@@ -287,6 +284,9 @@ _check_same_names(::Union{AbstractDimStack{names},NamedTuple{names}},
     ::Union{AbstractDimStack{names},NamedTuple{names}}...) where {names} = nothing
 _check_same_names(::Union{AbstractDimStack,NamedTuple}, ::Union{AbstractDimStack,NamedTuple}...) =
     throw(ArgumentError("Named tuple names do not match."))
+_check_same_names(xs::Union{AbstractDimStack,NamedTuple,AbstractBasicDimArray}...) = 
+    _check_same_names((x for x in xs if x isa Union{AbstractDimStack,NamedTuple})...)
+
 
 _firststack(s::AbstractDimStack, args...) = s
 _firststack(arg1, args...) = _firststack(args...)
@@ -390,7 +390,7 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
+struct DimStack{K,T<:NamedTuple,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
     data::L
     dims::D
     refdims::R

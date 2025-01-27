@@ -85,7 +85,6 @@ modify(CuArray, A)
 This also works for all the data layers in a `DimStack`.
 """
 function modify end
-modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
 # Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
 # layers, and instead just modify the parent data directly.
 modify(f, s::AbstractDimStack{<:Any,<:Any,<:NamedTuple}) = 
@@ -121,19 +120,16 @@ all passed in arrays in the order in which they are found.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function broadcast_dims(f, As::AbstractBasicDimArray...)
-    dims = combinedims(As...)
-    T = Base.Broadcast.combine_eltypes(f, As)
-    broadcast_dims!(f, similar(first(As), T, dims), As...)
-end
-
-function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
-    st = _firststack(As...)
-    nts = _as_extended_nts(NamedTuple(st), As...)
-    layers = map(keys(st)) do name
-        broadcast_dims(f, map(nt -> nt[name], nts)...)
+function broadcast_dims(f, As::AbstractBasicDimArray...; bylayer=false)
+    if bylayer
+        maplayers((As...) -> broadcast_dims(f, As...), As...)
+    else
+        A1 = first(As) 
+        _A1 = A1 isa AbstractDimStack ? first(layers(A1)) : A1
+        dims = combinedims(As...)
+        T = Base.Broadcast.combine_eltypes(f, As)
+        broadcast_dims!(f, similar(_A1, T, dims), As...)
     end
-    rebuild_from_arrays(st, layers)
 end
 
 """
@@ -150,15 +146,19 @@ which they are found.
 - `dest`: `AbstractDimArray` to update.
 - `sources`: `AbstractDimArrays` to broadcast over with `f`.
 """
-function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDimArray...) where {N}
-    As = map(As) do A
-        isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
-        # comparedims(dest, dims(A, dims(dest)))
-        # Lazily permute B dims to match the order in A, if required
-        _maybe_lazy_permute(A, dims(dest))
+function broadcast_dims!(f, dest::Union{AbstractDimArray{<:Any,N}, AbstractDimStack{<:Any,<:Any,N}}, As::AbstractBasicDimArray...; bylayer=false) where {N}
+    if bylayer
+        maplayers((dest,As) -> broadcast_dims!(f, As, dest), As, dest)
+    else
+        As = map(As) do A
+            isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
+            # comparedims(dest, dims(A, dims(dest)))
+            # Lazily permute B dims to match the order in A, if required
+            _maybe_lazy_permute(A, dims(dest))
+        end
+        od = map(A -> otherdims(dest, dims(A)), As)
+        return _broadcast_dims_inner!(f, dest, As, od)
     end
-    od = map(A -> otherdims(dest, dims(A)), As)
-    return _broadcast_dims_inner!(f, dest, As, od)
 end
 
 # Function barrier

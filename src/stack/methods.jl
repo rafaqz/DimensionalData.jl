@@ -132,8 +132,10 @@ end
 
 # Methods with an argument that return a DimStack
 for fname in (:rotl90, :rotr90, :rot180)
-    @eval (Base.$fname)(s::AbstractDimStack, args...) =
-        maplayers(A -> (Base.$fname)(A, args...), s)
+    @eval (Base.$fname)(s::AbstractDimStack) =
+        maplayers(A -> (Base.$fname)(A), s)
+    @eval (Base.$fname)(s::AbstractDimStack, k::Integer) =
+        maplayers(A -> (Base.$fname)(A, k), s)
 end
 for fname in (:PermutedDimsArray, :permutedims)
     @eval function (Base.$fname)(s::AbstractDimStack, perm)
@@ -188,10 +190,3 @@ for fname in (:one, :oneunit, :zero, :copy)
 end
 
 Base.reverse(s::AbstractDimStack; dims=:) = maplayers(A -> reverse(A; dims=dims), s)
-
-# Random
-Random.Sampler(RNG::Type{<:AbstractRNG}, st::AbstractDimStack, n::Random.Repetition) =
-    Random.SamplerSimple(st, Random.Sampler(RNG, DimIndices(st), n))
-
-Random.rand(rng::AbstractRNG, sp::Random.SamplerSimple{<:AbstractDimStack,<:Random.Sampler}) =
-    @inbounds return sp[][rand(rng, sp.data)...]

@@ -1,5 +1,6 @@
 using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 
+using DimensionalData
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
@@ -76,7 +77,7 @@ end
     @test length(mixed) === 24
     @test firstindex(mixed) === 1
     @test lastindex(mixed) === 24
-    @test eachindex(mixed) === 1:24
+    @test eachindex(mixed) === Base.OneTo(24)
     @test axes(mixed) == (Base.OneTo(2), Base.OneTo(3), Base.OneTo(4))
     @test eltype(axes(mixed)) <: Dimensions.DimUnitRange
     @test dims(axes(mixed)) == dims(mixed)
@@ -85,8 +86,8 @@ end
     @test axes(mixed, 2) == Base.OneTo(3)
     @test lastindex(mixed, 2) == 3
     @test dims(axes(mixed, 2)) == dims(mixed, 2)
-    @test first(mixed) == mixed[Begin] 
-    @test last(mixed) == mixed[End]
+    @test first(mixed) == mixed[Begin()] 
+    @test last(mixed) == mixed[End()]
     @test NamedTuple(s) == (one=da1, two=da2, three=da3)
 end
 
