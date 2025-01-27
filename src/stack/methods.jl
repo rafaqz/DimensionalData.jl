@@ -72,8 +72,7 @@ julia> map(dims, axes(slices))
 → X Base.OneTo(2))
 
 julia> first(slices)
-╭──────────────╮
-│ 3×5 DimStack │
+┌ 3×5 DimStack ┐
 ├──────────────┴─────────────────────────────────── dims ┐
   ↓ Y  Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Ti

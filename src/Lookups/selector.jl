@@ -121,7 +121,12 @@ rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
-Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")
+function Base.show(io::IO, x::At)
+    print(io, "At(")
+    isnothing(val(x)) || print(io, val(x))
+    isnothing(atol(x)) || print(io, "; atol=", atol(x))
+    print(io, ")")
+end
 
 struct _True end
 struct _False end
@@ -261,6 +266,7 @@ Near() = Near(nothing)
 Near(a, b) = Near((a, b))
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
+Base.show(io::IO, x::Near{Nothing}) = print(io, "Near()")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -364,6 +370,7 @@ Contains(a, b) = Contains((a, b))
 end
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
+Base.show(io::IO, x::Contains{Nothing}) = print(io, "Contains()")
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -551,8 +558,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 
 # output
 
-╭────────────────────────╮
-│ 1×2 DimArray{Int64, 2} │
+┌ 1×2 DimArray{Int64, 2} ┐
 ├────────────────────────┴───────────────────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
@@ -564,7 +570,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
     val::T
 end
-Between(args...) = Between(args)
+Between(a, b) = Between((a, b))
 
 Base.show(io::IO, x::Between) = print(io, "Between(", val(x), ")")
 Base.first(sel::Between) = first(val(sel))
@@ -578,7 +584,7 @@ struct _Lower <: _Side end
 # returns a UnitRange from an Interval
 function between(l::Lookup, sel::Between)
     a, b = _sorttuple(sel)
-    return between(l, a..b)
+    return between(l, a .. b)
 end
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
@@ -807,8 +813,7 @@ A = DimArray([1 2 3; 4 5 6], (X(10:10:20), Y(5:7)))
 A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
 
 # output
-╭────────────────────────╮
-│ 1×2 DimArray{Int64, 2} │
+┌ 1×2 DimArray{Int64, 2} ┐
 ├────────────────────────┴───────────────────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
@@ -975,8 +980,7 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 
 # output
 
-╭────────────────────────╮
-│ 1×2 DimArray{Int64, 2} │
+┌ 1×2 DimArray{Int64, 2} ┐
 ├────────────────────────┴────────────────────────────── dims ┐
   ↓ X Sampled{Int64} [20] ForwardOrdered Irregular Points,
   → Y Sampled{Int64} [19, 21] ForwardOrdered Irregular Points
@@ -1017,15 +1021,14 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 
 # output
 
-╭────────────────────────╮
-│ 2×4 DimArray{Int64, 2} │
+┌ 2×4 DimArray{Int64, 2} ┐
 ├────────────────────────┴─────────────────────────────────────────────── dims ┐
   ↓ X  Sampled{Float64} [10.0, 50.0] ForwardOrdered Irregular Points,
   → Ti Sampled{Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} [1 s, 6 s, 91 s, 96 s] ForwardOrdered Irregular Points
 └──────────────────────────────────────────────────────────────────────────────┘
   ↓ →  1 s  6 s  91 s  96 s
- 10.0    1    2    19    20
- 50.0    3    6    57    60
+ 10.0  1    2    19    20
+ 50.0  3    6    57    60
 ```
 """
 struct All{S<:Tuple{Vararg{SelectorOrInterval}}} <: Selector{S}
@@ -1082,7 +1085,8 @@ selectindices(l::Lookup, sel::SelectorOrInterval; kw...) = _selectindices(l, sel
     return first(to_indices(l, (Not(indices),)))
 end
 @inline _selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = 
+    between(l, sel)
 @inline function _selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
