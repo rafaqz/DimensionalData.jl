@@ -241,27 +241,28 @@ function _find_broadcast_vars(expr::Expr)
     end
     mdb = :($DimensionalData._maybe_dimensional_broadcast)
     arg_list = Pair{Symbol,Any}[]
+
+    # Dot broadcast syntax `f.(x)`
     if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
-        if expr.args[2] isa Expr
-            wrapped_args = map(expr.args[2].args) do arg
-                if arg isa Expr && arg.head == :parameters
-                    arg
+        wrapped_args = map(expr.args[2].args) do arg
+            if arg isa Expr && arg.head == :parameters
+                arg
+            else
+                var = Symbol(gensym(), :_d)
+                expr1, arg_list1 = _find_broadcast_vars(arg)
+                out = if isempty(arg_list1)
+                    push!(arg_list, var => arg)
+                    esc(var)
                 else
-                    var = Symbol(gensym(), :_d)
-                    expr1, arg_list1 = _find_broadcast_vars(arg)
-                    out = if isempty(arg_list1)
-                        push!(arg_list, var => arg)
-                        esc(var)
-                    else
-                        append!(arg_list, arg_list1)
-                        expr1
-                    end
-                    Expr(:call, mdb, out, :dims, :options)
+                    append!(arg_list, arg_list1)
+                    expr1
                 end
+                Expr(:call, mdb, out, :dims, :options)
             end
-            expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
-            return expr2, arg_list
         end
+        expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
+        return expr2, arg_list
+    # Dot assignment broadcast syntax `x .= ...`
     elseif expr.head == :.= 
         # Destinaion array
         dest_var = Symbol(gensym(), :_d)
@@ -278,7 +279,8 @@ function _find_broadcast_vars(expr::Expr)
             expr2
         end
         return Expr(expr.head, dest_expr, source_expr), arg_list
-    elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
+    # Infix broadcast syntax `x .* y`
+    elseif expr.head == :call && string(expr.args[1])[1] == '.'
         wrapped_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
             expr1, arg_list1 = _find_broadcast_vars(arg)

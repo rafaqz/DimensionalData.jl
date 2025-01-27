@@ -335,7 +335,7 @@ end
     da2a = fill(2, Y(4), X(3))
     da3 = fill(3, Y(4), Z(5), X(3))
 
-    # Shape and permutaton do not matter
+    # # Shape and permutaton do not matter
     @test p(da1, da2, da3) == 
         p(da1, permutedims(da2, (Y, X)), da3)
         p(da1, da2, permutedims(da3, (X, Y, Z)))
@@ -409,9 +409,9 @@ end
     end
 
     @testset "keywords" begin
-        f(a; b=1) = a * b
+        f1(a; b=1) = a * b
         z = Z(1:10)
-        @test f.(z; b = 2) == @d f.(z; b = 2)
+        @test f1.(z; b = 2) == @d f1.(z; b = 2)
     end
 
     @testset "strict=false in assignment" begin
@@ -421,6 +421,11 @@ end
         @test_throws DimensionMismatch dv1 .= dv2 .* dv3
         @d dv1 .= dv2 .* dv3 strict=false
         @test dv1 == parent(dv2) .* parent(dv3)
+    end
+
+    @testset "single arg" begin
+        a = 3
+        @d max.(1)
     end
 
 end
