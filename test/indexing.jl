@@ -509,7 +509,7 @@ end
     end
 end
 
-#@testset "stack" begin
+@testset "stack" begin
     A = [1.0 2.0 3.0;
          4.0 5.0 6.0]
     dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
