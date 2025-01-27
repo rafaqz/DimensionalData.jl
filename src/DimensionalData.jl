@@ -66,6 +66,8 @@ export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
 
+export AbstractDimTree, DimTree
+
 export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
 # getter methods
@@ -102,6 +104,9 @@ include("stack/stack.jl")
 include("stack/indexing.jl")
 include("stack/methods.jl")
 include("stack/show.jl")
+# DataTrees
+include("tree/tree.jl")
+include("tree/show.jl")
 # Other
 include("tables.jl")
 # Combined (easier to work on these in one file)
