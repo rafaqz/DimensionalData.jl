@@ -509,7 +509,7 @@ end
     end
 end
 
-@testset "stack" begin
+#@testset "stack" begin
     A = [1.0 2.0 3.0;
          4.0 5.0 6.0]
     dimz = (X([:a, :b]), Y(10.0:10.0:30.0))
@@ -529,7 +529,6 @@ end
         @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] == 
             s_mixed[Begin, Begin] == (one=1.0, two=2.0f0, three=3, four=4)
     end
-
     @testset "cartesian mixed" begin
         @inferred s[At(:a), :] 
         @inferred view(s, At(:a), :)
@@ -630,6 +629,14 @@ end
         @test s[CartesianIndices((1, 2))] == 
             view(s, CartesianIndices((1, 2))) ==
             s[X=1:1, Y=1:2]
+    end
+
+    @testset "CartesianIndex Vector" begin
+        @inferred s[[CartesianIndex(1, 2)]]
+        @inferred view(s, [CartesianIndex(1, 2)]) 
+        @test s[[CartesianIndex(1, 2)]] == 
+            view(s, [CartesianIndex(1, 2)]) ==
+            s[[3]]
     end
 
     @testset "Mixed CartesianIndex and CartesianIndices" begin
