@@ -13,7 +13,7 @@ Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
 
 # Indexing that returns a new object with the same number of dims
 for f in (:getindex, :dotview, :view)
-    T = Union{Colon,AbstractRange}
+    T = Union{Colon,AbstractArray}
     @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
         I = (i1, i2, Is...)
         newdims, _ = slicedims(dims(di), I)
