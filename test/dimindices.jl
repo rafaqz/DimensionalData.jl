@@ -6,6 +6,10 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
 @testset "DimIndices" begin
     di = @inferred DimIndices(A)
+    @testset "indexing returns itself" begin
+        @test di[di] isa DimIndices
+        @test di[di] == di
+    end
     @test eltype(di) == Tuple{X{Int64}, Y{Int64}}
     ci = CartesianIndices(A)
     @test @inferred val.(collect(di)) == Tuple.(collect(ci))
@@ -83,6 +87,11 @@ end
 
 @testset "DimSelectors" begin
     ds = @inferred DimSelectors(A)
+
+    @testset "selecting returns itself" begin
+        @test ds[ds] isa DimSelectors
+        @test ds[ds] == ds
+    end
     # The selected array is not identical because 
     # the lookups will be vectors and Irregular, 
     # rather than Regular ranges

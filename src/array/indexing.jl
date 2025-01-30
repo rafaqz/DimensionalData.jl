@@ -2,12 +2,6 @@
 
 #### getindex/view ####
 
-
-const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
-const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
-const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
-const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
-
 for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     if f === :view
