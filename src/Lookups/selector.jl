@@ -1097,54 +1097,31 @@ end
 
 # We use the transformation from the first unaligned dim.
 # In practice the others could be empty.
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}}
+)
     transformed = transformfunc(lookups[1])(map(val, sel))
     map(_transform2int, lookups, sel, transformed)
 end
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}}
+)
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 function select_unalligned_indices(
-    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
-    selectors::Tuple{<:At,<:At}
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple
 )
-    # TODO: this is completely unoptimised
-    # It may be better to use some kind of spatial index
-    A = ArrayOfPoints(map(matrix, lookups))
-    i = findfirst(A) do (a, b)
-        _is_at(selectors[1], a) && _is_at(selectors[2], b)
-    end
-    isnothing(i) && throw(ArgumentError("$(map(val, selectors)) not found in lookup")) 
-    return Tuple(CartesianIndices(A)[i])
-end
-function select_unalligned_indices(
-    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
-    selectors::Tuple{<:Near,<:Near}
-)
-    sa, sb = map(val, selectors)
-    A = ArrayOfPoints(map(matrix, lookups))
-    _, i = findmin(A) do (a, b)
-        abs(sa - a) + abs(sb - b)
-    end
-    return Tuple(CartesianIndices(A)[i])
-end
-function select_unalligned_indices(
-    lookups::Tuple{<:MatrixLookup,<:MatrixLookup}, 
-    selectors::Union{Tuple{<:At,<:Near},Tuple{<:Near,<:At}}
-)
-    A = ArrayOfPoints(map(matrix, lookups))
-    _, i = findmin(A) do (a, b)
-        _at_near_dist(selectors..., a, b)
-    end
-    return Tuple(CartesianIndices(A)[i])
+    select_array_lookups(lookups, selectors)
 end
 
-_at_near_dist(near::Near, at::At, near_x, at_x) =
-    _at_near_dist(at, near, at_x, near_x)
-function _at_near_dist(at::At, near::Near, at_x, near_x)
-    atdist = _is_at(at, at_x) ? zero(at_x) : typemax(at_x)
-    neardist = abs(val(near) - near_x)
-    atdist + neardist
+# This implementation is extremely slow,
+# it's expected user will use the NearestNeighbors.jl extension
+function select_array_lookups(
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple
+)
+    throw(ArgumentError("Load NearestNeighbors.jl to use `At` on `ArrayLookup`s"))
 end
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))

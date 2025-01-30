@@ -611,17 +611,18 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
 
 # TODO Transformed bounds
-
-struct MatrixLookup{T,A,D,Ma<:AbstractMatrix{T},Me} <: Unaligned{T,1}
+struct ArrayLookup{T,A,D,Ma<:AbstractArray{T},Tr,Me} <: Unaligned{T,1}
     data::A
     dim::D
     matrix::Ma
+    tree::Tr
     metadata::Me
 end
-MatrixLookup(matrix; metadata=NoMetadata()) =
-    MatrixLookup(AutoValues(), AutoDim(), matrix, metadata)
-dim(lookup::MatrixLookup) = lookup.dim
-matrix(l::MatrixLookup) = l.matrix
+ArrayLookup(matrix; metadata=NoMetadata()) =
+    ArrayLookup(AutoValues(), AutoDim(), matrix, nothing, metadata)
+dim(lookup::ArrayLookup) = lookup.dim
+matrix(l::ArrayLookup) = l.matrix
+tree(l::ArrayLookup) = l.matrix
 
 # An array to lazily combine dimension matrices into points
 struct ArrayOfPoints{T,N,M,A<:Tuple{AbstractArray{<:Any,N},Vararg}} <: AbstractArray{T,N}
