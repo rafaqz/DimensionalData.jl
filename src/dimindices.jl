@@ -457,7 +457,7 @@ for f in (:getindex, :dotview, :view)
             i2::DimensionalIndices, 
             Is::DimensionalIndices...
         )
-            rebuild(di; dims=newdims)
+            $_dim_f(di, i1, i2, Is...)
         end
         @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimIndices) = $_dim_f(A, i)
         @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimSelectors) = $_dim_f(A, i)
