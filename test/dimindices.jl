@@ -4,12 +4,18 @@ using DimensionalData.Lookups: SelectorError
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
-@testset "DimIndices" begin
+# @testset "DimIndices" begin
     di = @inferred DimIndices(A)
     @testset "indexing returns itself" begin
         @test di[di] isa DimIndices
         @test di[di] == di
     end
+    @testset "tuple indexing works" begin
+        da = rand(X(1:10), Y(1:10))
+        ds = DimSelectors(da)
+        @test ds[(X(1),)] == ds[1, :]
+    end
+
     @test eltype(di) == Tuple{X{Int64}, Y{Int64}}
     ci = CartesianIndices(A)
     @test @inferred val.(collect(di)) == Tuple.(collect(ci))
