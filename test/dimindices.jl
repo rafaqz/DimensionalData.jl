@@ -4,7 +4,7 @@ using DimensionalData.Lookups: SelectorError
 
 A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
-# @testset "DimIndices" begin
+@testset "DimIndices" begin
     di = @inferred DimIndices(A)
     @testset "indexing returns itself" begin
         @test di[di] isa DimIndices
