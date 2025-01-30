@@ -11,25 +11,6 @@ Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::DimTuple) where T =
 Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
     dimconstructor(D)(A; data=similar(Array{T}, ()), dims=(), refdims=(), metadata=NoMetadata())
 
-# Indexing that returns a new object with the same number of dims
-for f in (:getindex, :dotview, :view)
-    T = Union{Colon,AbstractVector}
-    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
-        I = (i1, i2, Is...)
-        newdims, _ = slicedims(dims(di), I)
-        rebuild(di; dims=newdims)
-    end
-    @eval @propagate_inbounds Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T) =
-        rebuild(di; dims=(dims(di, 1)[i],))
-    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
-        Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
-    if f == :view
-        @eval @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator) = A
-    else
-        @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
-    end
-end
-
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
     rebuild(A; dims=reverse(dims(A)))
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
@@ -453,4 +434,47 @@ function mergedims(A::DimExtensionArray, dim_pairs::Pair...)
     Aperm = PermutedDimsArray(A, dims_perm)
     data_merged = reshape(parent(Aperm), map(length, dims_new))
     return DimArray(data_merged, dims_new)
+end
+
+const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
+const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
+const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
+const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
+
+# Indexing that returns a new object with the same number of dims
+for f in (:getindex, :dotview, :view)
+    T = Union{Colon,AbstractVector}
+    _dim_f = Symbol(:_dim_, f)
+    @eval begin
+        @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
+            I = (i1, i2, Is...)
+            newdims, _ = slicedims(dims(di), I)
+            rebuild(di; dims=newdims)
+        end
+        @propagate_inbounds function Base.$f(
+            di::AbstractDimArrayGenerator, 
+            i1::DimensionalIndices, 
+            i2::DimensionalIndices, 
+            Is::DimensionalIndices...
+        )
+            rebuild(di; dims=newdims)
+        end
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimSelectors) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimensionalIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::_DimIndicesAmb) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimSelectors) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimensionalIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::_DimIndicesAmb) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T) =
+            rebuild(di; dims=(dims(di, 1)[i],))
+        @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
+            Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+    end
+    if f == :view
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator) = A
+    else
+        @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
+    end
 end
