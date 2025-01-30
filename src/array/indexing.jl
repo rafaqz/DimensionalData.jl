@@ -101,14 +101,18 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::_DimIndicesAmb) = $_dim_f(A, i)
 
         # Use underscore methods to minimise ambiguities
+        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::DimTuple) =
+            $_dim_f(A, ds...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
             Base.$f(A, dims2indices(A, (d1, ds...))...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::Dimension...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_dim_f(
-            A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
+            A::AbstractBasicDimArray, 
+            d1::Union{Dimension,DimensionIndsArrays}, 
+            ds::Union{Dimension,DimensionIndsArrays}...
         )
-            return merge_and_index(Base.$f, A, dims)
+            return merge_and_index(Base.$f, A, (d1, ds...))
         end
     end
     # Standard indices
