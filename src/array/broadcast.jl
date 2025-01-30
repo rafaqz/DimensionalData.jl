@@ -174,7 +174,9 @@ macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
             dims = $DimensionalData.dims(found_dims, order_dims)
         end
     else
-        :(dims = _find_dims(vars))
+        quote
+            dims = _find_dims(vars)
+        end
     end
     quote
         let
@@ -404,7 +406,6 @@ _broadcasted_dims(a) = ()
 # its dimensions to match the rest of the @d broadcast, otherwise do nothing.
 _maybe_dimensional_broadcast(x, _, _) = x
 function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options) 
-    len1s = basedims(otherdims(dest_dims, dims(A)))
     # Reshape first to avoid a ReshapedArray wrapper if possible
     A1 = _maybe_insert_length_one_dims(A, dest_dims)
     # Then permute and reorder
