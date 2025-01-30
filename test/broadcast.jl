@@ -371,6 +371,21 @@ end
             p(da1, da2, permutedims(da3, (X, Y, Z)))
     end
 
+    @testset "Lookups are maintained" begin
+        x = format(X(-5.0:5.0))
+        y = format(Y(-10.0:2:12.0))
+        z = format(Z(-3.0:0.5:4.0))
+
+        u = @d x .* y
+        v = @d x .* z
+        w = @d y .* z
+
+        f(u, v, w) = u + v + w
+
+        A = @d f.(u, v, w)
+        @test dims(A) == (x, y, z)
+    end
+
     @testset "strict" begin
         @test_nowarn @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=false
         @test_throws DimensionMismatch @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=true
