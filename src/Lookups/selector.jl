@@ -220,6 +220,8 @@ function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_T
     end
 end
 
+
+_is_at(at::At, v) = _is_at(val(at), v, atol(at))
 @inline _is_at(x, y, atol) = x == y
 @inline _is_at(x::Dates.AbstractTime, y::Dates.AbstractTime, atol::Dates.Period) = 
     x >= y - atol && x <= y + atol 
@@ -1103,12 +1105,31 @@ end
 
 # We use the transformation from the first unaligned dim.
 # In practice the others could be empty.
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}}
+)
     transformed = transformfunc(lookups[1])(map(val, sel))
     map(_transform2int, lookups, sel, transformed)
 end
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}}
+)
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
+end
+function select_unalligned_indices(
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple
+)
+    select_array_lookups(lookups, selectors)
+end
+
+# This implementation is extremely slow,
+# it's expected user will use the NearestNeighbors.jl extension
+function select_array_lookups(
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple
+)
+    throw(ArgumentError("Load NearestNeighbors.jl to use `At` on `ArrayLookup`s"))
 end
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))
