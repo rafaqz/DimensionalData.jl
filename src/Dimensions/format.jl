@@ -35,10 +35,15 @@ end
 format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
-format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N = map(_format, dims, axes)
+function format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N
+    with_alignments(format, format_unaligned, newdims, axes)
+end
 format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
 format(d::Dimension, axis::AbstractRange) = _format(d, axis)
 format(l::Lookup) = parent(format(AnonDim(l)))
+
+# Fallback 
+format_unaligned(dims::DimTuple, axes) = dims
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))
@@ -54,7 +59,7 @@ format(m::Lookup, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
 format(v::AutoVal, D::Type, axis::AbstractRange) = _valformaterror(val(v), D)
 format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D) 
 
-format(m::Lookups.MatrixLookup, D::Type, ::AutoValues, axis::AbstractRange) =
+format(m::Lookups.ArrayLookup, D::Type, ::AutoValues, axis::AbstractRange) =
     rebuild(m; dim=D(), data=axis)
 
 # Format Lookups
