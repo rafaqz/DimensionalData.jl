@@ -41,7 +41,7 @@ DimensionalDataStatsBase = "StatsBase"
 
 [compat]
 Adapt = "2, 3.0, 4"
-AlgebraOfGraphics = "0.8"
+AlgebraOfGraphics = "0.8, 0.9"
 Aqua = "0.8"
 ArrayInterface = "7"
 BenchmarkTools = "1"
