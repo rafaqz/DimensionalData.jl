@@ -434,6 +434,8 @@ end
         dv2 = rand(X(2:4))
         dv3 = rand(X(7:9))
         @test_throws DimensionMismatch dv1 .= dv2 .* dv3
+        @d dv1 .= dv2 strict = false
+        @test dv1 == parent(dv2)
         @d dv1 .= dv2 .* dv3 strict=false
         @test dv1 == parent(dv2) .* parent(dv3)
     end
