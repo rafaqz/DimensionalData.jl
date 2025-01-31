@@ -266,7 +266,7 @@ function _find_broadcast_vars(expr::Expr)
         return expr2, arg_list
     # Dot assignment broadcast syntax `x .= ...`
     elseif expr.head == :.= 
-        # Destinaion array
+        # Destination array
         dest_var = Symbol(gensym(), :_d)
         push!(arg_list, dest_var => expr.args[1])
         dest_expr = Expr(:call, mdb, esc(dest_var), :dims, :options)
@@ -274,7 +274,7 @@ function _find_broadcast_vars(expr::Expr)
         expr2, arg_list2 = _find_broadcast_vars(expr.args[2])
         source_expr = if isempty(arg_list2)
             var2 = Symbol(gensym(), :_d)
-            push!(arg_list, var2 => arg)
+            push!(arg_list, var2 => expr.args[2])
             esc(var2)
         else
             append!(arg_list, arg_list2)
