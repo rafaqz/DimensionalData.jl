@@ -57,7 +57,11 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 
 # Keywords
 - `mergedims`: Combine two or more dimensions into a new dimension.
-- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+- `preservedims`: Preserve one or more dimensions from flattening into the table. 
+    `DimArray`s of views with these dimensions will be present in the layer column
+    rather than scalar values.
+- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`
+    by specifying a dimension to use as layers.
 
 # Example
 
@@ -98,8 +102,19 @@ struct DimTable <: AbstractDimTable
     dimarraycolumns::Vector{AbstractVector}
 end
 
-function DimTable(s::AbstractDimStack; mergedims=nothing)
+function DimTable(s::AbstractDimStack; 
+    mergedims=nothing,
+    preservedims=nothing,
+)
     s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
+    s = if isnothing(preservedims) 
+        s
+    else
+        maplayers(s) do A
+            S = DimSlices(A; dims=preservedims)
+            dimconstructor(dims(S))(OpaqueArray(S), dims(S))
+        end
+    end
     dimcolumns = collect(_dimcolumns(s))
     dimarraycolumns = if hassamedims(s)
         map(vec, layers(s))
@@ -109,7 +124,9 @@ function DimTable(s::AbstractDimStack; mergedims=nothing)
     keys = collect(_colnames(s))
     return DimTable(s, keys, dimcolumns, dimarraycolumns)
 end
-function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=nothing)
+function DimTable(xs::Vararg{AbstractDimArray}; 
+    layernames=nothing, mergedims=nothing, preservedims=nothing
+)
     # Check that dims are compatible
     comparedims(xs...)
 
@@ -118,6 +135,14 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
 
     # Construct dimension and array columns with DimExtensionArray
     xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
+    xs = if isnothing(preservedims)
+        xs
+    else
+        map(xs) do A
+            S = DimSlices(A; dims=preservedims)
+            dimconstructor(dims(S))(OpaqueArray(S), dims(S))
+        end
+    end
     dims_ = dims(first(xs))
     dimcolumns = collect(_dimcolumns(dims_))
     dimnames = collect(map(name, dims_))
@@ -127,7 +152,9 @@ function DimTable(xs::Vararg{AbstractDimArray}; layernames=nothing, mergedims=no
     # Return DimTable
     return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
 end
-function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
+function DimTable(x::AbstractDimArray; 
+    layersfrom=nothing, mergedims=nothing, kw...
+)
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
         d = dims(x, layersfrom)
         nlayers = size(x, d)
@@ -137,10 +164,10 @@ function DimTable(x::AbstractDimArray; layersfrom=nothing, mergedims=nothing)
         else
             Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
-        return DimTable(layers..., layernames=layernames, mergedims=mergedims)
+        return DimTable(layers...; layernames, mergedims, kw...)
     else
         s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
-        return  DimTable(s, mergedims=mergedims)
+        return  DimTable(s; mergedims, kw...)
     end
 end
 

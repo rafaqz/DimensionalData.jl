@@ -154,3 +154,17 @@ end
     @test Tables.columnnames(t3) == (:dimensions, :layer1, :layer2, :layer3)
     @test Tables.columnnames(t4) == (:band, :geometry, :value)
 end
+
+@testset "DimTable preservelayers" begin
+    a = DimStack([DimArray(rand(32, 32, 3), (X,Y,Ti)) for _ in 1:3])
+    b = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
+    t1 = DimTable(a, mergedims=(:X,:Y)=>:geometry)
+    t2 = DimTable(a, mergedims=(:X,:Y,:Z)=>:geometry) # Merge missing dimension
+    t3 = DimTable(a, mergedims=(X,:Y,Ti)=>:dimensions) # Mix symbols and dimensions
+    t4 = DimTable(b, mergedims=(:X,:Y)=>:geometry) # Test DimArray
+    # TODO
+    @test Tables.columnnames(t1) == (:Ti, :geometry, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t2) == (:Ti, :geometry, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t3) == (:dimensions, :layer1, :layer2, :layer3)
+    @test Tables.columnnames(t4) == (:band, :geometry, :value)
+end
