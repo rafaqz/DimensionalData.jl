@@ -6,7 +6,7 @@ using NearestNeighbors.StaticArrays
 using DimensionalData.Lookups
 using DimensionalData.Dimensions
 
-using DimensionalData.Lookups: ArrayLookup, VecOfPoints, matrix, atol
+using DimensionalData.Lookups: ArrayLookup, matrix, atol
 
 const DD = DimensionalData
 const NN = NearestNeighbors
@@ -21,15 +21,14 @@ function DD.Lookups.select_array_lookups(
     knn!(f1.idxvec, f1.distvec, tree, vals, 1)
     idx = f1.idxvec[1]
     found_vals = tree.data[idx]
-    # @show idx vals found_vals
     map(selectors, Tuple(found_vals)) do s, t
-        s isa At ? isapprox(val(s), t; atol=atol(s)) : true
+        s isa At ? Lookups._is_at(s, t) : true
     end |> all || throw(ArgumentError("$(selectors) not found in lookup"))
     return CartesianIndices(matrix(first(lookups)))[idx] |> Tuple
 end
 
 function DD.Dimensions.format_unaligned(
-    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, dims, axes,
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, dims::DD.DimTuple, axes,
 )
     points = vec(SVector.(zip(map(matrix, lookups)...)))
     idxvec = Vector{Int}(undef, 1)
@@ -41,25 +40,6 @@ function DD.Dimensions.format_unaligned(
         )
         rebuild(d, newl) 
     end
-end
-
-
-# An array to lazily combine dimension matrices into points
-struct VecOfPoints{T,M,A<:Tuple{AbstractArray{<:Any},Vararg}} <: AbstractArray{T,1}
-    arrays::A
-end
-function VecOfPoints(arrays::A) where A<:Tuple
-    all(x -> size(x) == size(first(arrays)), arrays) ||
-        throw(ArgumentError("Size of matrices must match"))
-    T = typeof(SVector(map(A -> zero(eltype(A)), arrays)))
-    M = length(arrays)
-    VecOfPoints{T,M,A}(arrays)
-end
-
-Base.size(aop::VecOfPoints) = size(first(aop.arrays))
-Base.@propagate_inbounds function Base.getindex(aop::VecOfPoints, I::Int...)
-    @boundscheck checkbounds(first(aop.arrays), I...)
-    SVector(map(A -> (@inbounds A[I...]), aop.arrays))
 end
 
 end
