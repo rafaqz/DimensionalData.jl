@@ -54,7 +54,7 @@ export AutoStep, AutoBounds, AutoValues
 export Lookup
 export AutoLookup, AbstractNoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
-export Unaligned, Transformed, MatrixLookup
+export Unaligned, Transformed, ArrayLookup
 
 # Deprecated
 export LookupArray

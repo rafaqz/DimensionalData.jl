@@ -35,15 +35,16 @@ end
 format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
-function format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N
-    with_alignments(format, format_unaligned, newdims, axes)
-end
+format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N =
+    split_alignments(format, format_unaligned, dims, axes)
 format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
 format(d::Dimension, axis::AbstractRange) = _format(d, axis)
 format(l::Lookup) = parent(format(AnonDim(l)))
 
 # Fallback 
-format_unaligned(dims::DimTuple, axes) = dims
+function format_unaligned end
+format_unaligned(dims::DimTuple, axes) = format_unaligned(val(dims), dims, axes)
+format_unaligned(::Tuple, dims::DimTuple, axes) = map(format, dims, axes)
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))

@@ -47,7 +47,8 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims)
     length(extradims) > 0 && _extradimswarn(extradims)
-    return with_alignements(dims2indices, unalligned_dims2indices, dims, I) 
+    Isorted = Dimensions.dims(I, dims)
+    return split_alignments(dims2indices, unalligned_dims2indices, dims, Isorted) 
 end
 @inline dims2indices(dims::Tuple{}, ::Tuple{}) = ()
 
@@ -64,7 +65,9 @@ end
 # Run fa on each aligned dimension d[n] and indices i[n], 
 # and fu on grouped unaligned dimensions and I.
 # The result is the updated dimensions, but in the original order
-@generated function with_alignments(
+split_alignments(fa, fu, dims::Tuple, I::Tuple) = 
+    split_alignments(fa, fu, val(dims), dims, I)
+@generated function split_alignments(
     fa, fu, lookups::Tuple, dims::Tuple, I::Tuple
 )
     # We separate out Aligned and Unaligned lookups as

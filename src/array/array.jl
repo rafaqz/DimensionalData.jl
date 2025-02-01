@@ -741,13 +741,13 @@ function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
 end
 
 function _dimlength(
-    dims::Tuple{<:Dimension{<:Lookups.MatrixLookup},Vararg{Dimension{<:Lookups.MatrixLookup}}}
+    dims::Tuple{<:Dimension{<:Lookups.ArrayLookup},Vararg{Dimension{<:Lookups.ArrayLookup}}}
 ) 
     lookups = lookup(dims)
     sz1 = size(first(lookups).matrix)
     foreach(lookups) do l
         sz = size(l.matrix)
-        sz1 == sz || throw(ArgumentError("MatrixLookup matrix sizes must match. Got $sz1 and $sz"))
+        sz1 == sz || throw(ArgumentError("ArrayLookup matrix sizes must match. Got $sz1 and $sz"))
     end
     return sz1
 end

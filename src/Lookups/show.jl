@@ -12,7 +12,7 @@ function Base.show(io::IO, mime::MIME"text/plain", lookup::Transformed)
     show(ctx, mime, dim(lookup))
 end
 
-function Base.show(io::IO, mime::MIME"text/plain", lookup::MatrixLookup)
+function Base.show(io::IO, mime::MIME"text/plain", lookup::ArrayLookup)
     show_compact(io, mime, lookup)
     if !get(io, :compact, false)
         println(io)
