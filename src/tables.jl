@@ -111,7 +111,7 @@ function DimTable(s::AbstractDimStack;
         s
     else
         maplayers(s) do A
-            S = DimSlices(A; dims=preservedims)
+            S = DimSlices(A; dims=otherdims(A, preservedims))
             dimconstructor(dims(S))(OpaqueArray(S), dims(S))
         end
     end
@@ -139,7 +139,7 @@ function DimTable(xs::Vararg{AbstractDimArray};
         xs
     else
         map(xs) do A
-            S = DimSlices(A; dims=preservedims)
+            S = DimSlices(A; dims=otherdims(A, preservedims))
             dimconstructor(dims(S))(OpaqueArray(S), dims(S))
         end
     end
