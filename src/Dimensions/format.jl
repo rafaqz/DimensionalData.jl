@@ -13,7 +13,7 @@ and any fields holding `Auto-` objects are filled with guessed objects.
 If a [`Lookup`](@ref) hasn't been specified, a lookup is chosen
 based on the type and element type of the values.
 """
-format(dims, A::AbstractArray) = format((dims,), A)
+format(dims::DimOrDimType, A::AbstractVector) = format((dims,), A)
 function format(dims::NamedTuple, A::AbstractArray)
     dims = map(keys(dims), values(dims)) do k, v
         rebuild(name2dim(k), v)
@@ -29,18 +29,15 @@ end
 # Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
 function format(dims::DimTuple) 
     ax = map(parent ∘ first ∘ axes, dims)
-    A = CartesianIndices(ax)
-    return format(dims, A)
+    return format(dims, ax)
 end
 format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = 
     format(dims, axes(A))
-format(dims::Tuple, A::AbstractArray) = 
-    throw(ArgumentError("length of dims $(length(dims)) does not match array dimensionality $(ndims(A))"))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
 function format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N
     # We need to format first
-    fdims = map(format, dims, axes)
+    fdims = map(_format, dims, axes)
     # Then format any unaligned dims as a group
     split_alignments(first ∘ tuple, format_unaligned, fdims, axes)
 end
