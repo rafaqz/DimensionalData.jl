@@ -47,7 +47,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims)
     length(extradims) > 0 && _extradimswarn(extradims)
-    Isorted = Dimensions.dims(I, dims)
+    Isorted = Dimensions.sortdims(I, dims)
     return split_alignments(dims2indices, unalligned_dims2indices, dims, Isorted) 
 end
 @inline dims2indices(dims::Tuple{}, ::Tuple{}) = ()

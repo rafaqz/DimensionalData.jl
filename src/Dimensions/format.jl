@@ -32,13 +32,21 @@ function format(dims::DimTuple)
     A = CartesianIndices(ax)
     return format(dims, A)
 end
-format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
+format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = 
+    format(dims, axes(A))
+format(dims::Tuple, A::AbstractArray) = 
+    throw(ArgumentError("length of dims $(length(dims)) does not match array dimensionality $(ndims(A))"))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
-format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N =
-    split_alignments(format, format_unaligned, dims, axes)
+function format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N
+    # We need to format first
+    fdims = map(format, dims, axes)
+    # Then format any unaligned dims as a group
+    split_alignments(first ∘ tuple, format_unaligned, fdims, axes)
+end
 format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
 format(d::Dimension, axis::AbstractRange) = _format(d, axis)
+format(d::Type{<:Dimension}, axis::AbstractRange) = _format(d, axis)
 format(l::Lookup) = parent(format(AnonDim(l)))
 
 # Fallback 
