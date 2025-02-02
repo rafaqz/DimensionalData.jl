@@ -87,12 +87,10 @@ struct NoMetadata <: AbstractMetadata{Nothing,Dict{Symbol,Any},Symbol,Any} end
 val(m::NoMetadata) = NamedTuple()
 
 Base.keys(::NoMetadata) = ()
-Base.haskey(::NoMetadata, args...) = false
 Base.get(::NoMetadata, key, fallback) = fallback
 Base.length(::NoMetadata) = 0
-Base.convert(::Type{NoMetadata}, s::Union{AbstractMetadata,AbstractDict}) =
+Base.convert(::Type{NoMetadata}, s::Union{NamedTuple,AbstractMetadata,AbstractDict}) =
     NoMetadata()
-
 
 Base.convert(::Type{Metadata}, ::NoMetadata) = Metadata()
 Base.convert(::Type{Metadata}, m::MetadataContents) = Metadata(m)
@@ -105,6 +103,7 @@ Base.convert(::Type{Metadata{X,T}}, m::NamedTuple) where {X,T<:NamedTuple} =
     Metadata{X,T}(T(m))
 Base.convert(::Type{Metadata{X,T}}, m::AbstractDict) where {X,T<:NamedTuple} = 
     Metadata{X,T}(T(pairs(metadatadict(m))))
+
 
 function Base.show(io::IO, mime::MIME"text/plain", metadata::Metadata{N}) where N
     print(io, "Metadata")

@@ -1,4 +1,3 @@
-
 """
     Lookup
 
@@ -159,11 +158,15 @@ NoLookup() = NoLookup(AutoValues())
 
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
+Base.convert(::Type{L1}, lookup::Lookup) where {L1<:NoLookup{A}} where A =
+    NoLookup(convert(A, axes(lookup, 1)))
+
 # Used in @d broadcasts
 struct Length1NoLookup <: AbstractNoLookup end
 Length1NoLookup(::AbstractVector) = Length1NoLookup()
 
 rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
+
 Base.parent(::Length1NoLookup) = Base.OneTo(1)
 
 """
@@ -176,7 +179,7 @@ is provided by this package.
 `AbstractSampled` must have  `order`, `span` and `sampling` fields,
 or a `rebuild` method that accepts them as keyword arguments.
 """
-abstract type AbstractSampled{T,O<:Order,Sp<:Span,Sa<:Sampling} <: Aligned{T,O} end
+abstract type AbstractSampled{T,A,O<:Order,Sp<:Span,Sa<:Sampling,M} <: Aligned{T,O} end
 
 span(lookup::AbstractSampled) = lookup.span
 sampling(lookup::AbstractSampled) = lookup.sampling
@@ -190,6 +193,24 @@ function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
     span(l1) == span(l2) &&
     sampling(l1) == sampling(l2) &&
     parent(l1) == parent(l2)
+end
+
+function Base.promote_rule(
+    ::Type{S1}, ::Type{S2}
+) where {S1<:AbstractSampled{T1,A1,O1,Sp1,Sa1,M1},
+         S2<:AbstractSampled{T2,A2,O2,Sp2,Sa2,M2}
+} where {T1,A1,O1,Sp1,Sa1,M1,T2,A2,O2,Sp2,Sa2,M2}
+    A = promote_type(A1, A2)
+    T = eltype(A)
+    O = promote_type(O1, O2)
+    Sp = promote_type(Sp1, Sp2)
+    Sa = promote_type(Sa1, Sa2)
+    M = promote_type(M1, M2)
+    if basetypeof(S1) == basetypeof(S2)
+        basetypeof(S1){T,A,O,Sp,Sa,M}
+    else
+        AbstractSampled{T,A,O,Sp,Sa,M}
+    end
 end
 
 for f in (:getindex, :view, :dotview)
@@ -306,7 +327,7 @@ A = ones(x, y)
   20    1.0  1.0  1.0   1.0
 ```
 """
-struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
+struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,A,O,Sp,Sa,M}
     data::A
     order::O
     span::Sp
@@ -326,6 +347,17 @@ function rebuild(l::Sampled;
     Sampled(data, order, span, sampling, metadata)
 end
 
+function Base.convert(
+    ::Type{S1}, lookup::AbstractSampled
+) where {S1<:Sampled{T,A,O,Sp,Sa,M}} where {T,A,O,Sp,Sa,M}
+    Sampled(convert(A, parent(lookup));
+        order=order(lookup),
+        span=span(lookup),
+        sampling=sampling(lookup),
+        metadata=convert(M, metadata(lookup)),
+    )
+end
+
 # These are used to specialise dispatch:
 # When Cycling, we need to modify any `Selector`. After that
 # we switch to `NotCycling` and use `AbstractSampled` fallbacks.
@@ -342,7 +374,7 @@ An abstract supertype for cyclic lookups.
 
 These are `AbstractSampled` lookups that are cyclic for `Selectors`.
 """
-abstract type AbstractCyclic{X,T,O,Sp,Sa} <: AbstractSampled{T,O,Sp,Sa} end
+abstract type AbstractCyclic{X,T,A,O,Sp,Sa,M} <: AbstractSampled{T,A,O,Sp,Sa,M} end
 
 cycle(l::AbstractCyclic) = l.cycle
 cycle_status(l::AbstractCyclic) = l.cycle_status
@@ -418,7 +450,7 @@ $SAMPLED_ARGUMENTS_DOC
     leap years breaking correct date cycling of a single year. If you actually need this behaviour, 
     please make a GitHub issue.
 """
-struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
+struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,A,O,Sp,Sa,M}
     data::A
     order::O
     span::Sp
@@ -464,17 +496,30 @@ But this can easily be extended, all methods are defined for `AbstractCategorica
 All `AbstractCategorical` must provide a `rebuild`
 method with `data`, `order` and `metadata` keyword arguments.
 """
-abstract type AbstractCategorical{T,O} <: Aligned{T,O} end
+abstract type AbstractCategorical{T,A,O,M} <: Aligned{T,O} end
 
 order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
 
+function Base.:(==)(l1::AbstractCategorical, l2::AbstractCategorical)
+    order(l1) == order(l2) && parent(l1) == parent(l2)
+end
+
+function Base.promote_rule(::Type{S1}, ::Type{S2}) where {
+    S1<:AbstractCategorical{T1,A1,O1,M1}, S2<:AbstractCategorical{T2,A2,O2,M2}
+} where {T1,A1,O1,M1,T2,A2,O2,M2}
+    T = promote_type(T1, T2)
+    A = promote_type(A1, A2)
+    O = promote_type(O1, O2)
+    M = promote_type(M1, M2)
+    AbstractCategorical{T,A,O,M}
+end
+
 function Adapt.adapt_structure(to, l::AbstractCategorical)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
 end
-
 
 """
     Categorical <: AbstractCategorical
@@ -533,10 +578,22 @@ function rebuild(l::Categorical;
     Categorical(data, order, metadata)
 end
 
-function Base.:(==)(l1::AbstractCategorical, l2::AbstractCategorical)
-    order(l1) == order(l2) && parent(l1) == parent(l2)
+function Base.promote_rule(::Type{S1}, ::Type{S2}) where {
+    S1<:Categorical{T1,A1,O1,M1}, S2<:Categorical{T2,A2,O2,M2}
+} where {T1,A1,O1,M1,T2,A2,O2,M2}
+    T = promote_type(T1, T2)
+    A = promote_type(A1, A2)
+    O = promote_type(O1, O2)
+    M = promote_type(M1, M2)
+    Categorical{T,A,O,M}
 end
-
+function Base.convert(::Type{S1}, lookup::AbstractCategorical) where {
+    S1<:Categorical{T,A,O,M}
+} where {T,A,O,M}
+    Categorical(convert(A, parent(lookup));
+        order=order(lookup), metadata=convert(M, metadata(lookup)),
+    )
+end
 
 """
     Unaligned <: Lookup

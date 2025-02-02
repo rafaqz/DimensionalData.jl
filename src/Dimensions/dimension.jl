@@ -554,3 +554,20 @@ mean(A; dims=Ti)
 @dim Ti TimeDim "Time"
 
 const Time = Ti # For some backwards compat
+
+function Base.convert(::Type{D1}, dim::D2) where {D1<:Dimension{T},D2} where T
+    basetypeof(D2) <: basetypeof(D1) ||
+        throw(ArgumentError("Cannot convert $D1 to $D2"))
+    rebuild(dim, convert(T, val(dim)))
+end
+
+function Base.promote_rule(
+    ::Type{D1}, ::Type{D2}
+) where {D1<:Dimension{T1},D2<:Dimension{T2}} where {T1,T2}
+    T = promote_type(T1, T2)
+    if basetypeof(D1) == basetypeof(D2)
+        basetypeof(D1){T}
+    else
+        Dimension{T}
+    end
+end

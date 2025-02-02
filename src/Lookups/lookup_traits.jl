@@ -234,6 +234,10 @@ val(span::Regular) = span.step
 
 Base.step(span::Regular) = span.step
 Base.:(==)(l1::Regular, l2::Regular) = val(l1) == val(l2)
+Base.promote_rule(::Type{<:Regular{T1}}, ::Type{<:Regular{T2}}) where {T1,T2}= 
+    Regular{promote_type(T1, T2)}
+Base.convert(::Type{<:Regular{T1}}, span::Regular{T2}) where {T1,T2} = 
+    Regular(convert(T1, val(span)))
 
 """
     Irregular <: Span
@@ -256,6 +260,13 @@ bounds(span::Irregular) = span.bounds
 val(span::Irregular) = span.bounds
 
 Base.:(==)(l1::Irregular, l2::Irregular) = val(l1) == val(l2)
+function Base.promote_rule(
+    ::Type{<:Irregular{<:Tuple{T1,T2}}}, ::Type{<:Irregular{<:Tuple{T3,T4}}}
+)  where {T1,T2,T3,T4}
+    Irregular{Tuple{promote_type(T1, T3), promote_type(T2, T4)}}
+end
+Base.convert(::Type{Irregular{Tuple{T1,T2}}}, s::Irregular{Tuple{<:Any,<:Any}}) where {T1,T2} = 
+    Irregular(convert(Tuple{T1,T2}, val(s)))
 
 """
     Explicit(bounds::AbstractMatrix)
@@ -272,6 +283,10 @@ Explicit() = Explicit(AutoBounds())
 
 val(span::Explicit) = span.val
 Base.:(==)(l1::Explicit, l2::Explicit) = val(l1) == val(l2)
+Base.promote_rule(::Type{<:Explicit{<:B1}}, ::Type{<:Explicit{<:B2}}) where {B1,B2} = 
+    Explicit{promote_type(B1, B2)}
+Base.convert(::Type{<:Explicit{<:B1}}, ::Explicit{<:B2}) where {B1,B2} = 
+    Explicit{promote_type(B1, B2)}
 
 Adapt.adapt_structure(to, s::Explicit) = Explicit(Adapt.adapt_structure(to, val(s)))
 
