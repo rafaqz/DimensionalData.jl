@@ -163,10 +163,10 @@ end
     a3 = Tables.getcolumn(t1, :a)[3]
     @test Tables.columnnames(t1) == propertynames(t1) == (:Ti, :a, :b, :c)
     @test a3 == st.a[Ti=3]
-    @test dims(a3) == dims(a, (X, Y))
+    @test dims(a3) == dims(st, (X, Y))
     t2 = DimTable(A, preservedims=:band)
     val10 = Tables.getcolumn(t2, :vals)[10]
     @test Tables.columnnames(t2) == propertynames(t2) == (:X, :Y, :vals)
     @test val10 == A[X(10), Y(1)]
-    @test dims(val1) == dims(A, (:band,))
+    @test dims(val10) == dims(A, (:band,))
 end
