@@ -82,6 +82,8 @@ broadcast_dims!
 mergedims
 unmergedims
 reorder
+setlocus
+maybesetlocus
 ```
 
 # Global lookup strictness settings
