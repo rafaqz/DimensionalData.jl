@@ -2,9 +2,10 @@
 """
     shiftlocus(locus::Locus, x)
 
-Shift the values of `x` from the current locus to the new locus.
+Shift the interval positions in `x` from the current locus 
+to the new locus, e.g. from [`Center`](@ref) to [`Start`](@ref).
 
-We only shift `Sampled`, `Regular` or `Explicit`, `Intervals`. 
+We only shift `Sampled` with `Regular` or `Explicit` `Intervals`. 
 """
 function shiftlocus(locus::Locus, lookup::Lookup)
     samp = sampling(lookup)
@@ -56,6 +57,12 @@ _offset(::End, ::Start) = -1
 _offset(::End, ::Center) = -0.5
 _offset(::T, ::T) where T<:Locus = 0
 
+"""
+    maybeshiftlocus(locus::Locus, l::Lookup)
+
+`shiftlocus` that does not error where the specified 
+shifts are not possible, such as for `Points` sampling.
+"""
 maybeshiftlocus(locus::Locus, l::Lookup) = _maybeshiftlocus(locus, sampling(l), l)
 maybeshiftlocus(locus::Type{T}, l) where T<:Locus = maybeshiftlocus(T(), l)
 
