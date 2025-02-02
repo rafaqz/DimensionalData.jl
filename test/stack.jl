@@ -3,7 +3,7 @@ using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers, basedims
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers, basedims, metadata
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
