@@ -92,8 +92,8 @@ OpaqueArray(A::P) where P<:AbstractArray{T,N} where {T,N} = OpaqueArray{T,N,P}(A
 OpaqueArray(st::P) where P<:AbstractDimStack{<:Any,T,N} where {T,N} = OpaqueArray{T,N,P}(st)
 
 Base.size(A::OpaqueArray) = size(A.parent)
-Base.getindex(A::OpaqueArray, args...) = Base.getindex(A.parent, args...)
-Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(A.parent, args...)
+Base.getindex(A::OpaqueArray, I...) = (@show I; Base.getindex(A.parent, I...))
+Base.setindex!(A::OpaqueArray, I...) = Base.setindex!(A.parent, I...)
 
 
 abstract type AbstractBins <: Function end

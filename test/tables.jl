@@ -1,4 +1,4 @@
-using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames
+using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames, Dates
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimExtensionArray
@@ -155,16 +155,18 @@ end
     @test Tables.columnnames(t4) == (:band, :geometry, :value)
 end
 
-@testset "DimTable preservelayers" begin
-    a = DimStack([DimArray(rand(32, 32, 3), (X,Y,Ti)) for _ in 1:3])
-    b = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
-    t1 = DimTable(a, mergedims=(:X,:Y)=>:geometry)
-    t2 = DimTable(a, mergedims=(:X,:Y,:Z)=>:geometry) # Merge missing dimension
-    t3 = DimTable(a, mergedims=(X,:Y,Ti)=>:dimensions) # Mix symbols and dimensions
-    t4 = DimTable(b, mergedims=(:X,:Y)=>:geometry) # Test DimArray
-    # TODO
-    @test Tables.columnnames(t1) == (:Ti, :geometry, :layer1, :layer2, :layer3)
-    @test Tables.columnnames(t2) == (:Ti, :geometry, :layer1, :layer2, :layer3)
-    @test Tables.columnnames(t3) == (:dimensions, :layer1, :layer2, :layer3)
-    @test Tables.columnnames(t4) == (:band, :geometry, :value)
+@testset "DimTable preservedims" begin
+    x, y, t = X(1.0:32.0), Y(1.0:10.0), Ti(DateTime.([2001, 2002, 2003]))
+    st = DimStack([rand(x, y, t; name) for name in [:a, :b, :c]])
+    A = rand(x, y, Dim{:band}(1:3); name=:vals)
+    t1 = DimTable(st, preservedims=(X, Y))
+    a3 = Tables.getcolumn(t1, :a)[3]
+    @test Tables.columnnames(t1) == propertynames(t1) == (:Ti, :a, :b, :c)
+    @test a3 == st.a[Ti=3]
+    @test dims(a3) == dims(a, (X, Y))
+    t2 = DimTable(A, preservedims=:band)
+    val10 = Tables.getcolumn(t2, :vals)[10]
+    @test Tables.columnnames(t2) == propertynames(t2) == (:X, :Y, :vals)
+    @test val10 == A[X(10), Y(1)]
+    @test dims(val1) == dims(A, (:band,))
 end

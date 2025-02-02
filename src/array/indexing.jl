@@ -80,8 +80,10 @@ for f in (:getindex, :view, :dotview)
         # All Dimension indexing modes combined
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray; kw...) =
             $_dim_f(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, d1::DimensionalIndices; kw...) =
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, d1::DimensionalIndices; kw...) = begin
+            @show typeof(d1)
             $_dim_f(A, _simplify_dim_indices(d1, kw2dims(values(kw))...)...)
+        end
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, d1::DimensionalIndices, d2::DimensionalIndices, D::DimensionalIndices...; kw...) =
             $_dim_f(A, _simplify_dim_indices(d1, d2, D..., kw2dims(values(kw))...)...)
         @propagate_inbounds Base.$f(A::AbstractDimArray, i1::DimensionalIndices,  i2::DimensionalIndices, I::DimensionalIndices...) =
@@ -107,8 +109,11 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::_DimIndicesAmb) = $_dim_f(A, i)
 
         # Use underscore methods to minimise ambiguities
-        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
-            Base.$f(A, dims2indices(A, (d1, ds...))...)
+        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) = begin
+            @show d1 ds
+            i = Base.$f(A, dims2indices(A, (d1, ds...))...)
+            i
+        end
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::Dimension...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_dim_f(

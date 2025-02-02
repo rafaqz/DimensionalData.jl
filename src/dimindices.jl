@@ -325,14 +325,14 @@ end
     I = (i1, i2, Is...)
     @boundscheck checkbounds(ds, I...)
     D = map(dims(ds), I) do d, i
-        rebuild(d, d[i])
+        rebuild(d, i)
     end
     return view(ds._data, D...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 @propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
-    d = dims(ds, 1)
-    return view(ds._data, rebuild(d, d[i]))
+    d1 = dims(ds, 1)
+    return view(ds._data, rebuild(d1, i))
 end
 
 # Extends the dimensions of any `AbstractBasicDimArray`
