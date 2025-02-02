@@ -58,42 +58,53 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 # Keywords
 - `mergedims`: Combine two or more dimensions into a new dimension.
 - `preservedims`: Preserve one or more dimensions from flattening into the table. 
-    `DimArray`s of views with these dimensions will be present in the layer column
+    `DimArray`s of views with these dimensions will be present in the layer column,
     rather than scalar values.
 - `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`
     by specifying a dimension to use as layers.
 
 # Example
 
-```jldoctest
+Here we generate a GeoInterface.jl compatible table with `:geometry` 
+column made of `(X, Y)` points, and data columns from `:band` slices.
+
+```jldoctest tables
 julia> using DimensionalData, Tables
 
-julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
-┌ 16×16×3 DimArray{Float64, 3} ┐
-├──────────────────────── dims ┤
-  ↓ X, → Y, ↗ band
-└──────────────────────────────┘
-[:, :, 1]
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+julia> A = ones(X(4), Y(3), Dim{:band}('a':'d'); name=:data);
 
-julia> 
-
+julia> DimTable(A; layersfrom=:band, mergedims=(X, Y)=>:geometry)
+DimTable with 12 rows, 5 columns, and schema:
+ :geometry  Tuple{Int64, Int64}
+ :band_a    Float64
+ :band_b    Float64
+ :band_c    Float64
+ :band_d    Float64
 ```
+
+And here bands for each X/Y position are kept as vectors, using `preservedims`. 
+This may be useful if e.g. bands are color components of spectral images.
+
+```jldoctest tables
+julia> DimTable(A; preservedims=:band)
+DimTable with 12 rows, 3 columns, and schema:
+ :X     …  Int64
+ :Y        Int64
+ :data     DimVector{Float64, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, 
+Int64, Slice{OneTo{Int64}}}, true}, Symbol, NoMetadata} (alias for DimArray{Float64, 1, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Base.Slice{Base.OneTo{Int64}}}, true}, Symbol, NoMetadata})
+````
+
+With no keywords, all data is flattened to a single column, 
+and all dimensions are included as columns, unrolled to match
+the length of the data.
+
+```jldoctest tables
+julia> DimTable(A)
+DimTable with 48 rows, 4 columns, and schema:
+ :X     Int64
+ :Y     Int64
+ :band  Char
+ :data  Float64
 """
 struct DimTable <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
