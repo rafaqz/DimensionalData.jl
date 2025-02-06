@@ -45,8 +45,9 @@ _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axi
 _format(dim::Dimension{Colon}, axis::AbstractRange) = rebuild(dim, NoLookup(axes(axis, 1)))
 function _format(dim::Dimension, axis::AbstractRange)
     newlookup = format(val(dim), basetypeof(dim), axes(axis, 1))
-    checkaxis(newlookup, axis)
-    return rebuild(dim, newlookup)
+    newdim = rebuild(dim, newlookup)
+    checkaxis(newdim, axis)
+    return newdim
 end
 
 format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), D, val, axis)
@@ -141,8 +142,10 @@ _format(locus::Locus, D::Type, values) = locus
 
 _order(values) = first(values) <= last(values) ? ForwardOrdered() : ReverseOrdered()
 
-checkaxis(lookup::Transformed, axis) = nothing
-checkaxis(lookup, axis) = first(axes(lookup)) == axis || _checkaxiserror(lookup, axis)
+checkaxis(lookup::Union{Dimension,Lookup}, axis::AbstractUnitRange) = 
+    first(axes(lookup)) == axis || _checkaxiserror(lookup, axis)
+
+checkaxes(lookups::Tuple, axes::Tuple) = all(map(checkaxis, lookups, axes))
 
 @noinline _explicitpoints_error() =
     throw(ArgumentError("Cannot use Explicit span with Points sampling"))
@@ -150,9 +153,9 @@ checkaxis(lookup, axis) = first(axes(lookup)) == axis || _checkaxiserror(lookup,
     throw(ArgumentError("lookup step $(step(span)) does not match lookup step $(step(values))"))
 @noinline _arraynosteperror() =
     throw(ArgumentError("`Regular` must specify `step` size with values other than `AbstractRange`"))
-@noinline _checkaxiserror(lookup, axis) =
+@noinline _checkaxiserror(dimorlookup::Union{Dimension,Lookup}, axis) =
     throw(DimensionMismatch(
-        "axes of $(basetypeof(lookup)) of $(first(axes(lookup))) do not match array axis of $axis"
+        "axes of $(basetypeof(dimorlookup)) of $(first(axes(dimorlookup))) do not match array axis of $axis"
     ))
 @noinline _valformaterror(v, D::Type) =
     throw(ArgumentError(

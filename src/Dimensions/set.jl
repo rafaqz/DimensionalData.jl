@@ -1,52 +1,64 @@
-const DimSetters = Union{LookupSetters,Type,UnionAll,Dimension,Symbol}
+const DimSetters = Union{Lookup,LookupSetters,Tuple,Dimension,Symbol}
 
-set(dim::Dimension, ::Type{T}) where T = set(dim, T())
-set(dims::DimTuple, ::Type{T}) where T = set(dims, T())
-set(dim::Dimension, x::DimSetters) = _set(dim, x)
-set(dims_::DimTuple, args::Union{Dimension,DimTuple,Pair}...; kw...) =
+set(dim::Dimension, x::DimSetters) = _set(Safe(), dim, x)
+set(dim::DimTuple, x::DimSetters) = _set(Safe(), dims, x)
+set(dims::DimTuple, args::Union{Dimension,Pair}...) =
+    _set(Safe(), dims, args...)
 
-    _set(dims_, args...; kw...)
-set(dims::DimTuple, l::Lookup) = set(dims, map(d -> basedims(d) => l, dims)...)
-set(dims::DimTuple, l::LookupTrait) = set(dims, map(d -> basedims(d) => l, dims)...)
-# Convert args/kw to dims and set
-_set(dims_::DimTuple, args::Dimension...; kw...) = _set(dims_, (args..., kw2dims(kw)...))
+unsafe_set(dim::Dimension, x::DimSetters) = _set(Unsafe(), dim, x)
+unsafe_set(dims::DimTuple, args::Union{Dimension,Pair}...) =
+    _set(Unsafe(), dims, args...)
+
+_set(s::Safety, dims::DimTuple, l::LookupSetters) =
+    set(s, dims, map(d -> basedims(d) => l, dims)...)
+
 # Convert pairs to wrapped dims and set
-_set(dims_::DimTuple, p::Pair, ps::Vararg{Pair}) = _set(dims_, (p, ps...))
-_set(dims_::DimTuple, ps::Tuple{Vararg{Pair}}) = _set(dims_, pairs2dims(ps...))
-_set(dims_::DimTuple, ::Tuple{}) = dims_
+_set(s::Safety, dims_::DimTuple, p::Pair, ps::Vararg{Pair}) =
+    _set(s, dims_, (p, ps...))
+_set(s::Safety, dims_::DimTuple, ps::Tuple{Vararg{Pair}}) =
+    _set(s, dims_, pairs2dims(ps...))
+_set(s::Safety, dims::DimTuple, ::Tuple{}) = dims
+_set(s::Safety, dims::DimTuple, newdims::Dimension...) =
+    _set(s, dims, newdims)
 # Set dims with (possibly unsorted) wrapper vals
-_set(dims::DimTuple, wrappers::DimTuple) = begin
+_set(s::Safety, dims::DimTuple, wrappers::DimTuple) = begin
     # Check the dimension types match
     map(wrappers) do w
         hasdim(dims, w) || _wrongdimserr(dims, w)
     end
     # Missing dims return `nothing` from sortdims
-    newdims = map(_set, dims, sortdims(wrappers, dims))
+    newdims = map(dims, sortdims(wrappers, dims)) do d, w
+        _set(s, d, w)
+    end
     # Swaps existing dims with non-nothing new dims
     swapdims(dims, newdims)
 end
 
 # Set things wrapped in dims
-_set(dim::Dimension, wrapper::Dimension{<:DimSetters}) =
-    _set(_set(dim, basetypeof(wrapper)), val(wrapper))
+_set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) =
+    _set(s, _set(s, dim, basetypeof(wrapper)), val(wrapper))
 # Set the dim, checking the lookup
-_set(dim::Dimension, newdim::Dimension) = _set(newdim, _set(val(dim), val(newdim)))
-# Construct types
-_set(dim::Dimension, ::Type{T}) where T = _set(dim, T())
-_set(dim::Dimension, key::Symbol) = _set(dim, name2dim(key))
-_set(dim::Dimension, dt::DimType) = basetypeof(dt)(val(dim))
-_set(dim::Dimension, x) = rebuild(dim; val=_set(val(dim), x))
-# Set the lookup
+_set(s::Safety, dim::Dimension, newdim::Dimension) =
+    _set(s, newdim, _set(s, val(dim), val(newdim)))
+_set(s::Safety, dim::Dimension, newdim::Dimension{<:Type}) =
+    _set(s, dim, val(newdim)())
+_set(s::Safety, dim::Dimension, key::Symbol) = _set(s, dim, name2dim(key))
+_set(s::Safety, dim::Dimension, x) = rebuild(dim; val=_set(s, val(dim), x))
+# For ambiguity
+_set(s::Safety, dim::Dimension, ::Type{T}) where T = _set(s, dim, T())
 # Otherwise pass this on to set fields on the lookup
-_set(dim::Dimension, x::LookupTrait) = rebuild(dim, _set(lookup(dim), x))
+_set(s::Safety, dim::Dimension, x::LookupTrait) = 
+    rebuild(dim, _set(s, lookup(dim), x))
 
 # Metadata
-_set(dim::Dimension, newmetadata::AllMetadata) = rebuild(dim, _set(lookup(dim), newmetadata))
+_set(s::Safety, dim::Dimension, newmetadata::AllMetadata) =
+    rebuild(dim, _set(s, lookup(dim), newmetadata))
 
-_set(x::Dimension, ::Nothing) = x
-_set(::Nothing, x::Dimension) = x
-_set(::Nothing, ::Nothing) = nothing
-_set(x, ::Nothing) = x
-_set(::Nothing, x) = x
+_set(::Safety, x::Dimension, ::Nothing) = x
+_set(::Safety, ::Nothing, x::Dimension) = x
+_set(::Safety, ::Nothing, ::Nothing) = nothing
+_set(::Safety, x, ::Nothing) = x
+_set(::Safety, ::Nothing, x) = x
 
-@noinline _wrongdimserr(dims, w) = throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
+@noinline _wrongdimserr(dims, w) =
+    throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))

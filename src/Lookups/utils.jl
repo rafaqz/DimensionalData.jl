@@ -118,3 +118,27 @@ _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).lef
 Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)
 Base.@assume_effects :foldable _remove(::Type{T}, ::T, xs...) where T = _remove(T, xs...)
 Base.@assume_effects :foldable _remove(::Type) = ()
+
+
+
+reorder(lookup::Lookup, neworder::Order) = _reorder(lookup, neworder)
+
+# Reorder
+_reorder(lookup::Lookup, neworder::Order) =
+    _reorder(lookup, order(lookup), neworder)
+# Same order, do nothing
+_reorder(lookup::Lookup, ::O, ::O) where {O<:Ordered} = lookup
+_reorder(lookup::Lookup, ::U, ::U) where {U<:Unordered} = lookup
+# We can always convert to `Unordered` without changing the lookup
+_reorder(lookup::Lookup, ::Ordered, neworder::Unordered) =
+    rebuild(lookup; order=neworder)
+# To set with `Ordered` we need to sort
+_reorder(lookup::Lookup, ::Unordered, neworder::ForwardOrdered) =
+    rebuild(lookup; data=sort(parent(lookup)), order=neworder)
+_reorder(lookup::Lookup, ::Unordered, neworder::ReverseOrdered) =
+    rebuild(lookup; data=sort(parent(lookup); rev=true), order=neworder)
+# Different order, reverse the lookup
+function _reorder(lookup::Lookup, ::Ordered, neworder::Ordered)
+    newdata = reverse(parent(lookup))
+    rebuild(lookup; data=newdata, order=neworder)
+end

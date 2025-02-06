@@ -23,13 +23,14 @@ using .Lookups
 const LU = Lookups
 const LookupArrays = Lookups
 
-import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
+import .Lookups: rebuild, order, span, sampling, locus, val, index, reorder, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
     shiftlocus, maybeshiftlocus, ordered_first, ordered_last, ordered_firstindex, ordered_lastindex, 
     promote_first, _remove
 using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
     LookupTrait, AllMetadata, LookupSetters, AbstractBeginEndRange,
     SelectorOrInterval, Interval
+import .Lookups: Safety, Safe, Unsafe
 
 using Base: tail, OneTo, @propagate_inbounds
 

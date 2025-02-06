@@ -33,33 +33,39 @@ true
 """
 function reorder end
 
-reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = reorder(x, dims(A))
+reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = 
+    reorder(x, dims(A))
 reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
-reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
+reorder(x, p::Pair, ps::Pair...) = reorder(x, (p, ps...))
 reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
 # Reorder specific dims.
-reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
+reorder(x, dims::Tuple) = _reorder(x, dims)
 # Reorder all dims.
-reorder(x, ot::Order) = reorder(x, typeof(ot))
-reorder(x, ot::Type{<:Order}) = _reorder(x, map(d -> rebuild(d, ot), dims(x)))
-reorder(dim::Dimension, ot::Type{<:Order}) =
-    ot <: basetypeof(order(dim)) ? dim : reverse(dim)
-
+reorder(x, ::Type{O}) where O<:Order = reorder(x, O())
+reorder(x, o::Order) = _reorder(x, map(d -> rebuild(d, o), dims(x)))
+reorder(x, o::Tuple{Vararg{Order}}) = reorder(x, map(rebuild, dims(x), o))
 # Recursive reordering. x may be reversed here
-function _reorder(x, orderdims::DimTuple)
+function reorder(x, orderdims::DimTuple)
     ods = commondims(orderdims, dims(x))
-    _reorder(reorder(x, ods[1]), tail(ods))
+    reorder(reorder(x, ods[1]), tail(ods))
 end
-_reorder(x, orderdims::Tuple{}) = x
+reorder(x, orderdims::Tuple{}) = x
 
-reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
-reorder(x, orderdim::Dimension{<:Lookup}) = _reorder(order(orderdim), x, dims(x, orderdim))
+reorder(x, orderdim::Dimension) = _reorder(x, dims(x, orderdim), val(orderdim))
+reorder(x, orderdim::Dimension{<:Lookup}) = _reorder(x, dims(x, orderdim), order(orderdim))
 
-_reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
 # Reverse the dimension index
-_reorder(::Type{O}, x, dim::Dimension) where O<:Ordered =
-    order(dim) isa O ? x : reverse(x; dims=dim)
-_reorder(ot::Type{Unordered}, x, dim::Dimension) = x
+_reorder(x, dim::Dimension, o::Unordered) = unsafe_set(x, dim => o)
+_reorder(x, dim::Dimension, o::Ordered) = _reorder(x, dim, order(dim), o)
+_reorder(x, dim::Dimension, ::O, ::O) where O<:Ordered = x
+_reorder(x, dim::Dimension, ::Ordered, ::Ordered) = reverse(x; dims=basedims(dim))
+# Sort an unordered dimension
+function _reorder(x, dim::Dimension, ::Unordered, o::Ordered)
+    pairs = parent(lookup(dim)) .=> eachindex(lookup(dim))
+    o isa ForwardOrdered ? sort!(pairs) : sort!(pairs; rev=true)
+    idxs = last.(pairs)
+    return x[rebuild(dim, idxs)]
+end
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray

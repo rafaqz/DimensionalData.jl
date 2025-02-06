@@ -8,7 +8,7 @@ a = [1 2; 3 4]
 dimz = (X(143.0:2.0:145.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "X"))),
         Y(-38.0:2.0:-36.0; lookup=Sampled(order=ForwardOrdered()), metadata=Metadata(Dict(:meta => "Y"))))
 da = DimArray(a, dimz; name=:test)
-interval_da = set(da, X=Intervals(), Y=Intervals())
+interval_da = set(da, X => Intervals(), Y => Intervals())
 
 a2 = [1 2 3 4
       3 4 5 6
@@ -21,40 +21,41 @@ s = DimStack(da2, DimArray(2a2, dimz2; name=:test3))
 @testset "Array fields" begin
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
-    @test_throws ArgumentError parent(set(da2, [9 9; 9 9])) == [9 9; 9 9]
+    @test_throws DimensionMismatch parent(set(da2, [9 9; 9 9]))
 end
 
 @testset "DimStack fields" begin
     @test_throws ArgumentError set(s, (x=a2, y=3a2))
-    @test_throws ArgumentError set(s, (test2=a2, test3=hcat(a2, a2)))
+    @test_throws DimensionMismatch set(s, (test2=a2, test3=hcat(a2, a2)))
     s2 = set(s, (test2=a2, test3=3a2))
     @test keys(s2) == (:test2, :test3)
     @test values(s2) == (a2, 3a2)
 end
 
 @testset "DimStack Dimension" begin
-    s1 = set(s, row=X, column=Z)
+    s1 = set(s, :row => X, :column => Z)
     @test typeof(dims(s1)) <: Tuple{<:X,<:Z}
     @test layerdims(s1) == (; test2=(X(), Z()), test3=(X(), Z()))
-    @test typeof(dims(set(s, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
-    s1 = set(s, row=:row2, column=:column2)
+    @test typeof(dims(set(s, :row => X(), :column => Z()))) <: Tuple{<:X,<:Z}
+    s1 = set(s, :row => :row2, :column => :column2)
     @test typeof(dims(s1)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
     @test layerdims(s1) == (; test2=(Dim{:row2}(), Dim{:column2}()), test3=(Dim{:row2}(), Dim{:column2}()))
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(s, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
-    @test parent(lookup(set(s, Dim{:row}([:x, :y, :z])), :row)) == [:x, :y, :z] 
+    @test lookup(set(s, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test lookup(set(s, Dim{:row}([:x, :y, :z])), :row) isa Sampled
 end
 
 @testset "DimArray Dimension" begin
-    @test typeof(dims(set(da, X=:a, Y=:b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
+    @test typeof(dims(set(da, X => :a, Y => :b))) <: Tuple{<:Dim{:a},<:Dim{:b}}
     @test typeof(dims(set(da2, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
     @test typeof(dims(set(da2, :column => Ti(), :row => Z()))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(da2, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
-    @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
+    @test typeof(dims(set(da2, :row=>X, :column=>Z))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(da2, :row=>X(), :column=>Z()))) <: Tuple{<:X,<:Z}
+    @test typeof(dims(set(da2, :row=>:row2, :column=>:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
     @test index(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
 end
 
@@ -66,7 +67,6 @@ end
 end
 
 @testset "dim lookup" begin
-
     @test lookup(set(dims(da2), NoLookup())) == 
          (NoLookup(Base.OneTo(3)), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, NoLookup())) == 
@@ -76,11 +76,11 @@ end
          Categorical(-2.0:1.0:1.0, ForwardOrdered(), NoMetadata())) 
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled(sampling=Intervals(Center())))) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()), NoLookup(Base.OneTo(4)))
-    @test lookup(set(da2, column=NoLookup())) == 
+    @test lookup(set(da2, Dim{:column}(NoLookup()))) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
-    cat_da = set(da, X=NoLookup(), Y=Categorical())
+    cat_da = set(da, X=>NoLookup(), Y=>Categorical())
     @test index(cat_da) == 
         (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
     cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
@@ -91,7 +91,7 @@ end
             (Irregular((10.0, 30.0)), Irregular((-2.0, 1.0)))
         @test span(set(da2, Regular)) == (Regular(10.0), Regular(1.0))
         # TODO: should this error? the span step doesn't match the index step
-        @test span(set(da2, row=Irregular(10, 12), column=Regular(9.9))) == 
+        @test span(set(da2, :row=>Irregular(10, 12), :column=>Regular(9.9))) == 
             (Irregular(10, 12), Regular(9.9))
         @test set(Sampled(), AutoSpan()) == Sampled()
         @test set(Sampled(), Irregular()) == Sampled(; span=Irregular())
@@ -103,14 +103,13 @@ end
         @test_throws ArgumentError set(da2, (End(), Center()))
         @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
         @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
-        @test locus(set(interval_da, X=End, Y=Center)) == (End(), Center())
-        @test locus(set(da, Y=Center())) == (Center(), Center())
-        @test _set(Points(), Intervals()) == Intervals(Center())
-        @test _set(Intervals(Center()), Start()) == Intervals(Start())
-        @test _set(Intervals(Center()), AutoLocus()) == Intervals(Center())
-        @test _set(Points(), Center()) == Points()
-        @test_throws ArgumentError _set(Points(), Start())
-        @test_throws ArgumentError _set(Points(), End())
+        @test locus(set(da, Y=>Center())) == (Center(), Center())
+        @test set(Points(), Intervals()) == Intervals(Center())
+        @test set(Intervals(Center()), Start()) == Intervals(Start())
+        @test set(Intervals(Center()), AutoLocus()) == Intervals(Center())
+        @test set(Points(), Center()) == Points()
+        @test_throws ArgumentError set(Points(), Start())
+        @test_throws ArgumentError set(Points(), End())
     end
 
     @testset "sampling" begin
@@ -119,15 +118,15 @@ end
             (Intervals(End()), Intervals(Start())) 
         @test set(Sampled(), AutoSampling()) == Sampled()
         @test set(Sampled(), Intervals) == Sampled(; sampling=Intervals())
-        @test _set(Points(), AutoSampling()) == Points()
-        @test _set(AutoSampling(), Intervals()) == Intervals()
-        @test _set(AutoSampling(), AutoSampling()) == AutoSampling()
+        @test set(Points(), AutoSampling()) == Points()
+        @test set(AutoSampling(), Intervals()) == Intervals()
+        @test set(AutoSampling(), AutoSampling()) == AutoSampling()
     end
 
     @testset "order" begin
         uda = set(da, Y(Unordered()))
         @test order(uda) == (ForwardOrdered(), Unordered())
-        @test order(set(uda, X=ReverseOrdered())) == (ReverseOrdered(), Unordered())
+        @test order(set(uda, X => ReverseOrdered())) == (ReverseOrdered(), Unordered())
     end
 
     # issue #478
@@ -152,18 +151,20 @@ end
     @test metadata(dims(dax), Y).val == Dict(:meta => "Y") 
     dax = set(da, X => Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, X)).val == Dict(:a=>1, :b=>2)
-    dax = set(da2, row=Metadata(Dict(:a=>1, :b=>2)))
+    dax = set(da2, :row=>Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, :row)).val == Dict(:a=>1, :b=>2)
-    dax = set(da2, column=Metadata(Dict(:a=>1, :b=>2)))
+    dax = set(da2, :column=>Metadata(Dict(:a=>1, :b=>2)))
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
 end
 
-@testset "all dim fields" begin
+# @testset "all dim fields" begin
     md = Metadata(Dict(:a=>1, :b=>2))
-    dax = set(da, X(20:-10:10; metadata=md))
+    dax = 
+    @descend set(da, X(20:-10:10; metadata=md))
     x = dims(dax, X)
-    @test index(x) === 20:-10:10
-    @test order(x) === ReverseOrdered()
+    @test parent(lookup(x)) === 20:-10:10
+    @test 
+    order(x) === ReverseOrdered()
     @test span(x) === Regular(-10)
     @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
     @test metadata(x).val == Dict(:a=>1, :b=>2) 
