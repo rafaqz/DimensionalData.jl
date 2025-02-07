@@ -211,20 +211,23 @@ julia> dimnum(A, Y)
 ```
 """
 function dimnum end
-@inline function dimnum(x, q1, query...)
-    all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query...)))
-    _dim_query(_dimnum, MaybeFirst(), x, q1, query...)
+@inline function dimnum(x, query::Tuple)
+    all(hasdim(x, query)) || _extradimserror(otherdims(x, query))
+    _dim_query(_dimnum, MaybeFirst(), x, query...)
 end
+@inline dimnum(x, q1::Union{DimOrDimType,Integer}, query::Union{DimOrDimType,Integer}...) =
+   dimnum(x, (q1, query...))
 @inline dimnum(x, query::Function) =
     _dim_query(_dimnum, MaybeFirst(), x, query)
 
-@inline _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Int}}) = query
+@inline _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Integer}}) = query
 @inline function _dimnum(f::Function, ds::Tuple, query::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
         rebuild(d, i)
     end
     map(val, _dims(f, numbered, query))
 end
+_dimnum(f::Function, ds::Tuple) = ()
 
 """
     hasdim([f], x, query::Tuple) => NTuple{Bool}
