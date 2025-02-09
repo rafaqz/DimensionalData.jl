@@ -141,7 +141,7 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     if isnothing(atol(sel))
         v == r || _selnotfound_or_nothing(err, lookup, v)
     else
-        at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
+        atol(sel) >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=atol(sel)) || _selnotfound_or_nothing(err, lookup, v)
     end
     if r in lookup 
