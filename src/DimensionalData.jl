@@ -22,8 +22,9 @@ import Adapt,
        IntervalSets,
        InvertedIndices,
        IteratorInterfaceExtensions,
-       RecipesBase,
+       OrderedCollections,
        PrecompileTools,
+       RecipesBase,
        TableTraits,
        Tables
 
@@ -40,6 +41,8 @@ import .Lookups: metadata, set, _set, rebuild, basetypeof,
     order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
+
+using OrderedCollections: OrderedDict
 
 import DataAPI.groupby
 
