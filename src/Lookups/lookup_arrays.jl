@@ -1,4 +1,3 @@
-
 """
     Lookup
 
@@ -612,6 +611,21 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
 
 # TODO Transformed bounds
+struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
+    data::A
+    dim::D
+    dims::Ds
+    matrix::Ma
+    tree::Tr
+    idxvec::IV
+    distvec::DV
+    metadata::Me
+end
+ArrayLookup(matrix; metadata=NoMetadata()) =
+    ArrayLookup(AutoValues(), AutoDim(), AutoDim(), matrix, nothing, nothing, nothing, metadata)
+dim(lookup::ArrayLookup) = lookup.dim
+matrix(l::ArrayLookup) = l.matrix
+tree(l::ArrayLookup) = l.tree
 
 # Shared methods
 

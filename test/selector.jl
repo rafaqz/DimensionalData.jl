@@ -1310,7 +1310,7 @@ end
     @test @inferred da[Contains([1, 3]), Near([2, 3, 4])] == [2 3 4; 10 11 12]
 end
 
-@testset "Selectors on TranformedIndex" begin
+@testset "Selectors on Tranformed lookup" begin
     using CoordinateTransformations
 
     m = LinearMap([0.5 0.0; 0.0 0.5])
@@ -1448,4 +1448,34 @@ end
     @test all(map(d -> hasselection(d, Contains(12.8)), cases))
     @test all(map(d -> !hasselection(d, Contains(400.0)), cases))
     @test all(map(d -> hasselection(d, Near(0.0)), cases))
+end
+
+@testset "ArrayLookup selectors" begin
+    # Generate a warped matrix
+    y = -100:100
+    x = -200:200
+    xs = [x + 0.01y^3 for x in x, y in y]
+    ys = [y + 10cos(x/40) for x in x, y in y]
+    # Define x and y lookup dimensions
+    using NearestNeighbors
+    xdim = X(ArrayLookup(xs))
+    ydim = Y(ArrayLookup(ys))
+    A = rand(xdim, ydim)
+    l = lookup(A, X)
+    l.dims
+    xval = xs[end-10]
+    yval = ys[end-10]
+    @test A[Y=At(yval; atol=0.001), X=At(xval; atol=0.001)] ==
+        A[Y=Near(yval), X=Near(xval)] ==
+        A[Y=At(yval; atol=0.001), X=Near(xval)] ==
+        A[Y=Near(yval), X=At(xval; atol=0.001)] ==
+        A[X=At(xval; atol=0.001), Y=Near(yval)] ==
+        A[end-10]
+    xval = xs[end-10] + 0.0005
+    yval = ys[end-10] + 0.0005
+    @test A[Y=At(yval; atol=0.001), X=At(xval; atol=0.001)] ==
+        A[Y=Near(yval), X=Near(xval)] ==
+        A[Y=At(yval; atol=0.001), X=Near(xval)] ==
+        A[Y=Near(yval), X=At(xval; atol=0.001)] ==
+        A[end-10]
 end
