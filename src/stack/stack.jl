@@ -429,7 +429,7 @@ function DimStack(A::AbstractDimArray;
     layersfrom=nothing, metadata=metadata(A), refdims=refdims(A), kw...
 )
     layers = if isnothing(layersfrom)
-        keys = name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (name(A),)
+        keys = (_cleankey(name(A)),)
         NamedTuple{keys}((A,))
     else
         keys = Tuple(_layerkeysfromdim(A, layersfrom))

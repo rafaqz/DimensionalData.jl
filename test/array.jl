@@ -1,5 +1,7 @@
-using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
-using DimensionalData: layerdims, checkdims
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random, Statistics
+using DimensionalData: layerdims, checkdims, Name, NoName
+using DimensionalData.Lookups
+using DimensionalData.Dimensions
 using LinearAlgebra
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
@@ -601,4 +603,60 @@ end
     a = rand(X(3), Y(2))
     @test Base.dataids(a) == Base.dataids(parent(a))
     @test Base.mightalias(a, parent(a))
+end
+
+#@testset "promotion" begin
+    a = rand(X(1:10))
+    b = rand(Int, X(1:10))
+    @test promote_type(typeof(a), typeof(b)) == typeof(a)
+
+    M = fill(UInt16(32000), 2)
+
+    x1 = X(1:2)
+    x2 = X(1.0:2.0)
+    T = promote_type(typeof(x1), typeof(x2))
+    @test convert(T, x2) isa T
+    @test convert(T, x2) isa T
+    @test val(convert(T, x2)) === 1.0:1.0:2.0
+    f1 = format(x1)
+    f2 = format(x2)
+
+    P = promote_type(typeof(f1), typeof(f2))
+    @test 
+    typeof(convert(P, f1))
+     typeof(f2)
+    @test convert(P, f2) isa typeof(f2)
+
+    @test x2 isa promote_type(typeof(format(x1)), typeof(format(x2)))
+
+    D = DimArray(M, x1)
+    D2 = DimArray(M, x1; name=:testname)
+    D3 = DimArray(M, x1; metadata=Metadata(:test => "test"))
+    D4 = DimArray(M, x2; metadata=Metadata(:test => "test"))
+    @test mean([D, D]) == 
+        mean([D2, D2]) == 
+        mean([D3, D3]) == 
+        mean([D4, D4]) == 
+        mean([M, M])
+    @test mean([D, D]) == mean([D, D2]) == mean([D2, D])
+
+    @test typeof(convert(typeof(D), D2)) == typeof(D)
+    @test typeof(convert(typeof(D), D3)) == typeof(D)
+    D isa promote_type(typeof(D), typeof(D3))
+    # @test 
+    P = promote_type(typeof(D3), typeof(D))
+    typeof(convert(P, D4)) <: P
+    typeof(D4)
+     <: P
+    @test typeof(convert(typeof(D2), D)) == typeof(D2)
+    @test typeof(convert(typeof(D3), D)) == typeof(D3)
+    @test 
+    typeof(convert(typeof(D4), D))
+     == 
+    promote_type(typeof(D4), typeof(D))
+    typeof(convert(typeof(D4), D))
+    typeof(D4)
+
+    @test promote_type(typeof(D), typeof(D2)) ==
+    convert(typeof(D), D2)
 end
