@@ -81,7 +81,8 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
 end
 
 function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    _comparedims_broadcast(_firstdimarray(bc), _broadcasted_dims(bc)...)
+    fda = _firstdimarray(bc) 
+    isnothing(fda) || _comparedims_broadcast(fda, _broadcasted_dims(bc)...)
     copyto!(dest, _unwrap_broadcasted(bc))
 end
 
@@ -173,7 +174,9 @@ macro d(expr::Expr, options::Union{Expr,Nothing}=nothing)
             dims = $DimensionalData.dims(found_dims, order_dims)
         end
     else
-        :(dims = _find_dims(vars))
+        quote
+            dims = _find_dims(vars)
+        end
     end
     quote
         let
@@ -240,9 +243,13 @@ function _find_broadcast_vars(expr::Expr)
     end
     mdb = :($DimensionalData._maybe_dimensional_broadcast)
     arg_list = Pair{Symbol,Any}[]
+
+    # Dot broadcast syntax `f.(x)`
     if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
-        if expr.args[2] isa Expr
-            wrapped_args = map(expr.args[2].args) do arg
+        wrapped_args = map(expr.args[2].args) do arg
+            if arg isa Expr && arg.head == :parameters
+                arg
+            else
                 var = Symbol(gensym(), :_d)
                 expr1, arg_list1 = _find_broadcast_vars(arg)
                 out = if isempty(arg_list1)
@@ -254,10 +261,28 @@ function _find_broadcast_vars(expr::Expr)
                 end
                 Expr(:call, mdb, out, :dims, :options)
             end
-            expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
-            return expr2, arg_list
         end
-    elseif expr.head == :call && string(expr.args[1])[1] == '.' # infix broadcast
+        expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
+        return expr2, arg_list
+    # Dot assignment broadcast syntax `x .= ...`
+    elseif expr.head == :.= 
+        # Destination array
+        dest_var = Symbol(gensym(), :_d)
+        push!(arg_list, dest_var => expr.args[1])
+        dest_expr = Expr(:call, mdb, esc(dest_var), :dims, :options)
+        # Source expression
+        expr2, arg_list2 = _find_broadcast_vars(expr.args[2])
+        source_expr = if isempty(arg_list2)
+            var2 = Symbol(gensym(), :_d)
+            push!(arg_list, var2 => expr.args[2])
+            esc(var2)
+        else
+            append!(arg_list, arg_list2)
+            expr2
+        end
+        return Expr(expr.head, dest_expr, source_expr), arg_list
+    # Infix broadcast syntax `x .* y`
+    elseif expr.head == :call && string(expr.args[1])[1] == '.'
         wrapped_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
             expr1, arg_list1 = _find_broadcast_vars(arg)
@@ -281,18 +306,17 @@ end
 # A wrapper AbstractDimArray only to be used in @d broadcasts. 
 # It should never escape
 # options are both for broadcast tweaks and for keywords to the new DimArray
-struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractArray{T,N},O} <: AbstractDimArray{T,N,D,A}
+struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractBasicDimArray{T,N,D},O} <: AbstractDimArray{T,N,D,A}
     data::A
     options::O
     function BroadcastOptionsDimArray(
         data::A, options::O
-    ) where {A<:AbstractDimArray{T,N},O} where {T,N}
-        D = typeof(dims(data))
+    ) where {A<:AbstractDimArray{T,N,D},O} where {T,N,D}
         new{T,N,D,A,O}(data, options)
     end
 end
 
-# Get keywords form options
+# Get keywords from options
 _rebuild_kw(A::BroadcastOptionsDimArray) = _rebuild_kw(; broadcast_options(A)...)
 _rebuild_kw(; dims=nothing, strict=nothing, kw...) = kw
 
@@ -382,7 +406,6 @@ _broadcasted_dims(a) = ()
 # its dimensions to match the rest of the @d broadcast, otherwise do nothing.
 _maybe_dimensional_broadcast(x, _, _) = x
 function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options) 
-    len1s = basedims(otherdims(dest_dims, dims(A)))
     # Reshape first to avoid a ReshapedArray wrapper if possible
     A1 = _maybe_insert_length_one_dims(A, dest_dims)
     # Then permute and reorder
