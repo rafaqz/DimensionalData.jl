@@ -300,11 +300,13 @@ struct DimSlices{T,N,D<:Tuple{Vararg{Dimension}},P} <: AbstractDimArrayGenerator
     dims::D
 end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
-function DimSlices(x, dims; drop=true)
+DimSlices(x, dim; kw...) = DimSlices(x, (dim,); kw...)
+function DimSlices(x, dims::Tuple; drop=true)
+    dims1 = DD.dims(x, dims)
     newdims = if length(dims) == 0
         map(d  -> rebuild(d, :), DD.dims(x))
     else
-        dims
+        dims1
     end 
     inds = map(newdims) do d
         rebuild(d, first(d))
@@ -329,14 +331,14 @@ end
     I = (i1, i2, Is...)
     @boundscheck checkbounds(ds, I...)
     D = map(dims(ds), I) do d, i
-        rebuild(d, d[i])
+        rebuild(d, i)
     end
     return view(ds._data, D...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 @propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
-    d = dims(ds, 1)
-    return view(ds._data, rebuild(d, d[i]))
+    d1 = dims(ds, 1)
+    return view(ds._data, rebuild(d1, i))
 end
 
 # Extends the dimensions of any `AbstractBasicDimArray`
