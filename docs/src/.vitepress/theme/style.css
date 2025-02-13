@@ -1,33 +1,39 @@
-@import url(https://fonts.googleapis.com/css?family=Space+Mono:regular,italic,700,700italic);
-@import url(https://fonts.googleapis.com/css?family=Space+Grotesk:regular,italic,700,700italic);
-
-/* Customize default theme styling by overriding CSS variables:
-https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/vars.css
- */
-
-  /* Layouts */
-
-/* 
- :root {
-  --vp-layout-max-width: 1440px;
-} */
-
 .VPHero .clip {
   white-space: pre;
   max-width: 500px;
 }
 
 /* Fonts */
+@font-face {
+  font-family: JuliaMono-Regular;
+  src: url("https://cdn.jsdelivr.net/gh/cormullion/juliamono/webfonts/JuliaMono-Regular.woff2");
+}
 
 :root {
-  /* Typography */
-  --vp-font-family-base: "Barlow", "Inter var experimental", "Inter var",
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
-    Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+/* Typography */
+--vp-font-family-base: "Barlow", "Inter var experimental", "Inter var",
+  -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+  Cantarell, "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
 
-  /* Code Snippet font */
-  --vp-font-family-mono: "Fira Code", Menlo, Monaco, Consolas, "Courier New",
-    monospace;
+/* Code Snippet font */
+--vp-font-family-mono: JuliaMono-Regular, monospace;
+}
+
+/* Disable contextual alternates (kind of like ligatures but different) in monospace, 
+ which turns `/>` to an up arrow and `|>` (the Julia pipe symbol) to an up arrow as well. */
+.mono-no-substitutions {
+font-family: "JuliaMono-Light", monospace;
+font-feature-settings: "calt" off;
+}
+
+.mono-no-substitutions-alt {
+font-family: "JuliaMono-Light", monospace;
+font-variant-ligatures: none;
+}
+
+pre, code {
+font-family: "JuliaMono-Light", monospace;
+font-feature-settings: "calt" off;
 }
 
 /* Colors */
@@ -123,7 +129,32 @@ https://github.com/vuejs/vitepress/blob/main/src/client/theme-default/styles/var
     
 }
 
- /* Component: Algolia */
+/**
+ * Colors links
+ * -------------------------------------------------------------------------- */
+
+ :root {
+  --vp-c-brand: #ff875f;
+  --vp-button-brand-border: white;
+  --vp-c-brand-1: #ff875f;
+  --vp-c-brand-2: #ff875f;
+  --vp-c-brand-3: #ff875f;
+  --vp-c-sponsor: #ca2971;
+  --vitest-c-sponsor-hover: #c13071;
+}
+
+.dark {
+  --vp-button-brand-border: white;
+  --vp-button-brand-bg: var(--vp-c-black-mute);
+  --vp-c-brand: #0087d7;
+  --vp-c-brand-1: #0087d7;
+  --vp-c-brand-2: #0087d7;
+  --vp-c-brand-3: #0087d7;
+  --vp-c-sponsor: #ee4e95;
+  --vitest-c-sponsor-hover: #e51370;
+}
+
+/* Component: Algolia */
 
 .DocSearch {
   --docsearch-primary-color: var(--vp-c-brand) !important;
@@ -141,7 +172,7 @@ mjx-container {
 }
 
 mjx-container {
-  display: inline-block;
+  display: inline;
   margin: auto 2px -2px;
 }
 
@@ -150,59 +181,16 @@ mjx-container > svg {
   display: inline-block;
 }
 
-/**
- * Colors links
- * -------------------------------------------------------------------------- */
+/* Component: Docstring Custom Block */
 
- :root {
-  --vp-c-brand-1: #ff875f;
-  --vp-c-brand-2: #ff875f;
-  --vp-c-brand-3: #ff875f;
-  --vp-c-sponsor: #ca2971;
-  --vitest-c-sponsor-hover: #c13071;
+.jldocstring.custom-block {
+    border: 1px solid var(--vp-c-gray-2);
+    color: var(--vp-c-text-1);
 }
 
-.dark {
-  --vp-c-brand-1: #0087d7;
-  --vp-c-brand-2: #0087d7;
-  --vp-c-brand-3: #0087d7;
-  --vp-c-sponsor: #ee4e95;
-  --vitest-c-sponsor-hover: #e51370;
-}
-
-
-/* https://bddxg.top/article/note/vitepress优化/一些细节上的优化.html#文档页面调整-加宽 */
-
-
-.VPDoc.has-aside .content-container {
-  max-width: 100% !important;
-}
-.aside {
-  max-width: 200px !important;
-  padding-left: 0 !important;
-}
-.VPDoc {
-  padding-top: 15px !important;
-  padding-left: 5px !important;
-
-}
-/* This one does the right menu */
-
-.VPDocOutlineItem li {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-  max-width: 200px;
-}
-
-.VPNavBar .title {
-  text-overflow: ellipsis;
-  overflow: hidden;
-  white-space: nowrap;
-}
-
-@media (max-width: 960px) {
-  .VPDoc {
-    padding-left: 25px !important;  
-  }
+.jldocstring.custom-block summary {
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    margin: 0 0 8px;
 }
