@@ -2,9 +2,9 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
     set(x, val)
+    set(x; kw...)
     set(x, args::Pairs...) => x with updated field/s
-    set(x, args...; kw...) => x with updated field/s
-    set(x, args::Tuple{Vararg{Dimension}}; kw...) => x with updated field/s
+    set(x, args::Tuple{Vararg{Dimension}}) => x with updated field/s
 
     set(dim::Dimension, index::AbstractArray) => Dimension
     set(dim::Dimension, lookup::Lookup) => Dimension
@@ -18,7 +18,7 @@ As DimensionalData is so strongly typed you do not need to specify what field
 of a [`Lookup`](@ref) to `set` - there is no ambiguity.
 
 To set fields of a `Lookup` you need to specify the dimension. This can be done
-using `X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
+using `X => val` pairs or `X(val)` wrapped arguments.
 
 You can also set the fields of all dimensions by simply passing a single [`Lookup`](@ref)
 or lookup trait - it will be set for all dimensions.
@@ -30,8 +30,7 @@ existing ones, fields that are not set will keep their original values.
 
 Changing a lookup index range/vector will also update the step size and order where applicable.
 
-Setting the [`Order`](@ref) like `ForwardOrdered` will *not* reverse the array or
-dimension to match. Use `reverse` and [`reorder`](@ref) to do this.
+Setting the [`Order`](@ref) like `ForwardOrdered` will reverse the array and lookups. 
 
 ## Examples
 
@@ -85,7 +84,7 @@ julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 Change the `Lookup` type:
 
 ```jldoctest set
-julia> set(da, Z=DD.NoLookup(), custom=DD.Sampled())
+julia> set(da; Z => DD.NoLookup(), :custom => DD.Sampled())
 ┌ 3×4 DimArray{Float64, 2} ┐
 ├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
@@ -111,62 +110,135 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
  30.0    0.0    0.0  0.0   0.0
 ```
 """
-function set end
+set(x::DimArrayOrStack, args...; kw...) = 
+    _set(Safe(), _set(Safe(), x, args...); kw...)
 
-# Types are constructed
-Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = 
-  set(x, T())
-# Dimensions and pairs are set for dimensions 
-Base.@assume_effects :effect_free function set(
-  A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...; kw...
+unsafe_set(x::DimArrayOrStack, args...; kw...) = 
+    _set(Unsafe(), _set(Unsafe(), x, args...); kw...)
+
+# Keywords are passed to rebuild, but with checks
+function _set(s::Safety, A::AbstractDimArray;
+    data=nothing, dims=nothing, kw...
 )
-    rebuild(A; dims=set(dims(A), args...; kw...))
+    isnothing(data) && isnothing(dims) && isempty(kw) && return A
+
+    A1 = if isnothing(data) 
+        isnothing(dims) ? A : _set(s, A, dims)
+    elseif isnothing(dims)
+        checkaxes(lookup(data), axes(parent(A)))
+        if isnothing(dims) 
+            checkaxes(lookup(A), axes(data))
+            rebuild(A; data)
+        else
+            # TODO just check size instead of format
+            rebuild(A; data, dims=format(_set(s, DD.dims(A), dims), data))
+        end
+
+    end
+    @show typeof(A1)
+    # Just `rebuild` everything else, it's assumed to have no interactions.
+    # Package developers note: if other fields do interact, implement this 
+    # method for your own `AbstractDimArray` type.
+    rebuild(A1; kw...)
 end
-Base.@assume_effects :effect_free function set(
-  st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...; kw...
+function _set(s::Safety, st::AbstractDimStack;
+    data=nothing, dims=nothing, kw...
 )
-    ds = set(dims(st), args...; kw...)
-    if dimsmatch(ds, dims(st))
-        rebuild(st; dims=ds) 
+    st1 = if isnothing(data) 
+        isnothing(dims) ? st : _set(s, st, dims)
     else
-        dim_updates = map(rebuild, basedims(st), basedims(ds))
+        # If we are setting data too, just update dims directly
+        dims = isnothing(dims) ? DD.dims(st) : _set(s, DD.dims(st), dims)
+        _set(s, rebuild(st; dims=format(dims, data)), data)
+    end
+    # Just `rebuild` everything else, it's assumed to have no interactions.
+    # Package developers note: if other fields do interact, implement this 
+    # method for your own `AbstractDimStack` type.
+    return rebuild(st1; kw...)
+end
+
+# Dimensions and pairs are set for dimensions 
+function _set(
+    s::Safety, A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...
+)
+    newdims = _set(s, dims(A), args...)
+    return _maybe_reorder(s, A, newdims)
+end
+function _set(
+    s::Safety, st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...
+)
+    newdims = _set(s, dims(st), args...)
+    st = if dimsmatch(newdims, dims(st))
+        rebuild(st; dims=newdims) 
+    else
+        dim_updates = map(rebuild, basedims(st), basedims(newdims))
         lds = map(layerdims(st)) do lds
             # Swap out the dims with the updated dims
             # that match the dims of this layer
             map(val, dims(dim_updates, lds))
         end
-        rebuild(st; dims=ds, layerdims=lds)
+        rebuild(st; dims=newdims, layerdims=lds)
     end
+    return _maybe_reorder(s, st, newdims)
 end
 # Single traits are set for all dimensions
-Base.@assume_effects :effect_free set(A::DimArrayOrStack, x::LookupTrait) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
-# Single lookups are set for all dimensions
-# Need both for ambiguity
-Base.@assume_effects :effect_free set(A::AbstractDimArray, x::Lookup) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
-Base.@assume_effects :effect_free set(A::AbstractDimStack, x::Lookup) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
+_set(s::Safety, A::DimArrayOrStack, x::LookupTrait) = 
+    _set(s, A, map(d -> basedims(d) => x, dims(A))...)
+# Single lookups are set for all dimensions.
+# Safe and Unsafe for ambiguity
+_set(s::Unsafe, A::AbstractDimArray, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safe, A::AbstractDimArray, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Unsafe, A::AbstractDimStack, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safe, A::AbstractDimStack, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+# For ambiguity
+_set(s::Safe, A::AbstractDimArray, x::NoLookup) =
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safe, A::AbstractDimArray, x::NoLookup{<:AutoValues}) =
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safety, A::AbstractDimStack, x::NoLookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safety, A::AbstractDimStack, x::NoLookup{<:AutoValues}) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
 # Arrays are set as data for AbstractDimArray
-Base.@assume_effects :effect_free function set(
-    A::AbstractDimArray, newdata::AbstractArray
-)
-    axes(A) == axes(newdata) || _axiserr(A, newdata)
+_set(::Unsafe, A::AbstractDimArray, newdata::AbstractArray) =
+    rebuild(A; data=newdata)
+function _set(::Safe, A::AbstractDimArray, newdata::AbstractArray)
+    checkaxes(dims(A), axes(newdata))
     rebuild(A; data=newdata)
 end
+# For ambiguity
+_set(s::Unsafe, A::AbstractDimStack, newdata::NamedTuple) =
+    rebuild(A; data=newdata)
 # NamedTuples are set as data for AbstractDimStack
-Base.@assume_effects :effect_free function set(
-    s::AbstractDimStack, newdata::NamedTuple
+function _set(
+    ::Safety, st::AbstractDimStack, newdata::NamedTuple
 )
-    dat = data(s)
+    dat = parent(st)
     keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
-    map(dat, newdata) do d, nd
-        axes(d) == axes(nd) || _axiserr(d, nd)
+    # Make sure the data matches the dimensions
+    map(layerdims(st), newdata) do lds, nd
+        # TODO a message with the layer name could help here
+        checkaxes(dims(st, lds), axes(nd))
     end
-    rebuild(s; data=newdata)
+    rebuild(st; data=newdata)
 end
-# Other things error
-Base.@assume_effects :effect_free set(A, x) = Lookups._cantseterror(A, x)
 
-@noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
+@noinline _axiserr(a, b) = _axiserr(axes(a), axes(b))
+@noinline _axiserr(a::Tuple, b::Tuple) = 
+    throw(ArgumentError("passed in axes $b do not match the currect axes $a"))
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))
+
+_maybe_reorder(::Unsafe, A, newdims) = A
+function _maybe_reorder(::Safe, A, newdims::Tuple)
+    # Handle any changes to order
+    if map(order, dims(A)) == map(order, newdims)
+        rebuild(A; dims=newdims)
+    else
+        newdata = parent(reorder(A, map(rebuild, newdims,  order(newdims))))
+        rebuild(A; data=newdata, dims=newdims)
+    end
+end
