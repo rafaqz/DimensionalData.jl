@@ -175,7 +175,7 @@ function DimTable(x::AbstractDimArray;
         else
             Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
-        return DimTable(layers...; layernames, mergedims, kw...)
+        return DimTable(layers; layernames, mergedims, kw...)
     else
         s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
         return  DimTable(s; mergedims, kw...)

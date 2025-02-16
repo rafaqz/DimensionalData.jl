@@ -159,11 +159,10 @@ NoLookup() = NoLookup(AutoValues())
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
 # Used in @d broadcasts
-struct Length1NoLookup <: AbstractNoLookup end
-Length1NoLookup(::AbstractVector) = Length1NoLookup()
-
-rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
-Base.parent(::Length1NoLookup) = Base.OneTo(1)
+struct Length1NoLookup{A<:AbstractUnitRange} <: AbstractNoLookup 
+    data::A
+end
+Length1NoLookup() = Length1NoLookup(Base.OneTo(1))
 
 """
     AbstractSampled <: Aligned

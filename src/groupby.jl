@@ -11,24 +11,48 @@ This wrapper allows for specialisations on later broadcast or
 reducing operations, e.g. for chunk reading with DiskArrays.jl,
 because we know the data originates from a single array.
 """
-struct DimGroupByArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
-    data::A
+struct DimGroupByArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me,G} <: AbstractDimArrayGenerator{T,N,D}
+    _data::A
     dims::D
     refdims::R
     name::Na
     metadata::Me
+    grouping::G
     function DimGroupByArray(
-        data::A, dims::D, refdims::R, name::Na, metadata::Me
-    ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} where {T,N}
+        data::A, dims::D, refdims::R, name::Na, metadata::Me, grouping::G
+    ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me,G} where {T,N}
         checkdims(data, dims)
-        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
+        new{T,N,D,R,A,Na,Me,G}(data, dims, refdims, name, metadata, grouping)
     end
 end
 function DimGroupByArray(data::AbstractArray, dims::Union{Tuple,NamedTuple};
-    refdims=(), name=NoName(), metadata=NoMetadata()
+    refdims=(), name=NoName(), metadata=NoMetadata(), grouping
 )
-    DimGroupByArray(data, format(dims, data), refdims, name, metadata)
+    map(dims, grouping) do d, g
+        length(d) == length(grouping) || throw(DimensionMismatch("Dimension $(name(d)) must have same length as grouping $(length(g)), got $(length(d))"))
+    end
+    DimGroupByArray(data, format(dims, data), refdims, name, metadata, grouping)
 end
+
+@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Integer, i2::Integer, Is::Integer...)
+    I = (i1, i2, Is...)
+    @boundscheck checkbounds(ds, I...)
+    D = map(dims(ds), ds.grouping, I) do d, g, i
+        rebuild(d, g[i])
+    end
+    return @inbounds view(ds._data, D...)
+end
+# Dispatch to avoid linear indexing in multidimensional DimIndices
+@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
+    d1 = dims(ds, 1)
+    return view(ds._data, rebuild(d1, ds.grouping[1][i]))
+end
+@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,0})
+    D = map(d -> rebuild(d, :), dims(ds._data))
+    return view(ds._data, D...)
+end
+
+
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
 )
@@ -39,6 +63,29 @@ end
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
 )
     rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a regular DimArray
+end
+
+@propagate_inbounds function Base.getindex(ds::DimGroupByArray, i1::Integer, i2::Integer, Is::Integer...)
+    I = (i1, i2, Is...)
+    @boundscheck checkbounds(ds, I...)
+    D = map(dims(ds), I) do d, i
+        rebuild(d, hasdim(ds.reduced, d) ? Colon() : parent(d)[i])
+    end
+    return @inbounds view(ds._data, D...)
+end
+# Dispatch to avoid linear indexing in multidimensional DimIndices
+@propagate_inbounds function Base.getindex(ds::DimGroupByArray{<:Any,1}, i::Integer)
+    d1 = only(dims(ds))
+    if hasdim(ds.reduced, d1)
+        @boundscheck checkbounds(d1, i)
+        return view(ds._data, rebuild(d1, :))
+    else
+        return view(ds._data, rebuild(d1, parent(d1)[i]))
+    end
+end
+@propagate_inbounds function Base.getindex(ds::DimGroupByArray{<:Any,0})
+    D = map(d -> rebuild(d, :), dims(ds._data))
+    return view(ds._data, D...)
 end
 
 function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
@@ -331,14 +378,23 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
     # Get indices for each group wrapped with dims for indexing
     indices = map(rebuild, group_dims, map(last, dim_groups_indices))
 
+    @show indices
     # Hide that the parent is a DimSlices
-    views = OpaqueArray(DimSlices(A, indices))
+    views = DimSlices(A, indices)
     # Put the groupby query in metadata
     meta = map(d -> name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
     # Return a DimGroupByArray
     return DimGroupByArray(views, format(group_dims, views), (), :groupby, metadata)
 end
+
+struct GroupArray{T,N,A<:AbstractArray,G} <: AbstractArray{T,N}
+    data::A
+    grouping::G
+end
+getindex(ga::GroupedArray, i::Int...) = getindex(ga.data, i...)
+getindex(ga::GroupedArray, i::AbstractArray{<:Integer}...) = 
+    GroupArray(ga.data[i...], ga.grouping[i...])
 
 # Define the groups and find all the indices for values that fall in them
 function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
@@ -351,7 +407,8 @@ function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
          push!(inds, i)
     end
     ps = sort!(collect(pairs(indices_dict)))
-    group_dim = format(rebuild(dim, _maybe_label(labels, first.(ps))))
+    labelled = _maybe_label(labels, first.(ps))
+    group_dim = format(rebuild(dim, labelled))
     indices = last.(ps)
     return group_dim, indices
 end
