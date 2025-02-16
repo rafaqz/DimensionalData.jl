@@ -1,4 +1,5 @@
 const IDim = Dimension{<:StandardIndices}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 
 """
     AbstractBasicDimArray <: AbstractArray
@@ -8,7 +9,7 @@ returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
-abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+abstract type AbstractBasicDimArray{T,N,D<:MaybeDimTuple} <: AbstractArray{T,N} end
 
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
@@ -94,10 +95,23 @@ metadata(A::AbstractDimArray) = A.metadata
 
 layerdims(A::AbstractDimArray) = basedims(A)
 
-@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+"""
+    rebuildsliced(f::Function, A::AbstractBasicDimArray, I)
+
+Rebuild `AbstractDimArray` where `f` is `getindex` , `view` or `dotview`.
+
+This does not need to be defined for `AbstractDimArray`, as `f`
+is simply called on the parent array, dims and refdims are sliced with `slicedims`, 
+and `rebuild` is called.
+
+However for custom `AbstractBasicDimArray`, `rebuildsliced` methods are needed
+to define slicing behavior, as there not be a parent array.
+"""
+@propagate_inbounds rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
-    rebuild(A, data, slicedims(f, A, I1)..., name)
+    data = f(parent(A), I1...)
+    return rebuild(A, data, slicedims(f, A, I1)..., name)
 end
 
 # Array interface methods ######################################################
