@@ -297,13 +297,13 @@ _maybestack(s::AbstractDimStack, xs::Tuple) = NamedTuple{keys(s)}(xs)
 # Without the `@nospecialise` here this method is also compile with the above method
 # on every call to _maybestack. And `rebuild_from_arrays` is expensive to compile.
 function _maybestack(
-    s::AbstractDimStack, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
+    s::AbstractDimStack, das::Tuple{AbstractBasicDimArray,Vararg{AbstractBasicDimArray}}
 )
     # Avoid compiling this in the simple cases in the above method
     Base.invokelatest(() -> rebuild_from_arrays(s, das))
 end
 function _maybestack(
-    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractDimArray,Vararg{AbstractDimArray}}
+    s::AbstractDimStack{<:NamedTuple{K}}, das::Tuple{AbstractBasicDimArray,Vararg{AbstractBasicDimArray}}
 ) where K
     Base.invokelatest(() -> rebuild_from_arrays(s, das))
 end
@@ -410,9 +410,9 @@ struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
         new{K,T,N,L,D,R,typeof(values(layerdims)),M,typeof(values(layermetadata))}(data, dims, refdims, layerdims, metadata, layermetadata)
     end
 end
-DimStack(@nospecialize(das::AbstractDimArray...); kw...) = DimStack(collect(das); kw...)
-DimStack(@nospecialize(das::Tuple{Vararg{AbstractDimArray}}); kw...) = DimStack(collect(das); kw...)
-function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
+DimStack(@nospecialize(das::AbstractBasicDimArray...); kw...) = DimStack(collect(das); kw...)
+DimStack(@nospecialize(das::Tuple{Vararg{AbstractBasicDimArray}}); kw...) = DimStack(collect(das); kw...)
+function DimStack(@nospecialize(das::AbstractArray{<:AbstractBasicDimArray});
     metadata=NoMetadata(), refdims=(),
 )
     keys_vec = uniquekeys(das)
@@ -425,7 +425,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
 
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
-function DimStack(A::AbstractDimArray;
+function DimStack(A::AbstractBasicDimArray;
     layersfrom=nothing, metadata=metadata(A), refdims=refdims(A), kw...
 )
     layers = if isnothing(layersfrom)
@@ -438,7 +438,7 @@ function DimStack(A::AbstractDimArray;
     end
     return DimStack(layers; refdims=refdims, metadata=metadata, kw...)
 end
-function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
+function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractBasicDimArray}}};
     data=map(parent, das), dims=combinedims(collect(das)), layerdims=map(basedims, das),
     refdims=(), metadata=NoMetadata(), layermetadata=map(DD.metadata, das)
 )

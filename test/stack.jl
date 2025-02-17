@@ -358,3 +358,27 @@ end
     @test ds[Z = 1:2] == ds
 
 end
+
+@testset "DimStack with DimIndices" begin
+
+    @testset "Constructors" begin
+        di = DimIndices(da1)
+        @test DimStack((one=A, two=2A, three=3A, four = di), dimz) ==
+            DimStack((one=da1, two=da2, three=da3, four = di), dimz) ==
+            DimStack((one=da1, two=da2, three=da3, four = di))
+    end
+
+    da = rand(X(1:10), Y(2:10))
+    di = DimIndices(da)
+    dp = DimPoints(da)
+
+    @test_nowarn DimStack((; indices = di, points = dp))
+
+    ds = @test_nowarn DimStack((; data = da, indices = di, points = dp))
+
+    @test ds.data == da
+    @test ds.indices == di
+    @test ds.points == dp
+
+    @test ds[1] == (data = da[1], indices = di[1], points = dp[1])
+end
