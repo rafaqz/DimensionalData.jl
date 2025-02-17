@@ -34,7 +34,8 @@ end
     end |> permutedims
     gb_sum = sum.(groupby(A, Ti=>month, X => >(1.5)))
     @test dims(gb_sum, Ti) == Ti(Sampled([1:12...], ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata()))
-    @test typeof(dims(gb_sum, X)) == typeof(X(Sampled(BitVector([false, true]), ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata())))
+    @test typeof(dims(gb_sum, X)) ==
+        X{Sampled{Bool, DimensionalData.HiddenVector{Bool, BitVector, Vector{Vector{Int64}}}, ForwardOrdered, Irregular{Tuple{Nothing, Nothing}}, Points, NoMetadata}}
     @test gb_sum == manualsums
 
     manualsums_st = mapreduce(hcat, months) do m
@@ -44,7 +45,6 @@ end
     end |> permutedims
     gb_sum_st = sum.(groupby(st, Ti=>month, X => >(1.5))) 
     @test dims(gb_sum_st, Ti) == Ti(Sampled([1:12...], ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata()))
-    @test typeof(dims(gb_sum_st, X)) == typeof(X(Sampled(BitVector([false, true]), ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata())))
     @test gb_sum_st == manualsums_st
 
     @test_throws ArgumentError groupby(st, Ti=>month, Y=>isodd)
@@ -67,7 +67,7 @@ end
     B = rand(X(xs; sampling=Intervals(Start())), Ti(dates; sampling=Intervals(Start())))
     gb = groupby(A, B)
     @test size(gb) === size(B) === size(mean.(gb))
-    @test dims(gb) === dims(B) === dims(mean.(gb))
+    @test parent(lookup(gb, X)) == parent(lookup(B, X)) == parent(lookup(mean.(gb), X))
     manualmeans = mapreduce(hcat, intervals(dates)) do d
         map(intervals(xs)) do x
             mean(A[X=x, Ti=d])
@@ -89,6 +89,7 @@ end
     month_length = DimArray(daysinmonth, dims(A, Ti))
     g_tempo = DimensionalData.groupby(month_length, Ti=>seasons(; start=December))
     sum_days = sum.(g_tempo, dims=Ti)
+    bc = DimensionalData.STORE[]
     @test sum_days isa DimArray
     weights = map(./, g_tempo, sum_days)
     @test sum_days isa DimArray

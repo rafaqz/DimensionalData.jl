@@ -208,6 +208,7 @@ end
         @test b == da[1:2:end] == da[Begin:2:End]  
         
         v = @inferred da[1, :]
+        @test v isa DimVector
         @test @inferred v[1:2] isa DimArray
         @test @inferred v[rand(Bool, length(v))] isa DimArray
         b = v[[!iseven(i) for i in 1:length(v)]]

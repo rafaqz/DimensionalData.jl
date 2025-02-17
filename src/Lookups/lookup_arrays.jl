@@ -32,6 +32,7 @@ Base.first(l::Lookup) = first(parent(l))
 Base.last(l::Lookup) = last(parent(l))
 Base.firstindex(l::Lookup) = firstindex(parent(l))
 Base.lastindex(l::Lookup) = lastindex(parent(l))
+Base.parentindices(l::Lookup) = parentindices(parent(l))
 function Base.:(==)(l1::Lookup, l2::Lookup)
     basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
 end

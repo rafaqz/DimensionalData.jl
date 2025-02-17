@@ -16,11 +16,6 @@ eldims(di::AbstractDimArrayGenerator, d) = dims(eldims(di), d)
 Base.size(dg::AbstractDimArrayGenerator) = map(length, dims(dg))
 Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 
-Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::DimTuple) where T =
-    dimconstructor(D)(A; data=similar(Array{T}, size(D)), dims=D, refdims=(), metadata=NoMetadata())
-Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
-    dimconstructor(D)(A; data=similar(Array{T}, ()), dims=(), refdims=(), metadata=NoMetadata())
-
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
     rebuild(A; dims=reverse(dims(A)))
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
@@ -47,13 +42,15 @@ as simply doing `slicedims` on `dims` and `refdims` and rebuilding.
 """
 abstract type AbstractRebuildableDimArrayGenerator{T,N,D,R<:MaybeDimTuple} <: AbstractDimArrayGenerator{T,N,D} end
 
-_refdim_firsts(ds::AbstractRebuildableDimArrayGenerator) = map(d -> rebuild(d, first(d)), refdims(ds))
+refdims(A::AbstractRebuildableDimArrayGenerator) = A.refdims
+
+_refdims_firsts(A::AbstractRebuildableDimArrayGenerator) = map(d -> rebuild(d, first(d)), refdims(A))
 
 # Custom rebuildsliced where data is ignored, and just dims and refdims are slices
 # This makes sense for AbstractRebuildableDimArrayGenerator because Arrays are
 # generated in getindex from the dims/refdims combination.
 # `f` is ignored, and views are always used
-@propagate_inbounds function rebuildsliced(f::Function, A::AbstractRebuildableDimArrayGenerator, I...)
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractRebuildableDimArrayGenerator, I)
     dims, refdims = slicedims(view, A, I)
     return rebuild(A; dims, refdims)
 end
@@ -141,19 +138,19 @@ DimIndices(dim::Dimension) = DimIndices((dim,))
 DimIndices(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
 
 # Forces multiple indices not linear
-function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
-    dis = map(dims(di), (i1, i2, I...)) do d, i
+function Base.getindex(A::DimIndices, i1::Integer, i2::Integer, I::Integer...)
+    dis = map(dims(A), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
     end
-    dims((dis..., _refdim_firsts(di)...), orderdims(di))
+    dims((dis..., _refdims_firsts(A)...), orderdims(A))
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
-function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
-    d = eldims(di, 1)
+function Base.getindex(A::DimIndices{<:Any,1}, i::Integer)
+    d = dims(A, 1)
     di = rebuild(d, d[i])
-    return dims((di, _refdim_firsts(di)...), orderdims(di))
+    return dims((di, _refdims_firsts(A)...), orderdims(A))
 end
-Base.getindex(di::DimIndices{<:Any,0}) = dims(_refdim_firsts(di), orderdims(di))
+Base.getindex(A::DimIndices{<:Any,0}) = dims(_refdims_firsts(A), orderdims(A))
 
 _dimindices_format(dims::Tuple{}) = ()
 _dimindices_format(dims::Tuple) = map(rebuild, dims, map(_dimindices_axis, dims))
@@ -193,7 +190,7 @@ struct DimPoints{T,N,D,R,O} <: AbstractDimVals{T,N,D,R,O}
     dims::D
     refdims::R
     orderdims::O
-    function DimPoints(dims::Tuple, refdims::Tuple, orderdims::Tuple)
+    function DimPoints(dims::D, refdims::R, orderdims::O) where {D<:MaybeDimTuple,R<:MaybeDimTuple,O<:MaybeDimTuple}
         eldims = DD.dims((dims..., refdims...), orderdims)
         T = Tuple{map(eltype, eldims)...}
         N = length(dims)
@@ -206,21 +203,23 @@ function DimPoints(dims::Tuple, order::Tuple)
     DimPoints(dims, (), basedims(order))
 end
 
-function Base.getindex(dp::DimPoints, i1::Integer, i2::Integer, I::Integer...)
+function Base.getindex(A::DimPoints, i1::Integer, i2::Integer, I::Integer...)
     # Get dim-wrapped point values at i1, I...
-    pointdims = map(dims(dp), (i1, i2, I...)) do d, i
+    pointdims = map(dims(A), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
     end
     # Return the unwrapped point sorted by `order
-    return map(val, DD.dims((pointdims..., _refdim_imds(dp)...), orderdims(dp)))
+    return map(val, DD.dims((pointdims..., _refdims_firsts(A)...), orderdims(A)))
 end
-function Base.getindex(dp::DimPoints{<:Any,1}, i::Integer) 
+function Base.getindex(A::DimPoints{<:Any,1}, i::Integer) 
     # Get dim-wrapped point values at i1, I...
-    pointdim = (dims(dp, 1)[i],)
+    d1 = dims(A, 1)
+    pointdim = rebuild(d1, d1[i])
     # Return the unwrapped point sorted by `order
-    return map(val, dims((pointdim, _refdim_firsts(dp)...), orderdims(dp)))
+    D = dims((pointdim, _refdims_firsts(A)...), orderdims(A))
+    return map(val, D)
 end
-Base.getindex(dp::DimPoints{<:Any,0}) = map(val, dims(_refdim_firsts(dp), orderdims(dp)))
+Base.getindex(A::DimPoints{<:Any,0}) = map(val, dims(_refdims_firsts(A), orderdims(A)))
 
 """
     DimSelectors <: AbstractArray
@@ -275,7 +274,7 @@ struct DimSelectors{T,N,D,R,O,S<:Tuple} <: AbstractDimVals{T,N,D,R,O}
     orderdims::O
     selectors::S
     function DimSelectors(dims::D, refdims::R, orderdims::O, selectors::S) where {D<:Tuple,R<:Tuple,O<:Tuple,S<:Tuple}
-        eldims = dims((dims..., refdims...), orderdims)
+        eldims = DD.dims((dims..., refdims...), orderdims)
         T = _selector_eltype(eldims, selectors)
         N = length(dims)
         new{T,N,D,R,O,S}(dims, refdims, orderdims, selectors)
@@ -293,19 +292,26 @@ function DimSelectors(dims::MaybeDimTuple, selectors::Tuple)
     DimSelectors(dims, refdims, orderdims, selectors)
 end
 
-@propagate_inbounds function Base.getindex(di::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
-    D = map(rebuild, dims(di), (i1, i2, I...))
-    R = _refdim_firsts(di)
-    map(dims((D..., R...), orderdims(di)), di.selectors) do d, s
+@propagate_inbounds function Base.getindex(A::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
+    D = map(dims(A), (i1, i2, I...)) do d, i
+        rebuild(d, d[i])
+    end
+    return _rebuild_selectors(A, D)
+end
+@propagate_inbounds function Base.getindex(A::DimSelectors{<:Any,1}, i::Integer)
+    d1 = dims(A, 1)
+    d = rebuild(d1, d1[i])
+    return _rebuild_selectors(A, (d,))
+end
+@propagate_inbounds Base.getindex(A::DimSelectors{<:Any,0}) =
+    _rebuild_selectors(A, ())
+
+function _rebuild_selectors(A, D)
+    sorteddims = dims((D..., _refdims_firsts(A)...), orderdims(A))
+    map(sorteddims, A.selectors) do d, s
         rebuild(d, rebuild(s; val=val(d)))
     end
 end
-@propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Integer)
-    sel = rebuild(di.selectors[1]; val=d[i])
-    rebuild(d, sel)
-end
-@propagate_inbounds Base.getindex(di::DimSelectors{<:Any,0}) = 
-    (rebuild(eldims(di, 1)d, rebuild(di.selectors[1])),)
 
 _selector_eltype(dims::Tuple, selectors::Tuple) =
     Tuple{map(_selector_eltype, dims, selectors)...}
@@ -369,56 +375,70 @@ or `AbstractVector{<:AbstractVector{Int}}`.
 - `drop`: whether to drop dimensions from the outer array or keep the 
     same dimensions as the inner view, but with length 1.
 """
-struct DimSlices{T,N,D,R,P,Red} <: AbstractRebuildableDimArrayGenerator{T,N,D,R}
+struct DimSlices{T,N,D,R,P,U} <: AbstractRebuildableDimArrayGenerator{T,N,D,R}
     _data::P
     dims::D
     refdims::R
-    reduced::Red
+    reduced::U
 end
 DimSlices(x; dims, drop=true) = DimSlices(x, dims; drop)
 DimSlices(x, dim; kw...) = DimSlices(x, (dim,); kw...)
 function DimSlices(x, dims::Tuple; drop::Union{Bool,Nothing}=nothing)
-    P = typeof(x)
-    if isnothing(drop) || drop
+    dims = DD.dims(x, dims)
+    refdims = ()
+    inds = if length(dims) == 0
+        map(d -> rebuild(d, :), DD.dims(x))
+    else
+        map(d -> rebuild(d, firstindex(d)), dims)
+    end
+    slicedims, reduced = if isnothing(drop) || drop
         # We have to handle filling in colons for no dims because passing 
         # no dims at all is owned by base to mean A[] not A[D1(:), D2(:), D3(:)]
-        inds = if length(dims) == 0
-            map(d -> rebuild(d, :), DD.dims(x))
-        else
-            map(d -> rebuild(d, first(d)), dims)
-        end
-        T = typeof(view(x, inds...))
-        N = length(dims)
-        D = typeof(dims)
-        reduced = ()
-        return DimSlices{T,N,D,P}(x, dims, reduced)
+        dims, ()
     else
         # Get other dimensions as length 1
         reduced = map(otherdims(x, dims)) do o
             reducedims(o)
         end
         # Re-sort to x dim order
-        eldims = DD.dims((reduced..., dims...), DD.dims(x))
-        # `getindex` returns these views
-        T = typeof(view(x, inds...))
-        N = length(eldims)
-        D = typeof(eldims)
-        return DimSlices{T,N,D,P}(x, slicedims, basedims(reduced))
+        slicedims = DD.dims((reduced..., dims...), DD.dims(x))
+        sliceddims, basedims(reduced)
     end
+    T = typeof(view(x, inds...))
+    N = length(slicedims)
+    D = typeof(slicedims)
+    R = typeof(refdims)
+    A = typeof(x)
+    U = typeof(reduced)
+    return DimSlices{T,N,D,R,A,U}(x, slicedims, refdims, reduced)
 end
 
-rebuild(ds::A; dims, refdims, reduced=ds.reduced) where {A<:DimSlices{T,N}} where {T,N} =
-    DimSlices(ds._data, dims, refdims, reduced)
+function rebuild(ds::DimSlices{T,N}; 
+    dims::D, refdims::R, reduced::U=ds.reduced
+) where {T,N,D,R,U}
+    A = typeof(ds._data)
+    DimSlices{T,N,D,R,A,U}(ds._data, dims, refdims, reduced)
+end
+@propagate_inbounds function rebuildsliced(::Function, A::DimSlices, I)
+    @boundscheck checkbounds(A, I...)
+    # We use `unafe_view` to force always wrapping as a view, even for ranges
+    # Then in `_refdims_firsts` we can use `first(parentindices(d))` to get the offset
+    dims, refdims = slicedims(Base.unsafe_view, A, I)
+    return rebuild(A; dims, refdims)
+end
+
+# We need to get the vist index from the view, so define this custom for DimSlices
+_refdims_firsts(A::DimSlices) = map(d -> rebuild(d, first(parentindices(d))), refdims(A))
 
 function Base.summary(io::IO, A::DimSlices{T,N}) where {T,N}
     print_ndims(io, size(A))
     print(io, string(nameof(typeof(A)), "{$(nameof(T)),$N}"))
 end
 
-@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Integer, i2::Integer, Is::Integer...)
+@propagate_inbounds function Base.getindex(A::DimSlices, i1::Integer, i2::Integer, Is::Integer...)
     I = (i1, i2, Is...)
-    D = map(dims(ds), I) do d, i
-        i1 = if hasdim(ds.reduced, d) 
+    D = map(dims(A), I) do d, i
+        i1 = if hasdim(A.reduced, d) 
             @boundscheck checkbounds(d, i)
             Colon()
         else
@@ -426,22 +446,28 @@ end
         end
         return rebuild(d, i1)
     end
-    R = _refdim_firsts(ds)
-    return view(ds._data, D..., R...)
+    R = _refdims_firsts(A)
+    return view(A._data, D..., R...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
-@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
-    d1 = dims(ds, 1)
-    d = if hasdim(ds.reduced, d1)
+@propagate_inbounds function Base.getindex(A::DimSlices{<:Any,1}, i::Integer)
+    d1 = dims(A, 1)
+    d = if hasdim(A.reduced, d1)
         @boundscheck checkbounds(d1, i)
         rebuild(d1, :)
     else
         rebuild(d1, eachindex(d1)[i])
     end
-    return view(ds._data, d, _refdim_firsts(ds))
+    return view(A._data, d, _refdims_firsts(A)...)
 end
-@propagate_inbounds Base.getindex(ds::DimSlices{<:Any,0}) =
-    view(ds._data, _refdim_firsts(ds)...)
+@propagate_inbounds function Base.getindex(A::DimSlices{<:Any,0})
+    R = _refdims_firsts(A)
+    # Need to manually force the Colons in case there are no dims at all
+    D = map(otherdims(A._data, R)) do d
+        rebuild(d, :)
+    end
+    view(A._data, D..., R...)
+end
 
 # Extends the dimensions of any `AbstractBasicDimArray`
 # as if the array assigned into a larger array across all dimensions,
@@ -465,8 +491,7 @@ DimExtensionArray(A::AbstractBasicDimArray, dims::Tuple; refdims=refdims(A)) =
 name(A::DimExtensionArray) = name(A._data)
 metadata(A::DimExtensionArray) = metadata(A._data)
 
-@propagate_inbounds function rebuildsliced(f::Function, de::DimExtensionArray, i1, i2, Is...)
-    I = (i1, i2, Is...)
+@propagate_inbounds function rebuildsliced(f::Function, de::DimExtensionArray, I)
     newdims, newrefdims = slicedims(dims(de), refdims(de), I)
     D = map(rebuild, dims(de), I)
     A = de._data
@@ -484,11 +509,11 @@ metadata(A::DimExtensionArray) = metadata(A._data)
     end
 end
 @propagate_inbounds function rebuildsliced(
-    f::Function, de::DimExtensionArray{<:Any,1}, i::Union{Colon,AbstractRange}
+    f::Function, de::DimExtensionArray{<:Any,1}, I::Tuple{<:Union{Colon,AbstractRange}}
 )
-    newdims, _ = slicedims(dims(de), (i,))
+    newdims, _ = slicedims(dims(de), I)
     A = de._data
-    D = rebuild(only(dims(de)), i)
+    D = rebuild(only(dims(de)), only(I))
     rebuild(de; dims=newdims, _data=A[D...])
 end
 

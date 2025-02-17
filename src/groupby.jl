@@ -11,47 +11,42 @@ This wrapper allows for specialisations on later broadcast or
 reducing operations, e.g. for chunk reading with DiskArrays.jl,
 because we know the data originates from a single array.
 """
-struct DimGroupByArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me,G} <: AbstractDimArrayGenerator{T,N,D}
+struct DimGroupByArray{T,N,D,R,A,Na,Me} <: AbstractRebuildableDimArrayGenerator{T,N,D,R}
     _data::A
     dims::D
     refdims::R
     name::Na
     metadata::Me
-    grouping::G
-    function DimGroupByArray(
-        data::A, dims::D, refdims::R, name::Na, metadata::Me, grouping::G
-    ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me,G} where {T,N}
-        checkdims(data, dims)
-        new{T,N,D,R,A,Na,Me,G}(data, dims, refdims, name, metadata, grouping)
-    end
+end
+function DimGroupByArray(_data::A, dims::D, refdims::R, name::Na, metadata::Me) where {D,R,A,Na,Me}
+    T = typeof(view(_data, firstgroupinds(dims)...))
+    N = length(dims) 
+    DimGroupByArray{T,N,D,R,A,Na,Me}(_data, dims, refdims, name, metadata)
 end
 function DimGroupByArray(data::AbstractArray, dims::Union{Tuple,NamedTuple};
-    refdims=(), name=NoName(), metadata=NoMetadata(), grouping
+    refdims=(), name=NoName(), metadata=NoMetadata()
 )
-    map(dims, grouping) do d, g
-        length(d) == length(grouping) || throw(DimensionMismatch("Dimension $(name(d)) must have same length as grouping $(length(g)), got $(length(d))"))
-    end
-    DimGroupByArray(data, format(dims, data), refdims, name, metadata, grouping)
+    DimGroupByArray(data, format(dims, data), refdims, name, metadata)
 end
 
-@propagate_inbounds function Base.getindex(ds::DimSlices, i1::Integer, i2::Integer, Is::Integer...)
-    I = (i1, i2, Is...)
-    @boundscheck checkbounds(ds, I...)
-    D = map(dims(ds), ds.grouping, I) do d, g, i
-        rebuild(d, g[i])
+function groupinds(A::DimGroupByArray, I::Integer...)
+    # Get the group indices for each dimension
+    D = groupinds(dims(A), I...) 
+    # And the indices in refdims
+    R = map(refdims(A)) do d
+        rebuild(d, only(hiddenparent(d)))
     end
-    return @inbounds view(ds._data, D...)
+    # And combine them, dim indexing will fix the order later
+    return (D..., R...)
 end
-# Dispatch to avoid linear indexing in multidimensional DimIndices
-@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
-    d1 = dims(ds, 1)
-    return view(ds._data, rebuild(d1, ds.grouping[1][i]))
-end
-@propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,0})
-    D = map(d -> rebuild(d, :), dims(ds._data))
-    return view(ds._data, D...)
+function groupinds(dims::MaybeDimTuple, I::Integer...)
+    map(dims, I) do d, i
+        rebuild(d, hiddenparent(d)[i])
+    end
 end
 
+firstgroupinds(dims::MaybeDimTuple) =
+    groupinds(dims, ntuple(_ -> 1, length(dims))...)
 
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
@@ -65,28 +60,17 @@ end
     rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a regular DimArray
 end
 
-@propagate_inbounds function Base.getindex(ds::DimGroupByArray, i1::Integer, i2::Integer, Is::Integer...)
+Base.size(A::DimGroupByArray) = map(length, dims(A))
+
+@propagate_inbounds function Base.getindex(A::DimGroupByArray, i1::Integer, i2::Integer, Is::Integer...)
     I = (i1, i2, Is...)
-    @boundscheck checkbounds(ds, I...)
-    D = map(dims(ds), I) do d, i
-        rebuild(d, hasdim(ds.reduced, d) ? Colon() : parent(d)[i])
-    end
-    return @inbounds view(ds._data, D...)
+    return view(A._data, groupinds(A, I...)...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
-@propagate_inbounds function Base.getindex(ds::DimGroupByArray{<:Any,1}, i::Integer)
-    d1 = only(dims(ds))
-    if hasdim(ds.reduced, d1)
-        @boundscheck checkbounds(d1, i)
-        return view(ds._data, rebuild(d1, :))
-    else
-        return view(ds._data, rebuild(d1, parent(d1)[i]))
-    end
-end
-@propagate_inbounds function Base.getindex(ds::DimGroupByArray{<:Any,0})
-    D = map(d -> rebuild(d, :), dims(ds._data))
-    return view(ds._data, D...)
-end
+@propagate_inbounds Base.getindex(A::DimGroupByArray{<:Any,1}, i::Integer) =
+    view(A._data, groupinds(A, i)...)
+@propagate_inbounds Base.getindex(A::DimGroupByArray{<:Any,0}) =
+    view(A._data, groupinds(A)...)
 
 function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
     print_ndims(io, size(A))
@@ -365,36 +349,42 @@ function DataAPI.groupby(
     end
     return groupby(A, dims)
 end
-function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
+function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple; name=:groupby)
     length(otherdims(dimfuncs, dims(A))) > 0 &&
         Dimensions._extradimserror(otherdims(dimfuncs, dims(A)))
 
     # Get groups for each dimension
-    dim_groups_indices = map(dimfuncs) do d
+    group_dims = map(dimfuncs) do d
         _group_indices(dims(A, d), DD.val(d))
     end
-    # Separate lookups dims from indices
-    group_dims = map(first, dim_groups_indices)
-    # Get indices for each group wrapped with dims for indexing
-    indices = map(rebuild, group_dims, map(last, dim_groups_indices))
-
-    @show indices
-    # Hide that the parent is a DimSlices
-    views = DimSlices(A, indices)
     # Put the groupby query in metadata
-    meta = map(d -> name(d) => val(d), dimfuncs)
+    meta = map(d -> DD.name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
     # Return a DimGroupByArray
-    return DimGroupByArray(views, format(group_dims, views), (), :groupby, metadata)
+    return DimGroupByArray(A, map(format, group_dims), (), name, metadata)
 end
 
-struct GroupArray{T,N,A<:AbstractArray,G} <: AbstractArray{T,N}
+# An array that holds another secret array that is indexed along with it.
+# We use this to put groupings inside lookups so they are handled by `slicedims`
+struct HiddenVector{T,A<:AbstractArray{T,1},H<:AbstractArray{<:Any,1}} <: AbstractArray{T,1}
     data::A
-    grouping::G
+    hidden::H
 end
-getindex(ga::GroupedArray, i::Int...) = getindex(ga.data, i...)
-getindex(ga::GroupedArray, i::AbstractArray{<:Integer}...) = 
-    GroupArray(ga.data[i...], ga.grouping[i...])
+
+Base.getindex(A::HiddenVector, i::Int) = getindex(A.data, i)
+Base.view(A::HiddenVector, i::Int) = 
+    HiddenVector(view(A.data, i...), view(A.hidden, i))
+for f in (:view, :getindex)
+    @eval Base.$f(A::HiddenVector, i::Union{Colon,AbstractArray}) =
+        HiddenVector(Base.$f(A.data, i), Base.$f(A.hidden, i))
+end
+Base.parent(A::HiddenVector) = A.hidden
+Base.size(A::HiddenVector) = size(A.data)
+
+hiddenparent(A::HiddenVector) = A.hidden
+hiddenparent(A::Dimension) = hiddenparent(parent(A))
+hiddenparent(A::AbstractArray) = hiddenparent(parent(A))
+hiddenparent(A::Array) = error("HiddenVector not found")
 
 # Define the groups and find all the indices for values that fall in them
 function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
@@ -407,10 +397,12 @@ function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
          push!(inds, i)
     end
     ps = sort!(collect(pairs(indices_dict)))
-    labelled = _maybe_label(labels, first.(ps))
-    group_dim = format(rebuild(dim, labelled))
+    lookupvals = _maybe_label(labels, first.(ps))
     indices = last.(ps)
-    return group_dim, indices
+    # We combine lookup values and indices into on array
+    lookup_and_indices = HiddenVector(lookupvals, indices)
+    # And wrap and format them as a dimension
+    return format(rebuild(dim, lookup_and_indices))
 end
 function _group_indices(dim::Dimension, group_lookup::Lookup; labels=nothing)
     orig_lookup = lookup(dim)
@@ -419,13 +411,15 @@ function _group_indices(dim::Dimension, group_lookup::Lookup; labels=nothing)
         n = selectindices(group_lookup, Contains(v); err=Lookups._False())
         isnothing(n) || push!(indices[n], i)
     end
-    group_dim = if isnothing(labels)
-        rebuild(dim, group_lookup)
+    lookupvals = if isnothing(labels)
+        group_lookup
     else
-        label_lookup = _maybe_label(labels, group_lookup)
-        rebuild(dim, label_lookup)
+        _maybe_label(labels, group_lookup)
     end
-    return group_dim, indices
+    # We combine lookup values and indices into on array
+    lookup_and_indices = HiddenVector(lookupvals, indices)
+    # And wrap and format them as a dimension
+    return format(rebuild(dim, lookup_and_indices))
 end
 function _group_indices(dim::Dimension, bins::AbstractBins; labels=bins.labels)
     l = lookup(dim)
