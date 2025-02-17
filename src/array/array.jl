@@ -111,6 +111,10 @@ to define slicing behavior, as there not be a parent array.
 @propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
     data = f(parent(A), I1...)
+    return rebuildsliced(A, data, I1, name)
+end
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
     return rebuild(A, data, slicedims(f, A, I1)..., name)
 end
 

@@ -103,7 +103,7 @@ function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}})
     isnothing(fda) || _comparedims_broadcast(fda, _broadcasted_dims(bc)...)
     copyto!(dest, _unwrap_broadcasted(bc))
 end
-function Base.copyto!(dest::AbstractArray, bc::Broadcasted{BasicDimensionalStyle{N}}) where S
+function Base.copyto!(dest::AbstractArray, bc::Broadcasted{BasicDimensionalStyle{N}}) where N
     fda = _firstdimarray(bc) 
     isnothing(fda) || _comparedims_broadcast(fda, _broadcasted_dims(bc)...)
     copyto!(dest, bc)
