@@ -25,7 +25,6 @@ for f in (:getindex, :view, :dotview)
             Base.$f(parent(A), i)
     end
     @eval begin
-
         ### Standard indices
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndex) =
             Base.$f(A, to_indices(A, (I,))...)
@@ -33,11 +32,6 @@ for f in (:getindex, :view, :dotview)
             Base.$f(A, to_indices(A, (I,))...)
         @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, Is::IntegerOrCartesian...) =
             Base.$f(A, to_indices(A, (i1, i2, Is...))...)
-        # @eval @propagate_inbounds function Base.$f(
-        #     A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, I::IntegerOrCartesian...
-        # )
-        #     Base.$f(A, to_indices(A, (i1, i2, I...))...)
-        # end
         # 1D DimArrays dont need linear indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
             rebuildsliced(Base.$f, A, (i,))
@@ -53,12 +47,6 @@ for f in (:getindex, :view, :dotview)
             Base.$f(A, dims2indices(A, (i,))...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             rebuildsliced(Base.$f, A, dims2indices(A, (i1, i2, I...)))
-
-        ### Other/custom indexing
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i) =
-            Base.$f(A, to_indices(A, (Lookups._construct_types(i),))...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1, i2, Is...) =
-            Base.$f(A, to_indices(A, Lookups._construct_types(i1, i2, Is...))...)
 
         # Extent indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Extents.Extent) =
@@ -78,24 +66,15 @@ for f in (:getindex, :view, :dotview)
             $_dim_f(A, _simplify_dim_indices(d1, kw2dims(values(kw))...)...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, d1::DimensionalIndices, d2::DimensionalIndices, D::DimensionalIndices...; kw...) =
             $_dim_f(A, _simplify_dim_indices(d1, d2, D..., kw2dims(values(kw))...)...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::_DimIndicesAmb,  i2::_DimIndicesAmb, I::_DimIndicesAmb...) =
-            $_dim_f(A, _simplify_dim_indices(i1, i2, I...)...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimensionalIndices) =
             $_dim_f(A, _simplify_dim_indices(i)...)
-        # For ambiguity
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::DimIndices) = $_dim_f(A, _simplify_dim_indices(i))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::DimSelectors) = $_dim_f(A, _simplify_dim_indices(i))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::_DimIndicesAmb) = $_dim_f(A, _simplify_dim_indices(i))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimIndices) = $_dim_f(A, _simplify_dim_indices(i))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::DimSelectors) = $_dim_f(A, _simplify_dim_indices(i))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::_DimIndicesAmb) = $_dim_f(A, _simplify_dim_indices(i))
-
+ 
         # All dimension indexing is passed to these underscore methods to minimise ambiguities
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::DimTuple) = $_dim_f(A, ds...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) = 
-            $_dim_f(A, dims2indices(A, (d1, ds...))...)
+            $f(A, dims2indices(A, (d1, ds...))...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::Dimension...) = 
-            $_dim_f(A, dims2indices(A, ds...)...)
+            $f(A, dims2indices(A, ds...)...)
         # Regular non-dimensional indexing
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, i1, I...) = Base.$f(A, i1, I...)
         # Catch the edge case dims were passed but did not match - 

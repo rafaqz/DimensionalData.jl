@@ -111,7 +111,7 @@ to define slicing behavior, as there not be a parent array.
 @propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
     data = f(parent(A), I1...)
-    return rebuildsliced(A, data, I1, name)
+    return rebuildsliced(f, A, data, I1, name)
 end
 @propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
@@ -308,7 +308,7 @@ Base.similar(A::AbstractDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) w
     similar(parent(A), T, shape)
 
 _arraytype(::Type{T}) where T = Array{T}
-_arraytype(::Type{Bool}) where T = BitArray
+_arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))

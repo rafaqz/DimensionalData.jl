@@ -117,7 +117,7 @@ julia> A[di] # Index A with these indices
  0.6  0.745673  0.692209
 ```
 """
-struct DimIndices{T,N,D,R,O} <: AbstractDimIndices{T,N,D,R,O}
+struct DimIndices{T<:MaybeDimTuple,N,D,R,O} <: AbstractDimIndices{T,N,D,R,O}
     dims::D
     refdims::R
     orderdims::O
@@ -186,7 +186,7 @@ that defines a `dims` method can be passed in.
 
 - `order`: determines the order of the points, the same as the order of `dims` by default.
 """
-struct DimPoints{T,N,D,R,O} <: AbstractDimVals{T,N,D,R,O}
+struct DimPoints{T<:Tuple,N,D,R,O} <: AbstractDimVals{T,N,D,R,O}
     dims::D
     refdims::R
     orderdims::O
@@ -268,7 +268,7 @@ Using `At` would make sure we only use exact interpolation,
 while `Contains` with sampling of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
-struct DimSelectors{T,N,D,R,O,S<:Tuple} <: AbstractDimVals{T,N,D,R,O}
+struct DimSelectors{T<:MaybeDimTuple,N,D,R,O,S<:Tuple} <: AbstractDimVals{T,N,D,R,O}
     dims::D
     refdims::R
     orderdims::O
