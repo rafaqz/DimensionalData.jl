@@ -37,16 +37,16 @@ for f in (:getindex, :view, :dotview)
             rebuildsliced(Base.$f, A, (i,))
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
-        @eval @propagate_inbounds function Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...)
-            I = to_indices(A, (i1, i2, Is...))
-            rebuildsliced(Base.$f, A, I)
-        end
+        @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...) =
+            rebuildsliced(Base.$f, A, to_indices(A, (i1, i2, Is...)))
 
         ### Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::SelectorOrInterval) = 
             Base.$f(A, dims2indices(A, (i,))...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
-            rebuildsliced(Base.$f, A, dims2indices(A, (i1, i2, I...)))
+            Base.$f(A, dims2indices(A, (i1, i2, I...))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::Selector{<:Extents.Extent}) = 
+            Base.$f(A, dims2indices(A, i)...)
 
         # Extent indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, extent::Extents.Extent) =
@@ -56,8 +56,9 @@ for f in (:getindex, :view, :dotview)
 
         ### Dimension indexing
         @propagate_inbounds function Base.$f(A::AbstractBasicDimArray; kw...)
+            # Need to use one method and check keywords to avoid method overwrites
             if isempty(kw)
-                rebuildsliced($f, A, ())
+                rebuildsliced(Base.$f, A, ())
             else
                 $_dim_f(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
             end
@@ -71,16 +72,14 @@ for f in (:getindex, :view, :dotview)
  
         # All dimension indexing is passed to these underscore methods to minimise ambiguities
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::DimTuple) = $_dim_f(A, ds...)
-        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) = 
-            $f(A, dims2indices(A, (d1, ds...))...)
-        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::Dimension...) = 
-            $f(A, dims2indices(A, ds...)...)
+        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
+            Base.$f(A, dims2indices(A, (d1, ds...))...)
         # Regular non-dimensional indexing
-        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, i1, I...) = Base.$f(A, i1, I...)
+        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, I...) = Base.$f(A, I...)
         # Catch the edge case dims were passed but did not match - 
         # we want to index with all colons [:, :, ...], not []
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray{<:Any,N}) where N =
-            rebuildsliced($f, A, ntuple(i -> Colon(), Val(N)))
+            rebuildsliced(Base.$f, A, ntuple(i -> Colon(), Val(N)))
         @propagate_inbounds function $_dim_f(
             A::AbstractBasicDimArray, 
             d1::Union{Dimension,DimensionIndsArrays}, 
@@ -90,7 +89,7 @@ for f in (:getindex, :view, :dotview)
         end
         @propagate_inbounds function $_dim_f(A::AbstractBasicDimArray{<:Any,0}, d1::Dimension, ds::Dimension...)
             Dimensions._extradimswarn((d1, ds...))
-            return rebuildsliced($f, A, ())
+            return rebuildsliced(Base.$f, A, ())
         end
     end
 
@@ -243,3 +242,7 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     view(A, args...; kw...)
 @propagate_inbounds Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
     view(A, args...; kw...)
+
+# We only own this to_indices dispatch for AbstractBasicDimArray
+Base.to_indices(A::AbstractBasicDimArray, inds, (r, args...)::Tuple{<:Type,Vararg}) =
+    (Lookups._to_index(inds[1], r), to_indices(A, Base.tail(inds), args)...)

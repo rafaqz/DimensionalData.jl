@@ -501,6 +501,7 @@ end
     @testset "mixed dimensions" begin
         a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
         da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
+        da[1, End(), Begin(), 1]
         da[Ti=1, DimIndices(da[Ti=1])]
         da[DimIndices(da[Ti=1]), Ti(2)]
         da[DimIndices(da[Ti=1])[:], Ti(2)]

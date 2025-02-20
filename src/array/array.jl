@@ -267,14 +267,10 @@ function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
 end
 
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = 
+Base.similar(A::AbstractBasicDimArray, D::MaybeDimTuple; kw...) = 
     Base.similar(A, eltype(A), D; kw...) 
-function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::DimTuple; 
-    refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
-) where T
-    data = _arraytype(T)(undef, _dimlength(D))
-    dims = _maybestripval(D)
-    return rebuild(A; data, dims, refdims, metadata, name, kw...)
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, d1::Dimension, D::Dimension...; kw...) where T
+    Base.similar(A, T, (d1, D...); kw...)
 end
 function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Tuple{};
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
@@ -286,7 +282,7 @@ end
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    data = similar(parent(A), T, _dimlength(D))
+    data = _arraytype(T)(undef, _dimlength(D))
     dims = _maybestripval(D)
     return rebuild(A; data, dims, refdims, metadata, name, kw...)
 end
