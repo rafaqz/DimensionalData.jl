@@ -90,6 +90,7 @@ end
     raw_data = rand(100, 100, 2)
     chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
     da = DimArray(chunked_data, (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z()))
+    st = DimStack((a = da, b = da))
 
     @testset "cache" begin
         @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
@@ -107,9 +108,12 @@ end
     end
     @testset "pad" begin
         p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
-        @test size(p) == (105, 190, 2)
-        @test dims(p) == map(DimensionalData.format, (X(-1.0:100.0), Y(collect(-30:10:1050); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
+        pst = DiskArrays.pad(st, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        @test size(p) == size(pst) == (105, 190, 2)
+        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:100.0), Y(collect(-30:10:1050); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
         @test sum(p) ≈ sum(da) + prod(size(p)) - prod(size(da))
+        maplayers(pst) do A
+            @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
+        end
     end
-
 end

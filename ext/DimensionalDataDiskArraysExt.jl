@@ -28,12 +28,17 @@ end
 end
 
 @static if isdefined(DiskArrays, :pad)
-    DiskArrays.pad(x::AbstractDimArray, padding::Tuple{Vararg{Tuple{<:Integer,<:Integer}}}; kw...) =
+    DiskArrays.pad(x::Union{AbstractDimArray,AbstractDimStack}, padding::Tuple{Vararg{Tuple{<:Integer,<:Integer}}}; kw...) =
         DiskArrays.pad(x, map(rebbuild, dims(x, padding)))
-    DiskArrays.pad(x::AbstractDimArray, padding::NamedTuple; kw...) =
+    DiskArrays.pad(x::Union{AbstractDimArray,AbstractDimStack}, padding::NamedTuple; kw...) =
         DiskArrays.pad(x, DD.kw2dims(padding); kw...)
-    DiskArrays.pad(x::AbstractDimArray, p1::Pair, pairs::Pair...; kw...) =
+    DiskArrays.pad(x::Union{AbstractDimArray,AbstractDimStack}, p1::Pair, pairs::Pair...; kw...) =
         DiskArrays.pad(x, DD.Dimensions.pairs2dims(p1, pairs...); kw...)
+    function DiskArrays.pad(x::AbstractDimStack, padding::DD.DimTuple; kw...)
+        DD.maplayers(x) do A
+            DiskArrays.pad(A, padding; kw...)
+        end
+    end
     function DiskArrays.pad(x::AbstractDimArray, padding::DD.DimTuple; kw...)
         tuple_padding = map(DD.dims(x)) do d
             hasdim(padding, d) ? map(Int, val(DD.dims(padding, d))) : (0, 0)
@@ -71,10 +76,6 @@ end
         data = collect(range)
         # And fill the middle with the values from the original vector
         # This prevents floating point error changing the original values
-
-        indices = startpad+1:lastindex(data)-stoppad-1
-        @show length(data) length(indices) indices length(l)
-
         data[startpad+1:end-stoppad] .= l
         # Rebuild the lookup with the padded data
         return data
