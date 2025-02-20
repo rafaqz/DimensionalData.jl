@@ -51,7 +51,7 @@ end
     DiskArrays.pad(d::DD.Dimension, padding::Tuple{<:Integer,<:Integer}) = 
         rebuild(d, DiskArrays.pad(lookup(d), padding))
     DiskArrays.pad(l::DD.AbstractNoLookup, (startpad, stoppad)::Tuple{<:Integer,<:Integer}) =
-        NoLookup(Base.OneTo(length(l) + startpad + stoppad))
+        DD.NoLookup(Base.OneTo(length(l) + startpad + stoppad))
     function DiskArrays.pad(l::DD.Lookup, padding::Tuple{<:Integer,<:Integer})
         (DD.issampled(l) && DD.isregular(l)) || throw(ArgumentError("Can only pad `Regular` `AbstractSampled` lookups"))
         rebuild(l; data=_pad(parent(l), step(l), padding))
@@ -61,19 +61,23 @@ end
     end
 
     _pad(l::AbstractRange, step, (startpad, stoppad)::Tuple{<:Integer,<:Integer}) =
-        (first(l) - startpad * step(l)):step(l):(last(l) + stoppad * step(l))
+        (first(l) - startpad * step):step:(last(l) + stoppad * step)
     _pad(l::AbstractUnitRange, step, (startpad, stoppad)::Tuple{<:Integer,<:Integer}) =
         (first(l) - startpad):(last(l) + stoppad)
     function _pad(l::AbstractVector, step, (startpad, stoppad)::Tuple{<:Integer,<:Integer})
         # First pad as a range
-        range = parent(_pad(first(l):last(l), step, (startpad, stoppad)))
+        range = parent(_pad(first(l):step:last(l), step, (startpad, stoppad)))
         # Then convert back to vector
         data = collect(range)
         # And fill the middle with the values from the original vector
         # This prevents floating point error changing the original values
+
+        indices = startpad+1:lastindex(data)-stoppad-1
+        @show length(data) length(indices) indices length(l)
+
         data[startpad+1:end-stoppad] .= l
         # Rebuild the lookup with the padded data
-        return rebild(l; data)
+        return data
     end
 end
         
