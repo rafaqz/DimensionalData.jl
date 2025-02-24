@@ -189,7 +189,7 @@ end
 
     @testset "similar with dims" begin
         da_sim_dims = @inferred similar(da, dims(da))
-        da_sim_dims_splat = @inferred similar(da, dims(da))
+        da_sim_dims_splat = @inferred similar(da, dims(da)...)
         for A in (da_sim_dims, da_sim_dims_splat)
             @test eltype(A) == eltype(da)
             @test size(A) == size(da)
