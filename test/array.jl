@@ -429,7 +429,7 @@ end
     @test copyto!(A, 10, da, 10) isa Matrix
     @test A[:,4] == [40, 0,0]
     @test copyto!(da, 10, a2, 11) isa DimMatrix
-    @test da [:,4] == [6,7,0]
+    @test da[:,4] == [6,7,0]
 end
 
 @testset "copy_similar" begin
