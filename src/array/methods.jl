@@ -554,7 +554,7 @@ end
     # Copied from Base.diff
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
     data = diff(parent(A); dims=dimnum(A, dims))
-    rebuildsliced(getindex, A, diff, r0)
+    rebuildsliced(getindex, A, data, r0)
 end
 
 # Forward `replace` to parent objects

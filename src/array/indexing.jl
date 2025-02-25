@@ -45,6 +45,8 @@ for f in (:getindex, :view, :dotview)
             Base.$f(A, dims2indices(A, (i,))...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::SelectorOrStandard, i2::SelectorOrStandard, I::SelectorOrStandard...) =
             Base.$f(A, dims2indices(A, (i1, i2, I...))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Selector{<:Extents.Extent}) = 
+            Base.$f(A, dims2indices(A, i)...)
         @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i::Selector{<:Extents.Extent}) = 
             Base.$f(A, dims2indices(A, i)...)
 

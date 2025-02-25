@@ -866,6 +866,7 @@ promote_first(x1, x2, xs...) =
 # Fallback NoLookup if not identical type
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
+promote_first(l1::L, ls::L...) where L<:AbstractNoLookup = l1
 function promote_first(l1::Lookup, ls1::Lookup...)
     ls = _remove(Length1NoLookup, l1, ls1...)
     if length(ls) != length(ls1) + 1

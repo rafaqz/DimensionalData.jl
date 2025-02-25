@@ -135,11 +135,12 @@ function DimTable(s::AbstractDimStack;
     keys = collect(_colnames(s))
     return DimTable(s, keys, dimcolumns, dimarraycolumns)
 end
-function DimTable(xs::Vararg{AbstractDimArray}; 
+DimTable(xs::AbstractDimArray...; kw...) = DimTable(collect(xs); kw...)
+function DimTable(xs::AbstractVector{<:AbstractDimArray}; 
     layernames=nothing, mergedims=nothing, preservedims=nothing
 )
     # Check that dims are compatible
-    comparedims(xs...)
+    comparedims(xs)
 
     # Construct Layer Names
     layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames

@@ -1,6 +1,6 @@
 using DimensionalData, Test, Aqua, SafeTestsets
 
-@testset "DimensionalData" begin
+#@testset "DimensionalData" begin
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)
     Aqua.test_undefined_exports(DimensionalData)

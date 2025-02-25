@@ -89,7 +89,6 @@ end
     month_length = DimArray(daysinmonth, dims(A, Ti))
     g_tempo = DimensionalData.groupby(month_length, Ti=>seasons(; start=December))
     sum_days = sum.(g_tempo, dims=Ti)
-    bc = DimensionalData.STORE[]
     @test sum_days isa DimArray
     weights = map(./, g_tempo, sum_days)
     @test sum_days isa DimArray
