@@ -184,13 +184,14 @@ end
 # Single traits are set for all dimensions
 _set(s::Safety, A::DimArrayOrStack, x::LookupTrait) = 
     _set(s, A, map(d -> basedims(d) => x, dims(A))...)
+
+# for T in (:Safe, :Unsafe)
 # Single lookups are set for all dimensions.
-# Safe and Unsafe for ambiguity
-_set(s::Unsafe, A::AbstractDimArray, x::Lookup) = 
+_set(s::Safety, A::AbstractDimArray, x::Lookup) = 
     _set(s, A, map(d -> rebuild(d, x), dims(A))...)
 _set(s::Safe, A::AbstractDimArray, x::Lookup) = 
     _set(s, A, map(d -> rebuild(d, x), dims(A))...)
-_set(s::Unsafe, A::AbstractDimStack, x::Lookup) = 
+_set(s::Safety, A::AbstractDimStack, x::Lookup) = 
     _set(s, A, map(d -> rebuild(d, x), dims(A))...)
 _set(s::Safe, A::AbstractDimStack, x::Lookup) = 
     _set(s, A, map(d -> rebuild(d, x), dims(A))...)

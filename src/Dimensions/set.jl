@@ -2,8 +2,8 @@ const DimSetters = Union{Lookup,LookupSetters,Tuple,Dimension,Symbol}
 
 set(dim::Dimension, x::DimSetters) = _set(Safe(), dim, x)
 set(dim::DimTuple, x::DimSetters) = _set(Safe(), dims, x)
-set(dims::DimTuple, args::Union{Dimension,Pair}...) =
-    _set(Safe(), dims, args...)
+set(dims::DimTuple, a1::Union{Dimension,Pair}, args::Union{Dimension,Pair}...) =
+    _set(Safe(), dims, a1, args...)
 
 unsafe_set(dim::Dimension, x::DimSetters) = _set(Unsafe(), dim, x)
 unsafe_set(dims::DimTuple, args::Union{Dimension,Pair}...) =
