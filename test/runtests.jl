@@ -1,6 +1,6 @@
 using DimensionalData, Test, Aqua, SafeTestsets
 
-#@testset "DimensionalData" begin
+@testset "DimensionalData" begin
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)
     Aqua.test_undefined_exports(DimensionalData)
@@ -32,8 +32,8 @@ using DimensionalData, Test, Aqua, SafeTestsets
     @time @safetestset "groupby" begin include("groupby.jl") end
     @time @safetestset "show" begin include("show.jl") end
     @time @safetestset "adapt" begin include("adapt.jl") end
-    @time @safetestset "ecosystem" begin include("ecosystem.jl") end
     @time @safetestset "categorical" begin include("categorical.jl") end
+    @time @safetestset "ecosystem" begin include("ecosystem.jl") end
     @time @safetestset "xarray" begin include("xarray.jl") end
     if Sys.islinux()
         # Unfortunately this can hang on other platforms.
