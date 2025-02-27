@@ -135,5 +135,13 @@ end
     @testset "PermutedDimsArray and PermutedDiskArray" begin
         @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
         @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
+
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
+        @test DiskArrays.isdisk(DimArray(raw_data, (X,Y))) == false
+    end
+    @testset "Mockchunks" begin
+        darechunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(darechunked)) == (5,5)
     end
 end
