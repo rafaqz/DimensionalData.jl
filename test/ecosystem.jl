@@ -101,4 +101,13 @@ end
         @test DiskArrays.haschunks(da) == DiskArrays.haschunks(chunked_data)
         @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(chunked_data)
     end
+
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
+        @test DiskArrays.isdisk(DimArray(raw_data, (X,Y))) == false
+    end
+    @testset "rechunk" begin
+        darechunked = DiskArrays.rechunk(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(darechunked)) == (5,5)
+    end
 end

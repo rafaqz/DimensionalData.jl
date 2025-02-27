@@ -17,6 +17,15 @@ import DiskArrays
         modify(A -> DiskArrays.cache(A; kw...), x)
 end
 
+@static if isdefined(DiskArrays, :isdisk)
+    DiskArrays.isdisk(dd::AbstractDimArray) = DiskArrays.isdisk(parent(dd))
+end
+
+@static if isdefined(DiskArrays, :rechunk)
+    DiskArrays.rechunk(x::Union{AbstractDimStack,AbstractDimArray}, chunks) = 
+        modify(A -> DiskArrays.rechunk(A, chunks), x)
+end
+
 DiskArrays.haschunks(da::AbstractBasicDimArray) = DiskArrays.haschunks(parent(da))
 DiskArrays.eachchunk(da::AbstractBasicDimArray) = DiskArrays.eachchunk(parent(da))
 
