@@ -38,6 +38,7 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
 
+
 """
     AbstractDimArray <: AbstractBasicArray
 
@@ -464,7 +465,7 @@ function DimArray(A::AbstractDimArray;
 )
     DimArray(data, dims; refdims, name, metadata)
 end
-DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
+DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A); kw...)
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
@@ -485,7 +486,7 @@ function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(
      DimArray(f.(val(dim)), (dim,); name)
 end
 
-DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
+DimArray(itr::Base.Generator; kw...) = rebuild(collect(itr); kw...)
 
 const DimVector = DimArray{T,1} where T
 const DimMatrix = DimArray{T,2} where T
@@ -500,6 +501,31 @@ DimMatrix(A::AbstractMatrix, args...; kw...) = DimArray(A, args...; kw...)
 
 Base.convert(::Type{DimArray}, A::AbstractDimArray) = DimArray(A)
 Base.convert(::Type{DimArray{T}}, A::AbstractDimArray) where {T} = DimArray{T}(A)
+
+function Base.convert(
+    ::Type{<:DimArray{T,N,DT,RT,AT,NaT,MeT}}, a::DimArray{S,N}
+) where {T,N,S,DT,RT,AT,NaT,MeT}
+    rebuild(a; 
+        data=convert(AT, parent(a)), 
+        dims=convert(DT, dims(a)), 
+        name=convert(NaT, name(a)),
+        refdims=RT <: Tuple{} ? () : convert(RT, refdims(a)),
+        metadata=convert(MeT, metadata(a)),
+    )
+end
+
+# Promote element types 
+function Base.promote_rule(
+    a::Type{<:DimArray{T,N,DT,RT,AT,NaT,MeT}}, b::Type{<:DimArray{S,N,DS,RS,AS,NaS,MeS}}
+) where {T,S,N,DT,DS,RT,RS,AT,AS,NaT,NaS,MeT,MeS}
+    A = promote_type(AT, AS)
+    TS = eltype(A) 
+    D = promote_type(DT, DS) 
+    R = RT <: Tuple{} || RS <: Tuple{} ? Tuple{} : promote_type(RT, RS) 
+    Na = promote_type(NaT, NaS)
+    M = promote_type(MeT, MeS)
+    return DimArray{TS,N,D,R,A,Na,M}
+end
 
 checkdims(A::AbstractArray{<:Any,N}, dims::Tuple) where N = checkdims(N, dims)
 checkdims(::Type{<:AbstractArray{<:Any,N}}, dims::Tuple) where N = checkdims(N, dims)
