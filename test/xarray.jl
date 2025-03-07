@@ -1,4 +1,5 @@
 ENV["JULIA_CONDAPKG_ENV"] = "@dimensionaldata-tests"
+ENV["JULIA_CONDAPKG_BACKEND"] = "MicroMamba"
 
 using DimensionalData, Test, PythonCall
 import DimensionalData.Dimensions: NoLookup, NoMetadata
