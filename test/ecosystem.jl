@@ -87,9 +87,10 @@ end
 end
 
 @testset "DiskArrays" begin
-    raw_data = rand(100, 100)
-    chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10))
-    da = DimArray(chunked_data, (X, Y))
+    raw_data = rand(100, 100, 2)
+    chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
+    da = DimArray(chunked_data, (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z()))
+    st = DimStack((a = da, b = da))
 
     @testset "cache" begin
         @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
@@ -100,5 +101,22 @@ end
     @testset "chunks" begin
         @test DiskArrays.haschunks(da) == DiskArrays.haschunks(chunked_data)
         @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(chunked_data)
+    end
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
+        @test !DiskArrays.isdisk(rand(X(5), Y(4)))
+    end
+    @testset "pad" begin
+        p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        pst = DiskArrays.pad(st, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        dims(p)
+        @test size(p) == size(pst) == 
+            map(length, dims(p)) == map(length, dims(pst)) == 
+            size(da) .+ (5, 90, 0) == (105, 190, 2)
+        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:103.0), Y(collect(-390:10:1500); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
+        @test sum(p) ≈ sum(da) + prod(size(p)) - prod(size(da))
+        maplayers(pst) do A
+            @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
+        end
     end
 end
