@@ -109,8 +109,11 @@ end
     @testset "pad" begin
         p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
         pst = DiskArrays.pad(st, (; X=(2, 3), Y=(40, 50)); fill=1.0)
-        @test size(p) == size(pst) == (105, 190, 2)
-        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:100.0), Y(collect(-30:10:1050); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
+        dims(p)
+        @test size(p) == size(pst) == 
+            map(length, dims(p)) == map(length, dims(pst)) == 
+            size(da) .+ (5, 90, 0) == (105, 190, 2)
+        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:103.0), Y(collect(-390:10:1500); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
         @test sum(p) ≈ sum(da) + prod(size(p)) - prod(size(da))
         maplayers(pst) do A
             @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
