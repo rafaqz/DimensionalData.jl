@@ -50,4 +50,3 @@ jobs:
           files: lcov.info
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: false
