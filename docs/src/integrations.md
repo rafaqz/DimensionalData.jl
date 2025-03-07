@@ -60,3 +60,10 @@ Provides tools to load and visualise astronomical images.
 [TimeseriesTools.jl](https://juliahub.com/ui/Packages/General/TimeseriesTools)
 Uses `DimArray` for time-series data.
 
+## NaNStatistics.jl
+
+Most functions in
+[NaNStatistics.jl](https://github.com/brenhinkeller/NaNStatistics.jl) support
+`DimArray`'s, see [the
+README](https://github.com/brenhinkeller/NaNStatistics.jl?tab=readme-ov-file#dimensionaldata-support)
+for details.
