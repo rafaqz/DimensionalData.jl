@@ -104,6 +104,14 @@ end
     end
     @testset "isdisk" begin
         @test DiskArrays.isdisk(da)
+        @test DiskArrays.isdisk(DimArray(raw_data, (X,Y))) == false
+    end
+    @testset "rechunk" begin
+        darechunked = DiskArrays.rechunk(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(darechunked)) == (5,5)
+    end
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
         @test !DiskArrays.isdisk(rand(X(5), Y(4)))
     end
     @testset "pad" begin

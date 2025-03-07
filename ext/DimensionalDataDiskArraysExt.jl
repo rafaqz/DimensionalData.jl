@@ -27,6 +27,11 @@ end
         modify(A -> DiskArrays.cache(A; kw...), x)
 end
 
+@static if isdefined(DiskArrays, :rechunk)
+    DiskArrays.rechunk(x::Union{AbstractDimStack,AbstractDimArray}, chunks) = 
+        modify(A -> DiskArrays.rechunk(A, chunks), x)
+end
+      
 @static if isdefined(DiskArrays, :pad)
     DiskArrays.pad(x::Union{AbstractDimArray,AbstractDimStack}, padding::Tuple{Vararg{Tuple{<:Integer,<:Integer}}}; kw...) =
         DiskArrays.pad(x, map(rebbuild, dims(x, padding)))
