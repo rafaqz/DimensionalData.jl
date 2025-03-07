@@ -81,6 +81,14 @@ end
         return data
     end
 end
-        
+
+@inline function DimensionalData.lazypermutedims(A::AbstractArray, perm) 
+    # For DiskArrays `permutedims` is lazy
+    if isdisk(A)
+        permutedims(A, perm)
+    else
+        DimensionalData._permuteddimsarray(A, perm)
+    end
+end
 
 end
