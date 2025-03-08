@@ -59,7 +59,24 @@ end
 
 function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
     dims === Colon() && return mapreduce(f, op, parent(A); kw...)
-    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+    ds = DD.dims(A, dims)
+    # Dimnum will fail on `Int` not in dims(A)
+    dim_ints = if dims isa Tuple && all(x -> x isa Integer, dims) 
+        _check_valid_region(dims)
+        dims
+    else
+        dimnum(A, ds)
+    end
+    data = mapreduce(f, op, parent(A); dims=dim_ints, kw...)
+    rebuild(A, data, reducedims(A, ds))
+end
+
+# Copied from Base reducedim.jl
+function _check_valid_region(region)
+    for d in region
+        isa(d, Integer) || throw(ArgumentError("reduced dimension(s) must be integers"))
+        Int(d) < 1 && throw(ArgumentError("region dimension(s) must be ≥ 1, got $d"))
+    end
 end
 
 

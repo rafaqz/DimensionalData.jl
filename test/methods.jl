@@ -111,8 +111,8 @@ end
         @test extrema(da; dims) == permutedims([(1, 2) (3, 4)])
     end
     for dims in xys
-        @test mean(da; dims=dims) == [2.5]'
-        @test mean(x -> 2x, da; dims=dims) == [5.0]'
+        @test mean(da; dims) == [2.5]'
+        @test mean(x -> 2x, da; dims) == [5.0]'
         @test reduce(+, da; dims) == [10]'
         @test mapreduce(x -> x > 3, +, da; dims)  == [1]'
         @test extrema(da; dims) == reshape([(1, 4)], 1, 1)
