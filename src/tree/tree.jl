@@ -8,6 +8,7 @@ an alternative to the flat, immutable `AbstractDimStack`.
 """
 abstract type AbstractDimTree end
 
+# TODO will these cause ambiguities later? Maybe just `DimTree` constructors are enough?
 (::Type{T})(A1::AbstractDimArray, As::AbstractDimArray...) where T<:AbstractDimTree = 
     T([A1, As...])
 (::Type{T})(As::Tuple{Vararg{AbstractDimArray}}) where T<:AbstractDimTree = 
@@ -33,7 +34,7 @@ function (::Type{T})(stack::AbstractDimStack;
     kw...
 ) where T<:AbstractDimTree
     data = DataDict(pairs(parent(stack)))
-    DimTree(data, dims(stack); metadata, layerdims, layermetadata, kw...)
+    T(data, dims(stack); metadata, layerdims, layermetadata, kw...)
 end
 
 data(dt::AbstractDimTree) = getfield(dt, :data)
@@ -72,8 +73,8 @@ end
 
 function Extents.extent(dt::AbstractDimTree)
     ext = Extents.extent(dims(dt))
-    for (key, branch) in pairs(branches(dt))
-        ext = Extents.extent(branch)
+    for (_, branch) in pairs(branches(dt))
+        ext = Extents.union(ext, Extents.extent(branch))
     end
     return ext
 end
@@ -94,7 +95,6 @@ function Base.copy(dt::AbstractDimTree)
 end
 # If we select a single name we get a DimArray
 Base.getproperty(dt::AbstractDimTree, name::Symbol) = branches(dt)[name]
-
 function Base.:(==)(dt1::AbstractDimTree, dt2::AbstractDimTree) 
     data(dt1) == data(dt2) &&
     layerdims(dt1) === layerdims(dt2) &&
@@ -121,7 +121,15 @@ function Base.get!(f::Base.Callable, dt::AbstractDimTree, name::Symbol)
     end
 end
 
-# If we select a Tuple or Vector of names we get a DimStack
+# Index with `Symbol` name and we get a DimArray
+function Base.getindex(dt::AbstractDimTree, name::Symbol)
+    data = DD.data(dt, name)
+    dims = DD.dims(dt, layerdims(dt, name))
+    refdims = DD.refdims(dt)
+    metadata = layermetadata(dt, name)
+    return DimArray(data, dims; refdims, name, metadata) 
+end
+# Index with Tuple or Vector of Symbol and we get a DimStack
 function Base.getindex(
     dt::AbstractDimTree, names::Union{AbstractArray{Symbol},NTuple{<:Any,Symbol}}
 )
@@ -143,6 +151,7 @@ function Base.getindex(
         layermetadata,
     ) 
 end
+# Otherwise we can use a Selector and get a DimTree
 for f in (:getindex, :view)
     @eval function Base.$f(dt::AbstractDimTree; kw...)
         Base.$f(dt::AbstractDimTree, Dimensions.kw2dims(kw)...)
@@ -156,13 +165,6 @@ for f in (:getindex, :view)
         end |> TreeDict
         rebuild_from_arrays(dt, newlayers; branches=newbranches)
     end
-end
-function Base.getindex(dt::AbstractDimTree, name::Symbol)
-    data = DD.data(dt, name)
-    dims = DD.dims(dt, layerdims(dt, name))
-    refdims = DD.refdims(dt)
-    metadata = layermetadata(dt, name)
-    return DimArray(data, dims; refdims, name, metadata) 
 end
 
 # A DimArray and a symbol sets a layer
@@ -212,11 +214,11 @@ function Base.setindex!(tr::AbstractDimTree, layers::Union{AbstractDimTree,Abstr
     end
     return layers
 end
-Base.setproperty!(dt::AbstractDimTree, key::Symbol, A::AbstractDimArray) =
-    setproperty!(dt, key, DimTree(A))
-Base.setproperty!(dt::DimTree, key::Symbol, newbranch::AbstractDimStack) =
-    setproperty!(dt, key, DimTree(newbranch))
-function Base.setproperty!(dt::DimTree, key::Symbol, newbranch::AbstractDimTree)
+Base.setproperty!(dt::T, key::Symbol, A::AbstractDimArray) where T<:AbstractDimTree =
+    setproperty!(dt, key, T(A))
+Base.setproperty!(dt::T, key::Symbol, newbranch::AbstractDimStack) where T<:AbstractDimTree  =
+    setproperty!(dt, key, T(newbranch))
+function Base.setproperty!(dt::AbstractDimTree, key::Symbol, newbranch::AbstractDimTree)
     if dt == newbranch
         newbranch = copy(newbranch)
     end
@@ -299,18 +301,15 @@ to keep in that branch, and these may be chained as e.g.
 # Example 
 
 ```julia
-prune(dimtree; keep=:branch => :leaf)
+pruned = prune(dimtree; keep=:branch => :leaf)
+DimStack(pruned)
 ```
 """
 function prune(dt::AbstractDimTree; 
     keep::Union{Nothing,Symbol,PairKeys}=nothing
 )
     # No kept branches, just make a new `branches` dict
-    isnothing(keep) &&
-        return rebuild(dt; 
-            branches=TreeDict(),
-            tree=nothing
-        )
+    isnothing(keep) && return rebuild(dt; branches=TreeDict(), tree=nothing)
 
     # Otherwise prune the kept branch
     branch = if keep isa Symbol
@@ -333,6 +332,10 @@ end
 
 A nested tree of dimensional arrays.
 
+Still in expermental stage: breaking changes may occurr without 
+a major version bump to DimensionalData. Please report any issues and 
+feedback on GitHub to push this towards a stable implementation.
+
 `DimTree` is loosely typed and based on `OrderedDict` rather
 than `NamedTuple` of `DimStack`, so it is slower to index
 but very fast to compile, and very flexible.
@@ -342,18 +345,19 @@ from the tree.
 
 ## Dimensions and branches
 
-Dimensions that are shared with the tree must be identical.
-They are in fact stored at the basal level of the tree that they 
-are used in, and propagate out to branches.
+Dimensions that are shared with the base of the tree must be identical.
+They are stored at the base level of the tree that they are used in, 
+and propagate out to branches.
 
 Within a branch, all layers use a subset of the dimensions available
 to the branch.
 
 Accross branches, there may be versions of the same dimensions with 
 different lookup values. These may cover different extents, resolutions, 
-or whatever properties of lookups are required.
+or whatever properties of lookups are required to vary.
 
-This property can be used for tiles or pyramids, for example.
+This property can be used for tiles with differen X/Y extents or pyramid
+layers with different resolutions, for example.
 
 ## Example
 
