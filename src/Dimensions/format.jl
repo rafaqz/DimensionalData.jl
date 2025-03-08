@@ -13,7 +13,7 @@ and any fields holding `Auto-` objects are filled with guessed objects.
 If a [`Lookup`](@ref) hasn't been specified, a lookup is chosen
 based on the type and element type of the values.
 """
-format(dims, A::AbstractArray) = format((dims,), A)
+format(dims::DimOrDimType, A::AbstractVector) = format((dims,), A)
 function format(dims::NamedTuple, A::AbstractArray)
     dims = map(keys(dims), values(dims)) do k, v
         rebuild(name2dim(k), v)
@@ -29,16 +29,27 @@ end
 # Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
 function format(dims::DimTuple) 
     ax = map(parent ∘ first ∘ axes, dims)
-    A = CartesianIndices(ax)
-    return format(dims, A)
+    return format(dims, ax)
 end
-format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = format(dims, axes(A))
+format(dims::Tuple{Vararg{Any,N}}, A::AbstractArray{<:Any,N}) where N = 
+    format(dims, axes(A))
 @noinline format(dims::Tuple{Vararg{Any,M}}, A::AbstractArray{<:Any,N}) where {N,M} =
     throw(DimensionMismatch("Array A has $N axes, while the number of dims is $M: $(map(basetypeof, dims))"))
-format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N = map(_format, dims, axes)
+function format(dims::Tuple{Vararg{Any,N}}, axes::Tuple{Vararg{Any,N}}) where N
+    # We need to format first
+    fdims = map(_format, dims, axes)
+    # Then format any unaligned dims as a group
+    split_alignments(first ∘ tuple, format_unaligned, fdims, axes)
+end
 format(d::Dimension{<:AbstractArray}) = _format(d, axes(val(d), 1))
 format(d::Dimension, axis::AbstractRange) = _format(d, axis)
+format(d::Type{<:Dimension}, axis::AbstractRange) = _format(d, axis)
 format(l::Lookup) = parent(format(AnonDim(l)))
+
+# Fallback 
+function format_unaligned end
+format_unaligned(dims::DimTuple, axes) = format_unaligned(val(dims), dims, axes)
+format_unaligned(::Tuple, dims::DimTuple, axes) = map(format, dims, axes)
 
 _format(dimname::Symbol, axis::AbstractRange) = Dim{dimname}(NoLookup(axes(axis, 1)))
 _format(::Type{D}, axis::AbstractRange) where D<:Dimension = D(NoLookup(axes(axis, 1)))
@@ -54,6 +65,9 @@ format(val::AbstractArray, D::Type, axis::AbstractRange) = format(AutoLookup(), 
 format(m::Lookup, D::Type, axis::AbstractRange) = format(m, D, parent(m), axis)
 format(v::AutoVal, D::Type, axis::AbstractRange) = _valformaterror(val(v), D)
 format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D) 
+
+format(m::Lookups.ArrayLookup, D::Type, ::AutoValues, axis::AbstractRange) =
+    rebuild(m; dim=D(), data=axis)
 
 # Format Lookups
 # No more identification required for NoLookup

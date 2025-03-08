@@ -6,6 +6,7 @@ version = "0.29.12"
 [deps]
 Adapt = "79e6a3ab-5dfb-504d-930d-738a2a938a0e"
 ArrayInterface = "4fba245c-0d91-5ea0-9b3e-6abc04ee57a9"
+OrderedCollections = "bac558e1-5e72-5ebc-8fee-abe8a469f55d"
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
 DataAPI = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -28,6 +29,7 @@ AlgebraOfGraphics = "cbdf2221-f076-402e-a563-3d30da359d67"
 CategoricalArrays = "324d7699-5711-5eae-9e2f-1d82baa6b597"
 DiskArrays = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
 Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
@@ -36,6 +38,7 @@ DimensionalDataAlgebraOfGraphicsExt = "AlgebraOfGraphics"
 DimensionalDataCategoricalArraysExt = "CategoricalArrays"
 DimensionalDataDiskArraysExt = "DiskArrays"
 DimensionalDataMakie = "Makie"
+DimensionalDataNearestNeighborsExt = "NearestNeighbors"
 DimensionalDataPythonCall = "PythonCall"
 DimensionalDataStatsBase = "StatsBase"
 
@@ -67,8 +70,10 @@ InvertedIndices = "1"
 IteratorInterfaceExtensions = "1"
 JLArrays = "0.1"
 LinearAlgebra = "1"
-Makie = "0.20, 0.21, 0.22"
 OffsetArrays = "1"
+OrderedCollections = "1"
+Makie = "0.20, 0.21, 0.22"
+NearestNeighbors = "0.4"
 Plots = "1"
 PrecompileTools = "1"
 PythonCall = "0.9"
@@ -115,4 +120,33 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [targets]
-test = ["AlgebraOfGraphics", "Aqua", "ArrayInterface", "BenchmarkTools", "CategoricalArrays", "ColorTypes", "Combinatorics", "CoordinateTransformations", "DataFrames", "DiskArrays", "Distributions", "Documenter", "GPUArrays", "ImageFiltering", "ImageTransformations", "JLArrays", "CairoMakie", "OffsetArrays", "Plots", "PythonCall", "Random", "SafeTestsets", "StatsBase", "StatsPlots", "Test", "Unitful"]
+test = [
+    "AlgebraOfGraphics",
+    "Aqua",
+    "ArrayInterface",
+    "BenchmarkTools",
+    "CairoMakie",
+    "CategoricalArrays",
+    "ColorTypes",
+    "Combinatorics",
+    "CoordinateTransformations",
+    "DataFrames",
+    "DiskArrays",
+    "Distributions",
+    "Documenter",
+    "GPUArrays",
+    "ImageFiltering",
+    "ImageTransformations",
+    "JLArrays",
+    "NearestNeighbors",
+    "OffsetArrays",
+    "Plots",
+    "PythonCall",
+    "Random",
+    "SafeTestsets",
+    "StatsBase",
+    "StatsPlots",
+    "Test",
+    "Unitful"
+]
+

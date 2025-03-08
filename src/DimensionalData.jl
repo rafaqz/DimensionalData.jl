@@ -22,8 +22,9 @@ import Adapt,
        IntervalSets,
        InvertedIndices,
        IteratorInterfaceExtensions,
-       RecipesBase,
+       OrderedCollections,
        PrecompileTools,
+       RecipesBase,
        TableTraits,
        Tables
 
@@ -43,6 +44,8 @@ import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
 import .Lookups: metadata, reorder, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units
+
+using OrderedCollections: OrderedDict
 
 import DataAPI.groupby
 
@@ -69,6 +72,8 @@ export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, Dim
 export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
+
+export AbstractDimTree, DimTree, prune
 
 export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
@@ -106,6 +111,9 @@ include("stack/stack.jl")
 include("stack/indexing.jl")
 include("stack/methods.jl")
 include("stack/show.jl")
+# DataTrees
+include("tree/tree.jl")
+include("tree/show.jl")
 # Other
 include("tables.jl")
 # Combined (easier to work on these in one file)
