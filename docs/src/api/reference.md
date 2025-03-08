@@ -37,6 +37,17 @@ AbstractDimStack
 DimStack
 ```
 
+## DimTree 
+
+These objects and methods are still experimental and
+subject to breaking changes _without_ breaking versions.
+
+```@docs
+AbstractDimTree
+DimTree
+prune
+```
+
 ## Dimension generators
 
 ```@docs
