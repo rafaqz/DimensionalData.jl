@@ -89,7 +89,8 @@ end
 @testset "DiskArrays" begin
     raw_data = rand(100, 100, 2)
     chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
-    da = DimArray(chunked_data, (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z()))
+    ds = (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z())
+    da = DimArray(chunked_data, ds)
     st = DimStack((a = da, b = da))
 
     @testset "cache" begin
@@ -118,5 +119,9 @@ end
         maplayers(pst) do A
             @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
         end
+    end
+    @testset "PermutedDimsArray and PermutedDiskArray" begin
+        @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
+        @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
     end
 end
