@@ -70,7 +70,7 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 Here we generate a GeoInterface.jl compatible table with `:geometry` 
 column made of `(X, Y)` points, and data columns from `:band` slices.
 
-```jldoctest tables
+```julia
 julia> using DimensionalData, Tables
 
 julia> A = ones(X(4), Y(3), Dim{:band}('a':'d'); name=:data);
@@ -87,14 +87,14 @@ DimTable with 12 rows, 5 columns, and schema:
 And here bands for each X/Y position are kept as vectors, using `preservedims`. 
 This may be useful if e.g. bands are color components of spectral images.
 
-```jldoctest tables
+```julia
 julia> DimTable(A; preservedims=:band)
 DimTable with 12 rows, 3 columns, and schema:
  :X     …  Int64
  :Y        Int64
  :data     DimVector{Float64, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Slice{OneTo{Int64}}}, true}, Symbol, NoMetadata} (alias for DimArray{Float64, 1, Tuple{Dim{:band, DimensionalData.Dimensions.Lookups.Categorical{Char, StepRange{Char, Int64}, DimensionalData.Dimensions.Lookups.ForwardOrdered, DimensionalData.Dimensions.Lookups.NoMetadata}}}, Tuple{X{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}, Y{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Base.Slice{Base.OneTo{Int64}}}, true}, Symbol, DimensionalData.Dimensions.Lookups.NoMetadata})
 
-```jldoctest tables
+```julia
 julia> DimTable(A)
 DimTable with 48 rows, 4 columns, and schema:
  :X     Int64
