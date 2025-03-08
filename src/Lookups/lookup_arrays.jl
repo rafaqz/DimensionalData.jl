@@ -1,4 +1,3 @@
-
 """
     Lookup
 
@@ -612,6 +611,21 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
 
 # TODO Transformed bounds
+struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
+    data::A
+    dim::D
+    dims::Ds
+    matrix::Ma
+    tree::Tr
+    idxvec::IV
+    distvec::DV
+    metadata::Me
+end
+ArrayLookup(matrix; metadata=NoMetadata()) =
+    ArrayLookup(AutoValues(), AutoDim(), AutoDim(), matrix, nothing, nothing, nothing, metadata)
+dim(lookup::ArrayLookup) = lookup.dim
+matrix(l::ArrayLookup) = l.matrix
+tree(l::ArrayLookup) = l.tree
 
 # Shared methods
 
@@ -852,21 +866,23 @@ promote_first(x1, x2, xs...) =
 # Fallback NoLookup if not identical type
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
-function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
-    ls = _remove(Length1NoLookup, l1, ls...)
-    if length(ls) > 1 
-        l1, ls... = ls
-    else
+function promote_first(l1::Lookup, ls1::Lookup...)
+    ls = _remove(Length1NoLookup, l1, ls1...)
+    if length(ls) != length(ls1) + 1
+        # If anything was removed, start again
+        return promote_first(ls...)
+    elseif length(ls) == 1
+        # If there is only one left, use it
         return first(ls)
     end
-    if all(map(l -> typeof(l) == L, ls))
-        if length(ls) > 0
-            rebuild(l1; metadata=NoMetadata())
-        else
-            l1 # Keep metadata if there is only one lookup
-        end
+    # Otherwise see if these have the same type
+    l2, ls2... = ls
+    if all(map(l -> typeof(l) == typeof(l2), ls2))
+        # If so, just simplify the metadata
+        rebuild(l2; metadata=NoMetadata())
     else
-        NoLookup(Base.OneTo(length(l1)))
+        # And if not, use NoLookup
+        NoLookup(Base.OneTo(length(l2)))
     end
 end
 # Categorical lookups

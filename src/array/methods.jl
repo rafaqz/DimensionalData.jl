@@ -235,7 +235,15 @@ end
 @inline function Base.permutedims(A::AbstractDimArray, perm)
     rebuild(A, permutedims(parent(A), dimnum(A, Tuple(perm))), sortdims(dims(A), Tuple(perm)))
 end
-@inline function Base.PermutedDimsArray(A::AbstractDimArray{T,N}, perm) where {T,N}
+@inline Base.PermutedDimsArray(A::AbstractDimArray{T,N}, perm) where {T,N} =
+    lazypermutedims(A, perm)
+
+# We add a method for this in the DiskArrays extension
+@inline lazypermutedims(A, perm) = _permuteddimsarray(A, perm)
+
+@inline function _permuteddimsarray(A::AbstractDimArray, perm)
+    T = eltype(A)
+    N = ndims(A)
     perm_inds = dimnum(A, Tuple(perm))
     iperm_inds = invperm(perm_inds)
     data = parent(A)

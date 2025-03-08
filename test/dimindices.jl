@@ -6,6 +6,16 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
 @testset "DimIndices" begin
     di = @inferred DimIndices(A)
+    @testset "indexing returns itself" begin
+        @test di[di] isa DimIndices
+        @test di[di] == di
+    end
+    @testset "tuple indexing works" begin
+        da = rand(X(1:10), Y(1:10))
+        ds = DimSelectors(da)
+        @test ds[(X(1),)] == ds[1, :]
+    end
+
     @test eltype(di) == Tuple{X{Int64}, Y{Int64}}
     ci = CartesianIndices(A)
     @test @inferred val.(collect(di)) == Tuple.(collect(ci))
@@ -52,6 +62,9 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
         @test dims(di0) == ()
         @test size(di0) == ()
     end
+    @testset "keywords error" begin
+        @test_throws MethodError DimIndices(A; order=ForwardOrdered())
+    end
 end
 
 @testset "DimPoints" begin
@@ -80,6 +93,11 @@ end
 
 @testset "DimSelectors" begin
     ds = @inferred DimSelectors(A)
+
+    @testset "selecting returns itself" begin
+        @test ds[ds] isa DimSelectors
+        @test ds[ds] == ds
+    end
     # The selected array is not identical because 
     # the lookups will be vectors and Irregular, 
     # rather than Regular ranges

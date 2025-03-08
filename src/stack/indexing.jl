@@ -63,6 +63,9 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
             Base.$f(s, to_indices(CartesianIndices(s), Lookups._construct_types(i))...)
         end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::AbstractArray{<:CartesianIndex})
+            Base.$f(s, Base.$f(LinearIndices(s), i))
+        end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
         end

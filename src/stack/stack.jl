@@ -253,9 +253,9 @@ function Base.merge(
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
 
-Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instad of map(f, stack)")
+Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instead of map(f, stack)")
 Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) =
-    error("Use maplayers(f, stack, args...)) instad of map(f, stack, args...)")
+    error("Use maplayers(f, stack, args...)) instead of map(f, stack, args...)")
 
 maplayers(f, s::AbstractDimStack) =
     _maybestack(s, unrolled_map(f, values(s)))
@@ -483,5 +483,7 @@ function DimStack(data::NamedTuple, dims::Tuple;
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
+DimStack(st::AbstractDimStack) = 
+    DimStack(data(st), dims(st), refdims(st), layerdims(st), metadata(st), layermetadata(st))
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
