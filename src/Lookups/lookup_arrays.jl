@@ -468,7 +468,7 @@ abstract type AbstractCategorical{T,O} <: Aligned{T,O} end
 order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
-const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
+const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString,DataType}
 
 function Adapt.adapt_structure(to, l::AbstractCategorical)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
