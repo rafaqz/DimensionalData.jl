@@ -160,6 +160,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
 end
+function broadcast_dims!(f, dest::AbstractDimStack, stacks::AbstractDimStack...)
+    maplayers(dest, stacks...) do d, layers...
+        broadcast_dims!(f, d, layers...)
+    end
+end
 
 # Function barrier
 function _broadcast_dims_inner!(f, dest, As, od)
