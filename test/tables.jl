@@ -1,4 +1,10 @@
-using DimensionalData, IteratorInterfaceExtensions, TableTraits, Tables, Test, DataFrames, Dates
+using DataFrames
+using Dates
+using DimensionalData
+using IteratorInterfaceExtensions
+using TableTraits
+using Tables
+using Test
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimExtensionArray
@@ -169,4 +175,12 @@ end
     @test Tables.columnnames(t2) == propertynames(t2) == (:X, :Y, :vals)
     @test val10 == A[X(10), Y(1)]
     @test dims(val10) == dims(A, (:band,))
+end
+
+@testset "DimTable NamedTuple" begin
+    da = DimArray([(; a=1.0f0i, b=2.0i) for i in 1:10], X)
+    t = DimTable(da)
+    s = Tables.schema(t)
+    @test s.names == (:X, :a, :b)
+    @test s.types == (Int, Float32, Float64)
 end

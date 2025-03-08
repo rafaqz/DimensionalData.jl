@@ -5,6 +5,9 @@ Abstract supertype for dim tables
 """
 abstract type AbstractDimTable <: Tables.AbstractColumns end
 
+struct Columns end
+struct Rows end
+
 # Tables.jl interface for AbstractDimStack and AbstractDimArray
 
 DimTableSources = Union{AbstractDimStack,AbstractDimArray}
@@ -12,12 +15,8 @@ DimTableSources = Union{AbstractDimStack,AbstractDimArray}
 Tables.istable(::Type{<:DimTableSources}) = true
 Tables.columnaccess(::Type{<:DimTableSources}) = true
 Tables.columns(x::DimTableSources) = DimTable(x)
-
-Tables.columnnames(A::AbstractDimArray) = _colnames(DimStack(A))
-Tables.columnnames(s::AbstractDimStack) = _colnames(s)
-
-Tables.schema(A::AbstractDimArray) = Tables.schema(DimStack(A))
-Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
+Tables.columnnames(x::DimTableSources) = _colnames(x)
+Tables.schema(x::DimTableSources) = Tables.schema(DimTable(x))
 
 @inline Tables.getcolumn(x::DimTableSources, i::Int) = Tables.getcolumn(DimTable(x), i)
 @inline Tables.getcolumn(x::DimTableSources, key::Symbol) =
@@ -27,11 +26,14 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
 @inline Tables.getcolumn(t::DimTableSources, dim::DimOrDimType) =
     Tables.getcolumn(t, dimnum(t, dim))
 
-function _colnames(s::AbstractDimStack)
-    dimkeys = map(name, dims(s))
-    # The data is always the last column/s
-    (dimkeys..., keys(s)...)
+_colnames(s::AbstractDimStack) = (map(name, dims(s))..., keys(s)...)
+function _colnames(A::AbstractDimArray)
+    n = Symbol(name(A)) == Symbol("") ? :value : Symbol(name(A))
+    (map(name, dims(A))..., n)
 end
+_colnames(A::AbstractDimVector{T}) where T<:NamedTuple = 
+    (map(name, dims(A))..., _colnames(T)...)
+_colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 
 # DimTable
 
@@ -100,11 +102,11 @@ DimTable with 48 rows, 4 columns, and schema:
  :band  Char
  :data  Float64
 """
-struct DimTable <: AbstractDimTable
+struct DimTable{Mode} <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
     colnames::Vector{Symbol}
     dimcolumns::Vector{AbstractVector}
-    dimarraycolumns::Vector{AbstractVector}
+    dimarraycolumns::Vector
 end
 
 function DimTable(s::AbstractDimStack; 
@@ -127,39 +129,40 @@ function DimTable(s::AbstractDimStack;
         map(A -> vec(DimExtensionArray(A, dims(s))), layers(s))
     end |> collect
     keys = collect(_colnames(s))
-    return DimTable(s, keys, dimcolumns, dimarraycolumns)
+    return DimTable{Columns}(s, keys, dimcolumns, dimarraycolumns)
 end
-DimTable(xs::AbstractDimArray...; kw...) = DimTable(collect(xs); kw...)
-function DimTable(xs::AbstractVector{<:AbstractDimArray}; 
-    layernames=nothing, mergedims=nothing, preservedims=nothing
+function DimTable(As::AbstractVector{<:AbstractDimArray}; 
+    layernames=nothing, 
+    mergedims=nothing, 
+    preservedims=nothing,
 )
     # Check that dims are compatible
-    comparedims(xs)
-
+    comparedims(As)
     # Construct Layer Names
-    layernames = isnothing(layernames) ? [Symbol("layer_$i") for i in eachindex(xs)] : layernames
-
+    layernames = isnothing(layernames) ? uniquekeys(As) : layernames
     # Construct dimension and array columns with DimExtensionArray
-    xs = isnothing(mergedims) ? xs : map(x -> DimensionalData.mergedims(x, mergedims), xs)
-    xs = if isnothing(preservedims)
-        xs
+    As = isnothing(mergedims) ? As : map(x -> DimensionalData.mergedims(x, mergedims), As)
+    As = if isnothing(preservedims)
+        As
     else
-        map(xs) do A
+        map(As) do A
             S = DimSlices(A; dims=otherdims(A, preservedims))
             dimconstructor(dims(S))(OpaqueArray(S), dims(S))
         end
     end
-    dims_ = dims(first(xs))
+    dims_ = dims(first(As))
     dimcolumns = collect(_dimcolumns(dims_))
     dimnames = collect(map(name, dims_))
-    dimarraycolumns = collect(map(vec ∘ parent, xs))
+    dimarraycolumns = collect(map(vec ∘ parent, As))
     colnames = vcat(dimnames, layernames)
 
     # Return DimTable
-    return DimTable(first(xs), colnames, dimcolumns, dimarraycolumns)
+    return DimTable{Columns}(first(As), colnames, dimcolumns, dimarraycolumns)
 end
 function DimTable(x::AbstractDimArray; 
-    layersfrom=nothing, mergedims=nothing, kw...
+    layersfrom=nothing, 
+    mergedims=nothing, 
+    kw...
 )
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
         d = dims(x, layersfrom)
@@ -170,10 +173,18 @@ function DimTable(x::AbstractDimArray;
         else
             Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
-        return DimTable(layers; layernames, mergedims, kw...)
+        return DimTable(layers...; layernames, mergedims)
     else
-        s = name(x) == NoName() ? DimStack((;value=x)) : DimStack(x)
-        return  DimTable(s; mergedims, kw...)
+        A = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
+        dimcolumns = collect(_dimcolumns(A))
+        colnames = collect(_colnames(A))
+        if (ndims(A) == 1) && (eltype(A) <: NamedTuple)
+            dimarrayrows = parent(A)
+            return DimTable{Rows}(A, colnames, dimcolumns, dimarrayrows)
+        else
+            dimarraycolumns = [vec(parent(A))]
+            return DimTable{Columns}(A, colnames, dimcolumns, dimarraycolumns)
+        end
     end
 end
 
@@ -187,8 +198,6 @@ function _dimcolumn(x, d::Dimension)
         vec(DimExtensionArray(dim_as_dimarray, dims(x)))
     end
 end
-
-
 
 dimcolumns(t::DimTable) = getfield(t, :dimcolumns)
 dimarraycolumns(t::DimTable) = getfield(t, :dimarraycolumns)
@@ -207,12 +216,26 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable) = colnames(c)
 
-function Tables.schema(t::DimTable) 
-    types = vcat([map(eltype, dimcolumns(t))...], [map(eltype, dimarraycolumns(t))...])
+function Tables.schema(t::DimTable)
+    types = vcat([map(eltype, dimcolumns(t))...], _dimarraycolumn_eltypes(t))
     Tables.Schema(colnames(t), types)
 end
 
-@inline function Tables.getcolumn(t::DimTable, i::Int)
+_dimarraycolumn_eltypes(t::DimTable{Columns}) = [map(eltype, dimarraycolumns(t))...]
+_dimarraycolumn_eltypes(t::DimTable{Rows}) = _eltypes(eltype(dimarraycolumns(t)))
+_eltypes(::Type{T}) where T<:NamedTuple = collect(T.types)
+
+@inline function Tables.getcolumn(t::DimTable{Rows}, i::Int)
+    nkeys = length(colnames(t))
+    if i > length(dims(t))
+        map(nt -> nt[i], dimarraycolumns(t))
+    elseif i > 0 && i < nkeys
+        dimcolumns(t)[i]
+    else
+        throw(ArgumentError("There is no table column $i"))
+    end
+end
+@inline function Tables.getcolumn(t::DimTable{Columns}, i::Int)
     nkeys = length(colnames(t))
     if i > length(dims(t))
         dimarraycolumns(t)[i - length(dims(t))]
@@ -222,12 +245,19 @@ end
         throw(ArgumentError("There is no table column $i"))
     end
 end
-
-@inline function Tables.getcolumn(t::DimTable, dim::DimOrDimType)
+@inline function Tables.getcolumn(t::DimTable, dim::Union{Dimension,Type{<:Dimension}})
     dimcolumns(t)[dimnum(t, dim)]
 end
-
-@inline function Tables.getcolumn(t::DimTable, key::Symbol)
+@inline function Tables.getcolumn(t::DimTable{Rows}, key::Symbol)
+    key in colnames(t) || throw(ArgumentError("There is no table column $key"))
+    if hasdim(parent(t), key)
+        dimcolumns(t)[dimnum(t, key)]
+    else
+        # Function barrier
+        _col_from_rows(dimarraycolumns(t), key)
+    end
+end
+@inline function Tables.getcolumn(t::DimTable{Columns}, key::Symbol)
     keys = colnames(t)
     i = findfirst(==(key), keys)
     if isnothing(i)
@@ -236,22 +266,20 @@ end
         return Tables.getcolumn(t, i)
     end
 end
-
 @inline function Tables.getcolumn(t::DimTable, ::Type{T}, i::Int, key::Symbol) where T
     Tables.getcolumn(t, key)
 end
 
+_col_from_rows(rows, key) = map(row -> row[key], rows) 
+
 # TableTraits.jl interface
-
-
-function IteratorInterfaceExtensions.getiterator(x::DimTableSources)
-    return Tables.datavaluerows(Tables.dictcolumntable(x))
-end
-IteratorInterfaceExtensions.isiterable(::DimTableSources) = true
 TableTraits.isiterabletable(::DimTableSources) = true
-
-function IteratorInterfaceExtensions.getiterator(t::DimTable)
-    return Tables.datavaluerows(Tables.dictcolumntable(t))
-end
-IteratorInterfaceExtensions.isiterable(::DimTable) = true
 TableTraits.isiterabletable(::DimTable) = true
+
+# IteratorInterfaceExtensions.jl interface
+IteratorInterfaceExtensions.getiterator(x::DimTableSources) =
+    Tables.datavaluerows(Tables.dictcolumntable(x))
+IteratorInterfaceExtensions.getiterator(t::DimTable) =
+    Tables.datavaluerows(Tables.dictcolumntable(t))
+IteratorInterfaceExtensions.isiterable(::DimTableSources) = true
+IteratorInterfaceExtensions.isiterable(::DimTable) = true
