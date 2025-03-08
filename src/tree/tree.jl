@@ -8,16 +8,12 @@ an alternative to the flat, immutable `AbstractDimStack`.
 """
 abstract type AbstractDimTree end
 
-# TODO will these cause ambiguities later? Maybe just `DimTree` constructors are enough?
-(::Type{T})(A1::AbstractDimArray, As::AbstractDimArray...) where T<:AbstractDimTree = 
-    T([A1, As...])
 (::Type{T})(As::Tuple{Vararg{AbstractDimArray}}) where T<:AbstractDimTree = 
     T(collect(As))
 (::Type{T})(As::AbstractArray{<:AbstractDimArray}) where T<:AbstractDimTree = 
     T(OrderedDict(Symbol(name(A)) => A for A in As))
-(::Type{T})(pairs::Pair...) where T<:AbstractDimTree = T(OrderedDict(pairs))
 (::Type{T})(data, dims::DimTuple; kw...) where T <:AbstractDimTree = 
-    DimTree(; data, dims, kw...)
+    T(; data, dims, kw...)
 function (::Type{T})(pairs::AbstractDict{<:Symbol,<:AbstractDimArray}; 
     data=DataDict((k => parent(v) for (k, v) in pairs)),
     dims=DD.combinedims(collect(dims(A) for (k, A) in pairs)),
@@ -343,6 +339,16 @@ but very fast to compile, and very flexible.
 Trees can be nested indefinately, branches inheriting dimensions
 from the tree. 
 
+# Getting and setting layers and branches
+
+Local layers are accessed with `getindex` and a `Symbol`, returning
+a `DimArray`, e.g. `dt[:layer]` or a `DimStack` with `dt[(:layer1, :layer2)]`. 
+
+Branches are accessed with `getproperty`,
+e.g. `dt.branch`. 
+
+Layers and branches can be set with `setindex!` and `setproperty!` respectively.
+
 ## Dimensions and branches
 
 Dimensions that are shared with the base of the tree must be identical.
@@ -381,6 +387,8 @@ DimTree(a, b)
     branches::TreeDict = TreeDict()
     tree::Union{Nothing,AbstractDimTree} = nothing
 end
+DimTree(p1::Pair, pairs::Pair...) = DimTree(OrderedDict((p1, pairs...)))
+DimTree(A1::AbstractDimArray, As::AbstractDimArray...) = DimTree([A1, As...])
 
 function rebuild(dt::AbstractDimTree; 
     data=data(dt), 
