@@ -189,7 +189,7 @@ end
 
     @testset "similar with dims" begin
         da_sim_dims = @inferred similar(da, dims(da))
-        da_sim_dims_splat = @inferred similar(da, dims(da))
+        da_sim_dims_splat = @inferred similar(da, dims(da)...)
         for A in (da_sim_dims, da_sim_dims_splat)
             @test eltype(A) == eltype(da)
             @test size(A) == size(da)
@@ -426,6 +426,10 @@ end
     @test da[1, 1:4] == 10:10:40
     @test copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x)) isa Matrix
     @test A[1, 1:4] == 10:10:40
+    @test copyto!(A, 10, da, 10) isa Matrix
+    @test A[:,4] == [40, 0,0]
+    @test copyto!(da, 10, a2, 11) isa DimMatrix
+    @test da[:,4] == [6,7,0]
 end
 
 @testset "copy_similar" begin
