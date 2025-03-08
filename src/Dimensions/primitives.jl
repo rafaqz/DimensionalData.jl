@@ -351,7 +351,7 @@ function setdims end
 Swap dimensions for the passed in dimensions, in the
 order passed.
 
-Passing in the `Dimension` types rewraps the dimension index,
+Passing in the `Dimension` types rewraps the dimension lookup,
 keeping the index values and metadata, while constructed `Dimension`
 objects replace the original dimension. `nothing` leaves the original
 dimension as-is.

@@ -114,27 +114,50 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
 function set end
 
 # Types are constructed
-Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
-
+Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = 
+  set(x, T())
 # Dimensions and pairs are set for dimensions 
-Base.@assume_effects :effect_free set(A::DimArrayOrStack, args::Union{Dimension,DimTuple,Pair}...; kw...) =
-    rebuild(A, data(A), set(dims(A), args...; kw...))
+Base.@assume_effects :effect_free function set(
+  A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...; kw...
+)
+    rebuild(A; dims=set(dims(A), args...; kw...))
+end
+Base.@assume_effects :effect_free function set(
+  st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...; kw...
+)
+    ds = set(dims(st), args...; kw...)
+    if dimsmatch(ds, dims(st))
+        rebuild(st; dims=ds) 
+    else
+        dim_updates = map(rebuild, basedims(st), basedims(ds))
+        lds = map(layerdims(st)) do lds
+            # Swap out the dims with the updated dims
+            # that match the dims of this layer
+            map(val, dims(dim_updates, lds))
+        end
+        rebuild(st; dims=ds, layerdims=lds)
+    end
+end
 # Single traits are set for all dimensions
 Base.@assume_effects :effect_free set(A::DimArrayOrStack, x::LookupTrait) = 
     set(A, map(d -> basedims(d) => x, dims(A))...)
 # Single lookups are set for all dimensions
+# Need both for ambiguity
 Base.@assume_effects :effect_free set(A::AbstractDimArray, x::Lookup) = 
     set(A, map(d -> basedims(d) => x, dims(A))...)
 Base.@assume_effects :effect_free set(A::AbstractDimStack, x::Lookup) = 
     set(A, map(d -> basedims(d) => x, dims(A))...)
 # Arrays are set as data for AbstractDimArray
-Base.@assume_effects :effect_free set(A::AbstractDimArray, newdata::AbstractArray) = begin
+Base.@assume_effects :effect_free function set(
+    A::AbstractDimArray, newdata::AbstractArray
+)
     axes(A) == axes(newdata) || _axiserr(A, newdata)
     rebuild(A; data=newdata)
 end
-
 # NamedTuples are set as data for AbstractDimStack
-Base.@assume_effects :effect_free set(s::AbstractDimStack, newdata::NamedTuple) = begin
+Base.@assume_effects :effect_free function set(
+    s::AbstractDimStack, newdata::NamedTuple
+)
     dat = data(s)
     keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
     map(dat, newdata) do d, nd

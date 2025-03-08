@@ -8,6 +8,13 @@ days = DateTime(2000):Day(1):DateTime(2000, 12, 31)
 A = DimArray((1:6) * (1:366)', (X(1:0.2:2), Ti(days)))
 st = DimStack((a=A, b=A, c=A[X=1]))
 
+
+@testset "group eltype matches indexed values" begin
+    da = rand(X(1:10), Y(1:10))
+    grps = groupby(da, X => isodd)
+    @test first(grps) isa eltype(grps) # false
+end
+
 @testset "manual groupby comparisons" begin
     # Group by month and even/odd Y axis values
     months = DateTime(2000):Month(1):DateTime(2000, 12, 31)
