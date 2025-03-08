@@ -233,6 +233,7 @@ end
         @test_throws ArgumentError dimnum(da, Z())
         @test_throws ArgumentError dimnum(da, 3)
         @test_throws ArgumentError dimnum(da, 0)
+        @test_throws ArgumentError dimnum(da, (Y(), Z()))
     end
 end
 

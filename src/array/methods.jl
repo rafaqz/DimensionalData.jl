@@ -9,7 +9,7 @@ end
 
 # With a function arg version
 for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum),
-                     (:Base, :extrema), (:Statistics, :mean))
+               (:Base, :extrema), (:Statistics, :mean))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
@@ -17,10 +17,14 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         @inline $m.$f(f, A::AbstractDimArray; dims=:, kw...) = $_f(f, A, dims; kw...)
         # Local dispatch methods
         # - Return a reduced DimArray
-        @inline $_f(A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
-        @inline $_f(f, A::AbstractDimArray, dims; kw...) =
-            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, _astuple(dims)), kw...), reducedims(A, dims))
+        @inline function $_f(A::AbstractDimArray, dims; kw...)
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+        end
+        @inline function $_f(f, A::AbstractDimArray, dims; kw...)
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+        end
         # - Return a scalar
         @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
         @inline $_f(f, A::AbstractDimArray, dims::Colon; kw...) = $m.$f(f, parent(A); dims, kw...)
@@ -55,7 +59,24 @@ end
 
 function Base.mapreduce(f, op, A::AbstractDimArray; dims=Base.Colon(), kw...)
     dims === Colon() && return mapreduce(f, op, parent(A); kw...)
-    rebuild(A, mapreduce(f, op, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
+    ds = DD.dims(A, dims)
+    # Dimnum will fail on `Int` not in dims(A)
+    dim_ints = if dims isa Tuple && all(x -> x isa Integer, dims) 
+        _check_valid_region(dims)
+        dims
+    else
+        dimnum(A, ds)
+    end
+    data = mapreduce(f, op, parent(A); dims=dim_ints, kw...)
+    rebuild(A, data, reducedims(A, ds))
+end
+
+# Copied from Base reducedim.jl
+function _check_valid_region(region)
+    for d in region
+        isa(d, Integer) || throw(ArgumentError("reduced dimension(s) must be integers"))
+        Int(d) < 1 && throw(ArgumentError("region dimension(s) must be ≥ 1, got $d"))
+    end
 end
 
 
