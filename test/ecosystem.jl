@@ -86,7 +86,7 @@ end
     @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
 end
 
-# @testset "DiskArrays" begin
+@testset "DiskArrays" begin
     raw_data = rand(100, 100, 2)
     chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
     ds = (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z())
