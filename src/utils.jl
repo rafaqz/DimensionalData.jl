@@ -160,6 +160,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
 end
+function broadcast_dims!(f, dest::AbstractDimStack, stacks::AbstractDimStack...)
+    maplayers(dest, stacks...) do d, layers...
+        broadcast_dims!(f, d, layers...)
+    end
+end
 
 # Function barrier
 function _broadcast_dims_inner!(f, dest, As, od)
@@ -193,9 +198,13 @@ function uniquekeys(keys::Vector{Symbol})
     end
 end
 function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
-    ids = ntuple(x -> x, length(keys))
+    ids = ntuple(identity, length(keys))
     map(keys, ids) do k, id
-        count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        if k == Symbol("") 
+            Symbol(:layer, id)
+        else
+            count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        end
     end
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))

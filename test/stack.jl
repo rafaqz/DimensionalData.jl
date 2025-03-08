@@ -3,7 +3,7 @@ using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers, basedims
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers, basedims, layerdims
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
@@ -94,11 +94,23 @@ end
     @test all(maplayers(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
-    @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
+    @test eltype(similar(s, Int)) === 
+    @NamedTuple{one::Int, two::Int, three::Int}
+    @test eltype(similar(s, @NamedTuple{one::Int, two::Float32, three::Bool})) === 
+        @NamedTuple{one::Int, two::Float32, three::Bool}
     st2 = similar(mixed, Bool, x, y)
     @test dims(st2) === (x, y)
     @test dims(st2[:one]) === (x, y)
     @test eltype(st2) === @NamedTuple{one::Bool, two::Bool, extradim::Bool}
+    @test eltype(similar(mixed)) == eltype(mixed)
+    @test size(similar(mixed)) == size(mixed)
+    @test keys(similar(mixed)) == keys(mixed)
+    @test layerdims(similar(mixed)) == layerdims(mixed)
+    xy = (X(), Y()) 
+    @test layerdims(similar(mixed, dims(mixed, (X, Y)))) == (one=xy, two=xy, extradim=xy)
+    st3 = similar(mixed, @NamedTuple{one::Int, two::Float32, extradim::Bool}, (Z([:a, :b, :c]), Ti(1:12), X(1:3)))
+    @test layerdims(st3) == (one=(Ti(), X()), two=(Ti(), X()), extradim=(Z(), Ti(), X()))
+    @test eltype(st3) == @NamedTuple{one::Int, two::Float32, extradim::Bool}
 end
 
 @testset "merge" begin
