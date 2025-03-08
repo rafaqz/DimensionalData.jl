@@ -47,12 +47,29 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims)
     length(extradims) > 0 && _extradimswarn(extradims)
-    _dims2indices(lookup(dims), dims, sortdims(I, dims))
+    Isorted = Dimensions.sortdims(I, dims)
+    return split_alignments(dims2indices, unalligned_dims2indices, dims, Isorted) 
+end
+@inline dims2indices(dims::Tuple{}, ::Tuple{}) = ()
+
+@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple)
+    map(sel) do s
+        s isa Union{Selector,Interval} && _unalligned_all_selector_error(dims)
+        isnothing(s) ? Colon() : s
+    end
+end
+@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{Selector,Vararg{Selector}})
+    Lookups.select_unalligned_indices(lookup(dims), sel)
 end
 
-# Handle tuples with @generated
-@inline _dims2indices(::Tuple{}, dims::Tuple{}, ::Tuple{}) = ()
-@generated function _dims2indices(lookups::Tuple, dims::Tuple, I::Tuple)
+# Run fa on each aligned dimension d[n] and indices i[n], 
+# and fu on grouped unaligned dimensions and I.
+# The result is the updated dimensions, but in the original order
+split_alignments(fa, fu, dims::Tuple, I::Tuple) = 
+    split_alignments(fa, fu, val(dims), dims, I)
+@generated function split_alignments(
+    fa, fu, lookups::Tuple, dims::Tuple, I::Tuple
+)
     # We separate out Aligned and Unaligned lookups as
     # Unaligned must be selected in groups e.g. X and Y together.
     unalligned = Expr(:tuple)
@@ -68,7 +85,7 @@ end
             push!(dimmerge.args, :(uadims[$ua_count]))
         else
             a_count += 1
-            push!(alligned.args, :(_dims2indices(dims[$i], I[$i])))
+            push!(alligned.args, :(fa(dims[$i], I[$i])))
             # Update the merged tuple
             push!(dimmerge.args, :(adims[$a_count]))
         end
@@ -80,7 +97,7 @@ end
         quote
              adims = $alligned
              # Unaligned dims have to be run together as a set
-             uadims = unalligned_dims2indices($unalligned, map(_unwrapdim, $uaI))
+             uadims = fu($unalligned, map(_unwrapdim, $uaI))
              $dimmerge
         end
     else
@@ -88,15 +105,6 @@ end
     end
 end
 
-@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple)
-    map(sel) do s
-        s isa Union{Selector,Interval} && _unalligned_all_selector_error(dims)
-        isnothing(s) ? Colon() : s
-    end
-end
-@inline function unalligned_dims2indices(dims::DimTuple, sel::Tuple{Selector,Vararg{Selector}})
-    Lookups.select_unalligned_indices(lookup(dims), sel)
-end
 
 _unalligned_all_selector_error(dims) =
     throw(ArgumentError("Unalligned dims: use selectors for all $(join(map(name, dims), ", ")) dims, or none of them"))

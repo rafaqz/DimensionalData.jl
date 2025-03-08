@@ -121,7 +121,12 @@ rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
 atol(sel::At) = sel.atol
 rtol(sel::At) = sel.rtol
 
-Base.show(io::IO, x::At) = print(io, "At(", val(x), ", ", atol(x), ", ", rtol(x), ")")
+function Base.show(io::IO, x::At)
+    print(io, "At(")
+    isnothing(val(x)) || print(io, val(x))
+    isnothing(atol(x)) || print(io, "; atol=", atol(x))
+    print(io, ")")
+end
 
 struct _True end
 struct _False end
@@ -133,12 +138,11 @@ end
 function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     v = val(sel)
     r = round(Int, v)
-    at = atol(sel)
-    if isnothing(at)
+    if isnothing(atol(sel))
         v == r || _selnotfound_or_nothing(err, lookup, v)
     else
-        at >= 0.5 && error("atol must be small than 0.5 for NoLookup")
-        isapprox(v, r; atol=at) || _selnotfound_or_nothing(err, lookup, v)
+        atol(sel) >= 0.5 && error("atol must be small than 0.5 for NoLookup")
+        isapprox(v, r; atol=atol(sel)) || _selnotfound_or_nothing(err, lookup, v)
     end
     if r in lookup 
         return r
@@ -215,6 +219,8 @@ function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_T
     end
 end
 
+
+_is_at(at::At, v) = _is_at(val(at), v, atol(at))
 @inline _is_at(x, y, atol) = x == y
 @inline _is_at(x::Dates.AbstractTime, y::Dates.AbstractTime, atol::Dates.Period) = 
     x >= y - atol && x <= y + atol 
@@ -261,6 +267,7 @@ Near() = Near(nothing)
 Near(a, b) = Near((a, b))
 
 Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
+Base.show(io::IO, x::Near{Nothing}) = print(io, "Near()")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -364,6 +371,7 @@ Contains(a, b) = Contains((a, b))
 end
 
 Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
+Base.show(io::IO, x::Contains{Nothing}) = print(io, "Contains()")
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
@@ -563,7 +571,7 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 struct Between{T<:Union{<:AbstractVector{<:Tuple{Any,Any}},Tuple{Any,Any},Nothing}} <: ArraySelector{T}
     val::T
 end
-Between(args...) = Between(args)
+Between(a, b) = Between((a, b))
 
 Base.show(io::IO, x::Between) = print(io, "Between(", val(x), ")")
 Base.first(sel::Between) = first(val(sel))
@@ -577,7 +585,7 @@ struct _Lower <: _Side end
 # returns a UnitRange from an Interval
 function between(l::Lookup, sel::Between)
     a, b = _sorttuple(sel)
-    return between(l, a..b)
+    return between(l, a .. b)
 end
 # NoIndex behaves like `Sampled` `ForwardOrdered` `Points` of 1:N Int
 function between(l::NoLookup, sel::Interval)
@@ -1020,8 +1028,8 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
   → Ti Sampled{Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} [1 s, 6 s, 91 s, 96 s] ForwardOrdered Irregular Points
 └──────────────────────────────────────────────────────────────────────────────┘
   ↓ →  1 s  6 s  91 s  96 s
- 10.0    1    2    19    20
- 50.0    3    6    57    60
+ 10.0  1    2    19    20
+ 50.0  3    6    57    60
 ```
 """
 struct All{S<:Tuple{Vararg{SelectorOrInterval}}} <: Selector{S}
@@ -1078,7 +1086,8 @@ selectindices(l::Lookup, sel::SelectorOrInterval; kw...) = _selectindices(l, sel
     return first(to_indices(l, (Not(indices),)))
 end
 @inline _selectindices(l::Lookup, sel::Touches) = touches(l, sel)
-@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = between(l, sel)
+@inline _selectindices(l::Lookup, sel::Union{Between{<:Tuple},Interval}) = 
+    between(l, sel)
 @inline function _selectindices(lookup::Lookup, sel::Between{<:AbstractVector})
     inds = Int[]
     for v in val(sel)
@@ -1095,12 +1104,31 @@ end
 
 # We use the transformation from the first unaligned dim.
 # In practice the others could be empty.
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{IntSelector,Vararg{IntSelector}}
+)
     transformed = transformfunc(lookups[1])(map(val, sel))
     map(_transform2int, lookups, sel, transformed)
 end
-function select_unalligned_indices(lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}})
+function select_unalligned_indices(
+    lookups::LookupTuple, sel::Tuple{Selector,Vararg{Selector}}
+)
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
+end
+function select_unalligned_indices(
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple{<:IntSelector,<:IntSelector,Vararg{IntSelector}}
+)
+    select_array_lookups(lookups, selectors)
+end
+
+# This implementation is extremely slow,
+# it's expected user will use the NearestNeighbors.jl extension
+function select_array_lookups(
+    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    selectors::Tuple
+)
+    throw(ArgumentError("Load NearestNeighbors.jl to use `At` on `ArrayLookup`s"))
 end
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))

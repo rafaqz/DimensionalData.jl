@@ -253,7 +253,7 @@ julia> using DimensionalData, Dates
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
-┌ 12-element DimGroupByArray{DimArray{Float64,2},1} ┐
+┌ 12-element DimGroupByArray{DimArray{Float64,3},1} ┐
 ├───────────────────────────────────────────────────┴───────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
