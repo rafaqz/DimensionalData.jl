@@ -30,7 +30,7 @@ end
 @testset "extent" begin
      dt = DimTree()
      dt.b1 = st
-     @test extent(dt) == Extent(X = (1, 10), Y = (1, 15))
+     @test extent(dt) == extent(st)
 end
 
 @testset "Indexing matches stack indexing" begin
@@ -47,12 +47,23 @@ end
      @test DimStack(dt_sliced.b2) == getindex(DimStack(dt.b2), X(Between(2, 4)))
 end
 
-xdim, ydim = X(1:10), Y(1:15)
-z1, z2 = Z(["A", "B", "C"]), Z(["C", "D"])
-a = rand(xdim, ydim; name=:a)
-b = rand(Float32, xdim, ydim; name=:b)
-c = rand(Int, xdim, ydim, z1; name=:c)
-d = rand(Int, xdim, z2; name=:d)
-dt = DimTree(a, b)
-dt.z1 = c
-dt.z2 = d
+@testset "Mixed dim branches" begin
+     xdim, ydim = map(DimensionalData.format, (X(1:10), Y(1:15)))
+     z1, z2 = map(DimensionalData.format, (Z(["A", "B", "C"]), Z(["C", "D"])))
+     a = rand(xdim, ydim; name=:a)
+     b = rand(Float32, xdim, ydim; name=:b)
+     c = rand(Int, xdim, ydim, z1; name=:c)
+     d = rand(Int, xdim, z2; name=:d)
+     dt = DimTree(a, b)
+     dt.z1 = c
+     dt.z2 = d
+     @test dims(dt) == (xdim, ydim)
+     @test dims(dt.z1) == (xdim, ydim, z1)
+     @test dims(dt.z2) == (xdim, ydim, z2)
+     @testset "Selectors must be shared by branches" begin
+          @test dt[Z=At("C")] isa DimTree
+          @test_throws DimensionalData.Lookups.SelectorError dt[Z=At("D")]
+          # Not clear if this should warn when branches lack dims?
+          @test_warn "dims were not found in object" dt[Y=At(10)]
+     end
+end
