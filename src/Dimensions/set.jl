@@ -1,22 +1,25 @@
 const DimSetters = Union{Lookup,LookupSetters,Tuple,Dimension,Symbol}
 
 set(dim::Dimension, x::DimSetters) = _set(Safe(), dim, x)
-set(dim::DimTuple, x::DimSetters) = _set(Safe(), dims, x)
-set(dims::DimTuple, a1::Union{Dimension,Pair}, args::Union{Dimension,Pair}...) =
-    _set(Safe(), dims, a1, args...)
+set(dims::DimTuple, x::DimSetters) = _set(Safe(), dims, x)
+set(dims::DimTuple, p::Pair) = _set(Safe(), dims, p)
+set(dims::DimTuple, a1::Union{Dimension,Pair}, a2::Union{Dimension,Pair}, args::Union{Dimension,Pair}...) =
+    _set(Safe(), dims, a1, a2, args...)
 
 unsafe_set(dim::Dimension, x::DimSetters) = _set(Unsafe(), dim, x)
-unsafe_set(dims::DimTuple, args::Union{Dimension,Pair}...) =
-    _set(Unsafe(), dims, args...)
+unsafe_set(dims::DimTuple, x::DimSetters) = _set(Unsafe(), dims, x)
+unsafe_set(dims::DimTuple, p::Pair) = _set(Unsafe(), dims, p)
+unsafe_set(dims::DimTuple, a1::Union{Dimension,Pair}, a2::Union{Dimension,Pair}, args::Union{Dimension,Pair}...) =
+    _set(Unsafe(), dims, a1, a2, args...)
 
 _set(s::Safety, dims::DimTuple, l::LookupSetters) =
-    set(s, dims, map(d -> basedims(d) => l, dims)...)
+    _set(s, dims, map(d -> basedims(d) => l, dims)...)
 
 # Convert pairs to wrapped dims and set
-_set(s::Safety, dims_::DimTuple, p::Pair, ps::Vararg{Pair}) =
-    _set(s, dims_, (p, ps...))
-_set(s::Safety, dims_::DimTuple, ps::Tuple{Vararg{Pair}}) =
-    _set(s, dims_, pairs2dims(ps...))
+_set(s::Safety, dims::DimTuple, p::Pair, ps::Pair...) =
+    _set(s, dims, (p, ps...))
+_set(s::Safety, dims::DimTuple, ps::Tuple{Vararg{Pair}}) =
+    _set(s, dims, pairs2dims(ps...))
 _set(s::Safety, dims::DimTuple, ::Tuple{}) = dims
 _set(s::Safety, dims::DimTuple, newdims::Dimension...) =
     _set(s, dims, newdims)
@@ -35,20 +38,21 @@ _set(s::Safety, dims::DimTuple, wrappers::DimTuple) = begin
 end
 
 # Set things wrapped in dims
-_set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) =
-    _set(s, _set(s, dim, basetypeof(wrapper)), val(wrapper))
+_set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) = begin
+    rewrapped = _set(s, dim, basetypeof(wrapper))
+    @show rewrapped val(wrapper)
+    x = _set(s, rewrapped, val(wrapper))
+    @show x
+    x
+end
 # Set the dim, checking the lookup
 _set(s::Safety, dim::Dimension, newdim::Dimension) =
     _set(s, newdim, _set(s, val(dim), val(newdim)))
 _set(s::Safety, dim::Dimension, newdim::Dimension{<:Type}) =
     _set(s, dim, val(newdim)())
 _set(s::Safety, dim::Dimension, key::Symbol) = _set(s, dim, name2dim(key))
-_set(s::Safety, dim::Dimension, x) = rebuild(dim; val=_set(s, val(dim), x))
-# For ambiguity
+_set(s::Safety, dim::Dimension, x) = rebuild(dim, _set(s, val(dim), x))
 _set(s::Safety, dim::Dimension, ::Type{T}) where T = _set(s, dim, T())
-# Otherwise pass this on to set fields on the lookup
-_set(s::Safety, dim::Dimension, x::LookupTrait) = 
-    rebuild(dim, _set(s, lookup(dim), x))
 
 # Metadata
 _set(s::Safety, dim::Dimension, newmetadata::AllMetadata) =

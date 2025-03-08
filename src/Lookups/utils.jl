@@ -10,7 +10,7 @@ function shiftlocus(locus::Locus, lookup::Lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
     newvalues = _shiftlocus(locus, lookup)
     newlookup = rebuild(lookup; data=newvalues)
-    return set(newlookup, locus)
+    return unsafe_set(newlookup, locus)
 end
 
 # Fallback - no shifting

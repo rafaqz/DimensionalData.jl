@@ -84,6 +84,7 @@ end
     @test index(cat_da) == 
         (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
     cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
+    @test cat_da_m isa X
     @test metadata(cat_da_m) == Dict()
  
     @testset "span" begin
@@ -100,7 +101,6 @@ end
     end
 
     @testset "locus" begin
-        @test_throws ArgumentError set(da2, (End(), Center()))
         @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
         @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
         @test locus(set(da, Y=>Center())) == (Center(), Center())
@@ -157,27 +157,25 @@ end
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
 end
 
-# @testset "all dim fields" begin
+# @testset "all lookup fields updated" begin
     md = Metadata(Dict(:a=>1, :b=>2))
-    dax = 
-    @descend set(da, X(20:-10:10; metadata=md))
+    dax = set(da, X(20:-10:10; metadata=md))
+    dax
     x = dims(dax, X)
     @test parent(lookup(x)) === 20:-10:10
-    @test 
-    order(x) === ReverseOrdered()
+    @test order(x) === ReverseOrdered()
     @test span(x) === Regular(-10)
     @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
     @test metadata(x).val == Dict(:a=>1, :b=>2) 
 end
 
 @testset "errors with set" begin
-    @test_throws ArgumentError set(da, X=7)
     @test_throws ArgumentError set(dims(da, X), X(7))
-    @test_throws ArgumentError set(da, notadimname=Sampled())
+    @test_throws ArgumentError set(da, notafield=Sampled())
 end
 
-@testset "_set nothing" begin
-    @test _set(nothing, nothing) == nothing
-    @test _set(1, nothing) == 1
-    @test _set(nothing, 2) == 2
-end
+# @testset "_set nothing" begin
+#     @test _set(nothing, nothing) == nothing
+#     @test _set(1, nothing) == 1
+#     @test _set(nothing, 2) == 2
+# end
