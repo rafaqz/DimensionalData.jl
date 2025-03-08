@@ -69,7 +69,7 @@ export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
 
-export AbstractDimTree, DimTree
+export AbstractDimTree, DimTree, prune
 
 export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
 
