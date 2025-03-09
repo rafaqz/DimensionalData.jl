@@ -1,3 +1,22 @@
+# This lets use switch array of NamedTupleto NamedTuple of Array
+struct LayerArray{K,T,N,A} <: AbstractArray{T,N}
+    data::A
+end
+function LayerArray{K}(a::A) where {A<:AbstractArray{<:NamedTuple,N}} where {K,N}
+    T = typeof(a[1][K])
+    LayerArray{K,T,N,A}(a)
+end
+Base.parent(A::LayerArray) = parent(A.data)
+Base.size(A::LayerArray) = size(parent(A))
+@propagate_inbounds Base.getindex(A::LayerArray{K}, I::Integer...) where K = 
+    getproperty(getindex(parent(A), I...), K)
+
+function layerarrays(A::AbstractDimArray{<:NamedTuple{K}}) where K
+    map(K) do k
+        rebuild(A; data=LayerArray{k}(A))
+    end |> NamedTuple{K}
+end
+
 """
     AbstractDimTable <: Tables.AbstractColumns
 
@@ -31,7 +50,7 @@ function _colnames(A::AbstractDimArray)
     n = Symbol(name(A)) == Symbol("") ? :value : Symbol(name(A))
     (map(name, dims(A))..., n)
 end
-_colnames(A::AbstractDimVector{T}) where T<:NamedTuple = 
+_colnames(A::AbstractDimArray{T}) where T<:NamedTuple = 
     (map(name, dims(A))..., _colnames(T)...)
 _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 
@@ -118,8 +137,7 @@ function DimTable(s::AbstractDimStack;
         s
     else
         maplayers(s) do A
-            S = DimSlices(A; dims=otherdims(A, preservedims))
-            dimconstructor(dims(S))(OpaqueArray(S), dims(S))
+            _maybe_presevedims(A, preservedims)
         end
     end
     dimcolumns = collect(_dimcolumns(s))
@@ -146,8 +164,7 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
         As
     else
         map(As) do A
-            S = DimSlices(A; dims=otherdims(A, preservedims))
-            dimconstructor(dims(S))(OpaqueArray(S), dims(S))
+            _maybe_presevedims(A, preservedims)
         end
     end
     dims_ = dims(first(As))
@@ -157,35 +174,52 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
     colnames = vcat(dimnames, layernames)
 
     # Return DimTable
+    @show typeof(first(As))
     return DimTable{Columns}(first(As), colnames, dimcolumns, dimarraycolumns)
 end
-function DimTable(x::AbstractDimArray; 
+function DimTable(A::AbstractDimArray; 
     layersfrom=nothing, 
     mergedims=nothing, 
-    kw...
+    preservedims=nothing,
 )
-    if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
-        d = dims(x, layersfrom)
-        nlayers = size(x, d)
-        layers = [view(x, rebuild(d, i)) for i in 1:nlayers]
+    if !isnothing(layersfrom) && any(hasdim(A, layersfrom))
+        d = dims(A, layersfrom)
+        nlayers = size(A, d)
+        layers = [view(A, rebuild(d, i)) for i in 1:nlayers]
         layernames = if iscategorical(d)
             Symbol.((name(d),), '_', lookup(d))
         else
             Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
-        return DimTable(layers...; layernames, mergedims)
+        return DimTable(layers; layernames, mergedims, preservedims)
     else
-        A = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
-        dimcolumns = collect(_dimcolumns(A))
-        colnames = collect(_colnames(A))
-        if (ndims(A) == 1) && (eltype(A) <: NamedTuple)
-            dimarrayrows = parent(A)
-            return DimTable{Rows}(A, colnames, dimcolumns, dimarrayrows)
+        A1 = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
+        if eltype(A1) <: NamedTuple
+            if isnothing(preservedims)
+                dimcolumns = collect(_dimcolumns(A1))
+                colnames = collect(_colnames(A1))
+                dimarrayrows = vec(parent(A1))
+                @show eltype(dimarrayrows) colnames
+                return DimTable{Rows}(A1, colnames, dimcolumns, dimarrayrows)
+            else
+                las = layerarrays(A)
+                layernames = collect(keys(las))
+                return DimTable(collect(las); layernames, mergedims, preservedims)
+            end
         else
-            dimarraycolumns = [vec(parent(A))]
-            return DimTable{Columns}(A, colnames, dimcolumns, dimarraycolumns)
+            A2 = _maybe_presevedims(A, preservedims)
+            dimcolumns = collect(_dimcolumns(A2))
+            colnames = collect(_colnames(A2))
+            dimarraycolumns = [vec(parent(A2))]
+            return DimTable{Columns}(A2, colnames, dimcolumns, dimarraycolumns)
         end
     end
+end
+
+_maybe_presevedims(A, preservedims::Nothing) = A
+function _maybe_presevedims(A, preservedims)
+    S = DimSlices(A; dims=otherdims(A, preservedims))
+    rebuild(A; data=OpaqueArray(S), dims=dims(S))
 end
 
 _dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))

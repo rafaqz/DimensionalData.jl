@@ -170,7 +170,7 @@ end
     @test Tables.columnnames(t1) == propertynames(t1) == (:Ti, :a, :b, :c)
     @test a3 == st.a[Ti=3]
     @test dims(a3) == dims(st, (X, Y))
-    t2 = DimTable(A, preservedims=:band)
+    t2 = DimTable(A; preservedims=:band)
     val10 = Tables.getcolumn(t2, :vals)[10]
     @test Tables.columnnames(t2) == propertynames(t2) == (:X, :Y, :vals)
     @test val10 == A[X(10), Y(1)]
@@ -178,9 +178,32 @@ end
 end
 
 @testset "DimTable NamedTuple" begin
-    da = DimArray([(; a=1.0f0i, b=2.0i) for i in 1:10], X)
-    t = DimTable(da)
-    s = Tables.schema(t)
-    @test s.names == (:X, :a, :b)
-    @test s.types == (Int, Float32, Float64)
+    @testset "Vector of NamedTuple" begin
+        da = DimArray([(; a=1.0f0i, b=2.0i) for i in 1:10], X)
+        t = DimTable(da)
+        s = Tables.schema(t)
+        @test s.names == (:X, :a, :b)
+        @test s.types == (Int, Float32, Float64)
+        @test all(t.a .=== 1.0f0:10.0f0)
+        @test all(t.b .=== 2.0:2.0:20.0)
+    end
+    @testset "Matrix of NamedTuple" begin
+        da = [(; a=1.0f0x*y, b=2.0x*y) for x in X(1:10), y in Y(1:5)]
+        t = DimTable(da);
+        s = Tables.schema(t)
+        @test s.names == (:X, :Y, :a, :b)
+        @test s.types == (Int, Int, Float32, Float64)
+        @test all(t.a .=== reduce(vcat, [1.0f0y:y:10.0f0y for y in 1:5]))
+        @test all(t.b .=== reduce(vcat, [2.0y:2.0y:20.0y for y in 1:5]))
+    end
+    @testset "Matrix of NamedTuple with preservedims" begin
+        t = DimTable(da; preservedims=X);
+        s = Tables.schema(t)
+        @test s.names == (:Y, :a, :b)
+        @test s.types[1] <: Int
+        @test s.types[2] <: DimVector
+        @test s.types[2] <: DimVector
+        @test all(t.a .== [[1.0f0x*y for x in X(1:10)] for y in Y(1:5)])
+        @test all(t.b .== [[2.0x*y for x in X(1:10)] for y in Y(1:5)])
+    end
 end
