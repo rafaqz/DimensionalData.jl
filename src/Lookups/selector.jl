@@ -1,3 +1,12 @@
+const StandardIndices = Union{
+    AbstractArray{<:Integer},
+    Colon,
+    Integer,
+    CartesianIndex,
+    CartesianIndices,
+    BeginEndRange,
+}
+
 struct SelectorError{L,S} <: Exception
     lookup::L
     selector::S
