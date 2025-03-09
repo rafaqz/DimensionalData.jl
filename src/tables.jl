@@ -174,7 +174,6 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
     colnames = vcat(dimnames, layernames)
 
     # Return DimTable
-    @show typeof(first(As))
     return DimTable{Columns}(first(As), colnames, dimcolumns, dimarraycolumns)
 end
 function DimTable(A::AbstractDimArray; 
@@ -199,7 +198,6 @@ function DimTable(A::AbstractDimArray;
                 dimcolumns = collect(_dimcolumns(A1))
                 colnames = collect(_colnames(A1))
                 dimarrayrows = vec(parent(A1))
-                @show eltype(dimarrayrows) colnames
                 return DimTable{Rows}(A1, colnames, dimcolumns, dimarrayrows)
             else
                 las = layerarrays(A)

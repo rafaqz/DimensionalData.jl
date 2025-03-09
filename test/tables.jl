@@ -187,6 +187,7 @@ end
         @test all(t.a .=== 1.0f0:10.0f0)
         @test all(t.b .=== 2.0:2.0:20.0)
     end
+
     @testset "Matrix of NamedTuple" begin
         da = [(; a=1.0f0x*y, b=2.0x*y) for x in X(1:10), y in Y(1:5)]
         t = DimTable(da);
@@ -197,6 +198,7 @@ end
         @test all(t.b .=== reduce(vcat, [2.0y:2.0y:20.0y for y in 1:5]))
     end
     @testset "Matrix of NamedTuple with preservedims" begin
+        da = [(; a=1.0f0x*y, b=2.0x*y) for x in X(1:10), y in Y(1:5)]
         t = DimTable(da; preservedims=X);
         s = Tables.schema(t)
         @test s.names == (:Y, :a, :b)

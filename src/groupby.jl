@@ -370,7 +370,6 @@ function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple; name=:groupby)
     # Put the groupby query in metadata
     meta = map(d -> DD.name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
-    @show metadata
     # Return a DimGroupByArray
     return DimGroupByArray(A, map(format, group_dims), (), name, metadata)
 end
