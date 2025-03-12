@@ -153,7 +153,6 @@ Base.length(s::AbstractDimStack) = prod(size(s))
 Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
 Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
 Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack, args...) = maplayers(A -> similar(A, args...), s)
 Base.eltype(::AbstractDimStack{<:Any,T}) where T = T
 Base.ndims(::AbstractDimStack{<:Any,<:Any,N}) where N = N
 Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
@@ -196,6 +195,36 @@ Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
 @propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
 @propagate_inbounds Base.iterate(st::AbstractDimStack, i) =
     i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
+
+Base.similar(s::AbstractDimStack) = similar(s, eltype(s))
+Base.similar(s::AbstractDimStack, dims::Dimension...) = similar(s, dims)
+Base.similar(s::AbstractDimStack, ::Type{T},dims::Dimension...) where T =
+    similar(s, T, dims)
+Base.similar(s::AbstractDimStack, dims::Tuple{Vararg{Dimension}}) = 
+    similar(s, eltype(s), dims)
+Base.similar(s::AbstractDimStack, ::Type{T}) where T = 
+    similar(s, T, dims(s))
+function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T
+    # Any dims not in the stack are added to all layers
+    ods = otherdims(dims, DD.dims(s))
+    maplayers(s) do A
+        # Original layer dims are maintained, other dims are added
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
+        similar(A, T, D)
+    end
+end
+function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T<:NamedTuple
+    ods = otherdims(dims, DD.dims(s))
+    maplayers(s, _nt_types(T)) do A, Tx 
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
+        similar(A, Tx, D)
+    end
+end
+
+@generated function _nt_types(::Type{NamedTuple{K,T}}) where {K,T}
+    expr = Expr(:tuple, T.parameters...)
+    return :(NamedTuple{K}($expr))
+end
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
