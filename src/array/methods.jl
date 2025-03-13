@@ -176,11 +176,11 @@ end
 # These just return the parent for now
 function Base.sort(A::AbstractDimVector; kw...)
     newdims = (set(only(dims(A)), NoLookup()),)
-    newdata = sort(parent(A), kw...)
+    newdata = sort(parent(A); kw...)
     return rebuild(A, newdata, newdims)
 end
 function Base.sort(A::AbstractDimArray; dims, kw...)
-    newdata = sort(parent(A), dims=dimnum(A, dims), kw...)
+    newdata = sort(parent(A); dims=dimnum(A, dims), kw...)
     replacement_dims = map(DD.dims(A, _astuple(dims))) do d
         set(d, NoLookup())
     end
@@ -189,7 +189,7 @@ function Base.sort(A::AbstractDimArray; dims, kw...)
 end
 
 function Base.sortslices(A::AbstractDimArray; dims, kw...)
-    newdata = sortslices(parent(A), dims=dimnum(A, dims), kw...)
+    newdata = sortslices(parent(A); dims=dimnum(A, dims), kw...)
     replacement_dims = map(DD.dims(A, _astuple(dims))) do d
         set(d, NoLookup())
     end
