@@ -433,7 +433,7 @@ end
 # Write a single column from a table with one or more coordinate columns to a DimArray
 function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, missingval=missing, kw...)
     # Confirm that the Tables interface is implemented
-    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+    Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
 
     # Get array dimensions
     dims = guess_dims(table, dims, precision=precision)
