@@ -37,7 +37,7 @@ end
         @test l[1:5] isa typeof(l)
         @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
             Base.dotview(l, [1, 3, 4]) ==
-            Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 8.0), Points(), NoMetadata())
+            Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
         @test l[Int[]] == view(l, Int[]) == Base.dotview(l, Int[]) == 
             Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Near(2.1)] == Base.dotview(l, Near(2.1)) == 2.0
@@ -45,7 +45,7 @@ end
         @test l[[false, true, true, false, true]] == 
             view(l, [false, true, true, false, true]) == 
             Base.dotview(l, [false, true, true, false, true]) == 
-            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[2] == Base.dotview(l, 2) === 4.0
         @test view(l, 2) == fill(4.0)
         @test l[CartesianIndex((4,))] === Base.dotview(l, CartesianIndex((4,))) === 8.0
@@ -61,25 +61,25 @@ end
         # End Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+            Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus DateTime
         l = Sampled(DateTime(2001, 1, 1):Day(1):DateTime(2001, 1, 5), ForwardOrdered(), Regular(Day(1)), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([DateTime(2001, 1, 2), DateTime(2001, 1, 3), DateTime(2001, 1, 5)], ForwardOrdered(), Irregular(DateTime(2001, 1, 2), DateTime(2001, 1, 5)), Points(), nothing)
+            Sampled([DateTime(2001, 1, 2), DateTime(2001, 1, 3), DateTime(2001, 1, 5)], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Reverse
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
         @test l[:] == l
         @test l[1:5] == l
         @test l[1:5] isa typeof(l)
-        @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(4.0, 10.0), Points(), nothing)
+        @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Int[]] == Sampled(Float64[], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Near(2.1)] == 2.0
         @test l[[false, true, true, false, true]] == 
-            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[2] === 8.0
         @test l[CartesianIndex((4,))] == 4.0
         @test l[CartesianIndices((2:4,))] == Sampled(8.0:-2.0:4.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
@@ -87,15 +87,15 @@ end
         # End Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 8.0), Points(), nothing)
+            Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus DateTime
         l = Sampled(DateTime(2001, 1, 5):Day(-1):DateTime(2001, 1, 1), ReverseOrdered(), Regular(Day(-1)), Points(), nothing)
         @test l[[false, true, true, false, true]] == 
-            Sampled([DateTime(2001, 1, 4), DateTime(2001, 1, 3), DateTime(2001, 1, 1)], ReverseOrdered(), Irregular(DateTime(2001, 1, 1), DateTime(2001, 1, 4)), Points(), nothing)
+            Sampled([DateTime(2001, 1, 4), DateTime(2001, 1, 3), DateTime(2001, 1, 1)], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
     end
 
     @testset "Intervals" begin
@@ -529,7 +529,6 @@ end
         @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] == 
             s_mixed[Begin, Begin] == (one=1.0, two=2.0f0, three=3, four=4)
     end
-
     @testset "cartesian mixed" begin
         @inferred s[At(:a), :] 
         @inferred view(s, At(:a), :)
@@ -632,6 +631,14 @@ end
             s[X=1:1, Y=1:2]
     end
 
+    @testset "CartesianIndex Vector" begin
+        @inferred s[[CartesianIndex(1, 2)]]
+        @inferred view(s, [CartesianIndex(1, 2)]) 
+        @test s[[CartesianIndex(1, 2)]] == 
+            view(s, [CartesianIndex(1, 2)]) ==
+            s[[3]]
+    end
+
     @testset "Mixed CartesianIndex and CartesianIndices" begin
         da3d = cat(da1, 10da1; dims=Z) 
         s3 = merge(s, (; ten=da3d))
@@ -675,6 +682,8 @@ end
 
     @testset "setindex!" begin
         s_set = deepcopy(s)
+        s_set[1] = (one=4, two=5, three=6)
+        @test s_set[1, 1] === (one=4.0, two=5.0f0, three=6)
         s_set[1, 1] = (one=9, two=10, three=11)
         @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
         s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)

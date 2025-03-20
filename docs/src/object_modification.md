@@ -1,4 +1,4 @@
-# Modifying objects
+# Modifying Objects
 
 DimensionalData.jl objects are all `struct` rather than
 `mutable struct`. The only things you can modify in-place
@@ -28,7 +28,7 @@ parent(A_mod)
 
 == stack
 
-For a stack this applied to all layers, and is where `modify`
+For a stack, this applies to all layers, and is where `modify`
 starts to be more powerful:
 
 ````@ansi helpers

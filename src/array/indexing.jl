@@ -2,12 +2,6 @@
 
 #### getindex/view ####
 
-
-const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
-const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
-const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
-const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
-
 for f in (:getindex, :view, :dotview)
     _dim_f = Symbol(:_dim_, f)
     if f === :view
@@ -107,14 +101,18 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::_DimIndicesAmb) = $_dim_f(A, i)
 
         # Use underscore methods to minimise ambiguities
+        @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::DimTuple) =
+            $_dim_f(A, ds...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, d1::Dimension, ds::Dimension...) =
             Base.$f(A, dims2indices(A, (d1, ds...))...)
         @propagate_inbounds $_dim_f(A::AbstractBasicDimArray, ds::Dimension...) =
             Base.$f(A, dims2indices(A, ds)...)
         @propagate_inbounds function $_dim_f(
-            A::AbstractBasicDimArray, dims::Union{Dimension,DimensionIndsArrays}...
+            A::AbstractBasicDimArray, 
+            d1::Union{Dimension,DimensionIndsArrays}, 
+            ds::Union{Dimension,DimensionIndsArrays}...
         )
-            return merge_and_index(Base.$f, A, dims)
+            return merge_and_index(Base.$f, A, (d1, ds...))
         end
     end
     # Standard indices
@@ -256,13 +254,12 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::DimensionalIndices...; kw...) =
     setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
-@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) =
-    setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
+@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) = setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 
 # For @views macro to work with keywords
-Base.maybeview(A::AbstractDimArray, args...; kw...) =
+@propagate_inbounds Base.maybeview(A::AbstractDimArray, args...; kw...) =
     view(A, args...; kw...)
-Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
+@propagate_inbounds Base.maybeview(A::AbstractDimArray, args::Vararg{Union{Number,Base.AbstractCartesianIndex}}; kw...) =
     view(A, args...; kw...)

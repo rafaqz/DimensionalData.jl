@@ -11,20 +11,6 @@ Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::DimTuple) where T =
 Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
     dimconstructor(D)(A; data=similar(Array{T}, ()), dims=(), refdims=(), metadata=NoMetadata())
 
-# Indexing that returns a new object with the same number of dims
-for f in (:getindex, :dotview, :view)
-    T = Union{Colon,AbstractRange}
-    @eval @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
-        I = (i1, i2, Is...)
-        newdims, _ = slicedims(dims(di), I)
-        rebuild(di; dims=newdims)
-    end
-    @eval @propagate_inbounds Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T) =
-        rebuild(di; dims=(dims(di, 1)[i],))
-    @eval @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
-        Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
-end
-
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,2}) =
     rebuild(A; dims=reverse(dims(A)))
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
@@ -40,10 +26,6 @@ end
 end
 
 abstract type AbstractDimIndices{T,N,D} <: AbstractDimArrayGenerator{T,N,D} end
-
-(::Type{T})(::Nothing; kw...) where T<:AbstractDimIndices = throw(ArgumentError("Object has no `dims` method"))
-(::Type{T})(x; kw...) where T<:AbstractDimIndices = T(dims(x); kw...)
-(::Type{T})(dim::Dimension; kw...) where T<:AbstractDimIndices = T((dim,); kw...)
 
 """
     DimIndices <: AbstractArray
@@ -69,11 +51,10 @@ Index a `DimArray` with `DimIndices`.
 Notice that unlike CartesianIndices, it doesn't matter if the dimensions
 are not in the same order. Or even if they are not all contained in each.
 
-```jldoctest; setup = :(using Random; Random.seed!(123))
+```jldoctest; setup = :(using DimensionalData, Random; Random.seed!(123))
 julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
-╭─────────────────────────╮
-│ 4×6 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────── dims ┐
+┌ 4×6 DimArray{Float64, 2} ┐
+├──────────────────────────┴──────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.3:0.9 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':1:'f' ForwardOrdered
 └─────────────────────────────────────────────────────────────────┘
@@ -84,20 +65,18 @@ julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
  0.9  0.512083  0.867547  0.136551   0.959434   0.150155  0.941133
 
 julia> di = DimIndices((X(1:2:4), Y(1:2:4)))
-╭─────────────────────────────────────────────╮
-│ 2×2 DimIndices{Tuple{X{Int64}, Y{Int64}},2} │
-├─────────────────────────────────────── dims ┤
+┌ 2×2 DimIndices{Tuple{X{Int64}, Y{Int64}}, 2} ┐
+├──────────────────────────────────────── dims ┤
   ↓ X 1:2:3,
   → Y 1:2:3
-└─────────────────────────────────────────────┘
- ↓ →  1                            3
- 1     ↓ X 1, → Y 1   ↓ X 1, → Y 3
- 3     ↓ X 3, → Y 1   ↓ X 3, → Y 3
+└──────────────────────────────────────────────┘
+ ↓ →  1                3
+ 1     (↓ X 1, → Y 1)   (↓ X 1, → Y 3)
+ 3     (↓ X 3, → Y 1)   (↓ X 3, → Y 3)
 
 julia> A[di] # Index A with these indices
-╭─────────────────────────╮
-│ 2×2 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────── dims ┐
+┌ 2×2 DimArray{Float64, 2} ┐
+├──────────────────────────┴──────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.6:0.6 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':2:'c' ForwardOrdered
 └─────────────────────────────────────────────────────────────────┘
@@ -119,6 +98,9 @@ function DimIndices(dims::D) where {D<:Tuple{Vararg{Dimension}}}
     dims = N > 0 ? _dimindices_format(dims) : dims
     DimIndices{T,N,typeof(dims)}(dims)
 end
+DimIndices(x) = DimIndices(dims(x))
+DimIndices(dim::Dimension) = DimIndices((dim,))
+DimIndices(::Nothing) = throw(ArgumentError("Object has no `dims` method"))
 
 # Forces multiple indices not linear
 function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
@@ -144,6 +126,11 @@ _dimindices_axis(x::Lookup) = axes(x, 1)
 _dimindices_axis(x) =
     throw(ArgumentError("`$x` is not a valid input for `DimIndices`. Use `Dimension`s wrapping `Integer`, `AbstractArange{<:Integer}`, or a `Lookup` (the `axes` will be used)"))
 
+abstract type AbstractDimVals{T,N,D} <: AbstractDimIndices{T,N,D} end
+
+(::Type{T})(::Nothing; kw...) where T<:AbstractDimVals = throw(ArgumentError("Object has no `dims` method"))
+(::Type{T})(x; kw...) where T<:AbstractDimVals = T(dims(x); kw...)
+(::Type{T})(dim::Dimension; kw...) where T<:AbstractDimVals = T((dim,); kw...)
 
 """
     DimPoints <: AbstractArray
@@ -163,12 +150,12 @@ that defines a `dims` method can be passed in.
 
 - `order`: determines the order of the points, the same as the order of `dims` by default.
 """
-struct DimPoints{T,N,D<:DimTuple,O} <: AbstractDimIndices{T,N,D}
+struct DimPoints{T,N,D<:Tuple{Vararg{Dimension}},O} <: AbstractDimVals{T,N,D}
     dims::D
     order::O
 end
-DimPoints(dims::DimTuple; order=dims) = DimPoints(dims, order)
-function DimPoints(dims::DimTuple, order::DimTuple)
+DimPoints(dims::Tuple; order=dims) = DimPoints(dims, order)
+function DimPoints(dims::Tuple, order::Tuple)
     order = map(d -> basetypeof(d)(), order)
     T = Tuple{map(eltype, dims)...}
     N = length(dims)
@@ -209,7 +196,8 @@ is similar to doing an interpolation.
 
 - `selectors`: `Near`, `At` or `Contains`, or a mixed tuple of these.
   `At` is the default, meaning only exact or within `atol` values are used.
-- `atol`: used for `At` selectors only, as the `atol` value.
+- `atol`: used for `At` selectors only, as the `atol` value. Ignored where 
+    `atol` is set inside individual `At` selectors.
 
 ## Example
 
@@ -217,15 +205,14 @@ Here we can interpolate a `DimArray` to the lookups of another `DimArray`
 using `DimSelectors` with `Near`. This is essentially equivalent to
 nearest neighbour interpolation.
 
-```jldoctest; setup = :(using Random; Random.seed!(123))
+```jldoctest; setup = :(using DimensionalData, Random; Random.seed!(123))
 julia> A = rand(X(1.0:3.0:30.0), Y(1.0:5.0:30.0), Ti(1:2));
 
 julia> target = rand(X(1.0:10.0:30.0), Y(1.0:10.0:30.0));
 
 julia> A[DimSelectors(target; selectors=Near), Ti=2]
-╭─────────────────────────╮
-│ 3×3 DimArray{Float64,2} │
-├─────────────────────────┴───────────────────────────────────────── dims ┐
+┌ 3×3 DimArray{Float64, 2} ┐
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ X Sampled{Float64} [1.0, 10.0, 22.0] ForwardOrdered Irregular Points,
   → Y Sampled{Float64} [1.0, 11.0, 21.0] ForwardOrdered Irregular Points
 └─────────────────────────────────────────────────────────────────────────┘
@@ -239,19 +226,40 @@ Using `At` would make sure we only use exact interpolation,
 while `Contains` with sampling of `Intervals` would make sure that
 each values is taken only from an Interval that is present in the lookups.
 """
-struct DimSelectors{T,N,D<:Tuple{Dimension,Vararg{Dimension}},S<:Tuple} <: AbstractDimIndices{T,N,D}
+struct DimSelectors{T,N,D<:Tuple{Vararg{Dimension}},S<:Tuple} <: AbstractDimVals{T,N,D}
     dims::D
     selectors::S
 end
-function DimSelectors(dims::DimTuple; atol=nothing, selectors=At())
+function DimSelectors(dims::Tuple{Vararg{Dimension}}; atol=nothing, selectors=At())
     s = _format_selectors(dims, selectors, atol)
     DimSelectors(dims, s)
 end
-function DimSelectors(dims::DimTuple, selectors::Tuple)
-    T = typeof(map(rebuild, dims, selectors))
+function DimSelectors(dims::Tuple{Vararg{Dimension}}, selectors::Tuple)
+    T = _selector_eltype(dims, selectors)
     N = length(dims)
     dims = N > 0 ? _format(dims) : dims
     DimSelectors{T,N,typeof(dims),typeof(selectors)}(dims, selectors)
+end
+
+_selector_eltype(dims::Tuple, selectors::Tuple) =
+    Tuple{map(_selector_eltype, dims, selectors)...}
+_selector_eltype(d::D, ::S) where {D,S} =
+    basetypeof(D){basetypeof(S){eltype(d)}}
+_selector_eltype(d::D, ::At{<:Any,A,R}) where {D,A,R} =
+    basetypeof(D){At{eltype(d),A,R}}
+
+function show_after(io::IO, mime, A::DimSelectors)
+    _, displaywidth = displaysize(io)
+    blockwidth = get(io, :blockwidth, 0)
+    selector_lines = split(sprint(show, mime, A.selectors), "\n")
+    new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, selector_lines) + 4))
+    new_blockwidth = print_block_separator(io, "selectors", blockwidth, new_blockwidth)
+    print(io, "  ")
+    show(io, mime, A.selectors)
+    println(io)
+    print_block_close(io, new_blockwidth)
+    ndims(A) > 0 && println(io)
+    print_array(io, mime, A)
 end
 
 @inline _format_selectors(dims::Tuple, selector, atol) =
@@ -262,18 +270,17 @@ end
     map(_format_selectors, dims, selectors, atol)
 
 _format_selectors(d::Dimension, T::Type, atol) = _format_selectors(d, T(), atol)
-@inline _format_selectors(d::Dimension, ::Near, atol) =
-    Near(zero(eltype(d)))
-@inline _format_selectors(d::Dimension, ::Contains, atol) =
-    Contains(zero(eltype(d)))
-@inline function _format_selectors(d::Dimension, ::At, atol)
-    atolx = _atol(eltype(d), atol)
-    v = first(val(d))
-    At{typeof(v),typeof(atolx),Nothing}(v, atolx, nothing)
+@inline _format_selectors(d::Dimension, ::Near, atol) = Near(nothing)
+@inline _format_selectors(d::Dimension, ::Contains, atol) = Contains(nothing)
+@inline function _format_selectors(d::Dimension, at::At, atol)
+    atolx = _atol(eltype(d), Lookups.atol(at), atol)
+    At(nothing, atolx, nothing)
 end
 
-_atol(::Type, atol) = atol
-_atol(T::Type{<:AbstractFloat}, atol::Nothing) = eps(T)
+_atol(::Type, atol1, atol2) = atol1
+_atol(T::Type{<:AbstractFloat}, atol, ::Nothing) = atol
+_atol(T::Type{<:AbstractFloat}, ::Nothing, atol) = atol
+_atol(T::Type{<:AbstractFloat}, ::Nothing, ::Nothing) = eps(T)
 
 @propagate_inbounds function Base.getindex(di::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
     map(dims(di), di.selectors, (i1, i2, I...)) do d, s, i
@@ -299,9 +306,9 @@ function DimSlices(x, dims; drop=true)
     else
         dims
     end 
-    inds = map(basedims(newdims)) do d
-        rebuild(d, first(axes(x, d)))
-    end
+    inds = map(newdims) do d
+        rebuild(d, first(d))
+    end 
     # `getindex` returns these views
     T = typeof(view(x, inds...))
     N = length(newdims)
@@ -427,4 +434,47 @@ function mergedims(A::DimExtensionArray, dim_pairs::Pair...)
     Aperm = PermutedDimsArray(A, dims_perm)
     data_merged = reshape(parent(Aperm), map(length, dims_new))
     return DimArray(data_merged, dims_new)
+end
+
+const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
+const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
+const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
+const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
+
+# Indexing that returns a new object with the same number of dims
+for f in (:getindex, :dotview, :view)
+    T = Union{Colon,AbstractVector}
+    _dim_f = Symbol(:_dim_, f)
+    @eval begin
+        @propagate_inbounds function Base.$f(di::AbstractDimArrayGenerator, i1::$T, i2::$T, Is::$T...)
+            I = (i1, i2, Is...)
+            newdims, _ = slicedims(dims(di), I)
+            rebuild(di; dims=newdims)
+        end
+        @propagate_inbounds function Base.$f(
+            di::AbstractDimArrayGenerator, 
+            i1::DimensionalIndices, 
+            i2::DimensionalIndices, 
+            Is::DimensionalIndices...
+        )
+            $_dim_f(di, i1, i2, Is...)
+        end
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimSelectors) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::DimensionalIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator, i::_DimIndicesAmb) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimSelectors) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::DimensionalIndices) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator{<:Any,1}, i::_DimIndicesAmb) = $_dim_f(A, i)
+        @propagate_inbounds Base.$f(di::AbstractDimArrayGenerator{<:Any,1}, i::$T) =
+            rebuild(di; dims=(dims(di, 1)[i],))
+        @propagate_inbounds Base.$f(dg::AbstractDimArrayGenerator, i::Integer) =
+            Base.$f(dg, Tuple(CartesianIndices(dg)[i])...)
+    end
+    if f == :view
+        @eval @propagate_inbounds Base.$f(A::AbstractDimArrayGenerator) = A
+    else
+        @eval @propagate_inbounds Base.$f(::AbstractDimArrayGenerator) = ()
+    end
 end

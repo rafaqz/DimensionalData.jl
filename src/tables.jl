@@ -65,11 +65,10 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 julia> using DimensionalData, Tables
 
 julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
-╭─────────────────────────────╮
-│ 16×16×3 DimArray{Float64,3} │
-├─────────────────────── dims ┤
+┌ 16×16×3 DimArray{Float64, 3} ┐
+├──────────────────────── dims ┤
   ↓ X, → Y, ↗ band
-└─────────────────────────────┘
+└──────────────────────────────┘
 [:, :, 1]
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0

@@ -56,8 +56,8 @@ end
 end
 
 @testset "broadcast over layer" begin
-    s[:one] .*= 2
-    s[:one] ./= 2
+    s[:one] .*= 2;
+    s[:one] ./= 2;
 end
 
 @testset "low level base methods" begin
@@ -66,6 +66,10 @@ end
     @test eltype(mixed) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test haskey(s, :one) == true
     @test haskey(s, :zero) == false
+    @test get(mixed, :one, nothing) == mixed.one
+    @test get(mixed, :five, nothing) == nothing
+    @test get(() -> nothing, mixed, :two) == mixed.two
+    @test get(() -> nothing, mixed, :ten) == nothing
     @test size(mixed) === (2, 3, 4) # size is as for Array
     @test size(mixed, Y) === 3
     @test size(mixed, 3) === 4
@@ -87,7 +91,7 @@ end
 end
 
 @testset "similar" begin
-    @test all(map(similar(mixed), mixed) do s, m
+    @test all(maplayers(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
     @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
@@ -221,14 +225,15 @@ end
     end
 end
 
-@testset "map" begin
-    @test values(map(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
-    @test dims(map(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
-    @test map(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
-    @test values(map(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
-    @test map(+, s, s, s) == map(a -> a .* 3, s)
-    @test_throws ArgumentError map(+, s, mixed)
-    @test map((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
+@testset "maplayers" begin
+    @test values(maplayers(a -> a .* 2, s))[1] == values(DimStack(2da1, 2da2, 2da3))[1]
+    @test dims(maplayers(a -> a .* 2, s)) == dims(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(a -> a[1], s) == (one=1.0, two=2.0, three=3.0)
+    @test values(maplayers(a -> a .* 2, s)) == values(DimStack(2da1, 2da2, 2da3))
+    @test maplayers(+, s, s, s) == maplayers(a -> a .* 3, s)
+    @test_throws ArgumentError maplayers(+, s, mixed)
+    @test maplayers((s, a) -> s => a[1], (one="one", two="two", three="three"), s) == 
+        (one="one" => 1.0, two="two" => 2.0, three="three" => 3.0)
 end
 
 @testset "methods with no arguments" begin
@@ -342,4 +347,14 @@ end
     @test rand(Xoshiro(), s) isa @NamedTuple{one::Float64, two::Float32, three::Int}
     @test rand(mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
     @test rand(MersenneTwister(), mixed) isa @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+end
+
+# https://github.com/rafaqz/DimensionalData.jl/issues/891
+@testset "DimStack of nested DimArrays" begin
+    nested_da = DimArray([da1, da2], Z(1:2))
+    ds = DimStack((a = nested_da, b = nested_da))
+    @test ds[1] == (a = da1, b = da1)
+    @test ds[Z = 1] == (a = da1, b = da1)
+    @test ds[Z = 1:2] == ds
+
 end

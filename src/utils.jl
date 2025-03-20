@@ -85,10 +85,10 @@ modify(CuArray, A)
 This also works for all the data layers in a `DimStack`.
 """
 function modify end
-modify(f, s::AbstractDimStack) = map(a -> modify(f, a), s)
+modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
 # Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
 # layers, and instead just modify the parent data directly.
-modify(f, s::AbstractDimStack{<:NamedTuple}) = 
+modify(f, s::AbstractDimStack{<:Any,<:Any,<:NamedTuple}) = 
     rebuild(s; data=map(a -> modify(f, a), parent(s)))
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
@@ -130,8 +130,8 @@ end
 function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
     st = _firststack(As...)
     nts = _as_extended_nts(NamedTuple(st), As...)
-    layers = map(nts...) do as...
-        broadcast_dims(f, as...)
+    layers = map(keys(st)) do name
+        broadcast_dims(f, map(nt -> nt[name], nts)...)
     end
     rebuild_from_arrays(st, layers)
 end
@@ -155,11 +155,7 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
         # comparedims(dest, dims(A, dims(dest)))
         # Lazily permute B dims to match the order in A, if required
-        if !dimsmatch(commondims(A, dest), commondims(dest, A))
-            PermutedDimsArray(A, commondims(dest, A))
-        else
-            A
-        end
+        _maybe_lazy_permute(A, dims(dest))
     end
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
@@ -173,18 +169,11 @@ function _broadcast_dims_inner!(f, dest, As, od)
     else
         not_shared_dims = combinedims(od...) 
         reshaped = map(As) do A
-            all(hasdim(A, dims(dest))) ? parent(A) : _insert_length_one_dims(A, dims(dest))
+            _maybe_insert_length_one_dims(A, dims(dest))
         end
         dest .= f.(reshaped...)
     end
     return dest
-end
-
-function _insert_length_one_dims(A, alldims)
-    lengths = map(alldims) do d 
-        hasdim(A, d) ? size(A, d) : 1
-    end
-    return reshape(parent(A), lengths)
 end
 
 @deprecate dimwise broadcast_dims
@@ -214,10 +203,36 @@ uniquekeys(nt::NamedTuple) = keys(nt)
 
 _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
     (NamedTuple{K}(ntuple(x -> A, length(K))), _as_extended_nts(nt, As...)...)
-function _as_extended_nts(nt::NamedTuple{K}, st::AbstractDimStack, As...) where K
+function _as_extended_nts(nt::NamedTuple{K1}, st::AbstractDimStack{K2}, As...) where {K1,K2}
+    K1 == K2 || throw(ArgumentError("Keys of stack $K2 do not match the keys of the first stack $K1"))
     extended_layers = map(layers(st)) do l
-        DimExtensionArray(l, dims(st))
+        if all(hasdim(l, dims(st)))
+            l
+        else
+            DimExtensionArray(l, dims(st))
+        end
     end
     return (extended_layers, _as_extended_nts(nt, As...)...)
 end
 _as_extended_nts(::NamedTuple) = ()
+
+
+# Tuple map that is always unrolled
+# mostly for stack indexing performance
+_unrolled_map_inner(f, v::Type{T}) where T = 
+    Expr(:tuple, (:(f(v[$i])) for i in eachindex(T.types))...)
+_unrolled_map_inner(f, v1::Type{T}, v2::Type) where T = 
+    Expr(:tuple, (:(f(v1[$i], v2[$i])) for i in eachindex(T.types))...)
+
+@generated function unrolled_map(f, v::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v)
+    :(NamedTuple{K}($exp))
+end
+@generated function unrolled_map(f, v1::NamedTuple{K}, v2::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v1, v2)
+    :(NamedTuple{K}($exp))
+end
+@generated unrolled_map(f, v::Tuple) =
+    _unrolled_map_inner(f, v)
+@generated unrolled_map(f, v1::Tuple, v2::Tuple) = 
+    _unrolled_map_inner(f, v1, v2)

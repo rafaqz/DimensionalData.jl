@@ -32,12 +32,11 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 # output
 
-╭────────────────────────────╮
-│ 3×5×12 DimArray{Float64,3} │
-├────────────────────────────┴─────────────────────────────────────────── dims ┐
+┌ 3×5×12 DimArray{Float64, 3} ┐
+├─────────────────────────────┴────────────────────────────────────────── dims ┐
   ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
   → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
-  ↗ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+  ↗ Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
 [:, :, 1]
  ↓ →   2    4    6    8    10
@@ -54,10 +53,9 @@ x = A[X(2), Y(3)]
 
 # output
 
-╭────────────────────────────────╮
-│ 12-element DimArray{Float64,1} │
-├────────────────────────────────┴─────────────────────────────────────── dims ┐
-  ↓ Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+┌ 12-element DimArray{Float64, 1} ┐
+├─────────────────────────────────┴────────────────────────────────────── dims ┐
+  ↓ Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
  2021-01-01T00:00:00  0.0
  2021-02-01T00:00:00  0.0
@@ -80,11 +78,10 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 # output
 
-╭──────────────────────────╮
-│ 1×12 DimArray{Float64,2} │
-├──────────────────────────┴───────────────────────────────────────────── dims ┐
+┌ 1×12 DimArray{Float64, 2} ┐
+├───────────────────────────┴──────────────────────────────────────────── dims ┐
   ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
-  → Ti Sampled{Dates.DateTime} Dates.DateTime("2021-01-01T00:00:00"):Dates.Month(1):Dates.DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
+  → Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
  ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
  4    0.0                   0.0                      0.0
@@ -286,6 +283,7 @@ Base.first(d::Dimension) = val(d)
 Base.first(d::Dimension{<:AbstractArray}) = first(lookup(d))
 Base.last(d::Dimension) = val(d)
 Base.last(d::Dimension{<:AbstractArray}) = last(lookup(d))
+Base.IteratorSize(d::Dimension{<:AbstractArray}) = Base.IteratorSize(parent(d))
 Base.firstindex(d::Dimension) = 1
 Base.lastindex(d::Dimension) = 1
 Base.firstindex(d::Dimension{<:AbstractArray}) = firstindex(lookup(d))
@@ -295,6 +293,11 @@ Base.Array(d::Dimension{<:AbstractArray}) = collect(lookup(d))
 function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
+
+LookupArrays.ordered_first(d::Dimension{<:AbstractArray}) = ordered_first(lookup(d))
+LookupArrays.ordered_last(d::Dimension{<:AbstractArray}) = ordered_last(lookup(d))
+LookupArrays.ordered_firstindex(d::Dimension{<:AbstractArray}) = ordered_firstindex(lookup(d))
+LookupArrays.ordered_lastindex(d::Dimension{<:AbstractArray}) = ordered_lastindex(lookup(d))
 
 Base.size(dims::DimTuple) = map(length, dims)
 Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
@@ -351,7 +354,7 @@ data from a file. Can be used as keyword arguments for indexing.
 Dimension types take precedence over same named `Dim` types when indexing
 with symbols, or e.g. creating Tables.jl keys.
 
-```jldoctest
+```jldoctest; setup = :(using DimensionalData)
 julia> dim = Dim{:custom}(['a', 'b', 'c'])
 custom ['a', 'b', 'c']
 ```

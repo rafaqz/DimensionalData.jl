@@ -58,6 +58,14 @@ fill(7, X(5), Y(10))
 fill(7, X(5), Y(10); name=:fill, metadata=Dict())
 ```
 
+== generator construction
+
+```@ansi dimarray
+[x + y for x in X(1:5), y in Y(1:10)]
+DimArray(x + y for x in X(1:5), y in Y(1:10))
+DimArray(x + y for x in X(1:5), y in Y(1:10); name=:sum, metadata=Dict())
+```
+
 :::
 
 ## Constructing DimArray with arbitrary dimension names
@@ -84,7 +92,7 @@ order of our objects axes. These are the same:
 da[X(2), Y(1)] == da[Y(1), X(2)]
 ```
 
-We also can use Tuples of dimensions like `CartesianIndex`,
+We also can use `Tuples` of dimensions, like `CartesianIndex`,
 but they don't have to be in order of consecutive axes.
 
 ```@ansi dimarray

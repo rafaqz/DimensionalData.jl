@@ -1,33 +1,102 @@
-using DimensionalData, Test
+using DimensionalData
+using Test
+using Dates
+using JLArrays
+using GPUArrays
+
+using DimensionalData.Lookups
+using DimensionalData.Dimensions
 
 using DimensionalData: NoLookup
+
+GPUArrays.allowscalar(false)
 
 # Tests taken from NamedDims. Thanks @oxinabox
 
 da = ones(X(3))
+dajl = rebuild(da, JLArray(parent(da)));
 @test Base.BroadcastStyle(typeof(da)) isa DimensionalData.DimensionalStyle
 
 @testset "standard case" begin
-    @test da .+ da == 2ones(3)
+    @test (@inferred da .+ da) == 2ones(3)
     @test dims(da .+ da) == dims(da)
-    @test da .+ da .+ da == 3ones(3)
+    @test (@inferred da .+ da .+ da) == 3ones(3)
     @test dims(da .+ da .+ da) == dims(da)
 end
 
 @testset "broadcast over length one dimension" begin
     da2 = DimArray((1:4) * (1:2:8)', (X, Y))
-    @test da2 .* da2[:, 1:1] == [1, 4, 9, 16] * (1:2:8)'
+    @test (@inferred da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
+    @test (@inferred da2[:, 1:1] .* da2) == [1, 4, 9, 16] * (1:2:8)'
+end
+
+@testset "JLArray broadcast over length one dimension" begin
+    da2 = DimArray(JLArray((1:4) * (1:2:8)'), (X, Y))
+    @test Array(da2 .* da2[:, 1:1]) == [1, 4, 9, 16] * (1:2:8)'
 end
 
 @testset "in place" begin
-    @test parent(da .= 1 .* da .+ 7) == 8 * ones(3)
-    @test dims(da .= 1 .* da .+ 7) == dims(da)
+    @test parent(copy(da) .= 1 .* da .+ 7) == 8 * ones(3)
+    @test (@inferred dims(copy(da .= 1 .* da .+ 7))) == dims(da)
+end
+
+@testset "JLArray in place" begin
+    @test Array(parent(dajl .= 1 .* dajl .+ 7)) == 8 * ones(3)
+    @test dims(dajl .= 1 .* dajl .+ 7) == dims(da)
 end
 
 @testset "Dimension disagreement" begin
+    @test_throws DimensionMismatch zeros(X(3), Y(3), Z(3)) .+ ones(Y(3), Z(3), X(3))
+    @test_throws DimensionMismatch zeros(X(3), Y(3), Z(3)) .+ ones(X(3), Z(3))
+end
+
+@testset "Lookup promotion" begin
+    @testset "NoLookup resolves conflicts" begin
+        @test isnolookup(zeros(X([:a, :b, :c]), Y(1.0:2.0:10.0)) .* zeros(X(3), Y(5)))
+        @test_throws DimensionMismatch zeros(X(1.0:3.0), Y('a':'e')) .* zeros(X(3), Y(DateTime.(2001:2005)))
+    end
+    # TODO test the rest
+    @testset "Categorical" begin
+        @test_throws DimensionMismatch lookup(zeros(X([:a, :b, :c]),) .* zeros(X([:x, :y, :z]),), X)
+        ls = (
+            Sampled([10, 20, 30]; span=Irregular((nothing, nothing)), sampling=Points(), order=ForwardOrdered()),
+            Categorical([:a, :b, :c]; order=ForwardOrdered()), 
+            Categorical(["foo", "bar", "foobar"]; order=Unordered()), 
+            Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered()),
+            Sampled(1.0:1:3.0; span=Regular(1.0), sampling=Intervals(Start()), order=ForwardOrdered()),
+        )
+        for l in ls
+            @test (@inferred lookup(zeros(X(l),) .* zeros(X(3),), X)) == NoLookup(Base.OneTo(3))
+            @test (@inferred lookup(zeros(X(l),) .* zeros(X(1),), X)) == NoLookup(Base.OneTo(3))
+            @test (@inferred lookup(zeros(X(l),) .* zeros(X(l),), X)) === l
+            @test (@inferred lookup(zeros(X(l[1:1]),) .* zeros(X(l),), X)) == l
+            @test (@inferred lookup(zeros(X(l),) .* zeros(X(l[1:1]),), X)) == l
+        end
+        @testset "Lookup types are promoted" begin
+            a = zeros(Y((Int8(1):Int8(2):Int8(9)))) 
+            b = zeros(Y(1:2:9))
+            c = @inferred a .+ b
+            @test lookup(c) === lookup(b)
+            a = zeros(Y(LinRange(1.0, 10.0, 10)))
+            b = zeros(Y(1:1:10))
+            c = @inferred a .+ b
+            @test lookup(c) === lookup(a)
+            a = zeros(Y((Float16(1):Float16(2):Float16(9)))) 
+            b = zeros(Y(1:2:9))
+            c = @inferred a .+ b
+            @test lookup(c) === lookup(a)
+            a = zeros(Y(DateTime(2000):Year(1):DateTime(2003)))
+            b = zeros(Y(Date(2000):Year(1):Date(2003)))
+            c = @inferred a .+ b
+            @test lookup(c) === lookup(a)
+        end
+    end
+end
+
+@testset "JLArray Dimension disagreement" begin
     @test_throws DimensionMismatch begin
-        DimArray(zeros(3, 3, 3), (X, Y, Z)) .+
-        DimArray(ones(3, 3, 3), (Y, Z, X))
+        DimArray(JLArray(zeros(3, 3, 3)), (X, Y, Z)) .+
+        DimArray(JLArray(ones(3, 3, 3)), (Y, Z, X))
     end
 end
 
@@ -41,6 +110,16 @@ end
     @test dims(right_sum) == dims(da)
 end
 
+@testset "JLArray dims and regular" begin
+    da = DimArray(JLArray(ones(3, 3, 3)), (X, Y, Z))
+    left_sum = da .+ ones(3, 3, 3)
+    @test Array(left_sum) == fill(2, 3, 3, 3)
+    @test dims(left_sum) == dims(da)
+    right_sum = ones(3, 3, 3) .+ da
+    @test Array(right_sum) == fill(2, 3, 3, 3)
+    @test dims(right_sum) == dims(da)
+end
+
 @testset "changing type" begin
     @test (da .> 0) isa DimArray
     @test (da .* da .> 0) isa DimArray
@@ -51,20 +130,30 @@ end
     @test (rand(3) .> 1 .> 0 .* da) isa DimArray
 end
 
-@testset "trailng dimensions" begin
-    @test zeros(X(10), Y(5)) .* zeros(X(10), Y(1)) ==
-        zeros(X(10), Y(5)) .* zeros(X(1), Y(1)) ==
-        zeros(X(1), Y(1)) .* zeros(X(10), Y(5)) ==
-        zeros(X(10), Y(5)) .* zeros(X(1), Y(5)) ==
-        zeros(X(10), Y(1)) .* zeros(X(1), Y(5)) ==
-        zeros(X(10), Y(5)) .* zeros(X(1)) ==
-        zeros(X(1), Y(5)) .* zeros(X(10))
+@testset "JLArray changing type" begin
+    @test (dajl .> 0) isa DimArray
+    @test (dajl .* dajl .> 0) isa DimArray
+    @test (dajl  .> 0 .> rand(3)) isa DimArray
+    @test (dajl .* rand(3) .> 0.0) isa DimArray
+    @test (0 .> dajl .> 0 .> rand(3)) isa DimArray
+    @test (rand(3) .> dajl  .> 0 .* rand(3)) isa DimArray
+    @test (rand(3) .> 1 .> 0 .* dajl) isa DimArray
+end
+
+@testset "trailing dimensions" begin
+    a = @inferred zeros(X(10), Y(5)) .* zeros(X(10), Y(1))
+    b = @inferred zeros(X(10), Y(5)) .* zeros(X(1), Y(1))
+    c = @inferred zeros(X(1), Y(1)) .* zeros(X(10), Y(5))
+    d = @inferred zeros(X(10), Y(5)) .* zeros(X(1), Y(5))
+    e = @inferred zeros(X(10), Y(1)) .* zeros(X(1), Y(5))
+    f = @inferred zeros(X(10), Y(5)) .* zeros(X(1))
+    g = @inferred zeros(X(1), Y(5)) .* zeros(X(10))
+    @test a == b == c == d == e == f == g
 end
 
 @testset "mixed order fails" begin
     @test_throws DimensionMismatch zeros(X(1:3), Y(5)) .* zeros(X(3:-1:1), Y(5))
     @test_throws DimensionMismatch zeros(X([1, 3, 2]), Y(5)) .* zeros(X(3:-1:1), Y(5))
-    zeros(X([1, 3, 2]), Y(5)) .* zeros(X(3), Y(5))
 end
 
 @testset "broadcasting" begin
@@ -79,6 +168,18 @@ end
     @test dims(s .+ v .+ m) == dims(m .+ s .+ v)
 end
 
+@testset "JLArray broadcasting" begin
+    v = DimArray(JLArray(zeros(3,)), X)
+    m = DimArray(JLArray(ones(3, 3)), (X, Y))
+    s = 0
+    @test Array(v .+ m) == ones(3, 3) == Array(m .+ v)
+    @test Array(s .+ m) == ones(3, 3) == Array(m .+ s)
+    @test Array(s .+ v .+ m) == ones(3, 3) == Array(m .+ s .+ v)
+    @test dims(v .+ m) == dims(m .+ v)
+    @test dims(s .+ m) == dims(m .+ s)
+    @test dims(s .+ v .+ m) == dims(m .+ s .+ v)
+end
+
 @testset "adjoint broadcasting" begin
     a = DimArray(reshape(1:12, (4, 3)), (X, Y))
     b = DimArray(1:3, Y)
@@ -87,6 +188,16 @@ end
     @test parent(a) .* parent(b)' == parent(a .* b')
     @test dims(a .* b') == dims(a)
 end
+
+@testset "JLArray adjoint broadcasting" begin
+    a = DimArray(JLArray(reshape(1:12, (4, 3))), (X, Y))
+    b = DimArray(JLArray(1:3), Y)
+    @test_throws DimensionMismatch a .* b
+    @test_throws DimensionMismatch parent(a) .* parent(b)
+    @test_nowarn Array(parent(a) .* parent(b)') == Array(parent(a .* b'))
+    @test_nowarn dims(a .* b') == dims(a)
+end
+
 
 @testset "Mixed array types" begin
     casts = (
@@ -112,7 +223,26 @@ end
     ba = DimArray(rand(2,2), (Y, X))
     ac = DimArray(rand(2,2), (X, Z))
     a_ = DimArray(rand(2,2), (X(), DimensionalData.AnonDim()))
-    z = zeros(2,2)
+    z = zeros(2, 2)
+
+    @test_throws DimensionMismatch z .= ab .+ ba
+    @test_throws DimensionMismatch z .= ab .+ ac
+    # Maybe this should work...
+    # @test_throws DimensionMismatch a_ .= ab .+ ac
+    @test_throws DimensionMismatch ab .= a_ .+ ac
+    @test_throws DimensionMismatch ac .= ab .+ ba
+
+    # check that dest is written into:
+    z .= ab .+ ba'
+    @test z == (ab.data .+ ba.data')
+end
+
+@testset "JLArray in-place assignment .=" begin
+    ab = DimArray(JLArray(rand(2,2)), (X, Y))
+    ba = DimArray(JLArray(rand(2,2)), (Y, X))
+    ac = DimArray(JLArray(rand(2,2)), (X, Z))
+    a_ = DimArray(JLArray(rand(2,2)), (X(), DimensionalData.AnonDim()))
+    z = JLArray(zeros(2,2))
 
     @test_throws DimensionMismatch z .= ab .+ ba
     @test_throws DimensionMismatch z .= ab .+ ac
@@ -121,13 +251,9 @@ end
     @test_throws DimensionMismatch ac .= ab .+ ba
 
     # check that dest is written into:
-    @test dims(z .= ab .+ ba') == dims(ab .+ ba')
+    z .= ab .+ ba'
     @test z == (ab.data .+ ba.data')
-
-    @test dims(z .= ab .+ a_) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
-    @test dims(a_ .= ba' .+ ab) == 
-        (X(NoLookup(Base.OneTo(2))), Y(NoLookup(Base.OneTo(2))))
+    @test z == (ab.data .+ ba.data')
 end
 
 @testset "assign using named indexing and dotview" begin
@@ -135,6 +261,13 @@ end
     A[X=1:2] .= [1, 2]
     A[X=3] .= 7
     @test A == [1.0 1.0; 2.0 2.0; 7.0 7.0]
+end
+
+@testset "JLArray assign using named indexing and dotview" begin
+    A = DimArray(JLArray(zeros(3,2)), (X, Y))
+    A[X=1:2] .= JLArray([1, 2])
+    A[X=3] .= 7
+    @test Array(A) == [1.0 1.0; 2.0 2.0; 7.0 7.0]
 end
 
 @testset "0-dimensional array broadcasting" begin
@@ -166,6 +299,152 @@ end
     C .= 0
     C[DimSelectors(sub)] .+= sub
     @test A[DimSelectors(sub)] == C[DimSelectors(sub)]
+end
+
+@testset "JLArray DimIndices broadcasting" begin
+    ds = X(1.0:0.2:2.0), Y(10:2:20)
+    _A = (rand(ds))
+    _B = (zeros(ds))
+    _C = (zeros(ds))
+
+    A = rebuild(_A, JLArray(parent(_A)))
+    B = rebuild(_B, JLArray(parent(_B)))
+    C = rebuild(_C, JLArray(parent(_C)))
+
+    B[DimIndices(B)] .+= A
+    C[DimSelectors(C)] .+= A
+    @test Array(A) == Array(B) == Array(C)
+    sub = A[1:4, 1:3]
+    B .= 0
+    C .= 0
+    B[DimIndices(sub)] .+= sub
+    C[DimSelectors(sub)] .+= sub
+    @test Array(A[DimIndices(sub)]) == Array(B[DimIndices(sub)]) == Array(C[DimIndices(sub)])
+    sub = A[2:4, 2:5]
+    C .= 0
+    C[DimSelectors(sub)] .+= sub
+    @test Array(A[DimSelectors(sub)]) == Array(C[DimSelectors(sub)])
+end
+
+@testset "@d macro" begin
+    f(x, y) = x * y
+    p(da1, da2, da3) = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2) (dims=(X(), Y(), Z()), name=:test, metadata=Dict(:a => 1))
+
+    da1 = ones(X(3))
+    da2 = fill(2, X(3), Y(4))
+    da2a = fill(2, Y(4), X(3))
+    da3 = fill(3, Y(4), Z(5), X(3))
+
+    # # Shape and permutaton do not matter
+    @test p(da1, da2, da3) == 
+        p(da1, permutedims(da2, (Y, X)), da3)
+        p(da1, da2, permutedims(da3, (X, Y, Z)))
+    @test name(p(da1, da2, da3)) == :test
+    @test metadata(p(da1, da2, da3)) == Dict(:a => 1)
+
+    @test (@d da2) === da2
+    @test (@d da1 .* da2) == parent(da1) .* parent(da2)
+    @test (@d da1 .* da2a) == parent(da1) .* permutedims(parent(da2a))
+    @test (@d f.(da1, da2)) == f.(parent(da1), parent(da2))
+    @test (@d f.(da1, da2a)) == f.(parent(da1), permutedims(parent(da2a)))
+    @test (@d 0 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) == 0 .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, permutedims(parent(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y, Z)) ==
+        parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a)))
+    @test (@d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a)) ==
+        permutedims(parent(permutedims(da3, (X, Y, Z))) .+ f.(parent(da2), parent(da1)) .* f.(parent(da1) ./ 1, parent(permutedims(da2a))), [2, 3, 1])
+
+    @test_throws ArgumentError xy = @d da3 .+ f.(da2, da1) .* f.(da1 ./ 1, da2a) dims=(X, Y)
+    xyz = @d da3 .* f.(da2, da1) .* f.(da1 ./ 1, da2a) (; dims=(X, Y, Z),)
+
+    @test all(==(12.0), xyz)
+    @test DimensionalData.basedims(xyz) == (X(), Y(), Z())
+    @test size(xyz) == (3, 4, 5)
+
+    @testset "permuted values give same results" begin
+        x, y, z = X(1:3), Y(StepRangeLen(DateTime(2000), Month(2), 7)), Z(5)
+        da1 = ones(y) .* (1.0:7.0)
+        da2 = fill(2, x, y) .* (1:3)
+        da3 = fill(3, y, z, x) .* (1:7)
+
+        @test p(da1, da2, da3) == 
+            p(da1, permutedims(da2, (Y, X)), da3)
+            p(da1, da2, permutedims(da3, (X, Y, Z)))
+    end
+
+    @testset "Lookups are maintained" begin
+        x = format(X(-5.0:5.0))
+        y = format(Y(-10.0:2:12.0))
+        z = format(Z(-3.0:0.5:4.0))
+
+        u = @d x .* y
+        v = @d x .* z
+        w = @d y .* z
+
+        f(u, v, w) = u + v + w
+
+        A = @d f.(u, v, w)
+        @test dims(A) == (x, y, z)
+    end
+
+    @testset "strict" begin
+        @test_nowarn @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=false
+        @test_throws DimensionMismatch @d rand(X(1:3)) .* rand(X([:a, :b, :c])) strict=true
+        # NoLookup is never a strict comparison
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=true
+        @test_nowarn @d rand(X(1:3)) .* rand(X(3)) strict=false
+    end
+
+    @testset "set Dim properties" begin
+        @test isnolookup(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(NoLookup()),))
+        @test issampled(@d rand(X([:a, :b, :c])) .* rand(X([:a, :b, :c])) dims=(X(Sampled(1:3)),))
+    end
+
+    @testset "With @. macro" begin
+        @test (@d (@. da1 * da3 + 1)) == (@d da1 .* da3 .+ 1)
+        @test name(@d (@. da1 * da3 + 1) name=:test) == :test
+    end
+
+    @testset "Dimension" begin
+        @test (@d X(1:3) .* X(10:10:30) strict=false) == [10, 40, 90]
+        da = @d string.(X(10:10:30), Y([:a, :b, :c]), Z(1:2:5))
+        @test da == (xs -> string(xs...)).(DimPoints((X(10:10:30), Y([:a, :b, :c]), Z(1:2:5))))
+    end
+
+    @testset "stack fields" begin
+        xs = 1.0:10.0
+        v1 = DimVector(identity, X(xs); name=:v1)
+        v2 = DimVector(x -> 2x, X(xs); name=:v2)
+        ds = DimStack(v1)
+        @test (@d v1 .* v2) == (@d ds.v1 .* v2)
+    end
+
+    @testset "numbers etc" begin
+        dv = DimArray(identity, X(1.0:10.0); name=:x)
+        @test (@d dv .* 2) == (dv .* 2) 
+    end
+
+    @testset "keywords" begin
+        f1(a; b=1) = a * b
+        z = Z(1:10)
+        @test f1.(z; b = 2) == @d f1.(z; b = 2)
+    end
+
+    @testset "strict=false in assignment" begin
+        dv1 = rand(X(1:3))
+        dv2 = rand(X(2:4))
+        dv3 = rand(X(7:9))
+        @test_throws DimensionMismatch dv1 .= dv2 .* dv3
+        @d dv1 .= dv2 strict = false
+        @test dv1 == parent(dv2)
+        @d dv1 .= dv2 .* dv3 strict=false
+        @test dv1 == parent(dv2) .* parent(dv3)
+    end
+
+    @testset "single arg" begin
+        a = 3
+        @d max.(1)
+    end
+
 end
 
 # @testset "Competing Wrappers" begin

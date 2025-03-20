@@ -1,4 +1,13 @@
-using OffsetArrays, ImageFiltering, ImageTransformations, ArrayInterface, DimensionalData, Test
+using DimensionalData
+using Test
+
+using OffsetArrays
+using ImageFiltering
+using ImageTransformations
+using ArrayInterface
+using StatsBase
+using DiskArrays
+
 using DimensionalData.Lookups
 
 @testset "ArrayInterface" begin
@@ -19,6 +28,8 @@ end
     end
     odimz = (X(OffsetArray(100:100:300, -1:1)), Y(OffsetArray([:a, :b, :c, :d], 5:8)))
     oda = DimArray(oa, odimz)
+    size(DimensionalData.LazyLabelledPrintMatrix(oda[Y=End]))
+    size(oda[Y=End])
     @testset "Indexing and selectors work with offsets" begin
         @test axes(oda) == (-1:1, 5:8)
         @test oda[-1, 5] == oa[-1, 5] == 1
@@ -67,4 +78,50 @@ end
     imresize(da, ratio=2) isa Matrix
     imresize(parent(dims(da, X)), ratio=2)
     imrotate(da, 0.3)
+end
+
+@testset "StatsBase" begin
+    da = rand(X(1:10), Y(1:3))
+    @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
+    @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
+end
+
+@testset "DiskArrays" begin
+    raw_data = rand(100, 100, 2)
+    chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
+    ds = (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z())
+    da = DimArray(chunked_data, ds)
+    st = DimStack((a = da, b = da))
+
+    @testset "cache" begin
+        @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
+        @test DiskArrays.cache(da) isa DimArray
+        @test parent(DiskArrays.cache(da)) isa DiskArrays.CachedDiskArray
+        @test da == DiskArrays.cache(da)
+    end
+    @testset "chunks" begin
+        @test DiskArrays.haschunks(da) == DiskArrays.haschunks(chunked_data)
+        @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(chunked_data)
+    end
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
+        @test !DiskArrays.isdisk(rand(X(5), Y(4)))
+    end
+    @testset "pad" begin
+        p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        pst = DiskArrays.pad(st, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        dims(p)
+        @test size(p) == size(pst) == 
+            map(length, dims(p)) == map(length, dims(pst)) == 
+            size(da) .+ (5, 90, 0) == (105, 190, 2)
+        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:103.0), Y(collect(-390:10:1500); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
+        @test sum(p) ≈ sum(da) + prod(size(p)) - prod(size(da))
+        maplayers(pst) do A
+            @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
+        end
+    end
+    @testset "PermutedDimsArray and PermutedDiskArray" begin
+        @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
+        @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
+    end
 end

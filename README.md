@@ -13,15 +13,16 @@
 
 DimensionalData.jl provides tools and abstractions for working with datasets that have named dimensions, and optionally a lookup index. It provides no-cost abstractions for named indexing, and fast index lookups.
 
-DimensionalData is a pluggable, generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner syntax, and additional functionality found in NamedDims.jl. It has similar goals to pythons [xarray](http://xarray.pydata.org/en/stable/), and is primarily written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
+DimensionalData is a pluggable, generalised version of [AxisArrays.jl](https://github.com/JuliaArrays/AxisArrays.jl) with a cleaner syntax, and additional functionality found in NamedDims.jl. It has similar goals to pythons [xarray](https://xarray.dev/), and is primarily written for use with spatial data in [Rasters.jl](https://github.com/rafaqz/Rasters.jl).
 
-> [!IMPORTANT]
-> INSTALLATION
+## Installation
 
 ```shell
 julia>]
 pkg> add DimensionalData
 ```
+
+## Quick start
 
 Start using the package:
 
@@ -29,7 +30,7 @@ Start using the package:
 using DimensionalData
 ```
 
-The basic syntax is:
+The basic syntax to create a dimensional array (`DimArray`) is:
 
 ```julia
 A = DimArray(rand(50, 31), (X(), Y(10.0:40.0)));
@@ -76,7 +77,7 @@ A[Y=1:10, X=1]
  19.0  0.605331
 ```
 
-One can also subset by lookup, using a `Selector`, lets try `At`: 
+One can also subset by lookup, using a `Selector`, let's try `At`: 
 
 ```julia
 A[Y(At(25))]
@@ -112,7 +113,7 @@ boxplot(rand(X('a':'d'), Y(2:5:20)))
 
 And the plot will have the right ticks and labels.
 
-[See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/)
+[See the docs for more details](https://rafaqz.github.io/DimensionalData.jl/stable/)
 
 > [!NOTE]
 > Recent changes have greatly reduced the exported API.
@@ -125,12 +126,11 @@ using DimensionalData
 using DimensionalData.Lookup, DimensionalData.Dimensions
 ```
 
-> [!IMPORTANT]
-> Alternative Packages
+## Alternative packages
 
 There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate most of their syntax and functionality.
 
 [AxisKeys.jl](https://github.com/mcabbott/AxisKeys.jl) and [AbstractIndices.jl](https://github.com/Tokazama/AbstractIndices.jl) are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this [thread](https://github.com/JuliaCollections/AxisArraysFuture/issues/1).
 
 The main functionality is explained here, but the full list of features is
-listed at the [API](https://rafaqz.github.io/DimensionalData.jl/reference) page.
+listed at the [API](https://rafaqz.github.io/DimensionalData.jl/stable/api/reference) page.

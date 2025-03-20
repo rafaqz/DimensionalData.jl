@@ -1,16 +1,13 @@
 using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims
+using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims, promotedims
 
 @dim Tst
 
 a = [1 2 3; 4 5 6]
 da = DimArray(a, (X(143:2:145), Y(-38:-36)))
 dimz = dims(da)
-
-@dim Tst
-
 
 @testset "dimsmatch" begin
     @test (@inferred dimsmatch(Y(), Y())) == true
@@ -55,7 +52,7 @@ end
 end
 
 @testset "_wraparg" begin
-    @test _wraparg(X()) == (X(),)
+    @test @inferred _wraparg(X()) == (X(),)
     @test _wraparg((X, Y,), X,) == ((Val(X), Val(Y),), Val(X),)
     @test _wraparg((X, X(), :x), Y, Y(), :y) ==
         ((Val(X), X(), Dim{:x}()), Val(Y), Y(), Dim{:y}())
@@ -236,6 +233,7 @@ end
         @test_throws ArgumentError dimnum(da, Z())
         @test_throws ArgumentError dimnum(da, 3)
         @test_throws ArgumentError dimnum(da, 0)
+        @test_throws ArgumentError dimnum(da, (Y(), Z()))
     end
 end
 
@@ -320,51 +318,51 @@ end
 end
 
 @testset "comparedims" begin
+
+    @testset "single dimensions" begin
+        z = Z(NoLookup(Base.OneTo(10)))
+        @test comparedims(z) == true
+        @test comparedims(z, z) == true
+        @test comparedims(z, z, z) == true
+    end
+
     @testset "default keywords" begin
-        @test comparedims(Bool, X(1:2), X(1:2))
-        @test !comparedims(Bool, X(1:2), Y(1:2))
-        @test !comparedims(Bool, X(1:2), X(1:3))
-        @test_warn "Found both lengths 2 and 3" comparedims(Bool, X(1:2), X(1:3); warn="")
-        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); warn="")
-        @test comparedims(X(1:2), X(1:2)) == X(1:2)
+        @test @inferred comparedims(Bool, X(1:2), X(1:2))
+        @test @inferred !comparedims(Bool, X(1:2), Y(1:2))
+        @test @inferred !comparedims(Bool, X(1:2), X(1:3))
+        @test_warn "Found both lengths 2 and 3" comparedims(Bool, X(1:2), X(1:3); msg=Dimensions.Warn())
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); msg=Dimensions.Warn())
         @test_throws DimensionMismatch comparedims(X(1:2), Y(1:2))
         @test_throws DimensionMismatch comparedims(X(1:2), X(1:3))
     end
     @testset "compare type" begin
         @test comparedims(Bool, X(1:2), Y(1:2); type=false)
         @test !comparedims(Bool, X(1:2), Y(1:2); type=true)
-        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); type=true, warn="")
-        @test comparedims(X(1:2), Y(1:2); type=false) == X(Sampled(1:2))
+        @test_warn "X and Y dims on the same axis" comparedims(Bool, X(1:2), Y(1:2); type=true, msg=Dimensions.Warn())
         @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), Y(Sampled(1:2)); type=true)
     end
     @testset "compare val type" begin
-        @test comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=false)
-        @test !comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
-        @test comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=false) == X(Sampled(1:2))
+        @test @inferred !comparedims(Bool, X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
         @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Categorical(1:2)); valtype=true)
-        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
+        @test @inferred comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false)
         @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled([1, 2])); valtype=true)
-        @test comparedims(X(Sampled(1:2)), X(Sampled([1, 2])); valtype=false) == X(Sampled(1:2))
         @test_throws DimensionMismatch comparedims(X(Sampled([1, 2])), X(Sampled(1:2)); valtype=true)
     end
     @testset "compare values" begin
         @test comparedims(Bool, X(1:2), X(2:3); val=false)
         @test !comparedims(Bool, X(1:2), X(2:3); val=true)
-        @test_warn "do not match" comparedims(Bool, X(1:2), X(2:3); val=true, warn="")
-        @test comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=false)
+        @test_warn "do not match" comparedims(Bool, X(1:2), X(2:3); val=true, msg=Dimensions.Warn())
+        @test_nowarn comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=false)
         @test !comparedims(Bool, X(Sampled(1:2)), X(Sampled(2:3)); val=true)
-        @test comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=false) == X(Sampled(1:2))
         @test_throws DimensionMismatch comparedims(X(Sampled(1:2)), X(Sampled(2:3)); val=true)
     end
     @testset "compare length" begin
         @test comparedims(Bool, X(1:2), X(1:3); length=false)
         @test !comparedims(Bool, X(1:2), X(1:3); length=true)
-        @test_warn "Found both lengths" comparedims(Bool, X(1:2), X(1:3); length=true, warn="")
-        @test comparedims(X(1:2), X(1:3); length=false) == X(1:2)
+        @test_warn "Found both lengths" comparedims(Bool, X(1:2), X(1:3); length=true, msg=Dimensions.Warn())
         @test_throws DimensionMismatch comparedims(X(1:2), X(1:3); length=true)
         @test comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=true)
         @test !comparedims(Bool, X(1:2), X(1:1); length=true, ignore_length_one=false)
-        @test comparedims(X(1:2), X(1:1); length=false, ignore_length_one=true) == X(1:2)
         @test_throws DimensionMismatch comparedims(X(1:2), X(1:1); length=true, ignore_length_one=false)
     end
     @testset "compare order" begin
@@ -373,7 +371,7 @@ end
         @test !comparedims(Bool, a, b; order=true)
         @test comparedims(Bool, a, b; order=false)
         @test_nowarn comparedims(Bool, a, b; order=true)
-        @test_warn "Lookups do not all have the same order" comparedims(Bool, a, b; order=true, warn="")
+        @test_warn "Lookups do not all have the same order" comparedims(Bool, a, b; order=true, msg=Dimensions.Warn())
         @test_throws DimensionMismatch comparedims(a, b; order=true)
     end
 end
@@ -462,11 +460,11 @@ end
                              Y(Sampled([40.0, 20.0, 10.0], ReverseOrdered(), Irregular(), Points(), NoMetadata())), ))
         irreg_dimz = dims(irreg)
         @test slicedims(irreg, (1:2, 3)) == slicedims(irreg, 1:2, 3) ==
-        ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(140, 142), Points(), NoMetadata())),),
-         (Y(Sampled([10.0], ReverseOrdered(), Irregular(10.0, 10.0), Points(), NoMetadata())),))
+        ((X(Sampled([140.0, 142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),),
+         (Y(Sampled([10.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),))
         @test slicedims(irreg, (2:2, 1:2)) == slicedims(irreg, 2:2, 1:2) ==
-        ((X(Sampled([142.0], ForwardOrdered(), Irregular(142, 142), Points(), NoMetadata())),
-          Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(20.0, 40.0), Points(), NoMetadata()))), ())
+        ((X(Sampled([142.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())),
+          Y(Sampled([40.0, 20.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), NoMetadata()))), ())
         @test_broken slicedims((), (1:2, 3)) == slicedims((), (), (1:2, 3)) == ((), ())
         @test slicedims((), (1, 1)) == slicedims((), (), (1, 1)) == ((), ())
     end
@@ -542,5 +540,73 @@ end
         @test typeof(testdim) == typeof(reduceddim)
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
+    end
+end
+
+@testset "promotedims" begin
+    nl = NoLookup(Base.OneTo(2))
+    c = Categorical(["a", "b"]; order=ForwardOrdered())
+    c_unord = Categorical(["a", "b"]; order=Unordered())
+    c_sub = Categorical([view("a", 1:1), view("b", 1:1)]; order=ForwardOrdered())
+    s = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=ForwardOrdered())
+    s_int = Sampled(1:1:2; span=Regular(1), sampling=Points(), order=ForwardOrdered())
+    s_intervals = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Intervals(), order=ForwardOrdered())
+    s_unord = Sampled(1.0:1.0:2.0; span=Regular(1.0), sampling=Points(), order=Unordered())
+    s_irreg = Sampled(1.0:1.0:2.0; span=Irregular((nothing, nothing)), sampling=Points(), order=ForwardOrdered())
+    s_exp = Sampled(1.0:1.0:2.0; span=Explicit(), sampling=Intervals(Start()), order=ForwardOrdered())
+    s_exp_int = Sampled(1:1:2; span=Explicit(), sampling=Intervals(Start()), order=ForwardOrdered())
+
+    @testset "promote withe same is no change" begin
+        @test promotedims(X(s), X(s)) === X(s)
+        @test promotedims(X(s_int), X(s_int)) === X(s_int)
+    end
+
+    @testset "mixing returns NoLookup" begin
+        @test promotedims(X(nl), X(c)) === promotedims(X(c), X(nl)) === X(nl)
+        @test promotedims(X(nl), X(s)) === promotedims(X(s), X(nl)) === X(nl)
+        @test promotedims(X(c), X(s)) === promotedims(X(s), X(c)) === X(nl)
+    end
+
+    @testset "eltype: Float64 wins in Real" begin
+        @test promotedims(X(s), X(s_int)) === promotedims(X(s_int), X(s)) === X(s)
+    end
+
+    @testset "eltype: String wins in AbstractString" begin
+        @test promotedims(X(c), X(c_sub)) == promotedims(X(c_sub), X(c)) == X(c)
+        @test eltype(promotedims(X(c_sub), X(c))) == String
+    end
+
+    @testset "order: Unordered wins" begin
+        @test promotedims(X(s), X(s_unord)) == X(s_unord)
+        @test promotedims(X(c), X(c_unord)) == X(c_unord)
+    end
+
+    @testset "sampling: Points wins" begin
+        @test promotedims(X(s), X(s_intervals)) == X(s)
+        @test promotedims(X(s_intervals), X(s)) == X(s)
+    end
+
+    @testset "span: Irregular wins" begin
+        @test promotedims(X(s), X(s_irreg)) == X(s_irreg)
+        @test promotedims(X(s_irreg), X(s)) == X(s_irreg)
+    end
+
+    @testset "span: Explicit must be on its own" begin
+        @test promotedims(X(s), X(s_exp)) == X(nl)
+        @test promotedims(X(s_exp), X(s_exp)) == X(s_exp)
+        @test promotedims(X(s_exp), X(s_exp_int)) == X(s_exp)
+        @test promotedims(X(s_exp_int), X(s_exp)) == X(s_exp)
+    end
+
+    @testset "tuples of dims" begin
+        @test promotedims((X(c), Y(s)), (X(c), Y(s))) == (X(c), Y(s))
+        @test promotedims((X(c), Y(nl)), (X(nl), Y(s))) == (X(nl), Y(nl))
+        @test promotedims((X(c), Y(s_int)), (X(c_sub), Y(s))) == (X(c), Y(s))
+    end
+
+    @testset "non-Lookup val" begin
+        @test promotedims(X(1), X(1.0)) == promotedims(X(1.0), X(1)) == X(1.0)
+        @test promotedims(X("a"), X(view("a", 1:1))) ==
+            promotedims(X(view("a", 1:1)), X("a")) == X("a")
     end
 end

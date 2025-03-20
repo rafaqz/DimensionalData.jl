@@ -2,12 +2,12 @@
 
 Nearly everything in DimensionalData.jl is designed to be extensible.
 
-- `AbstractDimArray` are easily extended to custom array types. `Raster` or
+- `AbstractDimArray` is easily extended to custom array types. `Raster` or
   `YAXArray` are examples from other packages.
-- `AbstractDimStack` are easily extended to custom mixed array dataset.
+- `AbstractDimStack` is easily extended to custom mixed array datasets.
     `RasterStack` or `ArViZ.Dataset` are examples.
 - `Lookup` can have new types added, e.g. to `AbstractSampled` or
-  `AbstractCategorical`. `Rasters.Projected` is a lookup that knows
+  `AbstractCategorical`. For example, `Rasters.Projected` is a lookup that knows
   its coordinate reference system, but otherwise behaves as a regular
   `Sampled` lookup.
 
@@ -16,11 +16,11 @@ Nearly everything in DimensionalData.jl is designed to be extensible.
 ## `dims`
 
 Objects extending DimensionalData.jl that have dimensions must return 
-a `Tuple` of constructed `Dimension`s from `dims(obj)`. 
+a `Tuple` of constructed `Dimension`s from `dims(obj)`, like `(X(), Y())`.
 
 ### `Dimension` axes
 
-Dimensions return from `dims` should hold a `Lookup` or in some cases 
+Dimensions returned from `dims` should hold a `Lookup` or in some cases 
 just an `AbstractArray` (like with `DimIndices`). When attached to 
 multi-dimensional objects, lookups must be the _same length_ as the axis 
 of the array it represents, and `eachindex(A, i)` and `eachindex(dim)` must 
@@ -44,7 +44,7 @@ implemented.
 ## `rebuild`
 
 Rebuild methods are used to rebuild immutable objects with new field values,
-in a way that is more flexible and extensible than just using ConstructionBase.jl
+in a more flexible and extensible way than just using ConstructionBase.jl
 reconstruction. Developers can choose to ignore some of the fields passed
 by `rebuild`.
 
@@ -85,10 +85,12 @@ format(dims, array)
 This lets DimensionalData detect the lookup properties, fill in missing fields
 of a `Lookup`, pass keywords from `Dimension` to detected `Lookup` 
 constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
-and `Type`.
+and `Type`.  The way you indicate that something needs to be filled is by using the `Auto` types, like `AutoOrder`](@ref) or `AutoSampling`.
 
 Not calling `format` in the outer constructors of an `AbstractDimArray`
 has undefined behaviour.
+
+When creating lookup types, you need to define `DimensionalData.format` on your lookup type.
 
 
 ## Interfaces.jl interface testing

@@ -20,6 +20,10 @@ end
 # Defer simple 2-arg show to the parent array
 Base.show(io::IO, A::AbstractDimArray) = show(io, parent(A))
 
+Base.print_matrix(io::IO, A::AbstractBasicDimArray) =
+    Base.print_matrix(io, LazyLabelledPrintMatrix(A))
+
+
 """
     show_main(io::IO, mime, A::AbstractDimArray)
     show_main(io::IO, mime, A::AbstractDimStack)
@@ -76,7 +80,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
     print_array(io, mime, A)
 end
 
-function print_ndims(io, size::Tuple; 
+function print_ndims(io, size::Tuple;
     colors=map(dimcolors, ntuple(identity, length(size)))
 )
     if length(size) > 1
@@ -89,17 +93,15 @@ function print_ndims(io, size::Tuple;
     end
 end
 
-print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T,$N}"))
+print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T, $N}"))
 print_type(io, x) = print(io, string(nameof(typeof(x))))
 
 function print_top(io, mime, A)
     _, displaywidth = displaysize(io)
     blockwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
-    printstyled(io, '╭', '─'^blockwidth, '╮'; color=:light_black)
-    println(io)
-    printstyled(io, "│ "; color=:light_black)
+    printstyled(io, "┌ "; color=:light_black)
     summary(io, A)
-    printstyled(io, " │"; color=:light_black)
+    printstyled(io, " ┐"; color=:light_black)
     println(io)
     n, blockwidth = print_dims_block(io, mime, dims(A); displaywidth, blockwidth)
     lines = 2 + n
@@ -124,10 +126,13 @@ function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims"
         printed = false
         new_blockwidth = blockwidth
     else
-        dim_lines = split(sprint(print_dims, mime, dims), '\n')
-        new_blockwidth = max(blockwidth, min(displaywidth - 2, maximum(textwidth, dim_lines)))
-        lines += print_block_top(io, label, blockwidth, new_blockwidth)
-        lines += print_dims(io, mime, dims; kw...)
+        ctx = IOContext(io, :compact => true, :dim_brackets => false)
+        new_blockwidth = 100
+        printed=false
+        dim_width = maximum(textwidth, split(sprint(print_dims, mime, dims; context=ctx), '\n'))
+        new_blockwidth = max(blockwidth, min(displaywidth - 2, dim_width))
+        lines += print_block_top(ctx, label, blockwidth, new_blockwidth)
+        lines += print_dims(ctx, mime, dims; kw...)
         println(io)
         lines += 1
         printed = true
@@ -158,8 +163,8 @@ function print_block_top(io, label, prev_width, new_width)
     corner = (new_width > prev_width) ? '┐' : '┤'
     top_line = if new_width > prev_width
         string(
-            '├', '─'^(prev_width), '┴', 
-            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)), 
+            '├', '─'^(prev_width), '┴',
+            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)),
             ' ', label, ' ', corner
         )
     else
@@ -172,7 +177,7 @@ function print_block_top(io, label, prev_width, new_width)
 end
 
 function print_block_separator(io, label, prev_width, new_width=prev_width)
-    if new_width > prev_width 
+    if new_width > prev_width
         line = string('├', '─'^max(0, prev_width), '┴', '─'^max(0, new_width - prev_width - textwidth(label) - 3) )
         corner = '┐'
     else
@@ -237,125 +242,117 @@ function print_name(io::IO, name)
     end
 end
 
-Base.print_matrix(io::IO, A::AbstractBasicDimArray) = _print_matrix(io, parent(A), lookup(A))
-# Labelled matrix printing is modified from AxisKeys.jl, thanks @mcabbot
-function _print_matrix(io::IO, A::AbstractArray{<:Any,1}, lookups::Tuple)
-    f1, l1, s1 = firstindex(A, 1), lastindex(A, 1), size(A, 1)
-    if get(io, :limit, false)
-        h, _ = displaysize(io)
-        itop =    s1 < h ? (f1:l1) : (f1:f1 + (h ÷ 2) - 1)
-        ibottom = s1 < h ? (1:0)   : (f1 + s1 - (h ÷ 2) - 1:f1 + s1 - 1)
-    else
-        itop    = f1:l1
-        ibottom = 1:0
-    end
-    top = Array{eltype(A)}(undef, length(itop))
-    copyto!(top, CartesianIndices(top), A, CartesianIndices(itop))
-    bottom = Array{eltype(A)}(undef, length(ibottom)) 
-    copyto!(bottom, CartesianIndices(bottom), A, CartesianIndices(ibottom))
-    vals = vcat(A[itop], A[ibottom])
-    lu = only(lookups)
-    if lu isa NoLookup
-        Base.print_matrix(io, vals)
-    else
-        labels = vcat(map(show1, parent(lu)[itop]), map(show1, parent(lu)[ibottom]))
-        Base.print_matrix(io, hcat(labels, vals))
-    end
-    return nothing
-end
-function _print_matrix(io::IO, A::AbstractArray{<:Any,2}, lookups::Tuple)
-    lu1, lu2 = lookups
-    f1, f2 = firstindex(lu1), firstindex(lu2)
-    l1, l2 = lastindex(lu1), lastindex(lu2)
-    if get(io, :limit, false)
-        h, w = displaysize(io)
-        wn = w ÷ 3 # integers take 3 columns each when printed, floats more
-        s1, s2 = size(A)
-        itop    = s1 < h  ? (f1:l1)     : (f1:h ÷ 2 + f1 - 1)
-        ibottom = s1 < h  ? (f1:f1 - 1) : (f1 + s1 - h ÷ 2 - 1:f1 + s1 - 1)
-        ileft   = s2 < wn ? (f2:l2)     : (f2:f2 + wn ÷ 2 - 1)
-        iright  = s2 < wn ? (f2:f2 - 1) : (f2 + s2 - wn ÷ 2:f2 + s2 - 1)
-    else
-        itop    = f1:l1
-        ibottom = f1:f1-1
-        ileft   = f2:l2
-        iright  = f2:f2-1
-    end
-
-    # A bit convoluted so it plays nice with GPU arrays
-    topleft = Matrix{eltype(A)}(undef, map(length, (itop, ileft)))
-    copyto!(topleft, CartesianIndices(topleft), A, CartesianIndices((itop, ileft)))
-    bottomleft = Matrix{eltype(A)}(undef, map(length, (ibottom, ileft))) 
-    copyto!(bottomleft, CartesianIndices(bottomleft), A, CartesianIndices((ibottom, ileft)))
-    if !(lu1 isa NoLookup)
-        topleft = hcat(map(show1, parent(lu1)[itop]), topleft)
-        bottomleft = hcat(map(show1, parent(lu1)[ibottom]), bottomleft)
-    end
-    leftblock = vcat(topleft, bottomleft)
-    topright = Matrix{eltype(A)}(undef, map(length, (itop, iright)))
-    copyto!(topright, CartesianIndices(topright), A, CartesianIndices((itop, iright)))
-    bottomright= Matrix{eltype(A)}(undef, map(length, (ibottom, iright))) 
-    copyto!(bottomright, CartesianIndices(bottomright), A, CartesianIndices((ibottom, iright)))
-    rightblock = vcat(topright, bottomright)
-    bottomblock = hcat(leftblock, rightblock)
-
-    A_dims = if lu2 isa NoLookup
-        bottomblock
-    else
-        toplabels = map(show2, parent(lu2)[ileft]), map(show2, parent(lu2)[iright])
-        toprow = if lu1 isa NoLookup
-            vcat(toplabels...)
-        else
-            vcat(showarrows(), toplabels...)
-        end |> permutedims
-        vcat(toprow, bottomblock)
-    end
-
-    Base.print_matrix(io, A_dims)
-    return nothing
-end
-
+# A wrapper to show objects with dimension colors or arrows
 struct ShowWith <: AbstractString
     val::Any
     mode::Symbol
     color::Union{Int,Symbol}
 end
 ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
+
+showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
+showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
+showarrows() = ShowWith(1.0, :print_arrows, :nothing)
+
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     if x.mode == :print_arrows
         printstyled(io, dimsymbols(1); color=dimcolors(1))
         print(io, " ")
         printstyled(io, dimsymbols(2); color=dimcolors(2))
-    elseif x.mode == :hide
-        print(io, " ")
     else
         s = sprint(show, mime, x.val; context=io, kw...)
         printstyled(io, s; color=x.color)
     end
 end
-showdefault(x) = ShowWith(x, :nothing, :default)
-show1(x) = ShowWith(x, :nothing, dimcolors(1))
-show2(x) = ShowWith(x, :nothing, dimcolors(2))
-showhide(x) = ShowWith(x, :hide, :nothing)
-showarrows() = ShowWith(1.0, :print_arrows, :nothing)
+function Base.show(io::IO, x::ShowWith)
+    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
+end
 
 function Base.alignment(io::IO, x::ShowWith)
-    # Base bug means we need to special-case this...
+    # Base bug means we need to special-case this
     if x.val isa DateTime
         0, textwidth(sprint(print, x.val))
     else
         Base.alignment(io, x.val)
     end
 end
-Base.length(x::ShowWith) = length(string(x.val))
-Base.textwidth(x::ShowWith) = textwidth(string(x.val))
-Base.ncodeunits(x::ShowWith) = ncodeunits(string(x.val))
 function Base.print(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
-end
-function Base.show(io::IO, x::ShowWith)
     printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
 end
 
 Base.iterate(x::ShowWith) = iterate(string(x.val))
 Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)
+
+# A lazy array wrapper to print lookup values as an extra row and/or column
+struct LazyLabelledPrintMatrix{A,LL,LT} <: AbstractArray{Any,2}
+    data::A
+    rowlabels::LL
+    collabels::LT
+end
+function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,1})
+    LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 1))
+end
+function LazyLabelledPrintMatrix(A::AbstractBasicDimArray{<:Any,2})
+    LazyLabelledPrintMatrix(parent(A), lookup(A, 1), lookup(A, 2))
+end
+
+function Base.size(A::LazyLabelledPrintMatrix)
+    n = ndims(A.data)
+    if n == 1
+        return length(A.data), A.rowlabels isa NoLookup ? 1 : 2
+    else
+        labelsize = A.collabels isa NoLookup ? 0 : 1, A.rowlabels isa NoLookup ? 0 : 1
+        return map(+, labelsize, size(A.data))
+    end
+end
+
+@propagate_inbounds function Base.getindex(A::LazyLabelledPrintMatrix, i::Integer, j::Integer)
+    @boundscheck checkbounds(A, i, j)
+    oi = i + firstindex(A.data, 1) - 1
+    if ndims(A.data) == 1
+        if A.rowlabels isa NoLookup
+            A.data[oi]
+        else
+            if j == 1
+                showrowlabel(A.rowlabels[oi])
+            elseif j == 2
+                A.data[oi]
+            end
+        end
+    else # N == 2
+        oj = j + firstindex(A.data, 2) - 1
+        if A.rowlabels isa NoLookup
+            if A.collabels isa NoLookup
+                A.data[oi, oj]
+            else
+                if i == 1
+                    showcollabel(A.collabels[oj])
+                else # i > 1
+                    A.data[oi - 1, oj]
+                end
+            end
+        else # !(A.rowlabels isa NoLookup)
+            if A.collabels isa NoLookup
+                if j == 1
+                    showrowlabel(A.rowlabels[oi])
+                else # j > 1
+                    A.data[oi, oj - 1]
+                end
+            else
+                if j == 1
+                    if i == 1
+                        showarrows()
+                    else # i > 1
+                        showrowlabel(A.rowlabels[oi - 1])
+                    end
+                else # j > 1
+                    if i == 1
+                        showcollabel(A.collabels[oj - 1])
+                    else # i > 1
+                        A.data[oi - 1, oj - 1]
+                    end
+                end
+            end
+        end
+    end
+end

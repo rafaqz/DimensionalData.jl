@@ -6,6 +6,17 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
 
 @testset "DimIndices" begin
     di = @inferred DimIndices(A)
+    @testset "indexing returns itself" begin
+        @test di[di] isa DimIndices
+        @test di[di] == di
+    end
+    @testset "tuple indexing works" begin
+        da = rand(X(1:10), Y(1:10))
+        ds = DimSelectors(da)
+        @test ds[(X(1),)] == ds[1, :]
+    end
+
+    @test eltype(di) == Tuple{X{Int64}, Y{Int64}}
     ci = CartesianIndices(A)
     @test @inferred val.(collect(di)) == Tuple.(collect(ci))
     @test A[di] == view(A, di) == A
@@ -40,6 +51,20 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @test @inferred A1[X=1, Y=1][di[:]] isa DimArray{Float64,1}
     # Indexing with no matching dims is like [] (?)
     @test @inferred view(A1, X=1, Y=1, Ti=1)[di[:]] == 0.0
+
+    @testset "zero dimensional" begin
+        di0 = DimIndices(())
+        @test di0[] == ()
+        @test view(di0) == di0
+        @test first(di0) == ()
+        @test eltype(di0) == Tuple{}
+        @test ndims(di0) == 0
+        @test dims(di0) == ()
+        @test size(di0) == ()
+    end
+    @testset "keywords error" begin
+        @test_throws MethodError DimIndices(A; order=ForwardOrdered())
+    end
 end
 
 @testset "DimPoints" begin
@@ -53,10 +78,26 @@ end
     @test_throws ArgumentError DimPoints(nothing)
     # Vector
     @test @inferred DimPoints(X(1.0:2.0)) == [(1.0,), (2.0,)]
+
+    @testset "zero dimensional" begin
+        dp0 = DimPoints(())
+        @test dp0[] == ()
+        @test view(dp0) == dp0
+        @test first(dp0) == ()
+        @test eltype(dp0) == Tuple{}
+        @test ndims(dp0) == 0
+        @test dims(dp0) == ()
+        @test size(dp0) == ()
+    end
 end
 
 @testset "DimSelectors" begin
     ds = @inferred DimSelectors(A)
+
+    @testset "selecting returns itself" begin
+        @test ds[ds] isa DimSelectors
+        @test ds[ds] == ds
+    end
     # The selected array is not identical because 
     # the lookups will be vectors and Irregular, 
     # rather than Regular ranges
@@ -77,16 +118,31 @@ end
     @test @inferred DimSelectors(X(1.0:2.0)) ==
         [(X(At(1.0; atol=eps(Float64))),), (X(At(2.0; atol=eps(Float64))),)]
 
+    @testset "zero dimensional" begin
+        ds0 = DimSelectors(())
+        @test ds0[] == ()
+        @test view(ds0) == ds0
+        @test first(ds0) == ()
+        @test eltype(ds0) == Tuple{}
+        @test ndims(ds0) == 0
+        @test dims(ds0) == ()
+        @test size(ds0) == ()
+    end
+
     @testset "atol" begin
-        dsa = @inferred DimSelectors(A; atol=0.3)
-        # Mess up the lookups a little...
-        B = zeros(X(4.25:1:7.27), Y(9.95:1:12.27))
-        @test dsa[4, 3] == (X(At(7.0; atol=0.3)), Y(At(12.0, atol=0.3)))
-        @test broadcast(ds -> B[ds...] + 2, dsa) == fill(2.0, 4, 3)
-        @test broadcast(ds -> B[ds...], dsa[X(At(7.0))]) == [0.0 for i in 1:3]
-        @test_throws SelectorError broadcast(ds -> B[ds...] + 2, ds) == fill(2.0, 4, 3)
-        @test_throws ArgumentError DimSelectors(zeros(2, 2))
-        @test_throws ArgumentError DimSelectors(nothing)
+        dsa1 = @inferred DimSelectors(A; atol=0.3)
+        dsa2 = @inferred DimSelectors(A; selectors=At(; atol=0.3))
+        dsa3 = @inferred DimSelectors(A; selectors=At(; atol=0.3), atol=0.000001)
+        for dsa in (dsa1, dsa2, dsa3)
+            # Mess up the lookups a little...
+            B = zeros(X(4.25:1:7.27), Y(9.95:1:12.27))
+            @test dsa[4, 3] == (X(At(7.0; atol=0.3)), Y(At(12.0, atol=0.3)))
+            @test broadcast(ds -> B[ds...] + 2, dsa) == fill(2.0, 4, 3)
+            @test broadcast(ds -> B[ds...], dsa[X(At(7.0))]) == [0.0 for i in 1:3]
+            @test_throws SelectorError broadcast(ds -> B[ds...] + 2, ds) == fill(2.0, 4, 3)
+            @test_throws ArgumentError DimSelectors(zeros(2, 2))
+            @test_throws ArgumentError DimSelectors(nothing)
+        end
     end
 
     @testset "mixed atol" begin

@@ -42,7 +42,7 @@ end
 @propagate_inbounds function Base.getindex(s::AbstractDimStack{<:Any,<:Any,N}, i::Integer) where N
     if N == 1 && hassamedims(s)
         # This is a few ns faster when possible
-        map(l -> l[i], s)
+        map(l -> l[i], data(s))
     else
         # Otherwise use dimensional indexing
         s[DimIndices(s)[i]]
@@ -62,6 +62,9 @@ for f in (:getindex, :view, :dotview)
     @eval begin
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i)
             Base.$f(s, to_indices(CartesianIndices(s), Lookups._construct_types(i))...)
+        end
+        @propagate_inbounds function Base.$f(s::AbstractDimStack, i::AbstractArray{<:CartesianIndex})
+            Base.$f(s, Base.$f(LinearIndices(s), i))
         end
         @propagate_inbounds function Base.$f(s::AbstractDimStack, i::Union{SelectorOrInterval,Extents.Extent})
             Base.$f(s, dims2indices(s, i)...)
@@ -117,9 +120,11 @@ for f in (:getindex, :view, :dotview)
         end
         # Handle zero-argument getindex, this will error unless all layers are zero dimensional
         @propagate_inbounds function $_dim_f(s::AbstractDimStack)
-            map(Base.$f, s)
+            map(Base.$f, data(s))
         end
-        Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(s::AbstractDimStack{K}, d1::Dimension, ds::Dimension...) where K
+        Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(
+            s::AbstractDimStack{K, NT}, d1::Dimension, ds::Dimension...
+        ) where {K, NT <: NamedTuple{K, T}} where T
             D = (d1, ds...)
             extradims = otherdims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
@@ -128,17 +133,18 @@ for f in (:getindex, :view, :dotview)
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
                 Base.$f(A, I...)
             end
-            newlayers = map(f, values(s))
+            newlayers = unrolled_map(f, values(s))
             # Decide to rewrap as an AbstractDimStack, or return a scalar
-            if any(map(v -> v isa AbstractDimArray, newlayers))
+            if newlayers isa T
+                # All scalars, return as-is
+                NamedTuple{K}(newlayers)
+            else
+                # TODO rethink this for many-layered stacks
                 # Some scalars, re-wrap them as zero dimensional arrays
-                non_scalar_layers = map(values(s), newlayers) do l, nl
+                non_scalar_layers = unrolled_map(values(s), newlayers) do l, nl
                     nl isa AbstractDimArray ? nl : rebuild(l, fill(nl), ())
                 end
                 rebuildsliced(Base.$f, s, NamedTuple{K}(non_scalar_layers), (dims2indices(dims(s), D)))
-            else
-                # All scalars, return as-is
-                NamedTuple{K}(newlayers)
             end 
         end
     end
@@ -161,7 +167,7 @@ end
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
 end
 
-_map_setindex!(s, xs, i) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
+_map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
 
 _setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))

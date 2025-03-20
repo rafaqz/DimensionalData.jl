@@ -32,13 +32,8 @@ end
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
 )
-    if eltype(data) <: Union{AbstractDimArray,AbstractDimStack}
-        # We have DimArrays or DimStacks. Rebuild as a DimGroupArray
-        DimGroupByArray(data, dims, refdims, name, metadata)
-    else
-        # Some other values. Rebuild as a regular DimArray
-        dimconstructor(dims)(data, dims, refdims, name, metadata)
-    end
+    # Rebuild as a regular DimArray
+    dimconstructor(dims)(data, dims, refdims, name, metadata)
 end
 @inline function rebuild(A::DimGroupByArray;
     data=parent(A), dims=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A)
@@ -54,19 +49,27 @@ end
 function show_after(io::IO, mime, A::DimGroupByArray)
     displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
-    sorteddims = (dims(A)..., otherdims(first(A), dims(A))...)
-    colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(first(A)))
-    colors = collect(map(val, colordims))
-    lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(first(A));
-        displaywidth, blockwidth, label="group dims", colors
-    )
-    length(A) > 0 || return nothing
-    A1 = map(x -> DimSummariser(x, colors), A)
-    ctx = IOContext(io,
-        :blockwidth => blockwidth,
-        :displaysize => (displayheight - lines, displaywidth)
-    )
-    show_after(ctx, mime, A1)
+    if length(A) > 0 && isdefined(parent(A), 1)
+        x = A[1]
+        sorteddims = (dims(A)..., otherdims(x, dims(A))...)
+        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(x))
+        colors = collect(map(val, colordims))
+        lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
+            displaywidth, blockwidth, label="group dims", colors
+        )
+        A1 = map(x -> DimSummariser(x, colors), A)
+        ctx = IOContext(io,
+            :blockwidth => blockwidth,
+            :displaysize => (displayheight - lines, displaywidth)
+        )
+        show_after(ctx, mime, A1)
+    else
+        A1 = map(eachindex(A)) do i
+            isdefined(parent(A), i) ? DimSummariser(A[i], colors) : Base.undef_ref_str 
+        end
+        ctx = IOContext(io, :blockwidth => blockwidth)
+        show_after(ctx, mime, parent(A))
+    end
     return nothing
 end
 
@@ -250,8 +253,7 @@ julia> using DimensionalData, Dates
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
-╭───────────────────────────────────────────────────╮
-│ 12-element DimGroupByArray{DimArray{Float64,2},1} │
+┌ 12-element DimGroupByArray{DimArray{Float64,3},1} ┐
 ├───────────────────────────────────────────────────┴───────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
@@ -272,9 +274,8 @@ And take the mean:
 
 ```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
-╭────────────────────────────────╮
-│ 12-element DimArray{Float64,1} │
-├────────────────────────────────┴──────────────────────────────── dims ┐
+┌ 12-element DimArray{Float64, 1} ┐
+├─────────────────────────────────┴─────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
 ├───────────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
@@ -302,9 +303,8 @@ Or do something else with Y:
 
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
-╭──────────────────────────╮
-│ 12×2 DimArray{Float64,2} │
-├──────────────────────────┴─────────────────────────────────────── dims ┐
+┌ 12×2 DimArray{Float64, 2} ┐
+├───────────────────────────┴────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
   → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
 ├────────────────────────────────────────────────────────────── metadata ┤
