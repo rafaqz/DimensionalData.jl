@@ -168,7 +168,8 @@ end
 
 @testset "Makie" begin
 
-    using CairoMakie: CairoMakie as M
+    import CairoMakie as M
+    using CairoMakie: @lift
     using ColorTypes
 
     missing_to_nan(x::T) where T = x isa Missing ? T(NaN) : x
@@ -321,8 +322,6 @@ end
     M.convert_arguments(M.VertexGrid(), A2u)
     M.convert_arguments(M.ImageLike(), A2u)
 
-    A2num = rand(X(10:10:100), Y(1:3))
-    A2numu = rand(X(10u"s":10u"s":100u"s"), Y(1u"V":1u"V":3u"V"))
 
     ## Does not pass as is plotted in interval and observable gives a different plot
     #@test test_2d_plot(M.heatmap, A2num)
@@ -382,14 +381,21 @@ end
     M.series!(ax, A2u)
     fig, ax, _ = M.series(A2r)
     M.series!(ax, A2r)
-    fig, ax, _ = M.series(A2r; labeldim=Y)
+    fig, ax, plt = M.series(A2r; labeldim=Y)
+    
+    A2numu = rand(X(10u"s":10u"s":100u"s"), Y(1u"V":1u"V":3u"V"))
+    fig, ax, plt = M.series(A2numu; labeldim=Y)
+    coords = stack(stack(plt[1][]))
+    @test all(coords[1,:,:] .== ustrip(lookup(A2numu, X)))
+    @test all(coords[2,:,:] .== parent(A2numu))
+
     # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
     M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
     @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
-    # x/y can be specified
+    # x/y can be specifie
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
     fig, ax, _ = M.plot(A2ab)
     M.plot!(ax, A2ab)
