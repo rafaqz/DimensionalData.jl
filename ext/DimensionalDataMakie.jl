@@ -181,14 +181,14 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             # No Colorbar in the ! in-place versions
             return Makie.$f2!(ax, args...; attributes...)
         end
-        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
-        )
-            replacements = _keywords2dimpairs(x,y)
-            args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
-            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
-            return p
-        end
+#        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
+#            x=nothing, y=nothing, colorbarkw=(;), attributes...
+#        )
+#            replacements = _keywords2dimpairs(x,y)
+#            args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
+#            p = Makie.$f2!(axis, lift(x->x[1], args),lift(x->x[2], args),lift(x->x[3], args); attributes...)
+#            return p
+#        end
     end
 end
 
@@ -405,6 +405,11 @@ function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMa
     end
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
+function Makie.convert_arguments(P::Type{Makie.Series}, dd::DimensionalData.AbstractDimMatrix)
+    # TO DO: get correct dimension
+    xs = parent(lookup(dd, 2))
+    return Makie.convert_arguments(P, xs, parent(dd))
+end
 # PointBased conversions (scatter, lines, poly, etc)
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     A1 = _prepare_for_makie(A)
@@ -492,16 +497,16 @@ end
 
 @static if :expand_dimensions in names(Makie; all=true)
     # We also implement expand_dimensions for recognized plot traits.
-    # These can just forward to the relevant converts.
-    Makie.expand_dimensions(t::Makie.NoConversion, A::AbstractDimArray) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3}) = Makie.convert_arguments(t, A)
-    Makie.expand_dimensions(t::Type{Makie.Spy}, A::AbstractDimArray{<:Real,2}) = Makie.convert_arguments(t, A)
+    # Set to nothing to avoid default implementation of AbstractArray
+    Makie.expand_dimensions(t::Makie.NoConversion, A::AbstractDimArray) = return
+    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimVector) = return
+    Makie.expand_dimensions(t::Makie.PointBased, A::AbstractDimMatrix) = return
+    Makie.expand_dimensions(t::Makie.VertexGrid, A::AbstractDimMatrix) = return
+    Makie.expand_dimensions(t::Makie.ImageLike, A::AbstractDimMatrix) = return
+    Makie.expand_dimensions(t::Makie.CellGrid, A::AbstractDimMatrix) = return
+    Makie.expand_dimensions(t::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}) = return
+    Makie.expand_dimensions(t::Type{Plot{Makie.volumeslices}}, A::AbstractDimArray{<:Any,3}) = return 
+    Makie.expand_dimensions(t::Type{Makie.Spy}, A::AbstractDimArray{<:Real,2}) = return
 end
 
 # Utility methods

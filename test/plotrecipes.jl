@@ -171,12 +171,49 @@ end
     using CairoMakie: CairoMakie as M
     using ColorTypes
 
+    missing_to_nan(x::T) where T = x isa Missing ? T(NaN) : x
+
+    function test_1d_plot(plot_function, dd)
+        x = lookup(dd, 1)
+        y = collect(parent(dd))
+        fig_dd, ax_dd, plt_dd = plot_function(dd)
+
+        dd_obs = Observable(dd)
+        fig_dd, ax_dd, plt_obs_dd = plot_function(dd_obs)
+
+        dd_obs_2 = @lift identity($dd_obs)
+
+        fig_dd, ax_dd, plt_obs_dd_2 = plot_function(dd_obs_2)
+        
+        init_test = (first.(plt_obs_dd_2[1][]) == ustrip.(x) &&
+            last.(plt_obs_dd_2[1][]) == ustrip.(y))
+        dd .*= 2
+        notify(dd_obs)
+
+        (first.(plt_dd[1][]) == ustrip.(x) &&
+            last.(plt_dd[1][]) == ustrip.(y) && 
+            first.(plt_obs_dd[1][]) == ustrip.(x) && 
+            last.(plt_obs_dd[1][]) == ustrip.(y .* 2) &&
+            init_test &&
+            first.(plt_obs_dd_2[1][]) == ustrip.(x) &&
+            last.(plt_obs_dd_2[1][]) == ustrip.(parent(dd))
+        )
+    end
+
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
     A1u = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"); name=:test)
     A1ui = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"; sampling=Intervals(Start())); name=:test)
     A1num = rand(X(-10:10))
+
+    @test test_1d_plot(M.lines, A1num)
+    @test test_1d_plot(M.lines, A1)
+    # @test test_1d_plot(M.lines, A1m)  Does not work because of `chars` X axis
+    @test test_1d_plot(M.lines, A1u)
+    # @test test_1d_plot(M.lines, A1ui) Does not pass because intervals
+
+
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = M.plot(A1)
@@ -195,6 +232,13 @@ end
     # This tests for #714
     @test org <= -10
     @test org + wid >= 10
+
+    ## Scatter 
+    
+    @test test_1d_plot(M.scatter, A1)
+    @test test_1d_plot(M.scatter, A1num)
+    @test test_1d_plot(M.scatter, A1u)
+
     fig, ax, _ = M.scatter(A1)
     M.scatter!(ax, A1)
     fig, ax, _ = M.scatter(A1m)
@@ -205,30 +249,51 @@ end
     M.lines!(ax, A1u)
     fig, ax, _ = M.lines(A1m)
     M.lines!(ax, A1m)
+
+    @test test_1d_plot(M.scatterlines, A1)
+    @test test_1d_plot(M.scatterlines, A1num)
+    @test test_1d_plot(M.scatterlines, A1u)
     fig, ax, _ = M.scatterlines(A1)
     M.scatterlines!(ax, A1)
     fig, ax, _ = M.scatterlines(A1u)
     M.scatterlines!(ax, A1u)
     fig, ax, _ = M.scatterlines(A1m)
     M.scatterlines!(ax, A1m)
+
+
+    @test test_1d_plot(M.stairs, A1)
+    @test test_1d_plot(M.stairs, A1num)
+    @test test_1d_plot(M.stairs, A1u)
     fig, ax, _ = M.stairs(A1)
     M.stairs!(ax, A1)
     fig, ax, _ = M.stairs(A1u)
     M.stairs!(ax, A1u)
     fig, ax, _ = M.stairs(A1m)
     M.stairs!(ax, A1m)
+
+    @test test_1d_plot(M.stem, A1)
+    @test test_1d_plot(M.stem, A1num)
+    @test test_1d_plot(M.stem, A1u)
     fig, ax, _ = M.stem(A1)
     M.stem!(ax, A1)
     fig, ax, _ = M.stem(A1u)
     M.stem!(ax, A1u)
     fig, ax, _ = M.stem(A1m)
     M.stem!(ax, A1m)
+
+    @test test_1d_plot(M.barplot, A1)
+    @test test_1d_plot(M.barplot, A1num)
+    @test test_1d_plot(M.barplot, A1u)
     fig, ax, _ = M.barplot(A1)
     M.barplot!(ax, A1)
     fig, ax, _ = M.barplot(A1u)
     M.barplot!(ax, A1u)
     fig, ax, _ = M.barplot(A1m)
     M.barplot!(ax, A1m)
+
+    @test test_1d_plot(M.waterfall, A1)
+    @test test_1d_plot(M.waterfall, A1num)
+    @test test_1d_plot(M.waterfall, A1u)
     fig, ax, _ = M.waterfall(A1)
     M.waterfall!(ax, A1)
     fig, ax, _ = M.waterfall(A1u)
@@ -256,6 +321,14 @@ end
     M.convert_arguments(M.VertexGrid(), A2u)
     M.convert_arguments(M.ImageLike(), A2u)
 
+    A2num = rand(X(10:10:100), Y(1:3))
+    A2numu = rand(X(10u"s":10u"s":100u"s"), Y(1u"V":1u"V":3u"V"))
+
+    ## Does not pass as is plotted in interval and observable gives a different plot
+    #@test test_2d_plot(M.heatmap, A2num)
+    #@test test_2d_plot(M.heatmap, A2numu)
+
+
     fig, ax, _ = M.plot(A2)
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
@@ -272,6 +345,7 @@ end
     M.heatmap!(ax, A2m)
     fig, ax, _ = M.heatmap(A2rgb)
     M.heatmap!(ax, A2rgb)
+
     fig, ax, _ = M.image(A2)
     M.image!(ax, A2)
     fig, ax, _ = M.image(A2m)
@@ -301,19 +375,19 @@ end
     # Series also puts Categories in the legend no matter where they are
     # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
-    # M.series!(ax, A2)
+    M.series!(ax, A2)
     fig, ax, _ = M.series(A2u)
-    # M.series!(ax, A2u)
+    M.series!(ax, A2u)
     fig, ax, _ = M.series(A2ui)
-    # M.series!(ax, A2u)
+    M.series!(ax, A2u)
     fig, ax, _ = M.series(A2r)
-    # M.series!(ax, A2r)
+    M.series!(ax, A2r)
     fig, ax, _ = M.series(A2r; labeldim=Y)
     # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
-    # M.series!(ax, A2m)
+    M.series!(ax, A2m)
     @test_throws ArgumentError M.plot(A2; y=:c)
-    # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
+    @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
@@ -419,3 +493,5 @@ end
         DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
     end
 end
+
+
