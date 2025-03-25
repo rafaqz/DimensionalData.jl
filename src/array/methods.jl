@@ -105,10 +105,10 @@ end
 - There are less problems with type stability in `map` as we can just 
     take dims from the first, there are no length 1 dims.
 =#
-function Base.map(f, As::AbstractDimArray...)
-    comparedims(As...)
-    newdata = map(f, map(parent, As)...)
-    rebuild(first(As); data=newdata)
+function Base.map(f, A1::AbstractDimArray, As::AbstractDimArray...)
+    comparedims(A1, As...)
+    newdata = map(f, map(parent, (A1, As...))...)
+    return rebuild(A1; data=newdata)
 end
 
 
