@@ -1,3 +1,22 @@
+# This lets use switch array of NamedTupleto NamedTuple of Array
+struct LayerArray{K,T,N,A} <: AbstractArray{T,N}
+    data::A
+end
+function LayerArray{K}(a::A) where {A<:AbstractArray{<:NamedTuple,N}} where {K,N}
+    T = typeof(a[1][K])
+    LayerArray{K,T,N,A}(a)
+end
+Base.parent(A::LayerArray) = parent(A.data)
+Base.size(A::LayerArray) = size(parent(A))
+@propagate_inbounds Base.getindex(A::LayerArray{K}, I::Integer...) where K = 
+    getproperty(getindex(parent(A), I...), K)
+
+function layerarrays(A::AbstractDimArray{<:NamedTuple{K}}) where K
+    map(K) do k
+        rebuild(A; data=LayerArray{k}(A))
+    end |> NamedTuple{K}
+end
+
 """
     AbstractDimTable <: Tables.AbstractColumns
 
@@ -31,7 +50,7 @@ function _colnames(A::AbstractDimArray)
     n = Symbol(name(A)) == Symbol("") ? :value : Symbol(name(A))
     (map(name, dims(A))..., n)
 end
-_colnames(A::AbstractDimVector{T}) where T<:NamedTuple = 
+_colnames(A::AbstractDimArray{T}) where T<:NamedTuple = 
     (map(name, dims(A))..., _colnames(T)...)
 _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 
@@ -59,39 +78,48 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 
 # Keywords
 - `mergedims`: Combine two or more dimensions into a new dimension.
-- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
+- `preservedims`: Preserve one or more dimensions from flattening into the table. 
+    `DimArray`s of views with these dimensions will be present in the layer column,
+    rather than scalar values.
+- `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`
+    by specifying a dimension to use as layers.
 
 # Example
 
-```jldoctest
+Here we generate a GeoInterface.jl compatible table with `:geometry` 
+column made of `(X, Y)` points, and data columns from `:band` slices.
+
+```julia
 julia> using DimensionalData, Tables
 
-julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
-┌ 16×16×3 DimArray{Float64, 3} ┐
-├──────────────────────── dims ┤
-  ↓ X, → Y, ↗ band
-└──────────────────────────────┘
-[:, :, 1]
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
- 1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+julia> A = ones(X(4), Y(3), Dim{:band}('a':'d'); name=:data);
 
-julia>
-
+julia> DimTable(A; layersfrom=:band, mergedims=(X, Y)=>:geometry)
+DimTable with 12 rows, 5 columns, and schema:
+ :geometry  Tuple{Int64, Int64}
+ :band_a    Float64
+ :band_b    Float64
+ :band_c    Float64
+ :band_d    Float64
 ```
+
+And here bands for each X/Y position are kept as vectors, using `preservedims`. 
+This may be useful if e.g. bands are color components of spectral images.
+
+```julia
+julia> DimTable(A; preservedims=:band)
+DimTable with 12 rows, 3 columns, and schema:
+ :X     …  Int64
+ :Y        Int64
+ :data     DimVector{Float64, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Slice{OneTo{Int64}}}, true}, Symbol, NoMetadata} (alias for DimArray{Float64, 1, Tuple{Dim{:band, DimensionalData.Dimensions.Lookups.Categorical{Char, StepRange{Char, Int64}, DimensionalData.Dimensions.Lookups.ForwardOrdered, DimensionalData.Dimensions.Lookups.NoMetadata}}}, Tuple{X{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}, Y{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Base.Slice{Base.OneTo{Int64}}}, true}, Symbol, DimensionalData.Dimensions.Lookups.NoMetadata})
+
+```julia
+julia> DimTable(A)
+DimTable with 48 rows, 4 columns, and schema:
+ :X     Int64
+ :Y     Int64
+ :band  Char
+ :data  Float64
 """
 struct DimTable{Mode} <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
@@ -99,11 +127,18 @@ struct DimTable{Mode} <: AbstractDimTable
     dimcolumns::Vector{AbstractVector}
     dimarraycolumns::Vector
 end
-
-function DimTable(s::AbstractDimStack;
+function DimTable(s::AbstractDimStack; 
     mergedims=nothing,
+    preservedims=nothing,
 )
     s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
+    s = if isnothing(preservedims) 
+        s
+    else
+        maplayers(s) do A
+            _maybe_presevedims(A, preservedims)
+        end
+    end
     dimcolumns = collect(_dimcolumns(s))
     dimarraycolumns = if hassamedims(s)
         map(vec, layers(s))
@@ -113,16 +148,24 @@ function DimTable(s::AbstractDimStack;
     keys = collect(_colnames(s))
     return DimTable{Columns}(s, keys, dimcolumns, dimarraycolumns)
 end
-function DimTable(As::Vararg{AbstractDimArray};
-    layernames=nothing,
-    mergedims=nothing,
+function DimTable(As::AbstractVector{<:AbstractDimArray}; 
+    layernames=nothing, 
+    mergedims=nothing, 
+    preservedims=nothing,
 )
     # Check that dims are compatible
-    comparedims(As...)
+    comparedims(As)
     # Construct Layer Names
     layernames = isnothing(layernames) ? uniquekeys(As) : layernames
     # Construct dimension and array columns with DimExtensionArray
-    As = isnothing(mergedims) ? As : map(x -> DD.mergedims(x, mergedims), As)
+    As = isnothing(mergedims) ? As : map(x -> DimensionalData.mergedims(x, mergedims), As)
+    As = if isnothing(preservedims)
+        As
+    else
+        map(As) do A
+            _maybe_presevedims(A, preservedims)
+        end
+    end
     dims_ = dims(first(As))
     dimcolumns = collect(_dimcolumns(dims_))
     dimnames = collect(map(name, dims_))
@@ -132,9 +175,10 @@ function DimTable(As::Vararg{AbstractDimArray};
     # Return DimTable
     return DimTable{Columns}(first(As), colnames, dimcolumns, dimarraycolumns)
 end
-function DimTable(A::AbstractDimArray;
-    layersfrom=nothing,
-    mergedims=nothing,
+function DimTable(A::AbstractDimArray; 
+    layersfrom=nothing, 
+    mergedims=nothing, 
+    preservedims=nothing,
 )
     if !isnothing(layersfrom) && any(hasdim(A, layersfrom))
         d = dims(A, layersfrom)
@@ -145,19 +189,34 @@ function DimTable(A::AbstractDimArray;
         else
             Symbol.(("$(name(d))_$i" for i in 1:nlayers))
         end
-        return DimTable(layers...; layernames, mergedims)
+        return DimTable(layers; layernames, mergedims, preservedims)
     else
-        A = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
-        dimcolumns = collect(_dimcolumns(A))
-        colnames = collect(_colnames(A))
-        if (ndims(A) == 1) && (eltype(A) <: NamedTuple)
-            dimarrayrows = parent(A)
-            return DimTable{Rows}(A, colnames, dimcolumns, dimarrayrows)
+        A1 = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
+        if eltype(A1) <: NamedTuple
+            if isnothing(preservedims)
+                dimcolumns = collect(_dimcolumns(A1))
+                colnames = collect(_colnames(A1))
+                dimarrayrows = vec(parent(A1))
+                return DimTable{Rows}(A1, colnames, dimcolumns, dimarrayrows)
+            else
+                las = layerarrays(A1)
+                layernames = collect(keys(las))
+                return DimTable(collect(las); layernames, mergedims, preservedims)
+            end
         else
-            dimarraycolumns = [vec(parent(A))]
-            return DimTable{Columns}(A, colnames, dimcolumns, dimarraycolumns)
+            A2 = _maybe_presevedims(A1, preservedims)
+            dimcolumns = collect(_dimcolumns(A2))
+            colnames = collect(_colnames(A2))
+            dimarraycolumns = [vec(parent(A2))]
+            return DimTable{Columns}(A2, colnames, dimcolumns, dimarraycolumns)
         end
     end
+end
+
+_maybe_presevedims(A, preservedims::Nothing) = A
+function _maybe_presevedims(A, preservedims)
+    S = DimSlices(A; dims=otherdims(A, preservedims))
+    rebuild(A; data=OpaqueArray(S), dims=dims(S))
 end
 
 _dimcolumns(x) = map(d -> _dimcolumn(x, d), dims(x))

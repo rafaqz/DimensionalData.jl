@@ -39,7 +39,8 @@ end
     end |> permutedims
     gb_sum = sum.(groupby(A, Ti=>month, X => >(1.5)))
     @test dims(gb_sum, Ti) == Ti(Sampled([1:12...], ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata()))
-    @test typeof(dims(gb_sum, X)) == typeof(X(Sampled(BitVector([false, true]), ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata())))
+    @test typeof(dims(gb_sum, X)) ==
+        X{Sampled{Bool, DimensionalData.HiddenVector{Bool, BitVector, Vector{Vector{Int64}}}, ForwardOrdered, Irregular{Tuple{Nothing, Nothing}}, Points, NoMetadata}}
     @test gb_sum == manualsums
     combined_sum = combine(sum, groupby(A, Ti=>month, X => >(1.5)))
     @test collect(combined_sum) == manualsums
@@ -51,7 +52,6 @@ end
     end |> permutedims
     gb_sum_st = sum.(groupby(st, Ti=>month, X => >(1.5))) 
     @test dims(gb_sum_st, Ti) == Ti(Sampled([1:12...], ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata()))
-    @test typeof(dims(gb_sum_st, X)) == typeof(X(Sampled(BitVector([false, true]), ForwardOrdered(), Irregular((nothing, nothing)), Points(), NoMetadata())))
     @test gb_sum_st == manualsums_st
     combined_sum_st = combine(sum, groupby(st, Ti=>month, X => >(1.5)))
     @test collect(combined_sum_st) == manualsums_st
@@ -87,7 +87,7 @@ end
     B = rand(X(xs; sampling=Intervals(Start())), Ti(dates; sampling=Intervals(Start())))
     gb = groupby(A, B)
     @test size(gb) === size(B) === size(mean.(gb))
-    @test dims(gb) === dims(B) === dims(mean.(gb))
+    @test parent(lookup(gb, X)) == parent(lookup(B, X)) == parent(lookup(mean.(gb), X))
     manualmeans = mapreduce(hcat, intervals(dates)) do d
         map(intervals(xs)) do x
             mean(A[X=x, Ti=d])
