@@ -67,3 +67,46 @@ end
           @test_warn "dims were not found in object" dt[Y=At(10)]
      end
 end
+
+
+# TODO move to doctests, but useful here for now
+
+using DimensionalData, Test, Extents, Dates
+
+xdim, ydim = X(1:10), Y(1:15)
+t = Ti(DateTime(2000):Month(1):DateTime(2000, 12))
+
+# Define DimArrays
+a = rand(xdim, ydim, t; name=:a)
+b = rand(Float32, xdim, ydim; name=:b)
+c = rand(Int, xdim, ydim, t; name=:c)
+
+# And a DimStack
+st = DimStack((; a, b, c))
+
+# Define an empty tree with a common time dimension
+tree = DimTree(; dims=(t,))
+
+# Set a branch to be the stack
+tree.branch1 = st
+
+# Add another branch with a different set of dimensions
+xdim2, ydim2 = X(11:2:20), Y(15:2:30)
+d = rand(xdim2, ydim2, t; name=:d)
+tree.branch2 = d
+
+# Get an array from a leaf
+tree.branch2[:d]
+
+# Get a stack from a branch
+DimStack(tree.branch1)
+
+# Check dimensions
+dims(tree)
+dims(tree.branch1)
+
+# Slice the X dimension of all branches
+tree[X = 5 .. 20]
+
+# This one empties branch1
+tree[X = 15 .. 20]
