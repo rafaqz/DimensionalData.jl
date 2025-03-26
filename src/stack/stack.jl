@@ -224,10 +224,6 @@ function Base.merge(
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
 
-Base.map(f, s::AbstractDimStack) = error("Use maplayers(f, stack)) instead of map(f, stack)")
-Base.map(f, ::Union{AbstractDimStack,NamedTuple}, xs::Union{AbstractDimStack,NamedTuple}...) =
-    error("Use maplayers(f, stack, args...)) instead of map(f, stack, args...)")
-
 maplayers(f, s::AbstractDimStack) =
     _maybestack(s, unrolled_map(f, values(s)))
 function maplayers(
