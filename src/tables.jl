@@ -127,7 +127,6 @@ struct DimTable{Mode} <: AbstractDimTable
     dimcolumns::Vector{AbstractVector}
     dimarraycolumns::Vector
 end
-
 function DimTable(s::AbstractDimStack; 
     mergedims=nothing,
     preservedims=nothing,
@@ -200,12 +199,12 @@ function DimTable(A::AbstractDimArray;
                 dimarrayrows = vec(parent(A1))
                 return DimTable{Rows}(A1, colnames, dimcolumns, dimarrayrows)
             else
-                las = layerarrays(A)
+                las = layerarrays(A1)
                 layernames = collect(keys(las))
                 return DimTable(collect(las); layernames, mergedims, preservedims)
             end
         else
-            A2 = _maybe_presevedims(A, preservedims)
+            A2 = _maybe_presevedims(A1, preservedims)
             dimcolumns = collect(_dimcolumns(A2))
             colnames = collect(_colnames(A2))
             dimarraycolumns = [vec(parent(A2))]
