@@ -251,20 +251,18 @@ function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
     end
     isempty(dim_pairs) && return st
     # Extend missing dimensions in all layers
-    extended_layers = map(layers(st)) do layer
-        if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs)...))
+    maplayers(st) do layer
+        extended_layer = if all(map((ds...) -> all(hasdim(layer, ds)), map(first, dim_pairs)...))
             layer
         else
             DimExtensionArray(layer, dims(st))
         end
+        mergedims(extended_layer, dim_pairs...)
     end
-
-    vals = map(A -> mergedims(A, dim_pairs...), extended_layers)
-    return rebuild_from_arrays(st, vals)
 end
 
 function unmergedims(s::AbstractDimStack, original_dims)
-    return map(A -> unmergedims(A, original_dims), s)
+    return maplayers(A -> unmergedims(A, original_dims), s)
 end
 
 @noinline _stack_size_mismatch() = throw(ArgumentError("Arrays must have identical axes. For mixed dimensions, use DimArrays`"))
