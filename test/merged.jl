@@ -66,24 +66,27 @@ end
 
 @testset "unmerge" begin
     a = DimArray(rand(32, 32, 3), (X,Y,Dim{:band}))
-    merged = mergedims(a, (X, Y) => :geometry)
-    unmerged = unmergedims(merged, dims(a))
-    perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
-    
-    # Test Merge
-    @test hasdim(merged, Dim{:band})
-    @test hasdim(merged, Dim{:geometry})
-    @test !hasdim(merged, X)
-    @test !hasdim(merged, Y)
-    @test size(merged) == (3, 32 * 32)
+    b = DimStack((;a))
+    for a in (a, b)
+        merged = mergedims(a, (X, Y) => :geometry)
+        unmerged = unmergedims(merged, dims(a))
+        perm_unmerged = unmergedims(permutedims(merged, (2,1)), dims(a))
+        
+        # Test Merge
+        @test hasdim(merged, Dim{:band})
+        @test hasdim(merged, Dim{:geometry})
+        @test !hasdim(merged, X)
+        @test !hasdim(merged, Y)
+        @test size(merged) == (3, 32 * 32)
 
-    # Test Unmerge
-    @test hasdim(unmerged, X)
-    @test hasdim(unmerged, Y)
-    @test hasdim(unmerged, Dim{:band})
-    @test !hasdim(unmerged, Dim{:geometry})
-    @test dims(unmerged) == dims(a)
-    @test size(unmerged) == size(a)
-    @test all(a .== unmerged)
-    @test all(a .== perm_unmerged)
+        # Test Unmerge
+        @test hasdim(unmerged, X)
+        @test hasdim(unmerged, Y)
+        @test hasdim(unmerged, Dim{:band})
+        @test !hasdim(unmerged, Dim{:geometry})
+        @test dims(unmerged) == dims(a)
+        @test size(unmerged) == size(a)
+        @test all(a .== unmerged)
+        @test all(a .== perm_unmerged)
+    end
 end
