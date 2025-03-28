@@ -97,6 +97,18 @@ end
     sv = sprint(show, MIME("text/plain"), nds)
     @test sv == "(↓ X, → Y)"
 end
+@testset "BeginEnd" begin
+    lplus = Begin+6
+    slp = sprint(show, MIME("text/plain"), lplus)
+    @test slp == "Begin+6"
+    ldiv = div(End,2)
+    sld = sprint(show, MIME("text/plain"), ldiv)
+    @test sld == "End÷2"
+    berange = Begin:End+1
+    sber = sprint(show, MIME("text/plain"), berange)
+    @test sber == "Begin:End+1"
+    
+end
 
 @testset "arrays" begin
     d, str = Lat(), "Lat"
