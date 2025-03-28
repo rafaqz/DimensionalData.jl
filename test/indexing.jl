@@ -742,6 +742,7 @@ end
         @test (1:10)[1:End] == 1:10
         @test (1:10)[Begin():End()] == 1:10
         @test (1:10)[Begin+1:End-1] == 2:9
+        @test (1:10)[1+Begin:End-1] == 2:9
         @test (1:10)[Begin()+1:End()-1] == 2:9
         @test (1:10)[Begin:End÷2] == 1:5
         @test (1:10)[Begin|3:End] == 3:10
@@ -757,5 +758,18 @@ end
         @test A[Begin:Begin+1, End] == [18, 36]
         @test A[Begin():Begin()+1, End()] == [18, 36]
         @test A[X=Begin:Begin+1, Y=End] == [18, 36]
+    end
+    @testset "BeginEndRange" begin
+        a = Begin:End
+        @test first(a) == Begin()
+        @test last(a) == End()
+        b = Begin:5
+        @test first(b) == Begin()
+        @test last(b) == 5
+        c = Begin:2:Begin+6
+        @test step(c) == 2
+        @test last(c) == Begin+6
+        d = Begin()+2:End()
+        @test first(d) == Begin+2
     end
 end
