@@ -749,6 +749,7 @@ end
         @test (1:10)[Begin:End&3] == 1:2
         @test (1:10)[Begin()+1:End()-1] == 2:9
         @test_broken (1:10)[1+(End÷2)] == 6
+        (1:10)[1+(Begin+2)] == 4
     end
     @testset "dimension indexing" begin
         A = DimArray((1:5)*(6:3:20)', (X, Y))
