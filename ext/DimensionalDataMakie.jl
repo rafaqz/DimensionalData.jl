@@ -54,64 +54,72 @@ function _maybe_colorbar_doc(f)
 end
 
 
+const MayObs{T} = Union{T, Makie.Observable{<:T}}
 # 1d PointBased
 
 # 1d plots are scatter by default
-for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
-    f1!, f2! = Symbol(f1, '!'), Symbol(f2, '!')
+for (f1) in (:scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
+    f1! = Symbol(f1, '!')
     docstring = """
         $f1(A::AbstractDimVector; attributes...)
         
-    Plot a 1-dimensional `AbstractDimArray` with `Makie.$f2`.
+    Plot a 1-dimensional `AbstractDimArray` with `Makie`.
 
     The X axis will be labelled with the dimension name and and use ticks from its lookup.
 
-    $(_keyword_heading_doc(f1))
-    $AXISLEGENDKW_DOC     
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), axis = (;), figure = (;), attributes...)
-            args, merged_attributes = _pointbased1(A, attributes)
-            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
-            p = Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
-            axislegend(p.axis; merge=false, unique=false, axislegendkw...)
-            return p
+        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegendkw=(;), axis = (;), attributes...)
+            user_attributes = Makie.Attributes(; attributes...)
+            _merged_attributes = _pointbased1(A)
+            merged_attributes = merge(user_attributes, _merged_attributes)
+
+            @show merged_attributes
+            ax = Axis(fig; merged_attributes.axis...)
+            p = Makie.$f1!(ax, A; label = merged_attributes.label)
+            axislegend(ax; merge=false, unique=false, axislegendkw...)
+            return ax, p
         end
-        function Makie.$f1!(ax, A::AbstractDimVector; axislegendkw=(;), attributes...)
-            args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
-            return Makie.$f2!(ax, args...; merged_attributes...)
+        function Makie.$f1(A::MayObs{AbstractDimVector}; figure = (;), attributes...)
+            fig = Figure(figure...)
+            ax, plt = $f1(fig[1,1], A; attributes...)
+            display(fig)
+            return fig, ax, plt
         end
     end
 end
 
-function _pointbased1(A, attributes; set_axis_attributes=true)
+value_if_obs(x) = x isa Makie.Observable ? x[] : x
+
+obs_f(f, A::Observable) = lift(x -> f(x), A)
+obs_f(f, A) = f(A)
+
+function _pointbased1(A; set_axis_attributes=true)
     # Array/Dimension manipulation
-    A1 = _prepare_for_makie(A)
-    lookup_attributes, newdims = _split_attributes(A1)
-    A2 = _restore_dim_names(set(A1, newdims[1] => newdims[1]), A)
-    args = Makie.convert_arguments(Makie.PointBased(), A2)
+    A1 = obs_f(_prepare_for_makie, A)
+    lookup_attributes = _split_attributes(A1)
     # Plot attribute generation
-    user_attributes = Makie.Attributes(; attributes...)
     axis_attributes = if set_axis_attributes 
         Attributes(; 
             axis=(; 
-                xlabel=string(label(dims(A, 1))), 
-                ylabel=DD.label(A),
-                title=DD.refdims_title(A),
+                xlabel=obs_f(i -> string(label(dims(i, 1))), A), 
+                ylabel=obs_f(DD.label, A),
+                title=obs_f(DD.refdims_title, A),
             ),
         )
     else
         Attributes()
     end
+    
     plot_attributes = Attributes(; 
-        label=DD.label(A),
+        label=obs_f(DD.label, A),
     )
-    merged_attributes = merge(user_attributes, axis_attributes, plot_attributes, lookup_attributes)
+    merged_attributes = merge(axis_attributes, plot_attributes, lookup_attributes)
     if !set_axis_attributes
         delete!(merged_attributes, :axis)
     end
-    return args, merged_attributes
+    return merged_attributes
 end
 
 
@@ -411,9 +419,8 @@ function Makie.convert_arguments(P::Type{Makie.Series}, dd::DimensionalData.Abst
     return Makie.convert_arguments(P, xs, parent(dd))
 end
 # PointBased conversions (scatter, lines, poly, etc)
-function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
-    A1 = _prepare_for_makie(A)
-    xs = parent(lookup(A, 1))
+function Makie.convert_arguments(t::Makie.PointBased, A::DimensionalData.AbstractDimVector)
+    xs = _floatornan(parent(lookup(A, 1)))
     return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
 end
 function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimMatrix)
@@ -553,41 +560,48 @@ function _check_regular_or_categorical_sampling(l; axis = nothing, conversiontra
     end
 end
 
-# Simplify dimension lookups and move information to axis attributes
-_split_attributes(A) = _split_attributes(dims(A))
-function _split_attributes(dims::DD.DimTuple)
-    reduce(dims; init=(Attributes(), ())) do (attr, ds), d  
-        l = lookup(d)
-        if l isa AbstractCategorical
-            ticks = axes(l, 1)
-            int_dim = rebuild(d, NoLookup(ticks))
-            dim_attr = if d isa X
-                Attributes(; axis=(xticks=ticks, xtickformat=I -> map(string, parent(l)[map(Int, I)])))
-            elseif d isa Y
-                Attributes(; axis=(yticks=ticks, ytickformat=I -> map(string, parent(l)[map(Int, I)])))
-            else
-                Attributes(; axis=(zticks=ticks, ztickformat=I -> map(string, parent(l)[map(Int, I)])))
-            end
-            merge(attr, dim_attr), (ds..., int_dim)
+function get_axis_ticks(l::MayObs{D}) where D
+    d = obs_f(lookup, l)
+    @show D
+    if l isa AbstractCategorical || l isa Observable{<:AbstractCategorical}
+        @show "asda"
+        ticks = obs_f(i -> axes(i, 1), l)
+        int_dim = obs_f(di -> rebuild(di, NoLookup(value_if_obs(ticks))), d)
+        dim_attr = if d isa X || d isa Observable{X}
+            Attributes(; axis=(xticks= obs_f(i -> UInt8.(parent(i)), l)
+                , xtickformat = obs_f(i -> string.(Char.(i)), ticks)))
+        elseif d isa Y || d isa Observable{Y}
+            Attributes(; axis=(yticks= obs_f(i -> UInt8.(parent(i)), l), 
+                ytickformat = obs_f(i -> string.(Char.(i)), ticks)))
         else
-            attr, (ds..., d)
+            Attributes(; axis=(zticks=ticks, ztickformat = ticks -> string.(Char.(ticks))))
         end
+    else
+        Attributes(;)
     end
+end
+
+# Simplify dimension lookups and move information to axis attributes
+_split_attributes(A) = _split_attributes(obs_f(dims, A))
+function _split_attributes(dims::MayObs{DD.DimTuple})
+    @show map(println, dims)
+    all_att = map(i -> get_axis_ticks(i), dims)
+    all_att = get_axis_ticks(dims)
+    @show all_att
+    merge(all_att)
 end
 function _split_attributes(dim::Dimension)
     attributes, dims = _split_attributes((dim,))
     return attributes, dims[1]
 end
 
-function _handle_axis_figure_attrs(merged_attributes, axis, figure)
+function _handle_axis_figure_attrs(merged_attributes, axis)
     akw = haskey(merged_attributes, :axis) ? pop!(merged_attributes, :axis)[] : Attributes()
-    fkw = haskey(merged_attributes, :figure) ? pop!(merged_attributes, :figure)[] : Attributes()
     axis_kw = merge(akw, Attributes(axis)).attributes |> Dict{Symbol, Any} # to get a dict
     if haskey(axis_kw, :type)
         axis_kw[:type] = axis_kw[:type][]
     end
-    figure_kw = merge(fkw, Attributes(figure)).attributes |> Dict{Symbol, Any} # to get a dict
-    return axis_kw, figure_kw
+    return axis_kw
 end
 
 function _prepare_for_makie(A, replacements=())
@@ -683,6 +697,7 @@ end
 
 _floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
 _floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
+_floatornan(A::AbstractArray{<:Char}) = float(A)
 _floatornan(A) = A
 _floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
 _floatornan64(x) = ismissing(x) ? NaN64 : Float64(x)
