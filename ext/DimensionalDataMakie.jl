@@ -53,13 +53,17 @@ function _maybe_colorbar_doc(f)
     end
 end
 
+obs_f(f, A::Observable) = lift(x -> f(x), A)
+obs_f(f, A) = f(A)
 
 const MayObs{T} = Union{T, Makie.Observable{<:T}}
 # 1d PointBased
 
 # 1d plots are scatter by default
-for (f1) in (:scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfall)
+for (p1) in (Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall)
+    f1 = Makie.plotkey(p1)
     f1! = Symbol(f1, '!')
+    
     docstring = """
         $f1(A::AbstractDimVector; attributes...)
         
@@ -70,15 +74,13 @@ for (f1) in (:scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfa
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegendkw=(;), axis = (;), attributes...)
-            user_attributes = Makie.Attributes(; attributes...)
-            _merged_attributes = _pointbased1(A)
-            merged_attributes = merge(user_attributes, _merged_attributes)
+        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegendkw=(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+            axis_attr = merge(Attributes(axis), axis_attributes($p1, A))
+            plot_attr = merge(Attributes(plot_user_attributes), plot_attributes($p1, A))
+            ax = Axis(fig; axis_attr...)
+            p = Makie.$f1!(ax, A; plot_attr...)
 
-            @show merged_attributes
-            ax = Axis(fig; merged_attributes.axis...)
-            p = Makie.$f1!(ax, A; label = merged_attributes.label)
-            axislegend(ax; merge=false, unique=false, axislegendkw...)
+            axislegend(ax; axislegendkw)
             return ax, p
         end
         function Makie.$f1(A::MayObs{AbstractDimVector}; figure = (;), attributes...)
@@ -90,38 +92,25 @@ for (f1) in (:scatter, :lines, :scatterlines, :stairs, :stem, :barplot, :waterfa
     end
 end
 
-value_if_obs(x) = x isa Makie.Observable ? x[] : x
 
-obs_f(f, A::Observable) = lift(x -> f(x), A)
-obs_f(f, A) = f(A)
-
-function _pointbased1(A; set_axis_attributes=true)
-    # Array/Dimension manipulation
+function axis_attributes(::Type{P}, A::MayObs{DD.AbstractDimVector}) where P <: Union{Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall}
     A1 = obs_f(_prepare_for_makie, A)
     lookup_attributes = _split_attributes(A1)
-    # Plot attribute generation
-    axis_attributes = if set_axis_attributes 
-        Attributes(; 
-            axis=(; 
-                xlabel=obs_f(i -> string(label(dims(i, 1))), A), 
-                ylabel=obs_f(DD.label, A),
-                title=obs_f(DD.refdims_title, A),
-            ),
-        )
-    else
-        Attributes()
-    end
-    
+    merge(
+        Attributes(
+            xlabel=obs_f(i -> string(label(dims(i, 1))), A), 
+            ylabel=obs_f(DD.label, A),
+            title=obs_f(DD.refdims_title, A),
+        ),
+        lookup_attributes
+    )
+end
+
+function plot_attributes(::Type{P}, A::DD.AbstractDimVector) where P <: Union{Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall}
     plot_attributes = Attributes(; 
         label=obs_f(DD.label, A),
     )
-    merged_attributes = merge(axis_attributes, plot_attributes, lookup_attributes)
-    if !set_axis_attributes
-        delete!(merged_attributes, :axis)
-    end
-    return merged_attributes
 end
-
 
 # 2d SurfaceLike
 
@@ -562,11 +551,9 @@ end
 
 function get_axis_ticks(l::MayObs{D}) where D
     d = obs_f(lookup, l)
-    @show D
     if l isa AbstractCategorical || l isa Observable{<:AbstractCategorical}
-        @show "asda"
         ticks = obs_f(i -> axes(i, 1), l)
-        int_dim = obs_f(di -> rebuild(di, NoLookup(value_if_obs(ticks))), d)
+        int_dim = obs_f(di -> rebuild(di, NoLookup(to_value(ticks))), d)
         dim_attr = if d isa X || d isa Observable{X}
             Attributes(; axis=(xticks= obs_f(i -> UInt8.(parent(i)), l)
                 , xtickformat = obs_f(i -> string.(Char.(i)), ticks)))
@@ -584,10 +571,8 @@ end
 # Simplify dimension lookups and move information to axis attributes
 _split_attributes(A) = _split_attributes(obs_f(dims, A))
 function _split_attributes(dims::MayObs{DD.DimTuple})
-    @show map(println, dims)
     all_att = map(i -> get_axis_ticks(i), dims)
     all_att = get_axis_ticks(dims)
-    @show all_att
     merge(all_att)
 end
 function _split_attributes(dim::Dimension)
