@@ -87,7 +87,7 @@ export dimnum, hasdim, hasselection, otherdims
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
     mergedims, unmergedims, maplayers
 
-export groupby, seasons, months, hours, intervals, ranges
+export groupby, combine, seasons, months, hours, intervals, ranges
 
 
 export @d
@@ -120,6 +120,7 @@ include("tables.jl")
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
+include("opaque.jl")
 include("groupby.jl")
 include("precompile.jl")
 include("interface_tests.jl")
