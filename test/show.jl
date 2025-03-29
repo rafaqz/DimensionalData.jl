@@ -107,7 +107,9 @@ end
     berange = Begin:End+1
     sber = sprint(show, MIME("text/plain"), berange)
     @test sber == "Begin:End+1"
-    
+    bserange = Begin:3:End
+    sbser = sprint(show, MIME("text/plain"), bserange)
+    @test sbser == "Begin:3:End"
 end
 
 @testset "arrays" begin
