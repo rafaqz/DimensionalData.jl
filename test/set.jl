@@ -157,10 +157,9 @@ end
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
 end
 
-# @testset "all lookup fields updated" begin
+@testset "all lookup fields updated" begin
     md = Metadata(Dict(:a=>1, :b=>2))
     dax = set(da, X(20:-10:10; metadata=md))
-    dax
     x = dims(dax, X)
     @test parent(lookup(x)) === 20:-10:10
     @test order(x) === ReverseOrdered()

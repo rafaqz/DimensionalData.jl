@@ -343,7 +343,9 @@ end
 # as if the array assigned into a larger array across all dimensions,
 # but without the copying. Theres is a cost for linear indexing these objects
 # as we need to convert to Cartesian.
-struct DimExtensionArray{T,N,D<:Tuple{Vararg{Dimension}},R<:Tuple{Vararg{Dimension}},A<:AbstractBasicDimArray{T}} <: AbstractDimArrayGenerator{T,N,D}
+struct DimExtensionArray{
+    T,N,D<:Tuple{Vararg{Dimension}},R<:Tuple{Vararg{Dimension}},A<:AbstractBasicDimArray{T}
+} <: AbstractDimArrayGenerator{T,N,D}
     _data::A
     dims::D
     refdims::R

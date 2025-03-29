@@ -63,6 +63,9 @@ _set(::Safety, ::Nothing, x::Dimension) = x
 _set(::Safety, ::Nothing, ::Nothing) = nothing
 _set(::Safety, x, ::Nothing) = x
 _set(::Safety, ::Nothing, x) = x
+# For ambiguity
+_set(::Safety, dims::DimTuple, ::Nothing) = dims
+_set(::Safety, dims::Lookup, ::Nothing) = dims
 
 @noinline _wrongdimserr(dims, w) =
     throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))
