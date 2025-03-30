@@ -101,9 +101,15 @@ end
     lplus = Begin+6
     slp = sprint(show, MIME("text/plain"), lplus)
     @test slp == "Begin+6"
+    lplusr = 6+Begin
+    slpr = sprint(show, MIME("text/plain"), lplusr)
+    @test slpr == "6+Begin"
     ldiv = div(End,2)
     sld = sprint(show, MIME("text/plain"), ldiv)
     @test sld == "End÷2"
+    ldivnest = End÷2 +1
+    sldn = sprint(show, MIME("text/plain"), ldivnest)
+    @test sldn == "(End÷2)+1"
     berange = Begin:End+1
     sber = sprint(show, MIME("text/plain"), berange)
     @test sber == "Begin:End+1"

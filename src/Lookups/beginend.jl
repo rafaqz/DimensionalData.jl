@@ -80,8 +80,9 @@ _show(io, x) = show(io, x)
 # Here we recursively print `Fix1` and `Fix2` either left or right 
 # to recreate the function
 _print_f(T, f) = string(T, _pf(f))
+_print_f(f,T::Union{Begin, End}) = string(_pf(f), T)
 _print_f(T, f::Base.ComposedFunction) = string('(', _print_f(T, f.outer), ')', _print_f("", f.inner))
-_print_f(T, f::Base.Fix1) = string(f.x, _print_f(T, f.f))
+_print_f(T, f::Base.Fix1) = string(f.x, _print_f(f.f, T))
 _print_f(T, f::Base.Fix2) = string(_print_f(T, f.f), f.x)
 
 _pf(::typeof(div)) = "÷"
