@@ -57,7 +57,7 @@ for f in (:+, :-, :*, :÷, :|, :&, :max, :min)
     @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
     @eval Base.$f(::T, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
     @eval Base.$f(i::Int, ::T) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
-    @eval Base.$f(x::LazyMath{T}, i::Int) where T = LazyMath{T}(Base.Fix2($f,i) ∘ x.f)
+    @eval Base.$f(x::LazyMath{T}, i::Int) where T = LazyMath{T}(Base.Fix2($f, i) ∘ x.f)
     @eval Base.$f(i::Int, x::LazyMath{T}) where T = LazyMath{T}(Base.Fix1($f,1) ∘ x.f)
 end
 
