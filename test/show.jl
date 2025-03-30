@@ -110,9 +110,9 @@ end
     ldivnest = End÷2 +1
     sldn = sprint(show, MIME("text/plain"), ldivnest)
     @test sldn == "(End÷2)+1"
-    berange = Begin:End+1
+    berange = Begin:End-1
     sber = sprint(show, MIME("text/plain"), berange)
-    @test sber == "Begin:End+1"
+    @test sber == "Begin:End-1"
     bserange = Begin:3:End
     sbser = sprint(show, MIME("text/plain"), bserange)
     @test sbser == "Begin:3:End"

@@ -1,3 +1,4 @@
+import Base: max, min
 struct LazyMath{T,F}
     f::F
 end
@@ -51,7 +52,7 @@ _to_index(inds, l::LazyMath{Begin}) = l.f(first(inds))
 Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, ber::AbstractBeginEndRange) =
     Base.checkindex(Bool, inds, _to_index(inds, first(ber)):_to_index(inds, last(ber)))
 
-for f in (:+, :-, :*, :÷, :|, :&)
+for f in (:+, :-, :*, :÷, :|, :&, :max, :min)
     @eval Base.$f(::Type{T}, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
     @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
     @eval Base.$f(::T, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
