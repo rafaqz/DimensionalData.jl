@@ -1,4 +1,3 @@
-import Base: max, min
 struct LazyMath{T,F}
     f::F
 end
