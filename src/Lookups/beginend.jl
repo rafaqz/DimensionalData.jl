@@ -51,13 +51,13 @@ _to_index(inds, l::LazyMath{Begin}) = l.f(first(inds))
 Base.checkindex(::Type{Bool}, inds::AbstractUnitRange, ber::AbstractBeginEndRange) =
     Base.checkindex(Bool, inds, _to_index(inds, first(ber)):_to_index(inds, last(ber)))
 
-for f in (:+, :-, :*, :÷, :|, :&)
+for f in (:+, :-, :*, :÷, :|, :&, :max, :min)
     @eval Base.$f(::Type{T}, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
     @eval Base.$f(i::Int, ::Type{T}) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
     @eval Base.$f(::T, i::Int) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix2($f, i))
     @eval Base.$f(i::Int, ::T) where T <: Union{Begin,End} = LazyMath{T}(Base.Fix1($f, i))
-    @eval Base.$f(x::LazyMath{T}, i::Int) where T = LazyMath{T}(Base.Fix2(x.f ∘ $f, i))
-    @eval Base.$f(i::Int, x::LazyMath{T}) where T = LazyMath{T}(Base.Fix1(x.f ∘ $f, i))
+    @eval Base.$f(x::LazyMath{T}, i::Int) where T = LazyMath{T}(Base.Fix2($f, i) ∘ x.f)
+    @eval Base.$f(i::Int, x::LazyMath{T}) where T = LazyMath{T}(Base.Fix1($f, i) ∘ x.f)
 end
 
 
@@ -80,9 +80,12 @@ _show(io, x) = show(io, x)
 # Here we recursively print `Fix1` and `Fix2` either left or right 
 # to recreate the function
 _print_f(T, f) = string(T, _pf(f))
-_print_f(T, f::Base.ComposedFunction) = string('(', _print_f(T, f.outer), ')', _print_f("", f.inner))
-_print_f(T, f::Base.Fix1) = string(f.x, _print_f(T, f.f))
-_print_f(T, f::Base.Fix2) = string(_print_f(T, f.f), f.x)
+_print_f(T, f::Base.ComposedFunction) = _print_f(_print_f(T, f.inner), f.outer)
+_print_f(T, f::Base.Fix1) = string('(', f.x, _print_f(f.f, T), ')')
+_print_f(T, f::Base.Fix2) = string('(', _print_f(T, f.f), f.x, ')')
+
+_print_f(T, f::Base.Fix1{F}) where F<:Union{typeof(max), typeof(min)} = string(f.f, '(', f.x, ", " ,T, ')')
+_print_f(T, f::Base.Fix2{F}) where F<:Union{typeof(max), typeof(min)} = string(f.f, '(', T, ", " ,f.x, ')')
 
 _pf(::typeof(div)) = "÷"
 _pf(f) = string(f)
