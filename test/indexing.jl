@@ -750,6 +750,8 @@ end
         @test (1:10)[Begin|3:End] == 3:10
         @test (1:10)[Begin:End&3] == 1:2
         @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[1+Begin] == 2
+        @test (1:10)[End-1] == 9
         @test (1:10)[1+(End÷2)] == 6
         @test (1:10)[div(End,2)+1] == 6
         @test (1:10)[1+(Begin+2)] == 4

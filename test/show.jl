@@ -116,6 +116,18 @@ end
     bserange = Begin:3:End
     sbser = sprint(show, MIME("text/plain"), bserange)
     @test sbser == "Begin:3:End"
+    lmax = max(3,Begin)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(3,Begin)"
+    lmax = max(Begin,3)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(Begin,3)"
+    lmin = min(3,Begin)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(3,Begin)"
+    lmin = min(Begin,3)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(Begin,3)"
 end
 
 @testset "arrays" begin
