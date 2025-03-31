@@ -82,8 +82,11 @@ _show(io, x) = show(io, x)
 _print_f(T, f) = string(T, _pf(f))
 _print_f(f,T::Union{Begin, End}) = string(_pf(f), T)
 _print_f(T, f::Base.ComposedFunction) = _print_f(_print_f(T, f.inner), f.outer)
-_print_f(T, f::Base.Fix1) = string(f.f, '(', f.x, ", " ,T, ')')
-_print_f(T, f::Base.Fix2) = string(_print_f(T, f.f), f.x)
+_print_f(T, f::Base.Fix1) = string('(', f.x, _print_f(f.f, T), ')')
+_print_f(T, f::Base.Fix2) = string('(', _print_f(T, f.f), f.x, ')')
+
+_print_f(T, f::Base.Fix1{F}) where F<:Union{typeof(max), typeof(min)} = string(f.f, '(', f.x, ", " ,T, ')')
+_print_f(T, f::Base.Fix2{F}) where F<:Union{typeof(max), typeof(min)} = string(f.f, '(', T, ", " ,f.x, ')')
 
 _pf(::typeof(div)) = "÷"
 _pf(f) = string(f)
