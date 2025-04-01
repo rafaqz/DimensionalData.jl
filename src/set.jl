@@ -180,7 +180,6 @@ function _set(s::Safety, A::AbstractDimArray;
         end
 
     end
-    @show typeof(A1)
     # Just `rebuild` everything else, it's assumed to have no interactions.
     # Package developers note: if other fields do interact, implement this 
     # method for your own `AbstractDimArray` type.
@@ -203,6 +202,8 @@ function _set(s::Safety, st::AbstractDimStack;
 end
 
 # Dimensions and pairs are set for dimensions 
+# Short circuit here to avoid multiple allocations
+# end
 function _set(
     s::Safety, A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...
 )
@@ -222,7 +223,7 @@ function _set(
             # that match the dims of this layer
             map(val, dims(dim_updates, lds))
         end
-        rebuild(_maybe_reorder(s, st, newdims); layerdims=lds)
+        rebuild(_rebuild_maybe_reorder(s, st, newdims); layerdims=lds)
     end
 end
 # Single traits are set for all dimensions
@@ -272,7 +273,7 @@ function _rebuild_maybe_reorder(::Safe, A, newdims)
     if map(order, dims(A)) == map(order, newdims)
         rebuild(A; dims=newdims)
     else
-        newdata = parent(reorder(A, map(rebuild, dims(A), order(newdims))))
-        rebuild(A; data=newdata, dims=newdims)
+        A1 = reorder(A, map(rebuild, dims(A), order(newdims)))
+        rebuild(A; data=parent(A1), dims=newdims)
     end
 end

@@ -508,7 +508,7 @@ metadata(A::DimExtensionArray) = metadata(A._data)
         newrealdims = dims(newdims, realdims)
         newdata = rebuild(A; data=newrealparent, dims=newrealdims)
         rebuild(de; _data=newdata, dims=newdims, refdims=newrefdims)
-    endU
+    end
 end
 @propagate_inbounds function rebuildsliced(
     f::Function, de::DimExtensionArray{<:Any,1}, I::Tuple{<:Union{Colon,AbstractRange}}

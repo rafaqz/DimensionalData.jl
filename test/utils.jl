@@ -50,7 +50,7 @@ using DimensionalData: uniquekeys
     end
 end
 
-# @testset "reorder" begin
+@testset "reorder" begin
     A = [1 2 3; 4 5 6]
     da = DimArray(A, (X(10:10:20), Y(300:-100:100)); name=:test)
     s = DimStack(da)

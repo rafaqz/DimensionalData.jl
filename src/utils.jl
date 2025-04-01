@@ -39,7 +39,7 @@ reorder(x::Reorderable, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIn
     reorder(x, dims(A))
 reorder(x::Reorderable, ::Nothing) = throw(ArgumentError("object has no dimensions"))
 reorder(x::Reorderable, p::Pair, ps::Pair...) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
+reorder(x::Reorderable, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
 reorder(x::Reorderable, ::Type{O}) where O<:Order = reorder(x, O())
 function reorder(x::Reorderable, o::Order)
     ds = dims(x)
@@ -64,10 +64,6 @@ reorder(ds::DimTuple, orderdims::Tuple{}) = ds
 reorder(x::Reorderable, orderdim::Dimension{<:Order}) = _reorder(x, dims(x, orderdim), val(orderdim))
 reorder(x::Reorderable, orderdim::Dimension{<:Lookup}) = _reorder(x, dims(x, orderdim), order(orderdim))
 
-reorder(x::DimensionOrLookup, o::Order) = _reorder(x, o)
-reorder(x::DimensionOrLookup, l::Lookup) = _reorder(x, order(l))
-reorder(x::DimensionOrLookup, d::Dimension) = _reorder(x, order(d))
-
 # Unordered: do nothing, just set the order to Unordered
 _reorder(x::Reorderable, dim::Dimension, o::Unordered) = unsafe_set(x, dim => o)
 # Ordered: leave, reverse or sort
@@ -77,24 +73,26 @@ _reorder(x::Reorderable, dim::Dimension, ::O, ::O) where O<:Ordered = x
 # dimensional reverse can handle this
 _reorder(x::Reorderable, dim::Dimension, ::Ordered, ::Ordered) =
     reverse(x; dims=basedims(dim))
-# We need to sort the data along this dimension
-function _reorder(x::Reorderable, dim::Dimension, ::Unordered, o::Ordered)
+function _reorder(x::AbstractDimIndices, dim::Dimension, o1::Unordered, o2::Ordered)
+    newdim = _reorder(dims(x, dim), o1, o2)
+    return unsafe_set(x, newdim)
 end
+# We need to sort the data along this dimension
 function _reorder(
     x::Union{AbstractDimArray,AbstractDimStack}, dim::Dimension, ::Unordered, o::Ordered
 )
     l = lookup(dim)
-    # Make value => index pairs
-    pairs = parent(l) .=> eachindex(l)
     # Sort forwards or reverse
-    o isa ForwardOrdered ? sort!(pairs) : sort!(pairs; rev=true)
-    # Get the indices
-    idxs = last.(pairs)
+    idxs = o isa ForwardOrdered ? sortperm(l) : sortperm(l; rev=true)
     # Reorder the values by indexing into dimension of dim
     output = x[rebuild(dim, idxs)]
     # Set the order
     return unsafe_set(output, dim => o)
 end
+
+reorder(x::Dimension, o::Order) = rebuild(x, _reorder(lookup(x), o))
+reorder(x::Dimension, l::Lookup) = _reorder(x, order(l))
+reorder(x::Dimension, d::Dimension) = _reorder(x, order(d))
 
 # Unordered: do nothing, just set the order to Unordered
 _reorder(x::DimensionOrLookup, o::Unordered) = unsafe_set(x, o)
@@ -107,11 +105,6 @@ _reorder(x::DimensionOrLookup, ::Ordered, ::Ordered) = reverse(x)
 # We need to sort
 _reorder(dim::Dimension, ::Unordered, o::Ordered) =
     rebuild(dim, reorder(lookup(dim), o))
-function _reorder(l::Lookup, ::Unordered, o::Ordered)
-    vals = collect(l)
-    o isa ForwardOrdered ? sort!(vals) : sort!(vals; rev=true)
-    return rebuild(l; data=vals, order=o)
-end
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray
@@ -244,8 +237,7 @@ end
 function uniquekeys(das::Vector{<:AbstractDimArray})
     length(das) == 0 ? Symbol[] : uniquekeys(map(Symbol ∘ name, das))
 end
-function uniquekeys(keys::Vector{Symbol})
-    map(enumerate(keys)) do (id, k)
+function uniquekeys(keys::Vector{Symbol}) map(enumerate(keys)) do (id, k)
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end

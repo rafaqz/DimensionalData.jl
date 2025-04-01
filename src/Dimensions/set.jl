@@ -13,7 +13,7 @@ unsafe_set(dims::DimTuple, a1::Union{Dimension,Pair}, a2::Union{Dimension,Pair},
     _set(Unsafe(), dims, a1, a2, args...)
 
 _set(s::Safety, dims::DimTuple, l::LookupSetters) =
-    _set(s, dims, map(d -> basedims(d) => l, dims)...)
+    _set(s, dims, map(d -> rebuild(d, l), dims)...)
 
 # Convert pairs to wrapped dims and set
 _set(s::Safety, dims::DimTuple, p::Pair, ps::Pair...) =
@@ -40,10 +40,12 @@ end
 # Set things wrapped in dims
 _set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) = begin
     rewrapped = _set(s, dim, basetypeof(wrapper))
-    @show rewrapped val(wrapper)
-    x = _set(s, rewrapped, val(wrapper))
-    @show x
-    x
+    _set(s, rewrapped, val(wrapper))
+end
+_set(s::Safety, dim::Dimension, l::Union{Lookup,LookupSetters}) = begin
+    re = rebuild(dim, _set(s, val(dim), l))
+    @show typeof(re) typeof(val(dim))
+    re
 end
 # Set the dim, checking the lookup
 _set(s::Safety, dim::Dimension, newdim::Dimension) =

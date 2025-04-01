@@ -41,7 +41,7 @@ using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, Dim
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
 
 import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
-import .Lookups: metadata, reorder, set, _set, rebuild, basetypeof, 
+import .Lookups: metadata, reorder, set, unsafe_set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, intervalbounds,
     hasselection, units
 
