@@ -27,9 +27,9 @@ Base.step(r::BeginEndStepRange) = r.step
 (::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = 
     BeginEndRange(_x(a), _x(b))
 
-(::Colon)(a::Union{Int,LazyMath}, step::Int, b::Union{Type{Begin},Type{End}}) = BeginEndStepRange(a, step, _x(b))
-(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Int,LazyMath}) = BeginEndStepRange(_x(a), step, b)
-(::Colon)(a::Union{Type{Begin},Type{End}}, step::Int, b::Union{Type{Begin},Type{End}}) = 
+(::Colon)(a::Int, step::Int, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = BeginEndStepRange(a, step, _x(b))
+(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, step::Int, b::Int) = BeginEndStepRange(_x(a), step, b)
+(::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, step::Int, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = 
     BeginEndStepRange(_x(a), step, _x(b))
 
 _x(T::Type) = T()
