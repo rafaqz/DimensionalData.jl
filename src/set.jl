@@ -127,7 +127,7 @@ Set the name of a `DimArray`:
 julia> set(da; name=:newname)
 ┌ 3×4 DimArray{Float64, 2} ┐
 ├──────────────────────────┴────────────────────────────────────────── dims ┐
-  ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Irregular Points,
+  ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
   → Z      Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
 └───────────────────────────────────────────────────────────────────────────┘
   ↓ →  -20.0  -10.0  0.0  10.0
