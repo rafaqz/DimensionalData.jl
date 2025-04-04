@@ -17,7 +17,10 @@ dimz2 = (Dim{:row}(10.0:10.0:30.0), Dim{:column}(-2:1.0:1.0))
 da2 = DimArray(a2, dimz2; name=:test2)
 
 s = DimStack(da2, DimArray(2a2, dimz2; name=:test3))
-
+da2slice = set(da2[:,1], name=:onedim)
+sslice  = DimStack(da2, DimArray(2a2, dimz2; name=:test3), da2slice)
+smix = DimStack(da, da2)
+ssame = DimStack(da, set(da, X=>Z))
 @testset "Array fields" begin
     @test parent(set(da2, fill(9, 3, 4))) == fill(9, 3, 4)
     # A differently sized array can't be set
@@ -27,9 +30,10 @@ end
 @testset "DimStack fields" begin
     @test_throws ArgumentError set(s, (x=a2, y=3a2))
     @test_throws DimensionMismatch set(s, (test2=a2, test3=hcat(a2, a2)))
-    s2 = set(s, (test2=a2, test3=3a2))
+    s2 = set(s, (test2=zero(a2), test3=3a2))
+    @test_broken set(s, (test2=zero(a2)))
     @test keys(s2) == (:test2, :test3)
-    @test values(s2) == (a2, 3a2)
+    @test values(s2) == (zero(a2), 3a2)
 end
 
 @testset "DimStack Dimension" begin
@@ -37,9 +41,13 @@ end
     @test typeof(dims(s1)) <: Tuple{<:X,<:Z}
     @test layerdims(s1) == (; test2=(X(), Z()), test3=(X(), Z()))
     @test typeof(dims(set(s, :row => X(), :column => Z()))) <: Tuple{<:X,<:Z}
+    @test_throws ArgumentError set(smix, :row => X, :column => Z)
     s1 = set(s, :row => :row2, :column => :column2)
     @test typeof(dims(s1)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
     @test layerdims(s1) == (; test2=(Dim{:row2}(), Dim{:column2}()), test3=(Dim{:row2}(), Dim{:column2}()))
+    s1 = set(ssame, :Z=>X)
+    @test_broken typeof(dims(s1)) <:  Tuple{<:X,<:Y}
+    
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
     @test typeof(dims(set(s, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
