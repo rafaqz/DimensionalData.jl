@@ -40,7 +40,6 @@ end
 # Set things wrapped in dims
 _set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) = begin
     rewrapped = _set(s, dim, basetypeof(wrapper))
-    @show rewrapped val(wrapper)
     x = _set(s, rewrapped, val(wrapper))
     @show x
     x
