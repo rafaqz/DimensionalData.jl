@@ -41,7 +41,6 @@ end
 _set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) = begin
     rewrapped = _set(s, dim, basetypeof(wrapper))
     x = _set(s, rewrapped, val(wrapper))
-    @show x
     x
 end
 # Set the dim, checking the lookup
