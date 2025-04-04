@@ -180,7 +180,6 @@ function _set(s::Safety, A::AbstractDimArray;
         end
 
     end
-    @show typeof(A1)
     # Just `rebuild` everything else, it's assumed to have no interactions.
     # Package developers note: if other fields do interact, implement this 
     # method for your own `AbstractDimArray` type.
