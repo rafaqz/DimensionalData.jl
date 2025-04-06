@@ -31,7 +31,7 @@ _set_lookup(s::Safety, lookup::AbstractCategorical, newlookup::AutoLookup) = beg
     l1 = _set(Unsafe(), lookup, order(newlookup))
     l2 =_set(Unsafe(), l1, parent(newlookup))
     l3 = _set(s, l2, order(newlookup))
-    _set(l3, metadata(newlookup))
+    _set(s, l3, metadata(newlookup))
 end
 _set_lookup(s::Safety, lookup::AbstractSampled, newlookup::AutoLookup) = begin
     # With autolookup we have to allow for missing fields and detect them
@@ -60,10 +60,10 @@ _set_lookup(s::Safety, lookup::Lookup, newlookup::AbstractSampled) = begin
     # Update each field separately. The old lookup may not have these fields, or may have
     # a subset with the rest being traits. The new lookup may have some auto fields.
     data =_set(s, parent(lookup), parent(newlookup))
-    o =_set(s, order(l), order(newlookup))
-    sp =_set(s, span(l), span(newlookup))
-    sa =_set(s, sampling(l), sampling(newlookup))
-    md =_set(s, metadata(l), metadata(newlookup))
+    o =_set(s, order(lookup), order(newlookup))
+    sp =_set(s, span(lookup), span(newlookup))
+    sa =_set(s, sampling(lookup), sampling(newlookup))
+    md =_set(s, metadata(lookup), metadata(newlookup))
     # Rebuild the new lookup with the merged fields
     rebuild(newlookup; data, order=o, span=sp, sampling=sa, metadata=md)
 end
@@ -102,14 +102,18 @@ end
 # Order
 _set_lookup_property(::Safety, lookup::AbstractNoLookup, neworder::Order) = lookup
 _set_lookup_property(::Safety, lookup::AbstractNoLookup, neworder::AutoOrder) = lookup
-_set_lookup_property(::Safety, lookup::Lookup, neworder::AutoOrder) = Lookup
+_set_lookup_property(::Safety, lookup::Lookup, neworder::AutoOrder) = lookup
 
 # Unsafe leaves the lookup values as-is
 _set_lookup_property(s::Unsafe, lookup::Lookup, neworder::Order) = 
     rebuild(lookup; order=_set(s, order(lookup), neworder))
+_set_lookup_property(s::Unsafe, lookup::Lookup, neworder::AutoOrder) = 
+    lookup
 # Safe reorders them to match `neworder`
 _set_lookup_property(::Safe, lookup::Lookup, neworder::Order) = 
     reorder(lookup, neworder)
+_set_lookup_property(s::Safe, lookup::Lookup, neworder::AutoOrder) = 
+    lookup
 # Lookup Span
 _set_lookup_property(::Safety, lookup::AbstractSampled, ::Irregular{AutoBounds}) = begin
     bnds = if parent(lookup) isa AutoValues || span(lookup) isa AutoSpan
