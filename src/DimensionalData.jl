@@ -38,7 +38,7 @@ using .Dimensions
 using .Dimensions.Lookups
 
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
 
 import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
 import .Lookups: metadata, reorder, set, _set, rebuild, basetypeof, 
