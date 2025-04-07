@@ -2,7 +2,7 @@ abstract type Safety end
 struct Safe <: Safety end
 struct Unsafe <: Safety end
 
-const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,Nothing,AbstractArray}
+const LookupSetters = Union{AllMetadata,Lookup,LookupTrait,AbstractArray}
 
 set(x, ::Type{T}) where T = set(x, T())
 set(lookup::Lookup, x::LookupSetters) =_set(Safe(), lookup, x)
@@ -109,6 +109,11 @@ _set_lookup_property(s::Unsafe, lookup::Lookup, neworder::Order) =
     rebuild(lookup; order=_set(s, order(lookup), neworder))
 _set_lookup_property(s::Unsafe, lookup::Lookup, neworder::AutoOrder) = 
     lookup
+# For disambiguity
+_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::Order) = lookup
+_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
+_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::Order) = lookup
+_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
 # Safe reorders them to match `neworder`
 _set_lookup_property(::Safe, lookup::Lookup, neworder::Order) = 
     reorder(lookup, neworder)
