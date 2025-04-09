@@ -87,6 +87,9 @@ end
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Intervals(Center()), NoMetadata()), NoLookup(Base.OneTo(4)))
     @test lookup(set(da2, Dim{:column}(NoLookup()))) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
+    cat_da2 = set(da2, Categorical)
+    cat_da2_sample = set(da2, Sampled)
+    @test_broken cat_da2_sample == da2
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da = set(da, X=>NoLookup(), Y=>Categorical())
@@ -112,6 +115,8 @@ end
     @testset "locus" begin
         @test locus(set(interval_da, X(End()), Y(Center()))) == (End(), Center())
         @test locus(set(interval_da, X=>End(), Y=>Center())) == (End(), Center())
+        @test set(set(interval_da, End), Center) == interval_da
+        @test set(set(interval_da, Start()), Center) == interval_da
         @test locus(set(da, Y=>Center())) == (Center(), Center())
         @test set(Points(), Intervals()) == Intervals(Center())
         @test set(Intervals(Center()), Start()) == Intervals(Start())
