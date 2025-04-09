@@ -36,11 +36,14 @@ include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.Lookups
+
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .Lookups: metadata, set, _set, rebuild, basetypeof, 
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
+
+import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
+import .Lookups: metadata, reorder, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, index, bounds, intervalbounds,
-    hasselection, units, SelectorOrInterval, Begin, End
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
+    hasselection, units
 
 using OrderedCollections: OrderedDict
 
@@ -51,6 +54,7 @@ export Lookups, Dimensions
 # Deprecated
 const LookupArrays = Lookups
 const LookupArray = Lookup
+
 export LookupArrays, LookupArray
 
 # Dimension

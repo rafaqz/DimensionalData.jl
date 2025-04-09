@@ -11,3 +11,5 @@ for f in (:shiftlocus, :maybeshiftlocus)
         end
     end
 end
+
+reorder(dim::Dimension, o::Order) = rebuild(reorder(lookup(dim), o))
