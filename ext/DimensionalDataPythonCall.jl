@@ -53,20 +53,20 @@ function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing)
 
     dim_names = Symbol.(collect(x.dims))
     coord_names = Symbol.(collect(x.coords.keys()))
-    lookups_dict = Dict{Symbol, Any}()
-    for dim in dim_names
+    lookups_vec = Pair{Symbol, Any}[]
+    for dim in reverse(dim_names) # Iterate in reverse order because of row/col major
         if dim in coord_names
             coord = getproperty(x, dim).data
             coord_type = dtype2type(string(coord.dtype.name))
             coord_ndim = pyconvert(Int, coord.ndim)
 
-            lookups_dict[dim] = pyconvert(Array{coord_type, coord_ndim}, coord)
+            push!(lookups_vec, dim => pyconvert(Array{coord_type, coord_ndim}, coord))
         else
-            lookups_dict[dim] = NoLookup()
+            push!(lookups_vec, dim => NoLookup())
         end
     end
 
-    lookups = NamedTuple(lookups_dict)
+    lookups = NamedTuple(lookups_vec)
 
     metadata = pyconvert(Dict, x.attrs)
 
