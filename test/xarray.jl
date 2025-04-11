@@ -38,6 +38,14 @@ x2 = xr.DataArray(data2,
 
     @test_throws ArgumentError pyconvert(DimArray, xr)
     @test pyconvert(DimArray, xr, 42) == 42
+
+    # Sanity test for higher-dimensional arrays
+    x3 = xr.DataArray(rand(2, 5, 5, 3),
+                      dims=("w", "x", "y", "z"),
+                      coords=Dict("w" => [1, 2], "z" => [1, 2, 3]))
+    y = pyconvert(DimArray, x3)
+    @test lookup(y, :w) == [1, 2]
+    @test lookup(y, :z) == [1, 2, 3]
 end
 
 @testset "Dataset to DimStack" begin
