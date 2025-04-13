@@ -306,6 +306,7 @@ end
 """
     DimStack <: AbstractDimStack
 
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Tuple{Vararg{AbstractDimArray}}; kw...)
     DimStack(data::NamedTuple{Keys,Vararg{AbstractDimArray}}; kw...)
@@ -453,5 +454,12 @@ function DimStack(data::NamedTuple, dims::Tuple;
 end
 DimStack(st::AbstractDimStack) = 
     DimStack(data(st), dims(st), refdims(st), layerdims(st), metadata(st), layermetadata(st))
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(table, dims::Tuple; selector=DimensionalData.Contains(), kw...)
+    data_cols = _data_cols(table, dims)
+    indices = coords_to_indices(table, dims; selector=selector)
+    arrays = [restore_array(d, indices, dims; missingval=missing) for d in values(data_cols)]
+    return DimStack(NamedTuple{keys(data_cols)}(arrays), dims; kw...)
+end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
