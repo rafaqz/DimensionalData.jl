@@ -1,41 +1,12 @@
 module DimensionalDataPythonCall
 
 using DimensionalData
+import DimensionalData as DD
 import PythonCall
-import PythonCall: Py, pyis, pyconvert, pytype, pybuiltins
-import DimensionalData.Lookups: NoLookup
+import PythonCall: Py, PyArray, pyis, pyconvert, pytype, pybuiltins, pylen
 
-function dtype2type(dtype::String)
-    if dtype == "float16"
-        Float16
-    elseif dtype == "float32"
-        Float32
-    elseif dtype == "float64"
-        Float64
-    elseif dtype == "int8"
-        Int8
-    elseif dtype == "int16"
-        Int16
-    elseif dtype == "int32"
-        Int32
-    elseif dtype == "int64"
-        Int64
-    elseif dtype == "uint8"
-        UInt8
-    elseif dtype == "uint16"
-        UInt16
-    elseif dtype == "uint32"
-        UInt32
-    elseif dtype == "uint64"
-        UInt64
-    elseif dtype == "bool"
-        Bool
-    else
-        error("Unsupported dtype: '$dtype'")
-    end
-end
 
-function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing)
+function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing; copy=false)
     x_pytype = string(pytype(x).__name__)
     if x_pytype != "DataArray"
         if isnothing(d)
@@ -46,36 +17,30 @@ function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing)
     end
 
     # Transpose here so that the fast axis remains the same in the Julia array
-    data_npy = x.data.T
-    data_type = dtype2type(string(data_npy.dtype.name))
-    data_ndim = pyconvert(Int, data_npy.ndim)
-    data = pyconvert(Array{data_type, data_ndim}, data_npy)
+    data_py = PyArray(x.data.T; copy=false)
+    data = copy ? pyconvert(Array, data_py) : data_py
 
     dim_names = Symbol.(collect(x.dims))
     coord_names = Symbol.(collect(x.coords.keys()))
-    lookups_vec = Pair{Symbol, Any}[]
+    new_dims = Dim[]
     for dim in reverse(dim_names) # Iterate in reverse order because of row/col major
         if dim in coord_names
-            coord = getproperty(x, dim).data
-            coord_type = dtype2type(string(coord.dtype.name))
-            coord_ndim = pyconvert(Int, coord.ndim)
-
-            push!(lookups_vec, dim => pyconvert(Array{coord_type, coord_ndim}, coord))
+            coord_py = PyArray(getproperty(x, dim).data; copy=false)
+            coord = copy ? pyconvert(Array, coord_py) : coord_py
+            push!(new_dims, Dim{dim}(coord))
         else
-            push!(lookups_vec, dim => NoLookup())
+            push!(new_dims, Dim{dim}())
         end
     end
 
-    lookups = NamedTuple(lookups_vec)
+    metadata = pylen(x.attrs) == 0 ? DD.NoMetadata() : pyconvert(Dict, x.attrs)
 
-    metadata = pyconvert(Dict, x.attrs)
+    array_name = pyis(x.name, pybuiltins.None) ? DD.NoName() : string(x.name)
 
-    array_name = pyis(x.name, pybuiltins.None) ? nothing : string(x.name)
-
-    return DimArray(data, lookups; name=array_name, metadata)
+    return DimArray(data, Tuple(new_dims); name=array_name, metadata)
 end
 
-function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing)
+function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing; copy=false)
     x_pytype = string(pytype(x).__name__)
     if x_pytype != "Dataset"
         if isnothing(d)
@@ -88,7 +53,7 @@ function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing)
     variable_names = Symbol.(collect(x.data_vars.keys()))
     arrays = Dict{Symbol, DimArray}()
     for name in variable_names
-        arrays[name] = pyconvert(DimArray, getproperty(x, name))
+        arrays[name] = pyconvert(DimArray, getproperty(x, name); copy)
     end
 
     metadata = pyconvert(Dict, x.attrs)
