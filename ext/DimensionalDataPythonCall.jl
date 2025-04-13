@@ -61,4 +61,15 @@ function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing; copy=false)
     return DimStack(NamedTuple(arrays); metadata)
 end
 
+# Precompile main calls to pyconvert(::DimArray) with copy=true and copy=false
+precompile(Tuple{typeof(PythonCall.Core.pyconvert), Type{DimensionalData.DimArray{T, N, D, R, A, Na, Me} where Me where Na where A<:AbstractArray{T, N} where R<:Tuple where D<:Tuple where N where T}, PythonCall.Core.Py})
+precompile(Tuple{typeof(Core.kwcall), NamedTuple{(:copy,), Tuple{Bool}}, typeof(PythonCall.Core.pyconvert), Type{DimensionalData.DimArray{T, N, D, R, A, Na, Me} where Me where Na where A<:AbstractArray{T, N} where R<:Tuple where D<:Tuple where N where T}, PythonCall.Core.Py})
+
+# Precompile lower-level conversion calls for common types and dimensions
+for T in (Int32, Int64, UInt32, UInt64, Float32, Float64)
+    for N in (1, 2, 3, 4, 5)
+        precompile(Tuple{typeof(PythonCall.Core.pyconvert), Type{Array{T, N}}, PythonCall.Core.Py})
+    end
+end
+
 end
