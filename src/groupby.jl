@@ -11,24 +11,47 @@ This wrapper allows for specialisations on later broadcast or
 reducing operations, e.g. for chunk reading with DiskArrays.jl,
 because we know the data originates from a single array.
 """
-struct DimGroupByArray{T,N,D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} <: AbstractDimArray{T,N,D,A}
-    data::A
+struct DimGroupByArray{T,N,D,R,A,Na,Me} <: AbstractRebuildableDimArrayGenerator{T,N,D,R}
+    _data::A
     dims::D
     refdims::R
     name::Na
     metadata::Me
-    function DimGroupByArray(
-        data::A, dims::D, refdims::R, name::Na, metadata::Me
-    ) where {D<:Tuple,R<:Tuple,A<:AbstractArray{T,N},Na,Me} where {T,N}
-        checkdims(data, dims)
-        new{T,N,D,R,A,Na,Me}(data, dims, refdims, name, metadata)
-    end
+end
+function DimGroupByArray(_data::A, dims::D, refdims::R, name::Na, metadata::Me) where {D,R,A,Na,Me}
+    T = typeof(view(_data, firstgroupinds(dims)...))
+    N = length(dims) 
+    DimGroupByArray{T,N,D,R,A,Na,Me}(_data, dims, refdims, name, metadata)
 end
 function DimGroupByArray(data::AbstractArray, dims::Union{Tuple,NamedTuple};
     refdims=(), name=NoName(), metadata=NoMetadata()
 )
     DimGroupByArray(data, format(dims, data), refdims, name, metadata)
 end
+
+name(A::DimGroupByArray) = A.name
+metadata(A::DimGroupByArray) = A.metadata
+refdims(A::DimGroupByArray) = A.refdims
+
+function groupinds(A::DimGroupByArray, I::Integer...)
+    # Get the group indices for each dimension
+    D = groupinds(dims(A), I...) 
+    # And the indices in refdims
+    R = map(refdims(A)) do d
+        rebuild(d, only(hiddenparent(d)))
+    end
+    # And combine them, dim indexing will fix the order later
+    return (D..., R...)
+end
+function groupinds(dims::MaybeDimTuple, I::Integer...)
+    map(dims, I) do d, i
+        rebuild(d, hiddenparent(d)[i])
+    end
+end
+
+firstgroupinds(dims::MaybeDimTuple) =
+    groupinds(dims, ntuple(_ -> 1, length(dims))...)
+
 @inline function rebuild(
     A::DimGroupByArray, data::AbstractArray, dims::Tuple, refdims::Tuple, name, metadata
 )
@@ -40,6 +63,18 @@ end
 )
     rebuild(A, data, dims, refdims, name, metadata) # Rebuild as a regular DimArray
 end
+
+Base.size(A::DimGroupByArray) = map(length, dims(A))
+
+@propagate_inbounds function Base.getindex(A::DimGroupByArray, i1::Integer, i2::Integer, Is::Integer...)
+    I = (i1, i2, Is...)
+    return view(A._data, groupinds(A, I...)...)
+end
+# Dispatch to avoid linear indexing in multidimensional DimIndices
+@propagate_inbounds Base.getindex(A::DimGroupByArray{<:Any,1}, i::Integer) =
+    view(A._data, groupinds(A, i)...)
+@propagate_inbounds Base.getindex(A::DimGroupByArray{<:Any,0}) =
+    view(A._data, groupinds(A)...)
 
 function Base.summary(io::IO, A::DimGroupByArray{T,N}) where {T<:AbstractArray{T1,N1},N} where {T1,N1}
     print_ndims(io, size(A))
@@ -82,18 +117,6 @@ function Base.show(io::IO, s::DimSummariser)
     print(io, string(nameof(typeof(s.obj))))
 end
 Base.alignment(io::IO, s::DimSummariser) = (textwidth(sprint(show, s)), 0)
-
-# An array that doesn't know what it holds, to simplify dispatch
-# It can also hold something that is not an AbstractArray itself.
-struct OpaqueArray{T,N,P} <: AbstractArray{T,N}
-    parent::P
-end
-OpaqueArray(A::P) where P<:AbstractArray{T,N} where {T,N} = OpaqueArray{T,N,P}(A)
-OpaqueArray(st::P) where P<:AbstractDimStack{<:Any,T,N} where {T,N} = OpaqueArray{T,N,P}(st)
-
-Base.size(A::OpaqueArray) = size(A.parent)
-Base.getindex(A::OpaqueArray, args...) = Base.getindex(A.parent, args...)
-Base.setindex!(A::OpaqueArray, args...) = Base.setindex!(A.parent, args...)
 
 
 abstract type AbstractBins <: Function end
@@ -249,10 +272,10 @@ Group some data along the time dimension:
 
 ```jldoctest groupby; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData, Dates
-
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
+metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
 ┌ 12-element DimGroupByArray{DimArray{Float64,3},1} ┐
 ├───────────────────────────────────────────────────┴───────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
@@ -277,15 +300,16 @@ julia> groupmeans = mean.(groups) # Take the monthly mean
 ┌ 12-element DimArray{Float64, 1} ┐
 ├─────────────────────────────────┴─────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
-├───────────────────────────────────────────────────────────── metadata ┤
-  Dict{Symbol, Any} with 1 entry:
-  :groupby => :Ti=>month
 └───────────────────────────────────────────────────────────────────────┘
   1  0.500064
   2  0.499762
   3  0.500083
   4  0.499985
-  ⋮
+  5  0.500511
+  6  0.500042
+  7  0.500003
+  8  0.500257
+  9  0.500868
  10  0.500874
  11  0.498704
  12  0.50047
@@ -297,24 +321,29 @@ match after application of `mean`.
 
 ```jldoctest groupby
 julia> map(.-, groupby(A, Ti=>month), mean.(groupby(A, Ti=>month), dims=Ti));
+metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
+metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
 ```
+ups
 
 Or do something else with Y:
 
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
+metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month, :Y => isodd))
 ┌ 12×2 DimArray{Float64, 2} ┐
 ├───────────────────────────┴────────────────────────────────────── dims ┐
   ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
   → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
-├────────────────────────────────────────────────────────────── metadata ┤
-  Dict{Symbol, Any} with 1 entry:
-  :groupby => (:Ti=>month, :Y=>isodd)
 └────────────────────────────────────────────────────────────────────────┘
   ↓ →  false         true
   1        0.499594     0.500533
   2        0.498145     0.501379
+  3        0.499871     0.500296
+  4        0.500921     0.49905
   ⋮
+  8        0.499599     0.500915
+  9        0.500715     0.501021
  10        0.501105     0.500644
  11        0.498606     0.498801
  12        0.501643     0.499298
@@ -330,32 +359,48 @@ function DataAPI.groupby(
     end
     return groupby(A, dims)
 end
-function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple)
+function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple; name=:groupby)
     length(otherdims(dimfuncs, dims(A))) > 0 &&
         Dimensions._extradimserror(otherdims(dimfuncs, dims(A)))
 
     # Get groups for each dimension
-    dim_groups_indices = map(dimfuncs) do d
+    group_dims = map(dimfuncs) do d
         _group_indices(dims(A, d), DD.val(d))
     end
-    # Separate lookups dims from indices
-    group_dims = map(first, dim_groups_indices)
-    # Get indices for each group wrapped with dims for indexing
-    indices = map(rebuild, group_dims, map(last, dim_groups_indices))
-
-    # Hide that the parent is a DimSlices
-    views = OpaqueArray(DimSlices(A, indices))
     # Put the groupby query in metadata
-    meta = map(d -> name(d) => val(d), dimfuncs)
+    meta = map(d -> DD.name(d) => val(d), dimfuncs)
     metadata = Dict{Symbol,Any}(:groupby => length(meta) == 1 ? only(meta) : meta)
     # Return a DimGroupByArray
-    return DimGroupByArray(views, format(group_dims, views), (), :groupby, metadata)
+    return DimGroupByArray(A, map(format, group_dims), (), name, metadata)
 end
+
+# An array that holds another secret array that is indexed along with it.
+# We use this to put groupings inside lookups so they are handled by `slicedims`
+struct HiddenVector{T,A<:AbstractArray{T,1},H<:AbstractArray{<:Any,1}} <: AbstractArray{T,1}
+    data::A
+    hidden::H
+end
+
+Base.getindex(A::HiddenVector, i::Int) = getindex(A.data, i)
+Base.view(A::HiddenVector, i::Int) = 
+    HiddenVector(view(A.data, i...), view(A.hidden, i))
+for f in (:view, :getindex)
+    @eval Base.$f(A::HiddenVector, i::Union{Colon,AbstractArray}) =
+        HiddenVector(Base.$f(A.data, i), Base.$f(A.hidden, i))
+end
+Base.parent(A::HiddenVector) = A.hidden
+Base.size(A::HiddenVector) = size(A.data)
+
+hiddenparent(A::HiddenVector) = A.hidden
+hiddenparent(A::Dimension) = hiddenparent(parent(A))
+hiddenparent(A::AbstractArray) = hiddenparent(parent(A))
+hiddenparent(A::Array) = error("HiddenVector not found")
 
 # Define the groups and find all the indices for values that fall in them
 function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
     orig_lookup = lookup(dim)
     k1 = f(first(orig_lookup))
+    # TODO: using a Dict here is a bit slow
     indices_dict = Dict{typeof(k1),Vector{Int}}()
     for (i, x) in enumerate(orig_lookup)
          k = f(x)
@@ -363,9 +408,12 @@ function _group_indices(dim::Dimension, f::Base.Callable; labels=nothing)
          push!(inds, i)
     end
     ps = sort!(collect(pairs(indices_dict)))
-    group_dim = format(rebuild(dim, _maybe_label(labels, first.(ps))))
+    lookupvals = _maybe_label(labels, first.(ps))
     indices = last.(ps)
-    return group_dim, indices
+    # We combine lookup values and indices into on array
+    lookup_and_indices = HiddenVector(lookupvals, indices)
+    # And wrap and format them as a dimension
+    return format(rebuild(dim, lookup_and_indices))
 end
 function _group_indices(dim::Dimension, group_lookup::Lookup; labels=nothing)
     orig_lookup = lookup(dim)
@@ -374,13 +422,15 @@ function _group_indices(dim::Dimension, group_lookup::Lookup; labels=nothing)
         n = selectindices(group_lookup, Contains(v); err=Lookups._False())
         isnothing(n) || push!(indices[n], i)
     end
-    group_dim = if isnothing(labels)
-        rebuild(dim, group_lookup)
+    lookupvals = if isnothing(labels)
+        group_lookup
     else
-        label_lookup = _maybe_label(labels, group_lookup)
-        rebuild(dim, label_lookup)
+        _maybe_label(labels, group_lookup)
     end
-    return group_dim, indices
+    # We combine lookup values and indices into on array
+    lookup_and_indices = HiddenVector(lookupvals, indices)
+    # And wrap and format them as a dimension
+    return format(rebuild(dim, lookup_and_indices))
 end
 function _group_indices(dim::Dimension, bins::AbstractBins; labels=bins.labels)
     l = lookup(dim)
@@ -447,7 +497,8 @@ end
 
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
-intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
+intervals(rng::AbstractRange) =
+    IntervalSets.Interval{:closed,:open}.(rng, rng .+ step(rng))
 
 """
     ranges(A::AbstractRange{<:Integer})
@@ -455,3 +506,47 @@ intervals(rng::AbstractRange) = IntervalSets.Interval{:closed,:open}.(rng, rng .
 Generate a `Vector` of `UnitRange` with length `step(A)`
 """
 ranges(rng::AbstractRange{<:Integer}) = map(x -> x:x+step(rng)-1, rng)
+
+"""
+    combine(f::Function, gb::DimGroupByArray; dims=:)
+
+Combine the `DimGroupByArray` using function `f` over the group dimensions.
+Unlike broadcasting a reducing function over a `DimGroupByArray`, this function
+always returns a new flattened `AbstractDimArray` even where not all dimensions 
+are reduced. It will also work over grouped `AbstractDimStack`.
+
+If `dims` is given, it will combine only the dimensions in `dims`, the 
+others will be present in the final array. Note that all grouped dimensions
+must be reduced and included in `dims`.
+
+The reducing function `f` must also accept a `dims` keyword.
+
+# Example
+
+```jldoctest groupby
+````
+"""
+function combine(f::Function, gb::DimGroupByArray{G}; dims=:) where G
+    targetdims = DD.commondims(first(gb), dims)
+    all(hasdim(first(gb), targetdims)) || throw(ArgumentError("dims must be a subset of the groupby dimensions"))
+    all(hasdim(targetdims, DD.dims(gb))) || throw(ArgumentError("grouped dimensions $(DD.basedims(gb)) must be included in dims"))
+    # This works for both arrays and stacks
+    # Combine the remaining dimensions after reduction and the group dimensions
+    destdims = (otherdims(DD.dims(first(gb)), dims)..., DD.dims(gb)...)
+    # Get the output eltype 
+    T = Base.promote_op(f, G)
+    # Create a output array with the combined dimensions
+    dest = similar(first(gb), T, destdims)
+    for D in DimIndices(gb)
+        if all(hasdim(targetdims, DD.dims(first(gb))))
+            # Assigned reduced scalar to dest
+            dest[D...] = f(gb[D])
+        else
+            # Reduce with `f` and drop length 1 dimensions
+            xs = dropdims(f(gb[D]; dims); dims)
+            # Broadcast the reduced array to dest
+            broadcast_dims!(identity, view(dest, D...), xs)
+        end
+    end
+    return dest
+end

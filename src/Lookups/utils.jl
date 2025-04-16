@@ -128,17 +128,16 @@ _reorder(lookup::Lookup, neworder::Order) =
     _reorder(lookup, order(lookup), neworder)
 # Same order, do nothing
 _reorder(lookup::Lookup, ::O, ::O) where {O<:Ordered} = lookup
-_reorder(lookup::Lookup, ::U, ::U) where {U<:Unordered} = lookup
+_reorder(lookup::Lookup, ::O, ::O) where {O<:Unordered} = lookup
 # We can always convert to `Unordered` without changing the lookup
 _reorder(lookup::Lookup, ::Ordered, neworder::Unordered) =
     rebuild(lookup; order=neworder)
-# To set with `Ordered` we need to sort
-_reorder(lookup::Lookup, ::Unordered, neworder::ForwardOrdered) =
-    rebuild(lookup; data=sort(parent(lookup)), order=neworder)
-_reorder(lookup::Lookup, ::Unordered, neworder::ReverseOrdered) =
-    rebuild(lookup; data=sort(parent(lookup); rev=true), order=neworder)
 # Different order, reverse the lookup
-function _reorder(lookup::Lookup, ::Ordered, neworder::Ordered)
-    newdata = reverse(parent(lookup))
-    rebuild(lookup; data=newdata, order=neworder)
+_reorder(lookup::Lookup, ::Ordered, neworder::Ordered) = reverse(lookup)
+# To set to `Ordered` we need to sort
+function _reorder(l::Lookup, ::Unordered, o::Ordered)
+    # We use sortperm then index in case there is a bounds matrix
+    # or similar, rather than just sort on lookup values
+    idxs = sortperm(l; rev=isrev(o))
+    return rebuild(l[idxs]; order=o)
 end

@@ -13,7 +13,7 @@ unsafe_set(dims::DimTuple, a1::Union{Dimension,Pair}, a2::Union{Dimension,Pair},
     _set(Unsafe(), dims, a1, a2, args...)
 
 _set(s::Safety, dims::DimTuple, l::LookupSetters) =
-    _set(s, dims, map(d -> basedims(d) => l, dims)...)
+    _set(s, dims, map(d -> rebuild(d, l), dims)...)
 
 # Convert pairs to wrapped dims and set
 _set(s::Safety, dims::DimTuple, p::Pair, ps::Pair...) =
@@ -40,9 +40,10 @@ end
 # Set things wrapped in dims
 _set(s::Safety, dim::Dimension, wrapper::Dimension{<:DimSetters}) = begin
     rewrapped = _set(s, dim, basetypeof(wrapper))
-    x = _set(s, rewrapped, val(wrapper))
-    x
+    _set(s, rewrapped, val(wrapper))
 end
+_set(s::Safety, dim::Dimension, l::Union{Lookup,LookupSetters}) =
+    rebuild(dim, _set(s, val(dim), l))
 # Set the dim, checking the lookup
 _set(s::Safety, dim::Dimension, newdim::Dimension) =
     _set(s, newdim, _set(s, val(dim), val(newdim)))
@@ -61,6 +62,9 @@ _set(::Safety, ::Nothing, x::Dimension) = x
 _set(::Safety, ::Nothing, ::Nothing) = nothing
 _set(::Safety, x, ::Nothing) = x
 _set(::Safety, ::Nothing, x) = x
+# For ambiguity
+_set(::Safety, dims::DimTuple, ::Nothing) = dims
+_set(::Safety, dims::Lookup, ::Nothing) = dims
 
 @noinline _wrongdimserr(dims, w) =
     throw(ArgumentError("dim $(basetypeof(w))) not in $(map(basetypeof, dims))"))

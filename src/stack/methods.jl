@@ -68,8 +68,8 @@ julia> size(slices)
 (4, 2)
 
 julia> map(dims, axes(slices))
-(↓ Z Base.OneTo(4),
-→ X Base.OneTo(2))
+(↓ Z,
+→ X Categorical{Symbol} [:x1, :x2] ForwardOrdered)
 
 julia> first(slices)
 ┌ 3×5 DimStack ┐

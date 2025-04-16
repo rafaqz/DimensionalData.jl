@@ -202,18 +202,20 @@ function _set(s::Safety, st::AbstractDimStack;
 end
 
 # Dimensions and pairs are set for dimensions 
+# Short circuit here to avoid multiple allocations
+# end
 function _set(
     s::Safety, A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...
 )
     newdims = _set(s, dims(A), args...)
-    return _maybe_reorder(s, A, newdims)
+    return rebuild(_rebuild_maybe_reorder(s, A, newdims); dims=newdims)
 end
 function _set(
     s::Safety, st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...
 )
     newdims = _set(s, dims(st), args...)
     st = if dimsmatch(newdims, dims(st))
-        rebuild(st; dims=newdims) 
+        _rebuild_maybe_reorder(s, st, newdims)
     else
         dim_updates = map(rebuild, basedims(st), basedims(newdims))
         lds = map(layerdims(st)) do lds
@@ -221,9 +223,8 @@ function _set(
             # that match the dims of this layer
             map(val, dims(dim_updates, lds))
         end
-        rebuild(st; dims=newdims, layerdims=lds)
+        rebuild(_rebuild_maybe_reorder(s, st, newdims); layerdims=lds)
     end
-    return _maybe_reorder(s, st, newdims)
 end
 # Single traits are set for all dimensions
 _set(s::Safety, A::DimArrayOrStack, x::LookupTrait) = 
@@ -266,13 +267,13 @@ _set_dimstack_data(::Unsafe, st, newdata) = rebuild(st; data=newdata)
     throw(ArgumentError("passed in axes $b do not match the currect axes $a"))
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))
 
-_maybe_reorder(::Unsafe, A, newdims) = A
-function _maybe_reorder(::Safe, A, newdims::Tuple)
-    # Handle any changes to order
+_rebuild_maybe_reorder(::Unsafe, A, newdims) = A
+ # Handle any changes to order
+function _rebuild_maybe_reorder(::Safe, A, newdims)
     if map(order, dims(A)) == map(order, newdims)
         rebuild(A; dims=newdims)
     else
-        newdata = parent(reorder(A, map(rebuild, newdims,  order(newdims))))
-        rebuild(A; data=newdata, dims=newdims)
+        A1 = reorder(A, map(rebuild, dims(A), order(newdims)))
+        rebuild(A; data=parent(A1), dims=newdims)
     end
 end

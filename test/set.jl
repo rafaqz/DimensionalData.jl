@@ -1,7 +1,7 @@
 using DimensionalData, Test 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using DimensionalData.Lookups: _set
+using DimensionalData: unsafe_set
 using DimensionalData: layerdims
 
 a = [1 2; 3 4]
@@ -171,16 +171,40 @@ end
     @test metadata(dims(dax, :column)).val == Dict(:a=>1, :b=>2)
 end
 
-# @testset "all lookup fields updated" begin
+@testset "all lookup fields updated" begin
     md = Metadata(Dict(:a=>1, :b=>2))
-    dax = set(da, X(20:-10:10; metadata=md))
-    dax
-    x = dims(dax, X)
+    da_set = set(da, X(20:-10:10; metadata=md));
+    x = dims(da_set, X)
     @test parent(lookup(x)) === 20:-10:10
     @test order(x) === ReverseOrdered()
     @test span(x) === Regular(-10)
-    @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
     @test metadata(x).val == Dict(:a=>1, :b=>2) 
+    @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
+
+    # Or not with `unsafe_set`...
+    da_uset = DimensionalData.unsafe_set(da, X(20:-10:10; metadata=md));
+    x = dims(da_uset, X)
+    @test order(x) === ForwardOrdered()
+    @test span(x) === Regular(2.0)
+    @test metadata(x).val == Dict(:a=>1, :b=>2) 
+    @test lookup(x) == Sampled(20:-10:10, ForwardOrdered(), Regular(2.0), Points(), md)
+end
+
+@testset "reordering with set" begin
+    # set changes the data, order and span
+    @test parent(set(da, ForwardOrdered)) === parent(da)
+    @test parent(set(da, ReverseOrdered)) == parent(reverse(da; dims=(X, Y)))
+    @test span(set(da, ReverseOrdered)) === map(reverse, span(da))
+    # unsafe_set does not change the data or span  
+    @test parent(unsafe_set(da, ForwardOrdered)) === parent(unsafe_set(da, ReverseOrdered)) === parent(da)
+    @test span(unsafe_set(da, ForwardOrdered)) === span(unsafe_set(da, ReverseOrdered)) === span(da)
+    # But it changes the order
+    @test order(unsafe_set(da, ForwardOrdered)) === (ForwardOrdered(), ForwardOrdered())
+    @test order(unsafe_set(da, ReverseOrdered)) === (ReverseOrdered(), ReverseOrdered())
+    # Setting Unordered is the same for set and unsafe_set
+    @test set(da, Unordered) === unsafe_set(da, Unordered)
+    @test parent(set(da, Unordered)) == parent(unsafe_set(da, Unordered)) == da
+    @test order(set(da, Unordered)) == order(unsafe_set(da, Unordered)) == (Unordered(), Unordered())
 end
 
 @testset "errors with set" begin

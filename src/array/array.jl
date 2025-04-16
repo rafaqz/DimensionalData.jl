@@ -1,4 +1,5 @@
 const IDim = Dimension{<:StandardIndices}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 
 """
     AbstractBasicDimArray <: AbstractArray
@@ -8,7 +9,7 @@ returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
-abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+abstract type AbstractBasicDimArray{T,N,D<:MaybeDimTuple} <: AbstractArray{T,N} end
 
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
@@ -94,10 +95,27 @@ metadata(A::AbstractDimArray) = A.metadata
 
 layerdims(A::AbstractDimArray) = basedims(A)
 
-@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+"""
+    rebuildsliced(f::Function, A::AbstractBasicDimArray, I)
+
+Rebuild `AbstractDimArray` where `f` is `getindex` , `view` or `dotview`.
+
+This does not need to be defined for `AbstractDimArray`, as `f`
+is simply called on the parent array, dims and refdims are sliced with `slicedims`, 
+and `rebuild` is called.
+
+However for custom `AbstractBasicDimArray`, `rebuildsliced` methods are needed
+to define slicing behavior, as there not be a parent array.
+"""
+@propagate_inbounds rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
-    rebuild(A, data, slicedims(f, A, I1)..., name)
+    data = f(parent(A), I1...)
+    return rebuildsliced(f, A, data, I1, name)
+end
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
+    return rebuild(A, data, slicedims(f, A, I1)..., name)
 end
 
 # Array interface methods ######################################################
@@ -107,6 +125,7 @@ Base.axes(A::AbstractDimArray) = map(Dimensions.DimUnitRange, axes(parent(A)), d
 Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
+Base.parentindices(A::AbstractDimArray) = parentindices(parent(A))
 Base.vec(A::AbstractDimArray) = vec(parent(A))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
@@ -170,14 +189,6 @@ end
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
-Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}; kw...) =
-    similar(A, eltype(A), (i, I...); kw...)
-Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
-    similar(A, eltype(A), I; kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
-    similar(A, T, (i, I...); kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
-    similar(parent(A), T, I)
 
 const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 # when all axes are DimUnitRanges we can return an `AbstractDimArray`
@@ -256,14 +267,27 @@ function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
 end
 
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, D::Dimension...; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...; kw...) where T =
-    Base.similar(A, T, D; kw...) 
+Base.similar(A::AbstractBasicDimArray, d1::Dimension, D::Dimension...; kw...) =
+    Base.similar(A, eltype(A), (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, d1::Dimension, D::Dimension...; kw...) where T =
+    Base.similar(A, T, (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = 
+    Base.similar(A, eltype(A), D; kw...) 
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::DimTuple; kw...) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, D; kw...)
+end
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Tuple{};
+    refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
+) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, (); refdims, name, metadata, kw...)
+end
+
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    data = similar(parent(A), T, _dimlength(D))
+    data = _arraytype(T)(undef, _dimlength(D))
     dims = _maybestripval(D)
     return rebuild(A; data, dims, refdims, metadata, name, kw...)
 end
@@ -273,6 +297,20 @@ function Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{};
     data = similar(parent(A), T, ())
     rebuild(A; data, dims=(), refdims, metadata, name, kw...)
 end
+
+Base.similar(A::AbstractBasicDimArray, shape::Int...; kw...) =
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, shape::Tuple{Vararg{Int}}; kw...) = 
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Int...; kw...) where T =
+    similar(A, T, shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    _arraytype(T)(undef, shape)
+Base.similar(A::AbstractDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    similar(parent(A), T, shape)
+
+_arraytype(::Type{T}) where T = Array{T}
+_arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
