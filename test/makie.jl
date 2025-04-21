@@ -10,7 +10,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
-@testset "Makie" begin
+# @testset "Makie" begin
 
     function test_1d_plot(plot_function, dd)
         x = lookup(dd, 1)
@@ -47,6 +47,8 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     A1num = rand(X(-10:10))
 
     @test test_1d_plot(lines, A1num)
+    @test test_1d_plot(lines, rand(Y(-1:1)))
+    @test test_1d_plot(lines, rand(Y(-1s:0.5s:1s)))
     @test test_1d_plot(lines, A1)
     # @test test_1d_plot(lines, A1m)  Does not work because of `chars` X axis
     @test test_1d_plot(lines, A1u)
@@ -301,7 +303,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
         @test a isa LScene
         @test isnothing(a.scene[OldAxis])
     end
-end
+# end
 
 @testset "AlgebraOfGraphics" begin
 

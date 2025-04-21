@@ -60,7 +60,7 @@ const MayObs{T} = Union{T, Makie.Observable{<:T}}
 # 1d PointBased
 
 # 1d plots are scatter by default
-for (p1) in (Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall)
+for (p1) in (Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall, Makie.Series)
     f1 = Makie.plotkey(p1)
     f1! = Symbol(f1, '!')
     
@@ -75,10 +75,12 @@ for (p1) in (Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie
     @eval begin
         @doc $docstring
         function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegendkw=(;merge = false, unique = false), axis = (;), plot_user_attributes...)
-            axis_attr = merge(Attributes(axis), axis_attributes($p1, A))
-            plot_attr = merge(Attributes(plot_user_attributes), plot_attributes($p1, A))
+            A1 = obs_f(_prepare_for_makie, A)
+            
+            axis_attr = merge(axis_attributes($p1, A), axis)
+            plot_attr = merge(plot_attributes($p1, A), plot_user_attributes)
             ax = Axis(fig; axis_attr...)
-            p = Makie.$f1!(ax, A; plot_attr...)
+            p = Makie.$f1!(ax, A1; plot_attr...)
 
             axislegend(ax; axislegendkw)
             return ax, p
@@ -92,25 +94,71 @@ for (p1) in (Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie
     end
 end
 
+function Makie.series(fig, A::MayObs{AbstractDimMatrix}; axislegendkw=(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+    A1 = obs_f(_prepare_for_makie, A)
+
+    labeldim = haskey(plot_user_attributes, :labeldim) ? plot_user_attributes[:labeldim] : nothing
+    axis_attr = merge(axis_attributes(Makie.Series, A; labeldim = labeldim), axis)
+    plot_attr = merge(plot_attributes(Makie.Series, A), plot_user_attributes)
+    ax = Axis(fig; axis_attr...)
+
+    p = Makie.series!(ax, A1; plot_attr...)
+    
+    axislegend(ax; axislegendkw)
+    return ax, p
+end
+function Makie.series(A::MayObs{AbstractDimMatrix}; figure = (;), attributes...)
+    fig = Figure(figure...)
+    ax, plt = series(fig[1,1], A; attributes...)
+    display(fig)
+    return fig, ax, plt
+end
 
 function axis_attributes(::Type{P}, A::MayObs{DD.AbstractDimVector}) where P <: Union{Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall}
     A1 = obs_f(_prepare_for_makie, A)
+
     lookup_attributes = _split_attributes(A1)
     merge(
-        Attributes(
+        lookup_attributes,
+        (;
             xlabel=obs_f(i -> string(label(dims(i, 1))), A), 
             ylabel=obs_f(DD.label, A),
             title=obs_f(DD.refdims_title, A),
         ),
-        lookup_attributes
     )
 end
 
-function plot_attributes(::Type{P}, A::DD.AbstractDimVector) where P <: Union{Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall}
-    plot_attributes = Attributes(; 
+function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimMatrix}) where P <: Union{Makie.Series}
+    plot_attributes = (; 
         label=obs_f(DD.label, A),
     )
 end
+
+
+function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeldim)
+    A1 = obs_f(_prepare_for_makie, A)
+    lookup_attributes = _split_attributes(A1)
+
+    categoricaldim = _categorical_or_dependent(to_value(A), labeldim)
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
+    otherdim = only(otherdims(to_value(A), categoricaldim))
+
+    merge(
+        lookup_attributes,
+        (;
+            xlabel=obs_f(i -> string(label(dims(i, otherdim))), A), 
+            ylabel=obs_f(DD.label, A),
+            title=obs_f(DD.refdims_title, A),
+        ),
+    )
+end
+
+function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimVector}) where P <: Union{Makie.Lines, Makie.Scatter, Makie.ScatterLines, Makie.Stairs, Makie.Stem, Makie.BarPlot, Makie.Waterfall}
+    plot_attributes = (; 
+        label=obs_f(DD.label, A),
+    )
+end
+
 
 # 2d SurfaceLike
 
@@ -127,57 +175,67 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimMatrix{T}; 
-            x=nothing, y=nothing, colorbarkw=(;), axis = (;), figure = (;), attributes...
+        function Makie.$f1(fig, A::AbstractDimMatrix{T}; 
+            x=nothing, y=nothing, colorbarkw=(;), axis = (;), plot_attributes...
         ) where T
             replacements = _keywords2dimpairs(x, y)
-            A1, A2, args, merged_attributes = _surface2(A, $f2, attributes, replacements)
+            A2 = obs_f(ai -> _prepare_for_makie(ai, replacements), A)
+            axis_att = merge(axis_attributes(Makie.Heatmap, A2), axis)
 
-            axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
-
-            axis_type = if haskey(axis_kw, :type)
-                to_value(axis_kw[:type])
+            axis_type = if haskey(axis_att, :type)
+                to_value(axis_att[:type])
             else
-                Makie.args_preferred_axis(Makie.Plot{$f2}, args...)
+                _default = Makie.args_preferred_axis(Makie.Heatmap)
+                if isnothing(_default)
+                    Axis
+                else
+                    _default[1]
+                end
             end
 
-            p = if axis_type isa Type && axis_type <: Union{Makie.LScene, Makie.PolarAxis}
+            ax = if axis_type isa Type && axis_type <: Union{Makie.LScene, Makie.PolarAxis}
                 # LScene can only take a limited set of attributes
                 # so we extract those that can be passed.
                 # TODO: do the same for polaraxis,
                 # or filter out shared attributes from axis_kw somehow.
                 lscene_attrs = Dict{Symbol, Any}()
                 lscene_attrs[:type] = axis_type
-                haskey(axis_kw, :scenekw) && (lscene_attrs[:scenekw] = axis_kw[:scenekw])
-                haskey(axis_kw, :show_axis) && (lscene_attrs[:show_axis] = axis_kw[:show_axis])
+                haskey(axis_att, :scenekw) && (lscene_attrs[:scenekw] = axis_att[:scenekw])
+                haskey(axis_att, :show_axis) && (lscene_attrs[:show_axis] = axis_att[:show_axis])
                 # surface is an LScene so we cant pass some axis attributes
-                p = Makie.$f2(args...; figure = figure_kw, axis = lscene_attrs, merged_attributes...)
+
                 # And instead set axisnames manually
                 if p.axis isa Makie.LScene && !isnothing(p.axis.scene[Makie.OldAxis])
                     p.axis.scene[Makie.OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
                 end
+                throw(ArgumentError("To do"))
                 p
             else # axis_type isa Nothing, axis_type isa Makie.Axis or GeoAxis or similar
-                Makie.$f2(args...; axis = axis_kw, figure = figure_kw, merged_attributes...)
+                axis_type(fig[1,1])#, axis_att...)
             end
+            @show typeof(A2)
+            p = heatmap!(ax, A2; plot_attributes...)
+            # ax 
             # Add a Colorbar for heatmaps and contourf
             # TODO: why not surface too?
-            if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
-                Colorbar(p.figure[1, 2], p.plot;
-                    label=DD.label(A), colorbarkw...
-                )
-            end
-            p
-            return p
+            # if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
+            #     Colorbar(p.figure[1, 2], p.plot;
+            #         label=DD.label(A), colorbarkw...
+            #     )
+            # end
+            # p
+            # return p
         end
-        function Makie.$f1!(ax, A::AbstractDimMatrix; 
-            x=nothing, y=nothing, colorbarkw=(;), attributes...
-        )
-            replacements = _keywords2dimpairs(x, y)
-            _, _, args, _ = _surface2(A, $f2, attributes, replacements)
-            # No Colorbar in the ! in-place versions
-            return Makie.$f2!(ax, args...; attributes...)
-        end
+        #function Makie.$f1!(ax, A::AbstractDimMatrix; 
+        #    x=nothing, y=nothing, attributes...
+        #)
+        #    replacements = _keywords2dimpairs(x, y)
+        #    A2 = obs_f(ai -> _prepare_for_makie(ai, replacements), A)
+        #    # No Colorbar in the ! in-place versions
+        #    return MakieCore,_create_plot!(ax, )
+        #    return Makie.$f1!(ax, A2; attributes...)
+        #    return plot!(ax, Plot{Makie.Heatmap, Tuple{DimMatrix}}(A2))
+        #end
 #        function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
 #            x=nothing, y=nothing, colorbarkw=(;), attributes...
 #        )
@@ -187,6 +245,15 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
 #            return p
 #        end
     end
+end
+
+function axis_attributes(::Type{P}, dd) where P <: Union{Makie.Heatmap, Makie.Image, Makie.Contour, Makie.Contourf, Makie.Spy, Makie.Surface}
+    dx, dy = DD.dims(dd)
+    (; 
+        xlabel=DD.label(dx),
+        ylabel=DD.label(dy),
+        title=DD.refdims_title(dd),
+    )
 end
 
 function _surface2(A, plotfunc, attributes, replacements)
@@ -273,37 +340,6 @@ function _volume3(A, plotfunc, attributes, replacements)
     return A1, A2, args, merged_attributes
 end
 
-# series
-
-"""
-    series(A::AbstractDimMatrix; attributes...)
-    
-Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
-
-$(_labeldim_detection_doc(series))
-"""
-function Makie.series(A::AbstractDimMatrix; 
-    color=:lighttest, axislegendkw=(;), axis = (;), figure = (;), labeldim=nothing, attributes...,
-)
-    args, merged_attributes = _series(A, attributes, labeldim)
-
-    axis_kw, figure_kw = _handle_axis_figure_attrs(merged_attributes, axis, figure)
-
-    n = size(last(args), 1)
-    p = if n > 7
-            color = resample_cmap(color, n) 
-            Makie.series(args...; axis = axis_kw, figure = figure_kw, color, merged_attributes...)
-        else
-            Makie.series(args...; axis = axis_kw, figure = figure_kw, color, merged_attributes...)
-        end
-    axislegend(p.axis; merge=true, unique=false, axislegendkw...)
-    return p
-end
-function Makie.series!(axis, A::AbstractDimMatrix; axislegendkw=(;), labeldim=nothing, attributes...)
-    args, _ = _series(A, attributes, labeldim)
-    return Makie.series!(axis, args...; attributes...)
-end
-
 function _series(A, attributes, labeldim)
     # Array/Dimension manipulation
     categoricaldim = _categorical_or_dependent(A, labeldim)
@@ -386,6 +422,8 @@ Makie.plottype(::AbstractDimMatrix) = Makie.Heatmap
 Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 Makie.plottype(::DimPoints) = Makie.Scatter
 
+Makie.used_attributes(::Type{Series}, A::DD.AbstractDimMatrix) = (:labeldim,)
+
 # TODO this needs to be added to Makie
 # Makie.to_endpoints(x::Tuple{Makie.Unitful.AbstractQuantity,Makie.Unitful.AbstractQuantity}) = (ustrip(x[1]), ustrip(x[2]))
 # Makie.expand_dimensions(::Makie.PointBased, y::IntervalSets.AbstractInterval) = (keys(y), y)
@@ -402,13 +440,15 @@ function Makie.convert_arguments(t::Type{<:Makie.AbstractPlot}, A::AbstractDimMa
     end
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
 end
-function Makie.convert_arguments(P::Type{Makie.Series}, dd::DimensionalData.AbstractDimMatrix)
-    # TO DO: get correct dimension
-    xs = parent(lookup(dd, 2))
-    return Makie.convert_arguments(P, xs, parent(dd))
+function Makie.convert_arguments(P::Type{Makie.Series}, A::AbstractDimMatrix; labeldim = nothing)
+    categoricaldim = _categorical_or_dependent(A, labeldim)
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
+    otherdim = only(otherdims(A, categoricaldim))
+    xs = parent(lookup(A, otherdim))
+    return Makie.convert_arguments(P, xs, parent(permutedims(A, (categoricaldim, otherdim))))
 end
 # PointBased conversions (scatter, lines, poly, etc)
-function Makie.convert_arguments(t::Makie.PointBased, A::DimensionalData.AbstractDimVector)
+function Makie.convert_arguments(t::Makie.PointBased, A::AbstractDimVector)
     xs = _floatornan(parent(lookup(A, 1)))
     return Makie.convert_arguments(t, xs, _floatornan(parent(A)))
 end
@@ -441,8 +481,8 @@ end
 # CellGrid is for e.g. heatmap, contourf, etc. It uses vertices as corners of cells, so 
 # there have to be n+1 vertices for n cells on an axis.
 function Makie.convert_arguments(
-    t::Makie.CellGrid, A::AbstractDimMatrix
-)
+    t::Makie.CellGrid, A::AbstractDimMatrix)
+    @show "asdas"
     A1 = _prepare_for_makie(A)
     xs, ys = map(_lookup_to_vector, lookup(A1))
     return xs, ys, last(Makie.convert_arguments(t, parent(A1)))
@@ -555,16 +595,16 @@ function get_axis_ticks(l::MayObs{D}) where D
         ticks = obs_f(i -> axes(i, 1), l)
         int_dim = obs_f(di -> rebuild(di, NoLookup(to_value(ticks))), d)
         dim_attr = if d isa X || d isa Observable{X}
-            Attributes(; axis=(xticks= obs_f(i -> UInt8.(parent(i)), l)
+            (; axis=(xticks= obs_f(i -> UInt8.(parent(i)), l)
                 , xtickformat = obs_f(i -> string.(Char.(i)), ticks)))
         elseif d isa Y || d isa Observable{Y}
-            Attributes(; axis=(yticks= obs_f(i -> UInt8.(parent(i)), l), 
+            (; axis=(yticks= obs_f(i -> UInt8.(parent(i)), l), 
                 ytickformat = obs_f(i -> string.(Char.(i)), ticks)))
         else
-            Attributes(; axis=(zticks=ticks, ztickformat = ticks -> string.(Char.(ticks))))
+            (; axis=(zticks=ticks, ztickformat = ticks -> string.(Char.(ticks))))
         end
     else
-        Attributes(;)
+        (;)
     end
 end
 
