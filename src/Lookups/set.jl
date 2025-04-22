@@ -54,9 +54,16 @@ _set_lookup(s::Unsafe, lookup::Lookup, newlookup::AbstractCategorical) = begin
     rebuild(newlookup; data=parent(lookup), order=o, metadata=md)
 end
 _set_lookup(s::Safe, lookup::Lookup, newlookup::AbstractCategorical) = begin
-    lookup =_set(Unsafe(), lookup, parent(newlookup))
-    o = _format(order(newlookup), AnonDim, parent(newlookup))
+    # We need to handle the new lookup having unfilled auto fields
+    if parent(newlookup) isa AutoValues
+        o = if order(newlookup) isa AutoLookup
+            _detect_order(parent(l))
+        else
+            order(newlookup)
+        end
+    end
     md = _set(s, metadata(lookup), metadata(newlookup))
+    # Rebuild the new lookup with updated values
     rebuild(newlookup; data=parent(lookup), order=o, metadata=md)
 end
 _set_lookup(s::Unsafe, lookup::Lookup, newlookup::AbstractSampled) = 
@@ -64,9 +71,9 @@ _set_lookup(s::Unsafe, lookup::Lookup, newlookup::AbstractSampled) =
 _set_lookup(s::Safe, lookup::Lookup, newlookup::AbstractSampled) = begin
     # Update each field separately. The old lookup may not have these fields, or may have
     # a subset with the rest being traits. The new lookup may have some auto fields.
-    data =_set(s, parent(lookup), parent(newlookup))
-    o = _format(order(newlookup), AnonDim, parent(newlookup))
-    sp = _format(span(newlookup), AnonDim, parent(newlookup))
+    data =_set(s, parent(lookup), parent(newlookup) )
+    o = _set(order(newlookup), parent(newlookup))
+    sp = _set(span(newlookup), parent(newlookup))
     sa = _set(s, sampling(lookup), sampling(newlookup))
     md = _set(s, metadata(lookup), metadata(newlookup))
     # Rebuild the new lookup with the merged fields
@@ -138,7 +145,7 @@ _set_lookup_property(s::Safety, lookup::AbstractSampled, ::Regular{AutoStep}) = 
     stp = if span(lookup) isa Regular
         step(lookup)
     else
-        stp = _detect_span(parent(lookup))
+        stp = _detect_step(parent(lookup))
         isnothing(stp) && throw(ArgumentError("Can't set an irregular lookup values to Regular"))
         stp
     end
@@ -172,7 +179,7 @@ function _set_lookup_property(
     rebuild(lookup; sampling=Intervals(bounds(lookup)))
 end
 _set_lookup_property(::Safety, lookup::AbstractSampled, ::Span, newspan::Span) =
-    rebuild(lookup; span)
+    rebuild(lookup; span=newspan)
 # Lookup Sampling
 function _set_lookup_property(s::Safe, lookup::AbstractSampled, newsampling::Sampling)
     s = _set(s, sampling(lookup), newsampling)
@@ -239,11 +246,15 @@ _set(::Safety, A, x) = _cantseterror(A, x)
 @noinline _locuserror() = throw(ArgumentError("Can't set a locus for `Points` sampling other than `Center` - the lookup values are the exact points"))
 @noinline _cantseterror(a, b) = throw(ArgumentError("Can not set any fields of $(typeof(a)) to $(typeof(b))"))
 
+_detect_step(::AutoValues) = AutoStep()
 _detect_step(A::AbstractRange) = step(A)
 function _detect_step(A::AbstractVector)
-    step = first(A) - last(A) / (length(A) - 1)
+    step = (last(A) - first(A)) / (length(A) - 1)
     for i in eachindex(A)
         isapprox(A[i], first(A) + step * (i - 1)) || return nothing
     end
     return step
 end
+
+_detect_order(values) = 
+    first(values) <= last(values) ? ForwardOrdered() : ReverseOrdered()

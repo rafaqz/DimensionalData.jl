@@ -154,8 +154,6 @@ _format(locus::AutoLocus, D::Type, values) = Center()
 _format(locus::AutoLocus, D::Type{<:TimeDim}, values) = Start()
 _format(locus::Locus, D::Type, values) = locus
 
-_order(values) = first(values) <= last(values) ? ForwardOrdered() : ReverseOrdered()
-
 checkaxis(lookup::Union{Dimension,Lookup}, axis::AbstractUnitRange) = 
     first(axes(lookup)) == axis || _checkaxiserror(lookup, axis)
 

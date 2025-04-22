@@ -165,45 +165,26 @@ unsafe_set(x::DimArrayOrStack, ::Type{T}) where T = unsafe_set(x, T())
 function _set(s::Safety, A::AbstractDimArray;
     data=nothing, dims=nothing, kw...
 )
-    isnothing(data) && isnothing(dims) && isempty(kw) && return A
-
-    A1 = if isnothing(data) 
-        isnothing(dims) ? A : _set(s, A, dims)
-    elseif isnothing(dims)
-        checkaxes(lookup(data), axes(parent(A)))
-        if isnothing(dims) 
-            checkaxes(lookup(A), axes(data))
-            rebuild(A; data)
-        else
-            # TODO just check size instead of format
-            rebuild(A; data, dims=format(_set(s, DD.dims(A), dims), data))
-        end
-
-    end
+    A1 = isnothing(data) ? A : _set_dimarray_data(s, A, data)
+    A2 = isnothing(dims) ? A1 : _set(s, A1, dims)
     # Just `rebuild` everything else, it's assumed to have no interactions.
     # Package developers note: if other fields do interact, implement this 
     # method for your own `AbstractDimArray` type.
-    rebuild(A1; kw...)
+    return rebuild(A1; kw...)
 end
 function _set(s::Safety, st::AbstractDimStack;
     data=nothing, dims=nothing, kw...
 )
-    st1 = if isnothing(data) 
-        isnothing(dims) ? st : _set(s, st, dims)
-    else
-        # If we are setting data too, just update dims directly
-        dims = isnothing(dims) ? DD.dims(st) : _set(s, DD.dims(st), dims)
-        _set(s, rebuild(st; dims=format(dims, data)), data)
-    end
+    st1 = isnothing(data) ? st : _set_dimstack_data(s, st, data)
+    st2 = isnothing(dims) ? st1 : _set(s, st, dims)
     # Just `rebuild` everything else, it's assumed to have no interactions.
     # Package developers note: if other fields do interact, implement this 
     # method for your own `AbstractDimStack` type.
-    return rebuild(st1; kw...)
+    return rebuild(st2; kw...)
 end
 
 # Dimensions and pairs are set for dimensions 
 # Short circuit here to avoid multiple allocations
-# end
 function _set(
     s::Safety, A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...
 )
@@ -241,26 +222,31 @@ _set(s::Safety, A::AbstractDimStack, newdata::NamedTuple) =
     _set_dimstack_data(s, A, newdata)
 
 # Check dimensions for Safe
-function _set_dimarray_data(::Safe, A, newdata)
-    checkaxes(dims(A), axes(newdata))
-    rebuild(A; data=newdata)
+function _set_dimarray_data(::Safe, A, data)
+    checkaxes(dims(A), axes(data))
+    rebuild(A; data)
 end
 # Just rebuild for Unsafe
-_set_dimarray_data(::Unsafe, A, newdata) = rebuild(A; data=newdata)
+_set_dimarray_data(::Unsafe, A, data) = rebuild(A; data)
 
 # NamedTuples are set as data for AbstractDimStack
 function _set_dimstack_data(::Safe, st, newdata)
-    dat = parent(st)
-    keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
+    # Allow updating subsets of data for NamedTuple
+    newdata1 = if parent(st) isa NamedTuple && newdata isa NamedTuple
+        ConstructionBase.setproperties(parent(st), newdata)
+    else
+        keys(st) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
+        newdata
+    end
     # Make sure the data matches the dimensions
-    map(layerdims(st), newdata) do lds, nd
+    map(layerdims(st), newdata1) do lds, nd
         # TODO a message with the layer name could help here
         checkaxes(dims(st, lds), axes(nd))
     end
-    rebuild(st; data=newdata)
+    return rebuild(st; data=newdata1)
 end
 # Just rebuild for Unsafe
-_set_dimstack_data(::Unsafe, st, newdata) = rebuild(st; data=newdata)
+_set_dimstack_data(::Unsafe, st, data) = rebuild(st; data)
 
 @noinline _axiserr(a, b) = _axiserr(axes(a), axes(b))
 @noinline _axiserr(a::Tuple, b::Tuple) = 
