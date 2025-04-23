@@ -45,10 +45,32 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline dims2indices(dims::DimTuple, ::Tuple{}) = ()
 # Otherwise attempt to convert dims to indices
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
-    extradims = otherdims(I, dims)
-    length(extradims) > 0 && _extradimswarn(extradims)
+    extradims = otherdims(I, dims) # extra dims in the query, I
+    # Extract "multi dimensional" lookups like MergedLookup or Rasters' GeometryLookup
+    multidims = Dimensions.dims(otherdims(dims, I), x -> lookup(x) isa AbstractMergedLookup && !isempty(Dimensions.dims(x, I)))
     Isorted = Dimensions.sortdims(I, dims)
-    return split_alignments(dims2indices, unalligned_dims2indices, dims, Isorted) 
+    # Warn if any dims from I were not picked up by multidims
+    actuallyextradims = otherdims(extradims, x -> any(y -> hasdim(y, x), multidims)) # one way setdiff(extradims, multidims) essentially
+    length(actuallyextradims) > 0 && _extradimswarn(actuallyextradims)
+    # Run the query for the known one-to-one dimensions
+    one_to_one_idxs = split_alignments(dims2indices, unalligned_dims2indices, dims, Isorted) 
+    
+    # This is basically doing an Accessors.@set on the full_dim_structure
+    # one_to_one_idxs is capable of indexing the whole dataset, but 
+    # it doesn't know about the merged lookups.  This keeps all one-to-one
+    # things the same but injects the solutions to the merged lookups where
+    # available and appropriate.
+    return map(dims, one_to_one_idxs) do dim, idx
+        if dim in multidims
+            if !(idx isa Colon)
+                error("I should be a Colon but I am a $idx: dimension $(name(dim))")
+            end
+            # TODO: Unaligned dims are NOT supported in merged lookups!!!!!!!!!
+            dims2indices(dim, Dimensions.dims(I, Dimensions.dims(dim)))
+        else
+            idx
+        end
+    end
 end
 @inline dims2indices(dims::Tuple{}, ::Tuple{}) = ()
 
