@@ -1,4 +1,4 @@
-abstract type AbstractMergedLookup{T} <: Lookup{T,1} end
+abstract type MultiDimensionalLookup{T} <: Lookup{T,1} end
 
 """
     MergedLookup <: Lookup
@@ -20,7 +20,7 @@ A [`Lookup`](@ref) that holds multiple combined dimensions.
 - `metadata`: a `Dict` or `Metadata` object to attach dimension metadata.
 
 """
-struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: AbstractMergedLookup{T}
+struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
     data::A
     dims::D
     metadata::Me
