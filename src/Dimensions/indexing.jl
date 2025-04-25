@@ -63,9 +63,6 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
     return map(dims, one_to_one_idxs) do dim, idx
         # Note that this loop iterates over `dims` so each multidim can only be encountered once
         if hasdim(multidims, dim)
-            if !(idx isa Colon)
-                error("I should be a Colon but I am not: dimension $(name(dim))\nGot\n$idx")
-            end
             dims2indices(dim, Dimensions.dims(I, Dimensions.dims(dim)))
         else
             idx
