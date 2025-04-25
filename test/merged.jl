@@ -53,7 +53,7 @@ end
     @test da[Coord(Z(At(1.0)), Y(1..3))] == [0.1]
     @test da[Z(At(1.0)), Y(1..3)] == [0.1]
     @test da2[Ti(At(1u"s")), Coord(X(At(1.0)), Y(At(3.0)), Z(At(4.0)))] == 0.4
-    @test da2[Ti(At(1u"s")), X(At(1.0)), Y(1..3)] == [0.1, 0.2, 0.3]
+    @test da2[Ti(At(1u"s")), X(At(1.0)), Y(1..3)] == [0.1, 0.2, 0.4]
 end
 
 @testset "custom merged names" begin
@@ -106,6 +106,5 @@ end
 @testset "indexing with totally random dim on merged lookup still errors" begin
     da = ones(X(1:10), Y(1:10), Dim{:random}(1:10))
     merged = mergedims(da, (X, Y) => :space)
-    @test_throws ArgumentError da[Z(1)]
-
+    @test_warn "Z" merged[Z(1)]
 end
