@@ -190,6 +190,11 @@ end
     sv = sprint(show, MIME("text/plain"), D)
     @test occursin('a', sv) && occursin('b', sv)
     @test occursin("(1, 1)", sv) && occursin("(1, 2)", sv)
+
+    # Test trailing zero dimension
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(1), Z(0)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(0), Z(1)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(0), Y(0), Z(0)))
 end
 
 @testset "stack" begin
