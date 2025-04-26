@@ -1,58 +1,207 @@
 using DimensionalData, Test, Dates
 using AlgebraOfGraphics
 using CairoMakie
-import CairoMakie as M
 using ColorTypes
 using Unitful
 import Distributions
+import DimensionalData as DD
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
-# @testset "Makie" begin
+x = 1:5
+y = x.^2
+dd_vec = DimArray(y, Ti(x), name=:test)
+dd_char_vec = DimArray(y, X(Char.(70:74)), name=:test)
+dd_vec_mis = DimArray([missing, 1, 2, 3, 4, 5], X('A':'F'), name= "string title")
+dd_vec_uni = DimArray(collect(x).*u"mm", X(x .* u"F"), name= "string title")
 
-    function test_1d_plot(plot_function, dd)
-        x = lookup(dd, 1)
-        y = collect(parent(dd))
-        fig_dd, ax_dd, plt_dd = plot_function(dd)
+function test_1d_plot(plot_function, _dd)
+    dd = deepcopy(_dd)
+    x = parent(lookup(dd, 1))
+    y = collect(parent(dd))
+    fig_dd, ax_dd, plt_dd = plot_function(dd)
 
-        dd_obs = Observable(dd)
-        fig_dd, ax_dd, plt_obs_dd = plot_function(dd_obs)
+    dd_obs = Observable(dd)
+    fig_dd, ax_dd, plt_obs_dd = plot_function(dd_obs)
+    
+    init_test = check_plotted_data(plt_obs_dd, dd_obs) &&
+        check_plotted_data(plt_dd, dd)
+    dd .*= 2
+    notify(dd_obs)
 
-        dd_obs_2 = @lift identity($dd_obs)
+    if !(eltype(x) <: AbstractChar)
+        x_obs = Observable(collect(x))
+        y_obs = Observable(y)
+        dd_obs_x = @lift DimArray($y_obs, X($x_obs), name=:test)
+        fig_dd, ax_dd_x, plt_obs_dd_x = plot_function(dd_obs_x)
 
-        fig_dd, ax_dd, plt_obs_dd_2 = plot_function(dd_obs_2)
-        
-        init_test = (first.(plt_obs_dd_2[1][]) == ustrip.(x) &&
-            last.(plt_obs_dd_2[1][]) == ustrip.(y))
-        dd .*= 2
-        notify(dd_obs)
 
-        (first.(plt_dd[1][]) == ustrip.(x) &&
-            last.(plt_dd[1][]) == ustrip.(y) && 
-            first.(plt_obs_dd[1][]) == ustrip.(x) && 
-            last.(plt_obs_dd[1][]) == ustrip.(y .* 2) &&
-            init_test &&
-            first.(plt_obs_dd_2[1][]) == ustrip.(x) &&
-            last.(plt_obs_dd_2[1][]) == ustrip.(parent(dd))
-        )
+        x_obs[] .*= 2
+        notify(x_obs)
+        init_test &= check_plotted_data(plt_obs_dd_x, dd_obs_x)
     end
 
-    # 1d
-    A1 = rand(X('a':'e'); name=:test)
-    A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
-    A1u = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"); name=:test)
-    A1ui = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"; sampling=Intervals(Start())); name=:test)
-    A1num = rand(X(-10:10))
+    (
+        init_test &&
+        check_plotted_data(plt_obs_dd, dd_obs) &&
+        ax_dd.title[] == DD.refdims_title(dd) &&
+        ax_dd.xlabel[] == DD.label(DD.dims(dd, 1)) &&
+        ax_dd.ylabel[] == DD.label(dd)
+    )
+end
 
-    @test test_1d_plot(lines, A1num)
-    @test test_1d_plot(lines, rand(Y(-1:1)))
-    @test test_1d_plot(lines, rand(Y(-1s:0.5s:1s)))
-    @test test_1d_plot(lines, A1)
-    # @test test_1d_plot(lines, A1m)  Does not work because of `chars` X axis
-    @test test_1d_plot(lines, A1u)
-    # @test test_1d_plot(lines, A1ui) Does not pass because intervals
+function check_plotted_data(plt::Union{Makie.Lines, Makie.Scatter, Makie.BarPlot, Makie.ScatterLines, Makie.LineSegments}, data) 
+    if false
+        @show first.(plt[1][])
+        @show get_numerical_data(parent(lookup(to_value(data), 1)))
+        @show last.(plt[1][])
+        @show replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))
+    end
+    all(first.(plt[1][]) .≈ get_numerical_data(parent(lookup(to_value(data), 1)))) && 
+        all(my_approx.(last.(plt[1][]), replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))))
+end
+
+function check_plotted_data(plt::Union{BoxPlot, RainClouds, Violin}, data)
+    all(plt[1][] .≈ get_numerical_data(parent(lookup(to_value(data), 1)))) && 
+        all(my_approx.(plt[2][], replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))))
+end
+
+function my_approx(x, y)
+    if x === y === NaN
+        return true
+    else 
+        x ≈ y
+    end
+end
+get_numerical_data(x::AbstractVector{<:AbstractChar}) = Int.(x)
+get_numerical_data(x::AbstractVector{<:Union{Number, Missing}}) = x
+get_numerical_data(x::AbstractVector{<:Unitful.Quantity}) = ustrip.(x)
+
+for dd_i in (dd_vec, dd_vec_uni, dd_vec_mis, dd_char_vec)
+    @test test_1d_plot(lines, dd_i)
+    @test test_1d_plot(scatter, dd_i)
+    @test test_1d_plot(scatterlines, dd_i)
+    @test test_1d_plot(linesegments, dd_i)
+end
+
+dd_cat = DimArray(rand(6), X(cat(fill('A', 3), fill('B', 3), dims = 1)), name = :test)
+for dd_i in (dd_vec, dd_cat, dd_char_vec) # These plot do not work with missing and unitful due to Makie limitations
+    @test test_1d_plot(rainclouds, dd_i)
+    @test test_1d_plot(violin, dd_i)
+    @test test_1d_plot(boxplot, dd_i)
+end
+
+### Series tests
+dd_mat = rand(X(5:10), Y(1:5))
+dd_mat_cat = rand(X(5:10), Y('A':'E'))
+a,b,c = series(dd_mat)
+
+
+function test_series(_dd; labeldim)
+    dd = deepcopy(_dd)
+    x = parent(lookup(dd, 1))
+    y = collect(parent(dd))
+    fig_dd, ax_dd, plt_dd = series(dd, labeldim = labeldim)
+
+    dd_obs = Observable(dd)
+    fig_dd, ax_dd, plt_obs_dd = series(dd_obs, labeldim = labeldim)
+    
+    init_test = check_plotted_data(plt_obs_dd, dd_obs; labeldim = labeldim) &&
+        check_plotted_data(plt_dd, dd, labeldim = labeldim)
+    dd .*= 2
+    notify(dd_obs)
+
+    (
+        init_test &&
+        check_plotted_data(plt_obs_dd, dd_obs, labeldim = labeldim) &&
+        ax_dd.title[] == DD.refdims_title(dd) &&
+        ax_dd.xlabel[] == DD.label(DD.otherdims(dd, labeldim)[1]) &&
+        ax_dd.ylabel[] == DD.label(dd)
+    )
+end
+
+function check_plotted_data(plt::Series, data; labeldim)
+    otherdim = DD.otherdims(to_value(data), labeldim)[1]
+    per_data = permutedims(to_value(data), (otherdim, labeldim))
+    x = get_numerical_data(parent(lookup(to_value(per_data), 1)))
+    cond = true
+    for i in 1:size(per_data, 2)
+        if true 
+            @show first.(plt[1][][i])
+            @show x
+            @show last.(plt[1][][i])
+            @show replace(float.(get_numerical_data(parent(to_value(per_data[:,i])))), missing => float(NaN))
+        end
+        if !(all(first.(plt[1][][i]) .≈ x) && 
+            all(my_approx.(last.(plt[1][][i]), replace(float.(get_numerical_data(parent(to_value(per_data[:,i])))), missing => float(NaN)))))
+            cond = false
+        end
+    end
+    cond
+end
+
+dd_mat_cat = DimArray(rand(2, 3), (Y('a':'b'), X(1:3)); name = :test)
+dd_mat_num = DimArray(rand(2, 3), (Y(1:2), X(1:3)); name = :test)
+dd_mat_uni = DimArray(rand(2, 3) .* u"m", (Y((1:2) .* u"s"), X((1:3) .* u"F")); name = :test)
+dd_mat_mis = DimArray([missing 1 2; missing 1 2], (Y(1:2), X(1:3)); name = :test)
+for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_mis) # Unit does not work because of Makie recursion limitations
+    @test test_series(dd_i; labeldim = Y)
+    @test test_series(dd_i; labeldim = X)
+end
+_, _, plt = series(dd_mat_ser)
+@test first.(plt[1][][1]) == lookup(dd_mat_ser, X) # check that automatic label dim detection chooses categorical on labeldim
+
+
+function test_keywords_used(plt_type, dd; axis = (;), kwargs...)
+    fig, ax, plt = plt_type(dd; axis = axis, kwargs...)
+    cond = true
+    for i in keys(axis)
+        (axis[i] != to_value(getproperty(ax, i))) && (cond = false)
+    end
+    for i in keys(kwargs)
+        (kwargs[i] != to_value(getproperty(plt, i))) && (cond = false)
+    end
+    cond
+end
+
+@test test_keywords_used(lines, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), linewidth = 2, color = :red, label = "new_label")
+@test test_keywords_used(scatter, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), markersize = 2, color = :red, label = "new_label")
+@test test_keywords_used(scatterlines, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), marker = Circle, color = :red, label = "new_label")
+@test test_keywords_used(linesegments, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), color = :red, linestyle = :dash, label = "new_label")
+@test test_keywords_used(series, dd_mat_cat; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), linestyle = :dash, label = "new_label")
+
+@test test_keywords_used(rainclouds, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), color = :red, label = "new_label")
+@test test_keywords_used(violin, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), color = :red, label = "new_label")
+@test test_keywords_used(boxplot, dd_vec; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), color = :red, label = "new_label")
+
+name = Observable(:test)
+dd = @lift DimArray(y, X(x), name=$name)
+fig, ax, plt = lines(dd)
+name[] = :test_2
+@test to_value(plt.label) == string(name[]) # For some reason, it updates the value but not display value in the figure. This is a Makie issue as replicable without DimArray
+@test to_value(ax.ylabel) == string(name[])
+
+dd_mat = rand(X(5:10), Y(1:5))
+dd_3d = rand(X(1:5), Y(1:5), Z(1:5))
+
+a, b, c = contour(dd_mat)
+contourf(dd_mat)
+contour3d(dd_mat)
+heatmap(dd_mat)
+image(dd_mat)
+series(dd_mat)
+spy(dd_mat)
+stairs(dd_vec)
+stem(dd_vec)
+stephist(dd_vec) # should give error?
+surface(dd_mat)
+violin(dd_vec)
+volume(dd_3d)
+volumeslices(dd_3d)
+waterfall(dd_vec)
+# @testset "Makie" begin
 
 
     A1m .= A1
