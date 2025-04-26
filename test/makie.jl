@@ -10,6 +10,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
+    if true
 x = 1:5
 y = x.^2
 dd_vec = DimArray(y, Ti(x), name=:test)
@@ -24,10 +25,12 @@ function test_1d_plot(plot_function, _dd)
     fig_dd, ax_dd, plt_dd = plot_function(dd)
 
     dd_obs = Observable(dd)
-    fig_dd, ax_dd, plt_obs_dd = plot_function(dd_obs)
+    fig_dd, ax_obs_dd, plt_obs_dd = plot_function(dd_obs)
     
     init_test = check_plotted_data(plt_obs_dd, dd_obs) &&
-        check_plotted_data(plt_dd, dd)
+        check_plotted_data(plt_dd, dd) &&
+        check_plot_attributes(ax_dd, plt_dd, dd)
+        check_plot_attributes(ax_obs_dd, plt_obs_dd, dd_obs)
     dd .*= 2
     notify(dd_obs)
 
@@ -45,14 +48,20 @@ function test_1d_plot(plot_function, _dd)
 
     (
         init_test &&
-        check_plotted_data(plt_obs_dd, dd_obs) &&
-        ax_dd.title[] == DD.refdims_title(dd) &&
-        ax_dd.xlabel[] == DD.label(DD.dims(dd, 1)) &&
-        ax_dd.ylabel[] == DD.label(dd)
+        check_plotted_data(plt_obs_dd, dd_obs)
     )
 end
 
-function check_plotted_data(plt::Union{Makie.Lines, Makie.Scatter, Makie.BarPlot, Makie.ScatterLines, Makie.LineSegments}, data) 
+
+function check_plot_attributes(ax, plt::Union{Makie.Lines, Makie.Scatter, Makie.BarPlot, Makie.ScatterLines, Makie.LineSegments, Violin, RainClouds, BoxPlot, Stairs, Waterfall, Stem}, _dd) 
+    dd = to_value(_dd)
+    ax.title[] == DD.refdims_title(dd) &&
+    ax.xlabel[] == DD.label(DD.dims(dd, 1)) &&
+    ax.ylabel[] == DD.label(dd)
+    plt.label[] == DD.label(dd)
+end
+
+function check_plotted_data(plt::Union{Makie.Lines, Makie.Scatter, Makie.BarPlot, Makie.ScatterLines, Makie.LineSegments, Waterfall, Stem, Stairs}, data) 
     if false
         @show first.(plt[1][])
         @show get_numerical_data(parent(lookup(to_value(data), 1)))
@@ -75,15 +84,18 @@ function my_approx(x, y)
         x ≈ y
     end
 end
-get_numerical_data(x::AbstractVector{<:AbstractChar}) = Int.(x)
-get_numerical_data(x::AbstractVector{<:Union{Number, Missing}}) = x
-get_numerical_data(x::AbstractVector{<:Unitful.Quantity}) = ustrip.(x)
+get_numerical_data(x::AbstractArray{<:AbstractChar}) = Int.(x)
+get_numerical_data(x::AbstractArray{<:Union{Number, Missing}}) = x
+get_numerical_data(x::AbstractArray{<:Unitful.Quantity}) = ustrip.(x)
 
 for dd_i in (dd_vec, dd_vec_uni, dd_vec_mis, dd_char_vec)
     @test test_1d_plot(lines, dd_i)
     @test test_1d_plot(scatter, dd_i)
     @test test_1d_plot(scatterlines, dd_i)
     @test test_1d_plot(linesegments, dd_i)
+    @test test_1d_plot(stairs, dd_i)
+    @test test_1d_plot(stem, dd_i)
+    @test test_1d_plot(waterfall, dd_i)
 end
 
 dd_cat = DimArray(rand(6), X(cat(fill('A', 3), fill('B', 3), dims = 1)), name = :test)
@@ -128,7 +140,7 @@ function check_plotted_data(plt::Series, data; labeldim)
     x = get_numerical_data(parent(lookup(to_value(per_data), 1)))
     cond = true
     for i in 1:size(per_data, 2)
-        if true 
+        if false 
             @show first.(plt[1][][i])
             @show x
             @show last.(plt[1][][i])
@@ -150,8 +162,8 @@ for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_mis) # Unit does not work because of
     @test test_series(dd_i; labeldim = Y)
     @test test_series(dd_i; labeldim = X)
 end
-_, _, plt = series(dd_mat_ser)
-@test first.(plt[1][][1]) == lookup(dd_mat_ser, X) # check that automatic label dim detection chooses categorical on labeldim
+_, _, plt = series(dd_mat_cat)
+@test first.(plt[1][][1]) == lookup(dd_mat_cat, X) # check that automatic label dim detection chooses categorical on labeldim
 
 
 function test_keywords_used(plt_type, dd; axis = (;), kwargs...)
@@ -183,232 +195,130 @@ name[] = :test_2
 @test to_value(plt.label) == string(name[]) # For some reason, it updates the value but not display value in the figure. This is a Makie issue as replicable without DimArray
 @test to_value(ax.ylabel) == string(name[])
 
-dd_mat = rand(X(5:10), Y(1:5))
-dd_3d = rand(X(1:5), Y(1:5), Z(1:5))
+end
+function test_2d_plot(plot_function, _dd; x, y)
+    dd = deepcopy(_dd)
+    x_val = parent(lookup(dd, 1))
+    y_val = parent(lookup(dd, 2))
+    z_val = collect(parent(dd))
+    fig_dd, ax_dd, plt_dd = plot_function(dd; x = x, y = y)
 
-a, b, c = contour(dd_mat)
-contourf(dd_mat)
-contour3d(dd_mat)
-heatmap(dd_mat)
-image(dd_mat)
-series(dd_mat)
-spy(dd_mat)
-stairs(dd_vec)
-stem(dd_vec)
+    dd_obs = Observable(dd)
+    fig_dd, ax_dd, plt_obs_dd = plot_function(dd_obs; x = x, y = y)
+    
+    init_test = check_plotted_data(plt_obs_dd, dd_obs, x = x, y = y) &&
+        check_plotted_data(plt_dd, dd, x = x, y = y)
+    dd .*= 2
+    notify(dd_obs)
+    if !(any(i -> eltype(i) <: AbstractChar, (x_val, y_val, z_val)) || plot_function in (image, heatmap, spy))
+        x_obs = Observable(collect(x_val))
+        y_obs = Observable(y_val)
+        z_obs = Observable(z_val)
+        dd_obs_x = @lift DimArray($z_obs, (x($x_obs), y($y_obs)), name=:test)
+        fig_dd, ax_dd_x, plt_obs_dd_x = plot_function(dd_obs_x, x = x, y = y)
+
+        x_obs[] .*= 2
+        notify(x_obs)
+        init_test &= check_plotted_data(plt_obs_dd_x, dd_obs_x, x = x, y = y)
+    end
+
+    (
+        init_test &&
+        check_plotted_data(plt_obs_dd, dd_obs, x = x, y = y)
+    )
+end
+
+function check_plotted_data(plt::Union{Contour, Contourf, Surface, Contour3d}, _data; x, y) 
+    data = permutedims(to_value(_data), (x, y))
+    if false
+        @show plt[1][]
+        @show get_numerical_data(parent(lookup(to_value(data), x)))
+        @show get_numerical_data(parent(lookup(to_value(data), y)))
+        @show plt[2][]
+        @show plt[3][]
+        @show replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))
+    end
+    all(plt[1][] .≈ get_numerical_data(parent(lookup(to_value(data), x)))) && 
+        all(plt[2][] .≈ get_numerical_data(parent(lookup(to_value(data), y)))) && 
+        all(my_approx.(last.(plt[3][]), replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))))
+end
+
+function check_plotted_data(plt::Union{Image, Spy}, _data; x, y) 
+    data = permutedims(to_value(_data), (x, y))
+    if false
+        @show plt[1][]
+        @show get_numerical_data(parent(lookup(to_value(data), x)))
+        @show get_numerical_data(parent(lookup(to_value(data), y)))
+        @show plt[2][]
+        @show plt[3][]
+        @show replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))
+        @show extrema(parent(lookup(to_value(data), x))) .+ (step(lookup(to_value(data), x)) .+ (-.5, +.5 ))
+    end
+    all(plt[1][] .≈ extrema(parent(lookup(to_value(data), x))) .+ (step(lookup(to_value(data), x)) .* (-.5, +.5 ))) && 
+        all(plt[2][] .≈ extrema(parent(lookup(to_value(data), y))) .+ (step(lookup(to_value(data), y)) .* (-.5, .5))) && 
+        all(my_approx.(last.(plt[3][]), replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))))
+end
+
+function check_plotted_data(plt::Union{Heatmap}, _data; x, y) 
+    data = permutedims(to_value(_data), (x, y))
+    if false
+        @show plt[1][]
+        @show get_numerical_data(parent(lookup(to_value(data), x)))
+        @show get_numerical_data(parent(lookup(to_value(data), y)))
+        @show plt[2][]
+        @show plt[3][]
+        @show replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))
+    end
+    x_val = parent(lookup(to_value(data), x)) |> get_numerical_data
+    y_val = parent(lookup(to_value(data), y)) |> get_numerical_data
+    all(plt[1][] .≈ vcat([x_val[1] - step(x_val) / 2], x_val .+ step(x_val) / 2)) && 
+        all(plt[2][] .≈ vcat([y_val[1] - step(y_val) / 2], y_val .+ step(y_val) / 2)) && 
+        all(my_approx.(last.(plt[3][]), replace(float.(get_numerical_data(parent(to_value(data)))), missing => float(NaN))))
+end
+
+x = 1:5
+y = 10:20
+dd_mat = DimArray( x.^1/2 .+ 0y'.^1/3, (X(x), Y(y)), name=:test)
+dd_mat_perm = DimArray( x.^1/2 .+ 0y'.^1/3, (Y(x), Ti(y)), name=:test)
+dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* u"Ω", (Y(x .* u"m"), Ti(y .* u"s")), name=:test)
+dd_mat_char = DimArray( x.^1/2 .+ 0y'.^1/3, (Y('a':'e'), Ti(y)), name=:test)
+
+for plt_i in (contour3d, surface, contour, contourf)
+    @test test_2d_plot(plt_i, dd_mat; x = X, y = Y)
+    @test test_2d_plot(plt_i, dd_mat_perm; x = Ti, y = Y)
+    @test test_2d_plot(plt_i, dd_mat_perm; x = Y, y = Ti)
+    @test test_2d_plot(plt_i, dd_mat_char; x = Y, y = Ti)
+
+    _, _, plt = plt_i(dd_mat_perm)
+    @test plt[1][] == y && plt[2][] == x # check that the permutation is correct without x and y inputs
+
+    @test test_2d_plot(plt_i, dd_mat_uni; x = Y, y = Ti) broken = true # LImitation in Makie
+end
+
+for plt_i in (image, spy)
+    @test test_2d_plot(plt_i, dd_mat; x = X, y = Y)
+    @test test_2d_plot(plt_i, dd_mat_perm; x = Ti, y = Y)
+    @test test_2d_plot(plt_i, dd_mat_perm; x = Y, y = Ti)
+    _, _, plt = plt_i(dd_mat_perm)
+    @test (plt[1][] .≈ (y[1], y[end]) .+ (-.5, .5) .* step(y)) |> all && (plt[2][] .≈ (x[1], x[end]) .+ (-.5, .5) .* step(x)) |> all # check that the permutation is correct without x and y inputs
+end
+
+@test test_2d_plot(heatmap, dd_mat; x = X, y = Y)
+@test test_2d_plot(heatmap, dd_mat_perm; x = Ti, y = Y)
+@test test_2d_plot(heatmap, dd_mat_perm; x = Y, y = Ti)
+@test test_2d_plot(heatmap, dd_mat_char; x = Y, y = Ti) broken = true # The heatmap works but the test need improvement to deal with char
+
+_, _, plt = heatmap(dd_mat_perm)
+@test length(plt[1][]) == length(y)+1 && length(plt[2][]) == length(x) + 1 # check that the permutation is correct without x and y inputs
+
+@test test_2d_plot(plt_i, dd_mat_uni; x = Y, y = Ti) broken = true # LImitation in Makie
+
 stephist(dd_vec) # should give error?
-surface(dd_mat)
-violin(dd_vec)
+
 volume(dd_3d)
 volumeslices(dd_3d)
-waterfall(dd_vec)
 # @testset "Makie" begin
-
-
-    A1m .= A1
-    A1m[3] = missing
-    fig, ax, _ = plot(A1)
-    plot!(ax, A1)
-    fig, ax, _ = plot(A1m)
-    fig, ax, _ = plot(parent(A1m))
-    plot!(ax, A1m)
-    fig, ax, _ = plot(A1u)
-    plot!(ax, A1u)
-    fig, ax, _ = plot(A1ui)
-    plot!(ax, A1ui)
-    fig, ax, _ = plot(A1num)
-    reset_limits!(ax)
-    org = first(ax.finallimits.val.origin)
-    wid = first(widths(ax.finallimits.val))
-    # This tests for #714
-    @test org <= -10
-    @test org + wid >= 10
-
-    ## Scatter 
-    
-    @test test_1d_plot(scatter, A1)
-    @test test_1d_plot(scatter, A1num)
-    @test test_1d_plot(scatter, A1u)
-
-    fig, ax, _ = scatter(A1)
-    scatter!(ax, A1)
-    fig, ax, _ = scatter(A1m)
-    scatter!(ax, A1m)
-    fig, ax, _ = lines(A1)
-    lines!(ax, A1)
-    fig, ax, _ = lines(A1u)
-    lines!(ax, A1u)
-    fig, ax, _ = lines(A1m)
-    lines!(ax, A1m)
-
-    @test test_1d_plot(scatterlines, A1)
-    @test test_1d_plot(scatterlines, A1num)
-    @test test_1d_plot(scatterlines, A1u)
-    fig, ax, _ = scatterlines(A1)
-    scatterlines!(ax, A1)
-    fig, ax, _ = scatterlines(A1u)
-    scatterlines!(ax, A1u)
-    fig, ax, _ = scatterlines(A1m)
-    scatterlines!(ax, A1m)
-
-
-    @test test_1d_plot(stairs, A1)
-    @test test_1d_plot(stairs, A1num)
-    @test test_1d_plot(stairs, A1u)
-    fig, ax, _ = stairs(A1)
-    stairs!(ax, A1)
-    fig, ax, _ = stairs(A1u)
-    stairs!(ax, A1u)
-    fig, ax, _ = stairs(A1m)
-    stairs!(ax, A1m)
-
-    @test test_1d_plot(stem, A1)
-    @test test_1d_plot(stem, A1num)
-    @test test_1d_plot(stem, A1u)
-    fig, ax, _ = stem(A1)
-    stem!(ax, A1)
-    fig, ax, _ = stem(A1u)
-    stem!(ax, A1u)
-    fig, ax, _ = stem(A1m)
-    stem!(ax, A1m)
-
-    @test test_1d_plot(barplot, A1)
-    @test test_1d_plot(barplot, A1num)
-    @test test_1d_plot(barplot, A1u)
-    fig, ax, _ = barplot(A1)
-    barplot!(ax, A1)
-    fig, ax, _ = barplot(A1u)
-    barplot!(ax, A1u)
-    fig, ax, _ = barplot(A1m)
-    barplot!(ax, A1m)
-
-    @test test_1d_plot(waterfall, A1)
-    @test test_1d_plot(waterfall, A1num)
-    @test test_1d_plot(waterfall, A1u)
-    fig, ax, _ = waterfall(A1)
-    waterfall!(ax, A1)
-    fig, ax, _ = waterfall(A1u)
-    waterfall!(ax, A1u)
-    fig, ax, _ = waterfall(A1m)
-    waterfall!(ax, A1m)
-
-    # 2d
-    A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
-    A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
-    A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
-    A2u = rand(Y(10u"km":10u"km":100u"km"), X(['a', 'b', 'c']))
-    A2ui = rand(Y(10u"km":10u"km":100u"km"; sampling=Intervals(Start())), X(['a', 'b', 'c']))
-    A2m[3] = missing
-    A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
-
-    #Test whether the conversion functions work
-    #TODO once surface2 is corrected to use the plottrait this should
-    #already be tested with the usual plotting functions
-    M.convert_arguments(M.CellGrid(), A2)
-    M.convert_arguments(M.VertexGrid(), A2)
-    M.convert_arguments(M.ImageLike(), A2)
-
-    M.convert_arguments(M.CellGrid(), A2u)
-    M.convert_arguments(M.VertexGrid(), A2u)
-    M.convert_arguments(M.ImageLike(), A2u)
-
-
-    ## Does not pass as is plotted in interval and observable gives a different plot
-    #@test test_2d_plot(M.heatmap, A2num)
-    #@test test_2d_plot(heatmap, A2numu)
-
-
-    fig, ax, _ = plot(A2)
-    plot!(ax, A2)
-    fig, ax, _ = plot(A2m)
-    plot!(ax, A2m)
-    fig, ax, _ = plot(A2u)
-    plot!(ax, A2u)
-    fig, ax, _ = plot(A2ui)
-    plot!(ax, A2ui)
-    fig, ax, _ = plot(A2rgb)
-    plot!(ax, A2rgb)
-    fig, ax, _ = heatmap(A2)
-    heatmap!(ax, A2)
-    fig, ax, _ = heatmap(A2m)
-    heatmap!(ax, A2m)
-    fig, ax, _ = heatmap(A2rgb)
-    heatmap!(ax, A2rgb)
-
-    fig, ax, _ = image(A2)
-    image!(ax, A2)
-    fig, ax, _ = image(A2m)
-    image!(ax, A2m)
-    fig, ax, _ = image(A2rgb)
-    image!(ax, A2rgb)
-    fig, ax, _ = violin(A2r)
-    violin!(ax, A2r)
-    @test_throws ArgumentError violin(A2m)
-    @test_throws ArgumentError violin!(ax, A2m)
-
-    fig, ax, _ = rainclouds(A2)
-    rainclouds!(ax, A2)
-    fig, ax, _ = rainclouds(A2u)
-    rainclouds!(ax, A2u)
-    @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
-
-    fig, ax, _ = surface(A2)
-    surface!(ax, A2)
-    fig, ax, _ = surface(A2u)
-    surface!(ax, A2u)
-    fig, ax, _ = surface(A2ui)
-    surface!(ax, A2ui)
-    # Broken with missing
-    # fig, ax, _ = surface(A2m)
-    # surface!(ax, A2m)
-    # Series also puts Categories in the legend no matter where they are
-    # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
-    fig, ax, _ = series(A2)
-    series!(ax, A2)
-    fig, ax, _ = series(A2u)
-    series!(ax, A2u)
-    fig, ax, _ = series(A2ui)
-    series!(ax, A2u)
-    fig, ax, _ = series(A2r)
-    series!(ax, A2r)
-    fig, ax, plt = series(A2r; labeldim=Y)
-    
-    A2numu = rand(X(10u"s":10u"s":100u"s"), Y(1u"V":1u"V":3u"V"))
-    fig, ax, plt = series(A2numu; labeldim=Y)
-    coords = stack(stack(plt[1][]))
-    @test all(coords[1,:,:] .== ustrip(lookup(A2numu, X)))
-    @test all(coords[2,:,:] .== parent(A2numu))
-
-    # series!(ax, A2r; labeldim=Y)
-    fig, ax, _ = series(A2m)
-    series!(ax, A2m)
-    @test_throws ArgumentError plot(A2; y=:c)
-    @test_throws ArgumentError plot!(ax, A2; y=:c)
-
-    # x/y can be specifie
-    A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
-    fig, ax, _ = plot(A2ab)
-    plot!(ax, A2ab)
-    fig, ax, _ = contourf(A2ab; x=:a)
-    contourf!(ax, A2ab, x=:a)
-    fig, ax, _ = heatmap(A2ab; y=:b)
-    heatmap!(ax, A2ab; y=:b)
-    fig, ax, _ = series(A2ab)
-    series!(ax, A2ab)
-    fig, ax, _ = boxplot(A2ab)
-    boxplot!(ax, A2ab)
-    fig, ax, _ = violin(A2ab)
-    violin!(ax, A2ab)
-    fig, ax, _ = rainclouds(A2ab)
-    rainclouds!(ax, A2ab)
-    fig, ax, _ = surface(A2ab)
-    surface!(ax, A2ab)
-    fig, ax, _ = series(A2ab)
-    series!(ax, A2ab)
-    fig, ax, _ = series(A2ab; labeldim=:a)
-    series!(ax, A2ab; labeldim=:a)
-
-    fig, ax, _ = series(A2ab; labeldim=:b)
-    # series!(ax, A2ab;labeldim=:b)
+  
 
     # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))

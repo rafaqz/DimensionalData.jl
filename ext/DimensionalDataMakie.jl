@@ -60,7 +60,7 @@ const MayObs{T} = Union{T, Makie.Observable{<:T}}
 # 1d PointBased
 
 PlotTypes_1D = (Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, Series, Violin, RainClouds, LineSegments)
-PlotTypes_2D = (Heatmap, Image, Contour, Contourf, Spy, Surface) 
+PlotTypes_2D = (Heatmap, Image, Contour, Contourf, Contour3d, Spy, Surface) 
 PlotTypes_3D = (Volume, VolumeSlices)
 
 for p in (PlotTypes_1D..., PlotTypes_2D..., PlotTypes_3D...)
@@ -180,16 +180,16 @@ for p1 in PlotTypes_2D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::AbstractDimMatrix{T}; 
+        function Makie.$f1(fig, A::MayObs{AbstractDimMatrix}; 
             x=nothing, y=nothing, colorbarkw=(;), axis = (;), plot_attributes...
-        ) where T
+        )
         
-            ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A; x = x, y = y)
+            ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, to_value(A); x = x, y = y)
             axis_att = axis_attributes($p1, A; x = x, y = y)
             axis_att_for_function = merge(filter_keywords_axis!(ax_type, axis_att), axis)
-
+            
             ax = ax_type(fig; axis_att_for_function...)
-            p = $f1!(ax, A; plot_attributes...)
+            p = $f1!(ax, A; plot_attributes..., x = x, y = y)
             add_labels_to_lscene(ax, axis_att)
 
             # ax 
@@ -220,16 +220,16 @@ for p1 in PlotTypes_3D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::AbstractDimArray{T,3}; 
+        function Makie.$f1(fig, A::MayObs{AbstractDimArray{<:Any,3}}; 
             x=nothing, y=nothing, z =nothing, colorbarkw=(;), axis = (;), plot_attributes...
-        ) where T
+        )
         
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A; x = x, y = y, z = z)
             axis_att = axis_attributes($p1, A; x = x, y = y, z = z)
             axis_att_for_function = merge(filter_keywords_axis!(ax_type, axis_att), axis)
             
             ax = ax_type(fig; axis_att_for_function...)
-            p = $f1!(ax, A; plot_attributes...)
+            p = $f1!(ax, A; plot_attributes..., x = x, y = y, z = z)
             add_labels_to_lscene(ax, axis_att)
             return Makie.AxisPlot(ax, p)
         end
@@ -242,16 +242,17 @@ function filter_keywords_axis!(ax_type, att)
     att[keys_filt]
 end
 
-function axis_attributes(::Type{P}, dd; x, y) where P <: Union{Heatmap, Image, Surface, Contour, Contourf, Spy}
-    dims_axes = get_dimensions_of_makie_axis(dd, (x, y))
+function axis_attributes(::Type{P}, dd; x, y) where P <: Union{Heatmap, Image, Surface, Contour, Contourf, Contour3d, Spy}
+    dims_axes = obs_f(i -> get_dimensions_of_makie_axis(i, (x, y)), dd)
     
-    lookup_attributes = get_axis_ticks(dims_axes)
+    lookup_attributes = get_axis_ticks(to_value(dims_axes))
+
     att = merge(
         lookup_attributes,
         (;
-        xlabel = DD.label(dims_axes[1]),
-        ylabel = DD.label(dims_axes[2]),
-        title = DD.refdims_title(dd)),
+        xlabel = obs_f(i -> DD.label(i[1]), dims_axes),
+        ylabel = obs_f(i -> DD.label(i[2]), dims_axes),
+        title = obs_f(DD.refdims_title, dd)),
     
     )
 end
@@ -271,14 +272,14 @@ function axis_attributes(::Type{P}, dd; x, y, z) where P <: Union{Volume, Volume
 end
 
 function default_axis_type(::Type{P}, dd; kwargs...) where P
-    output = Makie.convert_arguments(Makie.conversion_trait(P), dd; kwargs...)
+    output = Makie.convert_arguments(P, dd; kwargs...)
     default_type = Makie.args_preferred_axis(P, output...) 
     isnothing(default_type) ? Axis : default_type
 end
 
 function add_labels_to_lscene(ax, axis_att)
     if ax isa Makie.LScene && !isnothing(ax.scene[Makie.OldAxis])
-        ax.scene[Makie.OldAxis][:names, :axisnames] = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "")
+        ax.scene[Makie.OldAxis][:names, :axisnames][] = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "") .|> to_value
     end
 end
 
@@ -289,17 +290,18 @@ Makie.plottype(::AbstractDimArray{<:Any,3}) = Makie.Volume
 Makie.plottype(::DimPoints) = Makie.Scatter
 
 Makie.used_attributes(::Type{Series}, A::DD.AbstractDimMatrix) = (:labeldim,)
-Makie.used_attributes(::VertexGrid, A::DD.AbstractDimMatrix) = (:x, :y)
+# Makie.used_attributes(::VertexGrid, A::DD.AbstractDimMatrix) = (:x, :y)
+Makie.used_attributes(::Type{<:Union{Contour, Contourf, Contour3d, Image, Heatmap, Surface}}, A::DD.AbstractDimMatrix) = (:x, :y)
 Makie.used_attributes(::ImageLike, A::DD.AbstractDimMatrix) = (:x, :y)
 Makie.used_attributes(::Type{Spy}, A::DD.AbstractDimMatrix) = (:x, :y)
-Makie.used_attributes(::VolumeLike, A::DD.AbstractDimArray{<:Any, 3}) = (:x, :y, :z)
-Makie.used_attributes(::Type{VolumeSlices}, A::DD.AbstractDimArray{<:Any, 3}) = (:x, :y, :z)
+Makie.used_attributes(::Type{<:Union{VolumeSlices, Volume}}, A::DD.AbstractDimArray{<:Any, 3}) = (:x, :y, :z)
 
-function Makie.convert_arguments(P::Makie.VertexGrid, A::AbstractDimMatrix; x = nothing, y = nothing)
-    @show "VertexGrid"
+function Makie.convert_arguments(P::Type{T}, A::AbstractDimMatrix; x = nothing , y = nothing) where T<:Union{Contour, Contourf, Surface, Contour3d}
+    @show "VertexGrid" 
     dims_axes = get_dimensions_of_makie_axis(A, (x, y))
-    xlookup, ylookup = parent(lookup(dims_axes[1])), parent(lookup(dims_axes[2]))
-    Makie.convert_arguments(P, xlookup, ylookup, parent(permutedims(A, (dims_axes[1], dims_axes[2])))) 
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
+    z = parent(permutedims(A, (dims_axes[1], dims_axes[2]))) 
+    Makie.convert_arguments(P, xlookup, ylookup, z) 
 end
 
 function Makie.convert_arguments(P::Type{Makie.Series}, A::AbstractDimMatrix; labeldim = nothing)
@@ -332,7 +334,7 @@ end
 # Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
 
 # ImageLike is for e.g. image, meshimage, etc. It uses an interval based sampling method so requires regular spacing.
-function Makie.convert_arguments(P::Union{Makie.ImageLike, Type{Makie.Spy}}, A::AbstractDimMatrix; x = nothing, y = nothing)
+function Makie.convert_arguments(P::Type{T}, A::AbstractDimMatrix; x = nothing, y = nothing) where T<:Union{Image, Spy}
     @show "ImageLike, Spy"
     dims_axes = get_dimensions_of_makie_axis(A, (x, y))
     xlookup, ylookup = lookup(dims_axes[1]), lookup(dims_axes[2])
@@ -346,17 +348,17 @@ end
 # CellGrid is for e.g. heatmap, contourf, etc. It uses vertices as corners of cells, so 
 # there have to be n+1 vertices for n cells on an axis.
 function Makie.convert_arguments(
-    P::Makie.CellGrid, A::AbstractDimMatrix; x = nothing, y = nothing)
+    P::Type{Heatmap}, A::AbstractDimMatrix; x = nothing, y = nothing)
     @show "CellGrid"
     dims_axes = get_dimensions_of_makie_axis(A, (x, y))
-    xlookup, ylookup = parent(lookup(dims_axes[1])), parent(lookup(dims_axes[2]))
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
 
     return Makie.convert_arguments(P, xlookup, ylookup, parent(permutedims(A, (dims_axes[1], dims_axes[2]))))
 end
 
 # VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
-function Makie.convert_arguments(P::Makie.VolumeLike, A::AbstractDimArray{<:Any,3}; x = nothing, y = nothing, z = nothing)
-    @show "VolumeLike"
+function Makie.convert_arguments(P::Type{T}, A::AbstractDimArray{<:Any,3}; x = nothing, y = nothing, z = nothing) where T<:Union{Volume}
+    @show "Volume"
     dims_axes = get_dimensions_of_makie_axis(A, (x, y, z))
     map((l, ax) ->_check_regular_or_categorical_sampling(l; axis = ax, conversiontrait = P), dims_axes, (:x, :y, :z))
     xs, ys, zs = map(_lookup_to_interval, dims_axes)
