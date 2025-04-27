@@ -14,6 +14,14 @@ da2 = DimArray((0.1:0.1:0.4) * (1:1:3)', (dim, Ti(1u"s":1u"s":3u"s")); metadata=
     @test da2[Coord(4), Ti(3)] ≈ 1.2
 end
 
+@testset "subdim indexing" begin
+    @test da[X(At(1))] == da[Coord(X(At(1)))]
+    @test da[X(At(1)), Y(At(1))] == da[Coord(X(At(1)), Y(At(1)))]
+    @test da[X(At(1)), Y(At(1)), Z(At(1))] == da[Coord(X(At(1)), Y(At(1)), Z(At(1)))]
+    @test da[Y(At(1)), Z(At(1))] == da[Coord(Y(At(1)), Z(At(1)))]
+    @test da[Z(At(4))] == da[Coord(Z(At(4)))]
+end
+
 @testset "merged selector indexing" begin
     @test da[Coord(:, :, :)] == [0.1, 0.2, 0.3, 0.4]
     @test da[Coord(Between(1, 5), :, At(4.0))] == [0.3, 0.4]
@@ -25,6 +33,7 @@ end
 
 @testset "merged dimension indexing" begin
     @test da[Coord(Z(At(1.0)), Y(Between(1, 3)))] == [0.1]
+    @test da[Coord(Z(At(1.0)), Y(Between(1, 3)))] == da[Z(At(1.0)), Y(Between(1, 3))]
 end
 
 @test index(da[Coord(:, Between(1, 2), :)], Coord) == [(1.0,1.0,1.0), (1.0,2.0,2.0)]
@@ -42,7 +51,9 @@ end
 
 @testset "merged indexing with intervals" begin
     @test da[Coord(Z(At(1.0)), Y(1..3))] == [0.1]
+    @test da[Z(At(1.0)), Y(1..3)] == [0.1]
     @test da2[Ti(At(1u"s")), Coord(X(At(1.0)), Y(At(3.0)), Z(At(4.0)))] == 0.4
+    @test da2[Ti(At(1u"s")), X(At(1.0)), Y(1..3)] == [0.1, 0.2, 0.4]
 end
 
 @testset "custom merged names" begin
@@ -51,6 +62,7 @@ end
     da = DimArray(A, (Dim{:var}(1:2), merged))
     @test da[var=2, mymerged=(Dim{:draw}(At(8)), Dim{:chain}(At(4)))] == 76
     @test da[var=1, mymerged=(draw=At(8), chain=At(1))] == 8 
+    @test da[var=1, draw=At(8), chain=At(1)] == 8 
 end
 
 @testset "show merged" begin
@@ -89,4 +101,10 @@ end
         @test all(a .== unmerged)
         @test all(a .== perm_unmerged)
     end
+end
+
+@testset "indexing with totally random dim on merged lookup still errors" begin
+    da = ones(X(1:10), Y(1:10), Dim{:random}(1:10))
+    merged = mergedims(da, (X, Y) => :space)
+    @test_warn "Z" merged[Z(1)]
 end
