@@ -168,7 +168,6 @@ end
 
 @testset "Makie" begin
 
-    using Makie
     using CairoMakie: CairoMakie as M
     using ColorTypes
 
@@ -387,13 +386,13 @@ end
 
     @testset "Colorbar support" begin
         fig, ax, _ = M.plot(A2ab)
-        colorbars = filter(x -> x isa Colorbar, contents(fig.layout))
+        colorbars = filter(x -> x isa Colorbar, fig.content)
         @test length(colorbars) == 1
         @test colorbars[1].label[] == "stuff"
 
         A2ab_unnamed = DimArray(A2ab.data, dims(A2ab))
         fig, ax, _ = M.plot(A2ab_unnamed)
-        colorbars = filter(x -> x isa Colorbar, contents(fig.layout))
+        colorbars = filter(x -> x isa Colorbar, fig.content)
         @test length(colorbars) == 1
         @test colorbars[1].label[] == ""
     end
