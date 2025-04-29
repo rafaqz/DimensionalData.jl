@@ -321,7 +321,7 @@ DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 - `name`: `Array` `Tuple` of `Symbol` names for each layer. By default
     the names of `DimArrays` are used, or `:layer1`, `:layer2`, etc.
 - `metadata`: `AbstractDict` or `NamedTuple` metadata for the stack. 
-- `layersfrom`: a dimension to slice layers from if data is a single
+- `layersfrom`: A dimension to slice layers from if data is a single
     `DimArray`. Defaults to `nothing`. 
 
 (These are for advanced uses)
