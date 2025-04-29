@@ -21,8 +21,26 @@ mixed = DimStack(da1, da2, da4)
     @test DimStack((one=A, two=2A, three=3A), dimz) ==
         DimStack(da1, da2, da3) ==
         DimStack((one=da1, two=da2, three=da3), dimz) ==
-        DimStack((one=da1, two=da2, three=da3)) == s
-    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == ()
+        DimStack((one=da1, two=da2, three=da3)) ==
+        DimStack([da1, da2, da3]; name=(:one, :two, :three)) ==
+        DimStack((da1, da2, da3); name=(:one, :two, :three)) ==
+        DimStack(da1, da2, da3; name=(:one, :two, :three)) ==
+        DimStack(parent.([da1, da2, da3]), dimz; name=(:one, :two, :three)) == s
+    @test DimStack((one=A[:, 1], two=2A[:, 1], three=3A[:, 1]), dimz[1]) ==
+        DimStack(da1[:, 1], da2[:, 1], da3[:, 1]) ==
+        DimStack((one=da1[:, 1], two=da2[:, 1], three=da3[:, 1]), dimz[1]) ==
+        DimStack((one=da1[:, 1], two=da2[:, 1], three=da3[:, 1])) ==
+        DimStack([da1[:, 1], da2[:, 1], da3[:, 1]]; name=(:one, :two, :three)) ==
+        DimStack((da1[:, 1], da2[:, 1], da3[:, 1]); name=(:one, :two, :three)) ==
+        DimStack(da1[:, 1], da2[:, 1], da3[:, 1]; name=(:one, :two, :three)) ==
+        DimStack(parent.([da1[:, 1], da2[:, 1], da3[:, 1]]), dimz[1]; name=(:one, :two, :three)) == s[:, 1]
+    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == 
+        dims(DimStack(())) == dims(DimStack(DimArray[])) ==
+        dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
+    @test DimStack([A, 2A, 3A], (Z(), Ti()); name=(:one, :two, :three), layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
+        DimStack((A, 2A, 3A), (Z(), Ti()); name=(:one, :two, :three), layerdims=(one=(Z(), Ti()), two=(Z(), Ti()), three=(Z(), Ti()))) ==
+        DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
+        DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=(two=(Z(), Ti()), one=(Z(), Ti()), three=(Z(), Ti())))
 end
 
 @testset "ConstructionBase" begin
