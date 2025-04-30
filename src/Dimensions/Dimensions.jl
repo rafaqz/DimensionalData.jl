@@ -24,7 +24,7 @@ const LU = Lookups
 const LookupArrays = Lookups
 
 import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
-    metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
+    metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection, hasmultipledimensions,
     shiftlocus, maybeshiftlocus, ordered_first, ordered_last, ordered_firstindex, ordered_lastindex, 
     promote_first, _remove
 using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
