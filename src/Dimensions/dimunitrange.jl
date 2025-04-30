@@ -2,13 +2,14 @@ struct DimUnitRange{T,R<:AbstractUnitRange{T},D<:Dimension} <: AbstractUnitRange
     range::R
     dim::D
 end
-
 DimUnitRange{T}(r::DimUnitRange{T}) where {T<:Integer} = r
-function DimUnitRange{T}(r::DimUnitRange) where {T<:Integer}
-    return DimUnitRange(AbstractUnitRange{T}(parent(r)), dims(r))
-end
+DimUnitRange{T}(r::DimUnitRange) where {T<:Integer} =
+    DimUnitRange(AbstractUnitRange{T}(parent(r)), dims(r))
 
-@inline Base.parent(r::DimUnitRange) = r.range
+@inline dims(r::DimUnitRange) = r.dim
+@inline dims(rs::Tuple{DimUnitRange,Vararg{DimUnitRange}}) = map(dims, rs)
+
+Base.parent(r::DimUnitRange) = r.range
 
 function Base.reduced_index(dur::DimUnitRange) 
     r = Base.reduced_index(parent(dur))
@@ -20,9 +21,6 @@ function Base.reduced_index(dur::DimUnitRange)
     end
     return DimUnitRange(r, d1)
 end
-
-@inline dims(r::DimUnitRange) = r.dim
-@inline dims(rs::Tuple{DimUnitRange,Vararg{DimUnitRange}}) = map(dims, rs)
 
 # this is necessary to ensure that keyword syntax for DimArray works correctly
 Base.Slice(r::DimUnitRange) = Base.Slice(parent(r))
