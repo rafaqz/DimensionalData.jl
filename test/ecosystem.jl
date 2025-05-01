@@ -82,8 +82,12 @@ end
 
 @testset "StatsBase" begin
     da = rand(X(1:10), Y(1:3))
-    @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
-    @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
+    w = weights([0.3, 0.3, 0.4])
+    @test mean(da, w; dims=Y) == mean(parent(da), w; dims=2)
+    @test sum(da, w; dims=Y) == sum(parent(da), w; dims=2)
+    w2 = weights(collect(1:10) * [0.3, 0.3, 0.4]')
+    @test mean(da, w2; dims=:) == mean(da, w2) == mean(parent(da), w2; dims=:)
+    @test sum(da, w2; dims=:) == sum(da, w2) == sum(parent(da), w2; dims=:)
 end
 
 @testset "DiskArrays" begin
