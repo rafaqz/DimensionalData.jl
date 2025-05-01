@@ -224,6 +224,11 @@ function Base.merge(
     merge(map(layers, (x1, x2, x3, xs...))...)
 end
 
+"""
+    maplayers(f, s::Union{AbstractDimStack,NamedTuple}...)
+
+Map function `f` over the layers of `s`.
+"""
 maplayers(f, s::AbstractDimStack) =
     _maybestack(s, unrolled_map(f, values(s)))
 function maplayers(

@@ -35,6 +35,7 @@ hasdim
 ```@docs
 AbstractDimStack
 DimStack
+maplayers
 ```
 
 ## DimTree 
