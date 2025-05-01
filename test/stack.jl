@@ -44,7 +44,7 @@ mixed = DimStack(da1, da2, da4)
 end
 
 @testset "layersfrom keyword" begin
-    keys(DimStack(da1; layersfrom=X)) == (:a, b)
+    keys(DimStack(da1; layersfrom=X)) == (:a, :b)
 end
 
 @testset "layersdims function" begin
