@@ -43,6 +43,15 @@ mixed = DimStack(da1, da2, da4)
         DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=(two=(Z(), Ti()), one=(Z(), Ti()), three=(Z(), Ti())))
 end
 
+@testset "layersfrom keyword" begin
+    keys(DimStack(da1; layersfrom=X)) == (:a, b)
+end
+
+@testset "layersdims function" begin
+    @test DimensionalData.layerdims(s) == (one = (X(), Y()), two = (X(), Y()), three = (X(), Y()))
+    @test DimensionalData.layerdims(mixed) == (one = (X(), Y()), two = (X(), Y()), extradim = (X(), Y(), Z()))
+end
+
 @testset "ConstructionBase" begin
     s1 = ConstructionBase.setproperties(s, (one=da1, two=da2, three=da1))
     @test s1.three == s.one
