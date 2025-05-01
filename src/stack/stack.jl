@@ -307,7 +307,8 @@ end
     DimStack <: AbstractDimStack
 
     DimStack(data::AbstractDimArray...; kw...)
-    DimStack(data::Union{AbstractArray,Tuple,NamedTuple}[, dims::DimTuple]; kw...)
+    DimStack(data::Union{AbstractArray,Tuple,NamedTuple}, [dims::DimTuple]; kw...)
+    DimStack(data::AbstractDimArray; layersfrom, kw...)
 
 DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 
@@ -318,8 +319,9 @@ DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 
 ## Keywords
 
-- `name`: `Array` `Tuple` of `Symbol` names for each layer. By default
-    the names of `DimArrays` are used, or `:layer1`, `:layer2`, etc.
+- `name`: `Array` or `Tuple` of `Symbol` names for each layer. By default
+    the names of `DimArrays` are or keys of a `NamedTuple` are used, 
+    or `:layer1`, `:layer2`, etc.
 - `metadata`: `AbstractDict` or `NamedTuple` metadata for the stack. 
 - `layersfrom`: A dimension to slice layers from if data is a single
     `DimArray`. Defaults to `nothing`. 
@@ -336,15 +338,14 @@ DimStack holds multiple objects sharing some dimensions, in a `NamedTuple`.
 
 - indexing with a `Symbol` as in `dimstack[:layername]` or using `getproperty` 
     `dimstack.layername` returns a `DimArray` layer.
-- `getindex` or `view` with `Int`, `Dimension`s or `Selector`s that resolve to `Int` will
-    return a `NamedTuple` of values from each layer in the stack.
+- A `DimStack` iterates `NamedTuple`s corresponding to the value of each layer. This means functions like `map`, `broadcast`, and `collect` behave as if the `DimStack` were a `DimArray{<:NamedTuple}`
 - `getindex` or `view` with a `Vector` or `Colon` will return another `DimStack` where
-    all data layers have been sliced.
+    all data layers have been sliced, unless this resolves to a single element, in which case 
+    `getindex` returns a `NamedTuple`
 - `setindex!` must pass a `Tuple` or `NamedTuple` matching the layers.
 - many base and `Statistics` methods (`sum`, `mean` etc) will work as for a `DimArray`,
     applied to all layers separately.
-- `map` and iteration apply as with getindex.
-- `maplayers` applies over array layers, as indexed with a `Symbol`.
+- to apply a function to each layer of a `DimStack`, use [`maplayers`](@ref).
 
 
 ```julia
