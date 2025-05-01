@@ -1,4 +1,4 @@
-struct CoordLookup{T,A<:AbstractVector{T},D,Me} <: Lookup{T,1}
+struct CoordLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
     data::A
     dims::D
     metadata::Me

@@ -165,7 +165,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             end
             # Add a Colorbar for heatmaps and contourf
             # TODO: why not surface too?
-            if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
+            if T <: Real && $(f1 in (:plot, :heatmap, :contourf))
                 Colorbar(p.figure[1, 2], p.plot;
                     label=DD.label(A), colorbarkw...
                 )
