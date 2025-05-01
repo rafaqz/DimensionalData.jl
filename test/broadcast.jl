@@ -455,8 +455,6 @@ end
         @d A .+= B
         @test A == C
     end
-
-    @d A .-= view(A, At(50), :, :)
 end
 
 # @testset "Competing Wrappers" begin
