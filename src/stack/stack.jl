@@ -434,7 +434,7 @@ function DimStack(@nospecialize(das::AbstractArray{<:AbstractDimArray});
     name=uniquekeys(das),
 )
     dims = DD.combinedims(das)
-    name_tuple = ntuple(i -> name[i], length(name))
+    name_tuple = Tuple(name)
     data = NamedTuple{name_tuple}(map(parent, das))
     layerdims = NamedTuple{name_tuple}(map(basedims, das))
     layermetadata = NamedTuple{name_tuple}(map(DD.metadata, das))
@@ -450,7 +450,7 @@ function DimStack(A::AbstractDimArray;
 )
     layers = if isnothing(layersfrom)
         name = if isnothing(name)
-            name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (name(A),)
+            DD.name(A) in (NoName(), Symbol(""), Name(Symbol(""))) ? (:layer1,) : (DD.name(A),)
         else
             name
         end
