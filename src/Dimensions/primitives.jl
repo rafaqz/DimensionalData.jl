@@ -179,7 +179,7 @@ julia> commondims(A, Ti)
 ```
 """
 function commondims end
-@inline commondims(a1, args...)::MaybeDimTuple = 
+@inline commondims(a1, args...) = 
     _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
@@ -673,6 +673,7 @@ promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims_gen(dts; kw...)
 
 # Hard to get this stable without @generated
 @generated function _promotedims_gen(dts::Tuple; kw...)
+    isempty(dts.parameters) && return Expr(:tuple)
     maxlen = maximum(Tuple(dts.parameters)) do p
         length(p.parameters)
     end
