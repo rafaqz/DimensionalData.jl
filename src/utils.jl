@@ -126,9 +126,11 @@ function broadcast_dims(f, As::AbstractBasicDimArray...)
     T = Base.Broadcast.combine_eltypes(f, As)
     broadcast_dims!(f, similar(first(As), T, dims), As...)
 end
-
-function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
-    st = _firststack(As...)
+function broadcast_dims(
+    f, A::Union{AbstractDimStack,AbstractBasicDimArray}, 
+    As::Union{AbstractDimStack,AbstractBasicDimArray}...
+)
+    st = _firststack(A, As...)::AbstractDimStack
     nts = _as_extended_nts(NamedTuple(st), As...)
     layers = map(keys(st)) do name
         broadcast_dims(f, map(nt -> nt[name], nts)...)

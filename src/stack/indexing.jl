@@ -154,12 +154,12 @@ end
 #### setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
     map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Integer; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Colon; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
-@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::AbstractArray; kw...) =
-    hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Integer) =
+    hassamedims(s) ? _map_setindex!(s, xs, i) : _setindex_mixed!(s, xs, i)
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::Colon) =
+    hassamedims(s) ? _map_setindex!(s, xs, i) : _setindex_mixed!(s, xs, i)
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::AbstractArray) =
+    hassamedims(s) ? _map_setindex!(s, xs, i) : _setindex_mixed!(s, xs, i)
 
 @propagate_inbounds function Base.setindex!(
     s::AbstractDimStack, xs::NamedTuple, I...; kw...
@@ -171,7 +171,7 @@ _map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), la
 
 _setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
-_setindex_mixed!(s::AbstractDimStack, i::Integer) =
+_setindex_mixed!(s::AbstractDimStack, x, i::Integer) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
 function _setindex_mixed!(s::AbstractDimStack, x, i::Colon)
     map(DimIndices(dims(s))) do D
@@ -196,7 +196,7 @@ function merge_and_index(f, s::AbstractDimStack, ds)
     end
     mdim = only(mergedims(dims(V),  dims(V)))
     newlayers = map(layers(V)) do l
-        l1 = all(hasdim(l, dims(V))) ? l : DimExtension(l, dims(V))
+        l1 = all(hasdim(l, dims(V))) ? l : DimExtensionArray(l, dims(V))
         view(l1, inds)
     end
     return rebuild_from_arrays(s, newlayers)

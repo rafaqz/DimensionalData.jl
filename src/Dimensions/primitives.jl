@@ -179,7 +179,8 @@ julia> commondims(A, Ti)
 ```
 """
 function commondims end
-@inline commondims(a1, args...) = _dim_query(_commondims, AlwaysTuple(), a1, args...)
+@inline commondims(a1, args...)::MaybeDimTuple = 
+    _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
 
@@ -656,7 +657,6 @@ that the lookup values come from the first argument.
     but the values from the first lookup with length larger than
     one will be used.
 """
-
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     vs = map(val, ds)
     v = promote_first(val(d1), vs...)

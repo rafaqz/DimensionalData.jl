@@ -254,7 +254,8 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::DimensionalIndices...; kw...) =
     setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
-@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) = setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
+@propagate_inbounds Base.setindex!(A::DimensionalData.AbstractDimArray, x, i1::_DimIndicesAmb, I::_DimIndicesAmb...; kw...) = 
+    setindex!(A, x, dims2indices(A, _simplify_dim_indices(i1, I..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 

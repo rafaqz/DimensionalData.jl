@@ -1,7 +1,7 @@
 
 abstract type AbstractDimArrayGenerator{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
-dims(dg::AbstractDimArrayGenerator) = dg.dims
+dims(dg::AbstractDimArrayGenerator)::Tuple{Vararg{Dimension}} = dg.dims
 
 Base.size(dg::AbstractDimArrayGenerator) = map(length, dims(dg))
 Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
@@ -16,7 +16,7 @@ Base.similar(A::AbstractDimArrayGenerator, ::Type{T}, D::Tuple{}) where T =
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
     rebuild(A; dims=(AnonDim(Base.OneTo(1)), dims(A)...))
 @inline function Base.permutedims(A::AbstractDimArrayGenerator, perm)
-    length(perm) == length(dims(A) || throw(ArgumentError("permutation must be same length as dims")))
+    length(perm) == length(dims(A)) || throw(ArgumentError("permutation must be same length as dims"))
     rebuild(A; dim=sortdims(dims(A), Tuple(perm)))
 end
 
@@ -110,7 +110,7 @@ function Base.getindex(di::DimIndices, i1::Integer, i2::Integer, I::Integer...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 function Base.getindex(di::DimIndices{<:Any,1}, i::Integer)
-    d = dims(di, 1)
+    d = dims(di, 1)::Dimension
     (rebuild(d, d[i]),)
 end
 
@@ -171,7 +171,7 @@ function Base.getindex(dp::DimPoints, i1::Integer, i2::Integer, I::Integer...)
     # Return the unwrapped point sorted by `order
     return map(val, DD.dims(pointdims, dp.order))
 end
-Base.getindex(di::DimPoints{<:Any,1}, i::Integer) = (dims(di, 1)[i],)
+Base.getindex(di::DimPoints{<:Any,1}, i::Integer) = ((dims(di, 1)::Dimension)[i],)
 
 _format(::Tuple{}) = ()
 function _format(dims::Tuple)
@@ -288,7 +288,7 @@ _atol(T::Type{<:AbstractFloat}, ::Nothing, ::Nothing) = eps(T)
     end
 end
 @propagate_inbounds function Base.getindex(di::DimSelectors{<:Any,1}, i::Integer)
-    d = dims(di, 1)
+    d = dims(di, 1)::Dimension
     (rebuild(d, rebuild(di.selectors[1]; val=d[i])),)
 end
 
@@ -335,7 +335,7 @@ end
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 @propagate_inbounds function Base.getindex(ds::DimSlices{<:Any,1}, i::Integer)
-    d = dims(ds, 1)
+    d = dims(ds, 1)::Dimension
     return view(ds._data, rebuild(d, d[i]))
 end
 

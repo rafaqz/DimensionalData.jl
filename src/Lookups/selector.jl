@@ -1056,7 +1056,7 @@ function selectindices end
 @inline selectindices(lookups::LookupTuple, s1, ss...; kw...) =
     selectindices(lookups, (s1, ss...); kw...)
 @inline selectindices(lookups::LookupTuple, selectors::Tuple; kw...) =
-    map((l, s) -> selectindices(l, s), lookups, selectors; kw...)
+    map((l, s) -> selectindices(l, s; kw...), lookups, selectors)
 @inline selectindices(lookups::LookupTuple, selectors::Tuple{}; kw...) = ()
 # @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.
