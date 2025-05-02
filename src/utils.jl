@@ -121,17 +121,17 @@ all passed in arrays in the order in which they are found.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function broadcast_dims(f, As::AbstractBasicDimArray...)
-    dims = combinedims(As...)
-    T = Base.Broadcast.combine_eltypes(f, As)
-    broadcast_dims!(f, similar(first(As), T, dims), As...)
+function broadcast_dims(f, A1::AbstractBasicDimArray, As::AbstractBasicDimArray...)
+    dims = combinedims(A1, As...)
+    T = Base.Broadcast.combine_eltypes(f, (A1, As...))
+    broadcast_dims!(f, similar(A1, T, dims), A1, As...)
 end
 function broadcast_dims(
-    f, A::Union{AbstractDimStack,AbstractBasicDimArray}, 
+    f, A1::Union{AbstractDimStack,AbstractBasicDimArray}, 
     As::Union{AbstractDimStack,AbstractBasicDimArray}...
 )
-    st = _firststack(A, As...)::AbstractDimStack
-    nts = _as_extended_nts(NamedTuple(st), As...)
+    st = _firststack(A1, As...)::AbstractDimStack
+    nts = _as_extended_nts(NamedTuple(st), A1, As...)
     layers = map(keys(st)) do name
         broadcast_dims(f, map(nt -> nt[name], nts)...)
     end

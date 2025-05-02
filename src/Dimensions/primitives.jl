@@ -183,6 +183,7 @@ function commondims end
     _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
+_commondims(f, ds) = ()
 
 """
     dimnum(x, query::Tuple) => NTuple{Int}
