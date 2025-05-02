@@ -81,11 +81,6 @@ for f in (:getindex, :view, :dotview)
             I = to_indices(CartesianIndices(s), Lookups._construct_types(i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
-        @propagate_inbounds function $_dim_f(
-            A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
-        )
-            return merge_and_index(Base.$f, A, (a1, args...))
-        end
                 throw(BoundsError(dims(s), I))
             elseif length(dims(s)) < length(I)
                 # Allow trailing ones
