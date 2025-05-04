@@ -303,22 +303,25 @@ Base.size(dims::DimTuple) = map(length, dims)
 Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
 # Extents.jl
+#=
 function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
     return Extents.Extent{name(extent_dims)}(extent_bounds)
 end
+=#
 
-function _experimental_extent(ds::DimTuple)
-    regulardims = dims(ds, x -> !(lookup(x) isa MultiDimensionalLookup))    
-    regular_bounds = bounds.(regulardims)
+function Extents.extent(ids::DimTuple, args...)
+    ds = _astuple(dims(ids, args...))
+    regulardims = dims(ds, x -> !hasmultipledimensions(lookup(x)))    
+    regular_bounds = map(bounds, regulardims)
     regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
     
     multidims = otherdims(ds, regulardims)
-    multidim_raw_bounds = bounds.(multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
+    multidim_raw_bounds = map(bounds, multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
     multidim_dims = combinedims(map(dims, multidims)...; length = false)
     multidim_bounds = map(multidim_dims) do outdim
-        foldl(zip(multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
+        foldl(map(tuple, multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
             if hasdim(dim, outdim)
                 if isnothing(minval) && isnothing(maxval)
                     bounds[dimnum(dim, outdim)]
@@ -332,7 +335,7 @@ function _experimental_extent(ds::DimTuple)
         end
     end
     multidim_bounds_nt = NamedTuple{map(name, multidim_dims)}(multidim_bounds)
-    return merge(regular_bounds_nt, multidim_bounds_nt)
+    return Extents.Extent(merge(regular_bounds_nt, multidim_bounds_nt))
 end
 
 dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
