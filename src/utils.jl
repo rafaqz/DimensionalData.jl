@@ -192,7 +192,7 @@ end
 function uniquekeys(das::Vector{<:AbstractDimArray})
     length(das) == 0 ? Symbol[] : uniquekeys(map(Symbol ∘ name, das))
 end
-function uniquekeys(keys::Vector{Symbol})
+function uniquekeys(keys::AbstractVector{Symbol})
     map(enumerate(keys)) do (id, k)
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
@@ -208,6 +208,7 @@ function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
     end
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
+uniquekeys(a::AbstractVector) = map(i -> Symbol(:layer, i), eachindex(a))
 uniquekeys(nt::NamedTuple) = keys(nt)
 
 _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 

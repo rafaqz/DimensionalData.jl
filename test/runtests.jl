@@ -1,5 +1,9 @@
 using DimensionalData, Test, Aqua, SafeTestsets
 
+# Dirty hack to ensure that PythonCall.jl doesn't attempt to load an
+# incompatible version of OpenSSL: load OpenSSL first.
+import OpenSSL
+
 @time @testset "Aqua" begin
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)
@@ -21,6 +25,7 @@ end
 @time @safetestset "format" begin include("format.jl") end
 @time @safetestset "array" begin include("array.jl") end
 @time @safetestset "stack" begin include("stack.jl") end
+@time @safetestset "tree" begin include("tree.jl") end
 @time @safetestset "indexing" begin include("indexing.jl") end
 @time @safetestset "methods" begin include("methods.jl") end
 @time @safetestset "broadcast" begin include("broadcast.jl") end
@@ -35,6 +40,7 @@ end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "categorical" begin include("categorical.jl") end
 @time @safetestset "xarray" begin include("xarray.jl") end
+
 if Sys.islinux()
     # Unfortunately this can hang on other platforms.
     # Maybe ram use of all the plots on the small CI machine? idk

@@ -744,11 +744,30 @@ end
         @test (1:10)[1:End] == 1:10
         @test (1:10)[Begin():End()] == 1:10
         @test (1:10)[Begin+1:End-1] == 2:9
+        @test (1:10)[1+Begin:End-1] == 2:9
         @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[1+Begin():End()-1] == 2:9
         @test (1:10)[Begin:End÷2] == 1:5
+        @test (1:10)[2:2:End] == 2:2:10
+        @test (1:10)[2:2:End-1] == 2:2:8
         @test (1:10)[Begin|3:End] == 3:10
         @test (1:10)[Begin:End&3] == 1:2
         @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[max(Begin()+1, 3):End()-1] == 3:9
+        @test (1:10)[1+Begin] == 2
+        @test (1:10)[1+Begin()] == 2
+        @test (1:10)[End-1] == 9
+        @test (1:10)[1+(End÷2)] == 6
+        @test (1:10)[div(End,2)+1] == 6
+        @test (1:10)[1+(Begin+2)] == 4
+        @test (1:10)[max(Begin, -1)] == 1
+        @test (1:10)[max(Begin, 3)] == 3
+        @test (1:10)[min(End, 12)] == 10
+        @test (1:10)[min(End, 3)] == 3
+        @test (1:10)[max(-1, Begin)] == 1
+        @test (1:10)[max(3, Begin)] == 3
+        @test (1:10)[min(12,End)] == 10
+        @test (1:10)[min(3, End)] == 3
     end
     @testset "dimension indexing" begin
         A = DimArray((1:5)*(6:3:20)', (X, Y))
@@ -759,5 +778,33 @@ end
         @test A[Begin:Begin+1, End] == [18, 36]
         @test A[Begin():Begin()+1, End()] == [18, 36]
         @test A[X=Begin:Begin+1, Y=End] == [18, 36]
+    end
+    @testset "BeginEndRange" begin
+        a = Begin:End
+        @test first(a) == Begin()
+        @test last(a) == End()
+        b = Begin:5
+        @test first(b) == Begin()
+        @test last(b) == 5
+        d = Begin()+2:End()
+        @test first(d) == Begin+2
+        @test Base.checkindex(Bool, 1:10, Begin-1:End) == false
+    end
+    @testset "BeginEndStepRange" begin
+        a = Begin:2:End
+        a = Begin():2:End()
+        @test first(a) == Begin()
+        @test last(a) == End()
+        b = Begin:3:15
+        @test first(b) == Begin()
+        @test last(b) == 15
+        c = Begin:2:Begin+6
+        @test step(c) == 2
+        @test last(c) == Begin+6
+        d = Begin()+2:-1:max(End(), 100) - 1
+        @test first(d) == Begin+2
+        @test last(d) == max(End(), 100) - 1
+        @test step(d) == -1
+        @test Base.checkindex(Bool, 1:10, Begin:2:8)
     end
 end

@@ -269,6 +269,7 @@ end
 # This lets us get `dims` from all of them and use it to reshape 
 # and permute them so they all match.
 function _find_broadcast_vars(expr::Expr)
+    # Integrate with dot macro
     if expr.head == :macrocall && expr.args[1] == Symbol("@__dot__")
         return _find_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
     end
@@ -277,7 +278,7 @@ function _find_broadcast_vars(expr::Expr)
 
     # Dot broadcast syntax `f.(x)`
     if expr.head == :. && !(expr.args[2] isa QuoteNode) # function dot broadcast
-        wrapped_args = map(expr.args[2].args) do arg
+        mdb_args = map(expr.args[2].args) do arg
             if arg isa Expr && arg.head == :parameters
                 arg
             else
@@ -293,14 +294,14 @@ function _find_broadcast_vars(expr::Expr)
                 Expr(:call, mdb, out, :dims, :options)
             end
         end
-        expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, wrapped_args...))
+        expr2 = Expr(expr.head, esc(expr.args[1]), Expr(:tuple, mdb_args...))
         return expr2, arg_list
     # Dot assignment broadcast syntax `x .= ...`
-    elseif expr.head == :.= 
+    elseif !isnothing(match(r"\..*=", string(expr.head)))
         # Destination array
         dest_var = Symbol(gensym(), :_d)
         push!(arg_list, dest_var => expr.args[1])
-        dest_expr = Expr(:call, mdb, esc(dest_var), :dims, :options)
+        mdb_dest_expr = Expr(:call, mdb, esc(dest_var), :dims, :options)
         # Source expression
         expr2, arg_list2 = _find_broadcast_vars(expr.args[2])
         source_expr = if isempty(arg_list2)
@@ -311,10 +312,11 @@ function _find_broadcast_vars(expr::Expr)
             append!(arg_list, arg_list2)
             expr2
         end
-        return Expr(expr.head, dest_expr, source_expr), arg_list
+        mbd_source_expr = Expr(:call, mdb, source_expr, :dims, :options)
+        return Expr(expr.head, mdb_dest_expr, mbd_source_expr), arg_list
     # Infix broadcast syntax `x .* y`
     elseif expr.head == :call && string(expr.args[1])[1] == '.'
-        wrapped_args = map(expr.args[2:end]) do arg
+        mdb_args = map(expr.args[2:end]) do arg
             var = Symbol(gensym(), :_d)
             expr1, arg_list1 = _find_broadcast_vars(arg)
             out = if isempty(arg_list1)
@@ -326,7 +328,7 @@ function _find_broadcast_vars(expr::Expr)
             end
             Expr(:call, mdb, out, :dims, :options)
         end
-        expr2 = Expr(expr.head, expr.args[1], wrapped_args...)
+        expr2 = Expr(expr.head, expr.args[1], mdb_args...)
         return expr2, arg_list
     else # Not part of the broadcast, just return it
         expr2 = esc(expr)

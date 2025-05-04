@@ -445,6 +445,16 @@ end
         @d max.(1)
     end
 
+    @testset "dot infix assignment" begin
+        x, y, t = X(1:100), Y(1:25), Ti(DateTime(2000):Month(1):DateTime(2000, 12))
+        A = rand(x, y, t)
+        B = A[At(50), :, :]
+        C = copy(A)
+        @d A .-= B
+        @test A == @d C .- B
+        @d A .+= B
+        @test A == C
+    end
 end
 
 # @testset "Competing Wrappers" begin
