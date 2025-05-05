@@ -181,23 +181,6 @@ function _merge_and_index(f, A, inds)
     end
 end
 
-# This AbstractArray is for indexing, presenting as Array{CartesianIndex}
-# `CartesianIndex` are generated on the fly from `dimtuples`,
-# which is e.g. a view into DimIndices
-struct LazyDims2Cartesian{T,N,D,A<:AbstractArray{<:Any,N}} <: AbstractArray{T,N}
-    dimtuples::A
-    dims::D
-end
-function LazyDims2Cartesian(dimtuples::A, dims::D) where {A<:AbstractArray{<:DimTuple,N},D<:DimTuple} where N
-    LazyDims2Cartesian{CartesianIndex{length(dims)},N,D,A}(dimtuples, dims)
-end
-
-dims(A::LazyDims2Cartesian) = A.dims
-
-Base.size(A::LazyDims2Cartesian) = size(A.dimtuples)
-Base.getindex(A::LazyDims2Cartesian, I::Integer...) =
-    CartesianIndex(dims2indices(DD.dims(A), A.dimtuples[I...]))
-
 struct LazyDims2Linear{N,D,A<:AbstractArray{<:Any,N}} <: AbstractArray{Int,N}
     dimtuples::A
     dims::D
