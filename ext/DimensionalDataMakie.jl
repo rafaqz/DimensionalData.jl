@@ -178,25 +178,21 @@ for p1 in PlotTypes_2D
     @eval begin
         @doc $docstring
         function Makie.$f1(fig, A::MayObs{AbstractDimMatrix}; 
-            x=nothing, y=nothing, colorbarkw=(;), axis = (;), plot_attributes...
+            x=nothing, y=nothing, colorbar=(;), axis = (;), plot_attributes...
         )
         
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, to_value(A); x = x, y = y)
             axis_att = axis_attributes($p1, A; x = x, y = y)
             axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), [:type], !)
-            ax = ax_type(fig; axis_att_for_function...)
+            ax = ax_type(fig[1,1]; axis_att_for_function...)
             p = $f1!(ax, A; plot_attributes..., x = x, y = y)
             add_labels_to_lscene(ax, axis_att)
 
-            # ax 
-            # Add a Colorbar for heatmaps and contourf
-            # TODO: why not surface too?
-            # if T isa Real && $(f1 in (:plot, :heatmap, :contourf)) 
-            #     Colorbar(p.figure[1, 2], p.plot;
-            #         label=DD.label(A), colorbarkw...
-            #     )
-            # end
-            # p
+            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy))
+                Colorbar(fig[1, 2], p;
+                    label=obs_f(DD.label, A), colorbar...
+                )
+            end
             return Makie.AxisPlot(ax, p)
         end
     end
@@ -208,7 +204,7 @@ for p1 in PlotTypes_3D
     docstring = """
         $f1(A::AbstractDimMatrix; attributes...)
         
-    Plot a 2-dimensional `AbstractDimArray` with `Makie.$f1`.
+    Plot a 3-dimensional `AbstractDimArray` with `Makie.$f1`.
 
     $(_keyword_heading_doc(f1))
     $(_xy(f1))
@@ -217,15 +213,21 @@ for p1 in PlotTypes_3D
     @eval begin
         @doc $docstring
         function Makie.$f1(fig, A::MayObs{AbstractDimArray{<:Any,3}}; 
-            x=nothing, y=nothing, z =nothing, colorbarkw=(;), axis = (;), plot_attributes...
+            x=nothing, y=nothing, z =nothing, colorbar=(;), axis = (;), plot_attributes...
         )
         
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A; x = x, y = y, z = z)
             axis_att = axis_attributes($p1, A; x = x, y = y, z = z)
             axis_att_for_function = merge(filter_keywords_axis!(ax_type, axis_att), axis)
             
-            ax = ax_type(fig; axis_att_for_function...)
+            ax = ax_type(fig[1,1]; axis_att_for_function...)
             p = $f1!(ax, A; plot_attributes..., x = x, y = y, z = z)
+
+            if colorbar != false
+                Colorbar(fig[1, 2], p;
+                    label=obs_f(DD.label, A), colorbar...
+                )
+            end
             add_labels_to_lscene(ax, axis_att)
             return Makie.AxisPlot(ax, p)
         end
@@ -293,9 +295,9 @@ for DD in (AbstractDimVector, AbstractDimMatrix, AbstractDimArray{<:Any,3}, DimP
     f = Makie.plotkey(p)
     f! = Symbol(f, '!')
     eval(quote
-        Makie.plot(dd::$DD; kwargs...) = Makie.$f(dd, kwargs...)
-        Makie.plot(fig, dd::$DD; kwargs...) = Makie.$f(fig, dd, kwargs...)
-        Makie.plot!(ax, dd::$DD; kwargs...) = Makie.$f!(ax, dd, kwargs...)
+        Makie.plot(dd::$DD; kwargs...) = Makie.$f(dd; kwargs...)
+        Makie.plot(fig, dd::$DD; kwargs...) = Makie.$f(fig, dd; kwargs...)
+        Makie.plot!(ax, dd::$DD; kwargs...) = Makie.$f!(ax, dd; kwargs...)
     end)
 end
 
@@ -441,13 +443,13 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
     d = obs_f(lookup, l)
     if d isa MayObs{AbstractCategorical}
         dim_attr = if axis == 1
-            (; xticks= obs_f(i -> (unique(UInt8.(parent(i))), 
+            (; xticks= obs_f(i -> (unique(get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         elseif axis == 2
-            (; yticks= obs_f(i -> (unique(UInt8.(parent(i))), 
+            (; yticks= obs_f(i -> (unique(get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         else
-            (; zticks= obs_f(i -> unique((UInt8.(parent(i))), 
+            (; zticks= obs_f(i -> unique((get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         end
         dim_attr
@@ -458,6 +460,8 @@ end
 
 get_number_version(x::AbstractVector) = x # Need to be generic to accept Quantities from Unitful
 get_number_version(x::AbstractVector{<:AbstractChar}) = Int.(x)
+get_number_version(x::AbstractVector{<:AbstractString}) = sum.(Int, x) # Sum all chars
+get_number_version(x::AbstractVector{<:Symbol}) = get_number_version(string.(x))
 get_number_version(x::IntervalSets.ClosedInterval{<:AbstractChar}) = IntervalSets.ClosedInterval((Int.(endpoints(x)) .+ (-.5, .5))...) # Needs to add half the step this do give the interval like heatmap
 get_number_version(x::IntervalSets.ClosedInterval) = x
 

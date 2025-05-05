@@ -44,3 +44,4 @@ end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "categorical" begin include("categorical.jl") end
 @time @safetestset "xarray" begin include("xarray.jl") end
+@time @safetestset "makie" begin include("makie.jl") end
