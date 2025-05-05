@@ -658,6 +658,7 @@ that the lookup values come from the first argument.
     but the values from the first lookup with length larger than
     one will be used.
 """
+# Not actually documented, maybe too internal
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     vs = map(val, ds)
     v = promote_first(val(d1), vs...)
