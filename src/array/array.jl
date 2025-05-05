@@ -125,7 +125,8 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
 end
 
 # undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{<:Any}} = A(x, dims; kw...)
+(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{T}} where T = 
+    A(x, dims; kw...)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
 end
@@ -476,15 +477,33 @@ function DimArray(A::AbstractBasicDimArray;
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
 # Write a single column from a table with one or more coordinate columns to a DimArray
-function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, missingval=missing, kw...)
+function DimArray(table, dims;  kw...)
     # Confirm that the Tables interface is implemented
     Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
-
-    # Get array dimensions
-    dims = guess_dims(table, dims, precision=precision)
-
+    _dimarray_from_table(table, guess_dims(table, dims); kw...)
+end
+function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple; 
+    refdims=(), name=NoName(), metadata=NoMetadata(), kw...
+) where K
+    if all(map(d -> Dimensions.name(d) in K, dims))
+        table = Tables.columns(data)
+        return _dimarray_from_table(table, guess_dims(table, dims; kw...); 
+            refdims, name, metadata, kw...)
+    else
+        return DimArray(data, format(dims, data), refdims, name, metadata)
+    end
+end
+# Same as above, but guess dimension names
+function DimArray(table; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    # Use default dimension 
+    return _dimarray_from_table(table, guess_dims(table; kw...); kw...)
+end
+function _dimarray_from_table(table, dims; name=NoName(), selector=nothing, precision=6, missingval=missing, kw...)
     # Determine row indices based on coordinate values
-    indices = coords_to_indices(table, dims; selector=selector)
+    indices = coords_to_indices(table, dims; selector, atol=10.0^-precision)
 
     # Extract the data column correspondong to `name`
     col = name == NoName() ? data_col_names(table, dims) |> first : Symbol(name)
@@ -496,14 +515,7 @@ function DimArray(table, dims; name=NoName(), selector=Near(), precision=6, miss
     # Return DimArray
     return DimArray(array, dims, name=col; kw...)
 end
-# Same as above, but guess dimension names
-function DimArray(table; kw...)
-    # Confirm that the Tables interface is implemented
-    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
 
-    # Use default dimension 
-    return DimArray(table, guess_dims(table; kw...); kw...)
-end
 """
     DimArray(f::Function, dim::Dimension; [name])
 

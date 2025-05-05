@@ -31,6 +31,8 @@ const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
 (::Type{T})(st::AbstractDimStack) where T<:AbstractDimArray =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
+# for ambiguity
+DimArray(st::AbstractDimStack) = T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
@@ -452,17 +454,27 @@ function DimStack(data::NamedTuple, dims::Tuple;
     layermetadata=map(_ -> NoMetadata(), data),
     layerdims = map(_ -> basedims(dims), data),
 )
+    # Treat as a table if the dims correspond to data columns.
+    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
+        return _dimstack_from_table(data, dims; refdims, metadata)
     all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
     DimStack(data, format(dims, first(data)), refdims, layerdims, metadata, layermetadata)
 end
 DimStack(st::AbstractDimStack) = 
     DimStack(data(st), dims(st), refdims(st), layerdims(st), metadata(st), layermetadata(st))
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
-function DimStack(table, dims::Tuple; selector=DimensionalData.Contains(), kw...)
+DimStack(table, dims::Tuple; kw...) = _dimstack_from_table(table, dims; kw...)
+DimStack(table; kw...) = _dimstack_from_table(table, guess_dims(table); kw...)
+
+function _dimstack_from_table(table, dims; selector=nothing, precision=6, missingval = missing, kw...)
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
     data_cols = _data_cols(table, dims)
+    dims = guess_dims(table, dims, precision=precision)
     indices = coords_to_indices(table, dims; selector=selector)
-    arrays = [restore_array(d, indices, dims; missingval=missing) for d in values(data_cols)]
-    return DimStack(NamedTuple{keys(data_cols)}(arrays), dims; kw...)
+    layers = map(data_cols) do d
+        restore_array(d, indices, dims, missingval)
+    end
+    return DimStack(layers, dims; kw...)
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
