@@ -222,7 +222,7 @@ get_numerical_data(x::AbstractArray{<:Unitful.Quantity}) = ustrip.(x)
 get_numerical_data(x::AbstractVector{<:AbstractString}) = sum.(Int, x) # Sum all chars
 get_numerical_data(x::AbstractVector{<:Symbol}) = get_numerical_data(string.(x))
 
-@testset begin 
+@testset "1D plots" begin 
     x = 1:5
     y = x.^2
     dd_vec = DimArray(y, Ti(x), name=:test)
@@ -331,7 +331,7 @@ get_numerical_data(x::AbstractVector{<:Symbol}) = get_numerical_data(string.(x))
     @test to_value(ax.ylabel) == string(name[])
 end
 
-@testset begin
+@testset "2D plots" begin
 
     x = 1:5
     y = 10:20
@@ -395,7 +395,7 @@ end
     @test length(plt[1][]) == length(y)+1 && length(plt[2][]) == length(x) + 1 # check that the permutation is correct without x and y inputs
 end
 
-@testset begin
+@testset "3D plots" begin
 
     dd_3d = DimArray(rand(5, 5, 5), (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d_char = DimArray(rand(5, 5, 5), (X('A':'E'), Y(1:5), Z(1:5)), name=:test)

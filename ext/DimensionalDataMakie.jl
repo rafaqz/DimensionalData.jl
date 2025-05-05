@@ -286,18 +286,18 @@ end
 
 # Definition of plot functions 
 Makie.plottype(::D) where D<:Union{<:AbstractDimArray, <:DimPoints} = _plottype(D)
-_plottype(::Type{AbstractDimVector}) = Makie.Scatter
-_plottype(::Type{AbstractDimMatrix}) = Makie.Heatmap
-_plottype(::Type{AbstractDimArray{<:Any,3}}) = Makie.Volume
-_plottype(::Type{DimPoints}) = Makie.Scatter
+_plottype(::Type{<:MayObs{AbstractDimVector}}) = Makie.Scatter
+_plottype(::Type{<:MayObs{AbstractDimMatrix}}) = Makie.Heatmap
+_plottype(::Type{<:MayObs{AbstractDimArray{<:Any,3}}}) = Makie.Volume
+_plottype(::Type{<:MayObs{DimPoints}}) = Makie.Scatter
 for DD in (AbstractDimVector, AbstractDimMatrix, AbstractDimArray{<:Any,3}, DimPoints)
     p = _plottype(DD)
     f = Makie.plotkey(p)
     f! = Symbol(f, '!')
     eval(quote
-        Makie.plot(dd::$DD; kwargs...) = Makie.$f(dd; kwargs...)
-        Makie.plot(fig, dd::$DD; kwargs...) = Makie.$f(fig, dd; kwargs...)
-        Makie.plot!(ax, dd::$DD; kwargs...) = Makie.$f!(ax, dd; kwargs...)
+        Makie.plot(dd::MayObs{$DD}; kwargs...) = Makie.$f(dd; kwargs...)
+        Makie.plot(fig, dd::MayObs{$DD}; kwargs...) = Makie.$f(fig, dd; kwargs...)
+        Makie.plot!(ax, dd::MayObs{$DD}; kwargs...) = Makie.$f!(ax, dd; kwargs...)
     end)
 end
 
