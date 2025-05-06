@@ -13,7 +13,11 @@ function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}
     # Printing the array data is optional, subtypes can
     # show other things here instead.
     ds = displaysize(io)
-    ctx = IOContext(io, :blockwidth => blockwidth, :displaysize => (ds[1] - lines, ds[2]), isblocktop => istop)
+    ctx = IOContext(io, 
+        :blockwidth => blockwidth, 
+        :displaysize => (ds[1] - lines, ds[2]), 
+        :isblocktop => istop
+    )
     show_after(ctx, mime, A)
     return nothing
 end
@@ -42,8 +46,13 @@ But read the DimensionalData.jl `show.jl` code for details.
 """
 function show_main(io, mime, A::AbstractBasicDimArray;
     blockwidth=0,
+    displaywidth=displaysize(io)[2],
 )
-    lines_t, blockwidth, displaywidth, separatorwidth, istop = print_top(io, mime, A; blockwidth)
+    iobuf = IOBuffer()
+    _, blockwidth, _ = print_metadata_block(iobuf, mime, metadata(A); 
+        blockwidth, displaywidth,
+    )
+    lines_t, blockwidth, displaywidth, separatorwidth, istop = print_top(io, mime, A; blockwidth, displaywidth)
     lines_m, blockwidth, stilltop = print_metadata_block(io, mime, metadata(A); 
         blockwidth, displaywidth, separatorwidth, istop
     )
@@ -136,20 +145,20 @@ function print_dims_block(io, mime, dims;
     lines = 0
     if isempty(dims)
         printed = false
-        new_blockwidth = blockwidth
         new_separatorwidth = separatorwidth
+        new_blockwidth = max(blockwidth, separatorwidth)
     else
         ctx = IOContext(io, :compact => true, :dim_brackets => false)
         printed=false
         dim_width = maximum(textwidth, split(sprint(print_dims, mime, dims), '\n'))
         new_blockwidth = max(blockwidth, min(displaywidth - 2, dim_width))
-        print_block_separator(ctx, label, separatorwidth, new_blockwidth; istop)
+        new_separatorwidth = print_block_separator(ctx, label, separatorwidth, new_blockwidth; istop)
         println(io)
         lines += print_dims(ctx, mime, dims; kw...)
         println(io)
         lines += 3
         printed = true
-        new_separatorwidth = new_blockwidth
+        new_separatorwidth = new_blockwidth = max(new_blockwidth, new_separatorwidth)
     end
     return lines, new_blockwidth, new_separatorwidth, !printed
 end
