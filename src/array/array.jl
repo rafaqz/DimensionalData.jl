@@ -8,7 +8,7 @@ returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
-abstract type AbstractBasicDimArray{T,N,D<:Tuple} <: AbstractArray{T,N} end
+abstract type AbstractBasicDimArray{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractArray{T,N} end
 
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T

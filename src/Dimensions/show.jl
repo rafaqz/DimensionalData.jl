@@ -133,6 +133,7 @@ function print_refdims(io::IO, mime, refdims::Tuple)
     return lines
 end
 # print a dimension name
+
 print_dimname(io, dim::Dimension) = printstyled(io, name(dim); color=dimcolor(io))
 
 # print the dimension value

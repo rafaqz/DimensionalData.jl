@@ -140,6 +140,7 @@ Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{Dimension,Vararg{Dimension}}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{DimType,Vararg{DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
