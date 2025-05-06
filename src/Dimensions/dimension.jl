@@ -140,6 +140,7 @@ Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{Dimension,Vararg{Dimension}}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{DimType,Vararg{DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
@@ -308,6 +309,32 @@ function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
     return Extents.Extent{name(extent_dims)}(extent_bounds)
+end
+
+function _experimental_extent(ds::DimTuple)
+    regulardims = dims(ds, x -> !(lookup(x) isa MultiDimensionalLookup))    
+    regular_bounds = bounds.(regulardims)
+    regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
+    
+    multidims = otherdims(ds, regulardims)
+    multidim_raw_bounds = bounds.(multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
+    multidim_dims = combinedims(map(dims, multidims)...; length = false)
+    multidim_bounds = map(multidim_dims) do outdim
+        foldl(zip(multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
+            if hasdim(dim, outdim)
+                if isnothing(minval) && isnothing(maxval)
+                    bounds[dimnum(dim, outdim)]
+                else
+                    this_dim_bounds = bounds[dimnum(dim, outdim)]
+                    (min(minval, this_dim_bounds[1]), max(maxval, this_dim_bounds[2]))
+                end
+            else
+                (minval, maxval)
+            end
+        end
+    end
+    multidim_bounds_nt = NamedTuple{map(name, multidim_dims)}(multidim_bounds)
+    return merge(regular_bounds_nt, multidim_bounds_nt)
 end
 
 dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))

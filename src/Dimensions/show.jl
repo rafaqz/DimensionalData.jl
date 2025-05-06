@@ -108,8 +108,8 @@ function print_refdims(io::IO, mime, refdims::Tuple)
 end
 # print a dimension name
 function print_dimname(io, dim::Dimension)
-    dimname_len = get(io, :dimname_len, 0)
-    printstyled(io, rpad(name(dim), dimname_len); color=dimcolor(io))
+    dimname_len = get(io, :dimname_len, 0)::Int
+    printstyled(io, rpad(String(name(dim)), dimname_len); color=dimcolor(io))
 end
 
 

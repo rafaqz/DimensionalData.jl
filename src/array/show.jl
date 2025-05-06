@@ -77,6 +77,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
     blockwidth = get(io, :blockwidth, 0)
     print_block_close(io, blockwidth)
     ndims(A) > 0 && println(io)
+    any(==(0), size(A)) && return
     print_array(io, mime, A)
 end
 

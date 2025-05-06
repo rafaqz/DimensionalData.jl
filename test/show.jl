@@ -97,6 +97,38 @@ end
     sv = sprint(show, MIME("text/plain"), nds)
     @test sv == "(↓ X, → Y)"
 end
+@testset "BeginEnd" begin
+    lplus = Begin+6
+    slp = sprint(show, MIME("text/plain"), lplus)
+    @test slp == "(Begin+6)"
+    lplusr = 6+Begin
+    slpr = sprint(show, MIME("text/plain"), lplusr)
+    @test slpr == "(6+Begin)"
+    ldiv = div(End,2)
+    sld = sprint(show, MIME("text/plain"), ldiv)
+    @test sld == "(End÷2)"
+    ldivnest = (End÷2) +1
+    sldn = sprint(show, MIME("text/plain"), ldivnest)
+    @test sldn == "((End÷2)+1)"
+    berange = Begin:(End-1)
+    sber = sprint(show, MIME("text/plain"), berange)
+    @test sber == "Begin:(End-1)"
+    bserange = Begin:3:End
+    sbser = sprint(show, MIME("text/plain"), bserange)
+    @test sbser == "Begin:3:End"
+    lmax = max(3,Begin)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(3, Begin)"
+    lmax = max(Begin,3)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(Begin, 3)"
+    lmin = min(3,Begin)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(3, Begin)"
+    lmin = min(Begin,3)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(Begin, 3)"
+end
 
 @testset "arrays" begin
     d, str = Lat(), "Lat"
@@ -158,6 +190,11 @@ end
     sv = sprint(show, MIME("text/plain"), D)
     @test occursin('a', sv) && occursin('b', sv)
     @test occursin("(1, 1)", sv) && occursin("(1, 2)", sv)
+
+    # Test trailing zero dimension
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(1), Z(0)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(0), Z(1)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(0), Y(0), Z(0)))
 end
 
 @testset "stack" begin
