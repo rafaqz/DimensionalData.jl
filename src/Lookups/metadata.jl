@@ -53,7 +53,7 @@ function (::Type{M})(ps...; kw...) where M <: Metadata
     length(kw) > 0 ? M((; kw...)) : M(Dict(ps...))
 end
 
-ConstructionBase.constructorof(::Type{<:Metadata{X}}) where {X} = Metadata{X}
+ConstructionBase.constructorof(::Type{<:Metadata{X}}) where X = Metadata{X}
 
 val(m::Metadata) = m.val
 

@@ -227,9 +227,10 @@ function _process_d_macro_options(options::Expr)
 end
 
 # Handle existing variable names
-_find_broadcast_vars(sym::Symbol) = esc(sym), Pair{Symbol,Any}[]
+_find_broadcast_vars(sym::Symbol)::Tuple{Expr,Vector{Pair{Symbol,Any}}} = 
+    esc(sym), Pair{Symbol,Any}[]
 # Handle e.g. 1 in the expression
-function _find_broadcast_vars(x)
+function _find_broadcast_vars(x)::Tuple{Expr,Vector{Pair{Symbol,Any}}}
     var = Symbol(gensym(), :_d)
     esc(var), Pair{Symbol,Any}[var => x]
 end
@@ -237,7 +238,7 @@ end
 # pulling them out of the main broadcast into separate variables. 
 # This lets us get `dims` from all of them and use it to reshape 
 # and permute them so they all match.
-function _find_broadcast_vars(expr::Expr)
+function _find_broadcast_vars(expr::Expr)::Tuple{Expr,Vector{Pair{Symbol,Any}}}
     # Integrate with dot macro
     if expr.head == :macrocall && expr.args[1] == Symbol("@__dot__")
         return _find_broadcast_vars(Base.Broadcast.__dot__(expr.args[3]))
@@ -343,7 +344,7 @@ rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...)
 @inline function rebuild(
     A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A),
 )
-    rebuild(A; data, dims, refdims, name, metadata, _rebuild_keywords(A)...)
+    rebuild(A; data, dims, refdims, name, metadata, _rebuild_kw(A)...)
 end
 
 # Get the options NamedTuple from BroadcastOptionsDimArray

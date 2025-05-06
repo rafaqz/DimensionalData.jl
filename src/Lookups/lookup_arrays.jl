@@ -608,7 +608,7 @@ dim(lookup::Transformed) = lookup.dim
 
 transformfunc(lookup::Transformed) = lookup.f
 
-Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
+Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && l1.f == l2.f
 
 # TODO Transformed bounds
 struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
