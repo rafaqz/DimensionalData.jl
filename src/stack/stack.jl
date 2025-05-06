@@ -490,7 +490,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
-DimStack(data::Union{Tuple,AbstractArray}, dims::Tuple; name=uniquekeys(data), kw...) = 
+DimStack(data::Union{Tuple,AbstractArray{<:AbstractArray}}, dims::Tuple; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), dims; kw...)
 function DimStack(data::NamedTuple{K}, dims::Tuple;
     refdims=(), 
@@ -498,6 +498,8 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
+    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
+        return _dimstack_from_table(data, dims; refdims, metadata)
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -521,9 +523,8 @@ function DimStack(st::AbstractDimStack;
     metadata=metadata(st),
     layermetadata=layermetadata(st),
 )
+    DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
-DimStack(st::AbstractDimStack) = 
-    DimStack(data(st), dims(st), refdims(st), layerdims(st), metadata(st), layermetadata(st))
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
 DimStack(table, dims::Tuple; kw...) = _dimstack_from_table(table, dims; kw...)
 DimStack(table; kw...) = _dimstack_from_table(table, guess_dims(table); kw...)
