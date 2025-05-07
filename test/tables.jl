@@ -162,7 +162,7 @@ end
     ds = DimStack((a=a, b=b, c=c))
     t = DataFrame(ds)
     t1 = Random.shuffle(t)
-    t2 = t[101:end,:]
+    t2 = filter(r -> r.Y != -250, t)
     t3 = copy(t1)
     t3.X .+= rand(nrow(t1)) .* 1e-7 # add some random noise to check if precision works
 
