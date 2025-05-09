@@ -4,6 +4,7 @@ struct CoordLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
     metadata::Me
 end
 CoordLookup(data, dims; metadata=NoMetadata()) = CoordLookup(data, dims, metadata)
+hasmultipledimensions(::CoordLookup) = true
 
 dims(m::CoordLookup) = m.dims
 order(m::CoordLookup) = Unordered()

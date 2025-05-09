@@ -29,6 +29,7 @@ isintervals(::Intervals) = true
 isintervals(::Points) = false
 ispoints(::Points) = true
 ispoints(::Intervals) = false
+hasmultipledimensions(::Lookup) = false
 
 # Forward them from lookups
 for f in (:isregular, :isexplicit)
