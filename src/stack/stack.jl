@@ -31,6 +31,8 @@ const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
 (::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st), kw...)
+# for ambiguity
+DimArray(st::AbstractDimStack) = T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st))
 
 data(s::AbstractDimStack) = getfield(s, :data)
 dims(s::AbstractDimStack) = getfield(s, :dims)
@@ -311,6 +313,7 @@ end
 """
     DimStack <: AbstractDimStack
 
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Union{AbstractArray,Tuple,NamedTuple}, [dims::DimTuple]; kw...)
     DimStack(data::AbstractDimArray; layersfrom, kw...)
@@ -479,11 +482,15 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     metadata=NoMetadata(), 
     layermetadata=map(DD.metadata, das)
 )
-    return DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
+    # Treat as a table if the dims correspond to data columns.
+    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
+        return _dimstack_from_table(data, dims; refdims, metadata)
+    all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
+    DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
-DimStack(data::Union{Tuple,AbstractArray}, dims::Tuple; name=uniquekeys(data), kw...) = 
+DimStack(data::Union{Tuple,AbstractArray{<:AbstractArray}}, dims::Tuple; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), dims; kw...)
 function DimStack(data::NamedTuple{K}, dims::Tuple;
     refdims=(), 
@@ -491,6 +498,8 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
+    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
+        return _dimstack_from_table(data, dims; refdims, metadata)
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -515,6 +524,20 @@ function DimStack(st::AbstractDimStack;
     layermetadata=layermetadata(st),
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
+end
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+DimStack(table, dims::Tuple; kw...) = _dimstack_from_table(table, dims; kw...)
+DimStack(table; kw...) = _dimstack_from_table(table, guess_dims(table); kw...)
+
+function _dimstack_from_table(table, dims; selector=nothing, precision=6, missingval = missing, kw...)
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    data_cols = _data_cols(table, dims)
+    dims = guess_dims(table, dims, precision=precision)
+    indices = coords_to_indices(table, dims; selector=selector)
+    layers = map(data_cols) do d
+        restore_array(d, indices, dims, missingval)
+    end
+    return DimStack(layers, dims; kw...)
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
