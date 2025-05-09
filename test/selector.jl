@@ -1437,7 +1437,8 @@ end
     @test hasselection(dims(A, X), At(19; atol=2))
     @test hasselection(A, (Y(At(7)),))
     @test hasselection(A, (X(At(10)), Y(At(7))))
-
+    @test_throws ArgumentError hasselection(dims(A), At(20))
+    
     args = Intervals(Start()), NoMetadata()
     startfwd = Ti(Sampled(11.0:30.0,      ForwardOrdered(), Regular(1), args...))
     startrev = Ti(Sampled(30.0:-1.0:11.0, ReverseOrdered(), Regular(-1), args...))
