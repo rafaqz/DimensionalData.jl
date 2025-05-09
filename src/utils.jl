@@ -181,8 +181,6 @@ function _broadcast_dims_inner!(f, dest, As, od)
     return dest
 end
 
-@deprecate dimwise broadcast_dims
-@deprecate dimwise! broadcast_dims!
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.

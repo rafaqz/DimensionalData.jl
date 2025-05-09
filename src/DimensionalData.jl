@@ -71,8 +71,7 @@ export AbstractDimTable, DimTable
 
 export AbstractDimTree, DimTree, prune
 
-export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
-
+export DimIndices, DimSelectors, DimPoints
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds, val, layers
 
