@@ -176,10 +176,6 @@ refdims(x) = ()
 lookup(dim::Dimension{<:AbstractArray}) = val(dim)
 lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 
-lookuptype(dim::Dimension) = typeof(lookup(dim))
-lookuptype(::Type{<:Dimension{L}}) where L = L
-lookuptype(x) = NoLookup
-
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
