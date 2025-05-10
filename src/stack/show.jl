@@ -63,11 +63,11 @@ end
 function print_layer(io, stack, key::Symbol, keylen)
     layer = stack[key]
     pkey = rpad(key, keylen)
-    printstyled(io, "  :$pkey", color=dimcolors(7))
+    printstyled(io, "  :$pkey", color=dimcolor(7))
     printstyled(io, " eltype: "; color=:light_black)
     print(io, string(eltype(layer)))
     field_dims = DD.dims(layer)
-    colors = map(dimcolors, dimnum(stack, field_dims))
+    colors = map(dimcolor, dimnum(stack, field_dims))
     printstyled(io, " dims: "; color=:light_black)
     if !isempty(field_dims)
         for (i, (dim, color)) in enumerate(zip(field_dims, colors))

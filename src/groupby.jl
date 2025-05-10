@@ -52,7 +52,7 @@ function show_after(io::IO, mime, A::DimGroupByArray)
     if length(A) > 0 && isdefined(parent(A), 1)
         x = A[1]
         sorteddims = (dims(A)..., otherdims(x, dims(A))...)
-        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(x))
+        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolor, Val(length(sorteddims)))), dims(x))
         colors = collect(map(val, colordims))
         lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
             displaywidth, blockwidth, label="group dims", colors

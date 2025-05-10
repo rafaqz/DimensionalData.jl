@@ -1,4 +1,4 @@
-using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
+using DimensionalData.Dimensions: dimcolor, dimsymbols, print_dims
 
 # Base show
 function Base.summary(io::IO, A::AbstractBasicDimArray{T,N}) where {T,N}
@@ -97,7 +97,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
 end
 
 function print_ndims(io, size::Tuple;
-    colors=map(dimcolors, ntuple(identity, length(size)))
+    colors=map(dimcolor, ntuple(identity, length(size)))
 )
     if length(size) > 1
         print_sizes(io, size; colors)
@@ -128,7 +128,7 @@ function print_top(io, mime, A;
 end
 
 function print_sizes(io, size;
-    colors=map(dimcolors, ntuple(identity, length(size)))
+    colors=map(dimcolor, ntuple(identity, length(size)))
 )
     if !isempty(size)
         foreach(enumerate(size[1:end-1])) do (n, s)
@@ -245,12 +245,12 @@ end
 
 function _print_indices_vec(io, o...)
     print(io, "[")
-    printstyled(io, ":"; color=dimcolors(1))
+    printstyled(io, ":"; color=dimcolor(1))
     print(io, ", ")
-    printstyled(io, ":"; color=dimcolors(2))
+    printstyled(io, ":"; color=dimcolor(2))
     foreach(enumerate(o)) do (i, fi)
         print(io, ", ")
-        printstyled(io, fi; color=dimcolors(i + 2))
+        printstyled(io, fi; color=dimcolor(i + 2))
     end
     println(io, "]")
 end
@@ -261,7 +261,7 @@ end
 # print a name of something, in yellow
 function print_name(io::IO, name)
     if !(name == Symbol("") || name isa NoName)
-        printstyled(io, string(" ", name); color=dimcolors(7))
+        printstyled(io, string(" ", name); color=dimcolor(7))
     end
 end
 
@@ -273,15 +273,15 @@ struct ShowWith <: AbstractString
 end
 ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
 
-showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
-showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
+showrowlabel(x) = ShowWith(x, :nothing, dimcolor(1))
+showcollabel(x) = ShowWith(x, :nothing, dimcolor(2))
 showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     if x.mode == :print_arrows
-        printstyled(io, dimsymbols(1); color=dimcolors(1))
+        printstyled(io, dimsymbols(1); color=dimcolor(1))
         print(io, " ")
-        printstyled(io, dimsymbols(2); color=dimcolors(2))
+        printstyled(io, dimsymbols(2); color=dimcolor(2))
     else
         s = sprint(show, mime, x.val; context=io, kw...)
         printstyled(io, s; color=x.color)
