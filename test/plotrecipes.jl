@@ -166,7 +166,7 @@ end
 end
 
 
-# @testset "Makie" begin
+@testset "Makie" begin
 
     using CairoMakie: CairoMakie as M
     using ColorTypes
