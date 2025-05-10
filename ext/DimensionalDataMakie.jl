@@ -88,7 +88,7 @@ for (p1) in PlotTypes_1D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegendkw=(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegend =(;merge = false, unique = false), axis = (;), plot_user_attributes...)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
             axis_att = axis_attributes($p1, A)
@@ -101,23 +101,32 @@ for (p1) in PlotTypes_1D
             
             add_labels_to_lscene(ax, axis_att)
 
-            axislegend(ax; axislegendkw)
+            axislegend != false && Makie.axislegend(ax; axislegend...)
             return Makie.AxisPlot(ax, p)
         end
     end
 end
 
 
-function Makie.series(fig, A::MayObs{AbstractDimMatrix}; labeldim = nothing, axislegendkw=(;merge = false, unique = false), axis = (;), plot_user_attributes...)
-    axis_attr = merge(axis_attributes(Makie.Series, A; labeldim = labeldim), axis)
-    plot_attr = merge(plot_attributes(Makie.Series, A), plot_user_attributes, )
+function Makie.series(fig, A::MayObs{AbstractDimMatrix}; color = :lighttest, labeldim = nothing, axislegend = (;merge = false, unique = false), axis = (;), plot_user_attributes...)
+    ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type(Series, A)
+    axis_att = axis_attributes(Series, A; labeldim = labeldim)
+    axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), (:type,), !)
 
-    ax = Axis(fig; axis_attr...)
+    plot_attr = merge(plot_attributes(Series, A), plot_user_attributes)
 
-    p = Makie.series!(ax, A; labeldim = labeldim, plot_attr...)
+    ax = ax_type(fig; axis_att_for_function...)
+
+    n_colors = size(to_value(A), _categorical_or_dependent(to_value(A), labeldim))
+    default_colormap = Makie.to_colormap(color)
+    colormap = n_colors > length(default_colormap) ? Makie.resample_cmap(default_colormap, n_colors) : default_colormap
     
-    axislegend(ax; axislegendkw)
-    return ax, p
+    p = series!(ax, A; labeldim = labeldim, color = colormap, plot_attr...)
+            
+    add_labels_to_lscene(ax, axis_att)
+
+    axislegend != false && Makie.axislegend(ax; axislegend...)
+    return Makie.AxisPlot(ax, p)
 end
 
 
@@ -177,9 +186,9 @@ for p1 in PlotTypes_2D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimMatrix}; 
+        function Makie.$f1(fig, A::MayObs{AbstractDimMatrix{T}}; 
             x=nothing, y=nothing, colorbar=(;), axis = (;), plot_attributes...
-        )
+        ) where T
         
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, to_value(A); x = x, y = y)
             axis_att = axis_attributes($p1, A; x = x, y = y)
@@ -188,7 +197,8 @@ for p1 in PlotTypes_2D
             p = $f1!(ax, A; plot_attributes..., x = x, y = y)
             add_labels_to_lscene(ax, axis_att)
 
-            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy))
+            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy)) && T <: Real
+                # T check is to not add if using RGB
                 Colorbar(fig[1, 2], p;
                     label=obs_f(DD.label, A), colorbar...
                 )
@@ -373,7 +383,7 @@ end
 # VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
 function Makie.convert_arguments(P::Type{T}, A::AbstractDimArray{<:Any,3}; x = nothing, y = nothing, z = nothing) where T<:Union{Volume}
     dims_axes = get_dimensions_of_makie_axis(A, (x, y, z))
-    map((l, ax) ->_check_regular_or_categorical_sampling(l; axis = ax, conversiontrait = P), dims_axes, (:x, :y, :z))
+    map((l, ax) -> _check_regular_or_categorical_sampling(l; axis = ax, conversiontrait = P), dims_axes, (:x, :y, :z))
     xs, ys, zs = map(_lookup_to_interval, dims_axes) .|> get_number_version
     return Makie.convert_arguments(P, xs, ys, zs, parent(permutedims(A, dims_axes)))
 end
