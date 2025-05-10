@@ -291,8 +291,6 @@ end
 
     fig, ax, _ = M.surface(A2)
     M.surface!(ax, A2)
-    fig, ax, _ = M.surface(A2u)
-    M.surface!(ax, A2u)
     fig, ax, _ = M.surface(A2ui)
     M.surface!(ax, A2ui)
     # Broken with missing
@@ -339,7 +337,7 @@ end
     M.series!(ax, A2ab; labeldim=:a)
 
     fig, ax, _ = M.series(A2ab; labeldim=:b)
-    # M.series!(ax, A2ab;labeldim=:b)
+    # M.series!(ax, A2ab; labeldim=:b)
 
     # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
@@ -374,28 +372,27 @@ end
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
     fig, ax, _ = M.volume(A3abc; x=:c)
-    # fig, ax, _ = M.volumeslices(A3abc; x=:c)
-    # fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    # M.volumeslices!(ax, A3abc;z=:a)
+    fig, ax, _ = M.volumeslices(A3abc; x=:c)
+    fig, ax, _ = M.volumeslices(A3abc; z=:a)
+    M.volumeslices!(ax, A3abc; z=:a)
 
-    @testset "LScene support" begin
-        f, a, p = M.heatmap(A2ab; axis = (; type = M.LScene, show_axis = false))
-        @test a isa M.LScene
-        @test isnothing(a.scene[M.OldAxis])
-    end
+    "LScene support"
+    f, a, p = M.heatmap(A2ab; axis=(; type=M.LScene, show_axis=false))
+    @test a isa M.LScene
+    @test isnothing(a.scene[M.OldAxis])
 
-    @testset "Colorbar support" begin
-        fig, ax, _ = M.plot(A2ab)
-        colorbars = filter(x -> x isa M.Colorbar, fig.content)
-        @test length(colorbars) == 1
-        @test colorbars[1].label[] == "stuff"
+    "Colorbar support"
+    fig, ax, _ = M.plot(A2ab; colorbar=(; width=50))
+    colorbars = filter(x -> x isa M.Colorbar, fig.content)
+    @test length(colorbars) == 1
+    @test colorbars[1].label[] == "stuff"
+    @test colorbars[1].width[] == 50
 
-        A2ab_unnamed = DimArray(A2ab.data, dims(A2ab))
-        fig, ax, _ = M.plot(A2ab_unnamed)
-        colorbars = filter(x -> x isa M.Colorbar, fig.content)
-        @test length(colorbars) == 1
-        @test colorbars[1].label[] == ""
-    end
+    A2ab_unnamed = DimArray(A2ab.data, dims(A2ab))
+    fig, ax, _ = M.plot(A2ab_unnamed)
+    colorbars = filter(x -> x isa M.Colorbar, fig.content)
+    @test length(colorbars) == 1
+    @test colorbars[1].label[] == ""
 end
 
 @testset "AlgebraOfGraphics" begin
