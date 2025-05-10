@@ -71,13 +71,17 @@ for (f1, f2) in _paired(:plot => :scatter, :scatter, :lines, :scatterlines, :sta
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(A::AbstractDimVector; axislegendkw=(;), axis=(;), attributes...)
+        function Makie.$f1(A::AbstractDimVector; 
+            axislegendkw=(;), axislegend=axislegendkw, axis=(;), attributes...
+        )
             args, merged_attributes = _pointbased1(A, attributes; axis)
             p = Makie.$f2(args...; merged_attributes...)
-            axislegend(p.axis; merge=false, unique=false, axislegendkw...)
+            Makie.axislegend(p.axis; merge=false, unique=false, axislegend...)
             return p
         end
-        function Makie.$f1!(ax, A::AbstractDimVector; axislegendkw=(;), attributes...)
+        function Makie.$f1!(ax, A::AbstractDimVector; 
+            axislegendkw=(;), attributes...
+        )
             args, merged_attributes = _pointbased1(A, attributes; set_axis_attributes=false)
             return Makie.$f2!(ax, args...; merged_attributes...)
         end
@@ -153,7 +157,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
                 haskey(axis, :scenekw) && (lscene_attrs[:scenekw] = axis[:scenekw])
                 haskey(axis, :show_axis) && (lscene_attrs[:show_axis] = axis[:show_axis])
                 # surface is an LScene so we cant pass some axis attributes
-                p = Makie.$f2(args...; axis=lscene_attrs, merged_attributes...)
+                p = Makie.$f2(args...; merged_attributes..., axis=lscene_attrs)
                 # And instead set axisnames manually
                 if p.axis isa Makie.LScene && !isnothing(p.axis.scene[Makie.OldAxis])
                     p.axis.scene[Makie.OldAxis][:names, :axisnames] = map(DD.label, DD.dims(A2))
@@ -173,7 +177,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             return p
         end
         function Makie.$f1!(ax, A::AbstractDimMatrix; 
-            x=nothing, y=nothing, colorbarkw=(;), colorbar=colorbarkw, attributes...
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x, y)
             _, _, args, _ = _surface2(A, $f2, attributes, replacements)
@@ -181,7 +185,7 @@ for (f1, f2) in _paired(:plot => :heatmap, :heatmap, :image, :contour, :contourf
             return Makie.$f2!(ax, args...; attributes...)
         end
         function Makie.$f1!(axis, A::Observable{<:AbstractDimMatrix};
-            x=nothing, y=nothing, colorbarkw=(;), colorbar=colorbarkw, attributes...
+            x=nothing, y=nothing, colorbarkw=(;), attributes...
         )
             replacements = _keywords2dimpairs(x,y)
             args =  lift(x->_surface2(x, $f2, attributes, replacements)[3], A)
@@ -201,12 +205,6 @@ function _surface2(A, plotfunc, attributes, replacements; axis=(;))
     # We define conversions by trait for all of the explicitly overridden functions,
     # so we can just use the trait here.
     args = Makie.convert_arguments(PTrait, A2)
-
-    # if status === true
-    #     args = converted
-    # else
-    #     args = Makie.convert_arguments(P, converted...)
-    # end
 
     # Plot attribute generation
     dx, dy = DD.dims(A2)
@@ -285,7 +283,7 @@ Plot a 2-dimensional `AbstractDimArray` with `Makie.series`.
 $(_labeldim_detection_doc(series))
 """
 function Makie.series(A::AbstractDimMatrix; 
-    color=:lighttest, axislegendkw=(;), axis=(;), labeldim=nothing, attributes...,
+    color=:lighttest, axislegendkw=(;), axislegend=axislegendkw, axis=(;), labeldim=nothing, attributes...,
 )
     args, merged_attributes = _series(A, attributes, labeldim)
 
@@ -296,11 +294,11 @@ function Makie.series(A::AbstractDimMatrix;
     else
         Makie.series(args...; axis, color, merged_attributes...)
     end
-    axislegend(p.axis; merge=true, unique=false, axislegendkw...)
+    Makie.axislegend(p.axis; merge=true, unique=false, axislegend...)
     return p
 end
 function Makie.series!(axis, A::AbstractDimMatrix; 
-    axislegendkw=(;), axislegend=axislegendkw, labeldim=nothing, attributes...
+    axislegendkw=(;), labeldim=nothing, attributes...
 )
     args, _ = _series(A, attributes, labeldim)
     return Makie.series!(axis, args...; attributes...)
