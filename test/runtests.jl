@@ -9,13 +9,6 @@ using DimensionalData, Test, Aqua, SafeTestsets
     Aqua.test_deps_compat(DimensionalData)
 end
 
-if Sys.islinux()
-    # Unfortunately this can hang on other platforms.
-    # Maybe ram use of all the plots on the small CI machine? idk
-    @time @safetestset "makie" begin include("makie.jl") end
-    @time @safetestset "plotrecipes" begin include("plotrecipes.jl") end
-end
-
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "metadata" begin include("metadata.jl") end
 @time @safetestset "name" begin include("name.jl") end
@@ -44,3 +37,10 @@ end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "categorical" begin include("categorical.jl") end
 @time @safetestset "xarray" begin include("xarray.jl") end
+
+if Sys.islinux()
+    # Unfortunately this can hang on other platforms.
+    # Maybe ram use of all the plots on the small CI machine? idk
+    @time @safetestset "makie" begin include("makie.jl") end
+    @time @safetestset "plotrecipes" begin include("plotrecipes.jl") end
+end
