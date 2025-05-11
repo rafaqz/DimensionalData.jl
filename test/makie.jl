@@ -15,6 +15,19 @@ import DimensionalData as DD
     dd_vec_mis = DimArray([missing, 2, 3, 4, 5], Ti('A':'E'), name= "test")
     dd_vec_uni = DimArray(.√(1:5) .* u"m", Ti((1:5) .* u"F"), name= "test")
 
+    fig = Figure()
+    @test_throws MethodError lines(fig, dd_vec) # as lines(fig, 1:10)
+    ax, plt = lines(fig[1,1], dd_vec)
+    @test_throws ErrorException lines(fig[1,1], dd_vec)
+    lines!(ax, dd_vec)
+    
+    fig = Figure()
+    @test lines(fig[1,1][1,1], dd_vec) isa Makie.FigureAxisPlot
+
+    f = Figure()
+    ga = f[1, 1] = GridLayout()
+    @test lines(ga[1, 1], dd_vec) isa Makie.AxisPlot
+  
     for dd_i in (dd_vec, dd_vec_uni, dd_range)
         for obs in (Observable, identity)
             for plot_i in (plot, lines, scatter, scatterlines, linesegments, stairs, stem, waterfall)
@@ -83,6 +96,17 @@ import DimensionalData as DD
 
     fig, ax, plt = plot(dd_vec_mis)
     @test plt isa Makie.Scatter
+    fig = Figure()
+    @test plot(fig[1,1], dd_vec_mis) isa Makie.AxisPlot
+    @test_throws ErrorException plot(fig[1,1], dd_vec_mis)
+
+    fig = Figure()
+    @test plot(fig[1,1][1,1], dd_vec_mis) isa Makie.AxisPlot
+    @test_throws ErrorException plot(fig[1,1][1,1], dd_vec_mis)
+
+    fig = Figure()
+    ax = Axis(fig[1,1])
+    @test plot!(ax, dd_vec) isa Makie.Scatter
     
     for obs in (Observable, identity)
         for plot_i in (rainclouds, violin, boxplot)
@@ -134,6 +158,12 @@ end
     dd_mat_sym = DimArray(rand(2, 3), (Y(Symbol.('a':'b')), X(1:3)); name = :test)
     dd_mat_num = DimArray(rand(2, 3), (Y(1:2), X(1:3)); name = :test)
     dd_mat_uni = DimArray(rand(2, 3) .* u"m", (Y((1:2) .* u"s"), X((1:3) .* u"F")); name = :test)
+
+    fig = Figure()
+    @test_throws MethodError series(fig, dd_mat_cat) # as lines(fig, 1:10)
+    ax, plt = series(fig[1,1], dd_mat_cat)
+    @test_throws ErrorException series(fig[1,1], dd_mat_cat)
+    series!(ax, dd_mat_cat)
     
     for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_sym) 
         fig, ax, plt = series(dd_i)
@@ -218,6 +248,12 @@ end
     dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* u"Ω", (Y(x .* u"m"), X(y .* u"s")), name=:test)
     dd_mat_char = DimArray( x.^1/2 .+ 0y'.^1/3, (Y('a':'e'), X(y)), name=:test)
     dd_mat_sym = DimArray( x.^1/2 .+ 0y'.^1/3, (Y(Symbol.('a':'e')), X(y)), name=:test)
+
+    fig = Figure()
+    @test_throws MethodError contour(fig, dd_mat) # as lines(fig, 1:10)
+    ax, plt = contour(fig[1,1], dd_mat)
+    @test_throws ErrorException contour(fig[1,1], dd_mat)
+    contourf!(ax, dd_mat)
 
     fig, ax, plt = contour(dd_mat)
     for dd_i in (dd_mat, dd_mat_perm)
@@ -339,6 +375,17 @@ end
     dd_3d_uni = DimArray(rand(5, 5, 5) .* u"m", (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d_rgb = DimArray(rand(RGB, 5, 5, 5), (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d = DimArray(rand(5, 5, 5), (Z(1:5), X(1:5), Y(1:5)), name=:test)
+    
+    fig = Figure()
+    @test_throws MethodError volume(fig, dd_3d) # as lines(fig, 1:10)
+    ax, plt = volume(fig[1,1], dd_3d)
+    @test_throws ErrorException volume(fig[1,1], dd_3d)
+    @test volume!(ax, dd_3d) isa Makie.Volume
+
+    fig = Figure()
+    lines(fig[1,2], rand(10))
+    volume(fig[1,1], dd_3d)
+    fig
     
     for dd_i in (dd_3d, dd_3d_mis)
         for plt_i in (volume, plot)

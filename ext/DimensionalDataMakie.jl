@@ -56,6 +56,8 @@ obs_f(f, A) = f(A)
 
 const MayObs{T} = Union{T, Makie.Observable{<:T}}
 
+const MakieGrids = Union{Makie.GridPosition, Makie.GridSubposition}
+
 PlotTypes_1D = (Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, Series, Violin, RainClouds, LineSegments)
 PlotTypes_2D = (Heatmap, Image, Contour, Contourf, Contour3d, Spy, Surface) 
 PlotTypes_3D = (Volume, VolumeSlices)
@@ -70,6 +72,19 @@ for p in (PlotTypes_1D..., PlotTypes_2D..., PlotTypes_3D...)
             return Makie.FigureAxisPlot(fig, ax, plt)
         end
     end)
+end
+
+function error_if_has_content(grid::G) where G
+    G <: GridSubposition && Makie.GridLayoutBase.get_layout_at!(grid.parent; createmissing=true)
+    c = contents(grid; exact=true) # Error from Makie
+    if !isempty(c)
+        error("""
+        You have used the non-mutating plotting syntax with a GridPosition, which requires an empty GridLayout slot to create an axis in, but there are already the following objects at this layout position:
+        $(c)
+        If you meant to plot into an axis at this position, use the plotting function with `!` (e.g. `func!` instead of `func`).
+        If you really want to place an axis on top of other blocks, make your intention clear and create it manually.
+        """)
+    end
 end
 
 
@@ -88,7 +103,8 @@ for (p1) in PlotTypes_1D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimVector}; axislegend =(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimVector}; axislegend =(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+            error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
             axis_att = axis_attributes($p1, A)
@@ -108,7 +124,9 @@ for (p1) in PlotTypes_1D
 end
 
 
-function Makie.series(fig, A::MayObs{AbstractDimMatrix}; color = :lighttest, labeldim = nothing, axislegend = (;merge = false, unique = false), axis = (;), plot_user_attributes...)
+function Makie.series(fig::Makie.GridPosition, A::MayObs{AbstractDimMatrix}; color = :lighttest, labeldim = nothing, axislegend = (;merge = false, unique = false), axis = (;), plot_user_attributes...)
+    error_if_has_content(fig)
+
     ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type(Series, A)
     axis_att = axis_attributes(Series, A; labeldim = labeldim)
     axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), (:type,), !)
@@ -186,10 +204,11 @@ for p1 in PlotTypes_2D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimMatrix{T}}; 
+        function Makie.$f1(fig::Makie.GridPosition, A::MayObs{AbstractDimMatrix{T}}; 
             x=nothing, y=nothing, colorbar=(;), axis = (;), plot_attributes...
         ) where T
-        
+            error_if_has_content(fig)
+
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, to_value(A); x = x, y = y)
             axis_att = axis_attributes($p1, A; x = x, y = y)
             axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), [:type], !)
@@ -222,10 +241,10 @@ for p1 in PlotTypes_3D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig, A::MayObs{AbstractDimArray{<:Any,3}}; 
+        function Makie.$f1(fig::Makie.GridPosition, A::MayObs{AbstractDimArray{<:Any,3}}; 
             x=nothing, y=nothing, z =nothing, colorbar=(;), axis = (;), plot_attributes...
         )
-        
+            error_if_has_content(fig)
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A; x = x, y = y, z = z)
             axis_att = axis_attributes($p1, A; x = x, y = y, z = z)
             axis_att_for_function = merge(filter_keywords_axis!(ax_type, axis_att), axis)
@@ -306,7 +325,7 @@ for DD in (AbstractDimVector, AbstractDimMatrix, AbstractDimArray{<:Any,3}, DimP
     f! = Symbol(f, '!')
     eval(quote
         Makie.plot(dd::MayObs{$DD}; kwargs...) = Makie.$f(dd; kwargs...)
-        Makie.plot(fig, dd::MayObs{$DD}; kwargs...) = Makie.$f(fig, dd; kwargs...)
+        Makie.plot(fig::MakieGrids, dd::MayObs{$DD}; kwargs...) = Makie.$f(fig, dd; kwargs...)
         Makie.plot!(ax, dd::MayObs{$DD}; kwargs...) = Makie.$f!(ax, dd; kwargs...)
     end)
 end
