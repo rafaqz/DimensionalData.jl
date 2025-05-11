@@ -607,16 +607,22 @@ end
 
 # Replace the existing dimensions with X/Y/Z so we have a 1:1 
 # relationship with the possible Makie.jl plot axes. 
+# Replacements all rwp the original dimensions so
+# they can be recovered later on.
 function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
     xyz_dims = (X(), Y(), Z())[1:N]
     map(replacements) do d
         # Make sure replacements contain X/Y/Z only
         hasdim(A, d) || throw(ArgumentError("object does not have a dimension $(basetypeof(d))"))
     end
-    # Find and sort remaining dims
-    source_dims_remaining = dims(otherdims(A, replacements), DD.PLOT_DIMENSION_ORDER)
-    xyz_remaining = otherdims(xyz_dims, map(val, replacements))[1:length(source_dims_remaining)]
-    other_replacements = map(rebuild, source_dims_remaining, xyz_remaining)
+    # Wrap remaining dims with their dimtrait
+    not_replaced = otherdims(A, replacements)
+    wrapped = map(not_replaced) do d
+        rebuild(d, dimtrait(d))
+    end
+    sorted_wrapped = dims(wrapped, DD.PLOT_DIMENSION_ORDER)
+    xyz_remaining = otherdims(xyz_dims, map(val, replacements))[1:length(sorted_wrapped)]
+    other_replacements = map(rebuild, sorted_wrapped, xyz_remaining)
     return (replacements..., other_replacements...)
 end
 
