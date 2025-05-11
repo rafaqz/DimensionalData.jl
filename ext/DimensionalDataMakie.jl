@@ -124,7 +124,7 @@ for (p1) in PlotTypes_1D
 end
 
 
-function Makie.series(fig::Makie.GridPosition, A::MayObs{AbstractDimMatrix}; color = :lighttest, labeldim = nothing, axislegend = (;merge = false, unique = false), axis = (;), plot_user_attributes...)
+function Makie.series(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; color = :lighttest, labeldim = nothing, axislegend = (;merge = false, unique = false), axis = (;), plot_user_attributes...)
     error_if_has_content(fig)
 
     ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type(Series, A)
@@ -204,7 +204,7 @@ for p1 in PlotTypes_2D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig::Makie.GridPosition, A::MayObs{AbstractDimMatrix{T}}; 
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix{T}}; 
             x=nothing, y=nothing, colorbar=(;), axis = (;), plot_attributes...
         ) where T
             error_if_has_content(fig)
@@ -241,7 +241,7 @@ for p1 in PlotTypes_3D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig::Makie.GridPosition, A::MayObs{AbstractDimArray{<:Any,3}}; 
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimArray{<:Any,3}}; 
             x=nothing, y=nothing, z =nothing, colorbar=(;), axis = (;), plot_attributes...
         )
             error_if_has_content(fig)
@@ -503,41 +503,7 @@ function get_axis_ticks(dims::MayObs{DD.DimTuple})
     merge(all_att...)
 end
 
-
-# Give the data in A2 the names from A1 working backwards from what was replaced earlier
-_restore_dim_names(A2, A1, replacements::Pair) = _restore_dim_names(A2, A1, (replacements,)) 
-_restore_dim_names(A2, A1, replacements::Tuple{<:Pair,Vararg{T}}) where T<:Pair =
-    _restore_dim_names(A2, A1, map(p -> basetypeof(name2dim(p[1]))(basetypeof(name2dim(p[2]))()), replacements))
-function _restore_dim_names(A2, A1, replacements::Tuple=())
-    all_replacements = _get_replacement_dims(A1, replacements)
-    # Invert our replacement dimensions - `set` sets the outer wrapper
-    # dimension to the inner/wrapped dimension
-    inverted_replacements = map(all_replacements) do r
-        basetypeof(val(r))(basetypeof(r)())
-    end
-    # Set the dimensions back to the originals now they are in the right order
-    return set(A2, inverted_replacements...) 
-end
-
-# Replace the existing dimensions with X/Y/Z so we have a 1:1 
-# relationship with the possible Makie.jl plot axes. 
-function _get_replacement_dims(A::AbstractDimArray{<:Any,N}, replacements::Tuple) where N
-    xyz_dims = (X(), Y(), Z())[1:N]
-    map(replacements) do d
-        # Make sure replacements contain X/Y/Z only
-        hasdim(A, d) || throw(ArgumentError("object does not have a dimension $(basetypeof(d))"))
-    end
-    # Find and sort remaining dims
-    replacements
-    source_dims_remaining = dims(otherdims(A, replacements), DD.PLOT_DIMENSION_ORDER)
-    xyz_remaining = otherdims(xyz_dims, map(val, replacements))[1:length(source_dims_remaining)]
-    other_replacements = map(rebuild, source_dims_remaining, xyz_remaining)
-    return (replacements..., other_replacements...)
-end
-
-# Get all lookups in ascending/forward order
-_reorder(A) = reorder(A, DD.ForwardOrdered)
-
+# Returns the mapping to the axes of the Makie plot
 function get_dimensions_of_makie_axis(A::AbstractDimArray{<:Any,N}, _dims_input::Tuple) where N
     length(_dims_input) == N || throw(ArgumentError("Error. Should never happen"))
 
@@ -559,17 +525,6 @@ function get_dimensions_of_makie_axis(A::AbstractDimArray{<:Any,N}, _dims_input:
         end
     end
     (dims_output...,)
-end
-
-function _keywords2dimpairs(x, y, z)
-    reduce((x => X, y => Y, z => Z); init=()) do acc, (source, dest)
-        isnothing(source) ? acc : (acc..., source => dest)
-    end
-end
-function _keywords2dimpairs(x, y)
-    reduce((x => X, y => Y); init=()) do acc, (source, dest)
-        isnothing(source) ? acc : (acc..., source => dest)
-    end
 end
 
 function _lookup_to_vector(l)
@@ -602,12 +557,4 @@ function _lookup_to_interval(l)
     end
     return IntervalSets.Interval(bounds(l1)...)
 end
-
-_floatornan(A::AbstractArray{<:Union{Missing,<:Real}}) = _floatornan64.(A)
-_floatornan(A::AbstractArray{<:Union{Missing,Float64}}) = _floatornan64.(A)
-_floatornan(A::AbstractArray{<:Char}) = float(A)
-_floatornan(A) = A
-_floatornan32(x) = ismissing(x) ? NaN32 : Float32(x)
-_floatornan64(x) = ismissing(x) ? NaN64 : Float64(x)
-
 end
