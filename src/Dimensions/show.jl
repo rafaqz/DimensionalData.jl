@@ -15,7 +15,7 @@ function dimcolor(i::Int)
 end
 dimcolor(io::IO) = get(io, :dimcolor, dimcolor(1))
 
-@deprecate dimcolor(x) dimcolor(x) false
+@deprecate dimcolors(x) dimcolor(x) false
 @deprecate dimsymbols(x) dimsymbol(x) false
 
 # Base methods
