@@ -22,7 +22,7 @@ import DimensionalData as DD
     lines!(ax, dd_vec)
     
     fig = Figure()
-    @test lines(fig[1,1][1,1], dd_vec) isa Makie.FigureAxisPlot
+    @test lines(fig[1,1][1,1], dd_vec) isa Makie.AxisPlot
 
     f = Figure()
     ga = f[1, 1] = GridLayout()
