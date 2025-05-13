@@ -1,5 +1,7 @@
+abstract type MultiDimensionalLookup{T} <: Lookup{T,1} end
+
 """
-    MergedLookup <: Lookup
+    MergedLookup <: MultiDimensionalLookup <: Lookup
 
     MergedLookup(data, dims; [metadata])
 
@@ -8,17 +10,53 @@ A [`Lookup`](@ref) that holds multiple combined dimensions.
 `MergedLookup` can be indexed with [`Selector`](@ref)s like `At`, 
 `Between`, and `Where` although `Near` has undefined meaning.
 
-# Arguments
+## Examples
+The easiest way to create a `MergedLookup` is to use the `mergedims` function:
+
+```julia
+da = rand(X(1:3), Y(1:3), Ti(1:3))
+merged = mergedims(da, (X, Y) => :space)
+
+julia> merged = mergedims(da, (X, Y) => :space)
+┌ 3×9 DimArray{Float64, 2} ┐
+├──────────────────────────┴─────────────────────────────────────────────────────────────────────────────── dims ┐
+  ↓ Ti    Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  → space MergedLookup{Tuple{Int64, Int64}} [(1, 1), (2, 1), …, (2, 3), (3, 3)] ↓ X, → Y
+└────────────────────────────────────────────────────────────────────────────────────────────────────────────────┘
+ ↓ →   (1, 1)    (2, 1)   (3, 1)    (1, 2)    (2, 2)    (3, 2)    (1, 3)     (2, 3)     (3, 3)
+ ⋮                                           ⋮                                         
+ 3    0.832755  0.89284  0.184938  0.434221  0.552545  0.612124  0.0630973  0.0365063  0.103989
+```
+
+Then, you can index into the merged dimensions in two ways: by referring specifically to the merged dimension,
+```julia
+merged[space=1:2]
+merged[space=(X(At(1)), Y(At(2))), Ti(At(2))]
+```
+
+or by using the `Coord` type, which is able to infer the merged lookup from the dimension names:
+```julia
+merged[space=(X(At(1)), Y(At(2))), Ti(At(2))]
+```
+
+or by directly passing selectors for the merged dimensions:
+```julia
+merged[X(At(1)), Y(At(2)), Ti(At(2))] == merged[space=(X(At(1)), Y(At(2))), Ti(At(2))]
+```
+
+This allows quite a bit of very powerful behaviour!
+
+## Arguments
 
 - `data`: A `Vector` of `Tuple`.
 - `dims`: A `Tuple` of [`Dimension`](@ref) indicating the dimensions in the tuples in `data`.
 
-# Keywords
+## Keywords
 
 - `metadata`: a `Dict` or `Metadata` object to attach dimension metadata.
 
 """
-struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: Lookup{T,1}
+struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
     data::A
     dims::D
     metadata::Me

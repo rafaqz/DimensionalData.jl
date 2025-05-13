@@ -1,5 +1,9 @@
 using DimensionalData, Test, Aqua, SafeTestsets
 
+# Dirty hack to ensure that PythonCall.jl doesn't attempt to load an
+# incompatible version of OpenSSL: load OpenSSL first.
+import OpenSSL
+
 @time @testset "Aqua" begin
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)

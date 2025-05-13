@@ -33,7 +33,7 @@ function (::Type{T})(stack::AbstractDimStack;
     T(data, dims(stack); metadata, layerdims, layermetadata, kw...)
 end
 
-data(dt::AbstractDimTree) = getfield(dt, :data)
+data(dt::AbstractDimTree) = getfield(dt, :data)::DataDict
 data(dt::AbstractDimTree, key::Symbol) = data(dt)[key]
 tree(dt::AbstractDimTree) = getfield(dt, :tree)
 branches(dt::AbstractDimTree) = getfield(dt, :branches)
@@ -86,7 +86,7 @@ function Base.copy(dt::AbstractDimTree)
         layerdims=copy(layerdims(dt)),
         layermetadata=copy(layermetadata(dt)),
         branches=copy(branches(dt)),
-        tree=isnothing(getfield(dt, :tree)) ? nothing : copy(getfield(dt, :tree)),
+        tree=(t = getfield(dt, :tree); isnothing(t) ? t : copy(t))
     )
 end
 # If we select a single name we get a DimArray
@@ -103,8 +103,8 @@ Base.get(dt::AbstractDimTree, name::Symbol, default) =
 Base.get(f::Base.Callable, dt::AbstractDimTree, name::Symbol) =
     haskey(dt, name) ? dt[name] : f()
 function Base.filter!(pred, dt::AbstractDimTree)
-    for p in pairs(dt)
-        pred(p) || delete!(dt, k)
+    for (k, v) in pairs(dt)
+        pred(v) || delete!(dt, k)
     end
 end
 function Base.get!(f::Base.Callable, dt::AbstractDimTree, name::Symbol)
@@ -153,13 +153,15 @@ for f in (:getindex, :view)
         Base.$f(dt::AbstractDimTree, Dimensions.kw2dims(kw)...)
     end
     @eval function Base.$f(dt::AbstractDimTree, D::Dimension{<:SelectorOrInterval}...)
-        newlayers = map(collect(pairs(layers(dt)))) do (name, A)
-            name => $f(A, D...)
+        newlayers = Vector{Pair{Symbol,Any}}(undef, length(layers(dt)))
+        newbranches = Vector{Pair{Symbol,Any}}(undef, length(branches(dt)))
+        for (i, (name, A)) in enumerate(pairs(layers(dt)))
+            newlayers[i] = name => $f(A, D...)
         end
-        newbranches = map(collect(pairs(branches(dt)))) do (name, branch)
-            name => $f(branch, D...)
-        end |> TreeDict
-        rebuild_from_arrays(dt, newlayers; branches=newbranches)
+        for (i, (name, branch)) in enumerate(pairs(branches(dt)))
+            newbranches[i] = name => $f(branch, D...)
+        end
+        rebuild_from_arrays(dt, newlayers; branches=TreeDict(newbranches))
     end
 end
 
@@ -218,7 +220,7 @@ function Base.setproperty!(dt::AbstractDimTree, key::Symbol, newbranch::Abstract
     if dt == newbranch
         newbranch = copy(newbranch)
     end
-    comparedims(dims(dt, dims(newbranch)), dims(newbranch))
+    comparedims(commondims(dt, dims(newbranch)), dims(newbranch, dims(dt)))
     # The branch only holds dimensions not in the tree
     setfield!(newbranch, :dims, otherdims(newbranch, dims(dt)))
     # Set the tree in the new branch
@@ -310,10 +312,10 @@ function prune(dt::AbstractDimTree;
     # Otherwise prune the kept branch
     branch = if keep isa Symbol
         # Symbol keeps one pruned branch
-        prune(branches(dt, keep))
+        prune(getproperty(dt, keep))
     else
         # Pairs will also keep a branch of the branch
-        prune(branches(dt, first(keep)); keep=last(keep))
+        prune(getproperty(dt, first(keep)); keep=last(keep))
     end
     rebuild(dt; 
         data=DataDict(hcat(collect(pairs(dt)), collect(pairs(branch)))),

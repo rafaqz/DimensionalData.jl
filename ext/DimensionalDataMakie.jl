@@ -10,7 +10,7 @@ const DD = DimensionalData
 # Shared docstrings: keep things consistent.
 
 const AXISLEGENDKW_DOC = """
-- `axislegendkw`: attributes to pass to `axislegend`.
+- `axislegend`: attributes to pass to `axislegend`.
 """
 _keyword_heading_doc(f) = """
 # Keywords
@@ -44,7 +44,7 @@ $(_keyword_heading_doc(f))
 function _maybe_colorbar_doc(f) 
     if f in (:heatmap, :contourf)
         """
-        - `colorbarkw`: keywords to pass to `Makie.Colorbar`.
+        - `colorbar`: keywords to pass to `Makie.Colorbar`.
         """
     else
         ""

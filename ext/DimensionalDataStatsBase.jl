@@ -6,19 +6,22 @@ using StatsBase
 
 const DD = DimensionalData
 
-function Statistics.mean(A::AbstractDimArray, w::StatsBase.AbstractWeights; dims=:)
-    data = mean(parent(A), w; dims=dimnum(A, dims))
-    return rebuild(A, data, DD.reducedims(A, dims))
-end
+Statistics.mean(A::AbstractDimArray, w::StatsBase.AbstractWeights; dims=:) =
+    _weighted(mean, A, w, dims)
 # For ambiguity
-function Statistics.mean(A::AbstractDimArray, w::StatsBase.UnitWeights; dims=:)
-    data = mean(parent(A), w; dims=dimnum(A, dims))
-    return rebuild(A, data, DD.reducedims(A, dims))
-end
+Statistics.mean(A::AbstractDimArray, w::StatsBase.UnitWeights; dims=:) =
+    _weighted(mean, A, w, dims)
 
-function Base.sum(A::AbstractDimArray, w::AbstractWeights{<:Real}; dims=:)
-    data = sum(parent(A), w; dims=dimnum(A, dims))
-    return rebuild(A, data, DD.reducedims(A, dims))
+Base.sum(A::AbstractDimArray, w::AbstractWeights{<:Real}; dims=:) =
+    _weighted(sum, A, w, dims)
+
+function _weighted(f::F, A, w, dims) where F
+    if dims isa Colon
+        return f(parent(A), w; dims=:)
+    else
+        data = f(parent(A), w; dims=dimnum(A, dims))
+        return rebuild(A, data, DD.reducedims(A, dims))
+    end
 end
 
 end
