@@ -402,17 +402,17 @@ julia> A = DimArray(rand(12,10), (ti, x), name="example");
 
 julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))]
 ┌ 2-element DimArray{Float64, 1} example ┐
-├────────────────────────────────────────┴────────────── dims ┐
+├────────────────────────────────────────┴──────────────── dims ┐
   ↓ X Sampled{Int64} [10, 40] ForwardOrdered Irregular Points
-└─────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────┘
  10  0.253849
  40  0.637077
 
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ┌ 4-element DimArray{Float64, 1} example ┐
-├────────────────────────────────────────┴──────────── dims ┐
+├────────────────────────────────────────┴────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:50 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
  20  0.774092
  30  0.823656
  40  0.637077
@@ -424,10 +424,10 @@ Generator expression:
 ```jldoctest dimarray
 julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
 ┌ 3×2 DimArray{Tuple{Int64, Int64}, 2} Value ┐
-├────────────────────────────────────────────┴──── dims ┐
+├────────────────────────────────────────────┴───── dims ┐
   ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
  ↓ →  1        2
  1     (1, 1)   (1, 2)
  2     (2, 1)   (2, 2)
@@ -583,10 +583,10 @@ julia> rand(Bool, X(2), Y(4))
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0       150.0       200.0
   :a    0.443494    0.253849    0.867547
   :b    0.745673    0.334152    0.0802658
@@ -624,10 +624,10 @@ julia> zeros(Bool, X(2), Y(4))
 
 julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0  150.0  200.0
   :a    0.0    0.0    0.0
   :b    0.0    0.0    0.0
@@ -666,10 +666,10 @@ julia> ones(Bool, X(2), Y(4))
 
 julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0  150.0  200.0
   :a    1.0    1.0    1.0
   :b    1.0    1.0    1.0
@@ -796,13 +796,13 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 julia> using DimensionalData
 
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
-(↓ X  0.0:0.1:0.4,
-→ Y  10:10:100,
-↗ Ti [0, 3, 4])
+(↓ X 0.0:0.1:0.4,
+→ Y 10:10:100,
+↗ Ti [0, …, 4])
 
 julia> mergedims(ds, (X, Y) => :space)
-(↓ Ti    [0, 3, 4],
-→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] (↓ X, → Y))
+(↓ Ti [0, …, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), …, (0.4, 100)] (↓ X, → Y))
 ```
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)
