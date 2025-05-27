@@ -26,11 +26,9 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
         devbranch = "main", 
         devurl = "dev", 
     ),
-    doctest=false,
     draft=false,
     source="src", 
     build="build",
-    warnonly=true,
 )
 
 # Deploy built documentation.
