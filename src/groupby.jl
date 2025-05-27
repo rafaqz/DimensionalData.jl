@@ -49,13 +49,14 @@ end
 function show_after(io::IO, mime, A::DimGroupByArray)
     displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
+    separatorwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
     if length(A) > 0 && isdefined(parent(A), 1)
         x = A[1]
         sorteddims = (dims(A)..., otherdims(x, dims(A))...)
         colordims = dims(map(rebuild, sorteddims, ntuple(dimcolor, Val(length(sorteddims)))), dims(x))
         colors = collect(map(val, colordims))
         lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
-            displaywidth, blockwidth, label="group dims", colors
+            displaywidth, blockwidth, separatorwidth, label="group dims", colors
         )
         A1 = map(x -> DimSummariser(x, colors), A)
         ctx = IOContext(io,
@@ -254,19 +255,17 @@ julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
 ┌ 12-element DimGroupByArray{DimArray{Float64,3},1} ┐
-├───────────────────────────────────────────────────┴───────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
-├───────────────────────────────────────────────────────────── metadata ┤
+├───────────────────────────────────────────────────┴──────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points
+├──────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
   :groupby => :Ti=>month
-├─────────────────────────────────────────────────────────── group dims ┤
+├───────────────────────────────────────────────────┴── group dims ┐
   ↓ X, → Y, ↗ Ti
-└───────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
   1  191×20×32 DimArray
   2  191×20×28 DimArray
-  3  191×20×31 DimArray
   ⋮
- 11  191×20×30 DimArray
  12  191×20×31 DimArray
 ```
 
@@ -275,16 +274,15 @@ And take the mean:
 ```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
 ┌ 12-element DimArray{Float64, 1} ┐
-├─────────────────────────────────┴─────────────────────────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
-├───────────────────────────────────────────────────────────── metadata ┤
+├─────────────────────────────────┴────────────────────────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points
+├──────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
   :groupby => :Ti=>month
-└───────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
   1  0.500064
   2  0.499762
   3  0.500083
-  4  0.499985
   ⋮
  10  0.500874
  11  0.498704
@@ -304,18 +302,17 @@ Or do something else with Y:
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
 ┌ 12×2 DimArray{Float64, 2} ┐
-├───────────────────────────┴────────────────────────────────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
-  → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
-├────────────────────────────────────────────────────────────── metadata ┤
+├───────────────────────────┴──────────────────────────────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points,
+  → Y Sampled{Bool} [false, true] ForwardOrdered Irregular Points
+├──────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
   :groupby => (:Ti=>month, :Y=>isodd)
-└────────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
   ↓ →  false         true
   1        0.499594     0.500533
   2        0.498145     0.501379
   ⋮
- 10        0.501105     0.500644
  11        0.498606     0.498801
  12        0.501643     0.499298
 ```
