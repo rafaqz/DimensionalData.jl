@@ -178,6 +178,7 @@ lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
+name(s::Symbol) = s
 
 label(x) = string(name(x))
 
