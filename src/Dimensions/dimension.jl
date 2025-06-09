@@ -576,3 +576,30 @@ mean(A; dims=Ti)
 @dim Ti TimeDim "Time"
 
 const Time = Ti # For some backwards compat
+
+# dimtrait uses the standard dimensions as traits so that 
+# other dimensions can be matched to axes, mostly in plotting
+dimtrait(::D) where D<:Dimension = dimtrait(D)
+function dimtrait(::Type{D}) where D<:Dimension
+    st = supertype(D)
+    @show st
+    return st == Any ? AnonDim() : dimtrait(st)
+end
+dimtrait(::Type{<:XDim}) = X()
+dimtrait(::Type{<:YDim}) = Y()
+dimtrait(::Type{<:ZDim}) = Z()
+dimtrait(::Type{<:TimeDim}) = Ti()
+Base.@assume_effects :total function dimtrait(::Type{<:Dim{K}}) where K
+    Kl = Symbol(lowercase(string(K)))
+    if Kl in (:t, :time, :ti)
+        Ti()
+    elseif Kl in (:x, :lon, :longitude)
+        X()
+    elseif Kl in (:y, :lat, :latitude)
+        Y()
+    elseif Kl in (:z, :elev, :lev, :elevation)
+        Z()
+    else
+        AnonDim()
+    end
+end
