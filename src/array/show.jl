@@ -1,4 +1,4 @@
-using DimensionalData.Dimensions: dimcolor, dimsymbols, print_dims
+using DimensionalData.Dimensions: dimcolor, dimsymbol, print_dims
 
 # Base show
 function Base.summary(io::IO, A::AbstractBasicDimArray{T,N}) where {T,N}
@@ -279,9 +279,9 @@ showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     if x.mode == :print_arrows
-        printstyled(io, dimsymbols(1); color=dimcolor(1))
+        printstyled(io, dimsymbol(1); color=dimcolor(1))
         print(io, " ")
-        printstyled(io, dimsymbols(2); color=dimcolor(2))
+        printstyled(io, dimsymbol(2); color=dimcolor(2))
     else
         s = sprint(show, mime, x.val; context=io, kw...)
         printstyled(io, s; color=x.color)
