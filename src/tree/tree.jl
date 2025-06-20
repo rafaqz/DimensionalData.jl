@@ -370,7 +370,7 @@ layers with different resolutions, for example.
 ## Example
 
 ```julia
-xdim, ydim = X(1:10), Y(1:15), 
+xdim, ydim = X(1:10), Y(1:15)
 z1, z2 = Z([:a, :b, :c]), Z([:d, :e, :f])
 a = rand(xdim, ydim)
 b = rand(Float32, xdim, ydim)
