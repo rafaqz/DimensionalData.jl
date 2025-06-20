@@ -377,7 +377,7 @@ b = rand(Float32, xdim, ydim)
 c = rand(Int, xdim, ydim, z1)
 d = rand(Int, xdim, z2)
 DimTree(a, b)
-````
+```
 """
 @kwdef mutable struct DimTree <: AbstractDimTree
     data::DataDict = DataDict()
