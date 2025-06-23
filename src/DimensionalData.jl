@@ -117,7 +117,7 @@ include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
 include("groupby.jl")
-include("precompile.jl")
+# include("precompile.jl")
 include("interface_tests.jl")
 
 end
