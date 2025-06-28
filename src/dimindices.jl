@@ -146,7 +146,7 @@ function Base.getindex(A::DimIndices, i1::Integer, i2::Integer, I::Integer...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 function Base.getindex(A::DimIndices{<:Any,1}, i::Integer)
-    d = dims(di, 1)::Dimension
+    d = dims(A, 1)::Dimension
     di = rebuild(d, d[i])
     return dims((di, _refdims_firsts(A)...), orderdims(A))
 end
