@@ -514,32 +514,41 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Tables
 # Write a single column from a table with one or more coordinate columns to a DimArray
-function DimArray(table, dims;  kw...)
+function DimArray(table, dims; kw...)
     # Confirm that the Tables interface is implemented
     Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
-    _dimarray_from_table(table, guess_dims(table, dims); kw...)
+    dimarray_from_table(table, guess_dims(table, dims); kw...)
 end
-function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple; 
-    refdims=(), name=NoName(), metadata=NoMetadata(), kw...
-) where K
-    if all(map(d -> Dimensions.name(d) in K, dims))
-        table = Tables.columns(data)
-        return _dimarray_from_table(table, guess_dims(table, dims; kw...); 
-            refdims, name, metadata, kw...)
-    else
-        return DimArray(data, format(dims, data), refdims, name, metadata)
-    end
-end
-# Same as above, but guess dimension names
+# Same as above, but guess dimension names from scratch
 function DimArray(table; kw...)
     # Confirm that the Tables interface is implemented
     Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
     # Use default dimension 
-    return _dimarray_from_table(table, guess_dims(table; kw...); kw...)
+    return dimarray_from_table(table, guess_dims(table; kw...); kw...)
 end
-function _dimarray_from_table(table, dims; name=NoName(), selector=nothing, precision=6, missingval=missing, kw...)
+# Special-case NamedTuple tables
+function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple; 
+    refdims=(), name=NoName(), metadata=NoMetadata(), kw...
+) where K
+    if all(map(d -> Dimensions.name(d) in K, dims))
+        table = Tables.columns(data)
+        dims = guess_dims(table, dims; kw...)
+        return dimarray_from_table(table, dims; refdims, name, metadata, kw...)
+    else
+        return DimArray(data, format(dims, data), refdims, name, metadata)
+    end
+end
+
+function dimarray_from_table(table, dims; 
+    name=NoName(), 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+)
     # Determine row indices based on coordinate values
     indices = coords_to_indices(table, dims; selector, atol=10.0^-precision)
 

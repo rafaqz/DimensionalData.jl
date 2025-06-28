@@ -1,15 +1,22 @@
+
+const TABLE_ARGUMENT = """
+- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+"""
+
 """
     restore_array(data::AbstractVector, indices::AbstractVector{<:NTuple{<:Any, Dim}}, dims::Tuple, missingval)
 
 Restore a dimensional array from its tabular representation.
 
 # Arguments
+
 - `data`: An `AbstractVector` containing the flat data to be written to a `DimArray`.
 - `indices`: An `AbstractVector` containing the dimensional indices corresponding to each element in `data`.
 - `dims`: The dimensions of the destination `DimArray`.
 - `missingval`: The value to write for missing elements in `data`.
 
 # Returns
+
 An `Array` containing the ordered valued in `data` with the size specified by `dims`.
 ```
 """
@@ -33,19 +40,24 @@ function restore_array(data::AbstractVector, indices::AbstractVector, dims::Tupl
 end
 
 """
-    coords_to_indices(table, dims; [selector], [atol])
+    coords_to_indices(table, dims; [selector, atol])
 
 Return the dimensional index of each row in `table` based on its associated coordinates.
 Dimension columns are determined from the name of each dimension in `dims`.
 
 # Arguments
-- `table`: A table representation of a dimensional array. 
+
+$TABLE_ARGUMENT 
 - `dims`: A `Tuple` of `Dimension` corresponding to the source/destination array.
+
+# Keywords 
+
 - `selector`: The selector type to use. This defaults to `Near()` for orderd, sampled dimensions
     and `At()` for all other dimensions. 
 - `atol`: The absolute tolerance to use with `At()`. This defaults to `1e-6`.
 
 # Example
+
 ```julia
 julia> d = rand(X(1:256), Y(1:256));
 
@@ -63,9 +75,8 @@ julia> coords_to_indices(t, dims(d))
  (↓ X 256, → Y 256)
 ```
 """
-function coords_to_indices(table, dims::Tuple; selector=nothing, atol = 1e-6)
-    return _coords_to_indices(table, dims, selector, atol)
-end
+coords_to_indices(table, dims::Tuple; selector=nothing, atol=1e-6) =
+    _coords_to_indices(table, dims, selector, atol)
 
 """
     guess_dims(table; kw...)
@@ -74,21 +85,25 @@ end
 Guesses the dimensions of an array based on the provided tabular representation.
 
 # Arguments
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+
+$TABLE_ARGUMENT 
 The dimensions will be inferred from the corresponding coordinate collumns in the table.
+
 - `dims`: One or more dimensions to be inferred. If no dimensions are specified, then `guess_dims` will default
 to any available dimensions in the set `(:X, :Y, :Z, :Ti, :Band)`. Dimensions can be given as either a singular
 value or as a `Pair` with both the dimensions and corresponding order. The order will be inferred from the data
 when none is given. This should work for sorted coordinates, but will not be sufficient when the table's rows are
 out of order.
   
-# Keyword Arguments
+# Keywords
+
 - `precision`: Specifies the number of digits to use for guessing dimensions (default = `6`).
 
 # Returns
 A tuple containing the inferred dimensions from the table.
 
 # Example
+
 ```julia
 julia> using DimensionalData, DataFrames
 
@@ -128,9 +143,8 @@ julia> guess_dims(t_rand, X => ForwardOrdered, Y => ReverseOrdered, :Band => For
 ```
 """
 guess_dims(table; kw...) = guess_dims(table, _dim_col_names(table); kw...)
-function guess_dims(table, dims::Tuple; precision=6, kw...)
+guess_dims(table, dims::Tuple; precision=6, kw...) =
     map(dim -> _guess_dims(get_column(table, name(dim)), dim, precision), dims)
-end
 
 """
     get_column(table, dim::Type{<:Dimension})
@@ -140,7 +154,8 @@ end
 Retrieve the coordinate data stored in the column specified by `dim`.
 
 # Arguments
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+
+$TABLE_ARGUMENT
 - `dim`: A single dimension to be retrieved, which may be a `Symbol`, a `Dimension`.
 """
 get_column(table, x::Type{<:Dimension}) = Tables.getcolumn(table, name(x))
@@ -153,7 +168,8 @@ get_column(table, x::Symbol) = Tables.getcolumn(table, x)
 Return the names of all columns that don't matched the dimensions given by `dims`.
 
 # Arguments
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
+
+$TABLE_ARGUMENT
 - `dims`: A `Tuple` of one or more `Dimensions`.
 """
 function data_col_names(table, dims::Tuple)
@@ -161,8 +177,10 @@ function data_col_names(table, dims::Tuple)
     return filter(x -> !(x in dim_cols), Tables.columnnames(table))
 end
 
-_guess_dims(coords::AbstractVector, dim::Type{<:Dimension}, args...) = _guess_dims(coords, name(dim), args...)
-_guess_dims(coords::AbstractVector, dim::Pair, args...) = _guess_dims(coords, first(dim), last(dim), args...)
+_guess_dims(coords::AbstractVector, dim::Type{<:Dimension}, args...) = 
+    _guess_dims(coords, name(dim), args...)
+_guess_dims(coords::AbstractVector, dim::Pair, args...) = 
+    _guess_dims(coords, first(dim), last(dim), args...)
 function _guess_dims(coords::AbstractVector, dim::Symbol, ::Type{T}, precision::Int) where {T <: Order}
     return _guess_dims(coords, dim, T(), precision)
 end
