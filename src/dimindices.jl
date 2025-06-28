@@ -1,9 +1,7 @@
-"""
-    AbstractDimArrayGenerator <: AbstractBasicDimArray
+# AbstractDimArrayGenerator <: AbstractBasicDimArray
 
-Abstract supertype for all AbstractBasicDimArrays that
-generate their `data` on demand during `getindex`.
-"""
+# Abstract supertype for all AbstractBasicDimArrays that
+# generate their `data` on demand during `getindex`.
 abstract type AbstractDimArrayGenerator{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
 dims(dg::AbstractDimArrayGenerator)::Tuple{Vararg{Dimension}} = dg.dims
@@ -30,16 +28,14 @@ end
     rebuild(A; dims=dims(dims(A), Tuple(perm)))
 end
 
-"""
-    AbstractRebuildableDimArrayGenerator <: AbstractDimArrayGenerator
+# AbstractRebuildableDimArrayGenerator <: AbstractDimArrayGenerator
 
-Abstract supertype for all AbstractDimArrayGenerator that
-can be rebuilt when subsetted with `view` or `getindex`.
+# Abstract supertype for all AbstractDimArrayGenerator that
+# can be rebuilt when subsetted with `view` or `getindex`.
 
-These arrays must have `dims` and `refdims` fields that defined the data
-They do not need to define `rebuildsliced` methods as this is defined
-as simply doing `slicedims` on `dims` and `refdims` and rebuilding.
-"""
+# These arrays must have `dims` and `refdims` fields that defined the data
+# They do not need to define `rebuildsliced` methods as this is defined
+# as simply doing `slicedims` on `dims` and `refdims` and rebuilding.
 abstract type AbstractRebuildableDimArrayGenerator{T,N,D,R<:MaybeDimTuple} <: AbstractDimArrayGenerator{T,N,D} end
 
 refdims(A::AbstractRebuildableDimArrayGenerator) = A.refdims
@@ -366,7 +362,7 @@ const SliceDim = Dimension{<:Union{<:AbstractVector{Int},<:AbstractVector{<:Abst
 
 A `Base.Slices` like object for returning view slices from a DimArray.
 
-This is used for `eachslice` on stacks.
+This is used for `eachslice` on `AbstractDimStack`.
 
 `dims` must be a `Tuple` of `Dimension` holding `AbstractVector{Int}`
 or `AbstractVector{<:AbstractVector{Int}}`.
