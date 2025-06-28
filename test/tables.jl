@@ -230,6 +230,10 @@ end
             for table in (t1, t3)
                 da = DimArray(table)
                 @test parent(da[X = At(100:-1:1), Y = At(-250:5:249)]) == parent(a)
+                ds_ = DimStack(table)
+                @test keys(ds_) == (:a, :b, :c)
+                @test parent(ds_.a[X = At(100:-1:1), Y = At(-250:5:249)]) == parent(a)
+ 
             end
         end
 
