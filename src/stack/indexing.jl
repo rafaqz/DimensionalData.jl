@@ -2,7 +2,7 @@
 
 #### getindex ####
 #
-function _maybe_extented_layers(s)
+function _maybe_extended_layers(s)
     if hassamedims(s)
         values(s)
     else
@@ -31,7 +31,7 @@ end
 Base.@assume_effects :effect_free @propagate_inbounds function Base.getindex(
     s::AbstractDimStack{<:Any,T}, i::Union{AbstractArray,Colon}
 ) where {T}
-    ls = _maybe_extented_layers(s)
+    ls = _maybe_extended_layers(s)
     inds = to_indices(first(ls), (i,))[1]
     out = similar(inds, T)
     for (i, ind) in enumerate(inds)
@@ -81,11 +81,6 @@ for f in (:getindex, :view, :dotview)
             I = to_indices(CartesianIndices(s), Lookups._construct_types(i1, i2, Is...))
             # Check we have the right number of dimensions
             if length(dims(s)) > length(I)
-        @propagate_inbounds function $_dim_f(
-            A::AbstractDimStack, a1::Union{Dimension,DimensionIndsArrays}, args::Union{Dimension,DimensionIndsArrays}...
-        )
-            return merge_and_index(Base.$f, A, (a1, args...))
-        end
                 throw(BoundsError(dims(s), I))
             elseif length(dims(s)) < length(I)
                 # Allow trailing ones
@@ -150,6 +145,9 @@ for f in (:getindex, :view, :dotview)
     end
 end
 
+@generated function _any_dimarray(v::Union{NamedTuple,Tuple})
+    any(T -> T <: AbstractDimArray, v.types)
+end
 
 #### setindex ####
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs, I...; kw...) =
@@ -160,22 +158,22 @@ end
     hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
 @propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::AbstractArray; kw...) =
     hassamedims(s) ? _map_setindex!(s, xs, i; kw...) : _setindex_mixed!(s, xs, i; kw...)
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, i::DimensionIndsArrays; kw...) =
+    _map_setindex!(s, xs, i; kw...)
+@propagate_inbounds Base.setindex!(s::AbstractDimStack, xs::NamedTuple, I...; kw...) =
+    _map_setindex!(s, xs, I...; kw...)
 
-@propagate_inbounds function Base.setindex!(
-    s::AbstractDimStack, xs::NamedTuple, I...; kw...
-)
-    map((A, x) -> setindex!(A, x, I...; kw...), layers(s), xs)
-end
+_map_setindex!(s, xs, i...; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
 
-_map_setindex!(s, xs, i; kw...) = map((A, x) -> setindex!(A, x, i...; kw...), layers(s), xs)
-
-_setindex_mixed!(s::AbstractDimStack, x, i::AbstractArray) =
+_setindex_mixed!(s::AbstractDimStack, x::NamedTuple, i::AbstractArray) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
-_setindex_mixed!(s::AbstractDimStack, i::Integer) =
+_setindex_mixed!(s::AbstractDimStack, x::NamedTuple, i::Integer) =
     map(A -> setindex!(A, x, DimIndices(dims(s))[i]), layers(s))
-function _setindex_mixed!(s::AbstractDimStack, x, i::Colon)
+function _setindex_mixed!(s::AbstractDimStack, x::NamedTuple, i::Colon)
     map(DimIndices(dims(s))) do D
-        map(A -> setindex!(A, D), x, layers(s))
+        map(layers(s), x) do A, x
+            A[D] = x
+        end
     end
 end
 
@@ -196,7 +194,7 @@ function merge_and_index(f, s::AbstractDimStack, ds)
     end
     mdim = only(mergedims(dims(V),  dims(V)))
     newlayers = map(layers(V)) do l
-        l1 = all(hasdim(l, dims(V))) ? l : DimExtension(l, dims(V))
+        l1 = all(hasdim(l, dims(V))) ? l : DimExtensionArray(l, dims(V))
         view(l1, inds)
     end
     return rebuild_from_arrays(s, newlayers)

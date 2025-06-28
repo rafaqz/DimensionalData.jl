@@ -38,10 +38,10 @@ end
 function print_branch(io, branch::AbstractDimTree, key::Symbol; tab="  ", indent="    ")
     pkey = ":" * rpad(key, _keylen(keys(branch)))
     print(io, tab)
-    printstyled(io, pkey, color=dimcolors(7))
+    printstyled(io, pkey, color=dimcolor(7))
     field_dims = DD.dims(branch)
     if !isempty(field_dims)
-        colors = map(dimcolors, eachindex(field_dims))
+        colors = map(dimcolor, eachindex(field_dims))
         printstyled(io, " dims: "; color=:light_black)
         for (i, (dim, color)) in enumerate(zip(field_dims, colors))
             Dimensions.print_dimname(IOContext(io, :dimcolor => color), dim)
@@ -51,7 +51,7 @@ function print_branch(io, branch::AbstractDimTree, key::Symbol; tab="  ", indent
         print_sizes(io, size(field_dims); colors)
         if !isempty(keys(branch))
             printstyled(io, " layers: "; color=:light_black)
-            printstyled(io, join(map(k -> string(":", k), keys(branch)), ", "); color=dimcolors(7))
+            printstyled(io, join(map(k -> string(":", k), keys(branch)), ", "); color=dimcolor(7))
         end
     end
     # Print the branches of the branch

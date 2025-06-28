@@ -33,7 +33,7 @@ function (::Type{T})(stack::AbstractDimStack;
     T(data, dims(stack); metadata, layerdims, layermetadata, kw...)
 end
 
-data(dt::AbstractDimTree) = getfield(dt, :data)
+data(dt::AbstractDimTree) = getfield(dt, :data)::DataDict
 data(dt::AbstractDimTree, key::Symbol) = data(dt)[key]
 tree(dt::AbstractDimTree) = getfield(dt, :tree)
 branches(dt::AbstractDimTree) = getfield(dt, :branches)
@@ -86,7 +86,7 @@ function Base.copy(dt::AbstractDimTree)
         layerdims=copy(layerdims(dt)),
         layermetadata=copy(layermetadata(dt)),
         branches=copy(branches(dt)),
-        tree=isnothing(getfield(dt, :tree)) ? nothing : copy(getfield(dt, :tree)),
+        tree=(t = getfield(dt, :tree); isnothing(t) ? t : copy(t))
     )
 end
 # If we select a single name we get a DimArray
@@ -103,8 +103,8 @@ Base.get(dt::AbstractDimTree, name::Symbol, default) =
 Base.get(f::Base.Callable, dt::AbstractDimTree, name::Symbol) =
     haskey(dt, name) ? dt[name] : f()
 function Base.filter!(pred, dt::AbstractDimTree)
-    for p in pairs(dt)
-        pred(p) || delete!(dt, k)
+    for (k, v) in pairs(dt)
+        pred(v) || delete!(dt, k)
     end
 end
 function Base.get!(f::Base.Callable, dt::AbstractDimTree, name::Symbol)
@@ -370,14 +370,14 @@ layers with different resolutions, for example.
 ## Example
 
 ```julia
-xdim, ydim = X(1:10), Y(1:15), 
+xdim, ydim = X(1:10), Y(1:15)
 z1, z2 = Z([:a, :b, :c]), Z([:d, :e, :f])
 a = rand(xdim, ydim)
 b = rand(Float32, xdim, ydim)
 c = rand(Int, xdim, ydim, z1)
 d = rand(Int, xdim, z2)
 DimTree(a, b)
-````
+```
 """
 @kwdef mutable struct DimTree <: AbstractDimTree
     data::DataDict = DataDict()
