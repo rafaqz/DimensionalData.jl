@@ -330,10 +330,9 @@ for DD in (AbstractDimVector, AbstractDimMatrix, AbstractDimArray{<:Any,3}, DimP
     end)
 end
 
-Makie.used_attributes(::Type{Series}, A::DD.AbstractDimMatrix) = (:labeldim,)
-Makie.used_attributes(::Type{<:Union{Contour, Contourf, Contour3d, Image, Heatmap, Surface}}, A::DD.AbstractDimMatrix) = (:x, :y)
-Makie.used_attributes(::ImageLike, A::DD.AbstractDimMatrix) = (:x, :y)
-Makie.used_attributes(::Type{Spy}, A::DD.AbstractDimMatrix) = (:x, :y)
+Makie.used_attributes(::Type{<:Series}, A::DD.AbstractDimMatrix) = (:labeldim,)
+Makie.used_attributes(::Type{<:Union{Contour, Contourf, Contour3d, Image, Heatmap, Surface, Spy}}, A::DD.AbstractDimMatrix) = (:x, :y)
+Makie.used_attributes(::Type{<:Spy}, A::DD.AbstractDimMatrix) = (:x, :y)
 Makie.used_attributes(::Type{<:Union{VolumeSlices, Volume}}, A::DD.AbstractDimArray{<:Any, 3}) = (:x, :y, :z)
 
 function Makie.convert_arguments(P::Type{T}, A::AbstractDimMatrix; x = nothing , y = nothing) where T<:Union{Contour, Contourf, Surface, Contour3d}
@@ -366,13 +365,14 @@ function Makie.convert_arguments(t::Makie.PointBased, A::DimPoints{<:Any,1})
     return Makie.convert_arguments(t, collect(A))
 end
 
-function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimVector)
+function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimArray)
     xs = parent(lookup(A, 1)) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
-function Makie.convert_arguments(P::Type{Makie.RainClouds}, A::AbstractDimVector)
+function Makie.convert_arguments(P::Type{Makie.RainClouds}, A::AbstractDimArray)
     xs = parent(lookup(A, 1)) |> get_number_version
+    @show size(xs)
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -395,8 +395,8 @@ function Makie.convert_arguments(
     P::Type{Heatmap}, A::AbstractDimMatrix; x = nothing, y = nothing)
     dims_axes = get_dimensions_of_makie_axis(A, (x, y))
     xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
-
-    return Makie.convert_arguments(P, xlookup, ylookup, parent(permutedims(A, (dims_axes[1], dims_axes[2]))))
+    z = parent(permutedims(A, (dims_axes[1], dims_axes[2])))
+    return Makie.convert_arguments(P, xlookup, ylookup, z)
 end
 
 # VolumeLike is for e.g. volume, volumeslices, etc. It uses a regular grid.
@@ -553,8 +553,9 @@ function _lookup_to_interval(l)
     elseif ispoints(l)
         set(l, Intervals()) # this sets the intervals to be `Intervals(Center())` by default.  Same as heatmap behaviour.
     else # isintervals(l)
-        l
+        (l)
     end
-    return IntervalSets.Interval(bounds(l1)...)
+    # @show l1
+    return IntervalSets.Interval(extrema(get_number_version(l1))...)
 end
 end
