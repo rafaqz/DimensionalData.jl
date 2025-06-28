@@ -1,4 +1,4 @@
-using DimensionalData.Dimensions: dimcolors, dimsymbols, print_dims
+using DimensionalData.Dimensions: dimcolor, dimsymbol, print_dims
 
 # Base show
 function Base.summary(io::IO, A::AbstractBasicDimArray{T,N}) where {T,N}
@@ -9,11 +9,15 @@ end
 
 # Fancy show for text/plain
 function Base.show(io::IO, mime::MIME"text/plain", A::AbstractBasicDimArray{T,N}) where {T,N}
-    lines, blockwidth = show_main(io, mime, A::AbstractBasicDimArray)
+    lines, blockwidth, istop = show_main(io, mime, A::AbstractBasicDimArray)
     # Printing the array data is optional, subtypes can
     # show other things here instead.
     ds = displaysize(io)
-    ctx = IOContext(io, :blockwidth => blockwidth, :displaysize => (ds[1] - lines, ds[2]))
+    ctx = IOContext(io, 
+        :blockwidth => blockwidth, 
+        :displaysize => (ds[1] - lines, ds[2]), 
+        :isblocktop => istop
+    )
     show_after(ctx, mime, A)
     return nothing
 end
@@ -28,7 +32,7 @@ Base.print_matrix(io::IO, A::AbstractBasicDimArray) =
     show_main(io::IO, mime, A::AbstractDimArray)
     show_main(io::IO, mime, A::AbstractDimStack)
 
-Interface methods for adding the main part of `show`
+Interface methods for adding the main part of `show`.
 
 At the least, you likely want to call:
 
@@ -36,12 +40,23 @@ At the least, you likely want to call:
 print_top(io, mime, A)
 ```
 
+`show_main` will also call `print_metadata_block`.
+
 But read the DimensionalData.jl `show.jl` code for details.
 """
-function show_main(io, mime, A::AbstractBasicDimArray)
-    lines_t, blockwidth, displaywidth = print_top(io, mime, A)
-    lines_m, blockwidth = print_metadata_block(io, mime, metadata(A); blockwidth, displaywidth)
-    return lines_t + lines_m, blockwidth
+function show_main(io, mime, A::AbstractBasicDimArray;
+    blockwidth=0,
+    displaywidth=displaysize(io)[2],
+)
+    iobuf = IOBuffer()
+    _, blockwidth, _ = print_metadata_block(iobuf, mime, metadata(A); 
+        blockwidth, displaywidth,
+    )
+    lines_t, blockwidth, displaywidth, separatorwidth, istop = print_top(io, mime, A; blockwidth, displaywidth)
+    lines_m, blockwidth, stilltop = print_metadata_block(io, mime, metadata(A); 
+        blockwidth, displaywidth, separatorwidth, istop
+    )
+    return lines_t + lines_m, blockwidth, stilltop
 end
 
 """
@@ -82,7 +97,7 @@ function show_after(io::IO, mime, A::AbstractBasicDimArray)
 end
 
 function print_ndims(io, size::Tuple;
-    colors=map(dimcolors, ntuple(identity, length(size)))
+    colors=map(dimcolor, ntuple(identity, length(size)))
 )
     if length(size) > 1
         print_sizes(io, size; colors)
@@ -97,20 +112,23 @@ end
 print_type(io, x::AbstractArray{T,N}) where {T,N} = print(io, string(nameof(typeof(x)), "{$T, $N}"))
 print_type(io, x) = print(io, string(nameof(typeof(x))))
 
-function print_top(io, mime, A)
-    _, displaywidth = displaysize(io)
-    blockwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
+function print_top(io, mime, A; 
+    blockwidth::Int=0,
+    displaywidth::Int=displaysize(io)[2],
+)
+    separatorwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
+    blockwidth = max(blockwidth, separatorwidth)
     printstyled(io, "┌ "; color=:light_black)
     summary(io, A)
     printstyled(io, " ┐"; color=:light_black)
     println(io)
-    n, blockwidth = print_dims_block(io, mime, dims(A); displaywidth, blockwidth)
+    n, blockwidth, separatorwidth, istop = print_dims_block(io, mime, dims(A); displaywidth, blockwidth, separatorwidth)
     lines = 2 + n
-    return lines, blockwidth, displaywidth
+    return lines, blockwidth, displaywidth, separatorwidth, istop
 end
 
 function print_sizes(io, size;
-    colors=map(dimcolors, ntuple(identity, length(size)))
+    colors=map(dimcolor, ntuple(identity, length(size)))
 )
     if !isempty(size)
         foreach(enumerate(size[1:end-1])) do (n, s)
@@ -121,63 +139,67 @@ function print_sizes(io, size;
     end
 end
 
-function print_dims_block(io, mime, dims; displaywidth, blockwidth, label="dims", kw...)
+function print_dims_block(io, mime, dims; 
+    displaywidth, blockwidth, separatorwidth, label="dims", istop=true, kw...
+)
     lines = 0
     if isempty(dims)
         printed = false
-        new_blockwidth = blockwidth
+        new_separatorwidth = separatorwidth
+        new_blockwidth = max(blockwidth, separatorwidth)
     else
         ctx = IOContext(io, :compact => true, :dim_brackets => false)
-        new_blockwidth = 100
         printed=false
-        dim_width = maximum(textwidth, split(sprint(print_dims, mime, dims; context=ctx), '\n'))
+        dim_width = maximum(textwidth, split(sprint(print_dims, mime, dims), '\n'))
         new_blockwidth = max(blockwidth, min(displaywidth - 2, dim_width))
-        lines += print_block_top(ctx, label, blockwidth, new_blockwidth)
+        new_separatorwidth = print_block_separator(ctx, label, separatorwidth, new_blockwidth; istop)
+        println(io)
         lines += print_dims(ctx, mime, dims; kw...)
         println(io)
-        lines += 1
+        lines += 3
         printed = true
+        new_separatorwidth = new_blockwidth = max(new_blockwidth, new_separatorwidth)
     end
-    return lines, new_blockwidth, printed
+    return lines, new_blockwidth, new_separatorwidth, !printed
 end
 
-function print_metadata_block(io, mime, metadata; blockwidth=0, displaywidth)
+function print_metadata_block(io, mime, metadata; 
+    blockwidth=0, displaywidth, separatorwidth=blockwidth, istop=false
+)
     lines = 0
-    if metadata isa NoMetadata
+    if metadata isa NoMetadata || isempty(metadata)
         new_blockwidth = blockwidth
+        stilltop=istop
     else
         metadata_lines = split(sprint(show, mime, metadata), "\n")
         new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, metadata_lines) + 4))
-        new_blockwidth = print_block_separator(io, "metadata", blockwidth, new_blockwidth)
+        new_blockwidth = print_block_separator(io, "metadata", separatorwidth, new_blockwidth; istop)
         println(io)
         print(io, "  ")
         show(io, mime, metadata)
         println(io)
         lines += length(metadata_lines) + 2
+        stilltop=false
     end
-    return lines, new_blockwidth
+    return lines, new_blockwidth, stilltop
 end
 
 # Block lines
-
-function print_block_top(io, label, prev_width, new_width)
-    corner = (new_width > prev_width) ? '┐' : '┤'
-    top_line = if new_width > prev_width
-        string(
-            '├', '─'^(prev_width), '┴',
-            '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)),
-            ' ', label, ' ', corner
-        )
-    else
-        string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
+function print_block_separator(io, label, prev_width, new_width=prev_width; istop=false)
+    if istop
+        corner = (new_width > prev_width) ? '┐' : '┤'
+        top_line = if new_width > prev_width
+            string(
+                '├', '─'^(prev_width), '┴',
+                '─'^max(0, (new_width - textwidth(label) - 3 - prev_width)),
+                ' ', label, ' ', corner
+            )
+        else
+            string('├', '─'^max(0, new_width - textwidth(label) - 2), ' ', label, ' ', corner)
+        end
+        printstyled(io, top_line; color=:light_black)
+        return length(top_line) - 2
     end
-    printstyled(io, top_line; color=:light_black)
-    println(io)
-    lines = 1
-    return lines
-end
-
-function print_block_separator(io, label, prev_width, new_width=prev_width)
     if new_width > prev_width
         line = string('├', '─'^max(0, prev_width), '┴', '─'^max(0, new_width - prev_width - textwidth(label) - 3) )
         corner = '┐'
@@ -223,12 +245,12 @@ end
 
 function _print_indices_vec(io, o...)
     print(io, "[")
-    printstyled(io, ":"; color=dimcolors(1))
+    printstyled(io, ":"; color=dimcolor(1))
     print(io, ", ")
-    printstyled(io, ":"; color=dimcolors(2))
+    printstyled(io, ":"; color=dimcolor(2))
     foreach(enumerate(o)) do (i, fi)
         print(io, ", ")
-        printstyled(io, fi; color=dimcolors(i + 2))
+        printstyled(io, fi; color=dimcolor(i + 2))
     end
     println(io, "]")
 end
@@ -239,7 +261,7 @@ end
 # print a name of something, in yellow
 function print_name(io::IO, name)
     if !(name == Symbol("") || name isa NoName)
-        printstyled(io, string(" ", name); color=dimcolors(7))
+        printstyled(io, string(" ", name); color=dimcolor(7))
     end
 end
 
@@ -251,15 +273,15 @@ struct ShowWith <: AbstractString
 end
 ShowWith(val; mode=:nothing, color=:light_black) = ShowWith(val, mode, color)
 
-showrowlabel(x) = ShowWith(x, :nothing, dimcolors(1))
-showcollabel(x) = ShowWith(x, :nothing, dimcolors(2))
+showrowlabel(x) = ShowWith(x, :nothing, dimcolor(1))
+showcollabel(x) = ShowWith(x, :nothing, dimcolor(2))
 showarrows() = ShowWith(1.0, :print_arrows, :nothing)
 
 function Base.show(io::IO, mime::MIME"text/plain", x::ShowWith; kw...)
     if x.mode == :print_arrows
-        printstyled(io, dimsymbols(1); color=dimcolors(1))
+        printstyled(io, dimsymbol(1); color=dimcolor(1))
         print(io, " ")
-        printstyled(io, dimsymbols(2); color=dimcolors(2))
+        printstyled(io, dimsymbol(2); color=dimcolor(2))
     else
         s = sprint(show, mime, x.val; context=io, kw...)
         printstyled(io, s; color=x.color)

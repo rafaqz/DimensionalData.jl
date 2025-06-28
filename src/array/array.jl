@@ -1,4 +1,5 @@
 const IDim = Dimension{<:StandardIndices}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 
 """
     AbstractBasicDimArray <: AbstractArray
@@ -8,7 +9,7 @@ returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
-abstract type AbstractBasicDimArray{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractArray{T,N} end
+abstract type AbstractBasicDimArray{T,N,D<:MaybeDimTuple} <: AbstractArray{T,N} end
 
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
@@ -94,10 +95,27 @@ metadata(A::AbstractDimArray) = A.metadata
 
 layerdims(A::AbstractDimArray) = basedims(A)
 
-@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+"""
+    rebuildsliced(f::Function, A::AbstractBasicDimArray, I)
+
+Rebuild `AbstractDimArray` where `f` is `getindex` , `view` or `dotview`.
+
+This does not need to be defined for `AbstractDimArray`, as `f`
+is simply called on the parent array, dims and refdims are sliced with `slicedims`, 
+and `rebuild` is called.
+
+However for custom `AbstractBasicDimArray`, `rebuildsliced` methods are needed
+to define slicing behavior, as there not be a parent array.
+"""
+@propagate_inbounds rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
-    rebuild(A, data, slicedims(f, A, I1)..., name)
+    data = f(parent(A), I1...)
+    return rebuildsliced(f, A, data, I1, name)
+end
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
+    return rebuild(A, data, slicedims(f, A, I1)..., name)
 end
 
 # Array interface methods ######################################################
@@ -107,6 +125,7 @@ Base.axes(A::AbstractDimArray) = map(Dimensions.DimUnitRange, axes(parent(A)), d
 Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
+Base.parentindices(A::AbstractDimArray) = parentindices(parent(A))
 Base.vec(A::AbstractDimArray) = vec(parent(A))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
@@ -171,14 +190,6 @@ end
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
-Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}; kw...) =
-    similar(A, eltype(A), (i, I...); kw...)
-Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
-    similar(A, eltype(A), I; kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
-    similar(A, T, (i, I...); kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
-    similar(parent(A), T, I)
 
 const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 # when all axes are DimUnitRanges we can return an `AbstractDimArray`
@@ -257,14 +268,27 @@ function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
 end
 
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, D::Dimension...; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...; kw...) where T =
-    Base.similar(A, T, D; kw...) 
+Base.similar(A::AbstractBasicDimArray, d1::Dimension, D::Dimension...; kw...) =
+    Base.similar(A, eltype(A), (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, d1::Dimension, D::Dimension...; kw...) where T =
+    Base.similar(A, T, (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = 
+    Base.similar(A, eltype(A), D; kw...) 
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::DimTuple; kw...) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, D; kw...)
+end
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Tuple{};
+    refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
+) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, (); refdims, name, metadata, kw...)
+end
+
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    data = similar(parent(A), T, _dimlength(D))
+    data = _arraytype(T)(undef, _dimlength(D))
     dims = _maybestripval(D)
     return rebuild(A; data, dims, refdims, metadata, name, kw...)
 end
@@ -274,6 +298,20 @@ function Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{};
     data = similar(parent(A), T, ())
     rebuild(A; data, dims=(), refdims, metadata, name, kw...)
 end
+
+Base.similar(A::AbstractBasicDimArray, shape::Int...; kw...) =
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, shape::Tuple{Vararg{Int}}; kw...) = 
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Int...; kw...) where T =
+    similar(A, T, shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    _arraytype(T)(undef, shape)
+Base.similar(A::AbstractDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    similar(parent(A), T, shape)
+
+_arraytype(::Type{T}) where T = Array{T}
+_arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
@@ -404,17 +442,17 @@ julia> A = DimArray(rand(12,10), (ti, x), name="example");
 
 julia> A[X(Near([12, 35])), Ti(At(DateTime(2001,5)))]
 ┌ 2-element DimArray{Float64, 1} example ┐
-├────────────────────────────────────────┴────────────── dims ┐
+├────────────────────────────────────────┴──────────────── dims ┐
   ↓ X Sampled{Int64} [10, 40] ForwardOrdered Irregular Points
-└─────────────────────────────────────────────────────────────┘
+└───────────────────────────────────────────────────────────────┘
  10  0.253849
  40  0.637077
 
 julia> A[Near(DateTime(2001, 5, 4)), Between(20, 50)]
 ┌ 4-element DimArray{Float64, 1} example ┐
-├────────────────────────────────────────┴──────────── dims ┐
+├────────────────────────────────────────┴────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:50 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
  20  0.774092
  30  0.823656
  40  0.637077
@@ -426,10 +464,10 @@ Generator expression:
 ```jldoctest dimarray
 julia> DimArray((x, y) for x in X(1:3), y in Y(1:2); name = :Value)
 ┌ 3×2 DimArray{Tuple{Int64, Int64}, 2} Value ┐
-├────────────────────────────────────────────┴──── dims ┐
+├────────────────────────────────────────────┴───── dims ┐
   ↓ X Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 1:2 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────┘
  ↓ →  1        2
  1     (1, 1)   (1, 2)
  2     (2, 1)   (2, 2)
@@ -625,10 +663,10 @@ julia> rand(Bool, X(2), Y(4))
 
 julia> rand(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0       150.0       200.0
   :a    0.443494    0.253849    0.867547
   :b    0.745673    0.334152    0.0802658
@@ -666,10 +704,10 @@ julia> zeros(Bool, X(2), Y(4))
 
 julia> zeros(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0  150.0  200.0
   :a    0.0    0.0    0.0
   :b    0.0    0.0    0.0
@@ -708,10 +746,10 @@ julia> ones(Bool, X(2), Y(4))
 
 julia> ones(X([:a, :b, :c]), Y(100.0:50:200.0))
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────── dims ┐
-  ↓ X Categorical{Symbol} [:a, :b, :c] ForwardOrdered,
+├──────────────────────────┴───────────────────────────────────── dims ┐
+  ↓ X Categorical{Symbol} [:a, …, :c] ForwardOrdered,
   → Y Sampled{Float64} 100.0:50.0:200.0 ForwardOrdered Regular Points
-└─────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────────┘
  ↓ →  100.0  150.0  200.0
   :a    1.0    1.0    1.0
   :b    1.0    1.0    1.0
@@ -838,13 +876,13 @@ placed at the end of `dims_new`. `others` contains other dimension pairs to be m
 julia> using DimensionalData
 
 julia> ds = (X(0:0.1:0.4), Y(10:10:100), Ti([0, 3, 4]))
-(↓ X  0.0:0.1:0.4,
-→ Y  10:10:100,
-↗ Ti [0, 3, 4])
+(↓ X 0.0:0.1:0.4,
+→ Y 10:10:100,
+↗ Ti [0, …, 4])
 
 julia> mergedims(ds, (X, Y) => :space)
-(↓ Ti    [0, 3, 4],
-→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), (0.1, 10), …, (0.3, 100), (0.4, 100)] (↓ X, → Y))
+(↓ Ti [0, …, 4],
+→ space MergedLookup{Tuple{Float64, Int64}} [(0.0, 10), …, (0.4, 100)] (↓ X, → Y))
 ```
 """
 function mergedims(x, dt1::Tuple, dts::Tuple...)

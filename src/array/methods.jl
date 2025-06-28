@@ -90,7 +90,7 @@ end
 function Base.dropdims(A::AbstractDimArray; dims)
     dims = DD.dims(A, dims)
     data = Base.dropdims(parent(A); dims=dimnum(A, dims))
-    rebuildsliced(A, data, _dropinds(A, dims))
+    rebuildsliced(view, A, data, _dropinds(A, dims))
 end
 
 @inline _dropinds(A, dims::Tuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
@@ -421,7 +421,7 @@ function _check_cat_lookups(D, ::Regular, lookups...)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
             return false
         end
-        if !(lastval + s ≈ first(l))
+        if !(s isa Dates.AbstractTime) && !(lastval + s ≈ first(l))
             @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $s ≈ $(first(l)) should hold")
             return false
         end
@@ -582,7 +582,8 @@ end
     r = axes(A)
     # Copied from Base.diff
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
-    rebuildsliced(A, diff(parent(A); dims=dimnum(A, dims)), r0)
+    data = diff(parent(A); dims=dimnum(A, dims))
+    rebuildsliced(getindex, A, data, r0)
 end
 
 # Forward `replace` to parent objects
