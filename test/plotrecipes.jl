@@ -1,18 +1,17 @@
 @safetestset "Plots.jl" begin
 
+using Plots
+using StatsPlots
 using DimensionalData, Test, Dates
-using Unitful
 import Distributions
+using Unitful, Unitful.DefaultSymbols
+
+@testset "Plots.jl" begin
+
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
-
-
-@testset "Plots.jl" begin
-
-using Plots
-using StatsPlots
 
 A1 = rand(Distributions.Normal(), 20)
 ref = (Ti(Sampled(1:1; order=ForwardOrdered(), span=Regular(Day(1)), sampling=Points())),)
@@ -105,7 +104,7 @@ da3_noindex = DimArray(A3, (X(), Y(), Z()); name=:Normal)
 da3_ni_r_ni = DimArray(A3, (X(), Y(1:5:100), Z()); name=:Normal)
 da3_c_c_c = DimArray(A3, (X('A':'h'), Y('a':'t'), Z('0':'9')); name=:Normal)
 da3_XYZ = DimArray(A3, (X(1:10:400), Y(1:5:100), Z(1:10:100)); name=:Normal)
-da3_XTiZ = DimArray(A3, (X(1:10:400), Ti(1u"s":5u"s":100u"s"), Z(1:10:100)); name=:Normal)
+da3_XTiZ = DimArray(A3, (X(1:10:400), Ti(1s:5s:100s), Z(1:10:100)); name=:Normal)
 da3_other = DimArray(A3, (X=1:10:400, other=1:5:100, anothing=NoLookup()); name=:Normal)
 da3 = da3_other
 da3 = da3_XYZ
@@ -166,14 +165,14 @@ end
 # da_im2 |> plot
 
 end
-end
+end #  end of plots tests
 
-# @safetestset "Makie" begin
+@safetestset "Makie" begin
 using DimensionalData, Test, Dates
 using AlgebraOfGraphics
 using CairoMakie
 using ColorTypes
-using Unitful
+using Unitful, Unitful.DefaultSymbols
 import Distributions
 import DimensionalData as DD
 
@@ -181,15 +180,12 @@ import DimensionalData as DD
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
     Sampled, Categorical, NoLookup, Transformed,
     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
-# using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
-#     Sampled, Categorical, NoLookup, Transformed,
-#     Regular, Irregular, Explicit, Points, Intervals, Start, Center, End
 
 @testset "1D plots" begin 
     dd_vec = DimArray((1:5).^2, Ti(1:5), name=:test)
     dd_range = DimArray(1:5, Ti(1:5), name=:test) # test for #949
     dd_vec_mis = DimArray([missing, 2, 3, 4, 5], Ti('A':'E'), name= "test")
-    dd_vec_uni = DimArray(.√(1:5) .* u"m", Ti((1:5) .* u"F"), name= "test")
+    dd_vec_uni = DimArray(.√(1:5) .* m, Ti((1:5) .* F), name= "test")
 
     fig = Figure()
     @test_throws MethodError lines(fig, dd_vec) # error as in lines(fig, 1:10)
@@ -210,8 +206,8 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
                 x = parent(lookup(to_value(dd_i), 1))
                 y = collect(parent(to_value(dd_i)))
                 fig, ax, plt = plot_i(obs(dd_i))
-                @test all(first.(plt[1][]) .== ustrip(x)) 
-                @test all(last.(plt[1][]) .== ustrip(y))
+                @test all(first.(plt[1][]) .== ustrip.(x)) 
+                @test all(last.(plt[1][]) .== ustrip.(y))
                 @test ax.xlabel[] == "Time"
                 @test ax.ylabel[] == "test"
                 @test plt.label[] == "test"
@@ -289,8 +285,8 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             x = parent(lookup(to_value(dd_vec), 1))
             y = collect(parent(to_value(dd_vec)))
             fig, ax, plt = plot_i(obs(dd_vec))
-            @test all(plt[1][] .== ustrip(x)) 
-            @test all(plt[2][] .== ustrip(y))
+            @test all(plt[1][] .== ustrip.(x)) 
+            @test all(plt[2][] .== ustrip.(y))
             @test ax.xlabel[] == "Time"
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
@@ -314,7 +310,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     x = Observable(X(collect(1:5)))
     y = Observable(11:15)
     label = Observable("test")
-    dd_vec = @lift DimArray($y, ($x,); name = $label)
+    dd_vec = lift((x, y, label) -> DimArray(y, (x,); name = label), x, y, label)
     fig, ax, plt = lines(dd_vec)
     @test all(first.(plt[1][]) .== x[])
     @test all(last.(plt[1][]) .== y[])
@@ -333,7 +329,7 @@ end
     dd_mat_cat = DimArray(rand(2, 3), (Y('a':'b'), X(1:3)); name = :test)
     dd_mat_sym = DimArray(rand(2, 3), (Y(Symbol.('a':'b')), X(1:3)); name = :test)
     dd_mat_num = DimArray(rand(2, 3), (Y(1:2), X(1:3)); name = :test)
-    dd_mat_uni = DimArray(rand(2, 3) .* u"m", (Y((1:2) .* u"s"), X((1:3) .* u"F")); name = :test)
+    dd_mat_uni = DimArray(ones(2, 3) .* m, (Y((1:2) .* s), X((1:3) .*  F)); name = :test)
 
     fig = Figure()
     @test_throws MethodError series(fig, dd_mat_cat) # as lines(fig, 1:10)
@@ -341,18 +337,16 @@ end
     @test_throws ErrorException series(fig[1,1], dd_mat_cat)
     series!(ax, dd_mat_cat)
     
-    for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_sym) 
+    for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_sym, dd_mat_uni) 
         fig, ax, plt = series(dd_i)
         @test plt.label[] == "test"
         @test ax.ylabel[] == "test"
         @test ax.xlabel[] == "X"
-        @test all(first.(plt[1][][1]) .== lookup(dd_i, X))
-        @test all(first.(plt[1][][2]) .== lookup(dd_i, X))
-        @test all(last.(plt[1][][1]) .== dd_i[1,:])
-        @test all(last.(plt[1][][2]) .== dd_i[2,:])
+        @test all(first.(plt[1][][1]) .== ustrip.(lookup(dd_i, X)))
+        @test all(first.(plt[1][][2]) .== ustrip.(lookup(dd_i, X)))
+        @test all(last.(plt[1][][1]) .== ustrip.(dd_i[1,:]))
+        @test all(last.(plt[1][][2]) .== ustrip.(dd_i[2,:]))
     end
-
-    @test series(dd_mat_uni) broken = true # Does not work because of issue #4946 of Makie
 
     # Check that colors are resampled if categorical size is bigger than the default colormap size
     dd_big = rand(X(10), Y(10))
@@ -385,7 +379,7 @@ end
     y = Observable(Y('A':'B'))
     z = Observable(rand(5, 2))
     label = Observable("test")
-    dd_mat = @lift DimArray($z, ($x, $y); name = $label)
+    dd_mat = lift((x,y,z,label) -> DimArray(z, (x, y); name = label), x, y, z, label)
 
     fig, ax, plt = series(dd_mat)
     @test all(first.(plt[1][][1]) .== lookup(dd_mat[], X))
@@ -421,15 +415,15 @@ end
     y = 10:20
     dd_mat = DimArray( x.^1/2 .+ 0y'.^1/3, (X(x), Y(y)), name=:test)
     dd_mat_perm = DimArray( x.^1/2 .+ 0y'.^1/3, (Y(x), X(y)), name=:test)
-    dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* u"Ω", (Y(x .* u"m"), X(y .* u"s")), name=:test)
+    dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* F, (Y(x .* m), X(y .* s)), name=:test)
     dd_mat_char = DimArray( x.^1/2 .+ 0y'.^1/3, (Y('a':'e'), X(y)), name=:test)
     dd_mat_sym = DimArray( x.^1/2 .+ 0y'.^1/3, (Y(Symbol.('a':'e')), X(y)), name=:test)
 
     fig = Figure()
     @test_throws MethodError contour(fig, dd_mat) # as lines(fig, 1:10)
     ax, plt = contour(fig[1,1], dd_mat)
-    @test_throws ErrorException contour(fig[1,1], dd_mat)
     contourf!(ax, dd_mat)
+    @test_throws ErrorException contour(fig[1,1], dd_mat)
 
     fig, ax, plt = contour(dd_mat)
     for dd_i in (dd_mat, dd_mat_perm)
@@ -449,8 +443,8 @@ end
         for obs_i in (Observable, identity)
             for plt_i in (image, spy)
                 fig, ax, plt = plt_i(dd_i)
-                @test plt[1][] == extrema(lookup(to_value(dd_i), X)) .+ (-.5, .5)
-                @test plt[2][] == extrema(lookup(to_value(dd_i), Y)) .+ (-.5, .5)
+                @test plt[1][] == extrema(lookup(to_value(dd_i), X))
+                @test plt[2][] == extrema(lookup(to_value(dd_i), Y))
                 @test plt[3][] == permutedims(to_value(dd_i), (X, Y))
                 @test ax.xlabel[] == "X"
                 @test ax.ylabel[] == "Y"
@@ -481,7 +475,7 @@ end
     @test plt[2][] == Int.(lookup(dd_mat_sym, Y))
     @test ax.xticks[][2] == string.(lookup(dd_mat_sym, X))
 
-    dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* u"Ω", (Y(x .* u"m"), X(y .* u"s")), name=:test)
+    dd_mat_uni = DimArray( (x.^1/2 .+ 0y'.^1/3) .* F, (Y(x .* m), X(y .* s)), name=:test)
     @test heatmap(dd_mat_uni)[3] isa Heatmap broken = true # Makie limitation
     @test contourf(dd_mat_uni)[3] isa Contourf broken = true # Makie limitation
     @test image(dd_mat_uni)[3] isa Contourf broken = true # Makie limitation
@@ -495,7 +489,7 @@ end
     @test fig.content[2] isa Makie.Colorbar    
     @test fig.content[2].label[] == "test"
 
-    fig, ax, plt = contourf(dd_mat; x = Y, y = X)
+    fig, ax, plt = contourf(dd_mat; x_dim = Y, y_dim = X)
     @test plt[1][] == lookup(dd_mat, Y)
     @test plt[2][] == lookup(dd_mat, X)
     @test plt[3][] == permutedims(dd_mat, (Y, X))
@@ -515,7 +509,7 @@ end
     fig, ax, plt = heatmap(dd_mat; axis = (;type = PolarAxis))
     @test ax isa Makie.PolarAxis
 
-    @test_throws Makie.MakieCore.InvalidAttributeError surface(dd_mat; axis = (;xlabel = "new")) # Throws an error as normal makie would
+    @test_throws Makie.InvalidAttributeError surface(dd_mat; axis = (;xlabel = "new")) # Throws an error as normal makie would
 
     dd_rgb = rand(RGB, X(1:10), Y(1:5))
     fig, ax, plt = heatmap(dd_rgb)
@@ -525,9 +519,9 @@ end
     
     x = Observable(1:5)
     y = Observable(1:6)
-    z = @lift $x.^2 .+ $y'
+    z = lift((x,y) -> x.^2 .+ y', x, y)
     name_string = Observable("test")
-    dd_obs = @lift DimArray($z, (X($x), Y($y)), name = $name_string)
+    dd_obs = lift((x,y,z,name_string) -> DimArray(z, (X(x), Y(y)), name = name_string), x, y, z, name_string)
 
     fig, ax, plt = contourf(dd_obs)
     @test all(plt[1][] .== x[])
@@ -548,7 +542,7 @@ end
 @testset "3D plots" begin
     dd_3d = DimArray(rand(5, 5, 5), (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d_mis = DimArray(reshape(vcat([missing], rand(7)), 2, 2, 2), (X(1:2), Y(1:2), Z(1:2)), name=:test)
-    dd_3d_uni = DimArray(rand(5, 5, 5) .* u"m", (X(1:5), Y(1:5), Z(1:5)), name=:test)
+    dd_3d_uni = DimArray(rand(5, 5, 5) .* m, (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d_rgb = DimArray(rand(RGB, 5, 5, 5), (X(1:5), Y(1:5), Z(1:5)), name=:test)
     dd_3d = DimArray(rand(5, 5, 5), (Z(1:5), X(1:5), Y(1:5)), name=:test)
     
@@ -567,9 +561,9 @@ end
         for plt_i in (volume, plot)
             for obs_i in (identity, Observable)
                 fig, ax, plt = plt_i(obs_i(dd_i))
-                @test plt[1][] == extrema(lookup(to_value(dd_i), X)) .+ (-0.5, +.5)
-                @test plt[2][] == extrema(lookup(to_value(dd_i), Y)) .+ (-0.5, +.5)
-                @test plt[3][] == extrema(lookup(to_value(dd_i), Z)) .+ (-0.5, +.5)
+                @test plt[1][] == extrema(lookup(to_value(dd_i), X)) 
+                @test plt[2][] == extrema(lookup(to_value(dd_i), Y))
+                @test plt[3][] == extrema(lookup(to_value(dd_i), Z)) 
                 @test all(plt[4][] .=== Float32.(replace(parent(permutedims(to_value(dd_i), (X, Y, Z))), missing => NaN32)))
                 @test ax isa Makie.LScene
                 @test fig.content[2] isa Makie.Colorbar
@@ -600,17 +594,17 @@ end
     @test volume(dd_3d_uni) broken = true
     @test volume(dd_3d_rgb) broken = true
 
-    fig, ax, plt = volume(dd_3d; x = Y, y = Z, z = X)
-    @test plt[1][] == extrema(lookup(to_value(dd_3d), Y)) .+ (-0.5, +.5)
-    @test plt[2][] == extrema(lookup(to_value(dd_3d), Z)) .+ (-0.5, +.5)
-    @test plt[3][] == extrema(lookup(to_value(dd_3d), X)) .+ (-0.5, +.5)
-    @test_throws ArgumentError volume(dd_3d; x = Y, y = Z, z = Y)
+    fig, ax, plt = volume(dd_3d; x_dim = Y, y_dim = Z, z_dim = X)
+    @test plt[1][] == extrema(lookup(to_value(dd_3d), Y))
+    @test plt[2][] == extrema(lookup(to_value(dd_3d), Z))
+    @test plt[3][] == extrema(lookup(to_value(dd_3d), X))
+    @test_throws ArgumentError volume(dd_3d; x_dim = Y, y_dim = Z, z_dim = Y)
 
     x = Observable(1:5)
     y = Observable(11:15)
     z = Observable(21:25)
     c = Observable(rand(Int, 5, 5, 5))
-    dd_3d_obs = @lift DimArray($c, (Y($y), Z($z), X($x)), name = "test")
+    dd_3d_obs = lift((c, x, y, z) -> DimArray(c, (Y(y), Z(z), X(x)), name = "test"), c, x, y, z)
 
     fig, ax, plt = volumeslices(dd_3d_obs)
     @test plt[1][] == lookup(dd_3d_obs[], X)
@@ -672,8 +666,8 @@ end
     # 1d
     A1 = rand(X('a':'e'); name=:test)
     A1m = rand([missing, (1:3.)...], X('a':'e'); name=:test)
-    A1u = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"); name=:test)
-    A1ui = rand([missing, (1:3.)...], X(1u"s":1u"s":3u"s"; sampling=Intervals(Start())); name=:test)
+    A1u = rand([missing, (1:3.)...], X(1s:1s:3s); name=:test)
+    A1ui = rand([missing, (1:3.)...], X(1s:1s:3s; sampling=Intervals(Start())); name=:test)
     A1num = rand(X(-10:10))
     A1m .= A1
     A1m[3] = missing
@@ -683,9 +677,10 @@ end
     fig, ax, _ = M.plot(parent(A1m))
     M.plot!(ax, A1m)
     fig, ax, _ = M.plot(A1u)
-    M.plot!(ax, A1u)
+    #M.plot!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.plot(A1ui)
-    M.plot!(ax, A1ui)
+    #M.plot!(ax, A1ui) # Does not work due to Makie limitation related with missing
+
     fig, ax, _ = M.plot(A1num)
     M.reset_limits!(ax)
     org = first(ax.finallimits.val.origin)
@@ -700,37 +695,37 @@ end
     fig, ax, _ = M.lines(A1)
     M.lines!(ax, A1)
     fig, ax, _ = M.lines(A1u)
-    M.lines!(ax, A1u)
+    # M.lines!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.lines(A1m)
     M.lines!(ax, A1m)
     fig, ax, _ = M.scatterlines(A1)
     M.scatterlines!(ax, A1)
     fig, ax, _ = M.scatterlines(A1u)
-    M.scatterlines!(ax, A1u)
+    # M.scatterlines!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.scatterlines(A1m)
     M.scatterlines!(ax, A1m)
     fig, ax, _ = M.stairs(A1)
     M.stairs!(ax, A1)
     fig, ax, _ = M.stairs(A1u)
-    M.stairs!(ax, A1u)
+    # M.stairs!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.stairs(A1m)
     M.stairs!(ax, A1m)
     fig, ax, _ = M.stem(A1)
     M.stem!(ax, A1)
     fig, ax, _ = M.stem(A1u)
-    M.stem!(ax, A1u)
+    # M.stem!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.stem(A1m)
     M.stem!(ax, A1m)
     fig, ax, _ = M.barplot(A1)
     M.barplot!(ax, A1)
     fig, ax, _ = M.barplot(A1u)
-    M.barplot!(ax, A1u)
+    # M.barplot!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.barplot(A1m)
     M.barplot!(ax, A1m)
     fig, ax, _ = M.waterfall(A1)
     M.waterfall!(ax, A1)
     fig, ax, _ = M.waterfall(A1u)
-    M.waterfall!(ax, A1u)
+    # M.waterfall!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.waterfall(A1m)
     M.waterfall!(ax, A1m)
 
@@ -738,8 +733,8 @@ end
     A2 = rand(X(10:10:100), Y(['a', 'b', 'c']))
     A2r = rand(Y(10:10:100), X(['a', 'b', 'c']))
     A2m = rand([missing, (1:5)...], Y(10:10:100), X(['a', 'b', 'c']))
-    A2u = rand(Y(10u"km":10u"km":100u"km"), X(['a', 'b', 'c']))
-    A2ui = rand(Y(10u"km":10u"km":100u"km"; sampling=Intervals(Start())), X(['a', 'b', 'c']))
+    A2u = rand(Y(10km:10km:100km), X(['a', 'b', 'c']))
+    A2ui = rand(Y(10km:10km:100km; sampling=Intervals(Start())), X(['a', 'b', 'c']))
     A2m[3] = missing
     A2rgb = rand(RGB, X(10:10:100), Y(['a', 'b', 'c']))
 
@@ -747,7 +742,9 @@ end
     M.plot!(ax, A2)
     fig, ax, _ = M.plot(A2m)
     M.plot!(ax, A2m)
-    # fig, ax, _ = M.plot(A2u)
+    # fig, ax, _ = M.plot(A2u) # Does not work due to Makie limitation
+    # e.g. heatmap((1:10)m, (1:10)m, rand(10,10))
+
     # M.plot!(ax, A2u)
     # fig, ax, _ = M.plot(A2ui)
     # M.plot!(ax, A2ui)
@@ -767,28 +764,31 @@ end
     M.image!(ax, A2rgb)
     fig, ax, _ = M.violin(A2r)
     M.violin!(ax, A2r)
-    @test_throws ArgumentError M.violin(A2m)
-    @test_throws ArgumentError M.violin!(ax, A2m)
+    @test_throws ErrorException M.violin(A2m)
+    @test_throws ErrorException M.violin!(ax, A2m)
 
-    fig, ax, _ = M.rainclouds(A2)
-    M.rainclouds!(ax, A2)
-    fig, ax, _ = M.rainclouds(A2u)
-    M.rainclouds!(ax, A2u)
-    @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
+    # These functions do not work. Consistent with:
+    # M.rainclouds(1:10, rand(10, 3))
+    # fig, ax, _ = M.rainclouds(A2)
+    # M.rainclouds!(ax, A2)
+    # fig, ax, _ = M.rainclouds(A2u)
+    # M.rainclouds!(ax, A2u)
+    # @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
 
     fig, ax, _ = M.surface(A2)
     M.surface!(ax, A2)
-    fig, ax, _ = M.surface(A2ui)
-    M.surface!(ax, A2ui)
+    # fig, ax, _ = M.surface(A2ui) # Does not work due to Makie limitation
+    # M.surface!(ax, A2ui)
+
     # Broken with missing
     # fig, ax, _ = M.surface(A2m)
     # M.surface!(ax, A2m)
     # Series also puts Categories in the legend no matter where they are
     # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = M.series(A2)
-    # M.series!(ax, A2)
+    M.series!(ax, A2)
     fig, ax, _ = M.series(A2u)
-    # M.series!(ax, A2u)
+    # M.series!(ax, A2u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = M.series(A2ui)
     # M.series!(ax, A2u)
     fig, ax, _ = M.series(A2r)
@@ -797,25 +797,25 @@ end
     # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
     # M.series!(ax, A2m)
-    @test_throws ArgumentError M.plot(A2; y=:c)
+    @test_throws ArgumentError M.plot(A2; y_dim=:c)
     # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
     fig, ax, _ = M.plot(A2ab)
     M.plot!(ax, A2ab)
-    fig, ax, _ = M.contourf(A2ab; x=:a)
-    M.contourf!(ax, A2ab, x=:a)
-    fig, ax, _ = M.heatmap(A2ab; y=:b)
-    M.heatmap!(ax, A2ab; y=:b)
+    fig, ax, _ = M.contourf(A2ab; x_dim=:a)
+    M.contourf!(ax, A2ab, x_dim=:a)
+    fig, ax, _ = M.heatmap(A2ab; y_dim=:b)
+    M.heatmap!(ax, A2ab; y_dim=:b)
     fig, ax, _ = M.series(A2ab)
     M.series!(ax, A2ab)
     fig, ax, _ = M.boxplot(A2ab)
     M.boxplot!(ax, A2ab)
     fig, ax, _ = M.violin(A2ab)
     M.violin!(ax, A2ab)
-    fig, ax, _ = M.rainclouds(A2ab)
-    M.rainclouds!(ax, A2ab)
+    # fig, ax, _ = M.rainclouds(A2ab) # Does not work due to Makie limitation
+    # M.rainclouds!(ax, A2ab) # Does not work due to Makie limitation
     fig, ax, _ = M.surface(A2ab)
     M.surface!(ax, A2ab)
     fig, ax, _ = M.series(A2ab)
@@ -828,7 +828,7 @@ end
 
     # 3d, all these work with GLMakie
     A3 = rand(X(7), Z(10), Y(5))
-    A3u = rand(X((1:7)u"m"), Z((1.0:1:10.0)u"m"), Y((1:5)u"g"))
+    A3u = rand(X((1:7)m), Z((1.0:1:10.0)m), Y((1:5)g))
     A3m = rand([missing, (1:7)...], X(7), Z(10), Y(5))
     A3m[3] = missing
     A3rgb = rand(RGB, X(7), Z(10), Y(5))
@@ -858,10 +858,10 @@ end
     # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
-    fig, ax, _ = M.volume(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; x=:c)
-    fig, ax, _ = M.volumeslices(A3abc; z=:a)
-    M.volumeslices!(ax, A3abc; z=:a)
+    fig, ax, _ = M.volume(A3abc; x_dim=:c)
+    fig, ax, _ = M.volumeslices(A3abc; x_dim=:c)
+    fig, ax, _ = M.volumeslices(A3abc; z_dim=:a)
+    M.volumeslices!(ax, A3abc; z_dim=:a)
 
     "LScene support"
     f, a, p = M.heatmap(A2ab; axis=(; type=M.LScene, show_axis=false))
@@ -875,7 +875,7 @@ end
     @test colorbars[1].label[] == "stuff"
     @test colorbars[1].width[] == 50
 
-    A2ab_unnamed = DimArray(A2ab.data, dims(A2ab))
+    A2ab_unnamed = DimArray(A2ab.data, DD.dims(A2ab))
     fig, ax, _ = M.plot(A2ab_unnamed)
     colorbars = filter(x -> x isa M.Colorbar, fig.content)
     @test length(colorbars) == 1
@@ -883,3 +883,4 @@ end
 end
 
 end
+
