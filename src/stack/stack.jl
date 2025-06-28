@@ -516,11 +516,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
     metadata=NoMetadata(), 
     layermetadata=map(DD.metadata, das)
 )
-    # Treat as a table if the dims correspond to data columns.
-    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
-        return dimstack_from_table(data, dims; refdims, metadata)
-    all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
-    DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
+    return DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
@@ -532,8 +528,9 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
-    Tables.istable(data) && all(d -> name(d) in keys(data), dims) && 
+    if length(data) > 0 && Tables.istable(data) && all(d -> name(d) in keys(data), dims)
         return dimstack_from_table(data, dims; refdims, metadata)
+    end
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -560,8 +557,9 @@ function DimStack(st::AbstractDimStack;
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
-DimStack(table, dims::Tuple; kw...) = dimstack_from_table(table, dims; kw...)
-DimStack(table; kw...) = dimstack_from_table(table, guess_dims(table); kw...)
+DimStack(table, dims::Tuple; kw...) = 
+    dimstack_from_table(table, guess_dims(table, dims; kw...); kw...)
+DimStack(table; kw...) = dimstack_from_table(table, guess_dims(table; kw...); kw...)
 
 function dimstack_from_table(table, dims; 
     selector=nothing, 
@@ -571,8 +569,8 @@ function dimstack_from_table(table, dims;
 )
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
     data_cols = _data_cols(table, dims)
-    dims = guess_dims(table, dims, precision=precision)
-    indices = coords_to_indices(table, dims; selector=selector)
+    dims = guess_dims(table, dims; precision)
+    indices = coords_to_indices(table, dims; selector)
     layers = map(data_cols) do d
         restore_array(d, indices, dims, missingval)
     end
