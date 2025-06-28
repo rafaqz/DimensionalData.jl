@@ -55,7 +55,7 @@ prune
 DimIndices
 DimSelectors
 DimPoints
-DimSlices
+DimensionalData.DimSlices
 ```
 
 ## Tables.jl/TableTraits.jl interface
