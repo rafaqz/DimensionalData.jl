@@ -34,8 +34,8 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 ┌ 3×5×12 DimArray{Float64, 3} ┐
 ├─────────────────────────────┴────────────────────────────────────────── dims ┐
-  ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
-  → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
+  ↓ Y Categorical{Char} ['a', …, 'c'] ForwardOrdered,
+  → X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
   ↗ Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
 [:, :, 1]
@@ -62,8 +62,7 @@ x = A[X(2), Y(3)]
  2021-03-01T00:00:00  0.0
  2021-04-01T00:00:00  0.0
  2021-05-01T00:00:00  0.0
- 2021-06-01T00:00:00  0.0
- 2021-07-01T00:00:00  0.0
+ ⋮
  2021-08-01T00:00:00  0.0
  2021-09-01T00:00:00  0.0
  2021-10-01T00:00:00  0.0
@@ -80,7 +79,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 ┌ 1×12 DimArray{Float64, 2} ┐
 ├───────────────────────────┴──────────────────────────────────────────── dims ┐
-  ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
+  ↓ X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
   → Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
  ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
@@ -140,6 +139,7 @@ Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{Dimension,Vararg{Dimension}}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{DimType,Vararg{DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
@@ -174,10 +174,6 @@ refdims(x) = ()
 
 lookup(dim::Dimension{<:AbstractArray}) = val(dim)
 lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
-
-lookuptype(dim::Dimension) = typeof(lookup(dim))
-lookuptype(::Type{<:Dimension{L}}) where L = L
-lookuptype(x) = NoLookup
 
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
@@ -383,7 +379,7 @@ with symbols, or e.g. creating Tables.jl keys.
 
 ```jldoctest; setup = :(using DimensionalData)
 julia> dim = Dim{:custom}(['a', 'b', 'c'])
-custom ['a', 'b', 'c']
+custom ['a', …, 'c']
 ```
 """
 struct Dim{S,T} <: Dimension{T}

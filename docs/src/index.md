@@ -28,5 +28,6 @@ features:
     link: /groupby
   - title: Seamlessly integrated with the julia ecosystem
     details: Works with most methods that accept a regular Array. If a method accepts numeric indices or dims=X in base, you should be able to use DimensionalData.jl dims.
+    link: /integrations
 ---
 ```

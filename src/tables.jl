@@ -112,14 +112,6 @@ DimTable with 12 rows, 3 columns, and schema:
  :X     …  Int64
  :Y        Int64
  :data     DimVector{Float64, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Slice{OneTo{Int64}}}, true}, Symbol, NoMetadata} (alias for DimArray{Float64, 1, Tuple{Dim{:band, DimensionalData.Dimensions.Lookups.Categorical{Char, StepRange{Char, Int64}, DimensionalData.Dimensions.Lookups.ForwardOrdered, DimensionalData.Dimensions.Lookups.NoMetadata}}}, Tuple{X{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}, Y{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Base.Slice{Base.OneTo{Int64}}}, true}, Symbol, DimensionalData.Dimensions.Lookups.NoMetadata})
-
-```julia
-julia> DimTable(A)
-DimTable with 48 rows, 4 columns, and schema:
- :X     Int64
- :Y     Int64
- :band  Char
- :data  Float64
 """
 struct DimTable{Mode} <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}

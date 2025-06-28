@@ -84,13 +84,14 @@ end
 function show_after(io::IO, mime, A::DimGroupByArray)
     displayheight, displaywidth = displaysize(io)
     blockwidth = get(io, :blockwidth, 0)
+    separatorwidth = min(displaywidth - 2, textwidth(sprint(summary, A)) + 2)
     if length(A) > 0 && isdefined(parent(A), 1)
         x = A[1]
         sorteddims = (dims(A)..., otherdims(x, dims(A))...)
-        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolors, Val(length(sorteddims)))), dims(x))
+        colordims = dims(map(rebuild, sorteddims, ntuple(dimcolor, Val(length(sorteddims)))), dims(x))
         colors = collect(map(val, colordims))
         lines, new_blockwidth, _ = print_dims_block(io, mime, basedims(x);
-            displaywidth, blockwidth, label="group dims", colors
+            displaywidth, blockwidth, separatorwidth, label="group dims", colors
         )
         A1 = map(x -> DimSummariser(x, colors), A)
         ctx = IOContext(io,
@@ -272,24 +273,22 @@ Group some data along the time dimension:
 
 ```jldoctest groupby; setup = :(using Random; Random.seed!(123))
 julia> using DimensionalData, Dates
+
 julia> A = rand(X(1:0.1:20), Y(1:20), Ti(DateTime(2000):Day(3):DateTime(2003)));
 
 julia> groups = groupby(A, Ti => month) # Group by month
-metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
 ┌ 12-element DimGroupByArray{DimArray{Float64,3},1} ┐
-├───────────────────────────────────────────────────┴───────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
-├───────────────────────────────────────────────────────────── metadata ┤
+├───────────────────────────────────────────────────┴──────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points
+├──────────────────────────────────────────────────────── metadata ┤
   Dict{Symbol, Any} with 1 entry:
   :groupby => :Ti=>month
-├─────────────────────────────────────────────────────────── group dims ┤
+├───────────────────────────────────────────────────┴── group dims ┐
   ↓ X, → Y, ↗ Ti
-└───────────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
   1  191×20×32 DimArray
   2  191×20×28 DimArray
-  3  191×20×31 DimArray
   ⋮
- 11  191×20×30 DimArray
  12  191×20×31 DimArray
 ```
 
@@ -298,16 +297,15 @@ And take the mean:
 ```jldoctest groupby; setup = :(using Statistics)
 julia> groupmeans = mean.(groups) # Take the monthly mean
 ┌ 12-element DimArray{Float64, 1} ┐
-├─────────────────────────────────┴─────────────────────────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points
-└───────────────────────────────────────────────────────────────────────┘
+├─────────────────────────────────┴────────────────────────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points
+└──────────────────────────────────────────────────────────────────┘
   1  0.500064
   2  0.499762
   3  0.500083
   4  0.499985
   5  0.500511
-  6  0.500042
-  7  0.500003
+  ⋮
   8  0.500257
   9  0.500868
  10  0.500874
@@ -321,28 +319,23 @@ match after application of `mean`.
 
 ```jldoctest groupby
 julia> map(.-, groupby(A, Ti=>month), mean.(groupby(A, Ti=>month), dims=Ti));
-metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
-metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month))
 ```
-ups
 
 Or do something else with Y:
 
 ```jldoctest groupby
 julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
-metadata = Dict{Symbol, Any}(:groupby => (:Ti => Dates.month, :Y => isodd))
 ┌ 12×2 DimArray{Float64, 2} ┐
-├───────────────────────────┴────────────────────────────────────── dims ┐
-  ↓ Ti Sampled{Int64} [1, 2, …, 11, 12] ForwardOrdered Irregular Points,
-  → Y  Sampled{Bool} [false, true] ForwardOrdered Irregular Points
-└────────────────────────────────────────────────────────────────────────┘
+├───────────────────────────┴──────────────────────────────── dims ┐
+  ↓ Ti Sampled{Int64} [1, …, 12] ForwardOrdered Irregular Points,
+  → Y Sampled{Bool} [false, true] ForwardOrdered Irregular Points
+└──────────────────────────────────────────────────────────────────┘
   ↓ →  false         true
   1        0.499594     0.500533
   2        0.498145     0.501379
   3        0.499871     0.500296
   4        0.500921     0.49905
   ⋮
-  8        0.499599     0.500915
   9        0.500715     0.501021
  10        0.501105     0.500644
  11        0.498606     0.498801

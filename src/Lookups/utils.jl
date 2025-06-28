@@ -75,7 +75,7 @@ where `Dim{:x}` is different from `Dim{:y}`.
     if T isa Union
         T
     else
-        getfield(parentmodule(T), nameof(T))
+        Base.unwrap_unionall(T).name.wrapper
     end
 end
 

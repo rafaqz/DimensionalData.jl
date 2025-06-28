@@ -6,7 +6,7 @@ generate their `data` on demand during `getindex`.
 """
 abstract type AbstractDimArrayGenerator{T,N,D} <: AbstractBasicDimArray{T,N,D} end
 
-dims(dg::AbstractDimArrayGenerator) = dg.dims
+dims(dg::AbstractDimArrayGenerator)::Tuple{Vararg{Dimension}} = dg.dims
 
 # Dims that contribute to the element type.
 # May be larger than `dims` after slicing
@@ -21,7 +21,7 @@ Base.axes(dg::AbstractDimArrayGenerator) = map(d -> axes(d, 1), dims(dg))
 @inline Base.permutedims(A::AbstractDimArrayGenerator{<:Any,1}) =
     rebuild(A; dims=(AnonDim(Base.OneTo(1)), dims(A)...))
 @inline function Base.permutedims(A::AbstractDimArrayGenerator, perm)
-    length(perm) == length(dims(A) || throw(ArgumentError("permutation must be same length as dims")))
+    length(perm) == length(dims(A)) || throw(ArgumentError("permutation must be same length as dims"))
     rebuild(A; dim=sortdims(dims(A), Tuple(perm)))
 end
 
@@ -86,10 +86,10 @@ are not in the same order. Or even if they are not all contained in each.
 ```jldoctest; setup = :(using DimensionalData, Random; Random.seed!(123))
 julia> A = rand(Y(0.0:0.3:1.0), X('a':'f'))
 ┌ 4×6 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────── dims ┐
+├──────────────────────────┴───────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.3:0.9 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':1:'f' ForwardOrdered
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
  ↓ →   'a'       'b'       'c'        'd'        'e'       'f'
  0.0  0.9063    0.253849  0.0991336  0.0320967  0.774092  0.893537
  0.3  0.443494  0.334152  0.125287   0.350546   0.183555  0.354868
@@ -108,10 +108,10 @@ julia> di = DimIndices((X(1:2:4), Y(1:2:4)))
 
 julia> A[di] # Index A with these indices
 ┌ 2×2 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────── dims ┐
+├──────────────────────────┴───────────────────────────────── dims ┐
   ↓ Y Sampled{Float64} 0.0:0.6:0.6 ForwardOrdered Regular Points,
   → X Categorical{Char} 'a':2:'c' ForwardOrdered
-└─────────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────────┘
  ↓ →   'a'       'c'
  0.0  0.9063    0.0991336
  0.6  0.745673  0.692209
@@ -146,7 +146,7 @@ function Base.getindex(A::DimIndices, i1::Integer, i2::Integer, I::Integer...)
 end
 # Dispatch to avoid linear indexing in multidimensional DimIndices
 function Base.getindex(A::DimIndices{<:Any,1}, i::Integer)
-    d = dims(A, 1)
+    d = dims(di, 1)::Dimension
     di = rebuild(d, d[i])
     return dims((di, _refdims_firsts(A)...), orderdims(A))
 end
@@ -208,14 +208,14 @@ function Base.getindex(A::DimPoints, i1::Integer, i2::Integer, I::Integer...)
     pointdims = map(dims(A), (i1, i2, I...)) do d, i
         rebuild(d, d[i])
     end
-    # Return the unwrapped point sorted by `order
+    # Return the unwrapped point sorted by orderdims
     return map(val, DD.dims((pointdims..., _refdims_firsts(A)...), orderdims(A)))
 end
 function Base.getindex(A::DimPoints{<:Any,1}, i::Integer) 
     # Get dim-wrapped point values at i1, I...
     d1 = dims(A, 1)
     pointdim = rebuild(d1, d1[i])
-    # Return the unwrapped point sorted by `order
+    # Return the unwrapped point sorted by orderdims
     D = dims((pointdim, _refdims_firsts(A)...), orderdims(A))
     return map(val, D)
 end
@@ -254,10 +254,10 @@ julia> target = rand(X(1.0:10.0:30.0), Y(1.0:10.0:30.0));
 
 julia> A[DimSelectors(target; selectors=Near), Ti=2]
 ┌ 3×3 DimArray{Float64, 2} ┐
-├──────────────────────────┴──────────────────────────────────────── dims ┐
-  ↓ X Sampled{Float64} [1.0, 10.0, 22.0] ForwardOrdered Irregular Points,
-  → Y Sampled{Float64} [1.0, 11.0, 21.0] ForwardOrdered Irregular Points
-└─────────────────────────────────────────────────────────────────────────┘
+├──────────────────────────┴────────────────────────────────────── dims ┐
+  ↓ X Sampled{Float64} [1.0, …, 22.0] ForwardOrdered Irregular Points,
+  → Y Sampled{Float64} [1.0, …, 21.0] ForwardOrdered Irregular Points
+└───────────────────────────────────────────────────────────────────────┘
   ↓ →  1.0        11.0       21.0
   1.0  0.691162    0.218579   0.539076
  10.0  0.0303789   0.420756   0.485687
@@ -291,6 +291,7 @@ function DimSelectors(dims::MaybeDimTuple, selectors::Tuple)
     length(dims) == length(selectors) || throw(ArgumentError("`length(dims) must match  `length(selectors)`, got $(length(dims)) and $(length(selectors))"))
     DimSelectors(dims, refdims, orderdims, selectors)
 end
+
 
 @propagate_inbounds function Base.getindex(A::DimSelectors, i1::Integer, i2::Integer, I::Integer...)
     D = map(dims(A), (i1, i2, I...)) do d, i
