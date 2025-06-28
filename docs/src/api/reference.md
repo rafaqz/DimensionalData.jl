@@ -55,6 +55,7 @@ prune
 DimIndices
 DimSelectors
 DimPoints
+DimSlices
 ```
 
 ## Tables.jl/TableTraits.jl interface
@@ -139,6 +140,7 @@ DimensionalData.NoName
 DimensionalData.DimArrayInterface
 DimensionalData.DimStackInterface
 DimensionalData.rebuild_from_arrays
+DimensionalData.rebuildsliced
 DimensionalData.show_main
 DimensionalData.show_after
 DimensionalData.refdims_title
