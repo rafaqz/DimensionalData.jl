@@ -556,10 +556,35 @@ function DimStack(st::AbstractDimStack;
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
+
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
-DimStack(table, dims::Tuple; kw...) = 
-    dimstack_from_table(table, guess_dims(table, dims; kw...); kw...)
-DimStack(table; kw...) = dimstack_from_table(table, guess_dims(table; kw...); kw...)
+function DimStack(data, dims::Tuple; kw...
+)
+    if Tables.istable(data)
+        table = Tables.columns(data)
+        all(map(d -> Dimensions.name(d) in keys(table), dims)) || throw(ArgumentError(
+            "All dimensions in dims must be in the table columns."
+        ))
+        dims = guess_dims(table, dims; kw...)
+        return dimstack_from_table(table, dims; kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))
+
+    end
+end
+function DimStack(table; kw...)
+    if Tables.istable(table)
+        table = Tables.columns(table)
+        dimstack_from_table(table, guess_dims(table; kw...); kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))    end
+end
 
 function dimstack_from_table(table, dims; 
     selector=nothing, 
