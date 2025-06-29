@@ -9,6 +9,14 @@ const DD = DimensionalData
 
 # Shared docstrings: keep things consistent.
 
+function Makie_attribute_names(P)
+    if isdefined(Makie, :MakieCore) # To work with Makie <0.24
+        Makie.MakieCore.attribute_names(P)
+    else
+        Makie.attribute_names(P) # For Makie >=0.24
+    end
+end
+
 const AXISLEGENDKW_DOC = """
 - `axislegend`: attributes to pass to `axislegend`.
 """
@@ -281,7 +289,7 @@ for p1 in PlotTypes_3D
 end
 
 function filter_keywords_axis!(ax_type, att)
-    filter_keywords(att, Makie.attribute_names(ax_type), identity)
+    filter_keywords(att, Makie_attribute_names(ax_type), identity)
 end
 
 function filter_keywords(collecti, to_filter, f)

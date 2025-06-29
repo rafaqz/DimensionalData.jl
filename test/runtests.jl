@@ -4,12 +4,6 @@ using DimensionalData, Test, Aqua, SafeTestsets
 # incompatible version of OpenSSL: load OpenSSL first.
 import OpenSSL
 
-if Sys.islinux()
-    # Unfortunately this can hang on other platforms.
-    # Maybe ram use of all the plots on the small CI machine? idk
-    @time include("plotrecipes.jl")
-end
-
 @time @testset "Aqua" begin
     Aqua.test_ambiguities([DimensionalData, Base, Core])
     Aqua.test_unbound_args(DimensionalData)
@@ -47,3 +41,9 @@ end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
 @time @safetestset "categorical" begin include("categorical.jl") end
 @time @safetestset "xarray" begin include("xarray.jl") end
+
+if Sys.islinux()
+    # Unfortunately this can hang on other platforms.
+    # Maybe ram use of all the plots on the small CI machine? idk
+    @time include("plotrecipes.jl")
+end
