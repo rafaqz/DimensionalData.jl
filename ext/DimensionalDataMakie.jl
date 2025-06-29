@@ -66,11 +66,12 @@ const MayObs{T} = Union{T, Makie.Observable{<:T}}
 
 const MakieGrids = Union{Makie.GridPosition, Makie.GridSubposition}
 
-PlotTypes_1D = (Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, Series, Violin, RainClouds, LineSegments)
+PlotTypes_1D = (Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot,  Waterfall, LineSegments)
+PlotTypes_Cat_1D = (BoxPlot, Violin, RainClouds)
 PlotTypes_2D = (Heatmap, Image, Contour, Contourf, Contour3d, Spy, Surface) 
 PlotTypes_3D = (Volume, VolumeSlices)
 
-for p in (PlotTypes_1D..., PlotTypes_2D..., PlotTypes_3D...)
+for p in (PlotTypes_1D..., PlotTypes_2D..., PlotTypes_3D..., Series, PlotTypes_Cat_1D...)
     f = Makie.plotkey(p)
     eval(quote
         function Makie.$f(A::MayObs{<:AbstractDimArray}; figure = (;), attributes...)
@@ -111,7 +112,7 @@ for (p1) in PlotTypes_1D
     """
     @eval begin
         @doc $docstring
-        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimVector}; axislegend =(;merge = false, unique = false), axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimArray}; axislegend =(;merge = false, unique = false), axis = (;), plot_user_attributes...)
             error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
@@ -139,13 +140,13 @@ function Makie.series(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; color = :li
     axis_att = axis_attributes(Series, A; labeldim = labeldim)
     axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), (:type,), !)
 
-    plot_attr = merge(plot_attributes(Series, A), plot_user_attributes)
+    plot_attr = merge(plot_attributes(Series, A; labeldim = labeldim), plot_user_attributes)
 
     ax = ax_type(fig; axis_att_for_function...)
 
     n_colors = size(to_value(A), _categorical_or_dependent(to_value(A), labeldim))
     default_colormap = Makie.to_colormap(color)
-    colormap = n_colors > length(default_colormap) ? Makie.resample_cmap(default_colormap, n_colors) : default_colormap
+    colormap = n_colors > 7 ? Makie.resample_cmap(default_colormap, n_colors) : default_colormap
     
     p = series!(ax, A; labeldim = labeldim, color = colormap, plot_attr...)
             
@@ -155,8 +156,33 @@ function Makie.series(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; color = :li
     return Makie.AxisPlot(ax, p)
 end
 
+for (p1) in PlotTypes_Cat_1D
+    f1 = Makie.plotkey(p1)
+    f1! = Symbol(f1, '!')
+    
+    @eval begin
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; categorical_dim = nothing, axis = (;), plot_user_attributes...)
+            error_if_has_content(fig)
 
-function axis_attributes(::Type{P}, A::MayObs{DD.AbstractDimVector}) where P <: Union{Lines, LineSegments, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, Violin, RainClouds}
+            ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
+            axis_att = axis_attributes($p1, A; categorical_dim = categorical_dim)
+            axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), (:type,), !)
+
+            plot_attr = merge(plot_attributes($p1, A), plot_user_attributes)
+
+            ax = ax_type(fig; axis_att_for_function...)
+
+            p = $f1!(ax, A; categorical_dim = categorical_dim, plot_attr...)
+
+            add_labels_to_lscene(ax, axis_att)
+
+            return Makie.AxisPlot(ax, p)
+        end
+    end
+end
+
+
+function axis_attributes(::Type{P}, A::MayObs{DD.AbstractDimArray}) where P <: Union{Lines, LineSegments, Scatter, ScatterLines, Stairs, Stem, BarPlot, Waterfall}
     lookup_attributes = get_axis_ticks(obs_f(i -> dims(i, 1), A), 1)
     merge(
         lookup_attributes,
@@ -168,9 +194,10 @@ function axis_attributes(::Type{P}, A::MayObs{DD.AbstractDimVector}) where P <: 
     )
 end
 
-function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimMatrix}) where P <: Union{Makie.Series}
+function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimMatrix}; labeldim = nothing) where P <: Union{Makie.Series}
+    categoricaldim = obs_f(i -> _categorical_or_dependent(i, labeldim), A)
     plot_attributes = (; 
-        label=obs_f(plot_label, A),
+        labels=obs_f(i -> string.(parent(i)), categoricaldim),
     )
 end
 
@@ -191,7 +218,23 @@ function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeld
     )
 end
 
-function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimVector}) where P <: Union{Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, RainClouds, Violin, LineSegments}
+function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimMatrix}; categorical_dim)
+    categoricaldim = _categorical_or_dependent(to_value(A), categorical_dim)
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
+
+    lookup_attributes = get_axis_ticks((dims(to_value(A), categoricaldim),))
+
+    merge(
+        lookup_attributes,
+        (;
+            xlabel=obs_f(i -> string(label(dims(i, categoricaldim))), A), 
+            ylabel=obs_f(DD.label, A),
+            title=obs_f(DD.refdims_title, A),
+        ),
+    )
+end
+
+function plot_attributes(::Type{P}, A::MayObs{<:DD.AbstractDimArray}) where P <: Union{Lines, Scatter, ScatterLines, Stairs, Stem, BarPlot, BoxPlot, Waterfall, RainClouds, Violin, LineSegments}
     plot_attributes = (; 
         label=obs_f(plot_label, A),
     )
@@ -355,6 +398,7 @@ for DD in (AbstractDimVector, AbstractDimMatrix, AbstractDimArray{<:Any,3}, DimP
 end
 
 Makie.used_attributes(::Type{<:Series}, A::DD.AbstractDimMatrix) = (:labeldim,)
+Makie.used_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::DD.AbstractDimArray) = (:categorical_dim,)
 Makie.used_attributes(::Type{<:Union{Contour, Contourf, Contour3d, Image, Heatmap, Surface, Spy}}, A::DD.AbstractDimMatrix) = (:x_dim, :y_dim)
 Makie.used_attributes(::Type{<:Union{VolumeSlices, Volume}}, A::DD.AbstractDimArray{<:Any, 3}) = (:x_dim, :y_dim, :z_dim)
 
@@ -388,14 +432,31 @@ function Makie.convert_arguments(t::Makie.PointBased, A::DimPoints{<:Any,1})
     return Makie.convert_arguments(t, collect(A))
 end
 
-function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimArray)
+function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimVector; categorical_dim = nothing)
+    if !isnothing(categorical_dim) 
+        dimnum(A, categorical_dim) # Returns an error if dim does not exist
+    end
     xs = parent(lookup(A, 1)) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
-function Makie.convert_arguments(P::Type{Makie.RainClouds}, A::AbstractDimArray)
+function Makie.convert_arguments(P::Type{<:RainClouds}, A::AbstractDimVector; categorical_dim = nothing)
+    if !isnothing(categorical_dim) 
+        dimnum(A, categorical_dim) # Returns an error if dim does not exist
+    end
     xs = parent(lookup(A, 1)) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
+end
+
+function Makie.convert_arguments(P::Type{<:Union{Makie.RainClouds, BoxPlot, Violin}}, A::AbstractDimMatrix; categorical_dim = nothing)
+    categoricaldim = _categorical_or_dependent(A, categorical_dim)
+    isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
+    otherdim = only(otherdims(A, categoricaldim))
+    xs = lookup(A, categoricaldim)
+    matrix_xs = repeat(parent(xs), outer = (1, size(A, otherdim)))
+
+    matrix_xs, parent(permutedims(A, (otherdim, categoricaldim) ))
+    return Makie.convert_arguments(P, get_number_version(vec(matrix_xs)), parent(permutedims(A, (otherdim, categoricaldim))) |> vec)
 end
 
 # Grid based conversions (surface, image, heatmap, contour, meshimage, etc)

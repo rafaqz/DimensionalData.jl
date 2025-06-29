@@ -279,26 +279,34 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     fig = Figure()
     ax = Axis(fig[1,1])
     @test plot!(ax, dd_vec) isa Makie.Scatter
+
+    dd_cat = rand(X('a':'b'), Y(1:6), name = :test)
     
     for obs in (Observable, identity)
         for plot_i in (rainclouds, violin, boxplot)
-            x = parent(lookup(to_value(dd_vec), 1))
-            y = collect(parent(to_value(dd_vec)))
-            fig, ax, plt = plot_i(obs(dd_vec))
-            @test all(plt[1][] .== ustrip.(x)) 
-            @test all(plt[2][] .== ustrip.(y))
-            @test ax.xlabel[] == "Time"
+            x = parent(lookup(to_value(dd_cat), Y))
+            y = collect(parent(to_value(dd_cat)))
+            fig, ax, plt = plot_i(obs(dd_cat))
+            @test all(plt[1][] .== repeat(97:98, outer = 6)) 
+            @test all(plt[2][] .== vec(y'))
+            @test ax.xlabel[] == "X"
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
+
+            fig, ax, plt = plot_i(obs(dd_cat), categorical_dim = Y)
+            @test all(plt[1][] .== repeat(1:6, outer = 2))
         end
     end
+
 
     dd_cat = DimArray((1:6).^2, X(cat(fill('A', 3), fill('B', 3), dims = 1)), name = :test)
     for plot_i in (rainclouds, violin, boxplot)
         fig, ax, plt = plot_i(dd_cat)
         @test all(plt[1][] .== Int.(lookup(dd_cat, X)))
         @test all(plt[2][] .== Int.(parent(dd_cat)))
+        @test_throws ArgumentError plot_i(dd_cat, categorical_dim = Y) 
     end
+
 
     for dd_i in (dd_vec_mis, dd_vec_uni) # These plot do not work with missing and unitful due to Makie limitations
         for plt_i in ( rainclouds, violin, boxplot)
@@ -339,7 +347,6 @@ end
     
     for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_sym, dd_mat_uni) 
         fig, ax, plt = series(dd_i)
-        @test plt.label[] == "test"
         @test ax.ylabel[] == "test"
         @test ax.xlabel[] == "X"
         @test all(first.(plt[1][][1]) .== ustrip.(lookup(dd_i, X)))
@@ -359,7 +366,7 @@ end
     fig, ax, plt = series(Observable(dd_big), color = Makie.wong_colors())
     @test plt.color[] == Makie.resample_cmap(Makie.wong_colors(), 10)
     fig, ax, plt = series(Observable(dd_big), color = :inferno)
-    @test plt.color[] == Makie.to_colormap(:inferno)
+    @test plt.color[] == Makie.resample_cmap(Makie.to_colormap(:inferno), 10)
 
     fig, ax, plt = series(dd_mat_cat; axis = (;xlabel = "new_x", ylabel = "new_y", title = "new_title"), figure = (;size = (1000, 1000)), linewidth = 5)
     @test plt.linewidth[] == 5
@@ -378,17 +385,14 @@ end
     x = Observable(X(collect(1:5)))
     y = Observable(Y('A':'B'))
     z = Observable(rand(5, 2))
-    label = Observable("test")
-    dd_mat = lift((x,y,z,label) -> DimArray(z, (x, y); name = label), x, y, z, label)
+    dd_mat = lift((x,y,z) -> DimArray(z, (x, y); name = "test"), x, y, z)
 
     fig, ax, plt = series(dd_mat)
     @test all(first.(plt[1][][1]) .== lookup(dd_mat[], X))
     @test all(first.(plt[1][][2]) .== lookup(dd_mat[], X))
     @test all(last.(plt[1][][1]) .≈  dd_mat[][:,1])
     @test all(last.(plt[1][][2]) .== dd_mat[][:,2])
-    @test plt.label[] == label[]
 
-    label[] = "new_test"
     x[] = X(collect(11:15))
     y[] = Y('C':'D')
     z[] = rand(5, 2)
@@ -396,7 +400,6 @@ end
     @test all(first.(plt[1][][2]) .== 11:15)
     @test all(last.(plt[1][][1]) .==  dd_mat[][:,1])
     @test all(last.(plt[1][][2]) .== dd_mat[][:,2])
-    @test plt.label[] == "new_test"
 
     dd_vec = DimArray(rand(5, 2), (X(1:5), Y('A':'B')), name=:test)
     fig, ax, plt = series(dd_vec)
@@ -764,16 +767,14 @@ end
     M.image!(ax, A2rgb)
     fig, ax, _ = M.violin(A2r)
     M.violin!(ax, A2r)
-    @test_throws ErrorException M.violin(A2m)
-    @test_throws ErrorException M.violin!(ax, A2m)
+    @test_throws ArgumentError M.violin(A2m)
+    @test_throws ArgumentError M.violin!(ax, A2m)
 
-    # These functions do not work. Consistent with:
-    # M.rainclouds(1:10, rand(10, 3))
-    # fig, ax, _ = M.rainclouds(A2)
-    # M.rainclouds!(ax, A2)
-    # fig, ax, _ = M.rainclouds(A2u)
-    # M.rainclouds!(ax, A2u)
-    # @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
+    fig, ax, _ = M.rainclouds(A2)
+    M.rainclouds!(ax, A2)
+    fig, ax, _ = M.rainclouds(A2u)
+    M.rainclouds!(ax, A2u)
+    @test_throws ErrorException M.rainclouds(A2m) # MethodError ? missing values in data not supported
 
     fig, ax, _ = M.surface(A2)
     M.surface!(ax, A2)
