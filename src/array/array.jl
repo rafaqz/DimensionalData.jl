@@ -519,6 +519,7 @@ end
 function DimArray(table, dims; kw...)
     # Confirm that the Tables interface is implemented
     Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
     dimarray_from_table(table, guess_dims(table, dims); kw...)
 end
 # Same as above, but guess dimension names from scratch
