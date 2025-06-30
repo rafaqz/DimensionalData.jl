@@ -343,15 +343,16 @@ julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
  12        0.501643     0.499298
 ```
 """
-DataAPI.groupby(A::DimArrayOrStack, x) = groupby(A, dims(x))
-DataAPI.groupby(A::DimArrayOrStack, dimfuncs::Dimension...) = groupby(A, dimfuncs)
+DataAPI.groupby(A::DimArrayOrStack, x; name=:groubpy) = groupby(A, dims(x); name)
+DataAPI.groupby(A::DimArrayOrStack, dimfuncs::Dimension...; name=:groupby) = groupby(A, dimfuncs; name)
 function DataAPI.groupby(
     A::DimArrayOrStack, p1::Pair{<:Any,<:Base.Callable}, ps::Pair{<:Any,<:Base.Callable}...;
+    name=:groupby
 )
     dims = map((p1, ps...)) do (d, v)
         rebuild(basedims(d), v)
     end
-    return groupby(A, dims)
+    return groupby(A, dims; name)
 end
 function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple; name=:groupby)
     length(otherdims(dimfuncs, dims(A))) > 0 &&
