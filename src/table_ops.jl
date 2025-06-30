@@ -1,14 +1,5 @@
-
-const TABLE_ARGUMENT = """
-- `table`: The input data table, which could be a `DataFrame`, `DimTable`, or any other Tables.jl compatible data structure. 
-"""
-
-"""
-    restore_array(data::AbstractVector, indices::AbstractVector{<:NTuple{<:Any, Dim}}, dims::Tuple, missingval)
-
+#=
 Restore a dimensional array from its tabular representation.
-
-# Arguments
 
 - `data`: An `AbstractVector` containing the flat data to be written to a `DimArray`.
 - `indices`: An `AbstractVector` containing the dimensional indices corresponding to each element in `data`.
@@ -18,8 +9,7 @@ Restore a dimensional array from its tabular representation.
 # Returns
 
 An `Array` containing the ordered valued in `data` with the size specified by `dims`.
-```
-"""
+=#
 function restore_array(data::AbstractVector, indices::AbstractVector, dims::Tuple, missingval)
     # Allocate Destination Array
     dst = DimArray{eltype(data)}(undef, dims)
@@ -39,7 +29,7 @@ function restore_array(data::AbstractVector, indices::AbstractVector, dims::Tupl
     return dst
 end
 
-"""
+#=
     coords_to_indices(table, dims; [selector, atol])
 
 Return the dimensional index of each row in `table` based on its associated coordinates.
@@ -47,7 +37,7 @@ Dimension columns are determined from the name of each dimension in `dims`.
 
 # Arguments
 
-$TABLE_ARGUMENT 
+- a table 
 - `dims`: A `Tuple` of `Dimension` corresponding to the source/destination array.
 
 # Keywords 
@@ -55,30 +45,11 @@ $TABLE_ARGUMENT
 - `selector`: The selector type to use. This defaults to `Near()` for orderd, sampled dimensions
     and `At()` for all other dimensions. 
 - `atol`: The absolute tolerance to use with `At()`. This defaults to `1e-6`.
-
-# Example
-
-```julia
-julia> d = rand(X(1:256), Y(1:256));
-
-julia> t = DimTable(d);
-
-julia> coords_to_indices(t, dims(d))
-65536-element Vector{Tuple{X{Int64}, Y{Int64}}}:
- (↓ X 1, → Y 1)
- (↓ X 2, → Y 1)
- (↓ X 3, → Y 1)
- (↓ X 4, → Y 1)
- ⋮
- (↓ X 254, → Y 256)
- (↓ X 255, → Y 256)
- (↓ X 256, → Y 256)
-```
-"""
+=#
 coords_to_indices(table, dims::Tuple; selector=nothing, atol=1e-6) =
     _coords_to_indices(table, dims, selector, atol)
 
-"""
+#=
     guess_dims(table; kw...)
     guess_dims(table, dims; precision=6)
 
@@ -86,7 +57,7 @@ Guesses the dimensions of an array based on the provided tabular representation.
 
 # Arguments
 
-$TABLE_ARGUMENT 
+- a table 
 The dimensions will be inferred from the corresponding coordinate collumns in the table.
 
 - `dims`: One or more dimensions to be inferred. If no dimensions are specified, then `guess_dims` will default
@@ -101,77 +72,18 @@ out of order.
 
 # Returns
 A tuple containing the inferred dimensions from the table.
-
-# Example
-
-```julia
-julia> using DimensionalData, DataFrames
-
-julia> import DimensionalData: Lookups, guess_dims
-
-julia> xdims = X(LinRange{Float64}(610000.0, 661180.0, 2560));
-
-julia> ydims = Y(LinRange{Float64}(6.84142e6, 6.79024e6, 2560));
-
-julia> bdims = Dim{:Band}([:B02, :B03, :B04]);
-
-julia> d = DimArray(rand(UInt16, 2560, 2560, 3), (xdims, ydims, bdims));
-
-julia> t = DataFrame(d);
-
-julia> t_rand = Random.shuffle(t);
-
-julia> dims(d)
-↓ X    Sampled{Float64} LinRange{Float64}(610000.0, 661180.0, 2560) ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} LinRange{Float64}(6.84142e6, 6.79024e6, 2560) ReverseOrdered Regular Points,
-↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
-
-julia> guess_dims(t)
-↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
-↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
-
-julia> guess_dims(t, X, Y, :Band)
-↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
-↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
-
-julia> guess_dims(t_rand, X => ForwardOrdered, Y => ReverseOrdered, :Band => ForwardOrdered)
-↓ X    Sampled{Float64} 610000.0:20.0:661180.0 ForwardOrdered Regular Points,
-→ Y    Sampled{Float64} 6.84142e6:-20.0:6.79024e6 ReverseOrdered Regular Points,
-↗ Band Categorical{Symbol} [:B02, :B03, :B04] ForwardOrdered
-```
-"""
+=#
 guess_dims(table; kw...) = guess_dims(table, _dim_col_names(table); kw...)
 guess_dims(table, dims::Tuple; precision=6, kw...) =
     map(dim -> _guess_dims(get_column(table, name(dim)), dim, precision), dims)
 
-"""
-    get_column(table, dim::Type{<:Dimension})
-    get_column(table, dim::Dimension)
-    get_column(table, dim::Symbol)
-
-Retrieve the coordinate data stored in the column specified by `dim`.
-
-# Arguments
-
-$TABLE_ARGUMENT
-- `dim`: A single dimension to be retrieved, which may be a `Symbol`, a `Dimension`.
-"""
+#Retrieve the coordinate data stored in the column specified by `dim`.
 get_column(table, x::Type{<:Dimension}) = Tables.getcolumn(table, name(x))
 get_column(table, x::Dimension) = Tables.getcolumn(table, name(x))
 get_column(table, x::Symbol) = Tables.getcolumn(table, x)
 
-"""
-    data_col_names(table, dims::Tuple)
 
-Return the names of all columns that don't matched the dimensions given by `dims`.
-
-# Arguments
-
-$TABLE_ARGUMENT
-- `dims`: A `Tuple` of one or more `Dimensions`.
-"""
+#Return the names of all columns that don't match the dimensions given by `dims`.
 function data_col_names(table, dims::Tuple)
     dim_cols = name(dims)
     return filter(x -> !(x in dim_cols), Tables.columnnames(table))
