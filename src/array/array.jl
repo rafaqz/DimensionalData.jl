@@ -520,7 +520,7 @@ function DimArray(table, dims; kw...)
     # Confirm that the Tables interface is implemented
     Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
-    dimarray_from_table(table, guess_dims(table, dims); kw...)
+    dimarray_from_table(DimArray, table, guess_dims(table, dims); kw...)
 end
 # Same as above, but guess dimension names from scratch
 function DimArray(table; kw...)
@@ -528,7 +528,7 @@ function DimArray(table; kw...)
     Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
     # Use default dimension 
-    return dimarray_from_table(table, guess_dims(table; kw...); kw...)
+    return dimarray_from_table(DimArray, table, guess_dims(table; kw...); kw...)
 end
 # Special-case NamedTuple tables
 function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple; 
@@ -537,19 +537,19 @@ function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple;
     if all(map(d -> Dimensions.name(d) in K, dims))
         table = Tables.columns(data)
         dims = guess_dims(table, dims; kw...)
-        return dimarray_from_table(table, dims; refdims, name, metadata, kw...)
+        return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
     else
         return DimArray(data, format(dims, data), refdims, name, metadata)
     end
 end
 
-function dimarray_from_table(table, dims; 
+function dimarray_from_table(::Type{T}, table, dims; 
     name=NoName(), 
     selector=nothing, 
     precision=6, 
     missingval=missing, 
     kw...
-)
+) where T <: AbstractDimArray
     # Determine row indices based on coordinate values
     indices = coords_to_indices(table, dims; selector, atol=10.0^-precision)
 
@@ -561,7 +561,7 @@ function dimarray_from_table(table, dims;
     array = restore_array(data, indices, dims, missingval)
 
     # Return DimArray
-    return DimArray(array, dims, name=col; kw...)
+    return T(array, dims, name=col; kw...)
 end
 
 """

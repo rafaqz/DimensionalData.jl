@@ -529,7 +529,7 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layerdims=nothing
 ) where K
     if length(data) > 0 && Tables.istable(data) && all(d -> name(d) in keys(data), dims)
-        return dimstack_from_table(data, dims; refdims, metadata)
+        return dimstack_from_table(DimStack, data, dims; refdims, metadata)
     end
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
@@ -566,7 +566,7 @@ function DimStack(data, dims::Tuple; kw...
             "All dimensions in dims must be in the table columns."
         ))
         dims = guess_dims(table, dims; kw...)
-        return dimstack_from_table(table, dims; kw...)
+        return dimstack_from_table(DimStack, table, dims; kw...)
     else
         throw(ArgumentError(
             """data must be a table with coordinate columns, an AbstractArray, 
@@ -578,7 +578,7 @@ end
 function DimStack(table; kw...)
     if Tables.istable(table)
         table = Tables.columns(table)
-        dimstack_from_table(table, guess_dims(table; kw...); kw...)
+        dimstack_from_table(DimStack, table, guess_dims(table; kw...); kw...)
     else
         throw(ArgumentError(
             """data must be a table with coordinate columns, an AbstractArray, 
@@ -586,12 +586,12 @@ function DimStack(table; kw...)
         ))    end
 end
 
-function dimstack_from_table(table, dims; 
+function dimstack_from_table(::Type{T}, table, dims; 
     selector=nothing, 
     precision=6, 
     missingval=missing, 
     kw...
-)
+) where T<:AbstractDimStack
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
     data_cols = _data_cols(table, dims)
     dims = guess_dims(table, dims; precision)
@@ -599,7 +599,7 @@ function dimstack_from_table(table, dims;
     layers = map(data_cols) do d
         restore_array(d, indices, dims, missingval)
     end
-    return DimStack(layers, dims; kw...)
+    return T(layers, dims; kw...)
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
