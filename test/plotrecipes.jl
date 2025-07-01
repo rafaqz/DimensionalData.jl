@@ -293,7 +293,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
 
-            fig, ax, plt = plot_i(obs(dd_cat), categorical_dim = Y)
+            fig, ax, plt = plot_i(obs(dd_cat), categoricaldim = Y)
             @test all(plt[1][] .== repeat(1:6, outer = 2))
         end
     end
@@ -304,7 +304,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
         fig, ax, plt = plot_i(dd_cat)
         @test all(plt[1][] .== Int.(lookup(dd_cat, X)))
         @test all(plt[2][] .== Int.(parent(dd_cat)))
-        @test_throws ArgumentError plot_i(dd_cat, categorical_dim = Y) 
+        @test_throws ArgumentError plot_i(dd_cat, categoricaldim = Y) 
     end
 
 
@@ -492,7 +492,7 @@ end
     @test fig.content[2] isa Makie.Colorbar    
     @test fig.content[2].label[] == "test"
 
-    fig, ax, plt = contourf(dd_mat; x_dim = Y, y_dim = X)
+    fig, ax, plt = contourf(dd_mat; xdim = Y, ydim = X)
     @test plt[1][] == lookup(dd_mat, Y)
     @test plt[2][] == lookup(dd_mat, X)
     @test plt[3][] == permutedims(dd_mat, (Y, X))
@@ -597,11 +597,11 @@ end
     @test volume(dd_3d_uni) broken = true
     @test volume(dd_3d_rgb) broken = true
 
-    fig, ax, plt = volume(dd_3d; x_dim = Y, y_dim = Z, z_dim = X)
+    fig, ax, plt = volume(dd_3d; xdim = Y, ydim = Z, zdim = X)
     @test plt[1][] == extrema(lookup(to_value(dd_3d), Y))
     @test plt[2][] == extrema(lookup(to_value(dd_3d), Z))
     @test plt[3][] == extrema(lookup(to_value(dd_3d), X))
-    @test_throws ArgumentError volume(dd_3d; x_dim = Y, y_dim = Z, z_dim = Y)
+    @test_throws ArgumentError volume(dd_3d; xdim = Y, ydim = Z, zdim = Y)
 
     x = Observable(1:5)
     y = Observable(11:15)
@@ -798,17 +798,17 @@ end
     # M.series!(ax, A2r; labeldim=Y)
     fig, ax, _ = M.series(A2m)
     # M.series!(ax, A2m)
-    @test_throws ArgumentError M.plot(A2; y_dim=:c)
+    @test_throws ArgumentError M.plot(A2; ydim=:c)
     # @test_throws ArgumentError M.plot!(ax, A2; y=:c)
 
     # x/y can be specified
     A2ab = DimArray(rand(6, 10), (:a, :b); name=:stuff)
     fig, ax, _ = M.plot(A2ab)
     M.plot!(ax, A2ab)
-    fig, ax, _ = M.contourf(A2ab; x_dim=:a)
-    M.contourf!(ax, A2ab, x_dim=:a)
-    fig, ax, _ = M.heatmap(A2ab; y_dim=:b)
-    M.heatmap!(ax, A2ab; y_dim=:b)
+    fig, ax, _ = M.contourf(A2ab; xdim=:a)
+    M.contourf!(ax, A2ab, xdim=:a)
+    fig, ax, _ = M.heatmap(A2ab; ydim=:b)
+    M.heatmap!(ax, A2ab; ydim=:b)
     fig, ax, _ = M.series(A2ab)
     M.series!(ax, A2ab)
     fig, ax, _ = M.boxplot(A2ab)
@@ -859,10 +859,10 @@ end
     # M.volumeslices!(ax, A3rgb)
     # x/y/z can be specified
     A3abc = DimArray(rand(10, 10, 7), (:a, :b, :c); name=:stuff)
-    fig, ax, _ = M.volume(A3abc; x_dim=:c)
-    fig, ax, _ = M.volumeslices(A3abc; x_dim=:c)
-    fig, ax, _ = M.volumeslices(A3abc; z_dim=:a)
-    M.volumeslices!(ax, A3abc; z_dim=:a)
+    fig, ax, _ = M.volume(A3abc; xdim=:c)
+    fig, ax, _ = M.volumeslices(A3abc; xdim=:c)
+    fig, ax, _ = M.volumeslices(A3abc; zdim=:a)
+    M.volumeslices!(ax, A3abc; zdim=:a)
 
     "LScene support"
     f, a, p = M.heatmap(A2ab; axis=(; type=M.LScene, show_axis=false))
