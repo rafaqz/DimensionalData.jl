@@ -125,12 +125,6 @@ end
 _dim_col_names(table) = filter(x -> x in Tables.columnnames(table), (:X,:Y,:Z,:Ti,:Band))
 _dim_col_names(table, dims::Tuple) = map(col -> Tables.getcolumn(table, col), name(dims))
 
-# Extract data columns from table
-function _data_cols(table, dims::Tuple)
-    data_cols = data_col_names(table, dims)
-    return NamedTuple{Tuple(data_cols)}(Tables.getcolumn(table, col) for col in data_cols)
-end
-
 _coords_to_indices(table, dims::Tuple, sel, atol) = 
     _coords_to_indices(_dim_cols(table, dims), dims, sel, atol)
 # Determine the ordinality of a set of coordinates

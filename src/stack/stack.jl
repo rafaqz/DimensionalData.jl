@@ -587,19 +587,21 @@ function DimStack(table; kw...)
 end
 
 function dimstack_from_table(::Type{T}, table, dims; 
+    name=nothing, 
     selector=nothing, 
     precision=6, 
     missingval=missing, 
     kw...
 ) where T<:AbstractDimStack
     table = Tables.columnaccess(table) ? table : Tables.columns(table)
-    data_cols = _data_cols(table, dims)
+    data_cols = isnothing(name) ? data_col_names(table, dims) : name
     dims = guess_dims(table, dims; precision)
     indices = coords_to_indices(table, dims; selector)
-    layers = map(data_cols) do d
+    layers = map(data_cols) do col
+        d = Tables.getcolumn(table, col)
         restore_array(d, indices, dims, missingval)
     end
-    return T(layers, dims; kw...)
+    return T(layers, dims; name = data_cols, kw...)
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
