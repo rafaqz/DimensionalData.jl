@@ -91,4 +91,9 @@ end
     end
 end
 
+@static if isdefined(DiskArrays, :mockchunks)
+    DiskArrays.mockchunks(x::AbstractDimArray, chunks) = 
+        modify(A -> DiskArrays.mockchunks(A, chunks), x)
+end
+
 end
