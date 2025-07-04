@@ -92,7 +92,7 @@ end
 end
 
 @static if isdefined(DiskArrays, :mockchunks)
-    DiskArrays.mockchunks(x::Union{AbstractDimStack,AbstractDimArray}, chunks) = 
+    DiskArrays.mockchunks(x::AbstractDimArray, chunks) = 
         modify(A -> DiskArrays.mockchunks(A, chunks), x)
 end
 
