@@ -96,9 +96,9 @@ end
     end
 end
 
-@static if isdefined(DiskArrays, :rechunk)
-    DiskArrays.rechunk(x::Union{AbstractDimStack,AbstractDimArray}, chunks) = 
-        modify(A -> DiskArrays.rechunk(A, chunks), x)
+@static if isdefined(DiskArrays, :mockchunks)
+    DiskArrays.mockchunks(x::Union{AbstractDimStack,AbstractDimArray}, chunks) = 
+        modify(A -> DiskArrays.mockchunks(A, chunks), x)
 end
 
 end
