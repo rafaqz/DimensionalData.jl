@@ -498,6 +498,7 @@ end
     A1u = rand([missing, (1:3.)...], X(1s:1s:3s); name=:test)
     A1ui = rand([missing, (1:3.)...], X(1s:1s:3s; sampling=Intervals(Start())); name=:test)
     A1num = rand(X(-10:10))
+    A1v = DimArray(view(A1.data, :), DD.dims(A1))
     A1m .= A1
     A1m[3] = missing
     fig, ax, _ = plot(A1)
@@ -509,7 +510,9 @@ end
     #plot!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = plot(A1ui)
     #plot!(ax, A1ui) # Does not work due to Makie limitation related with missing
-
+    fig, ax, _ = plot(A1v)
+    plot!(ax, A1v)
+    plot!(A1v)
     fig, ax, _ = plot(A1num)
     reset_limits!(ax)
     org = first(ax.finallimits.val.origin)
@@ -523,6 +526,9 @@ end
     fig, ax, _ = scatter(A1m)
     scatter!(ax, A1m)
     scatter!(A1m)
+    fig, ax, _ = scatter(A1v)
+    scatter!(ax, A1v)
+    scatter!(A1v)
     fig, ax, _ = lines(A1)
     lines!(ax, A1)
     lines!(A1)
@@ -531,6 +537,11 @@ end
     fig, ax, _ = lines(A1m)
     lines!(ax, A1m)
     lines!(A1m)
+    fig, ax, _ = lines(A1v)
+    lines!(ax, A1v)
+    lines!(A1v)
+    fig, ax, _ = scatterlines(A1v)
+    scatterlines!(ax, A1v)
     fig, ax, _ = scatterlines(A1)
     scatterlines!(ax, A1)
     scatterlines!(A1)
@@ -547,9 +558,12 @@ end
     fig, ax, _ = stairs(A1m)
     stairs!(ax, A1m)
     stairs!(A1m)
+    fig, ax, _ = stairs(A1v)
+    stairs!(ax, A1v)
     fig, ax, _ = stem(A1)
     stem!(ax, A1)
-    stem!(A1)
+    fig, ax, _ = stem(A1v)
+    stem!(ax, A1v)
     fig, ax, _ = stem(A1u)
     # stem!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = stem(A1m)
@@ -558,6 +572,8 @@ end
     fig, ax, _ = barplot(A1)
     barplot!(ax, A1)
     barplot!(A1)
+    fig, ax, _ = barplot(A1v)
+    barplot!(ax, A1v)
     fig, ax, _ = barplot(A1u)
     # barplot!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = barplot(A1m)
@@ -565,6 +581,8 @@ end
     barplot!(A1m)
     fig, ax, _ = waterfall(A1)
     waterfall!(ax, A1)
+    fig, ax, _ = waterfall(A1v)
+    waterfall!(ax, A1v)
     fig, ax, _ = waterfall(A1u)
     # waterfall!(ax, A1u) # Does not work due to Makie limitation related with missing
     fig, ax, _ = waterfall(A1m)
