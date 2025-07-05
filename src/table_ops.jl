@@ -78,9 +78,7 @@ guess_dims(table, dims::Tuple; precision=6, kw...) =
     map(dim -> _guess_dims(get_column(table, name(dim)), dim, precision), dims)
 
 #Retrieve the coordinate data stored in the column specified by `dim`.
-get_column(table, x::Type{<:Dimension}) = Tables.getcolumn(table, name(x))
-get_column(table, x::Dimension) = Tables.getcolumn(table, name(x))
-get_column(table, x::Symbol) = Tables.getcolumn(table, x)
+get_column(table, x) = Tables.getcolumn(table, name(x))
 
 
 #Return the names of all columns that don't match the dimensions given by `dims`.
