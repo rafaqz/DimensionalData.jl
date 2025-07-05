@@ -530,11 +530,11 @@ function DimArray(table; kw...)
     # Use default dimension 
     return dimarray_from_table(DimArray, table, guess_dims(table; kw...); kw...)
 end
-# Special-case NamedTuple tables
-function DimArray(data::AbstractVector{<:NamedTuple{K}}, dims::Tuple; 
+# Special-case for AbstractVectors - these might be tables
+function DimArray(data::AbstractVector, dims::Tuple; 
     refdims=(), name=NoName(), metadata=NoMetadata(), kw...
-) where K
-    if all(map(d -> Dimensions.name(d) in K, dims))
+)
+    if Tables.istable(data) && all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
         table = Tables.columns(data)
         dims = guess_dims(table, dims; kw...)
         return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
