@@ -534,7 +534,8 @@ end
 function DimArray(data::AbstractVector, dims::Tuple; 
     refdims=(), name=NoName(), metadata=NoMetadata(), kw...
 )
-    if Tables.istable(data) && all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
+    if !(data isa AbstractBasicDimArray) && Tables.istable(data) && 
+        all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
         table = Tables.columns(data)
         dims = guess_dims(table, dims; kw...)
         return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
