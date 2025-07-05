@@ -562,7 +562,7 @@ function DimStack(data, dims::Tuple; kw...
 )
     if Tables.istable(data)
         table = Tables.columns(data)
-        all(map(d -> Dimensions.name(d) in keys(table), dims)) || throw(ArgumentError(
+        all(map(d -> Dimensions.name(d) in Tables.columnnames(table), dims)) || throw(ArgumentError(
             "All dimensions in dims must be in the table columns."
         ))
         dims = guess_dims(table, dims; kw...)
