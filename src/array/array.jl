@@ -144,7 +144,8 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
 end
 
 # undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{<:Any}} = A(x, dims; kw...)
+(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{T}} where T = 
+    A(x, dims; kw...)
 function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
 end
@@ -410,13 +411,14 @@ moves dimensions to reference dimension `refdims` after reducing operations
 
 ## Arguments
 
-- `data`: An `AbstractArray`.
+- `data`: An `AbstractArray` or a table with coordinate columns corresponding to `dims`.
 - `gen`: A generator expression. Where source iterators are `Dimension`s the dim args or kw is not needed.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
+- `selector`: The coordinate selector type to use when materializing from a table.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
@@ -512,6 +514,57 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Tables
+# Write a single column from a table with one or more coordinate columns to a DimArray
+function DimArray(table, dims; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    dimarray_from_table(DimArray, table, guess_dims(table, dims); kw...)
+end
+# Same as above, but guess dimension names from scratch
+function DimArray(table; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    # Use default dimension 
+    return dimarray_from_table(DimArray, table, guess_dims(table; kw...); kw...)
+end
+# Special-case for AbstractVectors - these might be tables
+function DimArray(data::AbstractVector, dims::Tuple; 
+    refdims=(), name=NoName(), metadata=NoMetadata(), kw...
+)
+    if !(data isa AbstractBasicDimArray) && Tables.istable(data) && 
+        all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
+        table = Tables.columns(data)
+        dims = guess_dims(table, dims; kw...)
+        return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
+    else
+        return DimArray(data, format(dims, data), refdims, name, metadata)
+    end
+end
+
+function dimarray_from_table(::Type{T}, table, dims; 
+    name=NoName(), 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+) where T <: AbstractDimArray
+    # Determine row indices based on coordinate values
+    indices = coords_to_indices(table, dims; selector, atol=10.0^-precision)
+
+    # Extract the data column correspondong to `name`
+    col = name == NoName() ? data_col_names(table, dims) |> first : Symbol(name)
+    data = Tables.getcolumn(table, col)
+
+    # Restore array data
+    array = restore_array(data, indices, dims, missingval)
+
+    # Return DimArray
+    return T(array, dims, name=col; kw...)
+end
+
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -520,7 +573,7 @@ Apply function `f` across the values of the dimension `dim`
 the given dimension. Optionally provide a name for the result.
 """
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
-     DimArray(f.(val(dim)), (dim,); name)
+    DimArray(f.(val(dim)), (dim,); name)
 end
 
 DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
