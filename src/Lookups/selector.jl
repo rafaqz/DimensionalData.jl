@@ -453,6 +453,17 @@ function contains(
     i = _searchfunc(locus, o)(l, v)
     return check_regular_contains(span, locus, l, v, i, err)
 end
+function contains(
+    o::Ordered, span::Regular, ::Intervals, locus::Center, l::Lookup, sel::Contains{<:Dates.AbstractTime};
+    err=_True()
+)
+    v = val(sel)
+    i = _searchfunc(locus, o)(l, v)
+    if i < lastindex(l)
+        i = abs(l[i] - v) < abs(l[i] - v) ? i : i + i
+    end
+    return check_regular_contains(span, locus, l, v, i, err)
+end
 
 function check_regular_contains(span::Span, locus::Locus, l::Lookup, v, i, err)
     absstep = abs(val(span))
