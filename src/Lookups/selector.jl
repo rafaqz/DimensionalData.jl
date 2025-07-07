@@ -389,7 +389,12 @@ function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
     end
 end
 function contains(l::Lookup, sel::Contains; kw...)
-    val(sel) isa AbstractFloat && isnan(val(sel)) && throw(ArgumentError("NaN not allowed in `Contains`"))
+    v = val(sel)
+    v isa AbstractFloat && isnan(v) && throw(ArgumentError("NaN not allowed in `Contains`"))
+    # Allow Date and DateTime to be used interchangeably
+    if v isa Union{Dates.DateTime,Dates.Date}
+        sel = Contains(eltype(l)(v))
+    end
     contains(sampling(l), l, sel; kw...)
 end
 # NoSampling (e.g. Categorical) just uses `at`
@@ -459,8 +464,8 @@ function contains(
 )
     v = val(sel)
     i = _searchfunc(locus, o)(l, v)
-    if i < lastindex(l)
-        i = abs(l[i] - v) < abs(l[i] - v) ? i : i + i
+    if i > firstindex(l)
+        i = abs(l[i] - v) < abs(l[i-1] - v) ? i : i - i
     end
     return check_regular_contains(span, locus, l, v, i, err)
 end
