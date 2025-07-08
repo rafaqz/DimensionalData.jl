@@ -44,5 +44,6 @@ end
 if Sys.islinux()
     # Unfortunately this can hang on other platforms.
     # Maybe ram use of all the plots on the small CI machine? idk
-    @time @safetestset "plotrecipes" begin include("plotrecipes.jl") end
+    @time @safetestset "Plots" begin include("plots.jl") end
+    @time @safetestset "Makie" begin include("makie.jl") end
 end
