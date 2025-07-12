@@ -1,5 +1,27 @@
 using DimensionalData, AbstractFFTs, FFTW, Test, LinearAlgebra
 
+
+ext = Base.get_extension(DimensionalData, :DimensionalDataAbstractFFTsExt)
+
+# Test with even length
+x = dims(rand(X(-5:4)), 1)
+fx = ext._fftfreq(x)
+@test ext._ifftfreq(fx) == x
+
+# Test with odd length
+x = dims(rand(X(-5:5)), 1)
+fx = ext._fftfreq(x)
+@test ext._ifftfreq(fx) == x
+
+x = dims(rand(X(-5:5)), 1)
+fx = ext._rfftfreq(x)
+@test ext._irfftfreq(fx, length(x)) == x
+
+x = dims(rand(X(-5:4)), 1)
+fx = ext._rfftfreq(x)
+@test ext._irfftfreq(fx, length(x)) == x
+
+
 gauss(x, a, x0) = exp(-a * (x - x0)^2)
 fourier_gauss(k, a, x0) = √(π / a) * exp(-π^2 * k^2 / a + 2π * im * x0 * k) # Fourier transform of a Gaussian
 
@@ -28,4 +50,19 @@ pinv = plan_ifft(fft_y)
 @test all(isapprox.(mul!(ifft_y, pinv, fft_y), gauss.(lookup(ifft_y, 1), 5, 0), atol = 1E-9))
 
 
+fft_y = rfft(y)
+ref_values = fourier_gauss.(dims(fft_y, 1), 5, 0)
 
+@test all(isapprox.(fft_y, fourier_gauss.(dims(fft_y, 1), 5, 0), atol = 1E-9))
+
+ifft_y = irfft(fft_y, length(y))
+@test all(isapprox.(ifft_y, gauss.(lookup(ifft_y, 1), 5, 0), atol = 1E-9))
+@test all(isapprox.(lookup(ifft_y, 1) |> parent |> step, step(x), atol = 1E-9))
+
+# Double test to ensure that the plan uses correctly the temporary arrays used to avoid allocations
+p = plan_rfft(y)
+@test all(isapprox.(mul!(fft_y, p, y), ref_values, atol = 1E-9))
+@test all(isapprox.(mul!(fft_y, p, y), ref_values, atol = 1E-9))
+pinv = plan_irfft(fft_y, length(y))
+@test all(isapprox.(mul!(ifft_y, pinv, fft_y), gauss.(lookup(ifft_y, 1), 5, 0), atol = 1E-9))
+@test all(isapprox.(mul!(ifft_y, pinv, fft_y), gauss.(lookup(ifft_y, 1), 5, 0), atol = 1E-9))
