@@ -67,6 +67,8 @@ format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 
 format(m::Lookups.ArrayLookup, D::Type, ::AutoValues, axis::AbstractRange) =
     rebuild(m; dim=D(), data=axis)
+format(m::Lookups.ArrayLookup, D::Type, data::AbstractArray, axis::AbstractRange) =
+    rebuild(m; dim=D(), data)
 
 # Format Lookups
 # No more identification required for NoLookup
@@ -99,8 +101,17 @@ function format(m::AbstractSampled, D::Type, values, axis::AbstractRange)
     o = _format(order(m), D, values)
     sp = _format(span(m), D, values)
     sa = _format(sampling(m), sp, D, values)
-    x = rebuild(m; data=i, order=o, span=sp, sampling=sa)
-    return x
+    return rebuild(m; data=i, order=o, span=sp, sampling=sa)
+end
+function format(m::AbstractCyclic, D::Type, values, axis::AbstractRange)
+    # This is just AbstractSampled with bounds
+    i = _format(values, axis)
+    o = _format(order(m), D, values)
+    sp = _format(span(m), D, values)
+    sa = _format(sampling(m), sp, D, values)
+    T = eltype(values)
+    b = bounds(m) isa AutoBounds ? (typemin(T), typemax(T)) : bounds(m)
+    return rebuild(m; data=i, order=o, span=sp, sampling=sa, bounds=b)
 end
 # Transformed
 format(m::Transformed, D::Type, values::AutoValues, axis::AbstractRange) =

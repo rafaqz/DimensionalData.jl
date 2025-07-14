@@ -140,7 +140,14 @@ end
 struct _True end
 struct _False end
 
+
+function _check_cyclic_inbounds(lookup::AbstractCyclic, val)
+    lowerbound, upperbound = bounds(lookup)
+    lowerbound < val < upperbound || throw(SelectorError(lookup, val))
+end
+
 function at(lookup::AbstractCyclic{Cycling}, sel::At; kw...)
+    _check_cyclic_inbounds(lookup, val(sel))
     cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
     return at(no_cycling(lookup), cycled_sel; kw...)
 end
@@ -279,7 +286,15 @@ Base.show(io::IO, x::Near) = print(io, "Near(", val(x), ")")
 Base.show(io::IO, x::Near{Nothing}) = print(io, "Near()")
 
 function near(lookup::AbstractCyclic{Cycling}, sel::Near; kw...)
-    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
+    v = val(sel)
+    # Need to make sure we dont cycle outside the bounds
+    lowerbound, upperbound = bounds(lookup)
+    if v < lowerbound 
+        v = lowerbound
+    elseif v > upperbound
+        v = upperbound
+    end
+    cycled_sel = rebuild(sel, cycle_val(lookup, v))
     near(no_cycling(lookup), cycled_sel; kw...)
 end
 near(lookup::NoLookup, sel::Near{<:Real}; kw...) = max(1, min(round(Int, val(sel)), lastindex(lookup)))
@@ -383,7 +398,9 @@ Base.show(io::IO, x::Contains) = print(io, "Contains(", val(x), ")")
 Base.show(io::IO, x::Contains{Nothing}) = print(io, "Contains()")
 
 function contains(lookup::AbstractCyclic{Cycling}, sel::Contains; kw...)
-    cycled_sel = rebuild(sel, cycle_val(lookup, val(sel)))
+    _check_cyclic_inbounds(lookup, val(sel))
+    cval = cycle_val(lookup, val(sel))
+    cycled_sel = rebuild(sel, cval)
     return contains(no_cycling(lookup), cycled_sel; kw...)
 end
 function contains(l::NoLookup, sel::Contains; err=_True(), kw...)

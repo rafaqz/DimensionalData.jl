@@ -6,7 +6,7 @@ using NearestNeighbors.StaticArrays
 using DimensionalData.Lookups
 using DimensionalData.Dimensions
 
-using DimensionalData.Lookups: ArrayLookup, matrix, atol
+using DimensionalData.Lookups: ArrayLookup, matrix, atol, AutoDim
 
 const DD = DimensionalData
 const NN = NearestNeighbors
@@ -30,14 +30,17 @@ end
 function DD.Dimensions.format_unaligned(
     lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, dims::DD.DimTuple, axes,
 )
+    dims = basedims(DD.dims(lookups[1]) isa Union{Nothing,AutoDim} ? dims : DD.dims(lookups[1]))
+    # This may be expensive, we are doubling 
+    # the memory use of the lookup matrices
     points = vec(SVector.(zip(map(matrix, lookups)...)))
     idxvec = Vector{Int}(undef, 1)
     distvec = Vector{NN.get_T(eltype(points))}(undef, 1)
     tree = NN.KDTree(points, NN.Euclidean(); reorder=false)
     return map(lookups, dims, axes) do l, d, a
-        newl = rebuild(l; 
-            data=a, tree, dim=basedims(d), dims=basedims(dims), idxvec, distvec
-        )
+        data = parent(l) isa AutoValues ? a : parent(l)
+        dim = basedims(DD.dim(l) isa AutoDim ? d : DD.dim(l))
+        newl = rebuild(l; data, tree, dim, dims, idxvec, distvec)
         rebuild(d, newl) 
     end
 end

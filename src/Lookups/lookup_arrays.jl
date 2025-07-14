@@ -344,9 +344,9 @@ These are `AbstractSampled` lookups that are cyclic for `Selectors`.
 abstract type AbstractCyclic{X,T,O,Sp,Sa} <: AbstractSampled{T,O,Sp,Sa} end
 
 cycle(l::AbstractCyclic) = l.cycle
+innercycle(l::AbstractCyclic) = l.innercycle
 cycle_status(l::AbstractCyclic) = l.cycle_status
-
-bounds(l::AbstractCyclic{<:Any,T}) where T = (typemin(T), typemax(T))
+bounds(l::AbstractCyclic) = l.bounds
 
 # Indexing with `AbstractArray` must rebuild the lookup as
 # `Sampled` as we no longer have the whole cycle.
@@ -355,7 +355,6 @@ for f in (:getindex, :view, :dotview)
         Sampled(rebuild(l; data=Base.$f(parent(l), i)))
 end
 
-
 no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())
 
 function cycle_val(l::AbstractCyclic, val)
@@ -363,6 +362,9 @@ function cycle_val(l::AbstractCyclic, val)
     # This formulation is necessary for dates
     ncycles = (val - cycle_start) ÷ (cycle_start + cycle(l) - cycle_start)
     res = val - ncycles * cycle(l)
+    # if (cycle_start + cycle(l) * ncycles) < ordered_last(l)
+        # i = searchsortedlast(, )   
+    # end
     # Catch precision errors
     if (cycle_start + (ncycles + 1) * cycle(l)) <= val
         i = 1
@@ -404,6 +406,9 @@ or for wrapping longitudes so that `-360` and `360` are the same.
 $SAMPLED_ARGUMENTS_DOC
 - `cycle`: the length of the cycle. This does not have to exactly match the data, 
    the `step` size is `Week(1)` the cycle can be `Years(1)`.
+- `innercycle`: an inner cycle for nested cycles, such as allowed in CF
+   convertions "climatology" with both yearly and daily cycles. By default,
+   and usually `innercycle` is `nothing`.
 
 ## Notes
 
@@ -417,7 +422,7 @@ $SAMPLED_ARGUMENTS_DOC
     leap years breaking correct date cycling of a single year. If you actually need this behaviour, 
     please make a GitHub issue.
 """
-struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
+struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C,B<:Union{<:Tuple{T,T},<:AutoBounds}} <: AbstractCyclic{X,T,O,Sp,Sa}
     data::A
     order::O
     span::Sp
@@ -425,20 +430,22 @@ struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,S
     metadata::M
     cycle::C
     cycle_status::X
+    bounds::B
     function Cyclic(
-        data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X
-    ) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X} where T
+        data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X, bounds::B
+    ) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X,B} where T
         _check_ordered_cyclic(order)
-        new{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
+        new{X,T,A,O,Sp,Sa,M,C,B}(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
     end
 end
 function Cyclic(data=AutoValues();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata(),
+    bounds=AutoBounds(),
     cycle, # Mandatory keyword, there are too many possible bugs with auto detection
 )
     cycle_status = Cycling()
-    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
 end
 
 _check_ordered_cyclic(::AutoOrder) = nothing
@@ -447,9 +454,9 @@ _check_ordered_cyclic(::Unordered) = throw(ArgumentError("Cyclic lookups must be
 
 function rebuild(l::Cyclic;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
-    cycle=cycle(l), cycle_status=cycle_status(l), kw...
+    cycle=cycle(l), cycle_status=cycle_status(l), bounds=bounds(l), kw...
 )
-    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
 end
 
 """
@@ -611,7 +618,9 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && l1.f == l2.f
 
 # TODO Transformed bounds
-struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
+struct ArrayLookup{
+    T,A<:AbstractArray{T},D,Ds<:Tuple,Ma<:AbstractArray,Tr,IV,DV<:Union{AbstractVector,Nothing},Me
+} <: Unaligned{T,1}
     data::A
     dim::D
     dims::Ds
@@ -621,8 +630,8 @@ struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
     distvec::DV
     metadata::Me
 end
-ArrayLookup(matrix; metadata=NoMetadata()) =
-    ArrayLookup(AutoValues(), AutoDim(), AutoDim(), matrix, nothing, nothing, nothing, metadata)
+ArrayLookup(matrix; data=AutoValues, dim=AutoDim(), dims=AutoDim(), metadata=NoMetadata()) =
+    ArrayLookup(data, dim, dims, matrix, nothing, nothing, nothing, metadata)
 dim(lookup::ArrayLookup) = lookup.dim
 matrix(l::ArrayLookup) = l.matrix
 tree(l::ArrayLookup) = l.tree
