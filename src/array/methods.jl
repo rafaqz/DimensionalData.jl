@@ -280,51 +280,7 @@ function _cat(catdim::Union{Int,Symbol,DimOrDimType}, A1::AbstractDimArray, As::
 end
 function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     Xin = (A1, As...)
-    newcatdims = map(catdims) do catdim
-        # If catdim is already constructed, its the new dimension
-        if catdim isa Dimension
-            return catdim
-        end
-        # Otherwise build a new dimension/lookup
-        if catdim isa Int
-            if hasdim(A1, catdim)
-                catdim = basedims(dims(A1, catdim))
-            else
-                return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
-            end
-        else
-            catdim = basedims(name2dim(catdim))
-        end
-        # Dimension Types and Symbols
-        if all(x -> hasdim(x, catdim), Xin)
-            # We concatenate an existing dimension
-            newcatdim = if lookup(A1, catdim) isa NoLookup
-                rebuild(catdim, NoLookup())
-            else
-                # vcat the index for the catdim in each of Xin
-                joindims = map(A -> dims(A, catdim), Xin)
-                if !check_cat_lookups(joindims...) 
-                    return rebuild(catdim, NoLookup())
-                end
-                _vcat_dims(joindims...)
-            end
-        else
-            # Concatenate new dims
-            if all(map(x -> hasdim(refdims(x), catdim), Xin))
-                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoValues})
-                    # Combine the refdims properties with the passed in catdim
-                    set(refdims(first(Xin), catdim), catdim)
-                else
-                    # vcat the refdims
-                    _vcat_dims(map(x -> refdims(x, catdim), Xin)...)
-                end
-            else
-                # Use the catdim as the new dimension
-                catdim
-            end
-        end
-    end
-
+    newcatdims = _catdims(catdims, A1, As...)
     inserted_dims = dims(newcatdims, dims(A1))
     appended_dims = otherdims(newcatdims, inserted_dims)
 
@@ -344,6 +300,55 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
     newrefdims = otherdims(refdims(A1), newcatdims)
     newA = Base.cat(map(parent, Xin)...; dims=cat_dnums)
     return rebuild(A1, newA, format(newdims, newA), newrefdims)
+end
+
+function _catdims(catdims, As...)
+    A1 = first(As)
+    newcatdims = map(catdims) do catdim
+        # If catdim is already constructed, its the new dimension
+        if catdim isa Dimension
+            return catdim
+        end
+        # Otherwise build a new dimension/lookup
+        if catdim isa Int
+            if hasdim(A1, catdim)
+                catdim = basedims(dims(A1, catdim))
+            else
+                return AnonDim(NoLookup()) # TODO: handle larger dimension extensions, this is half broken
+            end
+        else
+            catdim = basedims(name2dim(catdim))
+        end
+        # Dimension Types and Symbols
+        if all(x -> hasdim(x, catdim), As)
+            # We concatenate an existing dimension
+            newcatdim = if lookup(A1, catdim) isa NoLookup
+                rebuild(catdim, NoLookup())
+            else
+                # vcat the index for the catdim in each of As
+                joindims = map(A -> dims(A, catdim), As)
+                if !check_cat_lookups(joindims...) 
+                    return rebuild(catdim, NoLookup())
+                end
+                _vcat_dims(joindims...)
+            end
+        else
+            # Concatenate new dims
+            if all(map(x -> hasdim(refdims(x), catdim), As))
+                if catdim isa Dimension && val(catdim) isa AbstractArray && !(lookup(catdim) isa NoLookup{AutoValues})
+                    # Combine the refdims properties with the passed in catdim
+                    set(refdims(first(As), catdim), catdim)
+                else
+                    # vcat the refdims
+                    _vcat_dims(map(x -> refdims(x, catdim), As)...)
+                end
+            else
+                # Use the catdim as the new dimension
+                catdim
+            end
+        end
+    end
+    return newcatdims
 end
 
 function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
