@@ -12,11 +12,13 @@ const Forward = -1
 const RealFFT = -1
 const ComplexFFT = 1
 
-struct DDPlan{T, I, F, P<:AbstractFFTs.Plan,A} <: AbstractFFTs.Plan{T}
+const NotQuantity = Union{<:Real, Complex{<:Real}}
+
+struct DDPlan{T, X, I, F, P<:AbstractFFTs.Plan,A} <: AbstractFFTs.Plan{T}
     p::P
     temp::A
-    function DDPlan{I,F}(p::P, temp::A) where {I, F, P<:AbstractFFTs.Plan{T},A} where T
-        new{T, I, F, P, A}(p, temp)
+    function DDPlan{X,I,F}(p::P, temp::A) where {X, I, F, P<:AbstractFFTs.Plan{T},A} where T
+        new{T, X, I, F, P, A}(p, temp)
     end
 end
 
@@ -24,8 +26,8 @@ AbstractFFTs.fftdims(plan::DDPlan) = AbstractFFTs.fftdims(plan.p)
 AbstractFFTs.output_size(plan::DDPlan) = AbstractFFTs.output_size(plan.p)
 Base.size(plan::DDPlan) = size(plan.p)
 
-is_inverse_transform(plan::DDPlan{<:Any, Inverse}) = true
-is_inverse_transform(plan::DDPlan{<:Any, Forward}) = false
+is_inverse_transform(plan::DDPlan{<:Any, <:Any, Inverse}) = true
+is_inverse_transform(plan::DDPlan{<:Any, <:Any, Forward}) = false
 
 function _step(lookup)
     if !DD.Lookups.isregular(lookup)
@@ -64,7 +66,7 @@ function _irfftfreq(dd_lookup, len::Integer)
     end
 end
 
-function get_fft_frequencies_dim(::Type{<:DDPlan{<:Any, Forward, R}}, dd_lookup, is_fft_dim, is_first_fft_dim, len) where R
+function get_fft_frequencies_dim(::Type{<:DDPlan{<:Any, <:Any, Forward, R}}, dd_lookup, is_fft_dim, is_first_fft_dim, len) where R
     if is_fft_dim
         if is_first_fft_dim
             if R == RealFFT 
@@ -80,7 +82,7 @@ function get_fft_frequencies_dim(::Type{<:DDPlan{<:Any, Forward, R}}, dd_lookup,
     end
 end
 
-function get_fft_frequencies_dim(::Type{<:DDPlan{<:Any, Inverse, R}}, dd_lookup, is_fft_dim, is_first_fft_dim, len) where R
+function get_fft_frequencies_dim(::Type{<:DDPlan{<:Any, <:Any, Inverse, R}}, dd_lookup, is_fft_dim, is_first_fft_dim, len) where R
     if is_fft_dim
         if is_first_fft_dim
             if R == RealFFT 
@@ -111,7 +113,7 @@ function get_scale_factor(plan::P, dd::DD.AbstractDimArray{<:Any, N}) where {P<:
     prod(steps_dd)
 end
 
-function (*)(plan::DDPlan, dd::DD.AbstractDimArray)
+function (*)(plan::DDPlan{<:Any, X}, dd::DD.AbstractDimArray{T}) where {T, X}
     lookups = get_freqs(plan, dd)
     input_to_plan = if is_inverse_transform(plan)
         copyto!(parent(plan.temp), parent(dd))
@@ -120,14 +122,17 @@ function (*)(plan::DDPlan, dd::DD.AbstractDimArray)
     else
         dd
     end
-    fft_dd = plan.p * parent(input_to_plan)
+
+    T_val = T <: NotQuantity ? eltype(input_to_plan) : typeof(input_to_plan[1].val)
+    _fft_dd = plan.p * reinterpret(T_val, parent(input_to_plan))
+    fft_dd = reinterpret(typeof(real(oneunit(T)) * oneunit(X) * oneunit(eltype(_fft_dd))), _fft_dd)
     dd_out = DimArray(fft_dd, lookups)
     if !is_inverse_transform(plan)
         correct_phase_reference!(dd_out, plan, lookup(dd), -1)
     end
     dd_out
 end
-function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{<:Any, N}, plan::DDPlan, dd_in::DD.AbstractDimArray{<:Any, N}) where N
+function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan, dd_in::DD.AbstractDimArray{Tin, N}) where {N, Tin, Tout}
     lookups_out = get_freqs(plan, dd_in)
     if !all(i -> dims(dd_out, i) == lookups_out[i], 1:N)
         throw(ArgumentError("The lookups of the output and input DimensionalData must match."))
@@ -139,7 +144,11 @@ function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{<:Any, N}, plan::DDPlan,
     else
         dd_in
     end
-    LinearAlgebra.mul!(parent(dd_out), plan.p, parent(input_to_plan))
+    
+    T_in_val = Tin <: NotQuantity ? eltype(input_to_plan) : typeof(input_to_plan[1].val)
+    T_out_val = Tout <: NotQuantity ? eltype(dd_out) : typeof(dd_out[1].val)
+
+    LinearAlgebra.mul!(reinterpret(T_out_val, parent(dd_out)), plan.p, reinterpret(T_in_val, parent(input_to_plan)))
     if !is_inverse_transform(plan)
         correct_phase_reference!(dd_out, plan, lookup(dd_in), -1)
     end
@@ -148,7 +157,7 @@ end
 
 function correct_phase_reference!(dd::DD.AbstractDimArray{<:Any, N}, plan::DDPlan, lookup_refs, phase_scaling) where N
     for i in fftdims(plan)
-        dd .*= exp.((im * 2π * phase_scaling * first(lookup_refs[i])) .* lookup(dd, i))
+        @d dd .*= exp.((im * 2π * phase_scaling * first(lookup_refs[i])) .* dims(dd, i))
     end
 end
 
@@ -169,22 +178,29 @@ end
 
 function AbstractFFTs.plan_fft(dd::AbstractDimArray{T, N}, dd_dims = ntuple(identity, N); kwargs...) where {T,N}
     dims = DD.dimnum(dd, dd_dims)
-    p = AbstractFFTs.plan_fft(parent(dd), dims; kwargs...)
+    T_val = T <: NotQuantity ? eltype(parent(dd)) : typeof(parent(dd)[1].val)
+    p = AbstractFFTs.plan_fft(reinterpret(T_val, parent(dd)), dims; kwargs...)
     s = get_scale_factor(p, dd)
-    DDPlan{Forward, ComplexFFT}(AbstractFFTs.ScaledPlan(p, s), similar(dd, complex(T)))
+    unitless_s = s / oneunit(s)
+    DDPlan{typeof(s), Forward, ComplexFFT}(AbstractFFTs.ScaledPlan(p, unitless_s), similar(dd, complex(T)))
 end
 function AbstractFFTs.plan_rfft(dd::AbstractDimArray{T, N}, dd_dims = ntuple(identity, N); kwargs...) where {N,T}
     dims = DD.dimnum(dd, dd_dims)
-    p = AbstractFFTs.plan_rfft(parent(dd), dims; kwargs...)
+    T_val = T <: NotQuantity ? eltype(dd) : typeof(parent(dd)[1].val)
+    p = AbstractFFTs.plan_rfft(reinterpret(T_val, parent(dd)), dims; kwargs...)
     s = get_scale_factor(p, dd)
-    DDPlan{Forward, RealFFT}(AbstractFFTs.ScaledPlan(p, s), similar(dd, complex(T)))
+    unitless_s = s / oneunit(s)
+    DDPlan{typeof(s), Forward, RealFFT}(AbstractFFTs.ScaledPlan(p, unitless_s), similar(dd, complex(T)))
 end
 
-function AbstractFFTs.plan_ifft(dd::AbstractDimArray{<:Any, N}, dd_dims = ntuple(identity, N); kwargs...) where N
+function AbstractFFTs.plan_ifft(dd::AbstractDimArray{T, N}, dd_dims = ntuple(identity, N); kwargs...) where {N, T}
     dims = DD.dimnum(dd, dd_dims)
-    p = AbstractFFTs.plan_ifft(parent(dd), dims; kwargs...)
+
+    T_val = T <: NotQuantity ? eltype(dd) : typeof(parent(dd)[1].val)
+    p = AbstractFFTs.plan_ifft(reinterpret(T_val, parent(dd)), dims; kwargs...)
     s = get_scale_factor(p, dd)
-    DDPlan{Inverse, ComplexFFT}(AbstractFFTs.ScaledPlan(p.p, s), similar(dd))
+    unitless_s = s / oneunit(s)
+    DDPlan{typeof(s), Inverse, ComplexFFT}(AbstractFFTs.ScaledPlan(p.p, unitless_s), similar(dd))
 end
 
 function AbstractFFTs.plan_inv(plan::DDPlan)
@@ -195,11 +211,13 @@ function LinearAlgebra.inv(plan::DDPlan)
     throw(ErrorException("The plan_inv function is not implemented yet for DDPlan. Use plan_ifft or plan_irfft instead."))
 end
 
-function AbstractFFTs.plan_irfft(dd::AbstractDimArray{<:Any, N}, len::Integer, dd_dims = ntuple(identity, N); kwargs...) where N
+function AbstractFFTs.plan_irfft(dd::AbstractDimArray{T, N}, len::Integer, dd_dims = ntuple(identity, N); kwargs...) where {N, T}
     dims = DD.dimnum(dd, dd_dims)
-    p = AbstractFFTs.plan_irfft(parent(dd), len, dims; kwargs...)
+    T_val = T <: NotQuantity ? eltype(dd) : typeof(parent(dd)[1].val)
+    p = AbstractFFTs.plan_irfft(reinterpret(T_val, parent(dd)), len, dims; kwargs...)
     s = get_scale_factor(p, dd)
-    DDPlan{Inverse, RealFFT}(AbstractFFTs.ScaledPlan(p.p, s), similar(dd))
+    unitless_s = s / oneunit(s)
+    DDPlan{typeof(s), Inverse, RealFFT}(AbstractFFTs.ScaledPlan(p.p, unitless_s), similar(dd))
 end
 
 
