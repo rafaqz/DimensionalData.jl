@@ -64,6 +64,7 @@ DiskArrays = "0.3, 0.4"
 Distributions = "0.25"
 Documenter = "1"
 Extents = "0.1"
+FFTW = "1"
 GPUArrays = "10"
 ImageFiltering = "0.7"
 ImageTransformations = "0.10"
@@ -108,6 +109,7 @@ DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 DiskArrays = "3c3547ce-8d99-4f5e-a174-61eb10b00ae3"
 Distributions = "31c24e10-a181-5473-b8eb-7969acd0382f"
 Documenter = "e30172f5-a6a5-5a46-863b-614d45cd2de4"
+FFTW = "7a1cc6ca-52ef-59f5-83cd-3a7055c09341"
 GPUArrays = "0c68f7d7-f131-5f86-a1c3-88cf8149b2d7"
 ImageFiltering = "6a3955dd-da59-5b1f-98d4-e7296123deb5"
 ImageTransformations = "02fcd773-0e25-5acc-982a-7f6622650795"
@@ -125,4 +127,4 @@ Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [targets]
-test = ["AlgebraOfGraphics", "Aqua", "ArrayInterface", "BenchmarkTools", "CairoMakie", "CategoricalArrays", "ColorTypes", "Combinatorics", "CoordinateTransformations", "DataFrames", "DiskArrays", "Distributions", "Documenter", "GPUArrays", "ImageFiltering", "ImageTransformations", "JLArrays", "NearestNeighbors", "OffsetArrays", "OpenSSL", "Plots", "PythonCall", "Random", "SafeTestsets", "StatsBase", "StatsPlots", "Test", "Unitful"]
+test = ["AlgebraOfGraphics", "Aqua", "ArrayInterface", "BenchmarkTools", "CairoMakie", "CategoricalArrays", "ColorTypes", "Combinatorics", "CoordinateTransformations", "DataFrames", "DiskArrays", "Distributions", "Documenter", "FFTW", "GPUArrays", "ImageFiltering", "ImageTransformations", "JLArrays", "NearestNeighbors", "OffsetArrays", "OpenSSL", "Plots", "PythonCall", "Random", "SafeTestsets", "StatsBase", "StatsPlots", "Test", "Unitful"]

@@ -132,7 +132,7 @@ function (*)(plan::DDPlan{<:Any, X}, dd::DD.AbstractDimArray{T}) where {T, X}
     end
     dd_out
 end
-function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan, dd_in::DD.AbstractDimArray{Tin, N}) where {N, Tin, Tout}
+function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan{<:Any, Tp}, dd_in::DD.AbstractDimArray{Tin, N}) where {N, Tin, Tout, Tp}
     lookups_out = get_freqs(plan, dd_in)
     if !all(i -> dims(dd_out, i) == lookups_out[i], 1:N)
         throw(ArgumentError("The lookups of the output and input DimensionalData must match."))
@@ -144,6 +144,7 @@ function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan, 
     else
         dd_in
     end
+
     
     T_in_val = Tin <: NotQuantity ? eltype(input_to_plan) : typeof(input_to_plan[1].val)
     T_out_val = Tout <: NotQuantity ? eltype(dd_out) : typeof(dd_out[1].val)
@@ -152,6 +153,14 @@ function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan, 
     if !is_inverse_transform(plan)
         correct_phase_reference!(dd_out, plan, lookup(dd_in), -1)
     end
+    
+    correct_unit = if !(Tout <: NotQuantity)
+        real(oneunit(Tin) * oneunit(Tp) / oneunit(Tout))
+    else
+        oneunit(Tout)
+    end
+    dd_out .*= correct_unit
+
     dd_out
 end
 

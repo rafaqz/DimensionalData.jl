@@ -1,25 +1,27 @@
-using DimensionalData, AbstractFFTs, FFTW, Test, LinearAlgebra, Unitful
+using DimensionalData, FFTW, Test, LinearAlgebra, Unitful
 
 
-ext = Base.get_extension(DimensionalData, :DimensionalDataAbstractFFTsExt)
+@testset "FFT freqs" begin
+    ext = Base.get_extension(DimensionalData, :DimensionalDataAbstractFFTsExt)
 
-# Test with even length
-x = dims(rand(X(-5:4)), 1)
-fx = ext._fftfreq(x)
-@test ext._ifftfreq(fx) == x
-
-# Test with odd length
-x = dims(rand(X(-5:5)), 1)
-fx = ext._fftfreq(x)
-@test ext._ifftfreq(fx) == x
-
-x = dims(rand(X(-5:5)), 1)
-fx = ext._rfftfreq(x)
-@test ext._irfftfreq(fx, length(x)) == x
-
-x = dims(rand(X(-5:4)), 1)
-fx = ext._rfftfreq(x)
-@test ext._irfftfreq(fx, length(x)) == x
+    # Test with even length
+    x = dims(rand(X(-5:4)), 1)
+    fx = ext._fftfreq(x)
+    @test ext._ifftfreq(fx) == x
+    
+    # Test with odd length
+    x = dims(rand(X(-5:5)), 1)
+    fx = ext._fftfreq(x)
+    @test ext._ifftfreq(fx) == x
+    
+    x = dims(rand(X(-5:5)), 1)
+    fx = ext._rfftfreq(x)
+    @test ext._irfftfreq(fx, length(x)) == x
+    
+    x = dims(rand(X(-5:4)), 1)
+    fx = ext._rfftfreq(x)
+    @test ext._irfftfreq(fx, length(x)) == x
+end
 
 
 @testset "1D FFT" begin
@@ -68,9 +70,19 @@ fx = ext._rfftfreq(x)
     p = plan_rfft(y)
     @test all(isapprox.(mul!(fft_y, p, y), ref_values, atol = 1E-9 * unit))
     @test all(isapprox.(mul!(fft_y, p, y), ref_values, atol = 1E-9 * unit))
+    @test all(isapprox.(mul!(rand(typeof((1.0 .+ im)*u"kg*m"), dims(fft_y, X)), p, y), ref_values, atol = 1E-9 * unit)) # Check output with different unit works correctly
+
+    @test_throws Unitful.DimensionError mul!(rand(typeof((1.0 .+ im)u"V"), dims(fft_y, X)), p, y)
+    @test_throws ArgumentError mul!(rand(typeof(fft_y[1]), X(x)), p, y)
+
+
     pinv = plan_irfft(fft_y, length(y))
-    @test all(isapprox.(mul!(ifft_y, pinv, fft_y), gauss.(lookup(ifft_y, 1), 5 / unit_x^2, 1 * unit_x) * unit_y, atol = 1E-9 * unit_y))
-    @test all(isapprox.(mul!(ifft_y, pinv, fft_y), gauss.(lookup(ifft_y, 1), 5 / unit_x^2, 1 * unit_x) * unit_y, atol = 1E-9 * unit_y))
+    ifft_refvalues = gauss.(lookup(ifft_y, 1), 5 / unit_x^2, 1 * unit_x) * unit_y
+    @test all(isapprox.(mul!(ifft_y, pinv, fft_y), ifft_refvalues, atol = 1E-9 * unit_y))
+    @test all(isapprox.(mul!(ifft_y, pinv, fft_y), ifft_refvalues, atol = 1E-9 * unit_y))
+    @test all(isapprox.(mul!(rand(typeof((1.0)*u"kg"), dims(ifft_y, X)), pinv, fft_y), ifft_refvalues, atol = 1E-9 * unit_y)) # Check output with different unit works correctly
+    @test_throws Unitful.DimensionError mul!(rand(typeof((1.0)*u"V"), dims(ifft_y, X)), pinv, fft_y)
+    @test_throws ArgumentError mul!(rand(typeof(ifft_y[1]), X(x)), pinv, fft_y)
 end
 
 
@@ -189,10 +201,16 @@ end
     @test plan_rfft(z, 1) isa Any
     @test all(isapprox.(mul!(fft_z, p, z), ref_values, atol = 1E-9 * unit))
     @test all(isapprox.(mul!(fft_z, p, z), ref_values, atol = 1E-9 * unit))
+    @test all(isapprox.(mul!(rand(typeof((1.0 .+ im)*u"kg*m"), dims(fft_z, X), dims(fft_z, Y)), p, z), ref_values, atol = 1E-9 * unit)) # Check output with different unit works correctly
+    @test_throws Unitful.DimensionError mul!(rand(typeof((1.0 .+ im)u"kg"), dims(fft_z, X), dims(fft_z, Y)), p, z)
+    @test_throws ArgumentError mul!(rand(typeof(fft_z[1]), X(x), Y(y)), p, z)
 
     pinv = plan_irfft(fft_z, size(z, X), X)
     @test plan_irfft(fft_z, size(z, X), 1) isa Any
     @test all(isapprox.(mul!(ifft_z, pinv, fft_z), ifft_refvalues, atol = 1E-9 * unit_z))
     @test all(isapprox.(mul!(ifft_z, pinv, fft_z), ifft_refvalues, atol = 1E-9 * unit_z))
+    @test all(isapprox.(mul!(rand(typeof((1.0)*u"kg"), dims(ifft_z, X), dims(ifft_z, Y)), pinv, fft_z), ifft_refvalues, atol = 1E-9 * unit_z)) # Check output with different unit works correctly
+    @test_throws Unitful.DimensionError mul!(rand(typeof((1.0)*u"kg * m"), dims(ifft_z, X), dims(ifft_z, Y)), pinv, fft_z)
+    @test_throws ArgumentError mul!(rand(typeof(ifft_z[1]), X(x), Y(y)), pinv, fft_z)
 end
 
