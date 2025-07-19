@@ -145,7 +145,6 @@ function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan{<
         dd_in
     end
 
-    
     T_in_val = Tin <: NotQuantity ? eltype(input_to_plan) : typeof(input_to_plan[1].val)
     T_out_val = Tout <: NotQuantity ? eltype(dd_out) : typeof(dd_out[1].val)
 
@@ -154,12 +153,9 @@ function LinearAlgebra.mul!(dd_out::DD.AbstractDimArray{Tout, N}, plan::DDPlan{<
         correct_phase_reference!(dd_out, plan, lookup(dd_in), -1)
     end
     
-    correct_unit = if !(Tout <: NotQuantity)
-        real(oneunit(Tin) * oneunit(Tp) / oneunit(Tout))
-    else
-        oneunit(Tout)
-    end
-    dd_out .*= correct_unit
+    # Corrects for the unit of the output. For example, if the input is g*s and the output is kg*s.
+    correct_unit = real(oneunit(Tin) * oneunit(Tp) / oneunit(Tout))
+    dd_out .*= correct_unit # Also used as a check to ensure that the output has the correct units.
 
     dd_out
 end
