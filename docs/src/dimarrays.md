@@ -126,6 +126,13 @@ da1[X(3), 4]
 
 ## Begin End indexing
 
+>[!WARNING]
+>
+>In base julia the keywords `begin` and `end` can be used to
+>index the first or last element of an array. But this doesn't 
+>work when named indexing is used. Instead you can use the types
+>`Begin` and `End`.
+
 ```@ansi dimarray
 da[X=Begin+1, Y=End]
 ```
@@ -135,11 +142,6 @@ It also works in ranges, even with basic math:
 ```@ansi dimarray
 da[X=Begin:Begin+1, Y=Begin+1:End-1]
 ```
-
-In base julia the keywords `begin` and `end` can be used to
-index the first or last element of an array. But this doesn't 
-work when named indexing is used. Instead you can use the types
-`Begin` and `End`.
 
 ::: info Indexing
 
