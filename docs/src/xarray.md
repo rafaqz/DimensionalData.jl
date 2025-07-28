@@ -1,3 +1,7 @@
+```@meta
+Description = "Convert between Python Xarray and DimensionalData.jl - seamless interoperability for multidimensional arrays via PythonCall.jl"
+```
+
 # Xarray and PythonCall.jl
 
 In the Python ecosystem [Xarray](https://xarray.dev) is by far the most popular

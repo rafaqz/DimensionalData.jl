@@ -1,4 +1,8 @@
 
+```@meta
+Description = "DimensionalData.jl Dimensions API reference - types and methods for spatial (X,Y,Z), temporal, and custom dimensions"
+```
+
 # Dimensions
 
 Dimensions are kept in the sub-module `Dimensions`.

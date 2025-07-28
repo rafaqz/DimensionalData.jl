@@ -1,4 +1,8 @@
 
+```@meta
+Description = "DimensionalData.jl Lookups API - types for dimension values including Sampled, Categorical, Cyclic, and custom lookup arrays"
+```
+
 # Lookups
 
 ```@docs
