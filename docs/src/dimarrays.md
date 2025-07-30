@@ -1,3 +1,7 @@
+```@meta
+Description = "DimArrays in DimensionalData.jl - wrap Julia arrays with named dimensions and lookups for intuitive indexing and operations"
+```
+
 # DimArrays
 
 `DimArray`s are wrappers for other kinds of `AbstractArray` that

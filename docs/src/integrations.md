@@ -1,3 +1,7 @@
+```@meta
+Description = "DimensionalData.jl integrations - works with Rasters.jl for GIS, YAXArrays.jl for large datasets, ClimateBase.jl and more Julia packages"
+```
+
 # Integrations
 
 ## Rasters.jl

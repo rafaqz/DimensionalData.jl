@@ -1,3 +1,7 @@
+```@meta
+Description = "Dimensional broadcasting in DimensionalData.jl using @d macro and broadcast_dims for automatic dimensional array operations in Julia"
+```
+
 # Dimensional broadcasts with `@d` and `broadcast_dims`
 
 Broadcasting over AbstractDimArray works as usual with Base Julia broadcasts,
