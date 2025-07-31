@@ -62,37 +62,33 @@ BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, 
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
 BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 # We need to implement copy because if the wrapper array type does not
+@inline function Broadcast.instantiate(bc::Broadcasted{DimensionalStyle{S}}) where S
+    A = _firstdimarray(bc)
+    A isa Nothing && return Broadcast.instantiate(Broadcasted(S, bc.f, bc.args, axes)) # no dimarrays, so remove the wrapper
+    bdims = _broadcasted_dims(bc)
+    if bc.axes isa Nothing
+        _comparedims_broadcast(A, bdims...)
+        axes = Base.Broadcast.combine_axes(bc.args...)
+        ds = Dimensions.promotedims(bdims...; skip_length_one=true)
+        length(axes) == length(ds) || 
+            throw(ArgumentError("Number of broadcasted dimensions $(length(axes)) larger than $(ds)"))
+        axes = map(Dimensions.DimUnitRange, axes, ds)
+    else # bc already has axes which might have dimensions
+        axes = bc.axes
+        Base.Broadcast.check_broadcast_axes(axes, bc.args...)
+        ds = dims(axes)
+        isnothing(ds) || _comparedims_broadcast(A, bdims..., ds)
+    end
+    return Broadcasted(bc.style, bc.f, bc.args, axes)
+end
+
 # support setindex then the `similar` based default method will not work
 function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
     data = copy(_unwrap_broadcasted(bc))
-
-    A isa Nothing && return data # No AbstractDimArray
-
-    bdims = _broadcasted_dims(bc)
-    _comparedims_broadcast(A, bdims...)
-
-    data isa AbstractArray || return data # result is a scalar
-
     # unwrap AbstractDimArray data
     data = data isa AbstractDimArray ? parent(data) : data
-    dims = format(Dimensions.promotedims(bdims...; skip_length_one=true), data)
-    return rebuild(A; data, dims, refdims=refdims(A), name=Symbol(""))
-end
-
-function Base.copyto!(dest::AbstractArray, bc::Broadcasted{DimensionalStyle{S}}) where S
-    fda = _firstdimarray(bc) 
-    isnothing(fda) || _comparedims_broadcast(fda, _broadcasted_dims(bc)...)
-    copyto!(dest, _unwrap_broadcasted(bc))
-end
-
-@inline function Base.Broadcast.materialize!(dest::AbstractDimArray, bc::Base.Broadcast.Broadcasted{<:Any})
-    # Need to check whether the dims are compatible in dest, 
-    # which are already stripped when sent to copyto!
-    _comparedims_broadcast(dest, dims(dest), _broadcasted_dims(bc)...)
-    style = DimensionalData.DimensionalStyle(Base.Broadcast.combine_styles(parent(dest), bc))
-    Base.Broadcast.materialize!(style, parent(dest), bc)
-    return dest
+    return rebuild(A; data, dims = dims(bc.axes), refdims=refdims(A), name=Symbol(""))
 end
 
 function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
