@@ -506,6 +506,17 @@ end
         A = DimArray(ones(10), x)
         @test mapslices(sum, A; dims=X) == fill(10.0, X(1))
     end
+
+    @testset "single slice" begin
+        da_2d = DimArray(rand(20, 20), (X(range(0u"nm"; length=20, step=30u"nm")), Y(range(0u"nm"; length=20, step=30u"nm"))); 
+            name="2D", 
+            metadata=Dict(:meta => nothing)
+        )
+        mapped_da_2d = mapslices(da_2d, dims=(X, Y)) do x
+            x .* 2
+        end
+        @test dims(mapped_da_2d) == dims(da_2d)
+    end
 end
 
 @testset "cumsum" begin
