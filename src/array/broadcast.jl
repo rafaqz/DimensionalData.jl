@@ -88,6 +88,7 @@ function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
     data = copy(_unwrap_broadcasted(bc))
     # unwrap AbstractDimArray data
     data = data isa AbstractDimArray ? parent(data) : data
+    data isa AbstractArray || return data
     return rebuild(A; data, dims = dims(bc.axes), refdims=refdims(A), name=Symbol(""))
 end
 
