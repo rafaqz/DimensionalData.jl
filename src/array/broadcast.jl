@@ -73,11 +73,11 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
         length(axes) == length(ds) || 
             throw(ArgumentError("Number of broadcasted dimensions $(length(axes)) larger than $(ds)"))
         axes = map(Dimensions.DimUnitRange, axes, ds)
-    else # bc already has axes which might have dimensions
+    else # bc already has axes which might have dimensions, e.g. when assigning to a DimArray
         axes = bc.axes
         Base.Broadcast.check_broadcast_axes(axes, bc.args...)
         ds = dims(axes)
-        isnothing(ds) || _comparedims_broadcast(A, bdims..., ds)
+        isnothing(ds) ? _comparedims_broadcast(A, bdims...) : _comparedims_broadcast(A, ds, bdims...)
     end
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
