@@ -227,8 +227,7 @@ end
 
     @test_throws DimensionMismatch z .= ab .+ ba
     @test_throws DimensionMismatch z .= ab .+ ac
-    # Maybe this should work...
-    # @test_throws DimensionMismatch a_ .= ab .+ ac
+    a_ .= ab .+ ac
     @test_throws DimensionMismatch ab .= a_ .+ ac
     @test_throws DimensionMismatch ac .= ab .+ ba
 
