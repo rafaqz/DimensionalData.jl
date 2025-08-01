@@ -1,4 +1,4 @@
-import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style, AbstractArrayStyle
 
 const STRICT_BROADCAST_CHECKS = Ref(true)
 const STRICT_BROADCAST_DOCS = """
@@ -35,10 +35,12 @@ strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 # It preserves the dimension names.
 # `S` should be the `BroadcastStyle` of the wrapped type.
 # Copied from NamedDims.jl (thanks @oxinabox).
-struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
+struct DimensionalStyle{S <: AbstractArrayStyle, N} <: AbstractArrayStyle{N} end
+DimensionalStyle{S}() where {S<:AbstractArrayStyle{N}} where N = DimensionalStyle{S, N}()
 DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
-DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
-DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
+DimensionalStyle{S}(::Val{N}) where {S,N} = DimensionalStyle{S{N}, N}()
+DimensionalStyle{S,M}(v::Val{N}) where {S<:AbstractArrayStyle,M,N} = DimensionalStyle(S(v))
+DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}, N}()
 function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
     inner_style = BroadcastStyle(a, b)
     # if the inner style is Unknown then so is the outer style
@@ -62,13 +64,13 @@ BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, 
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
 BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 # We need to implement copy because if the wrapper array type does not
-@inline function Broadcast.instantiate(bc::Broadcasted{DimensionalStyle{S}}) where S
+@inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
     A isa Nothing && return Broadcast.instantiate(Broadcasted(S, bc.f, bc.args, axes)) # no dimarrays, so remove the wrapper
     bdims = _broadcasted_dims(bc)
     if bc.axes isa Nothing
         _comparedims_broadcast(A, bdims...)
-        axes = Base.Broadcast.combine_axes(bc.args...)
+        axes = Base.Broadcast.combine_axes(map(_unwrap_broadcasted, bc.args)...)
         ds = Dimensions.promotedims(bdims...; skip_length_one=true)
         length(axes) == length(ds) || 
             throw(ArgumentError("Number of broadcasted dimensions $(length(axes)) larger than $(ds)"))
@@ -82,21 +84,13 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
 
-# support setindex then the `similar` based default method will not work
-function Broadcast.copy(bc::Broadcasted{DimensionalStyle{S}}) where S
+function Base.similar(bc::Broadcasted{DimensionalStyle{S,N}}, ::Type{T}) where {S,N,T}
     A = _firstdimarray(bc)
-    data = copy(_unwrap_broadcasted(bc))
-    # unwrap AbstractDimArray data
-    data = data isa AbstractDimArray ? parent(data) : data
-    data isa AbstractArray || return data
-    return rebuild(A; data, dims = dims(bc.axes), refdims=refdims(A), name=Symbol(""))
+    rebuild(A, data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
 end
 
-function Base.similar(bc::Broadcast.Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
-    A = _firstdimarray(bc)
-    rebuildsliced(A, similar(_unwrap_broadcasted(bc), T, axes(bc)...), axes(bc), Symbol(""))
-end
-
+@inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
+    Base.copyto!(dest, _unwrap_broadcasted(bc))
 
 """
     @d broadcast_expression options
@@ -373,7 +367,7 @@ end
 # Recursively unwraps `AbstractDimArray`s and `DimensionalStyle`s.
 # replacing the `AbstractDimArray`s with the wrapped array,
 # and `DimensionalStyle` with the wrapped `BroadcastStyle`.
-function _unwrap_broadcasted(bc::Broadcasted{DimensionalStyle{S}}) where S
+function _unwrap_broadcasted(bc::Broadcasted{<:DimensionalStyle{S}}) where {S}
     innerargs = map(_unwrap_broadcasted, bc.args)
     return Broadcasted{S}(bc.f, innerargs)
 end
