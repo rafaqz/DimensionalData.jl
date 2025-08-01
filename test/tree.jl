@@ -88,6 +88,10 @@ end
      dt.sub1 = sub1
      dt.sub2 = sub2
      @test dt.sub2[:a] == a2
+     dt2 = DimTree()
+     dt2[:a] = rand(xdim, ydim)
+     dt2[:b] = b
+     @test dt2[:b] == b
 end
 
 # TODO move to doctests, but useful here for now
