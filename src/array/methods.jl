@@ -421,7 +421,7 @@ function _check_cat_lookups(D, ::Regular, lookups...)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
             return false
         end
-        if !(lastval + s ≈ first(l))
+        (lastval+s) == first(l) ||  if !(lastval + s ≈ first(l))
             @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $s ≈ $(first(l)) should hold")
             return false
         end

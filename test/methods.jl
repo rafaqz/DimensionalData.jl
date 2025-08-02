@@ -621,6 +621,17 @@ end
             @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
             @test_warn "lookups are misaligned" vcat(d2, d1)
         end
+
+        @testset "vcat" begin
+            t1 = Ti(DateTime(2000):Day(1):DateTime(2001)-Day(1))
+            d1 = rand(t1)
+            t2 = Ti(DateTime(2001):Day(1):DateTime(2002))
+            d2 = rand(t2)
+            v = vcat(d1, d2)
+            @test length(v) == 732
+            @test v[1:366] == d1[:]
+            @test v[367:end] == d2[:]
+        end
     end
 
     @testset "Explicit" begin
