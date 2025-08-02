@@ -73,14 +73,13 @@ PlotTypes_3D = (Volume, VolumeSlices)
 
 for p in (PlotTypes_1D..., PlotTypes_2D..., PlotTypes_3D..., Series, PlotTypes_Cat_1D...)
     f = Makie.plotkey(p)
-    eval(quote
+    @eval begin
         function Makie.$f(A::MayObs{<:AbstractDimArray}; figure = (;), attributes...)
             fig = Figure(; figure...)
             ax, plt = $f(fig[1,1], A; attributes...)
-            display(fig)
             return Makie.FigureAxisPlot(fig, ax, plt)
         end
-    end)
+    end
 end
 
 function error_if_has_content(grid::G) where G
