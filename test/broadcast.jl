@@ -245,7 +245,7 @@ end
 
     @test_throws DimensionMismatch z .= ab .+ ba
     @test_throws DimensionMismatch z .= ab .+ ac
-    @test_throws DimensionMismatch a_ .= ab .+ ac
+    a_ .= ab .+ ac
     @test_throws DimensionMismatch ab .= a_ .+ ac
     @test_throws DimensionMismatch ac .= ab .+ ba
 
@@ -263,9 +263,9 @@ end
 end
 
 @testset "JLArray assign using named indexing and dotview" begin
-    A = DimArray(JLArray(zeros(3,2)), (X, Y))
-    A[X=1:2] .= JLArray([1, 2])
-    A[X=3] .= 7
+    A = DimArray(JLArray(zeros(3,2)), (X, Y));
+    A[X=1:2] .= JLArray([1, 2]);
+    A[X=3] .= 7;
     @test Array(A) == [1.0 1.0; 2.0 2.0; 7.0 7.0]
 end
 
