@@ -86,12 +86,13 @@ end
 
 function Base.similar(bc::Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
-    A2 = A isa BroadcastOptionsDimArray ? parent(A) : A
-    rebuild(A2; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
+    rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
 end
+
 @inline function Base.materialize!(::S, dest, bc::Broadcasted) where {S<:DimensionalStyle}
     return Base.copyto!(dest, Broadcast.instantiate(Broadcasted(S(), bc.f, bc.args, axes(dest))))
 end
+
 @inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
     Base.copyto!(dest, _unwrap_broadcasted(bc))
 
