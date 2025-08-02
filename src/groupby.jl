@@ -166,6 +166,7 @@ struct CyclicBins{F,C,Sta,Ste,L} <: AbstractBins
     labels::L
 end
 CyclicBins(f; cycle, step, start=1, labels=nothing) = CyclicBins(f, cycle, start, step, labels)
+CyclicBins(; kw...) = CyclicBins(identity; kw...)
 
 Base.show(io::IO, bins::CyclicBins) =
     println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
