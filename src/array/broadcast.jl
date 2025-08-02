@@ -62,15 +62,16 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A()
 BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
 BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
-# We need to implement copy because if the wrapper array type does not
+
+# override base instantiate to check dimensions as well as axes
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
     (A isa Nothing || S <: AbstractArrayStyle{0}) && 
         return Broadcast.instantiate(_unwrap_broadcasted(bc)) # no dimarrays, so remove the wrapper
     bdims = _broadcasted_dims(bc)
     if bc.axes isa Nothing
-        _comparedims_broadcast(A, bdims...)
         axes = Base.Broadcast.combine_axes(map(_unwrap_broadcasted, bc.args)...)
+        _comparedims_broadcast(A, bdims...)
         ds = Dimensions.promotedims(bdims...; skip_length_one=true)
         length(axes) == length(ds) || 
             throw(ArgumentError("Number of broadcasted dimensions $(length(axes)) larger than $(ds)"))
@@ -95,6 +96,11 @@ end
 
 @inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
     Base.copyto!(dest, _unwrap_broadcasted(bc))
+# This dispatch is needed for GPUArrays < v11.0
+@inline function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S 
+    Base.copyto!(parent(dest), _unwrap_broadcasted(bc))
+    return dest
+end
 
 """
     @d broadcast_expression options
