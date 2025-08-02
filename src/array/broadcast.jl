@@ -38,6 +38,7 @@ strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
 DimensionalStyle(::S) where S = DimensionalStyle{S}()
 DimensionalStyle(::S) where {S<:DimensionalStyle} = S() # avoid nested dimensionalstyle
+DimensionalStyle(::S) where {S<:AbstractArrayStyle{0}} = S() # no dimensional broadcast on 0-dim arrays
 DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
 DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
 function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
@@ -58,16 +59,15 @@ end
 BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
 BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
 BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
-BroadcastStyle(::DimensionalStyle{A}, b::Style) where {A} = DimensionalStyle(A(), b)
-BroadcastStyle(a::Style, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
+BroadcastStyle(::DimensionalStyle{A}, b::AbstractArrayStyle{N}) where {A,N} = DimensionalStyle(A(), b)
+BroadcastStyle(::DimensionalStyle{A}, b::DefaultArrayStyle{N}) where {A,N} = DimensionalStyle(A(), b) # ambiguity
+BroadcastStyle(a::AbstractArrayStyle, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
 BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 
 # override base instantiate to check dimensions as well as axes
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
-    (A isa Nothing || S <: AbstractArrayStyle{0}) && 
-        return Broadcast.instantiate(_unwrap_broadcasted(bc)) # no dimarrays, so remove the wrapper
     bdims = _broadcasted_dims(bc)
     if bc.axes isa Nothing
         axes = Base.Broadcast.combine_axes(map(_unwrap_broadcasted, bc.args)...)
@@ -91,7 +91,7 @@ function Base.similar(bc::Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,
 end
 
 @inline function Base.materialize!(::S, dest, bc::Broadcasted) where {S<:DimensionalStyle}
-    return Base.copyto!(dest, Broadcast.instantiate(Broadcasted(S(), bc.f, bc.args, axes(dest))))
+    return Base.copyto!(dest, Broadcast.instantiate(Broadcasted{S}(bc.f, bc.args, axes(dest))))
 end
 
 @inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
@@ -363,6 +363,7 @@ broadcast_options(A::BroadcastOptionsDimArray) = A.options
         ignore_length_one=isstrict, order=isstrict, val=isstrict, length=false
     )
 end
+@inline _comparedims_broadcast(::Nothing, dims...) = true
 
 # Check if a broadcast is strict, or use the global setting
 _is_strict(A::AbstractArray) = _is_strict(broadcast_options(A))
