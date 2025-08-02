@@ -183,7 +183,7 @@ function _adddims!(dt::AbstractDimTree, newdims::Tuple)
     else
         # If there are already dims, check they match before we do anything
         comparedims(dims(dt, newdims), newdims)
-        setfield!(dt, :dims, otherdims(newdims, dims(dt)))
+        setfield!(dt, :dims, (dims(dt)..., otherdims(newdims, dims(dt))...))
     end
     # If any of the branches already had these 
     # dims, we need to remove them now

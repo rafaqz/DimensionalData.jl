@@ -208,3 +208,22 @@ end
     @test occursin("test", sv)
     @test occursin(":x => 1", sv)
 end
+
+@testset "DimTree" begin
+     xdim, ydim = map(DimensionalData.format, (X(1:10), Y(1:15)))
+     z1, z2 = map(DimensionalData.format, (Z(["A", "B", "C"]), Z(["C", "D"])))
+     a = rand(xdim, ydim; name=:a)
+     b = rand(Float32, xdim, ydim; name=:b)
+     c = rand(Int, xdim, ydim, z1; name=:c)
+     d = rand(Int, xdim, z2; name=:d)
+     dt = DimTree(a, b)
+    sv = sprint(show, MIME("text/plain"), dt)
+    @test occursin("DimTree", sv)
+    @test occursin("layers", sv)
+    dt.mybranch = DimTree(c)
+    sc = sprint(show, MIME("text/plain"), dt)
+    @test occursin("branches", sc)
+    @test occursin("mybranch", sc)
+    @test occursin(":c", sc)
+
+end
