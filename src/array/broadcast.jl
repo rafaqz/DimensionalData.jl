@@ -1,4 +1,4 @@
-import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style, AbstractArrayStyle
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
 
 const STRICT_BROADCAST_CHECKS = Ref(true)
 const STRICT_BROADCAST_DOCS = """
@@ -35,12 +35,11 @@ strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 # It preserves the dimension names.
 # `S` should be the `BroadcastStyle` of the wrapped type.
 # Copied from NamedDims.jl (thanks @oxinabox).
-struct DimensionalStyle{S <: AbstractArrayStyle, N} <: AbstractArrayStyle{N} end
-DimensionalStyle{S}() where {S<:AbstractArrayStyle{N}} where N = DimensionalStyle{S, N}()
-DimensionalStyle(::S) where {S} = DimensionalStyle{S}()
-DimensionalStyle{S}(::Val{N}) where {S,N} = DimensionalStyle{S{N}, N}()
-DimensionalStyle{S,M}(v::Val{N}) where {S<:AbstractArrayStyle,M,N} = DimensionalStyle(S(v))
-DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}, N}()
+struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
+DimensionalStyle(::S) where S = DimensionalStyle{S}()
+DimensionalStyle(::S) where {S<:DimensionalStyle} = S() # avoid nested dimensionalstyle
+DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
+DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
 function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
     inner_style = BroadcastStyle(a, b)
     # if the inner style is Unknown then so is the outer style
@@ -52,8 +51,8 @@ function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
 end
 
 function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
-    inner_style = typeof(BroadcastStyle(A))
-    return DimensionalStyle{inner_style}()
+    inner_style = BroadcastStyle(A)
+    return DimensionalStyle(inner_style)
 end
 
 BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
@@ -66,7 +65,8 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
 # We need to implement copy because if the wrapper array type does not
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
-    A isa Nothing && return Broadcast.instantiate(Broadcasted(S, bc.f, bc.args, axes)) # no dimarrays, so remove the wrapper
+    (A isa Nothing || S <: AbstractArrayStyle{0}) && 
+        return Broadcast.instantiate(_unwrap_broadcasted(bc)) # no dimarrays, so remove the wrapper
     bdims = _broadcasted_dims(bc)
     if bc.axes isa Nothing
         _comparedims_broadcast(A, bdims...)
@@ -84,11 +84,14 @@ BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalSt
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
 
-function Base.similar(bc::Broadcasted{DimensionalStyle{S,N}}, ::Type{T}) where {S,N,T}
+function Base.similar(bc::Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
-    rebuild(A, data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
+    A2 = A isa BroadcastOptionsDimArray ? parent(A) : A
+    rebuild(A2; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
 end
-
+@inline function Base.materialize!(::S, dest, bc::Broadcasted) where {S<:DimensionalStyle}
+    return Base.copyto!(dest, Broadcast.instantiate(Broadcasted(S(), bc.f, bc.args, axes(dest))))
+end
 @inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
     Base.copyto!(dest, _unwrap_broadcasted(bc))
 
@@ -369,12 +372,13 @@ end
 # and `DimensionalStyle` with the wrapped `BroadcastStyle`.
 function _unwrap_broadcasted(bc::Broadcasted{<:DimensionalStyle{S}}) where {S}
     innerargs = map(_unwrap_broadcasted, bc.args)
-    return Broadcasted{S}(bc.f, innerargs)
+    return Broadcasted{S}(bc.f, innerargs, _unwrap_broadcasted(bc.axes))
 end
 _unwrap_broadcasted(x) = x
 _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 _unwrap_broadcasted(boda::BroadcastOptionsDimArray) = parent(parent(boda))
-
+_unwrap_broadcasted(t::Tuple) = map(_unwrap_broadcasted, t)
+_unwrap_broadcasted(du::Dimensions.DimUnitRange) = parent(du)
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
 _firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
