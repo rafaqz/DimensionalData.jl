@@ -57,13 +57,10 @@ function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
 end
 
 BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
-BroadcastStyle(::Base.Broadcast.Unknown, ::DimensionalStyle) = Unknown()
 BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
 BroadcastStyle(::DimensionalStyle{A}, b::AbstractArrayStyle{N}) where {A,N} = DimensionalStyle(A(), b)
 BroadcastStyle(::DimensionalStyle{A}, b::DefaultArrayStyle{N}) where {A,N} = DimensionalStyle(A(), b) # ambiguity
-BroadcastStyle(a::AbstractArrayStyle, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalStyle(A(), b)
-BroadcastStyle(a::Style{Tuple}, ::DimensionalStyle{B}) where {B} = DimensionalStyle(a, B())
 
 # override base instantiate to check dimensions as well as axes
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
