@@ -107,13 +107,13 @@ A[X(At(20)), Y(At(6))]
 5
 ```
 """
-struct At{T,A,R} <: IntSelector{T}
+struct At{T,A} <: IntSelector{T}
     val::T
     atol::A
 end
 At(val; atol=nothing) = At(val, atol)
 At(; kw...) = At(nothing; kw...)
-At(a, b; kw...) = At((a, b); kw...)
+#At(a, b; kw...) = At((a, b); kw...)
 
 rebuild(sel::At, val) = At(val, sel.atol)
 
