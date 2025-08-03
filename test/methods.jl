@@ -622,15 +622,18 @@ end
             @test_warn "lookups are misaligned" vcat(d2, d1)
         end
 
-        @testset "vcat" begin
+        @testset "vcat time axis" begin
             t1 = Ti(DateTime(2000):Day(1):DateTime(2001)-Day(1))
             d1 = rand(t1)
             t2 = Ti(DateTime(2001):Day(1):DateTime(2002))
             d2 = rand(t2)
+            t3 = Ti(DateTime(2001,3,1):Day(1):DateTime(2002))
+            d3 = rand(t3)
             v = vcat(d1, d2)
             @test length(v) == 732
             @test v[1:366] == d1[:]
             @test v[367:end] == d2[:]
+            @test_warn "lookups do not join with the correct step size" vcat(d1,d3)
         end
     end
 
