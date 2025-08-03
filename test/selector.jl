@@ -943,8 +943,8 @@ end
     da = DimArray(a, (Y(Sampled(10:10:30)), Ti(Sampled((1:4)u"s"))))
 
     @test At(10.0) == At(10.0, nothing, nothing)
-    @test At(10.0; atol=0.0, rtol=Base.rtoldefault(Float64)) ==
-          At(10.0, 0.0, Base.rtoldefault(Float64))
+    @test At(10.0; atol=0.0) ==
+          At(10.0, 0.0)
     Near([10, 20])
 
     @test Between(10, 20) == Between((10, 20))
