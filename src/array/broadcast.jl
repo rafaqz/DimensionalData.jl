@@ -1,4 +1,4 @@
-import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style, AbstractArrayStyle
 
 const STRICT_BROADCAST_CHECKS = Ref(true)
 const STRICT_BROADCAST_DOCS = """
@@ -35,10 +35,9 @@ strict_broadcast!(x::Bool) = STRICT_BROADCAST_CHECKS[] = x
 # It preserves the dimension names.
 # `S` should be the `BroadcastStyle` of the wrapped type.
 # Copied from NamedDims.jl (thanks @oxinabox).
-struct DimensionalStyle{S <: BroadcastStyle} <: AbstractArrayStyle{Any} end
-DimensionalStyle(::S) where S = DimensionalStyle{S}()
+struct DimensionalStyle{S <: AbstractArrayStyle, N} <: AbstractArrayStyle{N} end
+DimensionalStyle(::S) where S<:AbstractArrayStyle{N} where N = DimensionalStyle{S, N}()
 DimensionalStyle(::S) where {S<:DimensionalStyle} = S() # avoid nested dimensionalstyle
-DimensionalStyle(::S) where {S<:AbstractArrayStyle{0}} = S() # no dimensional broadcast on 0-dim arrays
 DimensionalStyle(::S, ::Val{N}) where {S,N} = DimensionalStyle(S(Val(N)))
 DimensionalStyle(::Val{N}) where N = DimensionalStyle{DefaultArrayStyle{N}}()
 function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
@@ -51,11 +50,8 @@ function DimensionalStyle(a::BroadcastStyle, b::BroadcastStyle)
     end
 end
 
-function BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A}
-    inner_style = BroadcastStyle(A)
-    return DimensionalStyle(inner_style)
-end
-
+BroadcastStyle(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} =
+    DimensionalStyle(BroadcastStyle(A))
 BroadcastStyle(::DimensionalStyle, ::Base.Broadcast.Unknown) = Unknown()
 BroadcastStyle(::DimensionalStyle{A}, ::DimensionalStyle{B}) where {A, B} = DimensionalStyle(A(), B())
 BroadcastStyle(::DimensionalStyle{A}, b::AbstractArrayStyle{N}) where {A,N} = DimensionalStyle(A(), b)
@@ -82,7 +78,7 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
 
-function Base.similar(bc::Broadcasted{DimensionalStyle{S}}, ::Type{T}) where {S,T}
+function Base.similar(bc::Broadcasted{<:DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
     rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
 end
