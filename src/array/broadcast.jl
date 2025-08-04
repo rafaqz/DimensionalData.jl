@@ -80,7 +80,7 @@ end
 
 function Base.similar(bc::Broadcasted{<:DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
-    rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)))
+    rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)), name = NoName())
 end
 
 @inline function Base.materialize!(::S, dest, bc::Broadcasted) where {S<:DimensionalStyle}
