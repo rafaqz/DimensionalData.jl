@@ -382,9 +382,9 @@ _unwrap_broadcasted(t::Tuple) = map(_unwrap_broadcasted, t)
 _unwrap_broadcasted(du::Dimensions.DimUnitRange) = parent(du)
 # Get the first dimensional array in the broadcast
 _firstdimarray(x::Broadcasted) = _firstdimarray(x.args)
-_firstdimarray(x::Tuple{<:AbstractDimArray,Vararg}) = x[1]
+_firstdimarray(x::Union{AbstractDimArray,DimGroupByArray}) = x
 _firstdimarray(ext::Base.Broadcast.Extruded) = _firstdimarray(ext.x)
-function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
+function _firstdimarray(x::Tuple)
     found = _firstdimarray(x[1])
     if found isa Nothing
         _firstdimarray(tail(x))
@@ -392,7 +392,7 @@ function _firstdimarray(x::Tuple{<:Broadcasted,Vararg})
         found
     end
 end
-_firstdimarray(x::Tuple) = _firstdimarray(tail(x))
+_firstdimarray(x) = nothing
 _firstdimarray(x::Tuple{}) = nothing
 
 # Make sure all arrays have the same dims, and return them
