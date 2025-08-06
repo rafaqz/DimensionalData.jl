@@ -94,6 +94,39 @@ end
      @test dt2[:b] == b
 end
 
+@testset "prune" begin
+     @testset "prune with leaves" begin
+          b1 = rand(Y(1:15), X(1:10))
+          b2 = rand(Y(1:2:15), X(1:2:10))
+          sub1 = DimTree()
+          sub1[:b] = b1
+          sub2 = DimTree()
+          sub2[:b] = b2 
+          dt = DimTree()
+          dt.sub1 = sub1 
+          dt.sub2 = sub2
+          dp1 = prune(dt, keep=:sub1)
+          @test_broken dp1.b == b1
+          @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)       
+     end
+
+     @testset "prune dt with subbranches" begin
+          b1 = rand(Y(1:15), X(1:10))
+          b2 = rand(Y(1:2:15), X(1:2:10))
+          sub1 = DimTree()
+          sub1.b = b1
+          sub2 = DimTree()
+          sub2.b = b2 
+          dt = DimTree()
+          dt.sub1 = sub1 
+          dt.sub2 = sub2
+          dp1 = prune(dt, keep=:sub1)
+          @test_broken dp1.b == b1
+          @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)  
+     end
+
+end
+
 # TODO move to doctests, but useful here for now
 
 using DimensionalData, Test, Extents, Dates
