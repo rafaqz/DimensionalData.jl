@@ -72,7 +72,7 @@ end
      xdim, ydim = X(1:10), Y(1:15)
      a = rand(xdim)
      b = rand(Float32, xdim, ydim)
-     b2 = rand(X(1:2:10), Y(1:2:15))
+     b2 = rand(Y(1:2:15), X(1:2:10))
      a2 = rand(X(1:2:10))
      sub1 = DimTree()
      sub1[:a] = a
