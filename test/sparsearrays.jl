@@ -35,11 +35,12 @@ using DimensionalData: AbstractDimArray
         # @test dims(dst_generic) == dims2d
         
         # Test 1D DimArray with Float64
+        # Note: CHOLMOD.Dense always creates 2D arrays, so we need to compare with vec()
         src_1d_f64 = SparseArrays.CHOLMOD.Dense(rand(Float64, 5))
         dst1d_f64 = DimArray(zeros(Float64, 5), dims1d)
         result = copyto!(dst1d_f64, src_1d_f64)
         @test result === dst1d_f64
-        @test parent(dst1d_f64) == src_1d_f64
+        @test parent(dst1d_f64) == vec(src_1d_f64)
         @test dims(dst1d_f64) == dims1d
     end
     
