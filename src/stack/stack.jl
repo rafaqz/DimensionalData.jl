@@ -605,3 +605,30 @@ function dimstack_from_table(::Type{T}, table, dims;
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
+
+### Skipmissing on DimStacks
+"""
+    skipmissing(itr::AbstractDimStack)
+
+Returns an iterable over the elements in a `AbstractDimStack` object, skipping any values if any of the layers are missing.
+"""
+Base.skipmissing
+
+# Specialized dispatch of iterate to skip values if any layer is missing.
+function Base.iterate(itr::Base.SkipMissing{<:AbstractDimStack}, state...)
+    y = iterate(itr.x, state...)
+    y === nothing && return nothing
+    item, state = y
+    while any(map(ismissing, item)) # instead of ismissing(item)
+        y = iterate(itr.x, state)
+        y === nothing && return nothing
+        item, state = y
+    end
+    item, state
+end
+
+Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} where NT =
+    _nonmissing_nt(NT)
+
+@generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
+    NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}

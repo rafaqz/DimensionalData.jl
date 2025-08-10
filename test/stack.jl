@@ -396,3 +396,19 @@ end
     @test ds[Z = 1:2] == ds
 
 end
+
+@testset "skipmissing" begin
+    skips = skipmissing(s)
+    skips2 = skipmissing(mixed)
+    @test eltype(skips) === @NamedTuple{one::Float64, two::Float32, three::Int}
+    @test eltype(skips2) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+    @test collect(skips) == vec(s)
+    @test collect(skips2) == vec(mixed)
+
+    da5 = DimArray([missing, 1], x)
+    s2 = DimStack((one = da1, two = da5))
+    @test eltype(skipmissing(s2)) === @NamedTuple{one::Float64, two::Int}
+    cs2 = collect(skipmissing(s2))
+    @test all(getindex.(cs2, :two) .== 1)
+    @test getindex.(cs2, :one) == da1[X=2]
+end
