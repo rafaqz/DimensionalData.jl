@@ -62,9 +62,9 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
     bdims = _broadcasted_dims(bc)
+    _comparedims_broadcast(A, bdims...)
     if bc.axes isa Nothing
         axes = Base.Broadcast.combine_axes(map(_unwrap_broadcasted, bc.args)...)
-        _comparedims_broadcast(A, bdims...)
         ds = Dimensions.promotedims(bdims...; skip_length_one=true)
         length(axes) == length(ds) || 
             throw(ArgumentError("Number of broadcasted dimensions $(length(axes)) larger than $(ds)"))
@@ -73,7 +73,7 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
         axes = bc.axes
         Base.Broadcast.check_broadcast_axes(axes, bc.args...)
         ds = dims(axes)
-        isnothing(ds) ? _comparedims_broadcast(A, bdims...) : _comparedims_broadcast(A, ds, bdims...)
+        isnothing(ds) || _comparedims_broadcast(A, ds, bdims...)
     end
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
