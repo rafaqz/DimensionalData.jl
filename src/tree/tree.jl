@@ -58,7 +58,12 @@ layerdims(dt::AbstractDimTree, key::Symbol) = layerdims(dt)[key]
 layers(dt::AbstractDimTree) = DataDict((pn => dt[pn] for pn in keys(dt)))
 
 # DimStack constructors on DimTree
-function (::Type{T})(dt::AbstractDimTree; keep=nothing) where {T<:AbstractDimStack}
+# If this method has ambiguities, define it for the DimStack type and call dimstack_from_tree
+(::Type{T})(dt::AbstractDimTree; kw...) where {T<:AbstractDimStack} =
+    dimstack_from_tree(T, dt; kw...)
+DimStack(dt::AbstractDimTree; kw...) = dimstack_from_tree(DimStack, dt; kw...)
+
+function dimstack_from_tree(T, dt; keep=nothing)
     if isnothing(keep)
         pruned = DD.prune(dt; keep)
         T(pruned[Tuple(keys(pruned))])

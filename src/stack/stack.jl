@@ -30,6 +30,11 @@ const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
 (::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
+    dimarray_from_dimstack(T, st; kw...) 
+# For ambiguity
+DimArray(st::AbstractDimStack; kw...) = dimarray_from_dimstack(DimArray, st; kw...) 
+
+dimarray_from_dimstack(T, st; kw...) =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st), kw...)
 
 data(s::AbstractDimStack) = getfield(s, :data)
@@ -101,7 +106,7 @@ and an existing stack.
 
 # Keywords
 
-Keywords are simply the fields of the stack object:
+Keywords are simply the common fields of an `AbstractDimStack` object:
 
 - `data`
 - `dims`
@@ -109,6 +114,8 @@ Keywords are simply the fields of the stack object:
 - `metadata`
 - `layerdims`
 - `layermetadata`
+
+There is no promise that these keywords will be used in all cases.
 """
 function rebuild_from_arrays(
     s::AbstractDimStack{Keys}, das::Tuple{Vararg{AbstractBasicDimArray}}; kw...
@@ -340,6 +347,7 @@ end
 """
     DimStack <: AbstractDimStack
 
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Union{AbstractArray,Tuple,NamedTuple}, [dims::DimTuple]; kw...)
     DimStack(data::AbstractDimArray; layersfrom, kw...)
@@ -512,7 +520,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
-DimStack(data::Union{Tuple,AbstractArray}, dims::Tuple; name=uniquekeys(data), kw...) = 
+DimStack(data::Union{Tuple,AbstractArray{<:AbstractArray}}, dims::Tuple; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), dims; kw...)
 function DimStack(data::NamedTuple{K}, dims::Tuple;
     refdims=(), 
@@ -520,6 +528,9 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
+    if length(data) > 0 && Tables.istable(data) && all(d -> name(d) in keys(data), dims)
+        return dimstack_from_table(DimStack, data, dims; refdims, metadata)
+    end
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -544,6 +555,53 @@ function DimStack(st::AbstractDimStack;
     layermetadata=layermetadata(st),
 )
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
+end
+
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(data, dims::Tuple; kw...
+)
+    if Tables.istable(data)
+        table = Tables.columns(data)
+        all(map(d -> Dimensions.name(d) in Tables.columnnames(table), dims)) || throw(ArgumentError(
+            "All dimensions in dims must be in the table columns."
+        ))
+        dims = guess_dims(table, dims; kw...)
+        return dimstack_from_table(DimStack, table, dims; kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))
+
+    end
+end
+function DimStack(table; kw...)
+    if Tables.istable(table)
+        table = Tables.columns(table)
+        dimstack_from_table(DimStack, table, guess_dims(table; kw...); kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))    end
+end
+
+function dimstack_from_table(::Type{T}, table, dims; 
+    name=nothing, 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+) where T<:AbstractDimStack
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    data_cols = isnothing(name) ? data_col_names(table, dims) : name
+    dims = guess_dims(table, dims; precision)
+    indices = coords_to_indices(table, dims; selector)
+    layers = map(data_cols) do col
+        d = Tables.getcolumn(table, col)
+        restore_array(d, indices, dims, missingval)
+    end
+    return T(layers, dims; name = data_cols, kw...)
 end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
