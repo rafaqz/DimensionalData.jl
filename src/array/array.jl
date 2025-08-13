@@ -166,11 +166,8 @@ function Base.similar(A::AbstractDimArray;
 )
     rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end
-function Base.similar(A::AbstractDimArray, ::Type{T}; 
-    data=similar(parent(A), T),
-    dims=dims(A), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
-) where T
-    rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
+function Base.similar(A::AbstractDimArray, ::Type{T}; kw...) where T
+    _similar(A, T, axes(A); kw...)
 end
 
 # We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
@@ -259,6 +256,12 @@ function _similar(A::AbstractArray, T::Type, shape::Tuple; kw...)
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
     C = dimconstructor(dims(shape))
     return C(data, dims(shape); kw...)
+end
+function _similar(A::AbstractDimArray, T::Type, shape::Tuple; 
+    data=similar(parent(A), T, map(_parent_range, shape)),
+    dims=dims(shape), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
+)
+    rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end
 function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
     data = similar(T, map(_parent_range, shape))
@@ -353,32 +356,8 @@ for (d, s) in ((:AbstractDimArray, :AbstractDimArray),
     end
 end
 # Ambiguity
-Base.copyto!(dst::AbstractDimArray{T,2}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    (copyto!(parent(dst), src); dst)
-Base.copyto!(dst::AbstractDimArray{T}, src::SparseArrays.CHOLMOD.Dense{T}) where T<:Union{Float64,ComplexF64} =
-    (copyto!(parent(dst), src); dst)
-Base.copyto!(dst::DimensionalData.AbstractDimArray, src::SparseArrays.CHOLMOD.Dense) =
-    (copyto!(parent(dst), src); dst)
-Base.copyto!(dst::SparseArrays.AbstractCompressedVector, src::AbstractDimArray{T, 1} where T) =
-    (copyto!(dst, parent(src)); dst)
-Base.copyto!(dst::AbstractDimArray{T,2} where T, src::SparseArrays.AbstractSparseMatrixCSC) =
-    (copyto!(parent(dst), src); dst)
 Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
     (copyto!(parent(dst), src); dst)
-function Base.copyto!(
-    dst::AbstractDimArray{<:Any,2}, 
-    dst_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}, 
-    src::SparseArrays.AbstractSparseMatrixCSC{<:Any}, 
-    src_i::CartesianIndices{2, R} where R<:Tuple{OrdinalRange{Int64, Int64}, OrdinalRange{Int64, Int64}}
-)
-    copyto!(parent(dst), dst_i, src, src_i)
-    return dst
-end
-Base.copy!(dst::SparseArrays.AbstractCompressedVector{T}, src::AbstractDimArray{T, 1}) where T =
-    (copy!(dst, parent(src)); dst)
-
-Base.copy!(dst::SparseArrays.SparseVector, src::AbstractDimArray{T,1}) where T =
-    (copy!(dst, parent(src)); dst)
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     (copyto!(dst, parent(src)); dst)
 

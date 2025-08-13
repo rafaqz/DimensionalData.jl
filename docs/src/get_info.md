@@ -1,3 +1,7 @@
+```@meta
+Description = "DimensionalData.jl getter methods - retrieve dimensions, lookups, metadata and values from DimArrays and DimStacks in Julia"
+```
+
 # Getters
 
 DimensionalData.jl defines consistent methods to retrieve information

@@ -15,9 +15,9 @@ end
 function show_main(io, mime, tree::AbstractDimTree)
     lines, blockwidth, displaywidth = print_top(io, mime, tree)
     if !isempty(data(tree))
-        blockwidth = print_layers_block(io, mime, tree; blockwidth, displaywidth)
+        blockwidth, _ = print_layers_block(io, mime, tree; blockwidth, displaywidth)
     end
-    _, blockwidth = print_metadata_block(io, mime, metadata(tree); 
+    _, blockwidth, _  = print_metadata_block(io, mime, metadata(tree); 
         displaywidth, blockwidth=min(displaywidth-2, blockwidth)
     )
     return blockwidth
