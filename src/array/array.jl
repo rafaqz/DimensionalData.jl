@@ -166,8 +166,9 @@ function Base.similar(A::AbstractDimArray;
 )
     rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end
-function Base.similar(A::AbstractDimArray, ::Type{T}; kw...) where T
-    _similar(A, T, axes(A); kw...)
+function Base.similar(A::AbstractDimArray, ::Type{T}; 
+    refdims = refdims(A), metadata = metadata(A), kw...) where T
+    _similar(A, T, axes(A); refdims, metadata, kw...)
 end
 
 # We avoid calling `parent` for AbstractBasicDimArray as we don't know what it is/if there is one
@@ -259,7 +260,7 @@ function _similar(A::AbstractArray, T::Type, shape::Tuple; kw...)
 end
 function _similar(A::AbstractDimArray, T::Type, shape::Tuple; 
     data=similar(parent(A), T, map(_parent_range, shape)),
-    dims=dims(shape), refdims=refdims(A), name=_noname(A), metadata=metadata(A), kw...
+    dims=dims(shape), refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 )
     rebuild(A; data, dims=format(dims, data), refdims, name, metadata, kw...)
 end
