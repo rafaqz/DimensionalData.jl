@@ -79,6 +79,8 @@ end
     @test mean.(groupby(A, Ti=>Bins(month, intervals(1:3:12)))) == manualmeans
     @test mean.(groupby(A, Ti=>Bins(month, 4))) == manualmeans
     @test combine(mean, groupby(A, Ti=>Bins(month, ranges(1:3:12)))) == manualmeans
+    @test mean.(groupby(A, Ti=>CyclicBins(month; cycle = 12, step = 3))) == manualmeans
+    @test CyclicBins(; step = 3, cycle = 12) === CyclicBins(identity; step = 3, cycle = 12)
 end
 
 @testset "dimension matching groupby" begin

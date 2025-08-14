@@ -1,4 +1,8 @@
 
+```@meta
+Description = "Complete API reference for DimensionalData.jl - arrays, stacks, dimensions, selectors, and utility functions documentation"
+```
+
 # API Reference
 
 ## Arrays

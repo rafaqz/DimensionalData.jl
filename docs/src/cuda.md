@@ -1,3 +1,7 @@
+```@meta
+Description = "GPU computing with DimensionalData.jl - seamlessly use CUDA/GUP arrays with dimensional metadata for high-performance Julia computations with minimal effort"
+```
+
 # CUDA & GPUs
 
 Running regular julia code on GPUs is one of the most amazing things

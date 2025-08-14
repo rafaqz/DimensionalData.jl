@@ -180,11 +180,23 @@ end
     end
 
     @testset "similar with sparse arrays" begin
+        # Test that SparseArrays extension is properly loaded
+        if !hasmethod(copyto!, (DimArray{Float64,2}, SparseArrays.AbstractSparseMatrixCSC{Float64}))
+            @warn "SparseArrays extension not loaded, skipping related tests"
+            return
+        end
+        
         sda = @inferred DimArray(sprand(Float64, 10, 10, 0.5), (X(), Y()))
         sparse_size_int = similar(sda, Int64, (5, 5))
         @test eltype(sparse_size_int) == Int64 != eltype(sda)
         @test size(sparse_size_int) == (5, 5)
         @test sparse_size_int isa SparseMatrixCSC
+        
+        # Test that basic copyto! works with sparse arrays
+        dst = DimArray(zeros(Float64, 10, 10), (X(1:10), Y(1:10)))
+        result = copyto!(dst, parent(sda))
+        @test result === dst
+        @test parent(dst) == parent(sda)
     end
 
     @testset "similar with dims" begin

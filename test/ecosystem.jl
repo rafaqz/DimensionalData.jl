@@ -110,6 +110,8 @@ end
     @testset "isdisk" begin
         @test DiskArrays.isdisk(da)
         @test !DiskArrays.isdisk(rand(X(5), Y(4)))
+        @test DiskArrays.isdisk(st)
+        @test !DiskArrays.isdisk(DimStack((a=rand(X(5), Y(4)), b=rand(X(5)))))
     end
     @testset "pad" begin
         p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
@@ -127,5 +129,10 @@ end
     @testset "PermutedDimsArray and PermutedDiskArray" begin
         @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
         @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
+    end
+
+    @testset "mockchunks" begin
+        damockchunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(damockchunked)) == (5,5)
     end
 end

@@ -1,3 +1,7 @@
+```@meta
+Description = "Modify DimensionalData.jl objects - rebuild immutable structs, update arrays in-place, use set and modify for transformations"
+```
+
 # Modifying Objects
 
 DimensionalData.jl objects are all `struct` rather than
