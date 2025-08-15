@@ -60,10 +60,10 @@ layers(dt::AbstractDimTree) = DataDict((pn => dt[pn] for pn in keys(dt)))
 # DimStack constructors on DimTree
 function (::Type{T})(dt::AbstractDimTree; keep=nothing) where {T<:AbstractDimStack}
     if isnothing(keep)
+        T(dt[Tuple(keys(dt))])
+    else
         pruned = DD.prune(dt; keep)
         T(pruned[Tuple(keys(pruned))])
-    else
-        T(dt[Tuple(keys(dt))])
     end
 end
 
@@ -79,6 +79,8 @@ Base.pairs(dt::AbstractDimTree) = (k => dt[k] for k in keys(dt))
 Base.keys(dt::AbstractDimTree) = collect(keys(data(dt)))
 Base.length(dt::AbstractDimTree) = length(data(dt))
 Base.haskey(dt::AbstractDimTree, key::Symbol) = haskey(data(dt), key::Symbol)
+Base.isempty(dt::AbstractDimTree) = Base.isempty(data(dt))
+Base.iterate(dt::AbstractDimTree, args...) = Base.iterate(data(dt), args...)
 Base.propertynames(dt::AbstractDimTree) = collect(keys(branches(dt)))
 function Base.copy(dt::AbstractDimTree) 
     rebuild(dt; 
@@ -318,10 +320,26 @@ function prune(dt::AbstractDimTree;
         # Pairs will also keep a branch of the branch
         prune(getproperty(dt, first(keep)); keep=last(keep))
     end
-    rebuild(dt; 
-        data=DataDict(hcat(collect(pairs(dt)), collect(pairs(branch)))),
-        branches=TreeDict(), # There a no branches after flattening
+    if isempty(dt)  && isempty(branch)
+        layerdims = TupleDict()
+        layermetadata = DataDict()
+        data = DataDict()
+    else
+        if isempty(dt)
+            layerpairs = collect(pairs(branch))
+        else
+            layerpairs = hcat(collect(pairs(dt)), collect(pairs(branch)))
+        end
+        layerdims = TupleDict(map(x -> first(x) => basedims(last(x)), layerpairs))
+        layermetadata = DataDict(map(x -> first(x) => metadata(x), layerpairs))
+        data = DataDict(layerpairs)
+    end
+    return rebuild(dt; 
+        data,
+        layerdims,
+        layermetadata,
         dims=dims(branch), # The branch has all the dims already
+        branches=TreeDict(), # There a no branches after flattening
         tree=nothing,
     ) 
 end

@@ -72,7 +72,7 @@ end
      xdim, ydim = X(1:10), Y(1:15)
      a = rand(xdim)
      b = rand(Float32, xdim, ydim)
-     b2 = rand(Y(1:2:15), X(1:2:10))
+     b2 = rand(X(1:2:10), Y(1:2:15))
      a2 = rand(X(1:2:10))
      sub1 = DimTree()
      sub1[:a] = a
@@ -99,38 +99,30 @@ end
           b1 = rand(Y(1:15), X(1:10))
           b2 = rand(Y(1:2:15), X(1:2:10))
           sub1 = DimTree()
-          sub1[:b] = b1
           sub2 = DimTree()
+          sub1[:b] = b1
           sub2[:b] = b2 
           dt = DimTree()
           dt.sub1 = sub1 
           dt.sub2 = sub2
-          @test_broken dp1 = prune(dt, keep=:sub1)
-          @test_broken dp1.b == b1
-          @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)       
+          dp1 = prune(dt, keep=:sub1)
+          @test dp1[:b] == b1
+          @test DimStack(dt, keep=:sub1) == DimStack(sub1[:b])       
      end
 
      @testset "prune dt with subbranches" begin
-          b1 = rand(Y(1:15), X(1:10))
-          b2 = rand(Y(1:2:15), X(1:2:10))
+          b1 = rand(Y(1:15), X(1:10); name=:leaf)
+          b2 = rand(Y(1:2:15), X(1:2:10); name=:leaf)
           sub1 = DimTree()
-          sub1.b = b1
           sub2 = DimTree()
+          sub1.b = b1
           sub2.b = b2 
           dt = DimTree()
           dt.sub1 = sub1 
           dt.sub2 = sub2
-          dp1 = prune(dt, keep=:sub1)
-          @test_broken dp1.b == b1
-          @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)  
-     end
-     @testset "prune with same size branch and leaf" begin
-          b1 = rand(Y(1:15), X(1:10), name=:b1)
-          b2 = rand(Y(1:15), X(1:10), name=:b2)
-          sub1 = DimTree(b1)
-          dt = DimTree(b2)
-          dt.sub1 = sub1
-          @test_broken DimStack(dt) == DimStack(b1, b2)
+          dp1 = prune(dt, keep=:sub1=>:b)
+          @test dp1[:leaf] == b1
+          @test DimStack(dt; keep=:sub1=>:b) == DimStack(sub1.b) == DimStack(sub1.b[:leaf])
      end
 end
 
