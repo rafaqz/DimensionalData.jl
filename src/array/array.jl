@@ -254,6 +254,14 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
         end
     end
 end
+function _similar(A::AbstractDimArray, T::Type, shape::Tuple; 
+    dims=dims(shape), refdims=(), name=_noname(A), metadata=metadata(A), kw...
+)
+    data = similar(parent(A), T, map(_parent_range, shape))
+    shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
+    rebuild(A; data, dims, refdims, name, metadata, kw...)
+end
+
 function _similar(A::AbstractArray, T::Type, shape::Tuple; kw...)
     data = similar(parent(A), T, map(_parent_range, shape))
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
