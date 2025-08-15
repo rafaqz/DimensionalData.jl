@@ -13,7 +13,8 @@ st = DimStack((; a, b, c))
      @test_throws ArgumentError only(dt.m.n)
      @test DimStack(dt.m.n) === st
      delete!(dt.m.n, :c)
-     @test pop!(dt.m.n, :b) === st.b
+     x = pop!(dt.m.n, :b) 
+     @test x === st.b
      @test only(dt.m.n) === st.a
      @test delete!(dt.m.n) == dt.m
      @test isempty(DimensionalData.branches(dt.m))
