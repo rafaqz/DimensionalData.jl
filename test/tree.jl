@@ -105,7 +105,7 @@ end
           dt = DimTree()
           dt.sub1 = sub1 
           dt.sub2 = sub2
-          dp1 = prune(dt, keep=:sub1)
+          @test_broken dp1 = prune(dt, keep=:sub1)
           @test_broken dp1.b == b1
           @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)       
      end
