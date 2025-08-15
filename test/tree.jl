@@ -124,7 +124,14 @@ end
           @test_broken dp1.b == b1
           @test_broken DimStack(dt, keep=:sub1) == DimStack(b1)  
      end
-
+     @testset "prune with same size branch and leaf" begin
+          b1 = rand(Y(1:15), X(1:10), name=:b1)
+          b2 = rand(Y(1:15), X(1:10), name=:b2)
+          sub1 = DimTree(b1)
+          dt = DimTree(b2)
+          dt.sub1 = sub1
+          @test_broken DimStack(dt) == DimStack(b1, b2)
+     end
 end
 
 # TODO move to doctests, but useful here for now
