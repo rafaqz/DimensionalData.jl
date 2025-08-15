@@ -122,6 +122,16 @@ end
     end
 end
 
+@testset "DimSelectors" begin
+    a = rand(X(1:10), Y(4:11))
+    d = DimSelectors(a, selectors=Near())
+    sd = sprint(show, MIME("text/plain"), d)
+    @test occursin("DimSelectors", sd)
+    @test occursin("10×8", sd)
+    @test occursin("(Near(), Near())", sd)
+    @test occursin("X Near(1)", sd)
+end
+
 @testset "BeginEnd" begin
     lplus = Begin+6
     slp = sprint(show, MIME("text/plain"), lplus)
