@@ -178,6 +178,7 @@ lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
+name(s::Symbol) = s
 
 label(x) = string(name(x))
 
@@ -273,6 +274,7 @@ Base.axes(d::Dimension, i) = axes(d)[i]
 Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
 Base.ndims(d::Dimension) = 0
+Base.parentindices(d::Dimension{<:AbstractArray}) = parentindices(parent(d))
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
 Base.iterate(d::Dimension{<:AbstractArray}, args...) = iterate(lookup(d), args...)
 Base.first(d::Dimension) = val(d)
