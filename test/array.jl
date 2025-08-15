@@ -225,21 +225,21 @@ end
         @test size(da_all) == size(da)
         @test dims(da_all) === dims(da)
         @test refdims(da_all) == ()
-        @test metadata(da_all) == NoMetadata()
+        @test metadata(da_all) == metadata(da)
 
         da_first = similar(da, Missing, (axes(da, 1),))   
         @test eltype(da_first) === Missing
         @test size(da_first) == (size(da, 1),)
         @test dims(da_first) === (dims(da, 1),)
         @test refdims(da_first) == ()
-        @test metadata(da_first) == NoMetadata()
+        @test metadata(da_first) == metadata(da)
 
         da_last = similar(da, Nothing, (axes(da, 2),))
         @test eltype(da_last) === Nothing
         @test size(da_last) == (size(da, 2),)
         @test dims(da_last) === (dims(da, 2),)
         @test refdims(da_last) == ()
-        @test metadata(da_last) == NoMetadata()
+        @test metadata(da_last) == metadata(da)
     end
 
     @testset "similar with DimArray and new axes" begin
@@ -249,7 +249,7 @@ end
         @test size(da_sim) == (2,)
         @test dims(da_sim) == (dims(ax),)
         @test refdims(da_sim) == ()
-        @test metadata(da_sim) == NoMetadata()
+        @test metadata(da_sim) == metadata(da)
     end
 
     @testset "similar with AbstractArray and DimUnitRange" begin
