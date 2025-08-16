@@ -254,6 +254,7 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
         end
     end
 end
+
 function _similar(A::AbstractDimArray, T::Type, shape::Tuple; 
     dims=dims(shape), refdims=(), name=_noname(A), metadata=metadata(A), kw...
 )
