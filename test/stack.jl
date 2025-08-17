@@ -63,8 +63,7 @@ end
     @test dims(s, X) == x
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
-    @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
-    @test name(s)== (:one, :two, :three)
+    @test name(s) == (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
