@@ -1,6 +1,6 @@
 module DimensionalData
-
-# Standard lib
+nd
+#nde Standard lib
 using Dates,
       LinearAlgebra,
       Random,
@@ -37,7 +37,7 @@ using .Dimensions
 using .Dimensions.Lookups
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
 import .Lookups: metadata, set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, intervalbounds,
+    order, span, sampling, locus, val, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
 

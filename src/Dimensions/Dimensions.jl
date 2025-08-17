@@ -1,5 +1,5 @@
 """
-    Dimensions
+nde    Dimensions
 
 Sub-module for [`Dimension`](@ref)s wrappers,
 and operations on them used in DimensionalData.jl.
@@ -23,7 +23,7 @@ using .Lookups
 const LU = Lookups
 const LookupArrays = Lookups
 
-import .Lookups: rebuild, order, span, sampling, locus, val, index, set, _set,
+import .Lookups: rebuild, order, span, sampling, locus, val, set, _set,
     metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
     shiftlocus, maybeshiftlocus, ordered_first, ordered_last, ordered_firstindex, ordered_lastindex, 
     promote_first, _remove

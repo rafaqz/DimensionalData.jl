@@ -142,7 +142,7 @@ function rebuild_from_arrays(
 end
 
 # Dispatch on Tuple of Dimension, and map
-for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :order)
+for func in INTERFACE_QUERY_FUNCTION_NAMES 
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
@@ -557,6 +557,7 @@ function DimStack(st::AbstractDimStack;
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
+<<<<<<< HEAD
 # Write each column from a table with one or more coordinate columns to a layer in a DimStack
 function DimStack(data, dims::Tuple; kw...
 )
@@ -632,3 +633,6 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
+=======
+layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
+>>>>>>> 5a342c1a (standardise interface methods and remove index)
