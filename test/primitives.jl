@@ -399,8 +399,8 @@ end
     @testset "swap whole dim instances" begin
         A = swapdims(da, Z(2:2:4), Dim{:test2}(3:5))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
-        @test map(index, dims(A)) === (2:2:4, 3:5)
-        @test map(lookup, dims(A)) ===
+        @test map(parent, lookup(A)) === (2:2:4, 3:5)
+        @test lookup(A) ===
             (Sampled(2:2:4, ForwardOrdered(), Regular(2), Points(), NoMetadata()),
              Sampled(3:5, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
     end
