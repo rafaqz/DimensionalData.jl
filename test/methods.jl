@@ -562,7 +562,7 @@ end
         @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) 
         @test cat(da, db; dims=X) == cat(da, db; dims=(X,)) == cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test dims(cat(da, db; dims=X)) == testdims
-        @test val(cat(da, db; dims=X)) == val(testdims)
+        @test val(dims(cat(da, db; dims=X))) == val(testdims)
         @test lookup(cat(da, db; dims=X)) == lookup(testdims)
         @test_warn "Lookup values for X" cat(da, db; dims=Y())
         @test cat(da, da; dims=Z(1:2)) == cat(a, a; dims=3)
