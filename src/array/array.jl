@@ -144,14 +144,14 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
 end
 
 # undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{T}} where T = 
-    A(x, dims; kw...)
-function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
-end
-function (::Type{A})(x::UndefInitializer, dims::Tuple{}; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, ()), dims; kw...)
-end
+# (::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{T}} where T = 
+#     A(x, dims; kw...)
+# function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
+#     basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
+# end
+# function (::Type{A})(x::UndefInitializer, dims::Tuple{}; kw...) where {A<:AbstractDimArray{T}} where T
+#     basetypeof(A)(Array{T}(undef, ()), dims; kw...)
+# end
 
 # Dummy `read` methods that does nothing.
 # This can be used to actually read `AbstractDimArray` subtypes that dont hold in-memory Arrays.

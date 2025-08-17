@@ -29,8 +29,8 @@ abstract type AbstractDimStack{K,T,N,L} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-(::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
-    dimarray_from_dimstack(T, st; kw...) 
+# (::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
+#     dimarray_from_dimstack(T, st; kw...) 
 # For ambiguity
 DimArray(st::AbstractDimStack; kw...) = dimarray_from_dimstack(DimArray, st; kw...) 
 

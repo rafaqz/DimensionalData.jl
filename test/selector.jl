@@ -1109,7 +1109,7 @@ end
         da = DimArray(a, dimz)
         wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
         @test parent(wda) == [7 8; 11 12]
-        @test index(wda) == ([2u"s", 3u"s"], [30, 40])
+        @test all(lookup(wda) .== ([2u"s", 3u"s"], [30, 40]))
     end
 
     @testset "All" begin

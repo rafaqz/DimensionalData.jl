@@ -378,10 +378,10 @@ end
 
 @testset "setdims" begin
     A = setdims(da, X(Sampled(LinRange(150,152,2))))
-    @test index(A, X()) == LinRange(150,152,2)
+    @test lookup(A, X()) == LinRange(150,152,2)
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
     A = setdims(da, Y(Sampled(10:12)), X(Sampled(LinRange(150,152,2))))
-    @test index(dims(dims(A), Y())) == 10:12
+    @test lookup(dims(dims(A), Y())) == 10:12
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
     @testset "set an empty tuple" begin
         A = setdims(da, ())
