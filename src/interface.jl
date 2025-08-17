@@ -246,6 +246,3 @@ x is some object with a `dims` method, and `selectors` is a `Selector`
 or `Dimension` or a tuple of either.
 """
 function hasselection end
-
-# These are all the function that you can call on objects and call function(dims(obs, args...))
-const INTERFACE_QUERY_METHOD_NAMES = (:lookup, :order, :sampling, :span, :bounds, :intervalbounds, :locus)

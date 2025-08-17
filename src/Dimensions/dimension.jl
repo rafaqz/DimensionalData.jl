@@ -1,3 +1,6 @@
+# These are all the function that you can call on objects and call function(dims(obs, args...))
+const INTERFACE_QUERY_METHOD_NAMES = (:lookup, :order, :sampling, :span, :bounds, :intervalbounds, :locus)
+
 """
     Dimension 
 

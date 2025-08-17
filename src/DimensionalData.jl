@@ -36,6 +36,7 @@ include("Dimensions/Dimensions.jl")
 using .Dimensions
 using .Dimensions.Lookups
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
+using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
 import .Lookups: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval, Begin, End
