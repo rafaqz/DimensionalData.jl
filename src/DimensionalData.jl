@@ -1,6 +1,6 @@
 module DimensionalData
-nd
-#nde Standard lib
+
+# Standard lib
 using Dates,
       LinearAlgebra,
       Random,
