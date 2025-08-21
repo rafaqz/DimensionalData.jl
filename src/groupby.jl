@@ -241,8 +241,8 @@ These can wrap around the end of the day.
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 
 """
-    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Pair...)
-    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Dimension{<:Callable}...)
+    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Pair...; name=:groupby)
+    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Dimension{<:Callable}...; name=:groupby)
 
 Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 
@@ -252,6 +252,10 @@ Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 - `dims`: `Pair`s such as `groups = groupby(A, :dimname => groupingfunction)` or wrapped
   [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
   a grouping function [`Bins`](@ref) can be used to specify group bins.
+
+## Keywords
+
+- `name`: name that is applied to the resulting [`DimGroupByArray`](@ref)
 
 ## Return value
 
