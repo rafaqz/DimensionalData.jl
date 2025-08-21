@@ -66,7 +66,7 @@ _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray` or `AbstractDimStack`.
 
 This table will have columns for the array data and columns for each
-`Dimension` index, as a [`DimColumn`]. These are lazy, and generated
+`Dimension` lookup, as a [`DimColumn`]. These are lazy, and generated
 as required.
 
 Column names are converted from the dimension types using
@@ -228,10 +228,8 @@ colnames(t::DimTable) = Tuple(getfield(t, :colnames))
 
 Base.parent(t::DimTable) = getfield(t, :parent)
 
-for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
-             :locus, :name, :label, :units)
+for func in (:dims, :val, :metadata, INTERFACE_QUERY_FUNCTION_NAMES...)
     @eval $func(t::DimTable, args...) = $func(parent(t), args...)
-
 end
 
 Tables.istable(::DimTable) = true

@@ -139,7 +139,7 @@ function rebuild_from_arrays(
 end
 
 # Dispatch on Tuple of Dimension, and map
-for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :order)
+for func in INTERFACE_QUERY_FUNCTION_NAMES 
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 

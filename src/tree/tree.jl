@@ -80,6 +80,10 @@ function Extents.extent(dt::AbstractDimTree)
     return ext
 end
 
+for func in INTERFACE_QUERY_FUNCTION_NAMES  
+    @eval ($func)(s::AbstractDimTree, args...) = ($func)(dims(s), args...)
+end
+
 Base.pairs(dt::AbstractDimTree) = (k => dt[k] for k in keys(dt))
 Base.keys(dt::AbstractDimTree) = collect(keys(data(dt)))
 Base.length(dt::AbstractDimTree) = length(data(dt))

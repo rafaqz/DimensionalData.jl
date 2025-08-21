@@ -1,4 +1,5 @@
 using DimensionalData, Test, Extents
+using DimensionalData.Lookups
 
 xdim, ydim = X(1:10), Y(1:15)
 a = rand(xdim, ydim)
@@ -31,6 +32,14 @@ end
      dt = DimTree()
      dt.b1 = st
      @test extent(dt) == extent(st)
+end
+      
+@testset "interface methods" begin
+     dt = DimTree(st)
+     @test lookup(dt, X) == lookup(st, X)
+     @test order(dt, Y) == order(st, Y) == ForwardOrdered()
+     @test span(dt, X) == span(st, X) == Regular(1)
+     @test sampling(dt, (X(), Y())) == sampling(st, (X(), Y()))
 end
 
 @testset "Indexing matches stack indexing" begin
