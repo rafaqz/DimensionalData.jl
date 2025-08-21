@@ -14,6 +14,11 @@ st = DimStack((a=A, b=A, c=A[X=1]))
     @test first(grps) isa eltype(grps) # false
 end
 
+@testset "groupby name is set" begin
+    da = rand(X(1:10), Y(1:10))
+    grps = groupby(da, X=>isodd, name="isodd")
+    @test name(grps) == "isodd"
+end
 @testset "manual groupby comparisons" begin
     # Group by month and even/odd Y axis values
     months = DateTime(2000):Month(1):DateTime(2000, 12, 31)
