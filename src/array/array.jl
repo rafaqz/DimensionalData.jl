@@ -143,16 +143,6 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
     return NamedTuple{keys}(arrays)
 end
 
-# undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{T}} where T = 
-    A(x, dims; kw...)
-function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
-end
-function (::Type{A})(x::UndefInitializer, dims::Tuple{}; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, ()), dims; kw...)
-end
-
 # Dummy `read` methods that does nothing.
 # This can be used to actually read `AbstractDimArray` subtypes that dont hold in-memory Arrays.
 Base.read(A::AbstractDimArray) = A
@@ -490,6 +480,8 @@ function DimArray(A::AbstractDimArray;
 end
 DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
+DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
+DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;

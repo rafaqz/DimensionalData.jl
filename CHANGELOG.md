@@ -43,6 +43,11 @@ Changelog.generate(
 - `skipmissing` on an `AbstractDimStack` now skips any `missing` values in any fiels, rather than `missing`, which can't
   actually occur ([#1041]).
 - Minor changes in coversion to and from tables in some cases.
+- Abstract constructors for AbstractDimArray were removed, as they cause ambiguity hassles. 
+  If necessary, extending packages can define methods like these for their own types:
+    DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
+    DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
+    MyDimArray(st::AbstractDimStack; kw...) = DD.dimarray_from_dimstack(MyDimArray, st; kw...) 
 - the deprecated `index` function is now removed completely
 - `metadta(obj, dims)` no longer works as its ambiguous and not consistently
   implemented - `metadata(obj)` does not return a Tuple for each dimension 
