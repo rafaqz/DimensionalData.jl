@@ -27,6 +27,8 @@ Changelog.generate(
   tables, so that values may themselves be `AbstractDimArray` ([#917])
 - `rebuildsliced` documented and added to the developer interface 
 - Broadcasts improved for all `AbstractBasicDimArray`, like `DimSelectors`.
+- `groupby` accepts name keyword to set the name of the DimGroupbyArray
+
 
 ### Fixed
 
