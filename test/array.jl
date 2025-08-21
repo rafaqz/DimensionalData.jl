@@ -80,7 +80,7 @@ end
     @test locus(da) == (Center(), Center())
     @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test layerdims(da) == (X(), Y())
-    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+    @test parent(lookup(da, Y)) === -38.0:2:-36.0
     @test_broken @inferred set(da, X => Intervals(), Y => Intervals())
     da_intervals = set(da, X => Intervals(), Y => Intervals())
     @test intervalbounds(da_intervals) == ([(142.0, 144.0), (144.0, 146.0)], [(-39.0, -37.0), (-37.0, -35.0)])

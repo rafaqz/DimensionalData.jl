@@ -21,7 +21,7 @@ metadata(::AbstractBasicDimArray) = NoMetadata()
 
 # DimensionalData.jl interface methods ####################################################
 
-for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
+for func in INTERFACE_QUERY_FUNCTION_NAMES  
     @eval ($func)(A::AbstractBasicDimArray, args...) = ($func)(dims(A), args...)
 end
 
