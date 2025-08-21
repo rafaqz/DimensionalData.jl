@@ -189,9 +189,9 @@ end
 
 @testset "shiftlocus" begin
     dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
-    @test lookup(shiftlocus(Start(), dim)) === 0.5:1.0:2.5
-    @test lookup(shiftlocus(End(), dim)) === 1.5:1.0:3.5
-    @test lookup(shiftlocus(Center(), dim)) === 1.0:1.0:3.0
+    @test parent(lookup(shiftlocus(Start(), dim))) === 0.5:1.0:2.5
+    @test parent(lookup(shiftlocus(End(), dim))) === 1.5:1.0:3.5
+    @test parent(lookup(shiftlocus(Center(), dim))) === 1.0:1.0:3.0
     @test locus(shiftlocus(Start(), dim)) === Start()
     @test locus(shiftlocus(End(), dim)) === End()
     @test locus(shiftlocus(Center(), dim)) === Center()

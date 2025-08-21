@@ -82,7 +82,7 @@ end
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da = set(da, X=NoLookup(), Y=Categorical())
     @test lookup(cat_da) == 
-        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
+        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, ForwardOrdered(), NoMetadata())) 
     cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
     @test metadata(cat_da_m) == Dict()
  

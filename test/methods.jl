@@ -570,7 +570,7 @@ end
         @test_warn "Lookup values for X" cat(da, db; dims=(Z(1:2), Ti(1:2)))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X, Ti(1:2)))
-        @test all(map(==, lookup(dx), lookup(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
+        @test all(map(==, lookup(dx), lookup(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]; span=Regular(1.0)), Y(6:8), Ti(1:2)), dx))))
         @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(da, reverse(db; dims=X))
         @test_warn "lookups are misaligned" vcat(db, da)
         @testset "lookup array in dims" begin
