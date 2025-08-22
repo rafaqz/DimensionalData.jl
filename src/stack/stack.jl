@@ -29,7 +29,9 @@ abstract type AbstractDimStack{K,T,N,L} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-(::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
+DimArray(st::AbstractDimStack; kw...) = dimarray_from_dimstack(DimArray, st; kw...) 
+
+dimarray_from_dimstack(T, st; kw...) =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st), kw...)
 
 data(s::AbstractDimStack) = getfield(s, :data)
@@ -101,7 +103,7 @@ and an existing stack.
 
 # Keywords
 
-Keywords are simply the fields of the stack object:
+Keywords are simply the common fields of an `AbstractDimStack` object:
 
 - `data`
 - `dims`
@@ -109,6 +111,8 @@ Keywords are simply the fields of the stack object:
 - `metadata`
 - `layerdims`
 - `layermetadata`
+
+There is no promise that these keywords will be used in all cases.
 """
 function rebuild_from_arrays(
     s::AbstractDimStack{Keys}, das::Tuple{Vararg{AbstractBasicDimArray}}; kw...
@@ -135,7 +139,7 @@ function rebuild_from_arrays(
 end
 
 # Dispatch on Tuple of Dimension, and map
-for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :order)
+for func in INTERFACE_QUERY_FUNCTION_NAMES 
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
@@ -153,7 +157,6 @@ Base.length(s::AbstractDimStack) = prod(size(s))
 Base.axes(s::AbstractDimStack) = map(first ∘ axes, dims(s))
 Base.axes(s::AbstractDimStack, dims::DimOrDimType) = axes(s, dimnum(s, dims))
 Base.axes(s::AbstractDimStack, dims::Integer) = axes(s)[dims]
-Base.similar(s::AbstractDimStack, args...) = maplayers(A -> similar(A, args...), s)
 Base.eltype(::AbstractDimStack{<:Any,T}) where T = T
 Base.ndims(::AbstractDimStack{<:Any,<:Any,N}) where N = N
 Base.CartesianIndices(s::AbstractDimStack) = CartesianIndices(dims(s))
@@ -196,6 +199,36 @@ Base.get(f::Base.Callable, st::AbstractDimStack, k::Symbol) =
 @propagate_inbounds Base.iterate(st::AbstractDimStack) = iterate(st, 1)
 @propagate_inbounds Base.iterate(st::AbstractDimStack, i) =
     i > length(st) ? nothing : (st[DimIndices(st)[i]], i + 1)
+
+Base.similar(s::AbstractDimStack) = similar(s, eltype(s))
+Base.similar(s::AbstractDimStack, dims::Dimension...) = similar(s, dims)
+Base.similar(s::AbstractDimStack, ::Type{T},dims::Dimension...) where T =
+    similar(s, T, dims)
+Base.similar(s::AbstractDimStack, dims::Tuple{Vararg{Dimension}}) = 
+    similar(s, eltype(s), dims)
+Base.similar(s::AbstractDimStack, ::Type{T}) where T = 
+    similar(s, T, dims(s))
+function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T
+    # Any dims not in the stack are added to all layers
+    ods = otherdims(dims, DD.dims(s))
+    maplayers(s) do A
+        # Original layer dims are maintained, other dims are added
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
+        similar(A, T, D)
+    end
+end
+function Base.similar(s::AbstractDimStack, ::Type{T}, dims::Tuple) where T<:NamedTuple
+    ods = otherdims(dims, DD.dims(s))
+    maplayers(s, _nt_types(T)) do A, Tx 
+        D = DD.commondims(dims, (DD.dims(A)..., ods...))
+        similar(A, Tx, D)
+    end
+end
+
+@generated function _nt_types(::Type{NamedTuple{K,T}}) where {K,T}
+    expr = Expr(:tuple, T.parameters...)
+    return :(NamedTuple{K}($expr))
+end
 
 # `merge` for AbstractDimStack and NamedTuple.
 # One of the first three arguments must be an AbstractDimStack for dispatch to work.
@@ -311,6 +344,7 @@ end
 """
     DimStack <: AbstractDimStack
 
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Union{AbstractArray,Tuple,NamedTuple}, [dims::DimTuple]; kw...)
     DimStack(data::AbstractDimArray; layersfrom, kw...)
@@ -483,7 +517,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
-DimStack(data::Union{Tuple,AbstractArray}, dims::Tuple; name=uniquekeys(data), kw...) = 
+DimStack(data::Union{Tuple,AbstractArray{<:AbstractArray}}, dims::Tuple; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), dims; kw...)
 function DimStack(data::NamedTuple{K}, dims::Tuple;
     refdims=(), 
@@ -491,6 +525,9 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
+    if length(data) > 0 && Tables.istable(data) && all(d -> name(d) in keys(data), dims)
+        return dimstack_from_table(DimStack, data, dims; refdims, metadata)
+    end
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -517,4 +554,78 @@ function DimStack(st::AbstractDimStack;
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(data, dims::Tuple; kw...
+)
+    if Tables.istable(data)
+        table = Tables.columns(data)
+        all(map(d -> Dimensions.name(d) in Tables.columnnames(table), dims)) || throw(ArgumentError(
+            "All dimensions in dims must be in the table columns."
+        ))
+        dims = guess_dims(table, dims; kw...)
+        return dimstack_from_table(DimStack, table, dims; kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))
+
+    end
+end
+function DimStack(table; kw...)
+    if Tables.istable(table)
+        table = Tables.columns(table)
+        dimstack_from_table(DimStack, table, guess_dims(table; kw...); kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))    end
+end
+
+function dimstack_from_table(::Type{T}, table, dims; 
+    name=nothing, 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+) where T<:AbstractDimStack
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    data_cols = isnothing(name) ? data_col_names(table, dims) : name
+    dims = guess_dims(table, dims; precision)
+    indices = coords_to_indices(table, dims; selector)
+    layers = map(data_cols) do col
+        d = Tables.getcolumn(table, col)
+        restore_array(d, indices, dims, missingval)
+    end
+    return T(layers, dims; name = data_cols, kw...)
+end
+
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
+
+### Skipmissing on DimStacks
+"""
+    skipmissing(itr::AbstractDimStack)
+
+Returns an iterable over the elements in a `AbstractDimStack` object, skipping any values if any of the layers are missing.
+"""
+Base.skipmissing
+
+# Specialized dispatch of iterate to skip values if any layer is missing.
+function Base.iterate(itr::Base.SkipMissing{<:AbstractDimStack}, state...)
+    y = iterate(itr.x, state...)
+    y === nothing && return nothing
+    item, state = y
+    while any(map(ismissing, item)) # instead of ismissing(item)
+        y = iterate(itr.x, state)
+        y === nothing && return nothing
+        item, state = y
+    end
+    item, state
+end
+
+Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} where NT =
+    _nonmissing_nt(NT)
+
+@generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
+    NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}

@@ -1,7 +1,3 @@
-```@meta
-Description = "DimensionalData.jl: High-performance Julia arrays with named and keyed dimensions for indexing, data analysis & geospatial applications"
-```
-
 ```@raw html
 ---
 # https://vitepress.dev/reference/default-theme-home-page
