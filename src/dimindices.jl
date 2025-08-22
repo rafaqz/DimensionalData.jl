@@ -314,8 +314,8 @@ _selector_eltype(dims::Tuple, selectors::Tuple) =
     Tuple{map(_selector_eltype, dims, selectors)...}
 _selector_eltype(d::D, ::S) where {D,S} =
     basetypeof(D){basetypeof(S){eltype(d)}}
-_selector_eltype(d::D, ::At{<:Any,A,R}) where {D,A,R} =
-    basetypeof(D){At{eltype(d),A,R}}
+_selector_eltype(d::D, ::At{<:Any,A}) where {D,A} =
+    basetypeof(D){At{eltype(d),A}}
 
 function show_after(io::IO, mime, A::DimSelectors)
     _, displaywidth = displaysize(io)
