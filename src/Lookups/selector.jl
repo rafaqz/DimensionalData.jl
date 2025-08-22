@@ -119,12 +119,14 @@ A[X(At(20)), Y(At(6))]
 struct At{T,A} <: IntSelector{T}
     val::T
     atol::A
+    At(val::T; atol::A=nothing) where {T,A} = new{T,A}(val, atol)
 end
-At(val; atol=nothing) = At(val, atol)
+At(a, b; atol=nothing) = At((a, b); atol)
 At(; kw...) = At(nothing; kw...)
-#At(a, b; kw...) = At((a, b); kw...)
 
-rebuild(sel::At, val) = At(val, sel.atol)
+ConstructionBase.constructorof(::Type{<:At}) = (val, atol) -> At(val; atol)
+
+rebuild(sel::At, val) = At(val; atol=sel.atol)
 
 atol(sel::At) = sel.atol
 
