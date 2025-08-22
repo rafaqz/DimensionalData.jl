@@ -1,3 +1,7 @@
+```@meta
+Description = "Extend DimensionalData.jl - create custom array types, stacks, and lookups by implementing key interface methods in Julia"
+```
+
 # Extending DimensionalData
 
 Nearly everything in DimensionalData.jl is designed to be extensible.

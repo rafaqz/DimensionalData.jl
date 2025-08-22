@@ -1,3 +1,7 @@
+```@meta
+Description = "Dimensions in DimensionalData.jl - named wrapper types for array axes, including spatial (X,Y,Z) and temporal (Ti) dimensions"
+```
+
 # Dimensions
 
 Dimensions are "wrapper types" that can be used to wrap any 

@@ -421,7 +421,8 @@ end
     @test volumeslices(dd_3d_char) isa Makie.FigureAxisPlot
 
     # Due to limitations on Makie
-    @test volumeslices(dd_3d_mis) broken = true 
+    # Event the broken test is broken in Makie due to errors while throwing the error
+    # @test volumeslices(dd_3d_mis) broken = true 
     @test volumeslices(dd_3d_uni) broken = true
     @test volumeslices(dd_3d_rgb) broken = true
     @test volume(dd_3d_uni) broken = true

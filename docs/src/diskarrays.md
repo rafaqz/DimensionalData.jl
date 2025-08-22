@@ -1,3 +1,7 @@
+```@meta
+Description = "DiskArrays.jl integration with DimensionalData.jl - lazy chunked operations for large datasets from disk and cloud storage"
+```
+
 # DiskArrays.jl compatibility
 
 [DiskArrays.jl](https://github.com/meggart/DiskArrays.jl) enables lazy, chunked application of:

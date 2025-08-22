@@ -1,4 +1,5 @@
 using DimensionalData, Test, Extents
+using DimensionalData.Lookups
 
 xdim, ydim = X(1:10), Y(1:15)
 a = rand(xdim, ydim)
@@ -31,6 +32,14 @@ end
      dt = DimTree()
      dt.b1 = st
      @test extent(dt) == extent(st)
+end
+      
+@testset "interface methods" begin
+     dt = DimTree(st)
+     @test lookup(dt, X) == lookup(st, X)
+     @test order(dt, Y) == order(st, Y) == ForwardOrdered()
+     @test span(dt, X) == span(st, X) == Regular(1)
+     @test sampling(dt, (X(), Y())) == sampling(st, (X(), Y()))
 end
 
 @testset "Indexing matches stack indexing" begin
@@ -68,6 +77,31 @@ end
      end
 end
 
+@testset "setindex!" begin
+     xdim, ydim = X(1:10), Y(1:15)
+     a = rand(xdim)
+     b = rand(Float32, xdim, ydim)
+     b2 = rand(Y(1:2:15), X(1:2:10))
+     a2 = rand(X(1:2:10))
+     sub1 = DimTree()
+     sub1[:a] = a
+     sub1[:b] = b
+     @test sub1[:b] == b 
+     @test sub1[:a] == a
+     @test dims(sub1) == (xdim, ydim)
+     @test length(sub1) == 2
+     sub2 = DimTree()
+     sub2[:a] = a2
+     sub2[:b] = b2 
+     dt = DimTree()
+     dt.sub1 = sub1
+     dt.sub2 = sub2
+     @test dt.sub2[:a] == a2
+     dt2 = DimTree()
+     dt2[:a] = rand(xdim, ydim)
+     dt2[:b] = b
+     @test dt2[:b] == b
+end
 
 # TODO move to doctests, but useful here for now
 

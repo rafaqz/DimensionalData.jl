@@ -91,7 +91,7 @@ const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 """
     At <: IntSelector
 
-    At(x; atol=nothing, rtol=nothing)
+    At(x; atol=nothing)
     At(a, b; kw...)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
@@ -116,19 +116,19 @@ A[X(At(20)), Y(At(6))]
 5
 ```
 """
-struct At{T,A,R} <: IntSelector{T}
+struct At{T,A} <: IntSelector{T}
     val::T
     atol::A
-    rtol::R
+    At(val::T; atol::A=nothing) where {T,A} = new{T,A}(val, atol)
 end
-At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
+At(a, b; atol=nothing) = At((a, b); atol)
 At(; kw...) = At(nothing; kw...)
-At(a, b; kw...) = At((a, b); kw...)
 
-rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
+ConstructionBase.constructorof(::Type{<:At}) = (val, atol) -> At(val; atol)
+
+rebuild(sel::At, val) = At(val; atol=sel.atol)
 
 atol(sel::At) = sel.atol
-rtol(sel::At) = sel.rtol
 
 function Base.show(io::IO, x::At)
     print(io, "At(")
@@ -171,10 +171,10 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     end
 end
 function at(lookup::Lookup, sel::At; kw...)
-    at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
+    at(order(lookup), span(lookup), lookup, val(sel), atol(sel); kw...)
 end
 function at(
-    ::Ordered, span::Regular, lookup::Lookup{<:Integer}, selval, atol::Nothing, rtol::Nothing;
+    ::Ordered, span::Regular, lookup::Lookup{<:Integer}, selval, atol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -188,7 +188,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::Lookup{<:IntervalSets.Interval}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:IntervalSets.Interval}, selval, atol;
     err=_True()
 )
     x = unwrap(selval)
@@ -200,7 +200,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.AbstractTime,AbstractString}}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.AbstractTime,AbstractString}}, selval, atol;
     err=_True()
 )
     x = unwrap(selval)
@@ -226,7 +226,7 @@ function at(
     end
 end
 # catch-all for an unordered index
-function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_True())
+function at(::Order, ::Span, lookup::Lookup, selval, atol; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
         return _selnotfound_or_nothing(err, lookup, selval)

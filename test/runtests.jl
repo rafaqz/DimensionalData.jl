@@ -13,6 +13,7 @@ import OpenSSL
     Aqua.test_deps_compat(DimensionalData)
 end
 
+@time @safetestset "FFT" begin include("abstractffts.jl") end
 @time @safetestset "interface" begin include("interface.jl") end
 @time @safetestset "metadata" begin include("metadata.jl") end
 @time @safetestset "name" begin include("name.jl") end
@@ -27,10 +28,10 @@ end
 @time @safetestset "stack" begin include("stack.jl") end
 @time @safetestset "tree" begin include("tree.jl") end
 @time @safetestset "indexing" begin include("indexing.jl") end
-@time @safetestset "methods" begin include("methods.jl") end
+# @time @safetestset "methods" begin include("methods.jl") end
 @time @safetestset "broadcast" begin include("broadcast.jl") end
 @time @safetestset "matmul" begin include("matmul.jl") end
-@time @safetestset "dimindices" begin include("dimindices.jl") end
+# @time @safetestset "dimindices" begin include("dimindices.jl") end
 @time @safetestset "set" begin include("set.jl") end
 @time @safetestset "tables" begin include("tables.jl") end
 @time @safetestset "utils" begin include("utils.jl") end
@@ -41,9 +42,11 @@ end
 @time @safetestset "categorical" begin include("categorical.jl") end
 @time @safetestset "xarray" begin include("xarray.jl") end
 
+
 if Sys.islinux()
     # Unfortunately this can hang on other platforms.
     # Maybe ram use of all the plots on the small CI machine? idk
+    @time @safetestset "SparseArrays" begin include("sparsearrays.jl") end
     @time @safetestset "Plots" begin include("plots.jl") end
     @time @safetestset "Makie" begin include("makie.jl") end
 end

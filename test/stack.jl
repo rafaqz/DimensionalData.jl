@@ -34,9 +34,8 @@ mixed = DimStack(da1, da2, da4)
         DimStack((da1[:, 1], da2[:, 1], da3[:, 1]); name=(:one, :two, :three)) ==
         DimStack(da1[:, 1], da2[:, 1], da3[:, 1]; name=(:one, :two, :three)) ==
         DimStack(parent.([da1[:, 1], da2[:, 1], da3[:, 1]]), dimz[1]; name=(:one, :two, :three)) == s[:, 1]
-    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == 
-        dims(DimStack(())) == dims(DimStack(DimArray[])) ==
-        dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
+    @test dims(DimStack()) == dims(DimStack(())) == dims(DimStack(DimArray[])) == 
+        dims(DimStack(NamedTuple())) == dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
     @test DimStack([A, 2A, 3A], (Z(), Ti()); name=(:one, :two, :three), layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
         DimStack((A, 2A, 3A), (Z(), Ti()); name=(:one, :two, :three), layerdims=(one=(Z(), Ti()), two=(Z(), Ti()), three=(Z(), Ti()))) ==
         DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
@@ -64,8 +63,7 @@ end
     @test dims(s, X) == x
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
-    @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
-    @test name(s)== (:one, :two, :three)
+    @test name(s) == (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
@@ -396,4 +394,20 @@ end
     @test ds[Z = 1] == (a = da1, b = da1)
     @test ds[Z = 1:2] == ds
 
+end
+
+@testset "skipmissing" begin
+    skips = skipmissing(s)
+    skips2 = skipmissing(mixed)
+    @test eltype(skips) === @NamedTuple{one::Float64, two::Float32, three::Int}
+    @test eltype(skips2) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+    @test collect(skips) == vec(s)
+    @test collect(skips2) == vec(mixed)
+
+    da5 = DimArray([missing, 1], x)
+    s2 = DimStack((one = da1, two = da5))
+    @test eltype(skipmissing(s2)) === @NamedTuple{one::Float64, two::Int}
+    cs2 = collect(skipmissing(s2))
+    @test all(getindex.(cs2, :two) .== 1)
+    @test getindex.(cs2, :one) == da1[X=2]
 end

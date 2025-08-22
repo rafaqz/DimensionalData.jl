@@ -1,4 +1,8 @@
 
+```@meta
+Description = "Complete API reference for DimensionalData.jl - arrays, stacks, dimensions, selectors, and utility functions documentation"
+```
+
 # API Reference
 
 ## Arrays
@@ -65,7 +69,7 @@ DimensionalData.AbstractDimTable
 DimTable
 ```
 
-# Group by methods
+## Group by methods
 
 For transforming DimensionalData objects:
 
@@ -82,7 +86,7 @@ months
 hours
 ```
 
-# Utility methods
+## Utility methods
 
 For transforming DimensionalData objects:
 
@@ -98,7 +102,7 @@ unmergedims
 reorder
 ```
 
-# Global lookup strictness settings
+## Global lookup strictness settings
 
 Control how strict DimensionalData when comparing [`Lookup`](@ref)s
 before doing broadcasts and matrix multipications.
@@ -115,12 +119,13 @@ DimensionalData.strict_matmul
 DimensionalData.strict_matmul!
 ```
 
-Base methods
+## Base methods
 
 ```@docs
 Base.cat
 Base.copy!
 Base.eachslice
+Base.skipmissing
 ```
 
 Most base methods work as expected, using `Dimension` wherever a `dims`

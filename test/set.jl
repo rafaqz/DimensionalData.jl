@@ -55,13 +55,13 @@ end
     @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
-    @test index(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test lookup(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
 end
 
 @testset "Dimension index" begin
-    @test index(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
+    @test lookup(set(da2, :column => [:a, :b, :c, :d], :row => 4:6)) == 
         (4:6, [:a, :b, :c, :d])
-    @test index(set(s, :column => 10:5:20, :row => 4:6)) == (4:6, 10:5:20)
+    @test lookup(set(s, :column => 10:5:20, :row => 4:6)) == (4:6, 10:5:20)
     @test step.(span(set(da2, :column => 10:5:20, :row => 4:6))) == (1, 5)
 end
 
@@ -81,8 +81,8 @@ end
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da = set(da, X=NoLookup(), Y=Categorical())
-    @test index(cat_da) == 
-        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
+    @test lookup(cat_da) == 
+        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, ForwardOrdered(), NoMetadata())) 
     cat_da_m = set(dims(cat_da, Y), X(DimensionalData.AutoValues(); metadata=Dict()))
     @test metadata(cat_da_m) == Dict()
  
@@ -162,10 +162,10 @@ end
     md = Metadata(Dict(:a=>1, :b=>2))
     dax = set(da, X(20:-10:10; metadata=md))
     x = dims(dax, X)
-    @test index(x) === 20:-10:10
     @test order(x) === ReverseOrdered()
     @test span(x) === Regular(-10)
     @test lookup(x) == Sampled(20:-10:10, ReverseOrdered(), Regular(-10), Points(), md)
+    @test parent(lookup(x)) === 20:-10:10
     @test metadata(x).val == Dict(:a=>1, :b=>2) 
 end
 
