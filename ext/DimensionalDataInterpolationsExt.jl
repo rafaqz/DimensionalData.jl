@@ -1,0 +1,172 @@
+module DimensionalDataInterpolationsExt
+
+using DimensionalData
+using DataInterpolations
+
+function (Itp::Type{<:DataInterpolations.AbstractInterpolation})(
+    data::AbstractDimVector,
+    args...;
+    kw...
+)
+    return Itp(
+        data |> parent,
+        dims(data) |> only |> parent |> parent,
+        args...;
+        kw...
+    )
+end
+
+"""
+```
+(::DataInterpolations.AbstractInterpolation)(
+    ut::DimensionalData.AbstractDimVector,
+    ...; ...
+)
+```
+
+The two positional arguments `u, t`
+in the original method definitions
+are assigned the parent array of `ut`
+and the `Dimension` of `ut` respectively.
+
+Remaining positional and keyword arguments are as per the original
+`DataInterpolationsQuadraticInterpolation` method definitions.
+
+This interoperability between
+DimensionalData.jl and DataInterpolations.jl
+is experimental and under development.
+"""
+LinearInterpolation,
+    QuadraticInterpolation,
+    LagrangeInterpolation,
+    AkimaInterpolation,
+    ConstantInterpolation,
+    QuadraticSpline,
+    CubicSpline,
+	BSplineInterpolation,
+    PCHIPInterpolation
+
+function DataInterpolations.QuadraticInterpolation(
+    data::AbstractDimVector,
+    mode::Symbol,
+    args...;
+    kw...
+)
+    return QuadraticInterpolation(
+        data |> parent,
+        dims(data) |> only |> parent |> parent,
+        mode,
+        args...;
+        kw...
+    )
+end
+
+"""
+```
+PCHIPInterpolation(
+    ut::DimensionalData.AbstractDimVector,
+    ...; ...
+)
+```
+
+The two positional arguments `u, t`
+in the original method definitions
+are assigned the parent array of `ut`
+and the `Dimension` of `ut` respectively.
+
+Remaining positional and keyword arguments are as per the original
+`DataInterpolationsQuadraticInterpolation` method definitions.
+
+This interoperability between
+DimensionalData.jl and DataInterpolations.jl
+is experimental and under development.
+"""
+function DataInterpolations.PCHIPInterpolation(
+    data::AbstractDimVector,
+    args...;
+    kw...
+)
+    return PCHIPInterpolation(
+        data |> parent,
+        dims(data) |> only |> parent |> parent,
+        args...;
+        kw...
+    )
+end
+
+"""
+```
+CubicHermiteSpline(
+    du::AbstractVector,
+    ut::DimensionalData.AbstractDimVector,
+    ...; ...
+)
+```
+
+The two positional arguments `u, t`
+in the original method definitions
+are assigned the parent array of `ut`
+and the `Dimension` of `ut` respectively.
+
+Remaining positional and keyword arguments are as per the original
+`DataInterpolationsQuadraticInterpolation` method definitions.
+
+This interoperability between
+DimensionalData.jl and DataInterpolations.jl
+is experimental and under development.
+"""
+function DataInterpolations.CubicHermiteSpline(
+    du::AbstractVector,
+    data::AbstractDimVector,
+    args...;
+    kw...
+)
+    return CubicHermiteSpline(
+        du,
+        data |> parent,
+        dims(data) |> only |> parent |> parent,
+        args...;
+        kw...
+    )
+end
+
+"""
+```
+QuinticHermiteSpline(
+    ddu::AbstractVector,
+    du::AbstractVector,
+    ut::DimensionalData.AbstractDimVector,
+    ...; ...
+)
+```
+
+The two positional arguments `u, t`
+in the original method definitions
+are assigned the parent array of `ut`
+and the `Dimension` of `ut` respectively.
+
+Remaining positional and keyword arguments are as per the original
+`DataInterpolationsQuadraticInterpolation` method definitions.
+
+This interoperability between
+DimensionalData.jl and DataInterpolations.jl
+is experimental and under development.
+"""
+function DataInterpolations.QuinticHermiteSpline(
+    ddu::AbstractVector,
+    du::AbstractVector,
+    data::AbstractDimVector,
+    args...;
+    kw...
+)
+    return QuinticHermiteSpline(
+        ddu,
+        du,
+        data |> parent,
+        dims(data) |> only |> parent |> parent,
+        args...;
+        kw...
+    )
+end
+
+end
