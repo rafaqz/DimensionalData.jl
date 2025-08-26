@@ -6,7 +6,7 @@ using ChainRulesCore
 
     @testset "ProjectTo" begin
         data = rand(3)
-        A = DimArray(data, (:a,))
+        A = DimArray(data, (:a,); name=:title, refdims=(), metadata=Dict(:info=>"data"))
         p = ProjectTo(A)
         @test p(data) == A
 
@@ -52,5 +52,3 @@ using ChainRulesCore
     end
 
 end
-
-
