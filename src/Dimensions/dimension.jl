@@ -198,7 +198,12 @@ for f in (:val, :metadata, :name, :label, :units, INTERFACE_QUERY_FUNCTION_NAMES
         $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
     end
 end
+
+# Method forwarding to lookup
+Lookups.hasmultipledimensions(d::Dimension) = hasmultipledimensions(val(d))
+Lookups.hasalternatedimensions(d::Dimension) = hasalternatedimensions(val(d))
 Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
+# Shiftlocus forwarding, and rebuild
 for f in (:shiftlocus, :maybeshiftlocus)
     @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
         newdims = map(Dimensions.dims(x, dims)) do d
@@ -304,20 +309,21 @@ end
 
 function Extents.extent(ids::DimTuple, args...)
     ds = _astuple(dims(ids, args...))
-    regulardims = dims(ds, x -> !hasmultipledimensions(lookup(x)))    
+    regulardims = dims(ds, d -> !hasmultipledimensions(d))    
     regular_bounds = map(bounds, regulardims)
     regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
     
     multidims = otherdims(ds, regulardims)
     multidim_raw_bounds = map(bounds, multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
-    multidim_dims = combinedims(map(dims, multidims)...; length = false)
+    multidim_dims = combinedims(map(dims, lookup(multidims))...; length = false)
     multidim_bounds = map(multidim_dims) do outdim
         foldl(map(tuple, multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
-            if hasdim(dim, outdim)
+            inner_dims = dims(lookup(dim))
+            if hasdim(inner_dims, outdim)
                 if isnothing(minval) && isnothing(maxval)
-                    bounds[dimnum(dim, outdim)]
+                    bounds[dimnum(inner_dims, outdim)]
                 else
-                    this_dim_bounds = bounds[dimnum(dim, outdim)]
+                    this_dim_bounds = bounds[dimnum(inner_dims, outdim)]
                     (min(minval, this_dim_bounds[1]), max(maxval, this_dim_bounds[2]))
                 end
             else

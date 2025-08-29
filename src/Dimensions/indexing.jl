@@ -47,7 +47,14 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims) # extra dims in the query, I
     # Extract "multi dimensional" lookups like MergedLookup or Rasters' GeometryLookup
-    multidims = Dimensions.dims(otherdims(dims, I), x -> hasmultipledimensions(lookup(x)) && !isempty(Dimensions.dims(x, I)))
+    multidims = Dimensions.dims(
+        otherdims(dims, I), 
+        d -> hasmultipledimensions(d) && !isempty(Dimensions.dims(d, I))
+    )
+    alternatedims = Dimensions.dims(
+        otherdims(dims, I), 
+        d -> hasalternatedimensions(d) && !isempty(Dimensions.dims(lookup(d), I))
+    )
     # Warn if any dims from I were not picked up by multidims
     actuallyextradims = otherdims(extradims, x -> any(y -> hasdim(y, x), multidims)) # one way setdiff(extradims, multidims) essentially
     length(actuallyextradims) > 0 && _extradimswarn(actuallyextradims)

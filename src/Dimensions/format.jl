@@ -27,6 +27,7 @@ function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     return format(dims, A)
 end
 # Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
+format(dims::Tuple{}) = ()
 function format(dims::DimTuple) 
     ax = map(parent ∘ first ∘ axes, dims)
     return format(dims, ax)

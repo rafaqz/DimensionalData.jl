@@ -631,7 +631,11 @@ ArrayLookup(matrix; data=AutoValues, dim=AutoDim(), dims=AutoDim(), metadata=NoM
     ArrayLookup(data, dim, dims, matrix, nothing, nothing, nothing, metadata)
 dim(lookup::ArrayLookup) = lookup.dim
 matrix(l::ArrayLookup) = l.matrix
+# TODO this should be nntree or something to distinguish from DimTree
 tree(l::ArrayLookup) = l.tree
+# This is a little unsatisfying
+order(::ArrayLookup) = Unordered()
+
 
 # Shared methods
 
