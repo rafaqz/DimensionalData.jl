@@ -96,7 +96,8 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds function Base.$f(
             s::AbstractDimStack, D::DimensionalIndices...; kw...
         )
-            $_dim_f(s, _simplify_dim_indices(D..., kw2dims(values(kw))...)...)
+            D1 = _simplify_dim_indices(D..., kw2dims(values(kw))...)
+            $_dim_f(s, D1...)
         end
         # Ambiguities
         @propagate_inbounds function Base.$f(s::DimensionalData.AbstractVectorDimStack, 
@@ -120,9 +121,8 @@ for f in (:getindex, :view, :dotview)
         Base.@assume_effects :foldable @propagate_inbounds function $_dim_f(
             s::AbstractDimStack{K, NT}, d1::Dimension, ds::Dimension...
         ) where {K, NT <: NamedTuple{K, T}} where T
-            D = (d1, ds...)
-            extradims = otherdims(D, dims(s))
-            length(extradims) > 0 && Dimensions._extradimswarn(extradims)
+            # Convert to simple base indexing wrapped in dims 
+            D = map(rebuild, dims(s), dims2indices(dims(s), (d1, ds...)))
             function f(A) 
                 layerdims = dims(D, dims(A))
                 I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
