@@ -557,7 +557,7 @@ struct Throw{M<:Union{AbstractString,Nothing}} <: AbstractMessage{M}
     msg::M
 end
 Throw() = Throw(nothing)
-
+_limit_sprint(x) = sprint(show, x; context = :limit => true)
 _dimsmismatchmsg(a, b) = "$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis."
 _valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(_limit_sprint(parent(a))) and $(_limit_sprint(parent(b))) do not match."
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
