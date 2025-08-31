@@ -1,0 +1,1040 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="DimensionalData.jl">
+      
+      
+        <meta name="author" content="Lazaro Alonso and Rafael Schouten">
+      
+      
+      
+        <link rel="prev" href="../../../..">
+      
+      
+        <link rel="next" href="../../../../reference/">
+      
+      
+      <link rel="icon" href="../../../../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.5.3, mkdocs-material-9.4.6">
+    
+    
+      
+        <title>Crash course - DimensionalData.jl</title>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../assets/stylesheets/main.35e1ed30.min.css">
+      
+        
+        <link rel="stylesheet" href="../../../../assets/stylesheets/palette.356b1318.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Lato:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Lato";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../../../../stylesheets/custom.css">
+    
+      <link rel="stylesheet" href="../../../../assets/Documenter.css">
+    
+    <script>__md_scope=new URL("../../../..",location),__md_hash=e=>[...e].reduce((e,_)=>(e<<5)-e+_.charCodeAt(0),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="grey" data-md-color-accent="orange">
+  
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&"object"==typeof palette.color)for(var key of Object.keys(palette.color))document.body.setAttribute("data-md-color-"+key,palette.color[key])</script>
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#dimensions-and-dimarrays" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href="../../../.." title="DimensionalData.jl" class="md-header__button md-logo" aria-label="DimensionalData.jl" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3V6m0 5h18v2H3v-2m0 5h18v2H3v-2Z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            DimensionalData.jl
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Crash course
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="grey" data-md-color-accent="orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_2" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 7a5 5 0 0 1 5 5 5 5 0 0 1-5 5 5 5 0 0 1-5-5 5 5 0 0 1 5-5m0 2a3 3 0 0 0-3 3 3 3 0 0 0 3 3 3 3 0 0 0 3-3 3 3 0 0 0-3-3m0-7 2.39 3.42C13.65 5.15 12.84 5 12 5c-.84 0-1.65.15-2.39.42L12 2M3.34 7l4.16-.35A7.2 7.2 0 0 0 5.94 8.5c-.44.74-.69 1.5-.83 2.29L3.34 7m.02 10 1.76-3.77a7.131 7.131 0 0 0 2.38 4.14L3.36 17M20.65 7l-1.77 3.79a7.023 7.023 0 0 0-2.38-4.15l4.15.36m-.01 10-4.14.36c.59-.51 1.12-1.14 1.54-1.86.42-.73.69-1.5.83-2.29L20.64 17M12 22l-2.41-3.44c.74.27 1.55.44 2.41.44.82 0 1.63-.17 2.37-.44L12 22Z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="blue-grey" data-md-color-accent="orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_2">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="m17.75 4.09-2.53 1.94.91 3.06-2.63-1.81-2.63 1.81.91-3.06-2.53-1.94L12.44 4l1.06-3 1.06 3 3.19.09m3.5 6.91-1.64 1.25.59 1.98-1.7-1.17-1.7 1.17.59-1.98L15.75 11l2.06-.05L18.5 9l.69 1.95 2.06.05m-2.28 4.95c.83-.08 1.72 1.1 1.19 1.85-.32.45-.66.87-1.08 1.27C15.17 23 8.84 23 4.94 19.07c-3.91-3.9-3.91-10.24 0-14.14.4-.4.82-.76 1.27-1.08.75-.53 1.93.36 1.85 1.19-.27 2.86.69 5.83 2.89 8.02a9.96 9.96 0 0 0 8.02 2.89m-1.64 2.02a12.08 12.08 0 0 1-7.8-3.47c-2.17-2.19-3.33-5-3.49-7.82-2.81 3.14-2.7 7.96.31 10.98 3.02 3.01 7.84 3.12 10.98.31Z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+    
+      <label class="md-header__button md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+      </label>
+      <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.516 6.516 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5Z"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+          <a href="javascript:void(0)" class="md-search__icon md-icon" title="Share" aria-label="Share" data-clipboard data-clipboard-text="" data-md-component="search-share" tabindex="-1">
+            
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7 0-.24-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9a3 3 0 0 0-3 3 3 3 0 0 0 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.15c-.05.21-.08.43-.08.66 0 1.61 1.31 2.91 2.92 2.91 1.61 0 2.92-1.3 2.92-2.91A2.92 2.92 0 0 0 18 16.08Z"/></svg>
+          </a>
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12 19 6.41Z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+    
+    
+      <div class="md-header__source">
+        
+<a href="https://github.com/rafaqz/DimensionalData.jl" title="source.link.title" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    DimensionalData.jl
+  </div>
+</a>
+
+
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href="../../../.." title="DimensionalData.jl" class="md-nav__button md-logo" aria-label="DimensionalData.jl" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54Z"/></svg>
+
+    </a>
+    DimensionalData.jl
+  </label>
+  
+    <div class="md-nav__source">
+      
+<a href="https://github.com/rafaqz/DimensionalData.jl" title="source.link.title" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+  </div>
+  <div class="md-source__repository">
+    DimensionalData.jl
+  </div>
+</a>
+
+
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../.." class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Home
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  <span class="md-ellipsis">
+    Crash course
+  </span>
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  <span class="md-ellipsis">
+    Crash course
+  </span>
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dimensions-and-dimarrays" class="md-nav__link">
+    Dimensions and DimArrays
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#indexing-the-array-by-name-and-index" class="md-nav__link">
+    Indexing the array by name and index
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#indexing-performance" class="md-nav__link">
+    Indexing Performance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#specifying-dims-keyword-arguments-with-dimension" class="md-nav__link">
+    Specifying dims keyword arguments with Dimension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods-where-dims-dim-types-or-symbols-can-be-used-to-indicate-the-array-dimension" class="md-nav__link">
+    Methods where dims, dim types, or Symbols can be used to indicate the array dimension:
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparrays-and-selectors" class="md-nav__link">
+    LookupArrays and Selectors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparrays-and-traits" class="md-nav__link">
+    LookupArrays and traits
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparray-detection" class="md-nav__link">
+    LookupArray detection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referenced-dimensions" class="md-nav__link">
+    Referenced dimensions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#warnings" class="md-nav__link">
+    Warnings
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../../reference/" class="md-nav__link">
+        
+  
+  <span class="md-ellipsis">
+    Reference
+  </span>
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#dimensions-and-dimarrays" class="md-nav__link">
+    Dimensions and DimArrays
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#indexing-the-array-by-name-and-index" class="md-nav__link">
+    Indexing the array by name and index
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#indexing-performance" class="md-nav__link">
+    Indexing Performance
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#specifying-dims-keyword-arguments-with-dimension" class="md-nav__link">
+    Specifying dims keyword arguments with Dimension
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#methods-where-dims-dim-types-or-symbols-can-be-used-to-indicate-the-array-dimension" class="md-nav__link">
+    Methods where dims, dim types, or Symbols can be used to indicate the array dimension:
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparrays-and-selectors" class="md-nav__link">
+    LookupArrays and Selectors
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparrays-and-traits" class="md-nav__link">
+    LookupArrays and traits
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#lookuparray-detection" class="md-nav__link">
+    LookupArray detection
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#referenced-dimensions" class="md-nav__link">
+    Referenced dimensions
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#warnings" class="md-nav__link">
+    Warnings
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  <h1>Crash course</h1>
+
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">DimensionalData</span>
+</code></pre></div>
+<p><a id='Dimensions-and-DimArrays'></a></p>
+<p><a id='Dimensions-and-DimArrays-1'></a></p>
+<h2 id="dimensions-and-dimarrays">Dimensions and DimArrays<a class="headerlink" href="#dimensions-and-dimarrays" title="Permanent link">¤</a></h2>
+<p>The core type of DimensionalData.jl is the <a href="../../../../reference/#DimensionalData.Dimensions.Dimension"><code>Dimension</code></a> and the types that inherit from it, such as <code>Ti</code>, <code>X</code>, <code>Y</code>, <code>Z</code>, the generic <code>Dim{:x}</code>, or others that you define manually using the <a href="../../../../reference/#DimensionalData.Dimensions.@dim"><code>@dim</code></a> macro.</p>
+<p><code>Dimension</code>s are primarily used in <a href="../../../../reference/#DimensionalData.DimArray"><code>DimArray</code></a>, other <a href="../../../../reference/#DimensionalData.AbstractDimArray"><code>AbstractDimArray</code></a>.</p>
+<p>We can use dimensions without a value index - these simply label the axis. A <code>DimArray</code> with labelled dimensions is constructed by:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">DimensionalData</span>
+<span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="mi">5</span><span class="p">),</span><span class="w"> </span><span class="n">Y</span><span class="p">(</span><span class="mi">5</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>5×5 DimArray{Float64,2} with dimensions: X, Y
+ 0.575845  0.503075   0.846088  0.744842    0.0834031
+ 0.320559  0.670034   0.364521  0.504848    0.409066
+ 0.6739    0.81651    0.38826   0.00656372  0.304979
+ 0.764852  0.0414213  0.751945  0.54616     0.712366
+ 0.357632  0.576771   0.130437  0.893146    0.0326252
+</code></pre></div>
+<p>get value</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="p">[</span><span class="n">Y</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">X</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>0.3205591747768116
+</code></pre></div>
+<p>As shown above, <code>Dimension</code>s can be used to construct arrays in <code>rand</code>, <code>ones</code>, <code>zeros</code> and <code>fill</code> with either a range for a lookup index or a number for the dimension length.</p>
+<p>Or we can use the <code>Dim{X}</code> dims by using <code>Symbol</code>s, and indexing with keywords:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DimArray</span><span class="p">(</span><span class="n">rand</span><span class="p">(</span><span class="mi">5</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="ss">:a</span><span class="p">,</span><span class="w"> </span><span class="ss">:b</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>5×5 DimArray{Float64,2} with dimensions: Dim{:a}, Dim{:b}
+ 0.510138  0.327022   0.183774    0.551202  0.165165
+ 0.607462  0.717694   0.00949621  0.643547  0.506799
+ 0.695307  0.0625053  0.275305    0.62337   0.952864
+ 0.164045  0.289143   0.510902    0.526893  0.188675
+ 0.396806  0.386633   0.972746    0.712217  0.209276
+</code></pre></div>
+<p>get value</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="p">[</span><span class="n">a</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span><span class="w"> </span><span class="n">b</span><span class="o">=</span><span class="mi">5</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>0.952864430325203
+</code></pre></div>
+<p>Often, we want to provide a lookup index for the dimension:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">Dates</span>
+<span class="n">t</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DateTime</span><span class="p">(</span><span class="mi">2001</span><span class="p">)</span><span class="o">:</span><span class="n">Month</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">:</span><span class="n">DateTime</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">x</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">100</span>
+<span class="n">A</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="n">x</span><span class="p">),</span><span class="w"> </span><span class="n">Ti</span><span class="p">(</span><span class="n">t</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>10×12 DimArray{Float64,2} with dimensions: 
+  X Sampled{Int64} 10:10:100 ForwardOrdered Regular Points,
+  Ti Sampled{DateTime} DateTime(&quot;2001-01-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-12-01T00:00:00&quot;) ForwardOrdered Regular Points
+       2001-01-01T00:00:00  …   2001-12-01T00:00:00
+  10  0.122791                             0.63477
+  20  0.44312                              0.336359
+  30  0.993757                             0.915154
+  40  0.0460592                            0.18038
+  50  0.623161                          …  0.0922049
+  60  0.107225                             0.727586
+  70  0.605241                             0.785811
+  80  0.667556                             0.275073
+  90  0.383514                             0.527582
+ 100  0.695338                          …  0.645872
+</code></pre></div>
+<p>Here both <code>X</code> and <code>Ti</code> are dimensions from <code>DimensionalData</code>. The currently exported dimensions are <code>X, Y, Z, Ti</code> (<code>Ti</code> is shortening of <code>Time</code>).</p>
+<p>The length of each dimension index has to match the size of the corresponding array axis.</p>
+<p>This can also be done with <code>Symbol</code>, using <code>Dim{X}</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DimArray</span><span class="p">(</span><span class="n">rand</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span><span class="w"> </span><span class="mi">10</span><span class="p">),</span><span class="w"> </span><span class="p">(</span><span class="n">time</span><span class="o">=</span><span class="n">t</span><span class="p">,</span><span class="w"> </span><span class="n">distance</span><span class="o">=</span><span class="n">x</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>12×10 DimArray{Float64,2} with dimensions: 
+  Dim{:time} Sampled{DateTime} DateTime(&quot;2001-01-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-12-01T00:00:00&quot;) ForwardOrdered Regular Points,
+  Dim{:distance} Sampled{Int64} 10:10:100 ForwardOrdered Regular Points
+                                   …  80         90          100
+  2001-01-01T00:00:00      0.852033   0.776827     0.30781
+  2001-02-01T00:00:00      0.247393   0.346492     0.516344
+  2001-03-01T00:00:00      0.884009   0.409872     0.304084
+  2001-04-01T00:00:00      0.74019    0.840586     0.125215
+  2001-05-01T00:00:00  …   0.199695   0.0484128    0.896765
+  2001-06-01T00:00:00      0.188165   0.687792     0.199987
+  2001-07-01T00:00:00      0.208007   0.493789     0.305995
+  2001-08-01T00:00:00      0.643876   0.261101     0.696159
+  2001-09-01T00:00:00      0.958557   0.592912     0.991241
+  2001-10-01T00:00:00  …   0.969151   0.241549     0.504844
+  2001-11-01T00:00:00      0.68322    0.931645     0.575774
+  2001-12-01T00:00:00      0.114908   0.809101     0.124
+</code></pre></div>
+<p>Symbols can be more convenient to use than defining custom dims with <code>@dim</code>, but have some downsides. They don't inherit from a specific <code>Dimension</code> type, so plots will not know what axis to put them on. They also cannot use the basic constructor methods like <code>rand</code> or <code>zeros</code>, as we cannot dispatch on <code>Symbol</code> for Base methods without "type-piracy".</p>
+<p><a id='Indexing-the-array-by-name-and-index'></a></p>
+<p><a id='Indexing-the-array-by-name-and-index-1'></a></p>
+<h2 id="indexing-the-array-by-name-and-index">Indexing the array by name and index<a class="headerlink" href="#indexing-the-array-by-name-and-index" title="Permanent link">¤</a></h2>
+<p>Dimensions can be used to index the array by name, without having to worry about the order of the dimensions.</p>
+<p>The simplest case is to select a dimension by index. Let's say every 2nd point of the <code>Ti</code> dimension and every 3rd point of the <code>X</code> dimension. This is done with the simple <code>Ti(range)</code> syntax like so:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="p">[</span><span class="n">X</span><span class="p">(</span><span class="mi">1</span><span class="o">:</span><span class="mi">3</span><span class="o">:</span><span class="mi">11</span><span class="p">),</span><span class="w"> </span><span class="n">Ti</span><span class="p">(</span><span class="mi">1</span><span class="o">:</span><span class="mi">2</span><span class="o">:</span><span class="mi">11</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>4×6 DimArray{Float64,2} with dimensions: 
+  X Sampled{Int64} 10:30:100 ForwardOrdered Regular Points,
+  Ti Sampled{DateTime} DateTime(&quot;2001-01-01T00:00:00&quot;):Month(2):DateTime(&quot;2001-11-01T00:00:00&quot;) ForwardOrdered Regular Points
+       2001-01-01T00:00:00  …   2001-11-01T00:00:00
+  10  0.122791                             0.358315
+  40  0.0460592                            0.041568
+  70  0.605241                             0.0260872
+ 100  0.695338                             0.934139
+</code></pre></div>
+<p>When specifying only one dimension, all elements of the other dimensions are assumed to be included:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="p">[</span><span class="n">X</span><span class="p">(</span><span class="mi">1</span><span class="o">:</span><span class="mi">3</span><span class="o">:</span><span class="mi">10</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>4×12 DimArray{Float64,2} with dimensions: 
+  X Sampled{Int64} 10:30:100 ForwardOrdered Regular Points,
+  Ti Sampled{DateTime} DateTime(&quot;2001-01-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-12-01T00:00:00&quot;) ForwardOrdered Regular Points
+       2001-01-01T00:00:00  …   2001-12-01T00:00:00
+  10  0.122791                             0.63477
+  40  0.0460592                            0.18038
+  70  0.605241                             0.785811
+ 100  0.695338                             0.645872
+</code></pre></div>
+<div class="admonition info">
+<p class="admonition-title">Indexing</p>
+<p>Indexing <code>AbstractDimArray</code>s works with <code>getindex</code>, <code>setindex!</code> and   <code>view</code>. The result is still an <code>AbstracDimArray</code>, unless using all single   <code>Int</code> or <code>Selector</code>s that resolve to <code>Int</code>.</p>
+</div>
+<p><code>Dimension</code>s can be used to construct arrays in <code>rand</code>, <code>ones</code>, <code>zeros</code> and <code>fill</code> with either a range for a lookup index or a number for the dimension length.</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">DimensionalData</span>
+<span class="n">A1</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ones</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="mi">1</span><span class="o">:</span><span class="mi">40</span><span class="p">),</span><span class="w"> </span><span class="n">Y</span><span class="p">(</span><span class="mi">50</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>40×50 DimArray{Float64,2} with dimensions: 
+  X Sampled{Int64} 1:40 ForwardOrdered Regular Points,
+  Y
+  1  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  2  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  3  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  4  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  5  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  6  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+  ⋮                      ⋮              ⋱  ⋮                        ⋮    
+ 35  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 36  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 37  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 38  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 39  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
+ 40  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
+</code></pre></div>
+<p>We can also use dim wrappers for indexing, so that the dimension order in the underlying array does not need to be known:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A1</span><span class="p">[</span><span class="n">Y</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">X</span><span class="p">(</span><span class="mi">1</span><span class="o">:</span><span class="mi">10</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>10-element DimArray{Float64,1} with dimensions: 
+  X Sampled{Int64} 1:10 ForwardOrdered Regular Points
+and reference dimensions: Y
+  1  1.0
+  2  1.0
+  3  1.0
+  4  1.0
+  5  1.0
+  6  1.0
+  7  1.0
+  8  1.0
+  9  1.0
+ 10  1.0
+</code></pre></div>
+<p><a id='Indexing-Performance'></a></p>
+<p><a id='Indexing-Performance-1'></a></p>
+<h2 id="indexing-performance">Indexing Performance<a class="headerlink" href="#indexing-performance" title="Permanent link">¤</a></h2>
+<p>Indexing with <code>Dimension</code> has no runtime cost:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A2</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">ones</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span><span class="w"> </span><span class="n">Y</span><span class="p">(</span><span class="mi">3</span><span class="p">))</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>3×3 DimArray{Float64,2} with dimensions: X, Y
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+</code></pre></div>
+<p>time ?</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">BenchmarkTools</span>
+
+<span class="n">println</span><span class="p">(</span><span class="nd">@btime</span><span class="w"> </span><span class="o">$</span><span class="n">A2</span><span class="p">[</span><span class="n">X</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span><span class="w"> </span><span class="n">Y</span><span class="p">(</span><span class="mi">2</span><span class="p">)])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>  38.872 ns (0 allocations: 0 bytes)
+1.0
+</code></pre></div>
+<p>and</p>
+<div class="highlight"><pre><span></span><code><span class="n">println</span><span class="p">(</span><span class="nd">@btime</span><span class="w"> </span><span class="n">parent</span><span class="p">(</span><span class="o">$</span><span class="n">A2</span><span class="p">)[</span><span class="mi">1</span><span class="p">,</span><span class="w"> </span><span class="mi">2</span><span class="p">])</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>  4.000 ns (0 allocations: 0 bytes)
+1.0
+</code></pre></div>
+<p><a id='Specifying-dims-keyword-arguments-with-Dimension'></a></p>
+<p><a id='Specifying-dims-keyword-arguments-with-Dimension-1'></a></p>
+<h2 id="specifying-dims-keyword-arguments-with-dimension">Specifying <code>dims</code> keyword arguments with <code>Dimension</code><a class="headerlink" href="#specifying-dims-keyword-arguments-with-dimension" title="Permanent link">¤</a></h2>
+<p>In many Julia functions like <code>size</code> or <code>sum</code>, you can specify the dimension along which to perform the operation as an <code>Int</code>. It is also possible to do this using <a href="../../../../reference/#DimensionalData.Dimensions.Dimension"><code>Dimension</code></a> types with <code>AbstractDimArray</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A3</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">(</span><span class="n">X</span><span class="p">(</span><span class="mi">3</span><span class="p">),</span><span class="w"> </span><span class="n">Y</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span><span class="w"> </span><span class="n">Ti</span><span class="p">(</span><span class="mi">5</span><span class="p">));</span>
+<span class="n">sum</span><span class="p">(</span><span class="n">A3</span><span class="p">;</span><span class="w"> </span><span class="n">dims</span><span class="o">=</span><span class="n">Ti</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>3×4×1 DimArray{Float64,3} with dimensions: X, Y, Ti
+[:, :, 1]
+ 1.81167  2.89716  2.30465  2.3051
+ 1.51508  3.76079  2.9724   3.08343
+ 2.63028  1.98546  2.64894  2.36519
+</code></pre></div>
+<p>This also works in methods from <code>Statistics</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">Statistics</span>
+<span class="n">mean</span><span class="p">(</span><span class="n">A3</span><span class="p">;</span><span class="w"> </span><span class="n">dims</span><span class="o">=</span><span class="n">Ti</span><span class="p">)</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>3×4×1 DimArray{Float64,3} with dimensions: X, Y, Ti
+[:, :, 1]
+ 0.362333  0.579432  0.460931  0.461021
+ 0.303016  0.752159  0.59448   0.616685
+ 0.526055  0.397092  0.529789  0.473038
+</code></pre></div>
+<p><a id='Methods-where-dims,-dim-types,-or-Symbols-can-be-used-to-indicate-the-array-dimension:'></a></p>
+<p><a id='Methods-where-dims,-dim-types,-or-Symbols-can-be-used-to-indicate-the-array-dimension:-1'></a></p>
+<h2 id="methods-where-dims-dim-types-or-symbols-can-be-used-to-indicate-the-array-dimension">Methods where dims, dim types, or <code>Symbol</code>s can be used to indicate the array dimension:<a class="headerlink" href="#methods-where-dims-dim-types-or-symbols-can-be-used-to-indicate-the-array-dimension" title="Permanent link">¤</a></h2>
+<ul>
+<li><code>size</code>, <code>axes</code>, <code>firstindex</code>, <code>lastindex</code></li>
+<li><code>cat</code>, <code>reverse</code>, <code>dropdims</code></li>
+<li><code>reduce</code>, <code>mapreduce</code></li>
+<li><code>sum</code>, <code>prod</code>, <code>maximum</code>, <code>minimum</code>,</li>
+<li><code>mean</code>, <code>median</code>, <code>extrema</code>, <code>std</code>, <code>var</code>, <code>cor</code>, <code>cov</code></li>
+<li><code>permutedims</code>, <code>adjoint</code>, <code>transpose</code>, <code>Transpose</code></li>
+<li><code>mapslices</code>, <code>eachslice</code></li>
+</ul>
+<p><a id='LookupArrays-and-Selectors'></a></p>
+<p><a id='LookupArrays-and-Selectors-1'></a></p>
+<h2 id="lookuparrays-and-selectors">LookupArrays and Selectors<a class="headerlink" href="#lookuparrays-and-selectors" title="Permanent link">¤</a></h2>
+<p>Indexing by value in <code>DimensionalData</code> is done with <a href="../../../../reference/#Selectors">Selectors</a>. IntervalSets.jl is now used for selecting ranges of values (formerly <code>Between</code>).</p>
+<table>
+<thead>
+<tr>
+<th style="text-align: left;">Selector</th>
+<th style="text-align: left;">Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td style="text-align: left;"><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.At"><code>At(x)</code></a></td>
+<td style="text-align: left;">get the index exactly matching the passed in value(s)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Near"><code>Near(x)</code></a></td>
+<td style="text-align: left;">get the closest index to the passed in value(s)</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Contains"><code>Contains(x)</code></a></td>
+<td style="text-align: left;">get indices where the value x falls within an interval</td>
+</tr>
+<tr>
+<td style="text-align: left;"><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Where"><code>Where(f)</code></a></td>
+<td style="text-align: left;">filter the array axis by a function of the dimension index values.</td>
+</tr>
+<tr>
+<td style="text-align: left;">[<code>Not(x)</code>]</td>
+<td style="text-align: left;">get all indices <em>not</em> selected by <code>x</code>, which can be another selector.</td>
+</tr>
+<tr>
+<td style="text-align: left;">[<code>a..b</code>]</td>
+<td style="text-align: left;">get all indices between two values, inclusively.</td>
+</tr>
+<tr>
+<td style="text-align: left;">[<code>OpenInterval(a, b)</code>]</td>
+<td style="text-align: left;">get all indices between <code>a</code> and <code>b</code>, exclusively.</td>
+</tr>
+<tr>
+<td style="text-align: left;">[<code>Interval{A,B}(a, b)</code>]</td>
+<td style="text-align: left;">get all indices between <code>a</code> and <code>b</code>, as <code>:closed</code> or <code>:open</code>.</td>
+</tr>
+</tbody>
+</table>
+<p>Selectors find indices in the <code>LookupArray</code>, for each dimension. Here we use an <code>Interval</code> to select a range between integers and <code>DateTime</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A</span><span class="p">[</span><span class="n">X</span><span class="p">(</span><span class="mi">12</span><span class="o">..</span><span class="mi">35</span><span class="p">),</span><span class="w"> </span><span class="n">Ti</span><span class="p">(</span><span class="n">Date</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="o">..</span><span class="n">Date</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">))]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>2×3 DimArray{Float64,2} with dimensions: 
+  X Sampled{Int64} 20:10:30 ForwardOrdered Regular Points,
+  Ti Sampled{DateTime} DateTime(&quot;2001-05-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-07-01T00:00:00&quot;) ForwardOrdered Regular Points
+      2001-05-01T00:00:00  …   2001-07-01T00:00:00
+ 20  0.327406                             0.677794
+ 30  0.183331                             0.187738
+</code></pre></div>
+<p>To select intervals in DimArrays (e.g. <code>A2</code>) you need to specify <code>dimname=a .. b</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A2</span><span class="p">[</span><span class="n">distance</span><span class="o">=</span><span class="mi">12</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="mi">35</span><span class="p">,</span><span class="w"> </span><span class="n">time</span><span class="o">=</span><span class="n">Date</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="w"> </span><span class="mi">5</span><span class="p">)</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="n">Date</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="w"> </span><span class="mi">7</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>3×3 DimArray{Float64,2} with dimensions: X, Y
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+</code></pre></div>
+<p>Selectors can be used in <code>getindex</code>, <code>setindex!</code> and <code>view</code> to select indices matching the passed in value(s)</p>
+<p>We can use selectors inside dim wrappers, here selecting values from <code>DateTime</code> and <code>Int</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">Dates</span>
+<span class="n">timespan</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">DateTime</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span><span class="o">:</span><span class="n">Month</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span><span class="o">:</span><span class="n">DateTime</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="mi">12</span><span class="p">)</span>
+<span class="n">A4</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">(</span><span class="n">Ti</span><span class="p">(</span><span class="n">timespan</span><span class="p">),</span><span class="w"> </span><span class="n">X</span><span class="p">(</span><span class="mi">10</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">100</span><span class="p">))</span>
+<span class="n">A4</span><span class="p">[</span><span class="n">X</span><span class="p">(</span><span class="n">Near</span><span class="p">(</span><span class="mi">35</span><span class="p">)),</span><span class="w"> </span><span class="n">Ti</span><span class="p">(</span><span class="n">At</span><span class="p">(</span><span class="n">DateTime</span><span class="p">(</span><span class="mi">2001</span><span class="p">,</span><span class="mi">5</span><span class="p">)))]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>0.871061228214121
+</code></pre></div>
+<p>Without dim wrappers selectors must be in the right order, and specify all axes:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">Unitful</span>
+<span class="n">A5</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="n">rand</span><span class="p">(</span><span class="n">Y</span><span class="p">((</span><span class="mi">1</span><span class="o">:</span><span class="mi">10</span><span class="o">:</span><span class="mi">100</span><span class="p">)</span><span class="sa">u</span><span class="s">&quot;m&quot;</span><span class="p">),</span><span class="w"> </span><span class="n">Ti</span><span class="p">((</span><span class="mi">1</span><span class="o">:</span><span class="mi">5</span><span class="o">:</span><span class="mi">100</span><span class="p">)</span><span class="sa">u</span><span class="s">&quot;s&quot;</span><span class="p">));</span>
+<span class="n">A5</span><span class="p">[</span><span class="mf">10.5</span><span class="sa">u</span><span class="s">&quot;m&quot;</span><span class="w"> </span><span class="o">..</span><span class="w"> </span><span class="mf">50.5</span><span class="sa">u</span><span class="s">&quot;m&quot;</span><span class="p">,</span><span class="w"> </span><span class="n">Near</span><span class="p">(</span><span class="mi">23</span><span class="sa">u</span><span class="s">&quot;s&quot;</span><span class="p">)]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>4-element DimArray{Float64,1} with dimensions: 
+  Y Sampled{Quantity{Int64, 𝐋, Unitful.FreeUnits{(m,), 𝐋, nothing}}} (11:10:41) m ForwardOrdered Regular Points
+and reference dimensions: 
+  Ti Sampled{Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} (21:5:21) s ForwardOrdered Regular Points
+ 11 m  0.617481
+ 21 m  0.20888
+ 31 m  0.979066
+ 41 m  0.246627
+</code></pre></div>
+<p>We can also use Linear indices as in standard <code>Array</code>:</p>
+<div class="highlight"><pre><span></span><code><span class="n">A5</span><span class="p">[</span><span class="mi">1</span><span class="o">:</span><span class="mi">5</span><span class="p">]</span>
+</code></pre></div>
+<div class="highlight"><pre><span></span><code>5-element Vector{Float64}:
+ 0.44431603584182167
+ 0.9542315595525419
+ 0.36639730474887067
+ 0.7086216625889914
+ 0.03479043095496592
+</code></pre></div>
+<p>But unless the <code>DimArray</code> is one dimensional, this will return a regular <code>Array</code>. It is not possible to keep the <code>LookupArray</code> or even <code>Dimension</code>s after linear indexing is used.</p>
+<p><a id='LookupArrays-and-traits'></a></p>
+<p><a id='LookupArrays-and-traits-1'></a></p>
+<h2 id="lookuparrays-and-traits">LookupArrays and traits<a class="headerlink" href="#lookuparrays-and-traits" title="Permanent link">¤</a></h2>
+<p>Using a regular range or <code>Vector</code> as a lookup index has a number of downsides. We cannot use <code>searchsorted</code> for fast searches without knowing the order of the array, and this is slow to compute at runtime. It also means <code>reverse</code> or rotations cannot be used while keeping the <code>DimArray</code> wrapper.</p>
+<p>Step sizes are also a problem. Some ranges like <code>LinRange</code> lose their step size with a length of <code>1</code>. Often, instead of a range, multi-dimensional data formats provide a <code>Vector</code> of evenly spaced values for a lookup, with a step size specified separately. Converting to a range introduces floating point errors that means points may not be selected with <code>At</code> without setting tolerances.</p>
+<p>This means using a lookup wrapper with traits is more generally robust and versatile than simply using a range or vector. DimensionalData provides types for specifying details about the dimension index, in the <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays"><code>LookupArrays</code></a> sub-module:</p>
+<div class="highlight"><pre><span></span><code><span class="k">using</span><span class="w"> </span><span class="n">DimensionalData</span>
+<span class="k">using</span><span class="w"> </span><span class="o">.</span><span class="n">LookupArrays</span>
+</code></pre></div>
+<p>The main <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.LookupArray"><code>LookupArray</code></a> are :</p>
+<ul>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Sampled"><code>Sampled</code></a></li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Categorical"><code>Categorical</code></a>,</li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.NoLookup"><code>NoLookup</code></a></li>
+</ul>
+<p>Each comes with specific traits that are either fixed or variable, depending on the contained index. These enable optimisations with <code>Selector</code>s, and modified behaviours, such as:</p>
+<ol>
+<li>Selection of <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Intervals"><code>Intervals</code></a> or <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Points"><code>Points</code></a>, which will give slightly</li>
+</ol>
+<p>different results for selectors like <code>..</code> - as whole intervals are   selected, and have different <code>bounds</code> values.</p>
+<ol>
+<li>Tracking of lookup order. A reverse order is labelled <code>ReverseOrdered</code> and</li>
+</ol>
+<p>will still work with <code>searchsorted</code>, and for plots to always be the right way   up when either the index or the array is backwards. Reversing a <code>DimArray</code>   will reverse the <code>LookupArray</code> for that dimension, swapping <code>ReverseOrdered</code>   to <code>ForwardOrdered</code>.</p>
+<ol>
+<li>
+<p><code>Sampled</code> <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Intervals"><code>Intervals</code></a> can have index located at a <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Locus"><code>Locus</code></a> of:</p>
+</li>
+<li>
+<p><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Start"><code>Start</code></a>,</p>
+</li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Center"><code>Center</code></a></li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.End"><code>End</code></a></li>
+</ol>
+<p>Which specifies the point of the interval represented in the index, to match different data standards, e.g. GeoTIFF (<code>Start</code>) and NetCDF (<code>Center</code>).</p>
+<ol>
+<li>A <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Span"><code>Span</code></a> specifies the gap between <code>Points</code> or the size of</li>
+</ol>
+<p><code>Intervals</code>. This may be:</p>
+<ul>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Regular"><code>Regular</code></a>, in the case of a range and equally spaced vector,</li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Irregular"><code>Irregular</code></a> for unequally spaced vectors</li>
+<li><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Explicit"><code>Explicit</code></a> for the case where all interval start and end points are specified explicitly - as is common in the NetCDF standard.</li>
+</ul>
+<p>These traits all for subtypes of <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Aligned"><code>Aligned</code></a>.</p>
+<p><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Unaligned"><code>Unaligned</code></a> also exists to handle dimensions with an index that is rotated or otherwise transformed in relation to the underlying array, such as <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Transformed"><code>Transformed</code></a>.</p>
+<p><a id='LookupArray-detection'></a></p>
+<p><a id='LookupArray-detection-1'></a></p>
+<h2 id="lookuparray-detection">LookupArray detection<a class="headerlink" href="#lookuparray-detection" title="Permanent link">¤</a></h2>
+<p><a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Aligned"><code>Aligned</code></a> types will be detected automatically if not specified - which usually isn't required.</p>
+<ul>
+<li>An empty <code>Dimension</code> or a <code>Type</code> or <code>Symbol</code> will be assigned <code>NoLookup</code> - this behaves as a simple named dimension without a lookup index.</li>
+<li>A <code>Dimension</code> containing and index of <code>String</code>, <code>Char</code>, <code>Symbol</code> or mixed types will be given the <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Categorical"><code>Categorical</code></a> mode,</li>
+<li>A range will be assigned <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Sampled"><code>Sampled</code></a>, defaulting to <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Regular"><code>Regular</code></a>, <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Points"><code>Points</code></a></li>
+<li>Other <code>AbstractVector</code> will be assigned <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Sampled"><code>Sampled</code></a> <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Irregular"><code>Irregular</code></a> <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Points"><code>Points</code></a>.</li>
+</ul>
+<p>In all cases the <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Order"><code>Order</code></a> of <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.ForwardOrdered"><code>ForwardOrdered</code></a> or <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.ReverseOrdered"><code>ReverseOrdered</code></a> will be be detected, otherwise <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Unordered"><code>Unordered</code></a> for an unsorted <code>Array</code>.</p>
+<p>See the <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.LookupArray"><code>LookupArray</code></a> API docs for more detail.</p>
+<p><a id='Referenced-dimensions'></a></p>
+<p><a id='Referenced-dimensions-1'></a></p>
+<h2 id="referenced-dimensions">Referenced dimensions<a class="headerlink" href="#referenced-dimensions" title="Permanent link">¤</a></h2>
+<p>The reference dimensions record the previous dimensions that an array was selected from. These can be use for plot labelling, and tracking array changes so that <code>cat</code> can reconstruct the lookup array from previous dimensions that have been sliced.</p>
+<p><a id='Warnings'></a></p>
+<p><a id='Warnings-1'></a></p>
+<h2 id="warnings">Warnings<a class="headerlink" href="#warnings" title="Permanent link">¤</a></h2>
+<p>Indexing with unordered or reverse-ordered arrays has undefined behaviour. It will trash the dimension index, break <code>searchsorted</code> and nothing will make sense any more. So do it at you own risk.</p>
+<p>However, indexing with sorted vectors of <code>Int</code> can be useful, so it's allowed. But it may do strange things to interval sizes for <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Intervals"><code>Intervals</code></a> that are not <a href="../../../../reference/#DimensionalData.Dimensions.LookupArrays.Explicit"><code>Explicit</code></a>.</p>
+<p>This selects the first 5 entries of the underlying array. In the case that <code>A</code> has only one dimension, it will be retained. Multidimensional <code>AbstracDimArray</code> indexed this way will return a regular array.</p>
+<hr />
+<p><em>This page was generated using <a href="https://github.com/fredrikekre/Literate.jl">Literate.jl</a>.</em></p>
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8v12Z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+    
+      
+      <nav class="md-footer__inner md-grid" aria-label="Footer" >
+        
+          
+          <a href="../../../.." class="md-footer__link md-footer__link--prev" aria-label="Previous: Home">
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12Z"/></svg>
+            </div>
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Previous
+              </span>
+              <div class="md-ellipsis">
+                Home
+              </div>
+            </div>
+          </a>
+        
+        
+          
+          <a href="../../../../reference/" class="md-footer__link md-footer__link--next" aria-label="Next: Reference">
+            <div class="md-footer__title">
+              <span class="md-footer__direction">
+                Next
+              </span>
+              <div class="md-ellipsis">
+                Reference
+              </div>
+            </div>
+            <div class="md-footer__button md-icon">
+              
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M4 11v2h12l-5.5 5.5 1.42 1.42L19.84 12l-7.92-7.92L10.5 5.5 16 11H4Z"/></svg>
+            </div>
+          </a>
+        
+      </nav>
+    
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        <div class="md-social">
+  
+    
+    
+    
+    
+    <a href="" target="_blank" rel="noopener" title="" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg>
+    </a>
+  
+    
+    
+    
+    
+    <a href="" target="_blank" rel="noopener" title="" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.4.2 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2023 Fonticons, Inc.--><path d="M459.37 151.716c.325 4.548.325 9.097.325 13.645 0 138.72-105.583 298.558-298.558 298.558-59.452 0-114.68-17.219-161.137-47.106 8.447.974 16.568 1.299 25.34 1.299 49.055 0 94.213-16.568 130.274-44.832-46.132-.975-84.792-31.188-98.112-72.772 6.498.974 12.995 1.624 19.818 1.624 9.421 0 18.843-1.3 27.614-3.573-48.081-9.747-84.143-51.98-84.143-102.985v-1.299c13.969 7.797 30.214 12.67 47.431 13.319-28.264-18.843-46.781-51.005-46.781-87.391 0-19.492 5.197-37.36 14.294-52.954 51.655 63.675 129.3 105.258 216.365 109.807-1.624-7.797-2.599-15.918-2.599-24.04 0-57.828 46.782-104.934 104.934-104.934 30.213 0 57.502 12.67 76.67 33.137 23.715-4.548 46.456-13.32 66.599-25.34-7.798 24.366-24.366 44.833-46.132 57.827 21.117-2.273 41.584-8.122 60.426-16.243-14.292 20.791-32.161 39.308-52.628 54.253z"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    <script id="__config" type="application/json">{"base": "../../../..", "features": ["content.code.copy", "content.code.annotate", "navigation.top", "navigation.footer", "search.highlight", "search.share", "search.suggest", "toc.follow", "header.autohide"], "search": "../../../../assets/javascripts/workers/search.f886a092.min.js", "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}}</script>
+    
+    
+      <script src="../../../../assets/javascripts/bundle.aecac24b.min.js"></script>
+      
+        <script src="../../../../javascripts/mathjax.js"></script>
+      
+        <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+      
+        <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+      
+    
+  </body>
+</html>
