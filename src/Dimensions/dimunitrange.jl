@@ -27,7 +27,6 @@ end
 # this is necessary to ensure that keyword syntax for DimArray works correctly
 Base.Slice(r::DimUnitRange) = Base.Slice(parent(r))
 
-# Base.show(io::IO, r::DimUnitRange) = print(io, DimUnitRange, (r.range, r.dim))
 Base.show(io::IO, r::DimUnitRange) = print(io, basetypeof(r.dim), "(", r.range, ")") # concise presentation
 
 # the below are adapted from OffsetArrays
