@@ -1,4 +1,4 @@
-import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style, AbstractArrayStyle
+import Base.Broadcast: BroadcastStyle, DefaultArrayStyle, Style, AbstractArrayStyle, Unknown
 
 const STRICT_BROADCAST_CHECKS = Ref(true)
 const STRICT_BROADCAST_DOCS = """
@@ -62,7 +62,6 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
 @inline function Broadcast.instantiate(bc::Broadcasted{<:DimensionalStyle{S}}) where S
     A = _firstdimarray(bc)
     bdims = _broadcasted_dims(bc)
-    _comparedims_broadcast(A, bdims...)
     if bc.axes isa Nothing
         axes = Base.Broadcast.combine_axes(map(_unwrap_broadcasted, bc.args)...)
         ds = Dimensions.promotedims(bdims...; skip_length_one=true)
@@ -75,24 +74,24 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
         ds = dims(axes)
         isnothing(ds) || _comparedims_broadcast(A, ds, bdims...)
     end
+    _comparedims_broadcast(A, bdims...)
     return Broadcasted(bc.style, bc.f, bc.args, axes)
 end
-
+# Define copy because the inner style S might override copy (e.g. DiskArrays)
+function Base.copy(bc::Broadcasted{<:DimensionalStyle{S}}) where S
+    data = copy(_unwrap_broadcasted(bc))
+    data isa AbstractArray || return data
+    A = _firstdimarray(bc)
+    rebuild(A; data, dims = dims(axes(bc)), name = _noname(A))
+end
+# similar is usually only called in broadcast_preserving_zero_d
 function Base.similar(bc::Broadcasted{<:DimensionalStyle{S}}, ::Type{T}) where {S,T}
     A = _firstdimarray(bc)
-    rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)), name = NoName())
+    rebuild(A; data = similar(_unwrap_broadcasted(bc), T), dims = dims(axes(bc)), name = _noname(A))
 end
 
 @inline function Base.materialize!(::S, dest, bc::Broadcasted) where {S<:DimensionalStyle}
     return Base.copyto!(dest, Broadcast.instantiate(Broadcasted{S}(bc.f, bc.args, axes(dest))))
-end
-
-@inline Base.copyto!(dest::AbstractArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S = 
-    Base.copyto!(dest, _unwrap_broadcasted(bc))
-# This dispatch is needed for GPUArrays < v11.0
-@inline function Base.copyto!(dest::AbstractDimArray, bc::Broadcasted{<:DimensionalStyle{S}}) where S 
-    Base.copyto!(parent(dest), _unwrap_broadcasted(bc))
-    return dest
 end
 
 """
