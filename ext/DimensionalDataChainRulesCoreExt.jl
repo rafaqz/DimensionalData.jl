@@ -37,16 +37,17 @@ end
 #! rrule for keyword getindex with selectors
 function ChainRulesCore.rrule(::typeof(getindex), A::DD.AbstractDimArray; kwargs...)
     dimsA = dims(A)
-    indices = ntuple(i -> begin
+    selectors = ntuple(i -> begin
         dim = dimsA[i]
         key = name(dim)
         if haskey(kwargs, key)
-            # Convert selector/Colon to actual indices along dimension
-            DD.Lookups.selectindices(dim, kwargs[key])
+            kwargs[key]  # the Selector passed by the user
         else
             Colon()
         end
     end, length(dimsA))
+
+    indices = DD.Dimensions.dims2indices(dimsA, selectors)
 
     B = getindex(A, indices...)
 
