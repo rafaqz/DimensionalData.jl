@@ -203,7 +203,7 @@ function (*)(plan::DDPlan{<:Any,X}, dd::DD.AbstractDimArray{T}) where {T,X}
 
     _fft_dd = plan.p * reinterpret_into_datatype(T, parent(input_to_plan))
     fft_dd = reinterpret(
-        typeof(real(oneunit(T)) * oneunit(X) * oneunit(eltype(_fft_dd))), _fft_dd
+        typeof(Integer(oneunit(T) * oneunit(X)) * oneunit(eltype(_fft_dd))), _fft_dd
     )
     dd_out = DimArray(fft_dd, lookups)
     if !is_inverse_transform(plan)
