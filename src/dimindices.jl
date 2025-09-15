@@ -343,7 +343,7 @@ end
 @inline _format_selectors(d::Dimension, ::Contains, atol) = Contains(nothing)
 @inline function _format_selectors(d::Dimension, at::At, atol)
     atolx = _atol(eltype(d), Lookups.atol(at), atol)
-    At(nothing, atolx, nothing)
+    At(nothing; atol=atolx)
 end
 
 _atol(::Type, atol1, atol2) = atol1
