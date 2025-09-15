@@ -218,3 +218,11 @@ end
     @test_throws ArgumentError mul!(rand(typeof(ifft_z[1]), X(x), Y(y)), pinv, fft_z)
 end
 
+@testset "Different data precision" begin
+    dd = ones(Float32, X(Float64(1):Float64(1000)))
+    
+    @test eltype(rfft(dd)) == ComplexF32
+    
+    dd_uni = ones(Float32, X(Float64(1u"m"):1u"m":Float64(1000u"m")))
+    @test eltype(rfft(dd_uni)) == Quantity{ComplexF32, dimension(u"m"), typeof(u"m")}
+end

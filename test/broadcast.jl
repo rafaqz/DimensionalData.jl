@@ -457,6 +457,25 @@ end
     end
 end
 
+@testset "Concise error messages for dimension mismatches" begin
+    # Test that dimension mismatch errors are concise, not verbose
+    x = DimArray(ones(1000), X(1:2:2000))
+    y1 = DimArray(ones(1001), X(1:2:2001))
+    y2 = DimArray(ones(1000), X(2:1001))
+
+    for y in (y1, y2)
+        err = nothing
+        try
+            x .+ y
+        catch e
+            err = e
+        end
+
+        @test err isa DimensionMismatch
+        @test length(string(err)) < 250
+    end
+end
+
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))

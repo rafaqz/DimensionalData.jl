@@ -629,3 +629,5 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
+
+layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)

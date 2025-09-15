@@ -97,6 +97,41 @@ end
     sv = sprint(show, MIME("text/plain"), nds)
     @test sv == "(↓ X, → Y)"
 end
+
+@testset "Selectors" begin
+    @testset "At" begin
+        s = sprint(show, MIME("text/plain"), At(1))
+        @test s == "At(1)"
+        s = sprint(show, MIME("text/plain"), At(1, atol=0.1))
+        @test s == "At(1; atol=0.1)"
+        s = sprint(show, MIME("text/plain"), Near(1))
+        @test s == "Near(1)"
+        s = sprint(show, MIME("text/plain"), Near())
+        @test s == "Near()"
+        s = sprint(show, MIME("text/plain"), Contains(1))
+        @test s == "Contains(1)"
+        s = sprint(show, MIME("text/plain"), Contains())
+        @test s == "Contains()"
+        s = sprint(show, MIME("text/plain"), Between(1,2))
+        @test s == "Between((1, 2))"
+        s = sprint(show, MIME("text/plain"), Where(>=(10)))
+        @test startswith(s, "Where")
+        @test occursin(">=", s)
+        s = sprint(show, MIME("text/plain"), All(At(10), At(20)))
+        s == "All((At(10), At(20)))"
+    end
+end
+
+@testset "DimSelectors" begin
+    a = rand(X(1:10), Y(4:11))
+    d = DimSelectors(a, selectors=Near())
+    sd = sprint(show, MIME("text/plain"), d)
+    @test occursin("DimSelectors", sd)
+    @test occursin("10×8", sd)
+    @test occursin("(Near(), Near())", sd)
+    @test occursin("X Near(1)", sd)
+end
+
 @testset "BeginEnd" begin
     lplus = Begin+6
     slp = sprint(show, MIME("text/plain"), lplus)
