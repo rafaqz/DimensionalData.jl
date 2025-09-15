@@ -98,7 +98,6 @@ end
                  (dimz, (1, 2)), 
                  (dimz, 1, 2)
         )
-        @test index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
         @test name(args...) == (:X, :Y)
         @test units(args...) == (nothing, nothing)
         @test label(args...) == ("X", "Y")
@@ -111,7 +110,7 @@ end
                                 Sampled(LinRange(2, 11, 4), ForwardOrdered(), Regular(3.0), Points(), NoMetadata()))
     end
 
-    @test val(dimz, ()) == index(dimz, ()) == ()
+    @test val(dimz, ()) == ()
     @test val(dimz, 1) == val(dimz, X) == val(dimz, X()) == val(dimz[1])
 
     @test dims(dimz, Y) === dimz[2]

@@ -20,9 +20,6 @@ dims(::Lookup) = nothing
 val(l::Lookup) = parent(l)
 locus(l::Lookup) = Center()
 
-# Deprecated
-index(l::Lookup) = parent(l)
-
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
 Base.size(l::Lookup) = size(parent(l))
@@ -32,6 +29,7 @@ Base.first(l::Lookup) = first(parent(l))
 Base.last(l::Lookup) = last(parent(l))
 Base.firstindex(l::Lookup) = firstindex(parent(l))
 Base.lastindex(l::Lookup) = lastindex(parent(l))
+Base.parentindices(l::Lookup) = parentindices(parent(l))
 function Base.:(==)(l1::Lookup, l2::Lookup)
     basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
 end
@@ -159,11 +157,10 @@ NoLookup() = NoLookup(AutoValues())
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
 # Used in @d broadcasts
-struct Length1NoLookup <: AbstractNoLookup end
-Length1NoLookup(::AbstractVector) = Length1NoLookup()
-
-rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
-Base.parent(::Length1NoLookup) = Base.OneTo(1)
+struct Length1NoLookup{A<:AbstractUnitRange} <: AbstractNoLookup 
+    data::A
+end
+Length1NoLookup() = Length1NoLookup(Base.OneTo(1))
 
 """
     AbstractSampled <: Aligned
@@ -468,7 +465,7 @@ abstract type AbstractCategorical{T,O} <: Aligned{T,O} end
 order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
-const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
+const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString,DataType}
 
 function Adapt.adapt_structure(to, l::AbstractCategorical)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
@@ -866,6 +863,7 @@ promote_first(x1, x2, xs...) =
 # Fallback NoLookup if not identical type
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
+promote_first(l1::L, ls::L...) where L<:AbstractNoLookup = l1
 function promote_first(l1::Lookup, ls1::Lookup...)
     ls = _remove(Length1NoLookup, l1, ls1...)
     if length(ls) != length(ls1) + 1
