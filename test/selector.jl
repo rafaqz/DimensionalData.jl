@@ -1187,9 +1187,29 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
             @test @inferred da[Near(Date(2001, 4, 7))] == 4
+            @test @inferred da[Near(Date(2001, 4, 7))] == 4
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [5, 6, 7]
 
+            @test_throws SelectorError da[Ti(At(Date(2001, 3, 4); atol=Day(2)))]
+            @test @inferred da[Ti(At(Date(2001, 3, 4); atol=Day(3)))] == 3
+            @test @inferred da[Ti(At(DateTime(2001, 3, 4); atol=Day(3)))] == 3
+        end
+        @testset "Center locus" begin
+            timedim = Ti(Sampled(DateTime(2001):Month(1):DateTime(2001, 12); 
+                span=Regular(Month(1)), sampling=Intervals(Center())
+            ))
+            da = DimArray(1:12, timedim)
+            @test @inferred da[Ti(At(DateTime(2001, 3)))] == 3
+            @test @inferred da[Ti(At(Date(2001, 3)))] == 3
+            @test @inferred da[Near(DateTime(2001, 4, 7))] == 4
+            @test @inferred da[Near(Date(2001, 4, 7))] == 4
+            @test @inferred da[Contains(Date(2001, 4, 15))] == 4
+            @test @inferred da[Contains(DateTime(2001, 4, 15))] == 4
+            @test @inferred da[Contains(Date(2001, 3, 16))] == 4
+            @test @inferred da[Contains(DateTime(2001, 4, 15))] == 4
+            @test @inferred 
+            da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [5, 6, 7]
             @test_throws SelectorError da[Ti(At(Date(2001, 3, 4); atol=Day(2)))]
             @test @inferred da[Ti(At(Date(2001, 3, 4); atol=Day(3)))] == 3
             @test @inferred da[Ti(At(DateTime(2001, 3, 4); atol=Day(3)))] == 3
@@ -1203,6 +1223,7 @@ end
             @test @inferred da[Ti(At(Date(2001, 3)))] == 3
             @test @inferred da[Near(DateTime(2001, 4, 7))] == 5
             @test @inferred da[Near(Date(2001, 4, 7))] == 5
+            @test @inferred da[Contains(Date(2001, 4, 7))] == 5
             @test @inferred da[DateTime(2001, 4, 7) .. DateTime(2001, 8, 30)] == [6, 7, 8]
             @test @inferred da[Date(2001, 4, 7) .. Date(2001, 8, 30)] == [6, 7, 8]
 
