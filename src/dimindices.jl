@@ -438,7 +438,7 @@ function mergedims(A::DimExtensionArray, dim_pairs::Pair...)
 end
 
 const SelectorOrStandard = Union{SelectorOrInterval,StandardIndices}
-const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTuple}}
+const DimensionIndsArrays = Union{AbstractArray{<:Dimension},AbstractArray{<:DimTupleOrEmpty}}
 const DimensionalIndices = Union{DimTuple,DimIndices,DimSelectors,Dimension,DimensionIndsArrays}
 const _DimIndicesAmb = Union{AbstractArray{Union{}},DimIndices{<:Integer},DimSelectors{<:Integer}}
 

@@ -61,6 +61,8 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
         @test ndims(di0) == 0
         @test dims(di0) == ()
         @test size(di0) == ()
+        da0 = DimArray(fill(1), ())
+        @test da0[DimIndices(da0)] == da0
     end
     @testset "keywords error" begin
         @test_throws MethodError DimIndices(A; order=ForwardOrdered())
