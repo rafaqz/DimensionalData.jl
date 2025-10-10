@@ -628,4 +628,6 @@ end
 
     @test ismissing(dba[:,1:2] == da)
     @test (dba == da) == false
+    @test isequal(dba, da) == false
+    @test isequal(dba[:,1:2], da)
 end
