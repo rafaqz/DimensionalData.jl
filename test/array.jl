@@ -632,6 +632,6 @@ end
     @test isequal(dba[:,1:2], da)
     @test isequal(da, dba[:,2:3]) == false
     dshift = DimArray(a, (X(10:11), Y(2:3)))
-    @test_broken isequal(da, dshift)
+    @test isequal(da, dshift) == false
     @test (da == dshift) == false
 end
