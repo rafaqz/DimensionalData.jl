@@ -620,8 +620,8 @@ end
 end
 
 @testset "isequal and == with missing" begin
-    a = [missing 1; 1 2]
-    ba = [missing 1 3; 1 2 3]
+    a = [missing 0; 0 0]
+    ba = [missing 0 0; 0 0 0]
 
     da = DimArray(a, (X(1:2), Y(1:2)))
     dba = DimArray(ba, (X(1:2), Y(1:3)))
@@ -630,4 +630,8 @@ end
     @test (dba == da) == false
     @test isequal(dba, da) == false
     @test isequal(dba[:,1:2], da)
+    @test isequal(da, dba[:,2:3]) == false
+    dshift = DimArray(a, (X(10:11), Y(2:3)))
+    @test_broken isequal(da, dshift)
+    @test (da == dshift) == false
 end
