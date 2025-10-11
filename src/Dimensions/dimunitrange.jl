@@ -34,6 +34,7 @@ Base.show(io::IO, r::DimUnitRange) = print(io, basetypeof(r.dim), "(", r.range, 
 
 @inline Base.first(r::DimUnitRange) = Base.first(parent(r))
 @inline Base.last(r::DimUnitRange) = Base.last(parent(r))
+@inline Base.getindex(r::DimUnitRange, i::Integer) = getindex(parent(r), i)
 @inline Base.axes(r::DimUnitRange) = (r,)
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
