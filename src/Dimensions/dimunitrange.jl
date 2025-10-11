@@ -42,7 +42,3 @@ end
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
 # to evaluate CartesianIndices for BigInt ranges, as their axes are also BigInt ranges
 Base.AbstractUnitRange{T}(r::DimUnitRange) where {T<:Integer} = DimUnitRange{T}(r)
-
-@inline function Base.checkindex(::Type{Bool}, r::DimUnitRange, i::Real)
-    return Base.checkindex(Bool, parent(r), i)
-end
