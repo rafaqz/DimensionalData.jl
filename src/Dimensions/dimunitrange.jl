@@ -32,12 +32,9 @@ Base.show(io::IO, r::DimUnitRange) = print(io, basetypeof(r.dim), "(", r.range, 
 # the below are adapted from OffsetArrays
 # https://github.com/JuliaArrays/OffsetArrays.jl/blob/master/src/axes.jl
 
-for f in [:length, :isempty, :first, :last]
-    @eval @inline Base.$f(r::DimUnitRange) = Base.$f(parent(r))
-end
+@inline Base.first(r::DimUnitRange) = Base.first(parent(r))
+@inline Base.last(r::DimUnitRange) = Base.last(parent(r))
 @inline Base.axes(r::DimUnitRange) = (r,)
-@inline Base.iterate(r::DimUnitRange, i...) = iterate(parent(r), i...)
-@inline Base.getindex(r::DimUnitRange, i::Integer) = getindex(parent(r), i)
 
 # Conversions to an AbstractUnitRange{Int} (and to an OrdinalRange{Int,Int} on Julia v"1.6") are necessary
 # to evaluate CartesianIndices for BigInt ranges, as their axes are also BigInt ranges
