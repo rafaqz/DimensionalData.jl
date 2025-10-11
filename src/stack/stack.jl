@@ -241,9 +241,6 @@ function Base.merge(
 )
     rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); kw...)
 end
-function Base.merge(s::AbstractDimStack, pairs; kw...)
-    rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
-end
 function Base.merge(
     x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...;
 )

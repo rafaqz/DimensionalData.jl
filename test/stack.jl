@@ -147,7 +147,6 @@ end
     @test merge(mixed) === mixed
     @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
     @test keys(merge(s, mixed)) == (:one, :two, :three, :extradim)
-    @test keys(merge(s, (:new=>da4,))) == (:one, :two, :three, :new)
 end
 
 @testset "setindex" begin
