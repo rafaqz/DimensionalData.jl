@@ -1,4 +1,4 @@
-module DimensionalDataStatsBase
+module DimensionalDataStatsBaseExt
 
 using DimensionalData
 using Statistics
