@@ -30,6 +30,7 @@ const navTemp = {
         { text: 'CUDA and GPUs', link: '/cuda' },
         { text: 'DiskArrays', link: '/diskarrays' },
         { text: 'Xarray', link: '/xarray' },
+        { text: 'DataInterpolations', link: '/interpolation' },
         { text: 'Extending DimensionalData', link: '/extending_dd' },
         { text: 'FFT', link: '/fft' },
       ],
