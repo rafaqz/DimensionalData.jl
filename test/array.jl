@@ -80,7 +80,7 @@ end
     @test locus(da) == (Center(), Center())
     @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test layerdims(da) == (X(), Y())
-    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+    @test parent(lookup(da, Y)) === -38.0:2:-36.0
     @test_broken @inferred set(da, X => Intervals(), Y => Intervals())
     da_intervals = set(da, X => Intervals(), Y => Intervals())
     @test intervalbounds(da_intervals) == ([(142.0, 144.0), (144.0, 146.0)], [(-39.0, -37.0), (-37.0, -35.0)])
@@ -225,21 +225,21 @@ end
         @test size(da_all) == size(da)
         @test dims(da_all) === dims(da)
         @test refdims(da_all) == ()
-        @test metadata(da_all) == NoMetadata()
+        @test metadata(da_all) == metadata(da)
 
         da_first = similar(da, Missing, (axes(da, 1),))   
         @test eltype(da_first) === Missing
         @test size(da_first) == (size(da, 1),)
         @test dims(da_first) === (dims(da, 1),)
         @test refdims(da_first) == ()
-        @test metadata(da_first) == NoMetadata()
+        @test metadata(da_first) == metadata(da)
 
         da_last = similar(da, Nothing, (axes(da, 2),))
         @test eltype(da_last) === Nothing
         @test size(da_last) == (size(da, 2),)
         @test dims(da_last) === (dims(da, 2),)
         @test refdims(da_last) == ()
-        @test metadata(da_last) == NoMetadata()
+        @test metadata(da_last) == metadata(da)
     end
 
     @testset "similar with DimArray and new axes" begin
@@ -249,7 +249,7 @@ end
         @test size(da_sim) == (2,)
         @test dims(da_sim) == (dims(ax),)
         @test refdims(da_sim) == ()
-        @test metadata(da_sim) == NoMetadata()
+        @test metadata(da_sim) == metadata(da)
     end
 
     @testset "similar with AbstractArray and DimUnitRange" begin

@@ -90,7 +90,7 @@ end
 function Base.dropdims(A::AbstractDimArray; dims)
     dims = DD.dims(A, dims)
     data = Base.dropdims(parent(A); dims=dimnum(A, dims))
-    rebuildsliced(A, data, _dropinds(A, dims))
+    rebuildsliced(view, A, data, _dropinds(A, dims))
 end
 
 @inline _dropinds(A, dims::Tuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
@@ -596,7 +596,8 @@ end
     r = axes(A)
     # Copied from Base.diff
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
-    rebuildsliced(A, diff(parent(A); dims=dimnum(A, dims)), r0)
+    data = diff(parent(A); dims=dimnum(A, dims))
+    rebuildsliced(getindex, A, data, r0)
 end
 
 # Forward `replace` to parent objects
