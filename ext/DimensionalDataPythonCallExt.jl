@@ -1,4 +1,4 @@
-module DimensionalDataPythonCall
+module DimensionalDataPythonCallExt
 
 using DimensionalData
 import DimensionalData as DD
