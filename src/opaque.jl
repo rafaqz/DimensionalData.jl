@@ -15,5 +15,5 @@ OpaqueArray(st::P) where P<:AbstractDimStack{<:Any,T,N} where {T,N} = OpaqueArra
 Base.size(A::OpaqueArray) = size(A.parent)
 Base.getindex(A::OpaqueArray, I::Union{StandardIndices,Not{<:StandardIndices}}...) = 
     Base.getindex(A.parent, I...)
-Base.setindex!(A::OpaqueArray, I::Union{StandardIndices,Not{<:StandardIndices}}...) = 
-    Base.setindex!(A.parent, I...)
+Base.setindex!(A::OpaqueArray, x, I::Union{StandardIndices,Not{<:StandardIndices}}...) = 
+    Base.setindex!(A.parent, x, I...)
