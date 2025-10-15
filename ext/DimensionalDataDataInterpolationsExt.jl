@@ -21,7 +21,7 @@ end
 # Make sure we have a Center locus, then unwrap 
 function _prepare_dim(d::AbstractDimVector)
     l = lookup(d, 1)
-    isregular(l) || throw(ArgumentError("Only `Regular` lookups can be interpolated currently. $(basetypeof(span(l))) found"))
+    ispoints(l) || isregular(l) || throw(ArgumentError("Only `Regular` `Intervals` can be interpolated currently. $(basetypeof(span(l))) found"))
 
     return parent(maybeshiftlocus(Center(), l))
 end
