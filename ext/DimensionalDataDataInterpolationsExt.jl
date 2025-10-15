@@ -9,12 +9,15 @@ function (Itp::Type{<:DataInterpolations.AbstractInterpolation})(
     kw...
 )
     return Itp(
-        data |> parent,
-        dims(data) |> only |> parent |> parent,
+        parent(data),
+        _prepare(only(dims(data))),
         args...;
         kw...
     )
 end
+
+# Make sure we have a Center locus, then unwrap 
+_prepare(d::Dimension) = parent(maybeshiftlocus(Center(), lookup(d)))
 
 doctargets = [
     :LinearInterpolation,
@@ -61,8 +64,8 @@ function DataInterpolations.QuadraticInterpolation(
     kw...
 )
     return QuadraticInterpolation(
-        data |> parent,
-        dims(data) |> only |> parent |> parent,
+        parent(data),
+        _prepare(only(dims(data))),
         mode,
         args...;
         kw...
@@ -95,8 +98,8 @@ function DataInterpolations.PCHIPInterpolation(
     kw...
 )
     return PCHIPInterpolation(
-        data |> parent,
-        dims(data) |> only |> parent |> parent,
+        parent(data),
+        _prepare(only(dims(data))),
         args...;
         kw...
     )
@@ -131,8 +134,8 @@ function DataInterpolations.CubicHermiteSpline(
 )
     return CubicHermiteSpline(
         du,
-        data |> parent,
-        dims(data) |> only |> parent |> parent,
+        parent(data),
+        _prepare(only(dims(data))),
         args...;
         kw...
     )
@@ -170,8 +173,8 @@ function DataInterpolations.QuinticHermiteSpline(
     return QuinticHermiteSpline(
         ddu,
         du,
-        data |> parent,
-        dims(data) |> only |> parent |> parent,
+        parent(data),
+        _prepare(only(dims(data))),
         args...;
         kw...
     )
