@@ -3,6 +3,7 @@ module DimensionalDataDataInterpolationsExt
 using DimensionalData
 using DataInterpolations
 using DimensionalData.Lookups
+using DimensionalData.Dimensions
 
 function (Itp::Type{<:DataInterpolations.AbstractInterpolation})(
     data::AbstractDimVector,
@@ -18,7 +19,12 @@ function (Itp::Type{<:DataInterpolations.AbstractInterpolation})(
 end
 
 # Make sure we have a Center locus, then unwrap 
-_prepare_dim(d::AbstractDimVector) = parent(maybeshiftlocus(Center(), lookup(d, 1)))
+function _prepare_dim(d::AbstractDimVector)
+    l = lookup(d, 1)
+    isregular(l) || throw(ArgumentError("Only `Regular` lookups can be interpolated currently. $(basetypeof(span(l))) found"))
+
+    return parent(maybeshiftlocus(Center(), l))
+end
 
 doctargets = [
     :LinearInterpolation,
