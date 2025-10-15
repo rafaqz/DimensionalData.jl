@@ -2,6 +2,7 @@ module DimensionalDataDataInterpolationsExt
 
 using DimensionalData
 using DataInterpolations
+using DimensionalData.Lookups
 
 function (Itp::Type{<:DataInterpolations.AbstractInterpolation})(
     data::AbstractDimVector,
