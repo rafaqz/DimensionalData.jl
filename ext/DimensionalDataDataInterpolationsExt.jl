@@ -135,7 +135,7 @@ function DataInterpolations.CubicHermiteSpline(
     return CubicHermiteSpline(
         du,
         parent(data),
-        _prepare(data),
+        _prepare_dim(data),
         args...;
         kw...
     )
@@ -174,7 +174,7 @@ function DataInterpolations.QuinticHermiteSpline(
         ddu,
         du,
         parent(data),
-        _prepare(data),
+        _prepare_dim(data),
         args...;
         kw...
     )
