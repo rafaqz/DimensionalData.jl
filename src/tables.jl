@@ -86,7 +86,12 @@ julia> a = DimArray(ones(16, 16, 3), (X, Y, Dim{:band}))
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0     1.0  1.0  1.0  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0  1.0  1.0  1.0  1.0  …  1.0  1.0  1.0  1.0  1.0  1.0  1.0
 
-julia> 
+julia> DimTable(a)
+DimTable with 768 rows, 4 columns, and schema:
+ :X      Int64
+ :Y      Int64
+ :band   Int64
+ :value  Float64
 
 ```
 """
