@@ -27,7 +27,7 @@ Tables.schema(s::AbstractDimStack) = Tables.schema(DimTable(s))
 @inline Tables.getcolumn(x::DimTableSources, key::DimOrDimType) =
     Tables.getcolumn(DimTable(x), key)
 
-_colnames(s::AbstractDimStack) = _colnames(s, combinedims(dims(s), refdims(s)))
+_colnames(s::AbstractDimStack) = _colnames(s, dims(s))
 function _colnames(s::AbstractDimStack, alldims::Tuple)
     dimkeys = map(name, alldims)
     # The data is always the last column/s
@@ -59,8 +59,7 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 # Keywords
 - `mergedims`: Combine two or more dimensions into a new dimension.
 - `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`.
-- `refdims`: Additional reference dimensions to add to the table, defaults to the reference
-    dimensions of the input.
+- `refdims`: Additional reference dimensions to add to the table, defaults to `()`.
 
 # Example
 
@@ -96,7 +95,7 @@ DimTable with 768 rows, 4 columns, and schema:
  :band   Int64
  :value  Float64
 
-julia> DimTable(a[X(3), Y(2)])  # slice X and Y to make a reference dimension
+julia> DimTable(a[X(3), Y(2)]; refdims=(X(3:3), Y(2:2)))  # slice X and Y and add the reference dimensions
 DimTable with 3 rows, 4 columns, and schema:
  :band   Int64
  :X      Int64
@@ -112,7 +111,7 @@ struct DimTable <: AbstractDimTable
     dimarraycolumns::Vector{AbstractVector}
 end
 
-function DimTable(s::AbstractDimStack; mergedims=nothing, refdims=refdims(s))
+function DimTable(s::AbstractDimStack; mergedims=nothing, refdims=())
     s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
     alldims = combinedims(dims(s), refdims)
     dimcolumns = collect(_dimcolumns(alldims))
@@ -128,7 +127,7 @@ function DimTable(
     xs::Vararg{AbstractDimArray};
     layernames=nothing,
     mergedims=nothing,
-    refdims=refdims(first(xs)),
+    refdims=(),
 )
     # Check that dims are compatible
     comparedims(xs...)
@@ -151,7 +150,7 @@ function DimTable(
     x::AbstractDimArray;
     layersfrom=nothing,
     mergedims=nothing,
-    refdims=refdims(x),
+    refdims=(),
 )
     if !isnothing(layersfrom) && any(hasdim(x, layersfrom))
         d = dims(x, layersfrom)
@@ -201,7 +200,7 @@ Tables.columnaccess(::Type{<:DimTable}) = true
 Tables.columns(t::DimTable) = t
 Tables.columnnames(c::DimTable) = colnames(c)
 
-function Tables.schema(t::DimTable) 
+function Tables.schema(t::DimTable)
     types = vcat([map(eltype, dimcolumns(t))...], [map(eltype, dimarraycolumns(t))...])
     Tables.Schema(colnames(t), types)
 end
