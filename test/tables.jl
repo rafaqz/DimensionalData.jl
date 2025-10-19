@@ -19,7 +19,9 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
 
         nrows = prod(size(da)) * ref_size
         col_names = (:X, :Y, :test, ref_names..., :data)
+        col_names_no_ref = (:X, :Y, :test, :data)
         col_eltypes = (Symbol, Float64, Float64, map(eltype, dim_ref)..., Float64)
+        col_eltypes_no_ref = (Symbol, Float64, Float64, Float64)
         dim_vals = vec(collect(Iterators.product(dimz..., dim_ref...)))
         col_vals = [getindex.(dim_vals, i) for i in eachindex(first(dim_vals))]
         push!(col_vals, ones(nrows))
@@ -31,7 +33,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
         @test parent(t) === ds
         t2 = Tables.columns(ds)
         @test t2 isa DimTable
-        if !isempty(dim_ref)
+        if isempty(dim_ref)
             @test Tables.columnnames(t2) == Tables.columnnames(t)
         end
 
@@ -44,14 +46,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
         @test Tables.columnaccess(t) == Tables.columnaccess(da) ==
             Tables.columnaccess(ds) == true
         @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
-        @test Tables.columnnames(t) == Tables.columnnames(da) == Tables.columnnames(ds) ==
-            col_names
-
-        sa = Tables.schema(da)
-        sds = Tables.schema(ds)
-        st = Tables.schema(t)
-        @test sa.names == sds.names == st.names == col_names
-        @test sa.types == sds.types == st.types == col_eltypes
+        @test Tables.columnnames(t) == col_names
 
         alldims = combinedims(dims(ds), dim_ref)
         col_dims = (alldims..., fill(nothing, length(col_names) - length(alldims))...)
@@ -59,19 +54,31 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
             zip(col_names, col_dims, col_eltypes),
         )
             col_val = Tables.getcolumn(t, i)
-            @test col_val == Tables.getcolumn(t, col) ==
-                Tables.getcolumn(da, i) == Tables.getcolumn(da, col) ==
-                Tables.getcolumn(ds, i) == Tables.getcolumn(ds, col) ==
-                Tables.getcolumn(ds, i)[:] == Tables.getcolumn(t, col_eltype, i, col) ==
-                col_vals[i]
+            @test col_val == Tables.getcolumn(t, col) == col_vals[i]
 
             if !isnothing(dim)
-                @test col_val == Tables.getcolumn(t, dim) == Tables.getcolumn(ds, dim) ==
-                    Tables.getcolumn(da, dim)
+                @test col_val == Tables.getcolumn(t, dim)
             end
         end
         @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
         @test_throws BoundsError Tables.getcolumn(t, length(col_names) + 1)
+
+        sa = Tables.schema(da)
+        sds = Tables.schema(ds)
+        st = Tables.schema(t)
+
+        @testset "consistency of DimStack and DimArray Tables interfaces" begin
+            @test Tables.columnnames(da) == Tables.columnnames(ds) == sa.names == sds.names == col_names_no_ref
+            @test sa.types == sds.types == col_eltypes_no_ref
+            @test Tables.columntable(da) == Tables.columntable(ds)
+        end
+
+        isempty(dim_ref) || continue
+        @testset "DimTable interface with no refdims consistent with DimStack/DimArray Tables interfaces" begin
+            @test sa.names == col_names
+            @test sa.types == col_eltypes
+            @test Tables.columntable(da) == Tables.columntable(t)
+        end
     end
 end
 
