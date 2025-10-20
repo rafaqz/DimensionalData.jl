@@ -78,6 +78,18 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
             @test sa.names == col_names
             @test sa.types == col_eltypes
             @test Tables.columntable(da) == Tables.columntable(t)
+            @testset for (i, (col, dim, col_eltype)) in enumerate(
+                zip(col_names, col_dims, col_eltypes),
+            )
+                @test col_vals[i] == Tables.getcolumn(da, col) == Tables.getcolumn(ds, col) ==
+                    Tables.getcolumn(da, i) == Tables.getcolumn(ds, i)
+
+                if !isnothing(dim)
+                    @test col_vals[i] == Tables.getcolumn(da, dim) ==
+                        Tables.getcolumn(ds, dim) == Tables.getcolumn(da, typeof(dim)) ==
+                        Tables.getcolumn(ds, typeof(dim))
+                end
+            end
         end
     end
 end
