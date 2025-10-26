@@ -96,9 +96,9 @@ function Base.similar(bc::Broadcasted{<:DimensionalStyle{S}}, ::Type{T}) where {
     similar(A; data, dims = dims(axes(bc)))
 end
 
-@inline function Base.materialize!(::S, dest, bc::Broadcasted) where S<:DimensionalStyle
+@inline function Base.materialize!(::DimensionalStyle, dest, bc::Broadcasted)
     # check dimensions
-    bci = Broadcast.instantiate(Broadcasted{S}(bc.f, bc.args, axes(dest)))
+    bci = Broadcast.instantiate(Broadcasted(bc.style, bc.f, bc.args, axes(dest)))
     # unwrap before copying
     Base.copyto!(_unwrap_broadcasted(dest), _unwrap_broadcasted(bci))
     return dest
