@@ -84,49 +84,78 @@ Base.:*(A::Adjoint{<:Any,<:AbstractMatrix{T}}, B::AbstractDimArray{S,1}) where {
 
 function _rebuildmul(A::AbstractDimVector, B::AbstractDimMatrix)
     # Vector has no dim 2 to compare
-    rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B)),))
+    out_dims = (_leading_dim_mul(A), _trailing_dim_mul(B))
+    rebuild(B, parent(A) * parent(B), out_dims)
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimVector)
     _comparedims_mul(A, B)
-    rebuild(A, parent(A) * parent(B), (first(dims(A)),))
+    out_dims = (_leading_dim_mul(A),)
+    rebuild(B, parent(A) * parent(B), out_dims)
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractDimMatrix)
     _comparedims_mul(A, B)
-    rebuild(A, parent(A) * parent(B), (first(dims(A)), last(dims(B))))
+    out_dims = (_leading_dim_mul(A), _trailing_dim_mul(B))
+    rebuild(A, parent(A) * parent(B), out_dims)
 end
 function _rebuildmul(A::AbstractDimVector, B::AbstractMatrix)
-    rebuild(A, parent(A) * B, (first(dims(A)), AnonDim(Base.OneTo(size(B, 2)))))
+    out_dims = (_leading_dim_mul(A), _trailing_dim_mul(B))
+    rebuild(A, parent(A) * B, out_dims)
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractVector)
     newdata = parent(A) * B
     if newdata isa AbstractArray
-        rebuild(A, parent(A) * B, (first(dims(A)),))
+        out_dims = (_leading_dim_mul(A),)
+        rebuild(B, newdata, out_dims)
     else
         newdata
     end
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractMatrix)
-    rebuild(A, parent(A) * B, (first(dims(A)), AnonDim(Base.OneTo(size(B, 2)))))
+    _comparedims_mul(A, B)
+    out_dim = _leading_dim_mul(A)
+    rebuild(A, parent(A) * B, (out_dim, AnonDim(Base.OneTo(size(B, 2)))))
 end
 function _rebuildmul(A::AbstractVector, B::AbstractDimMatrix)
-    rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))))
+    _comparedims_mul(A, B)
+    out_dims = (_leading_dim_mul(A), _trailing_dim_mul(B))
+    rebuild(B, A * parent(B), out_dims)
 end
 function _rebuildmul(A::AbstractMatrix, B::AbstractDimVector)
+    _comparedims_mul(A, B)
     newdata = A * parent(B)
     if newdata isa AbstractArray
-        rebuild(B, A * parent(B), (AnonDim(Base.OneTo(1)),))
+        out_dim = _leading_dim_mul(A)
+        rebuild(B, newdata, (out_dim,))
     else
         newdata
     end
 end
 function _rebuildmul(A::AbstractMatrix, B::AbstractDimMatrix)
-    rebuild(B, A * parent(B), (AnonDim(Base.OneTo(size(A, 1))), last(dims(B))))
+    _comparedims_mul(A, B)
+    out_dim1 = _leading_dim_mul(A)
+    rebuild(B, A * parent(B), (out_dim1, last(dims(B))))
 end
 
 function _comparedims_mul(a, b)
+    adims = dims(a)
+    adims === nothing && return true
+    bdims = dims(b)
+    bdims === nothing && return true
     # Dont need to compare length if we compare values
     isstrict = strict_matmul()
-    comparedims(last(dims(a)), first(dims(b)); 
+    comparedims(last(adims), first(bdims);
         order=isstrict, val=isstrict, length=false
     )
+end
+
+function _leading_dim_mul(a::AbstractVecOrMat)
+    adims = dims(a)
+    adims === nothing && return AnonDim(axes(a, 1))
+    first(adims)
+end
+
+function _trailing_dim_mul(a::AbstractMatrix)
+    adims = dims(a)
+    adims === nothing && return (AnonDim(axes(a, 2)),)
+    last(adims)
 end
