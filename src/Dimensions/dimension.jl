@@ -1,3 +1,6 @@
+# These are all the function that you can call on objects and call function(dims(obs, args...))
+const INTERFACE_QUERY_FUNCTION_NAMES = (:lookup, :order, :sampling, :span, :bounds, :intervalbounds, :locus)
+
 """
     Dimension 
 
@@ -179,13 +182,23 @@ lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
+name(s::Symbol) = s
 
 label(x) = string(name(x))
 
 # Lookups methods
-Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
-
-Lookups.bounds(dim::Dimension) = bounds(val(dim))
+for func in (:order, :span, :sampling, :locus, :metadata, :bounds)
+    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
+end
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
+for f in (:val, :metadata, :name, :label, :units, INTERFACE_QUERY_FUNCTION_NAMES...)
+    @eval begin
+        $f(ds::Tuple) = map($f, ds)
+        $f(::Tuple{}) = ()
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
+    end
+end
 Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
     @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
@@ -213,21 +226,6 @@ function hasselection(ds::DimTuple, selector::Selector)
 end
 hasselection(dim::Dimension, seldim::Dimension) = hasselection(dim, val(seldim))
 hasselection(dim::Dimension, sel::Selector) = hasselection(lookup(dim), sel)
-
-for func in (:order, :span, :sampling, :locus)
-    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
-end
-
-# Dispatch on Tuple{<:Dimension}, and map to single dim methods
-for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
-          :name, :label, :units)
-    @eval begin
-        $f(ds::Tuple) = map($f, ds)
-        $f(::Tuple{}) = ()
-        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
-    end
-end
 
 @inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
@@ -258,10 +256,6 @@ end
 @inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
-# Deprecated
-Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
-
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
 
@@ -274,6 +268,7 @@ Base.axes(d::Dimension, i) = axes(d)[i]
 Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
 Base.ndims(d::Dimension) = 0
+Base.parentindices(d::Dimension{<:AbstractArray}) = parentindices(parent(d))
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
 Base.iterate(d::Dimension{<:AbstractArray}, args...) = iterate(lookup(d), args...)
 Base.first(d::Dimension) = val(d)

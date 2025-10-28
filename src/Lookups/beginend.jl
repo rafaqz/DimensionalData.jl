@@ -45,6 +45,8 @@ Base.to_indices(A, inds, (r, args...)::Tuple{<:Union{Begin,End,<:LazyMath},Varar
 _to_index(inds, a::Int) = a
 _to_index(inds, ::Begin) = first(inds)
 _to_index(inds, ::End) = last(inds)
+_to_index(inds, ::Type{Begin}) = first(inds)
+_to_index(inds, ::Type{End}) = last(inds)
 _to_index(inds, l::LazyMath{End}) = l.f(last(inds))
 _to_index(inds, l::LazyMath{Begin}) = l.f(first(inds))
 
