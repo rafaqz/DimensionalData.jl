@@ -207,21 +207,23 @@ function DimTable(A::AbstractDimArray;
         A1 = isnothing(mergedims) ? A : DD.mergedims(A, mergedims)
         if eltype(A1) <: NamedTuple
             if isnothing(preservedims)
+                alldims = combinedims(dims(A1), refdims)
                 dimcolumns = collect(_dimcolumns(A1))
                 colnames = collect(_colnames(A1))
                 dimarrayrows = vec(parent(A1))
-                return DimTable{Rows}(A1, colnames, dimcolumns, dimarrayrows)
+                return DimTable{Rows}(A1, alldims, colnames, dimcolumns, dimarrayrows)
             else
                 las = layerarrays(A1)
                 layernames = collect(keys(las))
-                return DimTable(collect(las); layernames, mergedims, preservedims)
+                return DimTable(collect(las); layernames, mergedims, preservedims, refdims)
             end
         else
             A2 = _maybe_presevedims(A1, preservedims)
+            alldims = combinedims(dims(A2), refdims)
             dimcolumns = collect(_dimcolumns(A2))
             colnames = collect(_colnames(A2))
             dimarraycolumns = [vec(parent(A2))]
-            return DimTable{Columns}(A2, colnames, dimcolumns, dimarraycolumns)
+            return DimTable{Columns}(A2, alldims, colnames, dimcolumns, dimarraycolumns)
         end
     end
 end
