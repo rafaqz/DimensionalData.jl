@@ -105,7 +105,7 @@ function _rebuildmul(A::AbstractDimMatrix, B::AbstractVector)
     newdata = parent(A) * B
     if newdata isa AbstractArray
         out_dims = (_leading_dim_mul(A),)
-        rebuild(B, newdata, out_dims)
+        rebuild(A, newdata, out_dims)
     else
         newdata
     end
@@ -156,6 +156,6 @@ end
 
 function _trailing_dim_mul(a::AbstractMatrix)
     adims = dims(a)
-    adims === nothing && return (AnonDim(axes(a, 2)),)
+    adims === nothing && return AnonDim(axes(a, 2))
     last(adims)
 end
