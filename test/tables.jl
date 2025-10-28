@@ -318,6 +318,12 @@ end
         @test only(dims(t3)) isa Dim{:geometry}
         @test Tables.getcolumn(t2, :vals)[1] isa DimArray
     end
+    @testset "preservedims with refdims" begin
+        t4 = DimTable(A[X(1), Y(2)]; preservedims=:band)
+        @test comparedims(Bool, getfield(t4, :dims), (x[1:1], y[2:2]))
+        @test Tables.getcolumn(t4, :vals)[1] isa DimArray
+        @test comparedims(Bool, refdims(Tables.getcolumn(t4, :vals)[1]), (x[1:1], y[2:2]))
+    end
 end
 
 @testset "DimTable NamedTuple" begin
