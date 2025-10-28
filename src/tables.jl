@@ -210,9 +210,9 @@ function DimTable(A::AbstractDimArray;
         if eltype(A1) <: NamedTuple
             if isnothing(preservedims)
                 alldims = combinedims(dims(A1), refdims)
-                dimcolumns = collect(_dimcolumns(A1))
+                dimcolumns = collect(_dimcolumns(alldims))
                 colnames = collect(_colnames(A1, alldims))
-                dimarrayrows = vec(parent(A1))
+                dimarrayrows = vec(DimExtensionArray(A1, alldims))
                 return DimTable{Rows}(A1, alldims, colnames, dimcolumns, dimarrayrows)
             else
                 las = layerarrays(A1)
@@ -275,7 +275,7 @@ _eltypes(::Type{T}) where T<:NamedTuple = collect(T.types)
 
 @inline function Tables.getcolumn(t::DimTable{Rows}, i::Int)
     nkeys = length(colnames(t))
-    if i > length(dims(t))
+    if i > length(_dims(t))
         map(nt -> nt[i], dimarraycolumns(t))
     elseif i > 0 && i < nkeys
         dimcolumns(t)[i]
@@ -298,7 +298,7 @@ end
 end
 @inline function Tables.getcolumn(t::DimTable{Rows}, key::Symbol)
     key in colnames(t) || throw(ArgumentError("There is no table column $key"))
-    if hasdim(parent(t), key)
+    if hasdim(_dims(t), key)
         dimcolumns(t)[dimnum(_dims(t), key)]
     else
         # Function barrier
