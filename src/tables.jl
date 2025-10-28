@@ -292,12 +292,12 @@ end
     end
 end
 @inline function Tables.getcolumn(t::DimTable, dim::Union{Dimension,Type{<:Dimension}})
-    dimcolumns(t)[dimnum(t, dim)]
+    dimcolumns(t)[dimnum(_dims(t), dim)]
 end
 @inline function Tables.getcolumn(t::DimTable{Rows}, key::Symbol)
     key in colnames(t) || throw(ArgumentError("There is no table column $key"))
     if hasdim(parent(t), key)
-        dimcolumns(t)[dimnum(t, key)]
+        dimcolumns(t)[dimnum(_dims(t), key)]
     else
         # Function barrier
         _col_from_rows(dimarraycolumns(t), key)
