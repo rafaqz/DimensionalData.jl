@@ -45,18 +45,17 @@ Tables.schema(x::DimTableSources) = Tables.schema(DimTable(x))
 @inline Tables.getcolumn(x::DimTableSources, key::DimOrDimType) =
     Tables.getcolumn(DimTable(x), key)
 
-_colnames(s::AbstractDimStack) = _colnames(s, dims(s))
-function _colnames(s::AbstractDimStack, alldims::Tuple)
-    dimkeys = map(name, alldims)
+function _colnames(s::AbstractDimStack, dims::Tuple=dims(s))
+    dimkeys = map(name, dims)
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
-function _colnames(A::AbstractDimArray)
+function _colnames(A::AbstractDimArray, dims::Tuple=dims(A))
     n = Symbol(name(A)) == Symbol("") ? :value : Symbol(name(A))
-    (map(name, dims(A))..., n)
+    (map(name, dims)..., n)
 end
-_colnames(A::AbstractDimArray{T}) where T<:NamedTuple =
-    (map(name, dims(A))..., _colnames(T)...)
+_colnames(A::AbstractDimArray{T}, dims::Tuple=dims(A)) where T<:NamedTuple =
+    (map(name, dims)..., _colnames(T)...)
 _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 
 # DimTable
@@ -209,7 +208,7 @@ function DimTable(A::AbstractDimArray;
             if isnothing(preservedims)
                 alldims = combinedims(dims(A1), refdims)
                 dimcolumns = collect(_dimcolumns(A1))
-                colnames = collect(_colnames(A1))
+                colnames = collect(_colnames(A1, alldims))
                 dimarrayrows = vec(parent(A1))
                 return DimTable{Rows}(A1, alldims, colnames, dimcolumns, dimarrayrows)
             else
@@ -220,8 +219,8 @@ function DimTable(A::AbstractDimArray;
         else
             A2 = _maybe_presevedims(A1, preservedims)
             alldims = combinedims(dims(A2), refdims)
-            dimcolumns = collect(_dimcolumns(A2))
-            colnames = collect(_colnames(A2))
+            dimcolumns = collect(_dimcolumns(alldims))
+            colnames = collect(_colnames(A2, alldims))
             dimarraycolumns = [vec(parent(A2))]
             return DimTable{Columns}(A2, alldims, colnames, dimcolumns, dimarraycolumns)
         end
