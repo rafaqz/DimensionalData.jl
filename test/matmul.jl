@@ -83,7 +83,9 @@ end
         @testset "$T" for T in special_types
             x = T(ones(5,5))
             @test dims(x * da) isa Tuple{<:AnonDim, Dim{:b}}
+            @test lookup(dims(x * da, 1)) == axes(x, 1)
             @test dims(da * x) isa Tuple{Dim{:a}, <:AnonDim}
+            @test lookup(dims(da * x, 2)) == axes(x, 2)
             @test typeof(x * da) <: DimArray
             @test typeof(da * x) <: DimArray
             @test parent(da' * x) == parent(da)' * x
@@ -96,7 +98,9 @@ end
         @testset "$T" for T in special_types
             x = T(ones(5,5))
             @test dims(x * dv) isa Tuple{<:AnonDim}
+            @test lookup(dims(x * dv)[1]) == axes(x, 1)
             @test dims(dv' * x) isa Tuple{<:AnonDim,<:AnonDim}
+            @test lookup(dims(dv' * x)) == (axes(dv, 2), axes(x, 2))
             @test typeof(x * dv) <: DimArray
             @test typeof(dv' * x) <: DimArray
             @test parent(dv' * x) == parent(dv)' * x
@@ -107,6 +111,7 @@ end
             @test x * dv === 15.0
             @test typeof(dv * x) <: DimArray
             @test dims(dv * x) isa Tuple{<:Dim{:vec},AnonDim}
+            @test lookup(dims(dv * x, 2)) === axes(x, 2)
             @test dv * x == vcat(x, x, x, x, x)
         end
 
