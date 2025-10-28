@@ -319,10 +319,10 @@ end
         @test Tables.getcolumn(t2, :vals)[1] isa DimArray
     end
     @testset "preservedims with refdims" begin
-        t4 = DimTable(A[X(1), Y(2)]; preservedims=:band)
-        @test comparedims(Bool, getfield(t4, :dims), (x[1:1], y[2:2]))
+        z = Z(2:4)
+        t4 = DimTable(A; preservedims=:band, refdims=(z,))
+        @test comparedims(Bool, getfield(t4, :dims), (x, y, z))
         @test Tables.getcolumn(t4, :vals)[1] isa DimArray
-        @test comparedims(Bool, refdims(Tables.getcolumn(t4, :vals)[1]), (x[1:1], y[2:2]))
     end
 end
 
@@ -335,6 +335,18 @@ end
         @test s.types == (Int, Float32, Float64)
         @test all(t.a .=== 1.0f0:10.0f0)
         @test all(t.b .=== 2.0:2.0:20.0)
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:X, :Z, :a, :b)
+            @test all(t2.Z .== collect(Iterators.flatten(fill(zi, length(da)) for zi in z)))
+            @testset for col in (:X, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
 
     @testset "Matrix of NamedTuple" begin
@@ -345,6 +357,17 @@ end
         @test s.types == (Int, Int, Float32, Float64)
         @test all(t.a .=== reduce(vcat, [1.0f0y:y:10.0f0y for y in 1:5]))
         @test all(t.b .=== reduce(vcat, [2.0y:2.0y:20.0y for y in 1:5]))
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:X, :Y, :Z, :a, :b)
+            @testset for col in (:X, :Y, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
     @testset "Matrix of NamedTuple with preservedims" begin
         da = [(; a=1.0f0x*y, b=2.0x*y) for x in X(1:10), y in Y(1:5)]
@@ -356,5 +379,16 @@ end
         @test s.types[2] <: DimVector
         @test all(t.a .== [[1.0f0x*y for x in X(1:10)] for y in Y(1:5)])
         @test all(t.b .== [[2.0x*y for x in X(1:10)] for y in Y(1:5)])
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; preservedims=X, refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:Y, :Z, :a, :b)
+            @testset for col in (:Y, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
 end
