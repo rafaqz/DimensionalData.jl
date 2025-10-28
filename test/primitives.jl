@@ -378,10 +378,10 @@ end
 
 @testset "setdims" begin
     A = setdims(da, X(Sampled(LinRange(150,152,2))))
-    @test index(A, X()) == LinRange(150,152,2)
+    @test lookup(A, X()) == LinRange(150,152,2)
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
     A = setdims(da, Y(Sampled(10:12)), X(Sampled(LinRange(150,152,2))))
-    @test index(dims(dims(A), Y())) == 10:12
+    @test lookup(dims(dims(A), Y())) == 10:12
     @test dims(dims(A)) isa Tuple{<:X,<:Y}
     @testset "set an empty tuple" begin
         A = setdims(da, ())
@@ -399,8 +399,8 @@ end
     @testset "swap whole dim instances" begin
         A = swapdims(da, Z(2:2:4), Dim{:test2}(3:5))
         @test dims(A) isa Tuple{<:Z,<:Dim{:test2}}
-        @test map(index, dims(A)) === (2:2:4, 3:5)
-        @test map(lookup, dims(A)) ===
+        @test map(parent, lookup(A)) === (2:2:4, 3:5)
+        @test lookup(A) ===
             (Sampled(2:2:4, ForwardOrdered(), Regular(2), Points(), NoMetadata()),
              Sampled(3:5, ForwardOrdered(), Regular(1), Points(), NoMetadata()))
     end
