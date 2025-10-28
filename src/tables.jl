@@ -179,7 +179,6 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
         end
     end
     alldims = combinedims(dims(first(As)), refdims)
-    dims_ = dims(first(As))
     dimcolumns = collect(_dimcolumns(alldims))
     dimnames = collect(map(name, alldims))
     dimarraycolumns = collect(map(vec ∘ parent, As))
