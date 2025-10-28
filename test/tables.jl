@@ -26,9 +26,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
 
         nrows = prod(size(da)) * ref_size
         col_names = (:X, :Y, :test, ref_names..., :data)
-        col_names_no_ref = (:X, :Y, :test, :data)
         col_eltypes = (Symbol, Float64, Float64, map(eltype, dim_ref)..., Float64)
-        col_eltypes_no_ref = (Symbol, Float64, Float64, Float64)
         dim_vals = vec(collect(Iterators.product(dimz..., dim_ref...)))
         col_vals = [getindex.(dim_vals, i) for i in eachindex(first(dim_vals))]
         push!(col_vals, ones(nrows))
@@ -40,7 +38,7 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
         @test parent(t) === ds
         t2 = Tables.columns(ds)
         @test t2 isa DimTable
-        if isempty(dim_ref)
+        if !isempty(dim_ref)
             @test Tables.columnnames(t2) == Tables.columnnames(t)
         end
 
@@ -75,13 +73,13 @@ da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
         st = Tables.schema(t)
 
         @testset "consistency of DimStack and DimArray Tables interfaces" begin
-            @test Tables.columnnames(da) == Tables.columnnames(ds) == sa.names == sds.names == col_names_no_ref
-            @test sa.types == sds.types == col_eltypes_no_ref
+            @test Tables.columnnames(da) == Tables.columnnames(ds) == sa.names == sds.names == col_names
+            @test sa.types == sds.types == col_eltypes
             @test Tables.columntable(da) == Tables.columntable(ds)
         end
 
-        isempty(dim_ref) || continue
-        @testset "DimTable interface with no refdims consistent with DimStack/DimArray Tables interfaces" begin
+        isempty(dim_ref) && continue
+        @testset "DimTable interface with refdims consistent with DimStack/DimArray Tables interfaces" begin
             @test sa.names == col_names
             @test sa.types == col_eltypes
             @test Tables.columntable(da) == Tables.columntable(t)
@@ -271,7 +269,7 @@ end
                 ds_ = DimStack(table)
                 @test keys(ds_) == (:a, :b, :c)
                 @test parent(ds_.a[X = At(100:-1:1), Y = At(-250:5:249)]) == parent(a)
- 
+
             end
         end
 

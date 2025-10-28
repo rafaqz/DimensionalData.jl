@@ -45,16 +45,18 @@ Tables.schema(x::DimTableSources) = Tables.schema(DimTable(x))
 @inline Tables.getcolumn(x::DimTableSources, key::DimOrDimType) =
     Tables.getcolumn(DimTable(x), key)
 
-function _colnames(s::AbstractDimStack, dims::Tuple=dims(s))
+_alldims(x) = combinedims(dims(x), refdims(x))
+
+function _colnames(s::AbstractDimStack, dims::Tuple=_alldims(s))
     dimkeys = map(name, dims)
     # The data is always the last column/s
     (dimkeys..., keys(s)...)
 end
-function _colnames(A::AbstractDimArray, dims::Tuple=dims(A))
+function _colnames(A::AbstractDimArray, dims::Tuple=_alldims(A))
     n = Symbol(name(A)) == Symbol("") ? :value : Symbol(name(A))
     (map(name, dims)..., n)
 end
-_colnames(A::AbstractDimArray{T}, dims::Tuple=dims(A)) where T<:NamedTuple =
+_colnames(A::AbstractDimArray{T}, dims::Tuple=_alldims(A)) where T<:NamedTuple =
     (map(name, dims)..., _colnames(T)...)
 _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 
@@ -87,7 +89,8 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
     rather than scalar values.
 - `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`
     by specifying a dimension to use as layers.
-- `refdims`: Additional reference dimensions to add to the table, defaults to `()`.
+- `refdims`: Additional reference dimensions to add to the table, defaults to reference
+    dimensions of the table source.
 
 # Example
 
@@ -120,7 +123,7 @@ DimTable with 12 rows, 3 columns, and schema:
 ```
 
 ```julia
-julia> DimTable(A[X(3), Y(2)]; refdims=(X(3:3), Y(2:2)))  # slice X and Y and add the reference dimensions
+julia> DimTable(A[X(3), Y(2)])  # slice X and Y (included as reference dimensions)
 DimTable with 3 rows, 4 columns, and schema:
  :band   Int64
  :X      Int64
@@ -138,7 +141,7 @@ end
 function DimTable(s::AbstractDimStack;
     mergedims=nothing,
     preservedims=nothing,
-    refdims=(),
+    refdims=refdims(s),
 )
     s = isnothing(mergedims) ? s : DD.mergedims(s, mergedims)
     s = if isnothing(preservedims)
@@ -162,7 +165,7 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
     layernames=nothing,
     mergedims=nothing,
     preservedims=nothing,
-    refdims=(),
+    refdims=refdims(first(As)),
 )
     # Check that dims are compatible
     comparedims(As)
@@ -190,7 +193,7 @@ function DimTable(A::AbstractDimArray;
     layersfrom=nothing,
     mergedims=nothing,
     preservedims=nothing,
-    refdims=(),
+    refdims=refdims(A),
 )
     if !isnothing(layersfrom) && any(hasdim(A, layersfrom))
         d = dims(A, layersfrom)
