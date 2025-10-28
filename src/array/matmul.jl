@@ -102,6 +102,7 @@ function _rebuildmul(A::AbstractDimVector, B::AbstractMatrix)
     rebuild(A, parent(A) * B, out_dims)
 end
 function _rebuildmul(A::AbstractDimMatrix, B::AbstractVector)
+    _comparedims_mul(A, B)
     newdata = parent(A) * B
     if newdata isa AbstractArray
         out_dims = (_leading_dim_mul(A),)
@@ -116,7 +117,7 @@ function _rebuildmul(A::AbstractDimMatrix, B::AbstractMatrix)
     rebuild(A, parent(A) * B, (out_dim, AnonDim(Base.OneTo(size(B, 2)))))
 end
 function _rebuildmul(A::AbstractVector, B::AbstractDimMatrix)
-    _comparedims_mul(A, B)
+    # Vector has no dim 2 to compare
     out_dims = (_leading_dim_mul(A), _trailing_dim_mul(B))
     rebuild(B, A * parent(B), out_dims)
 end
