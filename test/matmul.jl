@@ -113,3 +113,50 @@ end
     end
 
 end
+
+struct ArrayMulWrapper{T,N} <: AbstractArray{T,N}
+    data::AbstractDimArray{T,N}
+end
+VecOrMatMulWrapper{T} = Union{ArrayMulWrapper{T,1},ArrayMulWrapper{T,2}}
+Base.size(x::ArrayMulWrapper) = size(x.data)
+Base.axes(x::ArrayMulWrapper) = axes(x.data)
+Base.getindex(x::ArrayMulWrapper, i::Int) = x.data[i]
+Base.getindex(x::ArrayMulWrapper, I::Vararg{Int, N}) where {N} = x.data[I...]
+Base.:*(A::VecOrMatMulWrapper, B::VecOrMat) = A.data * B
+Base.:*(A::VecOrMat, B::VecOrMatMulWrapper) = A * B.data
+
+@testset "DimArrays constructed with DimUnitRange axes" begin
+    x = X(0f0:2f0)
+    y = Y(5.0:7.0)
+    z = Z(['a', 'b'])
+    t = Ti([:c])
+
+    @testset for ((Adims, Bdims), Cdims) in [
+        ((x, y), (y, z)) => (x, z),
+        ((x, y), (y,)) => (x,),
+        ((x,), (t, z)) => (x, z),
+    ]
+        A = rand(Adims...)
+        B = rand(Bdims...)
+        C = ArrayMulWrapper(A) * B
+        @test C isa DimArray
+        @test C ≈ A * B
+        @test Dimensions.comparedims(Bool, C, Cdims)
+        C2 = A * ArrayMulWrapper(B)
+        @test C2 isa DimArray
+        @test C ≈ A * B
+        @test Dimensions.comparedims(Bool, C2, Cdims)
+    end
+
+    yalt = Y(3.0:5.0)
+    @test length(yalt) == length(y)
+    @testset for (Adims, Bdims) in [
+        ((x, y), (yalt, z)),
+        ((x, y), (yalt,)),
+    ]
+        A = rand(Adims...)
+        B = rand(Bdims...)
+        @test_throws DimensionMismatch ArrayMulWrapper(A) * B
+        @test_throws DimensionMismatch A * ArrayMulWrapper(B)
+    end
+end
