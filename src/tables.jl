@@ -156,7 +156,7 @@ function DimTable(s::AbstractDimStack;
     dimarraycolumns = if hassamedims(s) && isempty(refdims)
         map(vec, layers(s))
     else
-        map(A -> vec(DimExtensionArray(A, alldims)), layers(s))
+        map(A -> vec(_maybe_dimextended(A, alldims)), layers(s))
     end |> collect
     keys = collect(_colnames(s, alldims))
     return DimTable{Columns}(s, alldims, keys, dimcolumns, dimarraycolumns)
@@ -183,7 +183,7 @@ function DimTable(As::AbstractVector{<:AbstractDimArray};
     alldims = combinedims(dims(first(As)), refdims)
     dimcolumns = collect(_dimcolumns(alldims))
     dimnames = collect(map(name, alldims))
-    dimarraycolumns = collect(map(vec ∘ Base.Fix2(DimExtensionArray, alldims), As))
+    dimarraycolumns = collect(map(vec ∘ Base.Fix2(_maybe_dimextended, alldims), As))
     colnames = vcat(dimnames, layernames)
 
     # Return DimTable
@@ -212,7 +212,7 @@ function DimTable(A::AbstractDimArray;
                 alldims = combinedims(dims(A1), refdims)
                 dimcolumns = collect(_dimcolumns(alldims))
                 colnames = collect(_colnames(A1, alldims))
-                dimarrayrows = vec(DimExtensionArray(A1, alldims))
+                dimarrayrows = vec(_maybe_dimextended(A1, alldims))
                 return DimTable{Rows}(A1, alldims, colnames, dimcolumns, dimarrayrows)
             else
                 las = layerarrays(A1)
@@ -224,10 +224,14 @@ function DimTable(A::AbstractDimArray;
             alldims = combinedims(dims(A2), refdims)
             dimcolumns = collect(_dimcolumns(alldims))
             colnames = collect(_colnames(A2, alldims))
-            dimarraycolumns = [vec(DimExtensionArray(A2, alldims))]
+            dimarraycolumns = [vec(_maybe_dimextended(A2, alldims))]
             return DimTable{Columns}(A2, alldims, colnames, dimcolumns, dimarraycolumns)
         end
     end
+end
+
+function _maybe_dimextended(A, dims)
+    return dimsmatch(Dimensions.dims(A), dims) ? A : DimExtensionArray(A, dims)
 end
 
 _maybe_presevedims(A, preservedims::Nothing) = A
@@ -243,7 +247,7 @@ function _dimcolumn(x, d::Dimension)
         lookupvals
     else
         dim_as_dimarray = DimArray(lookupvals, d)
-        vec(DimExtensionArray(dim_as_dimarray, dims(x)))
+        vec(_maybe_dimextended(dim_as_dimarray, dims(x)))
     end
 end
 
