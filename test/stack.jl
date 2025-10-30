@@ -398,7 +398,7 @@ end
 @testset "isequal and == with missing" begin
     a = [missing 1; 1 1]
     da1 = DimArray(a, (X(1:2), Y(1:2)))
-    da2 = DimArray(a, (X(2:3), Y(2:3)))
+    da2 = DimArray(copy(a), (X(2:3), Y(2:3)))
     ds1 = DimStack(da1)
     ds2 = DimStack(da2)
     @test (ds1 == ds2) == false
