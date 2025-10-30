@@ -54,7 +54,7 @@ end
         testdims = (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
              Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Explicit(reshape([-38, -34], 2, 1)), Intervals(Center()), NoMetadata())))
         @test typeof(DimensionalData.dims(sum(da; dims))) == typeof(testdims)
-        @test index(sum(da; dims)) == index.(testdims)
+        @test lookup(sum(da; dims)) == lookup.(testdims)
         @test val.(span(sum(da; dims))) == val.(span(testdims))
     end
     for dims in xys
@@ -66,6 +66,11 @@ end
     @test maximum(da; dims=:) == 4
     @test sum(da; dims=:) == 10
     @test sum(x -> 2x, da; dims=:) == 20
+
+    @test sum(da; dims = 5) == sum(da; dims = :notadim) == 
+        sum(da; dims = (:notadim,)) == da
+    @test maximum(da; dims = 5) == maximum(da; dims = :notadim) == 
+        maximum(da; dims = (:notadim,)) == da
 
     a = [1 2; 3 4]
     dimz = X(143:2:145), Y(-38:2:-36)
@@ -164,7 +169,7 @@ end
         testdims = (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
              Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Explicit(reshape([-38, -34], 2, 1)), Intervals(Center()), NoMetadata())))
         @test typeof(DimensionalData.dims(sum(da; dims))) == typeof(testdims)
-        @test index(sum(da; dims)) == index.(testdims)
+        @test lookup(sum(da; dims)) == lookup.(testdims)
         # @test val.(span(sum(da; dims))) == val.(span(testdims))
     end
     for dims in xys
@@ -562,7 +567,7 @@ end
         @test cat(da, db; dims=(X(),)) == cat(da, db; dims=X()) 
         @test cat(da, db; dims=X) == cat(da, db; dims=(X,)) == cat(da, db; dims=1) == cat(da, db; dims=(1,))
         @test dims(cat(da, db; dims=X)) == testdims
-        @test val(cat(da, db; dims=X)) == val(testdims)
+        @test val(dims(cat(da, db; dims=X))) == val(testdims)
         @test lookup(cat(da, db; dims=X)) == lookup(testdims)
         @test_warn "Lookup values for X" cat(da, db; dims=Y())
         @test cat(da, da; dims=Z(1:2)) == cat(a, a; dims=3)
@@ -570,7 +575,7 @@ end
         @test_warn "Lookup values for X" cat(da, db; dims=(Z(1:2), Ti(1:2)))
         @test cat(da, db; dims=(X(), Ti(1:2))) == cat(a, b; dims=(1, 3))
         dx = cat(da, db; dims=(X, Ti(1:2)))
-        @test all(map(==, index(dx), index(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]), Y(6:8), Ti(1:2)), dx))))
+        @test all(map(==, lookup(dx), lookup(DimensionalData.format((X([4.0, 5.0, 6.0, 7.0]; span=Regular(1.0)), Y(6:8), Ti(1:2)), dx))))
         @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(da, reverse(db; dims=X))
         @test_warn "lookups are misaligned" vcat(db, da)
         @testset "lookup array in dims" begin
@@ -604,7 +609,7 @@ end
             d2 = X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Intervals(), NoMetadata()))
             iri_dim = vcat(d1, d2)
             @test span(iri_dim) == Irregular(1, 9)
-            @test index(iri_dim) == [1, 3, 4, 7, 8]
+            @test lookup(iri_dim) == [1, 3, 4, 7, 8]
             @test lookup(iri_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(1, 9), Intervals(), NoMetadata())
             @test bounds(lookup(iri_dim)) == (1, 9)
             @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
@@ -615,7 +620,7 @@ end
             d2 = X(Sampled([7, 8], ForwardOrdered(), Irregular(7, 9), Points(), NoMetadata()))
             irp_dim = vcat(d1, d2)
             @test span(irp_dim) == Irregular(nothing, nothing)
-            @test index(irp_dim) == [1, 3, 4, 7, 8]
+            @test lookup(irp_dim) == [1, 3, 4, 7, 8]
             @test lookup(irp_dim) == Sampled([1, 3, 4, 7, 8], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
             @test bounds(irp_dim) == (1, 8)
             @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
@@ -642,7 +647,7 @@ end
         d2 = X(Sampled([7.5, 9], ForwardOrdered(), Explicit([7 8; 8 10]), Intervals(Center()), NoMetadata()))
         ed = vcat(d1, d2)
         @test span(ed) == Explicit([1 3 4 7 8; 3 4 7 8 10])
-        @test index(ed) == [2, 3.5, 5, 7.5, 9] 
+        @test lookup(ed) == [2, 3.5, 5, 7.5, 9] 
         @test lookup(ed) == Sampled([2, 3.5, 5, 7.5, 9], ForwardOrdered(), Explicit([1 3 4 7 8; 3 4 7 8 10]), Intervals(Center()), NoMetadata())
         @test_warn "lookups are mixed `ForwardOrdered` and `ReverseOrdered`" vcat(d1, reverse(d2))
         @test_warn "lookups are misaligned" vcat(d2, d1)
@@ -658,13 +663,13 @@ end
         @test vcat(d1, reverse(d2)) == ni_dim
     end
 
-    @testset "rebuild dim index from refdims" begin
+    @testset "rebuild dim lookup from refdims" begin
         slices = map(i -> view(da, Y(i)), 1:3)
         cat_da = cat(slices...; dims=Y)
         @test all(cat_da .== da)
         # The range is rebuilt as a Vector during `cat`
-        @test index(cat_da) == (4.0:5.0, [6.0, 7.0, 8.0])
-        @test index(cat_da) isa Tuple{<:StepRangeLen,<:Vector{Float64}}
+        @test all(lookup(cat_da) .== (4.0:5.0, [6.0, 7.0, 8.0]))
+        @test map(parent, lookup(cat_da)) isa Tuple{<:StepRangeLen,<:Vector{Float64}}
     end
 
     @testset "use lookup from dims" begin

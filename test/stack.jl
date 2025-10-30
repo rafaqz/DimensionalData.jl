@@ -3,7 +3,7 @@ using DimensionalData, Test, LinearAlgebra, Statistics, ConstructionBase, Random
 using DimensionalData: data
 using DimensionalData: Sampled, Categorical, AutoLookup, NoLookup, Transformed,
     Regular, Irregular, Points, Intervals, Start, Center, End,
-    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, layers, basedims
+    Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered, basedims, layerdims, layers, metadata
 
 A = [1.0 2.0 3.0;
      4.0 5.0 6.0]
@@ -34,9 +34,8 @@ mixed = DimStack(da1, da2, da4)
         DimStack((da1[:, 1], da2[:, 1], da3[:, 1]); name=(:one, :two, :three)) ==
         DimStack(da1[:, 1], da2[:, 1], da3[:, 1]; name=(:one, :two, :three)) ==
         DimStack(parent.([da1[:, 1], da2[:, 1], da3[:, 1]]), dimz[1]; name=(:one, :two, :three)) == s[:, 1]
-    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == 
-        dims(DimStack(())) == dims(DimStack(DimArray[])) ==
-        dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
+    @test dims(DimStack()) == dims(DimStack(())) == dims(DimStack(DimArray[])) == 
+        dims(DimStack(NamedTuple())) == dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
     @test DimStack([A, 2A, 3A], (Z(), Ti()); name=(:one, :two, :three), layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
         DimStack((A, 2A, 3A), (Z(), Ti()); name=(:one, :two, :three), layerdims=(one=(Z(), Ti()), two=(Z(), Ti()), three=(Z(), Ti()))) ==
         DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
@@ -64,8 +63,7 @@ end
     @test dims(s, X) == x
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
-    @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
-    @test name(s)== (:one, :two, :three)
+    @test name(s) == (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
@@ -121,11 +119,23 @@ end
     @test all(maplayers(similar(mixed), mixed) do s, m
         dims(s) == dims(m) && dims(s) === dims(m) && eltype(s) === eltype(m)
     end)
-    @test eltype(similar(s, Int)) === @NamedTuple{one::Int, two::Int, three::Int}
+    @test eltype(similar(s, Int)) === 
+    @NamedTuple{one::Int, two::Int, three::Int}
+    @test eltype(similar(s, @NamedTuple{one::Int, two::Float32, three::Bool})) === 
+        @NamedTuple{one::Int, two::Float32, three::Bool}
     st2 = similar(mixed, Bool, x, y)
     @test dims(st2) === (x, y)
     @test dims(st2[:one]) === (x, y)
     @test eltype(st2) === @NamedTuple{one::Bool, two::Bool, extradim::Bool}
+    @test eltype(similar(mixed)) == eltype(mixed)
+    @test size(similar(mixed)) == size(mixed)
+    @test keys(similar(mixed)) == keys(mixed)
+    @test layerdims(similar(mixed)) == layerdims(mixed)
+    xy = (X(), Y()) 
+    @test layerdims(similar(mixed, dims(mixed, (X, Y)))) == (one=xy, two=xy, extradim=xy)
+    st3 = similar(mixed, @NamedTuple{one::Int, two::Float32, extradim::Bool}, (Z([:a, :b, :c]), Ti(1:12), X(1:3)))
+    @test layerdims(st3) == (one=(Ti(), X()), two=(Ti(), X()), extradim=(Z(), Ti(), X()))
+    @test eltype(st3) == @NamedTuple{one::Int, two::Float32, extradim::Bool}
 end
 
 @testset "merge" begin
@@ -137,7 +147,6 @@ end
     @test merge(mixed) === mixed
     @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
     @test keys(merge(s, mixed)) == (:one, :two, :three, :extradim)
-    @test keys(merge(s, (:new=>da4,))) == (:one, :two, :three, :new)
 end
 
 @testset "setindex" begin
@@ -395,4 +404,20 @@ end
     @test (ds1 == ds2) == false
     @test ismissing(ds1 == ds1)
     @test isequal(ds1, ds1)
+end
+
+@testset "skipmissing" begin
+    skips = skipmissing(s)
+    skips2 = skipmissing(mixed)
+    @test eltype(skips) === @NamedTuple{one::Float64, two::Float32, three::Int}
+    @test eltype(skips2) === @NamedTuple{one::Float64, two::Float32, extradim::Float64}
+    @test collect(skips) == vec(s)
+    @test collect(skips2) == vec(mixed)
+
+    da5 = DimArray([missing, 1], x)
+    s2 = DimStack((one = da1, two = da5))
+    @test eltype(skipmissing(s2)) === @NamedTuple{one::Float64, two::Int}
+    cs2 = collect(skipmissing(s2))
+    @test all(getindex.(cs2, :two) .== 1)
+    @test getindex.(cs2, :one) == da1[X=2]
 end

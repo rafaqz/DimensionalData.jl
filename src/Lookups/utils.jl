@@ -111,8 +111,6 @@ end
 _order(A) = first(A) <= last(A) ? ForwardOrdered() : ReverseOrdered()
 _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).left ? ForwardOrdered() : ReverseOrdered()
 
-@deprecate maybeshiftlocus maybeshiftlocus
-@deprecate shiftlocus shiftlocus
 
 # Remove objects of type T from a 
 Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)

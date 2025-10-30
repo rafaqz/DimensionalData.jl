@@ -1,4 +1,4 @@
-module DimensionalDataMakie
+module DimensionalDataMakieExt
 
 using DimensionalData
 using Makie

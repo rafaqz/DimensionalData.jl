@@ -32,9 +32,6 @@ export hasselection, selectindices
 
 export reducelookup, shiftlocus, maybeshiftlocus, promote_first
 
-# Deprecated
-export index
-
 export issampled, iscategorical, iscyclic, isnolookup, isintervals, ispoints, isregular,
     isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse
 
@@ -59,17 +56,15 @@ export Unaligned, Transformed, ArrayLookup
 # Deprecated
 export LookupArray
 
-const StandardIndices = Union{AbstractArray{<:Integer},Colon,Integer,CartesianIndex,CartesianIndices}
-
 # As much as possible keyword rebuild is automatic
 rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 
-include("metadata.jl")
 include("lookup_traits.jl")
+include("metadata.jl")
 include("lookup_arrays.jl")
+include("beginend.jl")
 include("predicates.jl")
 include("selector.jl")
-include("beginend.jl")
 include("indexing.jl")
 include("methods.jl")
 include("utils.jl")

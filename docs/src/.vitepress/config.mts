@@ -31,6 +31,7 @@ const navTemp = {
         { text: 'DiskArrays', link: '/diskarrays' },
         { text: 'Xarray', link: '/xarray' },
         { text: 'Extending DimensionalData', link: '/extending_dd' },
+        { text: 'FFT', link: '/fft' },
       ],
     },
   ],
