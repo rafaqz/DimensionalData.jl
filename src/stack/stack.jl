@@ -25,7 +25,7 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{K,T,N,L} end
+abstract type AbstractDimStack{K,T,N,L,D} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
@@ -445,7 +445,7 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
+struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
     data::L
     dims::D
     refdims::R
