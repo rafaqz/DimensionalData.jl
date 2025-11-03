@@ -111,6 +111,7 @@ include("tree/tree.jl")
 include("tree/show.jl")
 # Other
 include("tables.jl")
+include("interpolations.jl")
 # Combined (easier to work on these in one file)
 include("plotrecipes.jl")
 include("utils.jl")
