@@ -96,6 +96,6 @@ end
         modify(A -> DiskArrays.mockchunks(A, chunks), x)
 end
 
-DD._show_data(A::DiskArrays.AbstractDiskArray) = false
+DD.can_show_data(A::DiskArrays.AbstractDiskArray) = false
 
 end
