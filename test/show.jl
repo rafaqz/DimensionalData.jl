@@ -265,7 +265,7 @@ end
 end
 
 @testset "DiskArray show" begin
-    da = DiskArrays.TestTypes.AccessCountDiskArray(rand(10,10))
+    da = AccessCountDiskArray(rand(10,10))
     dd = DimArray(da, (X(1:10), Y(1:10)))
     sc = sprint(show, MIME("text/plain"), dd)
     @test getindex_count(da) == 0 
