@@ -25,21 +25,6 @@ for f in (:getindex, :view, :dotview)
             Base.$f(parent(A), i)
     end
     @eval begin
-        ### Standard indices
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndex) =
-            Base.$f(A, to_indices(A, (I,))...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndex) =
-            Base.$f(A, to_indices(A, (I,))...)
-        @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, Is::IntegerOrCartesian...) =
-            Base.$f(A, to_indices(A, (i1, i2, Is...))...)
-        # 1D DimArrays dont need linear indexing
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
-            rebuildsliced(Base.$f, A, (i,))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
-        @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...) =
-            rebuildsliced(Base.$f, A, to_indices(A, (i1, i2, Is...)))
-
         ### Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::SelectorOrInterval) = 
             Base.$f(A, dims2indices(A, (i,))...)
@@ -93,6 +78,21 @@ for f in (:getindex, :view, :dotview)
             Dimensions._extradimswarn((d1, ds...))
             return rebuildsliced(Base.$f, A, ())
         end
+
+        ### Standard indices
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndex) =
+            Base.$f(A, to_indices(A, (I,))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndex) =
+            Base.$f(A, to_indices(A, (I,))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, Is::IntegerOrCartesian...) =
+            Base.$f(A, to_indices(A, (i1, i2, Is...))...)
+        # 1D DimArrays dont need linear indexing
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
+            rebuildsliced(Base.$f, A, (i,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...) =
+            rebuildsliced(Base.$f, A, to_indices(A, (i1, i2, Is...)))
     end
 
     ##### AbstractDimArray only methods
