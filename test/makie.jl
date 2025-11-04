@@ -744,12 +744,12 @@ end
     volumeslices!(ax, A3abc; zdim=:a)
     volumeslices!(A3abc;zdim=:a)
 
-    "LScene support"
+    #LScene support 
     f, a, p = heatmap(A2ab; axis=(; type=LScene, show_axis=false))
     @test a isa LScene
     @test isnothing(a.scene[OldAxis])
 
-    "Colorbar support"
+    #Colorbar support
     fig, ax, _ = plot(A2ab; colorbar=(; width=50))
     colorbars = filter(x -> x isa Colorbar, fig.content)
     @test length(colorbars) == 1
