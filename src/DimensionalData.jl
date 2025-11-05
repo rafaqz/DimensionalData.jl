@@ -65,7 +65,7 @@ export AbstractDimArray, DimArray
 
 export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, DimMatrix, DimVecOrMat
 
-export AbstractDimStack, DimStack
+export AbstractDimStack, DimStack, DimStackArray
 
 export AbstractDimTable, DimTable
 
