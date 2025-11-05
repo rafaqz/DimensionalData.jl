@@ -35,40 +35,40 @@ end
         @test l[Begin+1:End-1] ==l[Begin+1:4] ==  l[2:End-1] == l[2:4]
         @test l[Begin:End] isa typeof(l)
         @test l[1:5] isa typeof(l)
-        @test l[[1, 3, 4]] == view(l, [1, 3, 4]) ==
+        @test l[[1, 3, 4]] == view(l, [1, 3, 4]) == 
             Base.dotview(l, [1, 3, 4]) ==
             Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), NoMetadata())
-        @test l[Int[]] == view(l, Int[]) == Base.dotview(l, Int[]) ==
+        @test l[Int[]] == view(l, Int[]) == Base.dotview(l, Int[]) == 
             Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Near(2.1)] == Base.dotview(l, Near(2.1)) == 2.0
         @test view(l, Near(2.1)) == fill(2.0)
-        @test l[[false, true, true, false, true]] ==
-            view(l, [false, true, true, false, true]) ==
-            Base.dotview(l, [false, true, true, false, true]) ==
+        @test l[[false, true, true, false, true]] == 
+            view(l, [false, true, true, false, true]) == 
+            Base.dotview(l, [false, true, true, false, true]) == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[2] == Base.dotview(l, 2) === 4.0
         @test view(l, 2) == fill(4.0)
         @test l[CartesianIndex((4,))] === Base.dotview(l, CartesianIndex((4,))) === 8.0
         @test view(l, CartesianIndex((4,))) == fill(8.0)
-        @test l[CartesianIndices((1:3,))] ==
-            view(l, CartesianIndices((1:3,))) ==
-            Base.dotview(l, CartesianIndices((1:3,))) ==
+        @test l[CartesianIndices((1:3,))] == 
+            view(l, CartesianIndices((1:3,))) == 
+            Base.dotview(l, CartesianIndices((1:3,))) == 
             Sampled(2.0:2.0:6.0, ForwardOrdered(), Regular(2.0), Points(), NoMetadata())
-        @test l[2:2:4] ==
-            view(l, 2:2:4) ==
-            Base.dotview(l, 2:2:4) ==
+        @test l[2:2:4] == 
+            view(l, 2:2:4) == 
+            Base.dotview(l, 2:2:4) == 
             Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Points(), nothing)
         # End Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus DateTime
         l = Sampled(DateTime(2001, 1, 1):Day(1):DateTime(2001, 1, 5), ForwardOrdered(), Regular(Day(1)), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([DateTime(2001, 1, 2), DateTime(2001, 1, 3), DateTime(2001, 1, 5)], ForwardOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Reverse
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
@@ -78,7 +78,7 @@ end
         @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Int[]] == Sampled(Float64[], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[Near(2.1)] == 2.0
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         @test l[2] === 8.0
         @test l[CartesianIndex((4,))] == 4.0
@@ -86,15 +86,15 @@ end
         @test l[2:2:4] == Sampled(8.0:-4.0:4.0, ReverseOrdered(), Regular(-4.0), Points(), nothing)
         # End Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
         # Center Locus DateTime
         l = Sampled(DateTime(2001, 1, 5):Day(-1):DateTime(2001, 1, 1), ReverseOrdered(), Regular(Day(-1)), Points(), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([DateTime(2001, 1, 4), DateTime(2001, 1, 3), DateTime(2001, 1, 1)], ReverseOrdered(), Irregular(nothing, nothing), Points(), nothing)
     end
 
@@ -107,20 +107,20 @@ end
         @test l[[1, 3, 4]] == Sampled([2.0, 6.0, 8.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
         @test l[Int[]] == Sampled(Float64[], ForwardOrdered(), Irregular(nothing, nothing), Intervals(Start()), nothing)
         @test l[Near(2.1)] == 2.0
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(4.0, 12.0), Intervals(Start()), nothing)
         @test l[2] === 4.0
         @test l[CartesianIndex((4,))] == 8.0
-        @test l[CartesianIndices((1:3,))] ==
+        @test l[CartesianIndices((1:3,))] == 
             Sampled(2.0:2.0:6.0, ForwardOrdered(), Regular(2.0), Intervals(Start()), NoMetadata())
         @test l[2:2:4] == Sampled(4.0:4.0:8.0, ForwardOrdered(), Regular(4.0), Intervals(Start()), nothing)
         # End Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Intervals(End()), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(2.0, 10.0), Intervals(End()), nothing)
         # Center Locus
         l = Sampled(2.0:2.0:10.0, ForwardOrdered(), Regular(2.0), Intervals(Center()), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([4.0, 6.0, 10.0], ForwardOrdered(), Irregular(3.0, 11.0), Intervals(Center()), nothing)
         # Reverse Start Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(Start()), nothing)
@@ -129,27 +129,27 @@ end
         @test l[1:5] isa typeof(l)
         @test l[[1, 3, 4]] == Sampled([10.0, 6.0, 4.0], ReverseOrdered(), Irregular(4.0, 12.0), Intervals(Start()), nothing)
         @test l[Near(2.1)] == 2.0
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(2.0, 10.0), Intervals(Start()), nothing)
         @test l[2] === 8.0
         @test l[CartesianIndex((4,))] == 4.0
-        @test l[CartesianIndices((1:3,))] ==
+        @test l[CartesianIndices((1:3,))] == 
             Sampled(10.0:-2.0:6.0, ReverseOrdered(), Regular(-2.0), Intervals(Start()), nothing)
         @test l[2:2:4] == Sampled(8.0:-4.0:4.0, ReverseOrdered(), Regular(-4.0), Intervals(Start()), nothing)
         # End Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(End()), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(0.0, 8.0), Intervals(End()), nothing)
         # Center Locus
         l = Sampled(10.0:-2.0:2.0, ReverseOrdered(), Regular(-2.0), Intervals(Center()), nothing)
-        @test l[[false, true, true, false, true]] ==
+        @test l[[false, true, true, false, true]] == 
             Sampled([8.0, 6.0, 2.0], ReverseOrdered(), Irregular(1.0, 9.0), Intervals(Center()), nothing)
     end
     @testset "NoLookup" begin
         nl = NoLookup(1:100)
         @test nl[100] == 100
         @test nl[1:5] isa typeof(nl)
-        @test nl[CartesianIndex((1,))] == 1
+        @test nl[CartesianIndex((1,))] == 1 
         @test view(nl, 50) === view(1:100, 50)
         @test Base.dotview(nl, 50) === 50
     end
@@ -173,7 +173,7 @@ end
     d = Y(NoLookup(1:100))
     @test d[100] == 100
     @test d[1:5] isa typeof(d)
-    @test d[CartesianIndex((1,))] == 1
+    @test d[CartesianIndex((1,))] == 1 
     @test view(d, 50) === view(1:100, 50)
     @test Base.dotview(d, 50) === 50
 end
@@ -205,8 +205,8 @@ end
         @test da[:] == da[Begin:End] == vec(da)
         b = @inferred da[[!iseven(i) for i in 1:length(da)]]
         @test b isa Array
-        @test b == da[1:2:end] == da[Begin:2:End]
-
+        @test b == da[1:2:end] == da[Begin:2:End]  
+        
         v = @inferred da[1, :]
         @test v isa DimVector
         @test @inferred v[1:2] isa DimArray
@@ -218,7 +218,7 @@ end
     end
 
     @testset "mixed CartesianIndex and CartesianIndices indexing works" begin
-        da3 = cat(da, 10da; dims=Z)
+        da3 = cat(da, 10da; dims=Z) 
         @test @inferred da3[1, CartesianIndex(1, 2)] == 10
         @test @inferred view(da3, 1:2, CartesianIndex(1, 2)) == [10, 30]
         @test @inferred da3[1, CartesianIndices((1:2, 1:1))] isa DimArray
@@ -231,7 +231,7 @@ end
         @test a == [1, 3]
         @test typeof(a) <: DimArray{Int,1}
         @test dims(a) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
-        @test refdims(a) ==
+        @test refdims(a) == 
             (Ti(1:1), Y(Sampled(-38.0:2.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test name(a) == :test
         @test metadata(a) === ameta
@@ -245,7 +245,7 @@ end
         @test typeof(a) <: DimArray{Int,1}
         @test typeof(parent(a)) <: Array{Int,1}
         @test dims(a) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
-        @test refdims(a) ==
+        @test refdims(a) == 
             (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test name(a) == :test
         @test metadata(a) == ameta
@@ -288,7 +288,7 @@ end
         @test da == da1
         @test da == da2
     end
-
+    
     @testset "selectors work" begin
         @test @inferred da[At(143), -38.0..36.0] == [1, 2]
         @test @inferred da[144.0..146.0, Near(-37.1)] == [3]
@@ -303,7 +303,7 @@ end
         @test typeof(parent(v)) <:SubArray{Int,0}
         @test typeof(dims(v)) == Tuple{}
         @test dims(v) == ()
-        @test refdims(v) ==
+        @test refdims(v) == 
             (Ti(1:1), X(Sampled(143.0:2.0:143, ForwardOrdered(), Regular(2.0), Points(), xmeta)),
              Y(Sampled(-38.0:2.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)))
         @test name(v) == :test
@@ -316,7 +316,7 @@ end
         @test typeof(parent(v)) <: SubArray{Int,1}
         @test typeof(dims(v)) <: Tuple{<:X}
         @test dims(v) == (X(Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
-        @test refdims(v) ==
+        @test refdims(v) == 
             (Ti(1:1), Y(Sampled(-38.0:-38.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
         @test name(v) == :test
         @test metadata(v) == ameta
@@ -340,7 +340,7 @@ end
         @test typeof(parent(v)) <: SubArray{Int,1}
         @test typeof(dims(v)) <: Tuple{<:Y}
         @test dims(v) == (Y(Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)),)
-        @test refdims(v) ==
+        @test refdims(v) == 
             (Ti(1:1), X(Sampled(143.0:2.0:143.0, ForwardOrdered(), Regular(2.0), Points(), xmeta)),)
         @test bounds(v) == ((-38.0, -36.0),)
 
@@ -361,7 +361,7 @@ end
             for inds in ((1,), (1, 1), (2, 1, 1), (CartesianIndex(2),))
                 @test typeof(parent(view(da1, inds...))) === typeof(view(parent(da1), inds...))
                 @test parent(view(da1, inds...)) == view(parent(da1), inds...)
-                a = view(da1, inds...)
+                a = view(da1, inds...) 
                 @test a isa DimArray{eltype(da1),0}
                 @test length(dims(a)) == 0
                 @test length(refdims(a)) == 1
@@ -387,7 +387,7 @@ end
 
     @testset "setindex!" begin
         da_set = deepcopy(da)
-        da_set[X(2), Y(2)] = 77
+        da_set[X(2), Y(2)] = 77 
         @test da_set == [1 2; 3 77]
         da_set[X(1:2), Y(1)] .= 99
         @test da_set == [99 2; 99 77]
@@ -423,8 +423,8 @@ end
     end
 
     @testset "Cartesian indices work as usual" begin
-        @test da[CartesianIndex(2, 2)] == 4
-        @test view(da, CartesianIndex(2, 2)) == view(parent(da), 2, 2)
+        @test da[CartesianIndex(2, 2)] == 4 
+        @test view(da, CartesianIndex(2, 2)) == view(parent(da), 2, 2) 
         da_set = deepcopy(da)
         da_set[CartesianIndex(2, 2)] = 5
         @test da_set[2, 2] == 5
@@ -487,7 +487,7 @@ end
         # Type inference breaks with 6 arguments.
         # @inferred getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
         # @code_warntype getindex(da2, a=1, b=2, c=3, d=4, e=5, f=6)
-
+    
     end
 
     @testset "trailing colon" begin
@@ -526,33 +526,33 @@ end
     @testset "cartesian Int" begin
         @inferred s[1, 1]
         @inferred view(s, 1, 1)
-        @test view(s, Begin, Begin)[] === view(s, 1, 1)[] ===
+        @test view(s, Begin, Begin)[] === view(s, 1, 1)[] === 
             s[Begin, Begin] === s[1, 1] === (one=1.0, two=2.0f0, three=3)
-        @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] ==
+        @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] == 
             s_mixed[Begin, Begin] == (one=1.0, two=2.0f0, three=3, four=4)
     end
     @testset "cartesian mixed" begin
-        @inferred s[At(:a), :]
+        @inferred s[At(:a), :] 
         @inferred view(s, At(:a), :)
-        @inferred s_mixed[At(:a), :]
+        @inferred s_mixed[At(:a), :] 
         @inferred view(s_mixed, At(:a), :)
 
-        @test s[At(:a), :] == view(s, At(:a), :) ==
-              s[1, :] == view(s, 1, :) ==
-              s[Begin, :] == view(s, Begin, :) ==
-              s[1, 1:3] == view(s, 1, 1:3) ==
-              s[1, Begin:End] == view(s, 1, Begin:End) ==
+        @test s[At(:a), :] == view(s, At(:a), :) == 
+              s[1, :] == view(s, 1, :) == 
+              s[Begin, :] == view(s, Begin, :) == 
+              s[1, 1:3] == view(s, 1, 1:3) == 
+              s[1, Begin:End] == view(s, 1, Begin:End) == 
               s[X=1, Y=Begin:End] == view(s, X=1, Y=Begin:End) ==
               s[X=At(:a), Y=Begin:End] == view(s, X=At(:a), Y=Begin:End) ==
               s[Y=Begin:End, X=1] == view(s, Y=Begin:End, X=1) ==
                   DimStack((one=[1.0, 2.0, 3.0], two=[2.0f0, 4.0f0, 6.0f0], three=[3, 6, 9]), (Y(10.0:10:30.0),))
 
         y = dims(s, Y)
-        @test s_mixed[At(:a), :] == view(s_mixed, At(:a), :) ==
-              s_mixed[1, :] == view(s_mixed, 1, :) ==
-              s_mixed[Begin, :] == view(s_mixed, Begin, :) ==
-              s_mixed[1, 1:3] == view(s_mixed, 1, 1:3) ==
-              s_mixed[1, Begin:End] == view(s_mixed, 1, Begin:End) ==
+        @test s_mixed[At(:a), :] == view(s_mixed, At(:a), :) == 
+              s_mixed[1, :] == view(s_mixed, 1, :) == 
+              s_mixed[Begin, :] == view(s_mixed, Begin, :) == 
+              s_mixed[1, 1:3] == view(s_mixed, 1, 1:3) == 
+              s_mixed[1, Begin:End] == view(s_mixed, 1, Begin:End) == 
               s_mixed[X=1, Y=Begin:End] == view(s_mixed, X=1, Y=Begin:End) ==
               s_mixed[X=At(:a), Y=Begin:End] == view(s_mixed, X=At(:a), Y=Begin:End) ==
               s_mixed[Y=Begin:End, X=1] == view(s_mixed, Y=Begin:End, X=1) ==
@@ -563,7 +563,7 @@ end
         s1d = s[X(2)]
         @inferred s[1]
         @inferred s[:]
-        @inferred s[[1, 2]]
+        @inferred s[[1, 2]] 
         @inferred s[1:2]
         @inferred s1d[1]
         @inferred s1d[:]
@@ -590,8 +590,8 @@ end
         @testset "Colon and Vector{Int/Bool} indexing" begin
             b = [false, false, false, true, false, true]
             v = [4, 6]
-            @test s[:][b] == s[b] ==
-                s[:][v] == s[v] == [s[4], s[6]] ==
+            @test s[:][b] == s[b] == 
+                s[:][v] == s[v] == [s[4], s[6]] == 
                 view(s, :)[b] == view(s, b) ==
                 view(s, :)[v] == view(s, v) == [
                 (one = 5.0, two = 10.0, three = 15),
@@ -599,7 +599,7 @@ end
             ]
             @test s_mixed[:][b] == s_mixed[b] ==
                 s_mixed[:][v] == s_mixed[v] == [s_mixed[4], s_mixed[6]] ==
-                view(s_mixed, :)[b] == view(s_mixed, b) ==
+                view(s_mixed, :)[b] == view(s_mixed, b) == 
                 view(s_mixed, :)[v] == view(s_mixed, v) == [
                 (one = 5.0, two = 10.0, three = 15, four=16),
                 (one = 6.0, two = 12.0, three = 18, four=16),
@@ -621,28 +621,28 @@ end
     @testset "CartesianIndex" begin
         @inferred s[CartesianIndex(2, 2)]
         @inferred view(s, CartesianIndex(2, 2))
-        @test s[CartesianIndex(2, 2)] ==
+        @test s[CartesianIndex(2, 2)] == 
             view(s, CartesianIndex(2, 2))[] == (one=5.0, two=10.0, three=15.0)
     end
 
     @testset "CartesianIndices" begin
         @inferred s[CartesianIndices((1, 2))]
         @inferred view(s, CartesianIndices((1, 2)))
-        @test s[CartesianIndices((1, 2))] ==
+        @test s[CartesianIndices((1, 2))] == 
             view(s, CartesianIndices((1, 2))) ==
             s[X=1:1, Y=1:2]
     end
 
     @testset "CartesianIndex Vector" begin
         @inferred s[[CartesianIndex(1, 2)]]
-        @inferred view(s, [CartesianIndex(1, 2)])
-        @test s[[CartesianIndex(1, 2)]] ==
+        @inferred view(s, [CartesianIndex(1, 2)]) 
+        @test s[[CartesianIndex(1, 2)]] == 
             view(s, [CartesianIndex(1, 2)]) ==
             s[[3]]
     end
 
     @testset "Mixed CartesianIndex and CartesianIndices" begin
-        da3d = cat(da1, 10da1; dims=Z)
+        da3d = cat(da1, 10da1; dims=Z) 
         s3 = merge(s, (; ten=da3d))
         @test @inferred s3[2, CartesianIndex(2, 2)] === (one=5.0, two=10.0f0, three=15, ten=50.0)
         @test @inferred view(s3, 1:2, CartesianIndex(1, 2)) isa DimStack
@@ -687,9 +687,9 @@ end
         s_set[1] = (one=4, two=5, three=6)
         @test s_set[1, 1] === (one=4.0, two=5.0f0, three=6)
         s_set[1, 1] = (one=9, two=10, three=11)
-        @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11)
+        @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
         s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)
-        @test s_set[2, 1] === (one=7.0, two=11.0f0, three=13)
+        @test s_set[2, 1] === (one=7.0, two=11.0f0, three=13) 
 
         s_set = deepcopy(s)
         s_set[CartesianIndex(2, 2)] = (one=5, two=6, three=7)
