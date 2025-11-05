@@ -627,3 +627,5 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
+
+Base.Broadcast.broadcastable(st::AbstractDimStack) = [st[D] for D in DimIndices(st)]
