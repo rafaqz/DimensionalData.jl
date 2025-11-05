@@ -32,9 +32,9 @@ for f in (:getindex, :view, :dotview)
         @propagate_inbounds Base.$f(l::Lookup, i::Union{Int,CartesianIndex}) =
             Base.$f(parent(l), i)
         # AbstractArray, Colon and CartesianIndices: the lookup is rebuilt around a new parent
-        @propagate_inbounds Base.$f(l::Lookup, i::Union{AbstractVector,Colon}) = 
+        @propagate_inbounds Base.$f(l::Lookup, i::Union{AbstractArray,Colon}) = 
             rebuild(l; data=Base.$f(parent(l), i))
-        @propagate_inbounds function Base.$f(l::Union{Sampled,Categorical}, i::AbstractVector{Int})
+        @propagate_inbounds function Base.$f(l::Union{Sampled,Categorical}, i::AbstractArray{Int})
             @boundscheck checkorder(l, i)
             # Allow skipping this check with @inbounds
             rebuild(l; data=Base.$f(parent(l), i))
@@ -52,7 +52,7 @@ function checkorder(l, i)
     if strict_order() && isordered(l)
         issorted(i) || throw(ArgumentError("""
             For `ForwardOrdered` or `ReverseOrdered` lookups, indices of `AbstractVector{Int}` must be in ascending order. 
-            Use `@inbounds` to avoid this check locally, and `DimensionalData.strict_order!(false)` globally.
+            Use `@inbounds` to avoid this check locally, and `DimensionalData.strict_order!(false)` it globally.
         """))
     end
 end
