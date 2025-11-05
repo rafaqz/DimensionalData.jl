@@ -601,6 +601,33 @@ end
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
 
 ### Stack as Array 
+"""
+    DimStackArray <: AbstractDimArrayGenerator
+
+A wrapper that makes a `DimStack` behave like an `AbstractArray`.
+
+Provides array-like access to a `DimStack`, where each element is a `NamedTuple` containing 
+values from all layers at that position.
+
+# Examples
+```julia
+using DimensionalData 
+
+# Create a DimStack
+da1 = DimArray(ones(2,2), (X(1:2), Y(1:2)); name=:temp)
+da2 = DimArray(2ones(2,2), (X(1:2), Y(1:2)); name=:precip) 
+stack = DimStack((da1, da2))
+
+# Wrap as DimStackArray
+arr = DimStackArray(stack)
+
+# Get values from all layers at position [1,1]
+arr[1,1]  # Returns (temp=1.0, precip=2.0)
+
+# Views maintain DimStack structure
+view(arr, 1:2, 1) 
+```
+"""
 struct DimStackArray{T,N,D,S<:AbstractDimStack} <: AbstractDimArrayGenerator{T,N,D}
     stack::S
     function DimStackArray(stack::AbstractDimStack{K,T,N,L,D}) where {K,T,N,L,D}
@@ -653,4 +680,4 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
 
-Base.Broadcast.broadcastable(st::AbstractDimStack) = [st[D] for D in DimIndices(st)]
+Base.Broadcast.broadcastable(st::AbstractDimStack) = DimStackArray(st)
