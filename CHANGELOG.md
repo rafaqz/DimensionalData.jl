@@ -57,6 +57,8 @@ Changelog.generate(
   metadata going forward, explicitly use `metadata(dims(obj, X))`
 - `val(obj)` no longer returns `map(val, dims(obj))` because that's just weird,
   val seems like it would return `parent` from that call. `lookup` does this anyway.
+- Added a `D` parameter to AbstractDimStack in ([#1128]) so that its more
+  interoperable with AbstractDimArray
 - Removed two methods that don't have much use and cause lots of invalidations:
   - `Base.convert(Type{<:AbstractString}, name::DD.AbstractName)` is removed, use `string(name)` instead.
   - `Base.merge(stack::AbstractDimStack, pairs)` is removed, use `merge(stack, NamedTuple(pairs))` instead.
@@ -70,5 +72,6 @@ Changelog.generate(
 [#917]: https://github.com/rafaqz/DimensionalData.jl/issues/917
 [#1041]: https://github.com/rafaqz/DimensionalData.jl/issues/1041
 [#1071]: https://github.com/rafaqz/DimensionalData.jl/issues/1071
+[#1128]: https://github.com/rafaqz/DimensionalData.jl/issues/1128
 [@JoshuaBillson]: https://github.com/JoshuaBillson
 [@tiemvanderdeure]: https://github.com/tiemvanderdeure
