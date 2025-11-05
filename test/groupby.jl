@@ -100,9 +100,9 @@ end
             mean(A[X=x, Ti=d])
         end
     end
-    @test all(collect(mean.(gb)) .=== manualmeans)
-    @test all(mean.(gb) .=== manualmeans)
-    @test all(combine(mean, gb) .=== manualmeans)
+    @test isequal(collect(mean.(gb)), manualmeans)
+    @test isequal(mean.(gb), manualmeans)
+    @test isequal(combine(mean, gb), manualmeans)
 end
 
 @testset "broadcast_dims runs after groupby" begin

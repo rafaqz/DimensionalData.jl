@@ -269,7 +269,7 @@ for i in (:fft, :ifft, :rfft)
 
         ```math
         \\operatorname{DFT}(A)[k] =
-        \\sum_{n=1}^{\\operatorname{length}(A)} \\exp\\left($(signal)\\pi x[n]f[k] \\right) A[n] dx.
+        \\sum_{n=1}^{\\operatorname{length}(A)} \\exp\\left($(signal)2\\pi x[n]f[k] \\right) A[n] dx.
         ```
         where `x` is the lookup dimension of the input data, `f` is the lookup dimension of the output data, and `dx` is the step of the lookup dimension of the input data.
 
@@ -292,7 +292,7 @@ end
 
         ```math
         \\operatorname{DFT}(A)[k] =
-        \\sum_{n=1}^{\\operatorname{length}(A)} \\exp\\left(i\\pi x[n]f[k] \\right) A[n] dx.
+        \\sum_{n=1}^{\\operatorname{length}(A)} \\exp\\left(i2\\pi x[n]f[k] \\right) A[n] dx.
         ```
         where `x` is the lookup dimension of the input data, `f` is the lookup dimension of the output data, and `dx` is the step of the lookup dimension of the input data.
 

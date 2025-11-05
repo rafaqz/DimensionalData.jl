@@ -241,9 +241,6 @@ function Base.merge(
 )
     rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); kw...)
 end
-function Base.merge(s::AbstractDimStack, pairs; kw...)
-    rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
-end
 function Base.merge(
     x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...;
 )
@@ -630,3 +627,5 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
+
+Base.Broadcast.broadcastable(st::AbstractDimStack) = [st[D] for D in DimIndices(st)]
