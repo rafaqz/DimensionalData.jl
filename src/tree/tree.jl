@@ -33,7 +33,7 @@ function (::Type{T})(stack::AbstractDimStack;
     T(data, dims(stack); metadata, layerdims, layermetadata, kw...)
 end
 
-data(dt::AbstractDimTree) = getfield(dt, :data)
+data(dt::AbstractDimTree) = getfield(dt, :data)::DataDict
 data(dt::AbstractDimTree, key::Symbol) = data(dt)[key]
 tree(dt::AbstractDimTree) = getfield(dt, :tree)
 branches(dt::AbstractDimTree) = getfield(dt, :branches)
@@ -58,12 +58,17 @@ layerdims(dt::AbstractDimTree, key::Symbol) = layerdims(dt)[key]
 layers(dt::AbstractDimTree) = DataDict((pn => dt[pn] for pn in keys(dt)))
 
 # DimStack constructors on DimTree
-function (::Type{T})(dt::AbstractDimTree; keep=nothing) where {T<:AbstractDimStack}
+# If this method has ambiguities, define it for the DimStack type and call dimstack_from_tree
+(::Type{T})(dt::AbstractDimTree; kw...) where {T<:AbstractDimStack} =
+    dimstack_from_tree(T, dt; kw...)
+DimStack(dt::AbstractDimTree; kw...) = dimstack_from_tree(DimStack, dt; kw...)
+
+function dimstack_from_tree(T, dt; keep=nothing)
     if isnothing(keep)
+        T(dt[Tuple(keys(dt))])
+    else
         pruned = DD.prune(dt; keep)
         T(pruned[Tuple(keys(pruned))])
-    else
-        T(dt[Tuple(keys(dt))])
     end
 end
 
@@ -75,10 +80,16 @@ function Extents.extent(dt::AbstractDimTree)
     return ext
 end
 
+for func in INTERFACE_QUERY_FUNCTION_NAMES  
+    @eval ($func)(s::AbstractDimTree, args...) = ($func)(dims(s), args...)
+end
+
 Base.pairs(dt::AbstractDimTree) = (k => dt[k] for k in keys(dt))
 Base.keys(dt::AbstractDimTree) = collect(keys(data(dt)))
 Base.length(dt::AbstractDimTree) = length(data(dt))
 Base.haskey(dt::AbstractDimTree, key::Symbol) = haskey(data(dt), key::Symbol)
+Base.isempty(dt::AbstractDimTree) = Base.isempty(data(dt))
+Base.iterate(dt::AbstractDimTree, args...) = Base.iterate(data(dt), args...)
 Base.propertynames(dt::AbstractDimTree) = collect(keys(branches(dt)))
 function Base.copy(dt::AbstractDimTree) 
     rebuild(dt; 
@@ -86,11 +97,14 @@ function Base.copy(dt::AbstractDimTree)
         layerdims=copy(layerdims(dt)),
         layermetadata=copy(layermetadata(dt)),
         branches=copy(branches(dt)),
-        tree=isnothing(getfield(dt, :tree)) ? nothing : copy(getfield(dt, :tree)),
+        tree=(t = getfield(dt, :tree); isnothing(t) ? t : copy(t))
     )
 end
 # If we select a single name we get a DimArray
-Base.getproperty(dt::AbstractDimTree, name::Symbol) = branches(dt)[name]
+function Base.getproperty(dt::AbstractDimTree, name::Symbol)
+    haskey(branches(dt), name) ||throw(KeyError(name))
+    return branches(dt)[name]
+end
 function Base.:(==)(dt1::AbstractDimTree, dt2::AbstractDimTree) 
     data(dt1) == data(dt2) &&
     layerdims(dt1) === layerdims(dt2) &&
@@ -103,8 +117,8 @@ Base.get(dt::AbstractDimTree, name::Symbol, default) =
 Base.get(f::Base.Callable, dt::AbstractDimTree, name::Symbol) =
     haskey(dt, name) ? dt[name] : f()
 function Base.filter!(pred, dt::AbstractDimTree)
-    for p in pairs(dt)
-        pred(p) || delete!(dt, k)
+    for (k, v) in pairs(dt)
+        pred(v) || delete!(dt, k)
     end
 end
 function Base.get!(f::Base.Callable, dt::AbstractDimTree, name::Symbol)
@@ -153,13 +167,15 @@ for f in (:getindex, :view)
         Base.$f(dt::AbstractDimTree, Dimensions.kw2dims(kw)...)
     end
     @eval function Base.$f(dt::AbstractDimTree, D::Dimension{<:SelectorOrInterval}...)
-        newlayers = map(collect(pairs(layers(dt)))) do (name, A)
-            name => $f(A, D...)
+        newlayers = Vector{Pair{Symbol,Any}}(undef, length(layers(dt)))
+        newbranches = Vector{Pair{Symbol,Any}}(undef, length(branches(dt)))
+        for (i, (name, A)) in enumerate(pairs(layers(dt)))
+            newlayers[i] = name => $f(A, D...)
         end
-        newbranches = map(collect(pairs(branches(dt)))) do (name, branch)
-            name => $f(branch, D...)
-        end |> TreeDict
-        rebuild_from_arrays(dt, newlayers; branches=newbranches)
+        for (i, (name, branch)) in enumerate(pairs(branches(dt)))
+            newbranches[i] = name => $f(branch, D...)
+        end
+        rebuild_from_arrays(dt, newlayers; branches=TreeDict(newbranches))
     end
 end
 
@@ -180,8 +196,9 @@ function _adddims!(dt::AbstractDimTree, newdims::Tuple)
         setfield!(dt, :dims, newdims)
     else
         # If there are already dims, check they match before we do anything
-        comparedims(dims(dt, newdims), newdims)
-        setfield!(dt, :dims, otherdims(newdims, dims(dt)))
+        cd = commondims(dt, newdims)
+        comparedims(dims(dt, cd), dims(newdims, cd))
+        setfield!(dt, :dims, (dims(dt)..., otherdims(newdims, dims(dt))...))
     end
     # If any of the branches already had these 
     # dims, we need to remove them now
@@ -218,7 +235,7 @@ function Base.setproperty!(dt::AbstractDimTree, key::Symbol, newbranch::Abstract
     if dt == newbranch
         newbranch = copy(newbranch)
     end
-    comparedims(dims(dt, dims(newbranch)), dims(newbranch))
+    comparedims(commondims(dt, dims(newbranch)), dims(newbranch, dims(dt)))
     # The branch only holds dimensions not in the tree
     setfield!(newbranch, :dims, otherdims(newbranch, dims(dt)))
     # Set the tree in the new branch
@@ -232,6 +249,7 @@ function Base.empty!(dt::AbstractDimTree)
     empty!(data(dt))
     empty!(layerdims(dt))
     empty!(layermetadata(dt))
+    dt.dims = ()
     return dt
 end
 function Base.sort!(dt::AbstractDimTree, args...; kw...)
@@ -257,12 +275,7 @@ function Base.delete!(tr::AbstractDimTree, key::Symbol)
     delete!(data(tr), key) 
     delete!(layerdims(tr), key) 
     delete!(layermetadata(tr), key) 
-    ldims = reduce(layerdims(tr); init=Dimension[]) do acc, (k, v)
-        union(v, acc)
-    end
-    if length(ldims) != length(_dims(tr))
-        setfield!(tr, :dims, dims(_dims(tr), Tuple(ldims)))
-    end
+    _repairdims!(tr)
     return tr
 end
 function Base.pop!(tr::AbstractDimTree, key::Symbol)
@@ -270,6 +283,7 @@ function Base.pop!(tr::AbstractDimTree, key::Symbol)
     delete!(data(tr), key) 
     delete!(layerdims(tr), key) 
     delete!(layermetadata(tr), key) 
+    _repairdims!(tr)
     return l
 end
 Base.pop!(tr::AbstractDimTree, key::Symbol, default) =
@@ -279,6 +293,20 @@ function Base.pop!(dt::AbstractDimTree)
     length(ks) > 0 || throw(ArgumentError("$(basetypeof(dt)) must be non-empty"))
     key = last(ks)
     return key => pop!(dt, key)
+end
+
+function _repairdims!(tr::AbstractDimTree)
+    if isempty(layerdims(tr))
+        tr.dims = ()
+        return tr
+    end
+    ldims = reduce(layerdims(tr); init=Dimension[]) do acc, (k, v)
+        union(v, acc)
+    end
+    if length(ldims) != length(_dims(tr))
+        setfield!(tr, :dims, dims(_dims(tr), Tuple(ldims)))
+    end
+    return tr
 end
 
 """
@@ -310,15 +338,31 @@ function prune(dt::AbstractDimTree;
     # Otherwise prune the kept branch
     branch = if keep isa Symbol
         # Symbol keeps one pruned branch
-        prune(branches(dt, keep))
+        prune(getproperty(dt, keep))
     else
         # Pairs will also keep a branch of the branch
-        prune(branches(dt, first(keep)); keep=last(keep))
+        prune(getproperty(dt, first(keep)); keep=last(keep))
     end
-    rebuild(dt; 
-        data=DataDict(hcat(collect(pairs(dt)), collect(pairs(branch)))),
-        branches=TreeDict(), # There a no branches after flattening
+    if isempty(dt)  && isempty(branch)
+        layerdims = TupleDict()
+        layermetadata = DataDict()
+        data = DataDict()
+    else
+        if isempty(dt)
+            layerpairs = collect(pairs(branch))
+        else
+            layerpairs = hcat(collect(pairs(dt)), collect(pairs(branch)))
+        end
+        layerdims = TupleDict(map(x -> first(x) => basedims(last(x)), layerpairs))
+        layermetadata = DataDict(map(x -> first(x) => metadata(x), layerpairs))
+        data = DataDict(map(p -> p[1] => parent(p[2]), layerpairs))
+    end
+    return rebuild(dt; 
+        data,
+        layerdims,
+        layermetadata,
         dims=dims(branch), # The branch has all the dims already
+        branches=TreeDict(), # There a no branches after flattening
         tree=nothing,
     ) 
 end
@@ -368,14 +412,14 @@ layers with different resolutions, for example.
 ## Example
 
 ```julia
-xdim, ydim = X(1:10), Y(1:15), 
+xdim, ydim = X(1:10), Y(1:15)
 z1, z2 = Z([:a, :b, :c]), Z([:d, :e, :f])
 a = rand(xdim, ydim)
 b = rand(Float32, xdim, ydim)
 c = rand(Int, xdim, ydim, z1)
 d = rand(Int, xdim, z2)
 DimTree(a, b)
-````
+```
 """
 @kwdef mutable struct DimTree <: AbstractDimTree
     data::DataDict = DataDict()
@@ -386,6 +430,10 @@ DimTree(a, b)
     metadata::Any = NoMetadata()
     branches::TreeDict = TreeDict()
     tree::Union{Nothing,AbstractDimTree} = nothing
+    function DimTree(data, dims, refdims, layerdims, layermetadata, metadata, branches, tree)
+        @assert keys(data) == keys(layerdims) == keys(layermetadata) 
+        new(data, dims, refdims, layerdims, layermetadata, metadata, branches, tree)
+    end
 end
 DimTree(p1::Pair, pairs::Pair...) = DimTree(OrderedDict((p1, pairs...)))
 DimTree(A1::AbstractDimArray, As::AbstractDimArray...) = DimTree([A1, As...])

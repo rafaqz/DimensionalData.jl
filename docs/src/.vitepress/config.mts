@@ -2,6 +2,7 @@ import { defineConfig } from 'vitepress'
 import { tabsMarkdownPlugin } from 'vitepress-plugin-tabs'
 import mathjax3 from "markdown-it-mathjax3";
 import footnote from "markdown-it-footnote";
+import path from 'path'
 // import del from 'rollup-plugin-delete';
 function getBaseRepository(base: string): string {
   if (!base) return '/';
@@ -30,6 +31,7 @@ const navTemp = {
         { text: 'DiskArrays', link: '/diskarrays' },
         { text: 'Xarray', link: '/xarray' },
         { text: 'Extending DimensionalData', link: '/extending_dd' },
+        { text: 'FFT', link: '/fft' },
       ],
     },
   ],
@@ -56,6 +58,14 @@ export default defineConfig({
     ['script', {src: `${baseTemp.base}siteinfo.js`}]
   ],
   vite: {
+    define: {
+      __DEPLOY_ABSPATH__: JSON.stringify('REPLACE_ME_DOCUMENTER_VITEPRESS_DEPLOY_ABSPATH'),
+    },
+    resolve: {
+      alias: {
+        '@': path.resolve(__dirname, '../components')
+      }
+    },
     build: {
       assetsInlineLimit: 0, // so we can tell whether we have created inlined images or not, we don't let vite inline them
     },
@@ -132,7 +142,7 @@ export default defineConfig({
     },
 
     socialLinks: [
-      { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
+      // { icon: 'github', link: 'https://github.com/rafaqz/DimensionalData.jl' },
     ],
     footer: {
       message: 'Made with <a href="https://github.com/LuxDL/DocumenterVitepress.jl" target="_blank"><strong>DocumenterVitepress.jl</strong></a>',

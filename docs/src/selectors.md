@@ -1,3 +1,7 @@
+```@meta
+Description = "DimensionalData.jl selectors - flexible value-based indexing with At, Near, Between, Contains, and more for dimensional arrays"
+```
+
 # Selectors
 
 In addition to choosing dimensions by name, we can also select values within them.

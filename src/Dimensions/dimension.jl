@@ -1,3 +1,6 @@
+# These are all the function that you can call on objects and call function(dims(obs, args...))
+const INTERFACE_QUERY_FUNCTION_NAMES = (:lookup, :order, :sampling, :span, :bounds, :intervalbounds, :locus)
+
 """
     Dimension 
 
@@ -34,8 +37,8 @@ A = DimArray(zeros(3, 5, 12), (y, x, ti))
 
 ┌ 3×5×12 DimArray{Float64, 3} ┐
 ├─────────────────────────────┴────────────────────────────────────────── dims ┐
-  ↓ Y  Categorical{Char} ['a', 'b', 'c'] ForwardOrdered,
-  → X  Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
+  ↓ Y Categorical{Char} ['a', …, 'c'] ForwardOrdered,
+  → X Sampled{Int64} 2:2:10 ForwardOrdered Regular Points,
   ↗ Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
 [:, :, 1]
@@ -62,8 +65,7 @@ x = A[X(2), Y(3)]
  2021-03-01T00:00:00  0.0
  2021-04-01T00:00:00  0.0
  2021-05-01T00:00:00  0.0
- 2021-06-01T00:00:00  0.0
- 2021-07-01T00:00:00  0.0
+ ⋮
  2021-08-01T00:00:00  0.0
  2021-09-01T00:00:00  0.0
  2021-10-01T00:00:00  0.0
@@ -80,7 +82,7 @@ x = A[X(Between(3, 4)), Y(At('b'))]
 
 ┌ 1×12 DimArray{Float64, 2} ┐
 ├───────────────────────────┴──────────────────────────────────────────── dims ┐
-  ↓ X  Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
+  ↓ X Sampled{Int64} 4:2:4 ForwardOrdered Regular Points,
   → Ti Sampled{DateTime} DateTime("2021-01-01T00:00:00"):Month(1):DateTime("2021-12-01T00:00:00") ForwardOrdered Regular Points
 └──────────────────────────────────────────────────────────────────────────────┘
  ↓ →   2021-01-01T00:00:00   2021-02-01T00:00:00  …   2021-12-01T00:00:00
@@ -140,6 +142,7 @@ Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{Dimension,Vararg{Dimension}}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 const SymbolTuple = Tuple{Symbol,Vararg{Symbol}}
 const DimTypeTuple = Tuple{DimType,Vararg{DimType}}
 const VectorOfDim = Vector{<:Union{Dimension,DimType,Symbol}}
@@ -175,20 +178,26 @@ refdims(x) = ()
 lookup(dim::Dimension{<:AbstractArray}) = val(dim)
 lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 
-lookuptype(dim::Dimension) = typeof(lookup(dim))
-lookuptype(::Type{<:Dimension{L}}) where L = L
-lookuptype(x) = NoLookup
-
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
+name(s::Symbol) = s
 
 label(x) = string(name(x))
 
 # Lookups methods
-Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
-
-Lookups.bounds(dim::Dimension) = bounds(val(dim))
+for func in (:order, :span, :sampling, :locus, :metadata, :bounds)
+    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
+end
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
+for f in (:val, :metadata, :name, :label, :units, INTERFACE_QUERY_FUNCTION_NAMES...)
+    @eval begin
+        $f(ds::Tuple) = map($f, ds)
+        $f(::Tuple{}) = ()
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
+    end
+end
 Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
     @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
@@ -216,21 +225,6 @@ function hasselection(ds::DimTuple, selector::Selector)
 end
 hasselection(dim::Dimension, seldim::Dimension) = hasselection(dim, val(seldim))
 hasselection(dim::Dimension, sel::Selector) = hasselection(lookup(dim), sel)
-
-for func in (:order, :span, :sampling, :locus)
-    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
-end
-
-# Dispatch on Tuple{<:Dimension}, and map to single dim methods
-for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
-          :name, :label, :units)
-    @eval begin
-        $f(ds::Tuple) = map($f, ds)
-        $f(::Tuple{}) = ()
-        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
-    end
-end
 
 @inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
@@ -260,10 +254,6 @@ end
 end
 @inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
-
-# Deprecated
-Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
 
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
@@ -308,6 +298,32 @@ function Extents.extent(ds::DimTuple, args...)
     extent_dims = _astuple(dims(ds, args...))
     extent_bounds = bounds(extent_dims)
     return Extents.Extent{name(extent_dims)}(extent_bounds)
+end
+
+function _experimental_extent(ds::DimTuple)
+    regulardims = dims(ds, x -> !(lookup(x) isa MultiDimensionalLookup))    
+    regular_bounds = bounds.(regulardims)
+    regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
+    
+    multidims = otherdims(ds, regulardims)
+    multidim_raw_bounds = bounds.(multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
+    multidim_dims = combinedims(map(dims, multidims)...; length = false)
+    multidim_bounds = map(multidim_dims) do outdim
+        foldl(zip(multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
+            if hasdim(dim, outdim)
+                if isnothing(minval) && isnothing(maxval)
+                    bounds[dimnum(dim, outdim)]
+                else
+                    this_dim_bounds = bounds[dimnum(dim, outdim)]
+                    (min(minval, this_dim_bounds[1]), max(maxval, this_dim_bounds[2]))
+                end
+            else
+                (minval, maxval)
+            end
+        end
+    end
+    multidim_bounds_nt = NamedTuple{map(name, multidim_dims)}(multidim_bounds)
+    return merge(regular_bounds_nt, multidim_bounds_nt)
 end
 
 dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
@@ -357,7 +373,7 @@ with symbols, or e.g. creating Tables.jl keys.
 
 ```jldoctest; setup = :(using DimensionalData)
 julia> dim = Dim{:custom}(['a', 'b', 'c'])
-custom ['a', 'b', 'c']
+custom ['a', …, 'c']
 ```
 """
 struct Dim{S,T} <: Dimension{T}

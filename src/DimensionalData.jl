@@ -4,8 +4,7 @@ module DimensionalData
 using Dates,
       LinearAlgebra,
       Random,
-      Statistics,
-      SparseArrays
+      Statistics
 
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
@@ -38,12 +37,14 @@ using .Dimensions
 using .Dimensions.Lookups
 
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
 
-import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
+
+using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
 import .Lookups: metadata, reorder, set, unsafe_set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, intervalbounds,
+    order, span, sampling, locus, val, bounds, intervalbounds,
     hasselection, units
+import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
 
 using OrderedCollections: OrderedDict
 
@@ -75,8 +76,7 @@ export AbstractDimTable, DimTable
 
 export AbstractDimTree, DimTree, prune
 
-export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
-
+export DimIndices, DimSelectors, DimPoints
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds, val, layers
 
@@ -97,6 +97,7 @@ const DD = DimensionalData
 # Common
 include("interface.jl")
 include("name.jl")
+include("table_ops.jl")
 
 # Arrays
 include("array/array.jl")

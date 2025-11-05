@@ -179,9 +179,11 @@ julia> commondims(A, Ti)
 ```
 """
 function commondims end
-@inline commondims(a1, args...) = _dim_query(_commondims, AlwaysTuple(), a1, args...)
+@inline commondims(a1, args...) = 
+    _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
+_commondims(f, ds) = ()
 
 """
     dimnum(x, query::Tuple) => NTuple{Int}
@@ -555,9 +557,9 @@ struct Throw{M<:Union{AbstractString,Nothing}} <: AbstractMessage{M}
     msg::M
 end
 Throw() = Throw(nothing)
-
+_limit_sprint(x) = sprint(show, x; context = :limit => true)
 _dimsmismatchmsg(a, b) = "$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis."
-_valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match."
+_valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(_limit_sprint(parent(a))) and $(_limit_sprint(parent(b))) do not match."
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
 _valtypemsg(a, b) = "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match."
 _ordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
@@ -656,7 +658,7 @@ that the lookup values come from the first argument.
     but the values from the first lookup with length larger than
     one will be used.
 """
-
+# Not actually documented, maybe too internal
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     vs = map(val, ds)
     v = promote_first(val(d1), vs...)
@@ -672,6 +674,7 @@ promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims_gen(dts; kw...)
 
 # Hard to get this stable without @generated
 @generated function _promotedims_gen(dts::Tuple; kw...)
+    isempty(dts.parameters) && return Expr(:tuple)
     maxlen = maximum(Tuple(dts.parameters)) do p
         length(p.parameters)
     end

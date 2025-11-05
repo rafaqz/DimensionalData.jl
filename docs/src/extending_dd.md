@@ -1,3 +1,7 @@
+```@meta
+Description = "Extend DimensionalData.jl - create custom array types, stacks, and lookups by implementing key interface methods in Julia"
+```
+
 # Extending DimensionalData
 
 Nearly everything in DimensionalData.jl is designed to be extensible.
@@ -85,7 +89,7 @@ format(dims, array)
 This lets DimensionalData detect the lookup properties, fill in missing fields
 of a `Lookup`, pass keywords from `Dimension` to detected `Lookup` 
 constructors, and accept a wider range of dimension inputs like tuples of `Symbol` 
-and `Type`.  The way you indicate that something needs to be filled is by using the `Auto` types, like `AutoOrder`](@ref) or `AutoSampling`.
+and `Type`.  The way you indicate that something needs to be filled is by using the `Auto` types, like [`AutoOrder`](@ref) or `AutoSampling`.
 
 Not calling `format` in the outer constructors of an `AbstractDimArray`
 has undefined behaviour.

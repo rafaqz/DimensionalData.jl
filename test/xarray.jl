@@ -1,6 +1,12 @@
 ENV["JULIA_CONDAPKG_ENV"] = "@dimensionaldata-tests"
 ENV["JULIA_CONDAPKG_BACKEND"] = "MicroMamba"
 
+# If you've already run the tests once to create the test Python environment,
+# you can comment out the lines above and uncomment the lines below. That will
+# re-use the environment without re-resolving it, which is a bit faster.
+# ENV["JULIA_PYTHONCALL_EXE"] = joinpath(Base.DEPOT_PATH[1], "conda_environments", "dimensionaldata-tests", "bin", "python")
+# ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
+
 using DimensionalData, Test, PythonCall
 import DimensionalData.Dimensions: NoLookup, NoMetadata
 
@@ -36,8 +42,26 @@ x2 = xr.DataArray(data2,
                               "pos" => 0.48,
                               "foo" => [1, 2, 3])
 
+    # Test the zero-copy support
+    y[1, 1] = 42f0
+    @test parent(y) isa PyArray
+    @test pyconvert(Float32, x[0, 0].item()) == 42f0
+
+    # Test copying
+    y_copy = pyconvert(DimArray, x; copy=true)
+    @test y == y_copy
+    @test parent(y_copy) isa Array
+
     @test_throws ArgumentError pyconvert(DimArray, xr)
     @test pyconvert(DimArray, xr, 42) == 42
+
+    # Sanity test for higher-dimensional arrays
+    x3 = xr.DataArray(np.random.rand(2, 5, 5, 3).astype(np.float32),
+                      dims=("w", "x", "y", "z"),
+                      coords=Dict("w" => [1, 2], "z" => [1, 2, 3]))
+    y = pyconvert(DimArray, x3)
+    @test lookup(y, :w) == [1, 2]
+    @test lookup(y, :z) == [1, 2, 3]
 end
 
 @testset "Dataset to DimStack" begin

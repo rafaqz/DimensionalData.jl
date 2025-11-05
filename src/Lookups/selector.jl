@@ -91,7 +91,7 @@ const SelTuple = Tuple{SelectorOrInterval,Vararg{SelectorOrInterval}}
 """
     At <: IntSelector
 
-    At(x; atol=nothing, rtol=nothing)
+    At(x; atol=nothing)
     At(a, b; kw...)
 
 Selector that exactly matches the value on the passed-in dimensions, or throws an error.
@@ -116,19 +116,19 @@ A[X(At(20)), Y(At(6))]
 5
 ```
 """
-struct At{T,A,R} <: IntSelector{T}
+struct At{T,A} <: IntSelector{T}
     val::T
     atol::A
-    rtol::R
+    At(val::T; atol::A=nothing) where {T,A} = new{T,A}(val, atol)
 end
-At(val; atol=nothing, rtol=nothing) = At(val, atol, rtol)
+At(a, b; atol=nothing) = At((a, b); atol)
 At(; kw...) = At(nothing; kw...)
-At(a, b; kw...) = At((a, b); kw...)
 
-rebuild(sel::At, val) = At(val, sel.atol, sel.rtol)
+ConstructionBase.constructorof(::Type{<:At}) = (val, atol) -> At(val; atol)
+
+rebuild(sel::At, val) = At(val; atol=sel.atol)
 
 atol(sel::At) = sel.atol
-rtol(sel::At) = sel.rtol
 
 function Base.show(io::IO, x::At)
     print(io, "At(")
@@ -164,10 +164,10 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
     end
 end
 function at(lookup::Lookup, sel::At; kw...)
-    at(order(lookup), span(lookup), lookup, val(sel), atol(sel), rtol(sel); kw...)
+    at(order(lookup), span(lookup), lookup, val(sel), atol(sel); kw...)
 end
 function at(
-    ::Ordered, span::Regular, lookup::Lookup{<:Integer}, selval, atol::Nothing, rtol::Nothing;
+    ::Ordered, span::Regular, lookup::Lookup{<:Integer}, selval, atol::Nothing;
     err=_True()
 )
     x = unwrap(selval)
@@ -181,7 +181,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::Lookup{<:IntervalSets.Interval}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:IntervalSets.Interval}, selval, atol;
     err=_True()
 )
     x = unwrap(selval)
@@ -193,7 +193,7 @@ function at(
     end
 end
 function at(
-    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.AbstractTime,AbstractString}}, selval, atol, rtol::Nothing;
+    ::Ordered, ::Span, lookup::Lookup{<:Union{Number,Dates.AbstractTime,AbstractString}}, selval, atol;
     err=_True()
 )
     x = unwrap(selval)
@@ -219,7 +219,7 @@ function at(
     end
 end
 # catch-all for an unordered index
-function at(::Order, ::Span, lookup::Lookup, selval, atol, rtol::Nothing; err=_True())
+function at(::Order, ::Span, lookup::Lookup, selval, atol; err=_True())
     i = findfirst(x -> _is_at(x, unwrap(selval), atol), parent(lookup))
     if i === nothing
         return _selnotfound_or_nothing(err, lookup, selval)
@@ -569,10 +569,10 @@ A[X(Between(15, 25)), Y(Between(4, 6.5))]
 # output
 
 ┌ 1×2 DimArray{Int64, 2} ┐
-├────────────────────────┴───────────────────────────── dims ┐
+├────────────────────────┴────────────────────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
-└────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
   ↓ →  5  6
  20    4  5
 ```
@@ -824,10 +824,10 @@ A[X(Touches(15, 25)), Y(Touches(4, 6.5))]
 
 # output
 ┌ 1×2 DimArray{Int64, 2} ┐
-├────────────────────────┴───────────────────────────── dims ┐
+├────────────────────────┴────────────────────────────── dims ┐
   ↓ X Sampled{Int64} 20:10:20 ForwardOrdered Regular Points,
   → Y Sampled{Int64} 5:6 ForwardOrdered Regular Points
-└────────────────────────────────────────────────────────────┘
+└─────────────────────────────────────────────────────────────┘
   ↓ →  5  6
  20    4  5
 ```
@@ -991,10 +991,10 @@ A[X(Where(x -> x > 15)), Y(Where(x -> x in (19, 21)))]
 # output
 
 ┌ 1×2 DimArray{Int64, 2} ┐
-├────────────────────────┴────────────────────────────── dims ┐
+├────────────────────────┴─────────────────────────────── dims ┐
   ↓ X Sampled{Int64} [20] ForwardOrdered Irregular Points,
   → Y Sampled{Int64} [19, 21] ForwardOrdered Irregular Points
-└─────────────────────────────────────────────────────────────┘
+└──────────────────────────────────────────────────────────────┘
   ↓ →  19  21
  20     4   6
 ```
@@ -1033,8 +1033,8 @@ A[X=All(At(10.0), At(50.0)), Ti=All(1u"s"..10u"s", 90u"s"..100u"s")]
 
 ┌ 2×4 DimArray{Int64, 2} ┐
 ├────────────────────────┴─────────────────────────────────────────────── dims ┐
-  ↓ X  Sampled{Float64} [10.0, 50.0] ForwardOrdered Irregular Points,
-  → Ti Sampled{Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} [1 s, 6 s, 91 s, 96 s] ForwardOrdered Irregular Points
+  ↓ X Sampled{Float64} [10.0, 50.0] ForwardOrdered Irregular Points,
+  → Ti Sampled{Unitful.Quantity{Int64, 𝐓, Unitful.FreeUnits{(s,), 𝐓, nothing}}} [1 s, …, 96 s] ForwardOrdered Irregular Points
 └──────────────────────────────────────────────────────────────────────────────┘
   ↓ →  1 s  6 s  91 s  96 s
  10.0  1    2    19    20
@@ -1065,7 +1065,7 @@ function selectindices end
 @inline selectindices(lookups::LookupTuple, s1, ss...; kw...) =
     selectindices(lookups, (s1, ss...); kw...)
 @inline selectindices(lookups::LookupTuple, selectors::Tuple; kw...) =
-    map((l, s) -> selectindices(l, s), lookups, selectors; kw...)
+    map((l, s) -> selectindices(l, s; kw...), lookups, selectors)
 @inline selectindices(lookups::LookupTuple, selectors::Tuple{}; kw...) = ()
 # @inline selectindices(dim::Lookup, sel::Val) = selectindices(val(dim), At(sel))
 # Standard indices are just returned.

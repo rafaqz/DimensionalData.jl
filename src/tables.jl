@@ -66,7 +66,7 @@ _colnames(::Type{<:NamedTuple{Keys}}) where Keys = Keys
 Construct a Tables.jl/TableTraits.jl compatible object out of an `AbstractDimArray` or `AbstractDimStack`.
 
 This table will have columns for the array data and columns for each
-`Dimension` index, as a [`DimColumn`]. These are lazy, and generated
+`Dimension` lookup, as a [`DimColumn`]. These are lazy, and generated
 as required.
 
 Column names are converted from the dimension types using
@@ -112,14 +112,6 @@ DimTable with 12 rows, 3 columns, and schema:
  :X     …  Int64
  :Y        Int64
  :data     DimVector{Float64, Tuple{Dim{:band, Categorical{Char, StepRange{Char, Int64}, ForwardOrdered, NoMetadata}}}, Tuple{X{NoLookup{UnitRange{Int64}}}, Y{NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Slice{OneTo{Int64}}}, true}, Symbol, NoMetadata} (alias for DimArray{Float64, 1, Tuple{Dim{:band, DimensionalData.Dimensions.Lookups.Categorical{Char, StepRange{Char, Int64}, DimensionalData.Dimensions.Lookups.ForwardOrdered, DimensionalData.Dimensions.Lookups.NoMetadata}}}, Tuple{X{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}, Y{DimensionalData.Dimensions.Lookups.NoLookup{UnitRange{Int64}}}}, SubArray{Float64, 1, Array{Float64, 3}, Tuple{Int64, Int64, Base.Slice{Base.OneTo{Int64}}}, true}, Symbol, DimensionalData.Dimensions.Lookups.NoMetadata})
-
-```julia
-julia> DimTable(A)
-DimTable with 48 rows, 4 columns, and schema:
- :X     Int64
- :Y     Int64
- :band  Char
- :data  Float64
 """
 struct DimTable{Mode} <: AbstractDimTable
     parent::Union{AbstractDimArray,AbstractDimStack}
@@ -236,10 +228,8 @@ colnames(t::DimTable) = Tuple(getfield(t, :colnames))
 
 Base.parent(t::DimTable) = getfield(t, :parent)
 
-for func in (:dims, :val, :index, :lookup, :metadata, :order, :sampling, :span, :bounds,
-             :locus, :name, :label, :units)
+for func in (:dims, :val, :metadata, INTERFACE_QUERY_FUNCTION_NAMES...)
     @eval $func(t::DimTable, args...) = $func(parent(t), args...)
-
 end
 
 Tables.istable(::DimTable) = true

@@ -74,7 +74,7 @@ julia> map(dims, axes(slices))
 julia> first(slices)
 ┌ 3×5 DimStack ┐
 ├──────────────┴─────────────────────────────────── dims ┐
-  ↓ Y  Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  ↓ Y Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Ti
 ├──────────────────────────────────────────────── layers ┤
   :x eltype: Float64 dims: Y size: 3

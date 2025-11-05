@@ -15,9 +15,9 @@ end
 function show_main(io, mime, tree::AbstractDimTree)
     lines, blockwidth, displaywidth = print_top(io, mime, tree)
     if !isempty(data(tree))
-        blockwidth = print_layers_block(io, mime, tree; blockwidth, displaywidth)
+        blockwidth, _ = print_layers_block(io, mime, tree; blockwidth, displaywidth)
     end
-    _, blockwidth = print_metadata_block(io, mime, metadata(tree); 
+    _, blockwidth, _  = print_metadata_block(io, mime, metadata(tree); 
         displaywidth, blockwidth=min(displaywidth-2, blockwidth)
     )
     return blockwidth
@@ -38,10 +38,10 @@ end
 function print_branch(io, branch::AbstractDimTree, key::Symbol; tab="  ", indent="    ")
     pkey = ":" * rpad(key, _keylen(keys(branch)))
     print(io, tab)
-    printstyled(io, pkey, color=dimcolors(7))
+    printstyled(io, pkey, color=dimcolor(7))
     field_dims = DD.dims(branch)
     if !isempty(field_dims)
-        colors = map(dimcolors, eachindex(field_dims))
+        colors = map(dimcolor, eachindex(field_dims))
         printstyled(io, " dims: "; color=:light_black)
         for (i, (dim, color)) in enumerate(zip(field_dims, colors))
             Dimensions.print_dimname(IOContext(io, :dimcolor => color), dim)
@@ -51,7 +51,7 @@ function print_branch(io, branch::AbstractDimTree, key::Symbol; tab="  ", indent
         print_sizes(io, size(field_dims); colors)
         if !isempty(keys(branch))
             printstyled(io, " layers: "; color=:light_black)
-            printstyled(io, join(map(k -> string(":", k), keys(branch)), ", "); color=dimcolors(7))
+            printstyled(io, join(map(k -> string(":", k), keys(branch)), ", "); color=dimcolor(7))
         end
     end
     # Print the branches of the branch

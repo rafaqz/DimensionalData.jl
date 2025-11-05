@@ -25,21 +25,6 @@ for f in (:getindex, :view, :dotview)
             Base.$f(parent(A), i)
     end
     @eval begin
-        ### Standard indices
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndex) =
-            Base.$f(A, to_indices(A, (I,))...)
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndex) =
-            Base.$f(A, to_indices(A, (I,))...)
-        @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, Is::IntegerOrCartesian...) =
-            Base.$f(A, to_indices(A, (i1, i2, Is...))...)
-        # 1D DimArrays dont need linear indexing
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
-            rebuildsliced(Base.$f, A, (i,))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
-        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
-        @eval @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...) =
-            rebuildsliced(Base.$f, A, to_indices(A, (i1, i2, Is...)))
-
         ### Selector/Interval indexing
         @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::SelectorOrInterval) = 
             Base.$f(A, dims2indices(A, (i,))...)
@@ -93,6 +78,21 @@ for f in (:getindex, :view, :dotview)
             Dimensions._extradimswarn((d1, ds...))
             return rebuildsliced(Base.$f, A, ())
         end
+
+        ### Standard indices
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndex) =
+            Base.$f(A, to_indices(A, (I,))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndex) =
+            Base.$f(A, to_indices(A, (I,))...)
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::IntegerOrCartesian, i2::IntegerOrCartesian, Is::IntegerOrCartesian...) =
+            Base.$f(A, to_indices(A, (i1, i2, Is...))...)
+        # 1D DimArrays dont need linear indexing
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, i::Union{Colon,AbstractArray{<:Integer}}) =
+            rebuildsliced(Base.$f, A, (i,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimVector, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, I::CartesianIndices) = rebuildsliced(Base.$f, A, (I,))
+        @propagate_inbounds Base.$f(A::AbstractBasicDimArray, i1::StandardIndices, i2::StandardIndices, Is::StandardIndices...) =
+            rebuildsliced(Base.$f, A, to_indices(A, (i1, i2, Is...)))
     end
 
     ##### AbstractDimArray only methods
@@ -162,23 +162,6 @@ function _merge_and_index(f, A, inds)
     end
 end
 
-# This AbstractArray is for indexing, presenting as Array{CartesianIndex}
-# `CartesianIndex` are generated on the fly from `dimtuples`,
-# which is e.g. a view into DimIndices
-struct LazyDims2Cartesian{T,N,D,A<:AbstractArray{<:Any,N}} <: AbstractArray{T,N}
-    dimtuples::A
-    dims::D
-end
-function LazyDims2Cartesian(dimtuples::A, dims::D) where {A<:AbstractArray{<:DimTuple,N},D<:DimTuple} where N
-    LazyDims2Cartesian{CartesianIndex{length(dims)},N,D,A}(dimtuples, dims)
-end
-
-dims(A::LazyDims2Cartesian) = A.dims
-
-Base.size(A::LazyDims2Cartesian) = size(A.dimtuples)
-Base.getindex(A::LazyDims2Cartesian, I::Integer...) =
-    CartesianIndex(dims2indices(DD.dims(A), A.dimtuples[I...]))
-
 struct LazyDims2Linear{N,D,A<:AbstractArray{<:Any,N}} <: AbstractArray{Int,N}
     dimtuples::A
     dims::D
@@ -235,7 +218,8 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices() = ()
     setindex!(A, x, dims2indices(A, (i, I...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, I::DimensionalIndices...; kw...) =
     setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
-@propagate_inbounds Base.setindex!(::DimensionalData.AbstractDimArray, x, ::_DimIndicesAmb, ::_DimIndicesAmb...; kw...) = setindex!(A, x, dims2indices(A, _simplify_dim_indices(I..., kw2dims(values(kw))...))...)
+@propagate_inbounds Base.setindex!(A::DimensionalData.AbstractDimArray, x, i1::_DimIndicesAmb, I::_DimIndicesAmb...; kw...) = 
+    setindex!(A, x, dims2indices(A, _simplify_dim_indices(i1, I..., kw2dims(values(kw))...))...)
 @propagate_inbounds Base.setindex!(A::AbstractDimArray, x, i1::StandardIndices, I::StandardIndices...) =
     setindex!(parent(A), x, i1, I...)
 

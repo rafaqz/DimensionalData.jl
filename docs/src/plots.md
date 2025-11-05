@@ -1,3 +1,7 @@
+```@meta
+Description = "Plotting DimensionalData.jl arrays with Makie.jl and Plots.jl - automatic axis labels and dimension-aware visualizations"
+```
+
 # Plots.jl
 
 Plots.jl and Makie.jl functions mostly work out of the box on `AbstractDimArray`,

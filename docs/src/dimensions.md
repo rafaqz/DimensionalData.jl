@@ -1,3 +1,7 @@
+```@meta
+Description = "Dimensions in DimensionalData.jl - named wrapper types for array axes, including spatial (X,Y,Z) and temporal (Ti) dimensions"
+```
+
 # Dimensions
 
 Dimensions are "wrapper types" that can be used to wrap any 
@@ -32,7 +36,7 @@ DimensionalData.jl uses `Dimensions` everywhere:
 This symmetry means we can ignore how data is organized, 
 and label and access it by name, letting DD work out the details for us.
 
-Dimensions are defined in the [`Dimensions`](@ref) submodule, and some 
+Dimensions are defined in the [`DimensionalData.Dimensions`](@ref) submodule, and some 
 Dimension-specific methods can be brought into scope with:
 
 ```julia

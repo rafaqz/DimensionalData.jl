@@ -18,11 +18,11 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # Local dispatch methods
         # - Return a reduced DimArray
         @inline function $_f(A::AbstractDimArray, dims; kw...)
-            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
         end
         @inline function $_f(f, A::AbstractDimArray, dims; kw...)
-            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
+            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
             rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
         end
         # - Return a scalar
@@ -105,10 +105,10 @@ end
 - There are less problems with type stability in `map` as we can just 
     take dims from the first, there are no length 1 dims.
 =#
-function Base.map(f, As::AbstractDimArray...)
-    comparedims(As...)
-    newdata = map(f, map(parent, As)...)
-    rebuild(first(As); data=newdata)
+function Base.map(f, A1::AbstractDimArray, As::AbstractDimArray...)
+    comparedims(A1, As...)
+    newdata = map(f, map(parent, (A1, As...))...)
+    return rebuild(A1; data=newdata)
 end
 
 
@@ -176,11 +176,11 @@ end
 # These just return the parent for now
 function Base.sort(A::AbstractDimVector; kw...)
     newdims = (set(only(dims(A)), NoLookup()),)
-    newdata = sort(parent(A), kw...)
+    newdata = sort(parent(A); kw...)
     return rebuild(A, newdata, newdims)
 end
 function Base.sort(A::AbstractDimArray; dims, kw...)
-    newdata = sort(parent(A), dims=dimnum(A, dims), kw...)
+    newdata = sort(parent(A); dims=dimnum(A, dims), kw...)
     replacement_dims = map(DD.dims(A, _astuple(dims))) do d
         set(d, NoLookup())
     end
@@ -189,7 +189,7 @@ function Base.sort(A::AbstractDimArray; dims, kw...)
 end
 
 function Base.sortslices(A::AbstractDimArray; dims, kw...)
-    newdata = sortslices(parent(A), dims=dimnum(A, dims), kw...)
+    newdata = sortslices(parent(A); dims=dimnum(A, dims), kw...)
     replacement_dims = map(DD.dims(A, _astuple(dims))) do d
         set(d, NoLookup())
     end
@@ -421,14 +421,28 @@ function _check_cat_lookups(D, ::Regular, lookups...)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
             return false
         end
-        if !(s isa Dates.AbstractTime) && !(lastval + s ≈ first(l))
-            @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $s ≈ $(first(l)) should hold")
-            return false
-        end
+        _check_cat_step_join(D, lastval, first(l), s) || return false
         lastval = last(l)
         return true
     end |> all
 end
+
+function _check_cat_step_join(D, lastval::Number, firstval::Number, steplen)
+    if !(lastval + steplen ≈ firstval)
+        @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $steplen ≈ $firstval should hold")
+        return false
+    end
+    return true
+end
+
+function _check_cat_step_join(D, lastval, firstval, steplen)
+    if lastval + steplen != firstval
+        @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $steplen == $firstval should hold since isapprox is not defined")
+        return false
+    end
+    return true
+end
+
 function _check_cat_lookups(D, ::Explicit, lookups...)
     map(lookups) do l
         span(l) isa Explicit || _mixed_span_warn(D, Explicit, span(l))

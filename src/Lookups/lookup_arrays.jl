@@ -20,9 +20,6 @@ dims(::Lookup) = nothing
 val(l::Lookup) = parent(l)
 locus(l::Lookup) = Center()
 
-# Deprecated
-index(l::Lookup) = parent(l)
-
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
 Base.size(l::Lookup) = size(parent(l))
@@ -293,10 +290,10 @@ A = ones(x, y)
 
 # output
 ┌ 5×4 DimArray{Float64, 2} ┐
-├──────────────────────────┴───────────────────────────────────────── dims ┐
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ X Sampled{Int64} 100:-20:20 ReverseOrdered Regular Intervals{Start},
-  → Y Sampled{Int64} [1, 4, 7, 10] ForwardOrdered Regular Intervals{Start}
-└──────────────────────────────────────────────────────────────────────────┘
+  → Y Sampled{Int64} [1, …, 10] ForwardOrdered Regular Intervals{Start}
+└─────────────────────────────────────────────────────────────────────────┘
    ↓ →  1    4    7    10
  100    1.0  1.0  1.0   1.0
   80    1.0  1.0  1.0   1.0
@@ -513,8 +510,8 @@ Dimensions.lookup(A)
 
 # output
 
-Categorical{String} ["one", "two", "three"] Unordered,
-Categorical{Symbol} [:a, :b, :c, :d] ForwardOrdered
+Categorical{String} ["one", …, "three"] Unordered,
+Categorical{Symbol} [:a, …, :d] ForwardOrdered
 ```
 """
 struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O}
@@ -608,7 +605,7 @@ dim(lookup::Transformed) = lookup.dim
 
 transformfunc(lookup::Transformed) = lookup.f
 
-Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
+Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && l1.f == l2.f
 
 # TODO Transformed bounds
 struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}

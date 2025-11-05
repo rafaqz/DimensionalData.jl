@@ -82,8 +82,12 @@ end
 
 @testset "StatsBase" begin
     da = rand(X(1:10), Y(1:3))
-    @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
-    @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
+    w = weights([0.3, 0.3, 0.4])
+    @test mean(da, w; dims=Y) == mean(parent(da), w; dims=2)
+    @test sum(da, w; dims=Y) == sum(parent(da), w; dims=2)
+    w2 = weights(collect(1:10) * [0.3, 0.3, 0.4]')
+    @test mean(da, w2; dims=:) == mean(da, w2) == mean(parent(da), w2; dims=:)
+    @test sum(da, w2; dims=:) == sum(da, w2) == sum(parent(da), w2; dims=:)
 end
 
 @testset "DiskArrays" begin
@@ -106,6 +110,8 @@ end
     @testset "isdisk" begin
         @test DiskArrays.isdisk(da)
         @test !DiskArrays.isdisk(rand(X(5), Y(4)))
+        @test DiskArrays.isdisk(st)
+        @test !DiskArrays.isdisk(DimStack((a=rand(X(5), Y(4)), b=rand(X(5)))))
     end
     @testset "pad" begin
         p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
@@ -123,5 +129,10 @@ end
     @testset "PermutedDimsArray and PermutedDiskArray" begin
         @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
         @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
+    end
+
+    @testset "mockchunks" begin
+        damockchunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(damockchunked)) == (5,5)
     end
 end

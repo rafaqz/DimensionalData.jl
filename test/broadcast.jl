@@ -445,6 +445,35 @@ end
         @d max.(1)
     end
 
+    @testset "dot infix assignment" begin
+        x, y, t = X(1:100), Y(1:25), Ti(DateTime(2000):Month(1):DateTime(2000, 12))
+        A = rand(x, y, t)
+        B = A[At(50), :, :]
+        C = copy(A)
+        @d A .-= B
+        @test A == @d C .- B
+        @d A .+= B
+        @test A == C
+    end
+end
+
+@testset "Concise error messages for dimension mismatches" begin
+    # Test that dimension mismatch errors are concise, not verbose
+    x = DimArray(ones(1000), X(1:2:2000))
+    y1 = DimArray(ones(1001), X(1:2:2001))
+    y2 = DimArray(ones(1000), X(2:1001))
+
+    for y in (y1, y2)
+        err = nothing
+        try
+            x .+ y
+        catch e
+            err = e
+        end
+
+        @test err isa DimensionMismatch
+        @test length(string(err)) < 250
+    end
 end
 
 # @testset "Competing Wrappers" begin

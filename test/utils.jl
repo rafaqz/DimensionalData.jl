@@ -6,7 +6,7 @@ using DimensionalData: uniquekeys
 @testset "reverse" begin
     @testset "dimension" begin
         revdima = reverse(X(Sampled(10:10:20; order=ForwardOrdered(), span=Regular(10))))
-        @test index(revdima) == 20:-10:10
+        @test lookup(revdima) == 20:-10:10
         @test order(revdima) === ReverseOrdered()
         @test span(revdima) === Regular(-10)
     end
@@ -17,24 +17,24 @@ using DimensionalData: uniquekeys
 
     rev_y = reverse(da; dims=Y)
     @test rev_y == [3 2 1; 6 5 4]
-    @test index(rev_y, X) == 10:10:20
-    @test index(rev_y, Y) == 100:100:300
+    @test lookup(rev_y, X) == 10:10:20
+    @test lookup(rev_y, Y) == 100:100:300
     @test span(rev_y, Y) == Regular(100)
     @test order(rev_y, Y) == ForwardOrdered()
     @test order(rev_y, X) == ForwardOrdered()
 
     rev = reverse(da; dims=:)
     @test parent(rev) == reverse(parent(da))
-    @test all(index(rev, d) == reverse(index(da, d)) for d in (X,Y))
+    @test all(lookup(rev, d) == reverse(lookup(da, d)) for d in (X,Y))
     @test all(span(rev, d) == reverse(span(da, d)) for d in (X,Y))
     @test all(order(rev, d) == reverse(order(da, d)) for d in (X,Y))
     @test rev == reverse(da; dims=(X,Y))
 
 
-    @testset "NoLookup dim index is not reversed" begin
+    @testset "NoLookup is not reversed" begin
         da = DimArray(A, (X(), Y()))
         revd = reverse(da)
-        @test index(revd) == axes(da)
+        @test lookup(revd) == axes(da)
     end
 
     @testset "stack" begin
@@ -57,32 +57,32 @@ end
 
     reo = reorder(da, ReverseOrdered())
     @test reo == [4 5 6; 1 2 3]
-    @test index(reo, X) == 20:-10:10
-    @test index(reo, Y) == 300:-100:100
+    @test lookup(reo, X) == 20:-10:10
+    @test lookup(reo, Y) == 300:-100:100
     @test order(reo, X) == ReverseOrdered()
     @test order(reo, Y) == ReverseOrdered()
 
     reo = reorder(da, X=>ForwardOrdered(), Y=>ReverseOrdered())
     @test reo == A
-    @test index(reo, X) == 10:10:20
-    @test index(reo, Y) == 300:-100:100
+    @test lookup(reo, X) == 10:10:20
+    @test lookup(reo, Y) == 300:-100:100
     @test order(reo, X) == ForwardOrdered()
     @test order(reo, Y) == ReverseOrdered()
 
     reo = reorder(da, X=>ReverseOrdered(), Y=>ForwardOrdered())
     @test reo == [6 5 4; 3 2 1]
-    @test index(reo, X) == 20:-10:10
-    @test index(reo, Y) == 100:100:300
+    @test lookup(reo, X) == 20:-10:10
+    @test lookup(reo, Y) == 100:100:300
     @test order(reo, X) == ReverseOrdered()
     @test order(reo, Y) == ForwardOrdered()
 
     revallis = reverse(da; dims=(X, Y))
-    @test index(revallis) == (20:-10:10, 100:100:300)
+    @test all(lookup(revallis) .== (20:-10:10, 100:100:300))
     @test order(revallis) == (ReverseOrdered(), ForwardOrdered())
 
     d = reorder(dims(da, Y), ForwardOrdered()) 
     @test order(d) isa ForwardOrdered
-    @test index(d) == 100:100:300
+    @test lookup(d) == 100:100:300
 
     # reorder with dimension lookups
     rev = reverse(da, dims=Y)
@@ -136,10 +136,10 @@ end
     @testset "dimension" begin
         dim = X(Sampled(10:10:20))
         mdim = modify(x -> 3 .* x, dim)
-        @test index(mdim) == 30:30:60 # in Julia 1.6: typeof(30:30:60)==StepRange ; in Julia 1.7 typeof(30:30:60)==StepRangeLen
+        @test lookup(mdim) == 30:30:60 # in Julia 1.6: typeof(30:30:60)==StepRange ; in Julia 1.7 typeof(30:30:60)==StepRangeLen
         da = DimArray(A, dimz)
         mda = modify(y -> vec(4 .* y), da, Y)
-        @test index(mda, Y) == [1200.0, 800.0, 400.0]
+        @test lookup(mda, Y) == [1200.0, 800.0, 400.0]
     end
 end
 
@@ -198,9 +198,9 @@ end
 
 @testset "shiftlocus" begin
     dim = X(Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata()))
-    @test index(shiftlocus(Start(), dim)) === 0.5:1.0:2.5
-    @test index(shiftlocus(End(), dim)) === 1.5:1.0:3.5
-    @test index(shiftlocus(Center(), dim)) === 1.0:1.0:3.0
+    @test parent(lookup(shiftlocus(Start(), dim))) === 0.5:1.0:2.5
+    @test parent(lookup(shiftlocus(End(), dim))) === 1.5:1.0:3.5
+    @test parent(lookup(shiftlocus(Center(), dim))) === 1.0:1.0:3.0
     @test locus(shiftlocus(Start(), dim)) === Start()
     @test locus(shiftlocus(End(), dim)) === End()
     @test locus(shiftlocus(Center(), dim)) === Center()
@@ -215,18 +215,18 @@ end
 
     dates = DateTime(2000):Month(1):DateTime(2000, 12)
     ti = Ti(Sampled(dates, ForwardOrdered(), Regular(Month(1)), Intervals(Start()), NoMetadata()))
-    @test index(shiftlocus(Center(), ti)) == dates .+ (dates .+ Month(1) .- dates) ./ 2
+    @test lookup(shiftlocus(Center(), ti)) == dates .+ (dates .+ Month(1) .- dates) ./ 2
 
     bnds = vcat((0.5:2.5)', (1.5:3.5)')
     dim = X(Sampled(1.0:3.0, ForwardOrdered(), Explicit(bnds), Intervals(Center()), NoMetadata()))
     start_dim = shiftlocus(Start(), dim)
-    @test index(start_dim) == [0.5, 1.5, 2.5]
+    @test lookup(start_dim) == [0.5, 1.5, 2.5]
     @test locus(start_dim) == Start()
     end_dim = shiftlocus(End(), start_dim)
-    @test index(end_dim) == [1.5, 2.5, 3.5]
+    @test lookup(end_dim) == [1.5, 2.5, 3.5]
     @test locus(end_dim) == End()
     center_dim = shiftlocus(Center(), end_dim)
-    @test index(center_dim) == index(dim)
+    @test lookup(center_dim) == lookup(dim)
     @test locus(center_dim) == Center()
 end
 
