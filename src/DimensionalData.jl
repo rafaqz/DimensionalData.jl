@@ -4,8 +4,7 @@ module DimensionalData
 using Dates,
       LinearAlgebra,
       Random,
-      Statistics,
-      SparseArrays
+      Statistics
 
 using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractArrayStyle,
       Unknown
@@ -22,8 +21,9 @@ import Adapt,
        IntervalSets,
        InvertedIndices,
        IteratorInterfaceExtensions,
-       RecipesBase,
+       OrderedCollections,
        PrecompileTools,
+       RecipesBase,
        TableTraits,
        Tables
 
@@ -36,10 +36,13 @@ include("Dimensions/Dimensions.jl")
 using .Dimensions
 using .Dimensions.Lookups
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
+using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
 import .Lookups: metadata, set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, intervalbounds,
+    order, span, sampling, locus, val, bounds, intervalbounds,
     hasselection, units, SelectorOrInterval, Begin, End
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
+
+using OrderedCollections: OrderedDict
 
 import DataAPI.groupby
 
@@ -66,8 +69,9 @@ export AbstractDimStack, DimStack
 
 export AbstractDimTable, DimTable
 
-export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
+export AbstractDimTree, DimTree, prune
 
+export DimIndices, DimSelectors, DimPoints
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds, val, layers
 
@@ -78,7 +82,7 @@ export dimnum, hasdim, hasselection, otherdims
 export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
     mergedims, unmergedims, maplayers
 
-export groupby, seasons, months, hours, intervals, ranges
+export groupby, combine, seasons, months, hours, intervals, ranges
 
 
 export @d
@@ -88,6 +92,7 @@ const DD = DimensionalData
 # Common
 include("interface.jl")
 include("name.jl")
+include("table_ops.jl")
 
 # Arrays
 include("array/array.jl")
@@ -102,12 +107,16 @@ include("stack/stack.jl")
 include("stack/indexing.jl")
 include("stack/methods.jl")
 include("stack/show.jl")
+# DataTrees
+include("tree/tree.jl")
+include("tree/show.jl")
 # Other
 include("tables.jl")
 # Combined (easier to work on these in one file)
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
+include("opaque.jl")
 include("groupby.jl")
 include("precompile.jl")
 include("interface_tests.jl")

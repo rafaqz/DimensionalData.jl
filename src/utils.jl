@@ -88,7 +88,7 @@ function modify end
 modify(f, s::AbstractDimStack) = maplayers(a -> modify(f, a), s)
 # Stack optimisation to avoid compilation to build all the `AbstractDimArray` 
 # layers, and instead just modify the parent data directly.
-modify(f, s::AbstractDimStack{<:Any,<:NamedTuple}) = 
+modify(f, s::AbstractDimStack{<:Any,<:Any,<:NamedTuple}) = 
     rebuild(s; data=map(a -> modify(f, a), parent(s)))
 function modify(f, A::AbstractDimArray)
     newdata = f(parent(A))
@@ -121,15 +121,17 @@ all passed in arrays in the order in which they are found.
 This is like broadcasting over every slice of `A` if it is
 sliced by the dimensions of `B`.
 """
-function broadcast_dims(f, As::AbstractBasicDimArray...)
-    dims = combinedims(As...)
-    T = Base.Broadcast.combine_eltypes(f, As)
-    broadcast_dims!(f, similar(first(As), T, dims), As...)
+function broadcast_dims(f, A1::AbstractBasicDimArray, As::AbstractBasicDimArray...)
+    dims = combinedims(A1, As...)
+    T = Base.Broadcast.combine_eltypes(f, (A1, As...))
+    broadcast_dims!(f, similar(A1, T, dims), A1, As...)
 end
-
-function broadcast_dims(f, As::Union{AbstractDimStack,AbstractBasicDimArray}...)
-    st = _firststack(As...)
-    nts = _as_extended_nts(NamedTuple(st), As...)
+function broadcast_dims(
+    f, A1::Union{AbstractDimStack,AbstractBasicDimArray}, 
+    As::Union{AbstractDimStack,AbstractBasicDimArray}...
+)
+    st = _firststack(A1, As...)::AbstractDimStack
+    nts = _as_extended_nts(NamedTuple(st), A1, As...)
     layers = map(keys(st)) do name
         broadcast_dims(f, map(nt -> nt[name], nts)...)
     end
@@ -160,6 +162,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
 end
+function broadcast_dims!(f, dest::AbstractDimStack, stacks::AbstractDimStack...)
+    maplayers(dest, stacks...) do d, layers...
+        broadcast_dims!(f, d, layers...)
+    end
+end
 
 # Function barrier
 function _broadcast_dims_inner!(f, dest, As, od)
@@ -176,8 +183,6 @@ function _broadcast_dims_inner!(f, dest, As, od)
     return dest
 end
 
-@deprecate dimwise broadcast_dims
-@deprecate dimwise! broadcast_dims!
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
@@ -187,18 +192,23 @@ end
 function uniquekeys(das::Vector{<:AbstractDimArray})
     length(das) == 0 ? Symbol[] : uniquekeys(map(Symbol ∘ name, das))
 end
-function uniquekeys(keys::Vector{Symbol})
+function uniquekeys(keys::AbstractVector{Symbol})
     map(enumerate(keys)) do (id, k)
         count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
     end
 end
 function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
-    ids = ntuple(x -> x, length(keys))
+    ids = ntuple(identity, length(keys))
     map(keys, ids) do k, id
-        count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        if k == Symbol("") 
+            Symbol(:layer, id)
+        else
+            count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        end
     end
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))
+uniquekeys(a::AbstractVector) = map(i -> Symbol(:layer, i), eachindex(a))
 uniquekeys(nt::NamedTuple) = keys(nt)
 
 _as_extended_nts(nt::NamedTuple{K}, A::AbstractDimArray, As...) where K = 
@@ -215,3 +225,24 @@ function _as_extended_nts(nt::NamedTuple{K1}, st::AbstractDimStack{K2}, As...) w
     return (extended_layers, _as_extended_nts(nt, As...)...)
 end
 _as_extended_nts(::NamedTuple) = ()
+
+
+# Tuple map that is always unrolled
+# mostly for stack indexing performance
+_unrolled_map_inner(f, v::Type{T}) where T = 
+    Expr(:tuple, (:(f(v[$i])) for i in eachindex(T.types))...)
+_unrolled_map_inner(f, v1::Type{T}, v2::Type) where T = 
+    Expr(:tuple, (:(f(v1[$i], v2[$i])) for i in eachindex(T.types))...)
+
+@generated function unrolled_map(f, v::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v)
+    :(NamedTuple{K}($exp))
+end
+@generated function unrolled_map(f, v1::NamedTuple{K}, v2::NamedTuple{K}) where K
+    exp = _unrolled_map_inner(f, v1, v2)
+    :(NamedTuple{K}($exp))
+end
+@generated unrolled_map(f, v::Tuple) =
+    _unrolled_map_inner(f, v)
+@generated unrolled_map(f, v1::Tuple, v2::Tuple) = 
+    _unrolled_map_inner(f, v1, v2)

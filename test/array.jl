@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful, SparseArrays, Dates, Random
+using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
 
@@ -80,7 +80,7 @@ end
     @test locus(da) == (Center(), Center())
     @test bounds(da) == ((143.0, 145.0), (-38.0, -36.0))
     @test layerdims(da) == (X(), Y())
-    @test index(da, Y) == LinRange(-38.0, -36.0, 2)
+    @test parent(lookup(da, Y)) === -38.0:2:-36.0
     @test_broken @inferred set(da, X => Intervals(), Y => Intervals())
     da_intervals = set(da, X => Intervals(), Y => Intervals())
     @test intervalbounds(da_intervals) == ([(142.0, 144.0), (144.0, 146.0)], [(-39.0, -37.0), (-37.0, -35.0)])
@@ -127,16 +127,33 @@ end
 @testset "similar" begin
     @testset "similar with no args" begin
         da_sim = similar(da)
+        @test parent(da_sim) !== parent(da) # check if the same memory
         @test eltype(da_sim) == eltype(da)
         @test size(da_sim) == size(da)
         @test dims(da_sim) === dims(da)
         @test refdims(da_sim) === refdims(da)
-        @test refdims(da_sim) === refdims(da)
         @test metadata(da_sim) === metadata(da)
+    end
+
+    @testset "similar with keywords" begin
+        for x in (da, DimPoints(da))
+            md = Dict(:new_meta => "b")
+            rd = (format(Ti(1:1)),)
+            da_named = similar(x; name=:new_name, metadata=md, refdims=rd)
+            @test name(da_named) === :new_name
+            @test metadata(da_named) === md
+            @test refdims(da_named) === rd
+            da_float_named = similar(x, Float64; name=:new_name, metadata=md, refdims=rd)
+            @test eltype(da_float_named) === Float64
+            @test name(da_float_named) === :new_name
+            @test metadata(da_float_named) === md
+            @test refdims(da_float_named) === rd
+        end
     end
 
     @testset "similar with a type" begin
         da_float = @inferred similar(da, Float64)
+        @test parent(da_float) !== parent(da) # check if the same memory
         @test eltype(da_float) == Float64
         @test size(da_float) == size(da)
         @test dims(da_float) === dims(da)
@@ -163,16 +180,28 @@ end
     end
 
     @testset "similar with sparse arrays" begin
+        # Test that SparseArrays extension is properly loaded
+        if !hasmethod(copyto!, (DimArray{Float64,2}, SparseArrays.AbstractSparseMatrixCSC{Float64}))
+            @warn "SparseArrays extension not loaded, skipping related tests"
+            return
+        end
+        
         sda = @inferred DimArray(sprand(Float64, 10, 10, 0.5), (X(), Y()))
         sparse_size_int = similar(sda, Int64, (5, 5))
         @test eltype(sparse_size_int) == Int64 != eltype(sda)
         @test size(sparse_size_int) == (5, 5)
         @test sparse_size_int isa SparseMatrixCSC
+        
+        # Test that basic copyto! works with sparse arrays
+        dst = DimArray(zeros(Float64, 10, 10), (X(1:10), Y(1:10)))
+        result = copyto!(dst, parent(sda))
+        @test result === dst
+        @test parent(dst) == parent(sda)
     end
 
     @testset "similar with dims" begin
         da_sim_dims = @inferred similar(da, dims(da))
-        da_sim_dims_splat = @inferred similar(da, dims(da))
+        da_sim_dims_splat = @inferred similar(da, dims(da)...)
         for A in (da_sim_dims, da_sim_dims_splat)
             @test eltype(A) == eltype(da)
             @test size(A) == size(da)
@@ -196,21 +225,21 @@ end
         @test size(da_all) == size(da)
         @test dims(da_all) === dims(da)
         @test refdims(da_all) == ()
-        @test metadata(da_all) == NoMetadata()
+        @test metadata(da_all) == metadata(da)
 
         da_first = similar(da, Missing, (axes(da, 1),))   
         @test eltype(da_first) === Missing
         @test size(da_first) == (size(da, 1),)
         @test dims(da_first) === (dims(da, 1),)
         @test refdims(da_first) == ()
-        @test metadata(da_first) == NoMetadata()
+        @test metadata(da_first) == metadata(da)
 
         da_last = similar(da, Nothing, (axes(da, 2),))
         @test eltype(da_last) === Nothing
         @test size(da_last) == (size(da, 2),)
         @test dims(da_last) === (dims(da, 2),)
         @test refdims(da_last) == ()
-        @test metadata(da_last) == NoMetadata()
+        @test metadata(da_last) == metadata(da)
     end
 
     @testset "similar with DimArray and new axes" begin
@@ -220,7 +249,7 @@ end
         @test size(da_sim) == (2,)
         @test dims(da_sim) == (dims(ax),)
         @test refdims(da_sim) == ()
-        @test metadata(da_sim) == NoMetadata()
+        @test metadata(da_sim) == metadata(da)
     end
 
     @testset "similar with AbstractArray and DimUnitRange" begin
@@ -409,6 +438,10 @@ end
     @test da[1, 1:4] == 10:10:40
     @test copyto!(A, CartesianIndices(view(da, 1:1, 1:4)), DimArray(x, (X, Y)), CartesianIndices(x)) isa Matrix
     @test A[1, 1:4] == 10:10:40
+    @test copyto!(A, 10, da, 10) isa Matrix
+    @test A[:,4] == [40, 0,0]
+    @test copyto!(da, 10, a2, 11) isa DimMatrix
+    @test da[:,4] == [6,7,0]
 end
 
 @testset "copy_similar" begin
@@ -458,7 +491,41 @@ end
 
 
 @testset "generator constructor" begin
-    [(x, y) for x in X(10:10:50), y in Y(0.0:0.1:1.0)]
+    Xs = X(10:10:50)
+    Ys = Y(0.0:0.1:1.0)
+    Zs = Z(100:10:500)
+    name = :Value
+
+    A = [(x, y) for x in Xs, y in Ys]
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray(x for x in Xs)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+
+    A = DimArray(x for x in Xs; name)
+    @test dims(A) == (Xs,)
+    @test size(A) == (Xs,) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y) for x in Xs, y in Ys)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+
+    A = DimArray((x, y) for x in Xs, y in Ys; name)
+    @test dims(A) == (Xs, Ys)
+    @test size(A) == (Xs, Ys) .|> length
+    @test A.name == name
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+
+    A = DimArray((x, y, z) for x in Xs, y in Ys, z in Zs; name)
+    @test dims(A) == (Xs, Ys, Zs)
+    @test size(A) == (Xs, Ys, Zs) .|> length
+    @test A.name == name
 end
 
 @testset "ones, zeros, trues, falses constructors" begin

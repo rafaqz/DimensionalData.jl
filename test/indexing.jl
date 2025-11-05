@@ -208,6 +208,7 @@ end
         @test b == da[1:2:end] == da[Begin:2:End]  
         
         v = @inferred da[1, :]
+        @test v isa DimVector
         @test @inferred v[1:2] isa DimArray
         @test @inferred v[rand(Bool, length(v))] isa DimArray
         b = v[[!iseven(i) for i in 1:length(v)]]
@@ -500,6 +501,7 @@ end
     @testset "mixed dimensions" begin
         a = [[1 2 3; 4 5 6];;; [11 12 13; 14 15 16];;;]
         da = DimArray(a, (X(143.0:2:145.0), Y(-38.0:-36.0), Ti(100:100:200)); name=:test)
+        da[1, End(), Begin(), 1]
         da[Ti=1, DimIndices(da[Ti=1])]
         da[DimIndices(da[Ti=1]), Ti(2)]
         da[DimIndices(da[Ti=1])[:], Ti(2)]
@@ -529,7 +531,6 @@ end
         @test view(s_mixed, 1, 1)[] == view(s_mixed, 1, 1)[] == 
             s_mixed[Begin, Begin] == (one=1.0, two=2.0f0, three=3, four=4)
     end
-
     @testset "cartesian mixed" begin
         @inferred s[At(:a), :] 
         @inferred view(s, At(:a), :)
@@ -632,6 +633,14 @@ end
             s[X=1:1, Y=1:2]
     end
 
+    @testset "CartesianIndex Vector" begin
+        @inferred s[[CartesianIndex(1, 2)]]
+        @inferred view(s, [CartesianIndex(1, 2)]) 
+        @test s[[CartesianIndex(1, 2)]] == 
+            view(s, [CartesianIndex(1, 2)]) ==
+            s[[3]]
+    end
+
     @testset "Mixed CartesianIndex and CartesianIndices" begin
         da3d = cat(da1, 10da1; dims=Z) 
         s3 = merge(s, (; ten=da3d))
@@ -675,6 +684,8 @@ end
 
     @testset "setindex!" begin
         s_set = deepcopy(s)
+        s_set[1] = (one=4, two=5, three=6)
+        @test s_set[1, 1] === (one=4.0, two=5.0f0, three=6)
         s_set[1, 1] = (one=9, two=10, three=11)
         @test s_set[1, 1] === (one=9.0, two=10.0f0, three=11) 
         s_set[X=At(:b), Y=At(10.0)] = (one=7, two=11, three=13)
@@ -733,11 +744,30 @@ end
         @test (1:10)[1:End] == 1:10
         @test (1:10)[Begin():End()] == 1:10
         @test (1:10)[Begin+1:End-1] == 2:9
+        @test (1:10)[1+Begin:End-1] == 2:9
         @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[1+Begin():End()-1] == 2:9
         @test (1:10)[Begin:End÷2] == 1:5
+        @test (1:10)[2:2:End] == 2:2:10
+        @test (1:10)[2:2:End-1] == 2:2:8
         @test (1:10)[Begin|3:End] == 3:10
         @test (1:10)[Begin:End&3] == 1:2
         @test (1:10)[Begin()+1:End()-1] == 2:9
+        @test (1:10)[max(Begin()+1, 3):End()-1] == 3:9
+        @test (1:10)[1+Begin] == 2
+        @test (1:10)[1+Begin()] == 2
+        @test (1:10)[End-1] == 9
+        @test (1:10)[1+(End÷2)] == 6
+        @test (1:10)[div(End,2)+1] == 6
+        @test (1:10)[1+(Begin+2)] == 4
+        @test (1:10)[max(Begin, -1)] == 1
+        @test (1:10)[max(Begin, 3)] == 3
+        @test (1:10)[min(End, 12)] == 10
+        @test (1:10)[min(End, 3)] == 3
+        @test (1:10)[max(-1, Begin)] == 1
+        @test (1:10)[max(3, Begin)] == 3
+        @test (1:10)[min(12,End)] == 10
+        @test (1:10)[min(3, End)] == 3
     end
     @testset "dimension indexing" begin
         A = DimArray((1:5)*(6:3:20)', (X, Y))
@@ -748,5 +778,33 @@ end
         @test A[Begin:Begin+1, End] == [18, 36]
         @test A[Begin():Begin()+1, End()] == [18, 36]
         @test A[X=Begin:Begin+1, Y=End] == [18, 36]
+    end
+    @testset "BeginEndRange" begin
+        a = Begin:End
+        @test first(a) == Begin()
+        @test last(a) == End()
+        b = Begin:5
+        @test first(b) == Begin()
+        @test last(b) == 5
+        d = Begin()+2:End()
+        @test first(d) == Begin+2
+        @test Base.checkindex(Bool, 1:10, Begin-1:End) == false
+    end
+    @testset "BeginEndStepRange" begin
+        a = Begin:2:End
+        a = Begin():2:End()
+        @test first(a) == Begin()
+        @test last(a) == End()
+        b = Begin:3:15
+        @test first(b) == Begin()
+        @test last(b) == 15
+        c = Begin:2:Begin+6
+        @test step(c) == 2
+        @test last(c) == Begin+6
+        d = Begin()+2:-1:max(End(), 100) - 1
+        @test first(d) == Begin+2
+        @test last(d) == max(End(), 100) - 1
+        @test step(d) == -1
+        @test Base.checkindex(Bool, 1:10, Begin:2:8)
     end
 end

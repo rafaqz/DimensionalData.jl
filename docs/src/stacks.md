@@ -1,3 +1,7 @@
+```@meta
+Description = "DimStacks in DimensionalData.jl - collections of arrays sharing dimensions, combining NamedTuple and array-like behavior"
+```
+
 # DimStacks
 
 An `AbstractDimStack` represents a collection of `AbstractDimArray`

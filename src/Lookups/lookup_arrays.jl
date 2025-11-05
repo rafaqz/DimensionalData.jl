@@ -1,4 +1,3 @@
-
 """
     Lookup
 
@@ -21,9 +20,6 @@ dims(::Lookup) = nothing
 val(l::Lookup) = parent(l)
 locus(l::Lookup) = Center()
 
-# Deprecated
-index(l::Lookup) = parent(l)
-
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
 Base.size(l::Lookup) = size(parent(l))
@@ -33,6 +29,7 @@ Base.first(l::Lookup) = first(parent(l))
 Base.last(l::Lookup) = last(parent(l))
 Base.firstindex(l::Lookup) = firstindex(parent(l))
 Base.lastindex(l::Lookup) = lastindex(parent(l))
+Base.parentindices(l::Lookup) = parentindices(parent(l))
 function Base.:(==)(l1::Lookup, l2::Lookup)
     basetypeof(l1) == basetypeof(l2) && parent(l1) == parent(l2)
 end
@@ -160,11 +157,10 @@ NoLookup() = NoLookup(AutoValues())
 rebuild(l::NoLookup; data=parent(l), kw...) = NoLookup(data)
 
 # Used in @d broadcasts
-struct Length1NoLookup <: AbstractNoLookup end
-Length1NoLookup(::AbstractVector) = Length1NoLookup()
-
-rebuild(l::Length1NoLookup; kw...) = Length1NoLookup()
-Base.parent(::Length1NoLookup) = Base.OneTo(1)
+struct Length1NoLookup{A<:AbstractUnitRange} <: AbstractNoLookup 
+    data::A
+end
+Length1NoLookup() = Length1NoLookup(Base.OneTo(1))
 
 """
     AbstractSampled <: Aligned
@@ -223,14 +219,20 @@ _bounds(::ReverseOrdered, ::Intervals, span::Explicit, ::AbstractSampled) =
     (val(span)[1, end], val(span)[2, 1])
 _bounds(::Intervals, span::Regular, lookup::AbstractSampled) =
     _bounds(locus(lookup), order(lookup), span, lookup)
-_bounds(::Start, ::ForwardOrdered, span, lookup) = first(lookup), last(lookup) + step(span)
-_bounds(::Start, ::ReverseOrdered, span, lookup) = last(lookup), first(lookup) - step(span)
-_bounds(::Center, ::ForwardOrdered, span, lookup) =
-    first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
-_bounds(::Center, ::ReverseOrdered, span, lookup) =
-    last(lookup) + step(span) / 2, first(lookup) - step(span) / 2
-_bounds(::End, ::ForwardOrdered, span, lookup) = first(lookup) - step(span), last(lookup)
-_bounds(::End, ::ReverseOrdered, span, lookup) = last(lookup) + step(span), first(lookup)
+_bounds(::Start, ::ForwardOrdered, span::Regular, lookup) = first(lookup), last(lookup) + step(span)
+_bounds(::Start, ::ReverseOrdered, span::Regular, lookup) = last(lookup), first(lookup) - step(span)
+function _bounds(::Center, order::Ordered, span::Regular, lookup)
+    bounds = first(lookup) - step(span) / 2, last(lookup) + step(span) / 2
+    return _maybeflipbounds(order, bounds)
+end
+# DateTime handling
+function _bounds(::Center, order::Ordered, span::Regular, lookup::Lookup{<:Dates.AbstractTime})
+    f, l, s = first(lookup), last(lookup), step(span)
+    bounds = (f - (f - (f - s)) / 2, l - (l - (l + s)) / 2)
+    _maybeflipbounds(order, bounds)
+end
+_bounds(::End, ::ForwardOrdered, span::Regular, lookup) = first(lookup) - step(span), last(lookup)
+_bounds(::End, ::ReverseOrdered, span::Regular, lookup) = last(lookup) + step(span), first(lookup)
 
 
 const SAMPLED_ARGUMENTS_DOC = """
@@ -287,12 +289,11 @@ y = Y(Sampled([1, 4, 7, 10]; span=Regular(3), sampling=Intervals(Start())))
 A = ones(x, y)
 
 # output
-╭─────────────────────────╮
-│ 5×4 DimArray{Float64,2} │
-├─────────────────────────┴────────────────────────────────────────── dims ┐
+┌ 5×4 DimArray{Float64, 2} ┐
+├──────────────────────────┴──────────────────────────────────────── dims ┐
   ↓ X Sampled{Int64} 100:-20:20 ReverseOrdered Regular Intervals{Start},
-  → Y Sampled{Int64} [1, 4, 7, 10] ForwardOrdered Regular Intervals{Start}
-└──────────────────────────────────────────────────────────────────────────┘
+  → Y Sampled{Int64} [1, …, 10] ForwardOrdered Regular Intervals{Start}
+└─────────────────────────────────────────────────────────────────────────┘
    ↓ →  1    4    7    10
  100    1.0  1.0  1.0   1.0
   80    1.0  1.0  1.0   1.0
@@ -464,7 +465,7 @@ abstract type AbstractCategorical{T,O} <: Aligned{T,O} end
 order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
-const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
+const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString,DataType}
 
 function Adapt.adapt_structure(to, l::AbstractCategorical)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
@@ -509,8 +510,8 @@ Dimensions.lookup(A)
 
 # output
 
-Categorical{String} ["one", "two", "three"] Unordered,
-Categorical{Symbol} [:a, :b, :c, :d] ForwardOrdered
+Categorical{String} ["one", …, "three"] Unordered,
+Categorical{Symbol} [:a, …, :d] ForwardOrdered
 ```
 """
 struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O}
@@ -604,9 +605,24 @@ dim(lookup::Transformed) = lookup.dim
 
 transformfunc(lookup::Transformed) = lookup.f
 
-Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && f(l1) == f(l2)
+Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && l1.f == l2.f
 
 # TODO Transformed bounds
+struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
+    data::A
+    dim::D
+    dims::Ds
+    matrix::Ma
+    tree::Tr
+    idxvec::IV
+    distvec::DV
+    metadata::Me
+end
+ArrayLookup(matrix; metadata=NoMetadata()) =
+    ArrayLookup(AutoValues(), AutoDim(), AutoDim(), matrix, nothing, nothing, nothing, metadata)
+dim(lookup::ArrayLookup) = lookup.dim
+matrix(l::ArrayLookup) = l.matrix
+tree(l::ArrayLookup) = l.tree
 
 # Shared methods
 
@@ -649,6 +665,11 @@ function intervalbounds(order::Ordered, locus::Center, span::Regular, l::Lookup,
     halfstep = step(span) / 2
     x = l[i]
     bounds = (x - halfstep, x + halfstep)
+    return _maybeflipbounds(order, bounds)
+end
+function intervalbounds(order::Ordered, locus::Center, span::Regular, l::LookupArray{<:Dates.AbstractTime}, i::Int)
+    x = l[i]
+    bounds = (x - (x - step(span))) / 2 + x, (x - (x + step(span))) / 2 + x
     return _maybeflipbounds(order, bounds)
 end
 # Irregular Center
@@ -842,21 +863,24 @@ promote_first(x1, x2, xs...) =
 # Fallback NoLookup if not identical type
 promote_first(l1::Lookup) = l1
 promote_first(l1::L, ls::L...) where L<:Lookup = rebuild(l1; metadata=NoMetadata)
-function promote_first(l1::L, ls::Lookup...) where {L<:Lookup} 
-    ls = _remove(Length1NoLookup, l1, ls...)
-    if length(ls) > 1 
-        l1, ls... = ls
-    else
+promote_first(l1::L, ls::L...) where L<:AbstractNoLookup = l1
+function promote_first(l1::Lookup, ls1::Lookup...)
+    ls = _remove(Length1NoLookup, l1, ls1...)
+    if length(ls) != length(ls1) + 1
+        # If anything was removed, start again
+        return promote_first(ls...)
+    elseif length(ls) == 1
+        # If there is only one left, use it
         return first(ls)
     end
-    if all(map(l -> typeof(l) == L, ls))
-        if length(ls) > 0
-            rebuild(l1; metadata=NoMetadata())
-        else
-            l1 # Keep metadata if there is only one lookup
-        end
+    # Otherwise see if these have the same type
+    l2, ls2... = ls
+    if all(map(l -> typeof(l) == typeof(l2), ls2))
+        # If so, just simplify the metadata
+        rebuild(l2; metadata=NoMetadata())
     else
-        NoLookup(Base.OneTo(length(l1)))
+        # And if not, use NoLookup
+        NoLookup(Base.OneTo(length(l2)))
     end
 end
 # Categorical lookups

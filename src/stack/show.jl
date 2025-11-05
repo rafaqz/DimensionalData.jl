@@ -15,9 +15,17 @@ end
 
 # Show customisation interface
 function show_main(io, mime, stack::AbstractDimStack)
-    lines, blockwidth, displaywidth = print_top(io, mime, stack)
-    blockwidth = print_layers_block(io, mime, stack; blockwidth, displaywidth)
-    _, blockwidth = print_metadata_block(io, mime, metadata(stack); displaywidth, blockwidth=min(displaywidth-2, blockwidth))
+    displaywidth = displaysize(io)[2]
+    iobuf = IOBuffer()
+    blockwidth, _ = print_layers_block(iobuf, mime, stack; blockwidth=0, displaywidth)
+
+    lines, blockwidth, displaywidth, separatorwidth, istop = print_top(io, mime, stack; blockwidth, displaywidth)
+    blockwidth, separatorwidth = print_layers_block(io, mime, stack; 
+        blockwidth, displaywidth, separatorwidth, istop
+    )
+    _, blockwidth, istop = print_metadata_block(io, mime, metadata(stack); 
+        blockwidth=min(displaywidth-2, blockwidth), displaywidth, separatorwidth, istop
+    )
 end
 
 function show_after(io, mime, stack::AbstractDimStack)
@@ -26,36 +34,42 @@ function show_after(io, mime, stack::AbstractDimStack)
 end
 
 # Show blocks
-function print_layers_block(io, mime, stack; blockwidth, displaywidth)
+function print_layers_block(io, mime, stack; 
+    blockwidth, displaywidth, separatorwidth=blockwidth, istop=false
+)
     layers = DD.layers(stack)
-    keylen = if length(keys(layers)) == 0
-        0
-    else
-        reduce(max, map(length ∘ string, collect(keys(layers))))
-    end
     newblockwidth = blockwidth
+    keylen = _keylen(Base.keys(layers))
     for key in keys(layers)
-        newblockwidth = min(displaywidth - 2, max(newblockwidth, length(sprint(print_layer, stack, key, keylen))))
+        mxbw = max(newblockwidth, length(sprint(print_layer, stack, key, keylen)))
+        newblockwidth = min(displaywidth - 2, mxbw)
     end
-    newblockwidth = print_block_separator(io, "layers", blockwidth, newblockwidth)
+    newblockwidth = print_block_separator(io, "layers", separatorwidth, newblockwidth; istop)
     println(io)
     for key in keys(layers)
         print_layer(io, stack, key, keylen)
     end
-    return newblockwidth
+    return newblockwidth, newblockwidth
 end
 
-function print_layer(io, stack, key, keylen)
+function _keylen(keys)
+    if isempty(keys)
+        0
+    else
+        reduce(max, map(length ∘ string, collect(keys)))
+    end
+end
+
+function print_layer(io, stack, key::Symbol, keylen)
     layer = stack[key]
     pkey = rpad(key, keylen)
-    printstyled(io, "  :$pkey", color=dimcolors(7))
+    printstyled(io, "  :$pkey", color=dimcolor(7))
     printstyled(io, " eltype: "; color=:light_black)
     print(io, string(eltype(layer)))
     field_dims = DD.dims(layer)
-    n_dims = length(field_dims)
-    colors = map(dimcolors, dimnum(stack, field_dims))
+    colors = map(dimcolor, dimnum(stack, field_dims))
     printstyled(io, " dims: "; color=:light_black)
-    if n_dims > 0
+    if !isempty(field_dims)
         for (i, (dim, color)) in enumerate(zip(field_dims, colors))
             Dimensions.print_dimname(IOContext(io, :dimcolor => color), dim)
             i != length(field_dims) && print(io, ", ")

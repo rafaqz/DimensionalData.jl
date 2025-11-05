@@ -131,11 +131,10 @@ any combination of either.
 julia> using DimensionalData
 
 julia> A = DimArray(ones(2, 3, 2), (X, Y, Z))
-╭───────────────────────────╮
-│ 2×3×2 DimArray{Float64,3} │
-├───────────────────── dims ┤
+┌ 2×3×2 DimArray{Float64, 3} ┐
+├────────────────────── dims ┤
   ↓ X, → Y, ↗ Z
-└───────────────────────────┘
+└────────────────────────────┘
 [:, :, 1]
  1.0  1.0  1.0
  1.0  1.0  1.0
@@ -180,9 +179,11 @@ julia> commondims(A, Ti)
 ```
 """
 function commondims end
-@inline commondims(a1, args...) = _dim_query(_commondims, AlwaysTuple(), a1, args...)
+@inline commondims(a1, args...) = 
+    _dim_query(_commondims, AlwaysTuple(), a1, args...)
 
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
+_commondims(f, ds) = ()
 
 """
     dimnum(x, query::Tuple) => NTuple{Int}
@@ -212,20 +213,25 @@ julia> dimnum(A, Y)
 ```
 """
 function dimnum end
-@inline function dimnum(x, q1, query...)
-    all(hasdim(x, q1, query...)) || _extradimserror(otherdims(x, (q1, query...)))
-    _dim_query(_dimnum, MaybeFirst(), x, q1, query...)
+@inline function dimnum(x, query::Tuple)
+    all(hasdim(x, query)) || _extradimserror(otherdims(x, query))
+    _dim_query(_dimnum, MaybeFirst(), x, query...)
 end
+@inline dimnum(x, q1::Union{DimOrDimType,Integer}, query::Union{DimOrDimType,Integer}...) =
+   dimnum(x, (q1, query...))
 @inline dimnum(x, query::Function) =
     _dim_query(_dimnum, MaybeFirst(), x, query)
+@inline dimnum(x, q1, query...) =
+    throw(ArgumentError("`dimnum` accepts Dimensions, Symbols, Integers or any of these in a Tuple, or a predicate, function. not $((q1, query...))."))
 
-@inline _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Int}}) = query
+@inline _dimnum(f::Function, ds::Tuple, query::Tuple{Vararg{Integer}}) = query
 @inline function _dimnum(f::Function, ds::Tuple, query::Tuple)
     numbered = map(ds, ntuple(identity, length(ds))) do d, i
         rebuild(d, i)
     end
     map(val, _dims(f, numbered, query))
 end
+_dimnum(f::Function, ds::Tuple) = ()
 
 """
     hasdim([f], x, query::Tuple) => NTuple{Bool}
@@ -347,7 +353,7 @@ function setdims end
 Swap dimensions for the passed in dimensions, in the
 order passed.
 
-Passing in the `Dimension` types rewraps the dimension index,
+Passing in the `Dimension` types rewraps the dimension lookup,
 keeping the index values and metadata, while constructed `Dimension`
 objects replace the original dimension. `nothing` leaves the original
 dimension as-is.
@@ -364,11 +370,10 @@ A = ones(X(2), Y(4), Z(2))
 Dimensions.swapdims(A, (Dim{:a}, Dim{:b}, Dim{:c}))
 
 # output
-╭───────────────────────────╮
-│ 2×4×2 DimArray{Float64,3} │
-├───────────────────── dims ┤
+┌ 2×4×2 DimArray{Float64, 3} ┐
+├────────────────────── dims ┤
   ↓ a, → b, ↗ c
-└───────────────────────────┘
+└────────────────────────────┘
 [:, :, 1]
  1.0  1.0  1.0  1.0
  1.0  1.0  1.0  1.0
@@ -552,9 +557,9 @@ struct Throw{M<:Union{AbstractString,Nothing}} <: AbstractMessage{M}
     msg::M
 end
 Throw() = Throw(nothing)
-
+_limit_sprint(x) = sprint(show, x; context = :limit => true)
 _dimsmismatchmsg(a, b) = "$(basetypeof(a)) and $(basetypeof(b)) dims on the same axis."
-_valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(parent(a)) and $(parent(b)) do not match."
+_valmsg(a, b) = "Lookup values for $(basetypeof(a)) of $(_limit_sprint(parent(a))) and $(_limit_sprint(parent(b))) do not match."
 _dimsizemsg(a, b) = "Found both lengths $(length(a)) and $(length(b)) for $(basetypeof(a))."
 _valtypemsg(a, b) = "Lookup for $(basetypeof(a)) of $(lookup(a)) and $(lookup(b)) do not match."
 _ordermsg(a, b) = "Lookups do not all have the same order: $(order(a)), $(order(b))."
@@ -653,7 +658,7 @@ that the lookup values come from the first argument.
     but the values from the first lookup with length larger than
     one will be used.
 """
-
+# Not actually documented, maybe too internal
 @inline function promotedims(d1::Dimension, ds::Dimension...; skip_length_one=false)
     vs = map(val, ds)
     v = promote_first(val(d1), vs...)
@@ -669,6 +674,7 @@ promotedims(dts::DimTupleOrEmpty...; kw...) = _promotedims_gen(dts; kw...)
 
 # Hard to get this stable without @generated
 @generated function _promotedims_gen(dts::Tuple; kw...)
+    isempty(dts.parameters) && return Expr(:tuple)
     maxlen = maximum(Tuple(dts.parameters)) do p
         length(p.parameters)
     end

@@ -335,7 +335,7 @@ end
     da2a = fill(2, Y(4), X(3))
     da3 = fill(3, Y(4), Z(5), X(3))
 
-    # Shape and permutaton do not matter
+    # # Shape and permutaton do not matter
     @test p(da1, da2, da3) == 
         p(da1, permutedims(da2, (Y, X)), da3)
         p(da1, da2, permutedims(da3, (X, Y, Z)))
@@ -369,6 +369,21 @@ end
         @test p(da1, da2, da3) == 
             p(da1, permutedims(da2, (Y, X)), da3)
             p(da1, da2, permutedims(da3, (X, Y, Z)))
+    end
+
+    @testset "Lookups are maintained" begin
+        x = format(X(-5.0:5.0))
+        y = format(Y(-10.0:2:12.0))
+        z = format(Z(-3.0:0.5:4.0))
+
+        u = @d x .* y
+        v = @d x .* z
+        w = @d y .* z
+
+        f(u, v, w) = u + v + w
+
+        A = @d f.(u, v, w)
+        @test dims(A) == (x, y, z)
     end
 
     @testset "strict" begin
@@ -406,6 +421,58 @@ end
     @testset "numbers etc" begin
         dv = DimArray(identity, X(1.0:10.0); name=:x)
         @test (@d dv .* 2) == (dv .* 2) 
+    end
+
+    @testset "keywords" begin
+        f1(a; b=1) = a * b
+        z = Z(1:10)
+        @test f1.(z; b = 2) == @d f1.(z; b = 2)
+    end
+
+    @testset "strict=false in assignment" begin
+        dv1 = rand(X(1:3))
+        dv2 = rand(X(2:4))
+        dv3 = rand(X(7:9))
+        @test_throws DimensionMismatch dv1 .= dv2 .* dv3
+        @d dv1 .= dv2 strict = false
+        @test dv1 == parent(dv2)
+        @d dv1 .= dv2 .* dv3 strict=false
+        @test dv1 == parent(dv2) .* parent(dv3)
+    end
+
+    @testset "single arg" begin
+        a = 3
+        @d max.(1)
+    end
+
+    @testset "dot infix assignment" begin
+        x, y, t = X(1:100), Y(1:25), Ti(DateTime(2000):Month(1):DateTime(2000, 12))
+        A = rand(x, y, t)
+        B = A[At(50), :, :]
+        C = copy(A)
+        @d A .-= B
+        @test A == @d C .- B
+        @d A .+= B
+        @test A == C
+    end
+end
+
+@testset "Concise error messages for dimension mismatches" begin
+    # Test that dimension mismatch errors are concise, not verbose
+    x = DimArray(ones(1000), X(1:2:2000))
+    y1 = DimArray(ones(1001), X(1:2:2001))
+    y2 = DimArray(ones(1000), X(2:1001))
+
+    for y in (y1, y2)
+        err = nothing
+        try
+            x .+ y
+        catch e
+            err = e
+        end
+
+        @test err isa DimensionMismatch
+        @test length(string(err)) < 250
     end
 end
 

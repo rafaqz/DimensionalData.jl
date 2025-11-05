@@ -63,6 +63,10 @@ end
 @testset "dims" begin
     sv = sprint(show, MIME("text/plain"), X())
     @test occursin("X", sv)
+    sv = sprint(show, MIME("text/plain"), X(fill(0)))
+    @test occursin("X", sv)
+    sv = sprint(show, MIME("text/plain"), X(1:5))
+    @test occursin("X", sv)
 end
 
 @testset "show lookups" begin
@@ -92,6 +96,73 @@ end
     nds = (X(NoLookup(Base.OneTo(10))), Y(NoLookup(Base.OneTo(5))))
     sv = sprint(show, MIME("text/plain"), nds)
     @test sv == "(↓ X, → Y)"
+end
+
+@testset "Selectors" begin
+    @testset "At" begin
+        s = sprint(show, MIME("text/plain"), At(1))
+        @test s == "At(1)"
+        s = sprint(show, MIME("text/plain"), At(1, atol=0.1))
+        @test s == "At(1; atol=0.1)"
+        s = sprint(show, MIME("text/plain"), Near(1))
+        @test s == "Near(1)"
+        s = sprint(show, MIME("text/plain"), Near())
+        @test s == "Near()"
+        s = sprint(show, MIME("text/plain"), Contains(1))
+        @test s == "Contains(1)"
+        s = sprint(show, MIME("text/plain"), Contains())
+        @test s == "Contains()"
+        s = sprint(show, MIME("text/plain"), Between(1,2))
+        @test s == "Between((1, 2))"
+        s = sprint(show, MIME("text/plain"), Where(>=(10)))
+        @test startswith(s, "Where")
+        @test occursin(">=", s)
+        s = sprint(show, MIME("text/plain"), All(At(10), At(20)))
+        s == "All((At(10), At(20)))"
+    end
+end
+
+@testset "DimSelectors" begin
+    a = rand(X(1:10), Y(4:11))
+    d = DimSelectors(a, selectors=Near())
+    sd = sprint(show, MIME("text/plain"), d)
+    @test occursin("DimSelectors", sd)
+    @test occursin("10×8", sd)
+    @test occursin("(Near(), Near())", sd)
+    @test occursin("X Near(1)", sd)
+end
+
+@testset "BeginEnd" begin
+    lplus = Begin+6
+    slp = sprint(show, MIME("text/plain"), lplus)
+    @test slp == "(Begin+6)"
+    lplusr = 6+Begin
+    slpr = sprint(show, MIME("text/plain"), lplusr)
+    @test slpr == "(6+Begin)"
+    ldiv = div(End,2)
+    sld = sprint(show, MIME("text/plain"), ldiv)
+    @test sld == "(End÷2)"
+    ldivnest = (End÷2) +1
+    sldn = sprint(show, MIME("text/plain"), ldivnest)
+    @test sldn == "((End÷2)+1)"
+    berange = Begin:(End-1)
+    sber = sprint(show, MIME("text/plain"), berange)
+    @test sber == "Begin:(End-1)"
+    bserange = Begin:3:End
+    sbser = sprint(show, MIME("text/plain"), bserange)
+    @test sbser == "Begin:3:End"
+    lmax = max(3,Begin)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(3, Begin)"
+    lmax = max(Begin,3)
+    slmax = sprint(show, MIME("text/plain"), lmax)
+    @test slmax == "max(Begin, 3)"
+    lmin = min(3,Begin)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(3, Begin)"
+    lmin = min(Begin,3)
+    slmin = sprint(show, MIME("text/plain"), lmin)
+    @test slmin == "min(Begin, 3)"
 end
 
 @testset "arrays" begin
@@ -154,6 +225,11 @@ end
     sv = sprint(show, MIME("text/plain"), D)
     @test occursin('a', sv) && occursin('b', sv)
     @test occursin("(1, 1)", sv) && occursin("(1, 2)", sv)
+
+    # Test trailing zero dimension
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(1), Z(0)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(1), Y(0), Z(1)))
+    @test_nowarn sprint(show, MIME("text/plain"), ones(X(0), Y(0), Z(0)))
 end
 
 @testset "stack" begin
@@ -166,4 +242,23 @@ end
     @test occursin("Z", sv)
     @test occursin("test", sv)
     @test occursin(":x => 1", sv)
+end
+
+@testset "DimTree" begin
+     xdim, ydim = map(DimensionalData.format, (X(1:10), Y(1:15)))
+     z1, z2 = map(DimensionalData.format, (Z(["A", "B", "C"]), Z(["C", "D"])))
+     a = rand(xdim, ydim; name=:a)
+     b = rand(Float32, xdim, ydim; name=:b)
+     c = rand(Int, xdim, ydim, z1; name=:c)
+     d = rand(Int, xdim, z2; name=:d)
+     dt = DimTree(a, b)
+    sv = sprint(show, MIME("text/plain"), dt)
+    @test occursin("DimTree", sv)
+    @test occursin("layers", sv)
+    dt.mybranch = DimTree(c)
+    sc = sprint(show, MIME("text/plain"), dt)
+    @test occursin("branches", sc)
+    @test occursin("mybranch", sc)
+    @test occursin(":c", sc)
+
 end

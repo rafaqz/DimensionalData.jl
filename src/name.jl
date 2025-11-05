@@ -5,8 +5,6 @@ Abstract supertype for name wrappers.
 """
 abstract type AbstractName end
 
-Base.convert(T::Type{<:AbstractString}, name::AbstractName) = convert(T, string(name))
-
 """
     NoName <: AbstractName
 

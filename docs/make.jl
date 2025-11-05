@@ -1,6 +1,7 @@
 using DocumenterVitepress
 using Documenter
 using DimensionalData
+using Dates
 using DimensionalData.Dimensions
 using DimensionalData.Lookups
 
@@ -32,7 +33,7 @@ makedocs(; sitename="DimensionalData", authors="Rafael Schouten et al.",
 
 # Deploy built documentation.
 # ===========================
-deploydocs(; 
+DocumenterVitepress.deploydocs(; 
     repo="github.com/rafaqz/DimensionalData.jl",
     target="build", # this is where Vitepress stores its output
     branch = "gh-pages",

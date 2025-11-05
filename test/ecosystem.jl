@@ -6,6 +6,7 @@ using ImageFiltering
 using ImageTransformations
 using ArrayInterface
 using StatsBase
+using DiskArrays
 
 using DimensionalData.Lookups
 
@@ -81,6 +82,57 @@ end
 
 @testset "StatsBase" begin
     da = rand(X(1:10), Y(1:3))
-    @test mean(da, weights([0.3,0.3,0.4]); dims=Y) == mean(parent(da), weights([0.3,0.3,0.4]); dims=2)
-    @test sum(da, weights([0.3,0.3,0.4]); dims=Y) == sum(parent(da), weights([0.3,0.3,0.4]); dims=2)
+    w = weights([0.3, 0.3, 0.4])
+    @test mean(da, w; dims=Y) == mean(parent(da), w; dims=2)
+    @test sum(da, w; dims=Y) == sum(parent(da), w; dims=2)
+    w2 = weights(collect(1:10) * [0.3, 0.3, 0.4]')
+    @test mean(da, w2; dims=:) == mean(da, w2) == mean(parent(da), w2; dims=:)
+    @test sum(da, w2; dims=:) == sum(da, w2) == sum(parent(da), w2; dims=:)
+end
+
+@testset "DiskArrays" begin
+    raw_data = rand(100, 100, 2)
+    chunked_data = DiskArrays.TestTypes.ChunkedDiskArray(raw_data, (10, 10, 2))
+    ds = (X(1.0:100), Y(collect(10:10:1000); span=Regular(10)), Z())
+    da = DimArray(chunked_data, ds)
+    st = DimStack((a = da, b = da))
+
+    @testset "cache" begin
+        @test parent(da) isa DiskArrays.TestTypes.ChunkedDiskArray
+        @test DiskArrays.cache(da) isa DimArray
+        @test parent(DiskArrays.cache(da)) isa DiskArrays.CachedDiskArray
+        @test da == DiskArrays.cache(da)
+    end
+    @testset "chunks" begin
+        @test DiskArrays.haschunks(da) == DiskArrays.haschunks(chunked_data)
+        @test DiskArrays.eachchunk(da) == DiskArrays.eachchunk(chunked_data)
+    end
+    @testset "isdisk" begin
+        @test DiskArrays.isdisk(da)
+        @test !DiskArrays.isdisk(rand(X(5), Y(4)))
+        @test DiskArrays.isdisk(st)
+        @test !DiskArrays.isdisk(DimStack((a=rand(X(5), Y(4)), b=rand(X(5)))))
+    end
+    @testset "pad" begin
+        p = DiskArrays.pad(da, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        pst = DiskArrays.pad(st, (; X=(2, 3), Y=(40, 50)); fill=1.0)
+        dims(p)
+        @test size(p) == size(pst) == 
+            map(length, dims(p)) == map(length, dims(pst)) == 
+            size(da) .+ (5, 90, 0) == (105, 190, 2)
+        @test dims(p) == dims(pst) == map(DimensionalData.format, (X(-1.0:103.0), Y(collect(-390:10:1500); span=Regular(10)), Z(NoLookup(Base.OneTo(2)))))
+        @test sum(p) ≈ sum(da) + prod(size(p)) - prod(size(da))
+        maplayers(pst) do A
+            @test sum(A) ≈ sum(da) + prod(size(A)) - prod(size(da))
+        end
+    end
+    @testset "PermutedDimsArray and PermutedDiskArray" begin
+        @test parent(PermutedDimsArray(modify(Array, da), (3, 1, 2))) isa PermutedDimsArray
+        @test parent(PermutedDimsArray(da, (3, 1, 2))) isa DiskArrays.PermutedDiskArray
+    end
+
+    @testset "mockchunks" begin
+        damockchunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20)))
+        @test size(DiskArrays.eachchunk(damockchunked)) == (5,5)
+    end
 end

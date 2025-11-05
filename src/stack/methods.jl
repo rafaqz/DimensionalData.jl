@@ -68,14 +68,13 @@ julia> size(slices)
 (4, 2)
 
 julia> map(dims, axes(slices))
-(↓ Z Base.OneTo(4),
-→ X Base.OneTo(2))
+(↓ Z,
+→ X Categorical{Symbol} [:x1, :x2] ForwardOrdered)
 
 julia> first(slices)
-╭──────────────╮
-│ 3×5 DimStack │
+┌ 3×5 DimStack ┐
 ├──────────────┴─────────────────────────────────── dims ┐
-  ↓ Y  Sampled{Int64} 1:3 ForwardOrdered Regular Points,
+  ↓ Y Sampled{Int64} 1:3 ForwardOrdered Regular Points,
   → Ti
 ├──────────────────────────────────────────────── layers ┤
   :x eltype: Float64 dims: Y size: 3

@@ -1,3 +1,7 @@
+```@meta
+Description = "Learn the basics of DimensionalData.jl - installation, creating dimensional arrays, indexing with named dimensions in Julia"
+```
+
 ## Installation
 
 If you want to use this package you need to install it first. You can do it using the following commands:
