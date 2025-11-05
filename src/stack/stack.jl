@@ -600,6 +600,31 @@ end
 
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
 
+### Stack as Array 
+struct DimStackArray{T,N,D,S<:AbstractDimStack} <: AbstractDimArrayGenerator{T,N,D}
+    stack::S
+    function DimStackArray(stack::AbstractDimStack{K,T,N,L,D}) where {K,T,N,L,D}
+        new{T,N,D,typeof(stack)}(stack)
+    end
+end
+
+# Forward key methods to the wrapped stack
+Base.parent(x::DimStackArray) = x.stack
+dims(x::DimStackArray) = dims(parent(x))
+refdims(x::DimStackArray) = refdims(parent(x))
+metadata(x::DimStackArray) = metadata(parent(x))
+Base.size(x::DimStackArray) = size(parent(x))
+
+rebuild(x::DimStackArray; kw...) = 
+    DimStackArray(rebuild(parent(x); kw...))
+
+@propagate_inbounds function Base.getindex(A::DimStackArray, i::Integer...)
+    return parent(A)[i...]
+end
+
+@propagate_inbounds function rebuildsliced(f::Function, A::DimStackArray, I)
+    DimStackArray(f(parent(A), I...))
+end
 ### Skipmissing on DimStacks
 
 """
