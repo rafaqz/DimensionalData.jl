@@ -410,3 +410,29 @@ end
     @test all(getindex.(cs2, :two) .== 1)
     @test getindex.(cs2, :one) == da1[X=2]
 end
+
+@testset "DimStack as Array" begin
+    for s in (s, mixed)
+        dsa = DimensionalData.DimStackArray(s)
+        # Test basic array properties
+        @test eltype(dsa) == eltype(s)
+        @test dims(dsa) == dims(s)
+        @test collect(dsa) == collect(s)
+        @test refdims(dsa) == refdims(s)
+        @test metadata(dsa) == metadata(s)
+        
+        # Test indexing methods
+        @test s[1] == dsa[1] == dsa[map(one, size(s))...] == dsa[first(DimSelectors(s))]
+        
+        # Test view
+        v = view(dsa, map(x -> (x-1):x, size(s))...)
+        @test v isa DimensionalData.DimStackArray
+        @test all(x -> parent(x) isa SubArray, layers(parent(v)))
+        @test size(v) == Tuple((2 for _ in 1:ndims(s)))
+        @test first(v) == s[map(x -> x-1, size(s))...]
+        
+        # Test iteration
+        @test first(dsa) == first(s)
+        @test collect(dsa) == collect(s)
+    end
+end
