@@ -628,11 +628,8 @@ arr[1,1]  # Returns (temp=1.0, precip=2.0)
 view(arr, 1:2, 1) 
 ```
 """
-struct DimStackArray{T,N,D,S<:AbstractDimStack} <: AbstractDimArrayGenerator{T,N,D}
+struct DimStackArray{T,N,D,S<:AbstractDimStack{<:Any,T,N,D} <: AbstractDimArrayGenerator{T,N,D}
     stack::S
-    function DimStackArray(stack::AbstractDimStack{K,T,N,L,D}) where {K,T,N,L,D}
-        new{T,N,D,typeof(stack)}(stack)
-    end
 end
 
 # Forward key methods to the wrapped stack
