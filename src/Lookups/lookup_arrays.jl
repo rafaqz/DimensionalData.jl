@@ -188,16 +188,6 @@ function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
     parent(l1) == parent(l2)
 end
 
-for f in (:getindex, :view, :dotview)
-    @eval begin
-        # span may need its step size or bounds updated
-        @propagate_inbounds function Base.$f(l::AbstractSampled, i::AbstractArray)
-            i1 = Base.to_indices(l, (i,))[1]
-            rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
-        end
-    end
-end
-
 function Adapt.adapt_structure(to, l::AbstractSampled)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata(), span=Adapt.adapt(to, span(l)))
 end

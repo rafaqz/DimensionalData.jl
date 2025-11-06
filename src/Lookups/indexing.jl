@@ -34,13 +34,25 @@ for f in (:getindex, :view, :dotview)
         # AbstractArray, Colon and CartesianIndices: the lookup is rebuilt around a new parent
         @propagate_inbounds Base.$f(l::Lookup, i::Union{AbstractArray,Colon}) = 
             rebuild(l; data=Base.$f(parent(l), i))
-        @propagate_inbounds function Base.$f(l::Union{Sampled,Categorical}, i::AbstractArray{Int})
+        # span may need its step size or bounds updated
+        @propagate_inbounds function Base.$f(l::AbstractSampled, i::AbstractArray)
+            i1 = Base.to_indices(l, (i,))[1]
+            rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
+        end
+        # With ordered lookups AbstractArray{Integer} needs to be ordered
+        @propagate_inbounds function Base.$f(l::AbstractSampled, i::AbstractArray{<:Integer})
             @boundscheck checkorder(l, i)
-            # Allow skipping this check with @inbounds
+            i1 = only(Base.to_indices(l, (i,)))
+            rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
+        end
+        @propagate_inbounds function Base.$f(l::AbstractCategorical, i::AbstractArray{<:Integer})
+            @boundscheck checkorder(l, i)
             rebuild(l; data=Base.$f(parent(l), i))
         end
         # Selector gets processed with `selectindices`
-        @propagate_inbounds Base.$f(l::Lookup, i::SelectorOrInterval) = Base.$f(l, selectindices(l, i))
+        @propagate_inbounds Base.$f(l::Lookup, i::SelectorOrInterval) = 
+            Base.$f(l, selectindices(l, i))
+        # Everything else we just index the parent and check if the result is an array
         @propagate_inbounds function Base.$f(l::Lookup, i)
             x = Base.$f(parent(l), i)
             x isa AbstractArray ? rebuild(l; data=x) : x
@@ -52,7 +64,9 @@ function checkorder(l, i)
     if strict_order() && isordered(l)
         issorted(i) || throw(ArgumentError("""
             For `ForwardOrdered` or `ReverseOrdered` lookups, indices of `AbstractVector{Int}` must be in ascending order. 
-            Use `@inbounds` to avoid this check locally, and `DimensionalData.strict_order!(false)` it globally.
+            Use `@inbounds` to avoid this check inside a specific function, or `DimensionalData.strict_order!(false)` globally.
         """))
     end
 end
+# Avoid checks for Bool, Bool indexing is ordered
+checkorder(l, i::AbstractArray{Bool}) = nothing

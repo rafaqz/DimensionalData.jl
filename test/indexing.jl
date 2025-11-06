@@ -266,8 +266,8 @@ end
         @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
         @test bounds(a, X) == (143.0, 145.0)
 
-        a = da[X([2, 1]), Y([2, 1])] # Indexing with array works
-        @test a == [4 3; 2 1]
+        # Indexing with array works
+        @test da[X([1, 2]), Y([1, 2])] == [1 2; 3 4]
     end
 
     @testset "dimindices and dimselectors" begin
