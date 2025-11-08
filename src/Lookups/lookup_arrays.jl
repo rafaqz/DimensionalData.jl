@@ -335,13 +335,6 @@ cycle_status(l::AbstractCyclic) = l.cycle_status
 
 bounds(l::AbstractCyclic{<:Any,T}) where T = (typemin(T), typemax(T))
 
-# Indexing with `AbstractArray` must rebuild the lookup as
-# `Sampled` as we no longer have the whole cycle.
-for f in (:getindex, :view, :dotview)
-    @eval @propagate_inbounds Base.$f(l::AbstractCyclic, i::AbstractArray) =
-        Sampled(rebuild(l; data=Base.$f(parent(l), i)))
-end
-
 
 no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())
 

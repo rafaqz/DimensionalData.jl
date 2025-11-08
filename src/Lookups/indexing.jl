@@ -49,6 +49,12 @@ for f in (:getindex, :view, :dotview)
             @boundscheck checkorder(l, i)
             rebuild(l; data=Base.$f(parent(l), i))
         end
+        # Indexing AbstractCyclic with `AbstractArray` must rebuild the lookup as
+        # `Sampled` as we no longer have the whole cycle.
+        @propagate_inbounds function Base.$f(l::AbstractCyclic, i::AbstractArray{<:Integer})
+            @boundscheck checkorder(l, i)
+            Sampled(rebuild(l; data=Base.$f(parent(l), i)))
+        end
         # Selector gets processed with `selectindices`
         @propagate_inbounds Base.$f(l::Lookup, i::SelectorOrInterval) = 
             Base.$f(l, selectindices(l, i))
@@ -64,7 +70,7 @@ function checkorder(l, i)
     if strict_order() && isordered(l)
         issorted(i) || throw(ArgumentError("""
             For `ForwardOrdered` or `ReverseOrdered` lookups, indices of `AbstractVector{Int}` must be in ascending order. 
-            Use `@inbounds` to avoid this check inside a specific function, or `DimensionalData.strict_order!(false)` globally.
+            Use `@inbounds` to avoid this check locally, or `DimensionalData.strict_order!(false)` globally.
         """))
     end
 end
