@@ -90,7 +90,7 @@ To get dimension columns, you can index with `Dimension` (`X()`) or
 - `layersfrom`: Treat a dimension of an `AbstractDimArray` as layers of an `AbstractDimStack`
     by specifying a dimension to use as layers.
 - `refdims`: Additional reference dimensions to add to the table, defaults to reference
-    dimensions of the table source.
+    dimensions of the table source. Use `refdims=()` for none.
 
 # Example
 
