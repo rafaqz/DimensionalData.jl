@@ -171,6 +171,7 @@ dims(dim::Union{Dimension,DimType,Val{<:Dimension}}) = dim
 dims(dims::DimTuple) = dims
 dims(::Tuple{}) = ()
 dims(x) = nothing
+dims(x::AbstractArray) = dims(axes(x))
 
 val(dim::Dimension) = dim.val
 refdims(x) = ()
