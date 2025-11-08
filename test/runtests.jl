@@ -20,7 +20,7 @@ end
 @time @safetestset "dimension" begin include("dimension.jl") end
 @time @safetestset "primitives" begin include("primitives.jl") end
 @time @safetestset "lookup" begin include("lookup.jl") end
-@time @safetestset "slector" begin include("selector.jl") end
+@time @safetestset "selector" begin include("selector.jl") end
 @time @safetestset "merged" begin include("merged.jl") end
 @time @safetestset "DimUnitRange" begin include("dimunitrange.jl") end
 @time @safetestset "format" begin include("format.jl") end
