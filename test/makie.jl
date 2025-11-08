@@ -474,6 +474,12 @@ end
         @test_nowarn data(A1c) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
     end
 
+    @testset "1d with refdims" begin
+        @test_nowarn data(rebuild(A1; refdims=(Y(['a', 'b']),))) * mapping(
+            X, :test; linestyle=Y
+        ) * visual(CairoMakie.Lines) |> draw
+    end
+
     A3 = DimArray(rand(21, 5, 4), (X, Y, Dim{:p}); name = :RandomData)
     
     @testset "3d faceting" begin
