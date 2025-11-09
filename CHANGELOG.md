@@ -35,6 +35,8 @@ Changelog.generate(
 - `Begin`/`End` bugfixed for use as types
 - lookup methods like `order`, `span` etc work from all objects consistently
   ([#1071])
+- `==` for AbstractDimArray with missing values return missing and do not error
+- `isequal` of AbstractDimArrays takes the dimensions into account
 
 ### Changed
 

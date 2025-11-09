@@ -146,7 +146,9 @@ end
 Base.parent(s::AbstractDimStack) = data(s)
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
-    data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
+    dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2) && data(s1) == data(s2)
+Base.isequal(s1::AbstractDimStack, s2::AbstractDimStack) =
+    isequal(dims(s1), dims(s2)) && isequal(layerdims(s1), layerdims(s2)) && isequal(data(s1), data(s2))
 Base.read(s::AbstractDimStack) = maplayers(read, s)
 
 # Array-like
