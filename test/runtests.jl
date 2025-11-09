@@ -31,7 +31,7 @@ end
 @time @safetestset "methods" begin include("methods.jl") end
 @time @safetestset "broadcast" begin include("broadcast.jl") end
 @time @safetestset "matmul" begin include("matmul.jl") end
-# @time @safetestset "dimindices" begin include("dimindices.jl") end
+@time @safetestset "dimindices" begin include("dimindices.jl") end
 @time @safetestset "set" begin include("set.jl") end
 @time @safetestset "tables" begin include("tables.jl") end
 @time @safetestset "utils" begin include("utils.jl") end
