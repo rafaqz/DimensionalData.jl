@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Introduction · DimensionalData.jl</title><script data-outdated-warner src="assets/warner.js"></script><link href="https://cdnjs.cloudflare.com/ajax/libs/lato-font/3.0.0/css/lato-font.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/juliamono/0.039/juliamono-regular.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/fontawesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/solid.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/brands.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/KaTeX/0.13.11/katex.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.3.6/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-dark.css" data-theme-name="documenter-dark" data-theme-primary-dark/><link class="docs-theme-link" rel="stylesheet" type="text/css" href="assets/themes/documenter-light.css" data-theme-name="documenter-light" data-theme-primary/><script src="assets/themeswap.js"></script></head><body><div id="documenter"><nav class="docs-sidebar"><div class="docs-package-name"><span class="docs-autofit"><a href>DimensionalData.jl</a></span></div><form class="docs-search" action="search/"><input class="docs-search-query" id="documenter-search-query" name="q" type="text" placeholder="Search docs"/></form><ul class="docs-menu"><li class="is-active"><a class="tocitem" href>Introduction</a></li><li><a class="tocitem" href="course/">Crash course</a></li><li><a class="tocitem" href="api/">API</a></li><li><a class="tocitem" href="developer/">For Developers</a></li></ul><div class="docs-version-selector field has-addons"><div class="control"><span class="docs-label button is-static is-size-7">Version</span></div><div class="docs-selector control is-expanded"><div class="select is-fullwidth is-size-7"><select id="documenter-version-selector"></select></div></div></div></nav><div class="docs-main"><header class="docs-navbar"><nav class="breadcrumb"><ul class="is-hidden-mobile"><li class="is-active"><a href>Introduction</a></li></ul><ul class="is-hidden-tablet"><li class="is-active"><a href>Introduction</a></li></ul></nav><div class="docs-right"><a class="docs-edit-link" href="https://github.com/rafaqz/DimensionalData.jl/blob/master/docs/src/index.md" title="Edit on GitHub"><span class="docs-icon fab"></span><span class="docs-label is-hidden-touch">Edit on GitHub</span></a><a class="docs-settings-button fas fa-cog" id="documenter-settings-button" href="#" title="Settings"></a><a class="docs-sidebar-button fa fa-bars is-hidden-desktop" id="documenter-sidebar-button" href="#"></a></div></header><article class="content" id="documenter-page"><article class="docstring"><header><a class="docstring-binding" id="DimensionalData" href="#DimensionalData"><code>DimensionalData</code></a> — <span class="docstring-category">Module</span></header><section><div><p><strong>DimensionalData</strong></p><p><a href="https://rafaqz.github.io/DimensionalData.jl/stable"><img src="https://img.shields.io/badge/docs-stable-blue.svg" alt/></a> <a href="https://rafaqz.github.io/DimensionalData.jl/dev"><img src="https://img.shields.io/badge/docs-dev-blue.svg" alt/></a> <img src="https://github.com/rafaqz/DimensionalData.jl/workflows/CI/badge.svg" alt="CI"/> <a href="https://codecov.io/gh/rafaqz/DimensionalData.jl"><img src="https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/master/graph/badge.svg" alt="Codecov"/></a> <a href="https://github.com/JuliaTesting/Aqua.jl"><img src="https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg" alt="Aqua.jl Quality Assurance"/></a></p><p>DimensionalData.jl provides tools and abstractions for working with datasets that have named dimensions, and optionally a lookup index. It&#39;s a pluggable,  generalised version of <a href="https://github.com/JuliaArrays/AxisArrays.jl">AxisArrays.jl</a>  with a cleaner syntax, and additional functionality found in NamedDims.jl. It has  similar goals to pythons <a href="http://xarray.pydata.org/en/stable/">xarray</a>, and is primarily written for use with spatial data in <a href="https://github.com/rafaqz/GeoData.jl">GeoData.jl</a>.</p><p>Broadcasting and most Base methods maintain and sync dimension context.</p><p>DimensionalData.jl also implements:</p><ul><li>comprehensive plot recipes for Plots.jl.</li><li>a Tables.jl interface with <code>DimTable</code></li><li>multi-layered <code>DimStack</code>s that can be indexed together,    and have base methods applied to all layers.</li><li>the Adapt.jl interface for use on GPUs, even as GPU kernel arguments.</li><li>traits for handling a wide range of spatial data types accurately.</li></ul><p><strong>Dimensions</strong></p><p>Dimensions are wrapper types. They hold the lookup index, details about the  grid, and other metadata. They are also used to index into the array.  <code>X</code>, <code>Y</code>, <code>Z</code> and <code>Ti</code> are the exported defaults. A generalised <code>Dim</code> type is available  to use arbitrary symbols to name dimensions. Custom dimension types can also be defined  using the <code>@dim</code> macro.</p><p>Dimensions can be used to construct arrays in <code>rand</code>, <code>ones</code>, <code>zeros</code> and <code>fill</code> with  either a range for a lookup index or a number for the dimension length:</p><pre><code class="language-julia hljs">julia&gt; using DimensionalData
+
+julia&gt; A = rand(X(1:40), Y(50))
+40×50 DimArray{Float64,2} with dimensions:
+  X: 1:40 (Sampled - Ordered Regular Points)
+  Y
+ 0.929006   0.116946  0.750017  …  0.172604  0.678835   0.495294
+ 0.0550038  0.100739  0.427026     0.778067  0.309657   0.831754
+ ⋮                              ⋱
+ 0.647768   0.965682  0.049315     0.220338  0.0326206  0.36705
+ 0.851769   0.164914  0.555637     0.771508  0.964596   0.30265</code></pre><p>We can also use dim wrappers for indexing, so that the dimension order in the underlying array does not need to be known:</p><pre><code class="language-julia hljs">julia&gt; A[Y(1), X(1:10)]
+10-element DimArray{Float64,1} with dimensions:
+  X: 1:10 (Sampled - Ordered Regular Points)
+and reference dimensions: Y(1) 
+ 0.929006
+ 0.0550038
+ 0.641773
+ ⋮
+ 0.846251
+ 0.506362
+ 0.0492866</code></pre><p>And this has no runtime cost:</p><pre><code class="language-julia hljs">julia&gt; A = ones(X(3), Y(3))
+3×3 DimArray{Float64,2} with dimensions: X, Y
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+ 1.0  1.0  1.0
+
+julia&gt; @btime $A[X(1), Y(2)]
+  1.077 ns (0 allocations: 0 bytes)
+1.0
+
+julia&gt; @btime parent($A)[1, 2]
+  1.078 ns (0 allocations: 0 bytes)
+1.0</code></pre><p>Dims can be used in <code>X=val</code> form:</p><pre><code class="language-julia hljs">julia&gt; A = rand(X(40), Y(50))
+40×50 DimArray{Float64,2} with dimensions: X, Y
+ 0.377696  0.105445  0.543156  …  0.844973  0.163758  0.849367
+ ⋮                             ⋱
+ 0.431454  0.108927  0.137541     0.531587  0.592512  0.598927
+
+julia&gt; A[Y=3]
+40-element DimArray{Float64,1} with dimensions: X
+and reference dimensions: Y(3)
+ 0.543156
+ ⋮
+ 0.137541</code></pre><p>For views:</p><pre><code class="language-julia hljs">julia&gt; view(A, Y(), X(1:5))
+5×50 DimArray{Float64,2} with dimensions: X, Y
+ 0.377696  0.105445  0.543156  …  0.844973  0.163758  0.849367
+ ⋮                             ⋱
+ 0.875279  0.133032  0.925045     0.156768  0.736917  0.444683</code></pre><p>And for specifying dimension number in all <code>Base</code> and <code>Statistics</code>  functions that have a <code>dims</code> argument:</p><pre><code class="language-julia hljs">julia&gt; using Statistics
+
+julia&gt; A = rand(X(3), Y(4), Ti(5));
+
+julia&gt; mean(A; dims=Ti)
+3×4×1 DimArray{Float64,3} with dimensions: X, Y, Ti (Time)
+[:, :, 1]
+ 0.168058  0.52353   0.563065  0.347025
+ 0.472786  0.395884  0.307846  0.518926
+ 0.365028  0.381367  0.423553  0.369339</code></pre><p>You can also use symbols to create <code>Dim{X}</code> dimensions. We can&#39;t use the <code>rand</code> method directly with Symbols, so insteadd use the regular <code>DimArray</code> constructor:</p><pre><code class="language-julia hljs">julia&gt; A = DimArray(rand(10, 20, 30), (:a, :b, :c));
+
+julia&gt; A[a=2:5, c=9]
+
+4×20 DimArray{Float64,2} with dimensions: Dim{:a}, Dim{:b}
+and reference dimensions: Dim{:c}(9)
+ 0.134354  0.581673  0.422615  …  0.410222   0.687915  0.753441
+ 0.573664  0.547341  0.835962     0.0353398  0.794341  0.490831
+ 0.166643  0.133217  0.879084     0.695685   0.956644  0.698638
+ 0.325034  0.147461  0.149673     0.560843   0.889962  0.75733</code></pre><p><strong>Selectors</strong></p><p>Selectors find indices in the lookup index, for each dimension: </p><ul><li><code>At(x)</code>: get the index exactly matching the passed in value(s)</li><li><code>Near(x)</code>: get the closest index to the passed in value(s)</li><li><code>Where(f::Function)</code>: filter the array axis by a function of the    dimension index values.</li><li><code>Between(a, b)</code>: get all indices between two values, excluding the high value.</li><li><code>Contains(x)</code>: get indices where the value x falls within the interval, exluding    the upper value. Only used for <code>Sampled</code> <code>Intervals</code>, for <code>Points</code>, use <code>At</code>.</li></ul><p>(<code>Between</code> and <code>Contains</code> exlude the upper boundary so that adjacent selections never contain the same index)</p><p>Selectors can be used in <code>getindex</code>, <code>setindex!</code> and <code>view</code> to select indices matching the passed in value(s)</p><p>We can use selectors inside dim wrappers:</p><pre><code class="language-julia hljs">julia&gt; using Dates
+
+julia&gt; timespan = DateTime(2001,1):Month(1):DateTime(2001,12)
+DateTime(&quot;2001-01-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-12-01T00:00:00&quot;)
+
+julia&gt; A = DimArray(rand(12,10), (Ti(timespan), X(10:10:100)))
+12×10 DimArray{Float64,2} with dimensions:
+  Ti (Time): DateTime(&quot;2001-01-01T00:00:00&quot;):Month(1):DateTime(&quot;2001-12-01T00:00:00&quot;) (Sampled - Ordered Regular Points)
+  X: 10:10:100 (Sampled - Ordered Regular Points)
+ 0.14106   0.476176  0.311356  0.454908  …  0.464364  0.973193  0.535004
+ ⋮                                       ⋱
+ 0.522759  0.390414  0.797637  0.686718     0.901123  0.704603  0.0740788
+
+julia&gt; @btime A[X(Near(35)), Ti(At(DateTime(2001,5)))]
+0.3133109280208961</code></pre><p>Without dim wrappers selectors must be in the right order:</p><pre><code class="language-julia hljs">using Unitful
+
+julia&gt; A = rand(X((1:10:100)u&quot;m&quot;), Ti((1:5:100)u&quot;s&quot;));
+
+julia&gt; A[Between(10.5u&quot;m&quot;, 50.5u&quot;m&quot;), Near(23u&quot;s&quot;)]
+4-element DimArray{Float64,1} with dimensions:
+  X: (11:10:41) m (Sampled - Ordered Regular Points)
+and reference dimensions:
+  Ti(21 s) (Time): 21 s (Sampled - Ordered Regular Points)
+ 0.584028
+ ⋮
+ 0.716715</code></pre><p><strong>Methods where dims can be used containing indices or Selectors</strong></p><p><code>getindex</code>, <code>setindex!</code> <code>view</code></p><p><strong>Methods where dims, dim types, or <code>Symbol</code>s can be used to indicate the array dimension:</strong></p><ul><li><code>size</code>, <code>axes</code>, <code>firstindex</code>, <code>lastindex</code></li><li><code>cat</code>, <code>reverse</code>, <code>dropdims</code></li><li><code>reduce</code>, <code>mapreduce</code></li><li><code>sum</code>, <code>prod</code>, <code>maximum</code>, <code>minimum</code>,</li><li><code>mean</code>, <code>median</code>, <code>extrema</code>, <code>std</code>, <code>var</code>, <code>cor</code>, <code>cov</code></li><li><code>permutedims</code>, <code>adjoint</code>, <code>transpose</code>, <code>Transpose</code></li><li><code>mapslices</code>, <code>eachslice</code></li></ul><p><strong>Methods where dims can be used to construct <code>DimArray</code>s:</strong></p><ul><li><code>fill</code>, <code>ones</code>, <code>zeros</code>, <code>rand</code></li></ul><p><strong>Warnings</strong></p><p>Indexing with unordered or reverse order arrays has undefined behaviour. It will trash the dimension index, break <code>searchsorted</code> and nothing will make sense any more. So do it at you own risk. However, indexing with sorted vectors of Int can be useful. So it&#39;s allowed. But it will still do strange things to your interval sizes if the dimension span is <code>Irregular</code>.</p><p><strong>Alternate Packages</strong></p><p>There are a lot of similar Julia packages in this space. AxisArrays.jl, NamedDims.jl, NamedArrays.jl are registered alternative that each cover some of the functionality provided by DimensionalData.jl. DimensionalData.jl should be able to replicate most of their syntax and functionality.</p><p><a href="https://github.com/mcabbott/AxisKeys.jl">AxisKeys.jl</a> and <a href="https://github.com/Tokazama/AbstractIndices.jl">AbstractIndices.jl</a> are some other interesting developments. For more detail on why there are so many similar options and where things are headed, read this <a href="https://github.com/JuliaCollections/AxisArraysFuture/issues/1">thread</a>.</p></div><a class="docs-sourcelink" target="_blank" href="https://github.com/rafaqz/DimensionalData.jl/blob/38516ef4b0220407b457a9f9dc6180894c5784f0/src/DimensionalData.jl#L4-L235">source</a></section></article><p>To learn how to use this package, see the <a href="course/#Crash-course">Crash course</a>.</p></article><nav class="docs-footer"><a class="docs-footer-nextpage" href="course/">Crash course »</a><div class="flexbox-break"></div><p class="footer-message">Powered by <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> and the <a href="https://julialang.org/">Julia Programming Language</a>.</p></nav></div><div class="modal" id="documenter-settings"><div class="modal-background"></div><div class="modal-card"><header class="modal-card-head"><p class="modal-card-title">Settings</p><button class="delete"></button></header><section class="modal-card-body"><p><label class="label">Theme</label><div class="select"><select id="documenter-themepicker"><option value="documenter-light">documenter-light</option><option value="documenter-dark">documenter-dark</option></select></div></p><hr/><p>This document was generated with <a href="https://github.com/JuliaDocs/Documenter.jl">Documenter.jl</a> version 0.27.6 on <span class="colophon-date" title="Thursday 9 September 2021 09:11">Thursday 9 September 2021</span>. Using Julia version 1.6.2.</p></section><footer class="modal-card-foot"></footer></div></div></div></body></html>
