@@ -3,7 +3,7 @@ module DimensionalDataMakieExt
 using DimensionalData
 using Makie
 using IntervalSets
-using DimensionalData.Dimensions, DimensionalData.LookupArrays
+using DimensionalData.Dimensions, DimensionalData.Lookups
 
 const DD = DimensionalData
 

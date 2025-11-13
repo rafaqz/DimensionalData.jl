@@ -476,6 +476,18 @@ end
     end
 end
 
+@testset "broadcast over DimStack returns DimArray" begin
+    # 1D case: broadcasting `first` over a stack should return the first layer
+    da1 = DimArray([1, 2, 3], X(1:3); name=:a)
+    da2 = DimArray([10, 20, 30], X(1:3); name=:b)
+    s = DimStack((da1, da2))
+    res = first.(s)
+    res2 = getfield.(s, :a)
+    @test res isa DimArray
+    @test res2 isa DimArray
+    @test res == res2 == da1
+end
+
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))

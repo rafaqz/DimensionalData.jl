@@ -38,7 +38,7 @@ A = zeros(X(4.0:7.0), Y(10.0:12.0))
     @test @inferred size(A1[di[2:4, 1:2], Ti=1]) == (3, 2)
     @test @inferred A1[di] isa DimArray{Float64,3}
     @test @inferred A1[X=1][di] isa DimArray{Float64,2}
-    @test @inferred A1[X=1, Y=1][di] isa DimArray{Float64,1}
+    @test @inferred A1[X=1, Y=1] isa DimArray{Float64,1}
     # Indexing with no matching dims still returns a DimArray
     @test @inferred view(A1, X=1, Y=1, Ti=1)[di] == fill(0.0)
 
@@ -102,7 +102,7 @@ end
     # the lookups will be vectors and Irregular, 
     # rather than Regular ranges
     @test parent(A[DimSelectors(A)]) == parent(view(A, DimSelectors(A))) == A
-    @test index(A[DimSelectors(A)], 1) == index(view(A, DimSelectors(A)), 1) == index(A, 1)
+    @test lookup(A[DimSelectors(A)], 1) == lookup(view(A, DimSelectors(A)), 1) == parent(lookup(A, 1))
     @test size(ds) == (4, 3)
     @test @inferred ds[4, 3] == (X(At(7.0; atol=eps(Float64))), Y(At(12.0, atol=eps(Float64))))
     @test @inferred ds[2] == (X(At(5.0; atol=eps(Float64))), Y(At(10.0, atol=eps(Float64))))
@@ -207,11 +207,16 @@ end
 
 @testset "DimSlices" begin
     A = DimArray(((1:4) * (1:3)'), (X(4.0:7.0), Y(10.0:12.0)); name=:foo)
-    axisdims = map(dims(A, (X,))) do d
-        rebuild(d, axes(lookup(d), 1))
-    end
-    ds = DimensionalData.DimSlices(A; dims=axisdims)
+    ds = DimensionalData.DimSlices(A; dims=X)
     @test ds == ds[X=:]
     # Works just like Slices
     @test sum(ds) == sum(eachslice(A; dims=X))
+    @test ds == ds[X=:]
+    @test ds[X=At(7.0)] == [4, 8, 12]
+    # Works just like Slices
+    @test sum(ds) == sum(eachslice(A; dims=X))
+    @test axes(ds) == axes(eachslice(A; dims=X))
+    ds0 = DimensionalData.DimSlices(A; dims=());
+    @test sum(ds0) == sum(eachslice(parent(A); dims=()))
+    @test axes(ds0) == axes(eachslice(parent(A); dims=()))
 end

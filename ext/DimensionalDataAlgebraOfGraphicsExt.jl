@@ -30,18 +30,19 @@ end
 # so that e.g. `X` also applies to any `XDim`, and so forth.
 function AoG.select(data::AoG.Columns{<: DD.AbstractDimTable}, dim::DimOrType)
     # Query the dimensions in the table for the dimension
-    available_dimension = DD.dims(data.columns, dim)
-    # If the dimension is not found, it might be the name of the 
+    alldims = DD._dims(data.columns)
+    available_dimension = DD.dims(alldims, dim)
+    # If the dimension is not found, it might be the name of the
     # underlying array.
     name = if isnothing(available_dimension)
         if DD.name(dim) in DD.name(parent(data.columns))
             error(
-                "Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), **but** it is" *
+                "Dimension $dim not found in DimTable with dimensions $(alldims), **but** it is" *
                 (length(DD.name(parent(data.columns))) > 1 ? "a layer of the parent array" : "the name of the parent array") *
                 ".\n\nYou can pass this directly as a `Symbol`, i.e. **`:$(DD.name(dim))`**."
             )
         else
-            error("Dimension $dim not found in DimTable with dimensions $(DD.dims(data.columns)), and neither was it the name of the array ($(DD.name(parent(data.columns)))).")
+            error("Dimension $dim not found in DimTable with dimensions $(alldims), and neither was it the name of the array ($(DD.name(parent(data.columns)))).")
         end
     else
         # The dimension was found, so use that name.

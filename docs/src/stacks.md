@@ -111,6 +111,17 @@ If we index with `:` we get a `Vector{<:NamedTuple}`
 st[:]
 ````
 
+== broadcasting
+
+Broadcasting over an `AbstractDimStack` behaves as broadcasting over an `AbstractDimArray` with `NamedTuple`
+
+````@ansi stack
+f(x) = (x.a + x.b) * x.c
+f.(st)
+````
+
+Wrapping an `AbstractDimStack` with [DimStackArray](@ref) returns a generator that inherits from `AbstactArray`.
+
 :::
 
 ## Reducing functions
