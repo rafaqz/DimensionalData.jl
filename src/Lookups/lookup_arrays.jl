@@ -188,16 +188,6 @@ function Base.:(==)(l1::AbstractSampled, l2::AbstractSampled)
     parent(l1) == parent(l2)
 end
 
-for f in (:getindex, :view, :dotview)
-    @eval begin
-        # span may need its step size or bounds updated
-        @propagate_inbounds function Base.$f(l::AbstractSampled, i::AbstractArray)
-            i1 = Base.to_indices(l, (i,))[1]
-            rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
-        end
-    end
-end
-
 function Adapt.adapt_structure(to, l::AbstractSampled)
     rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata(), span=Adapt.adapt(to, span(l)))
 end
@@ -344,13 +334,6 @@ cycle(l::AbstractCyclic) = l.cycle
 cycle_status(l::AbstractCyclic) = l.cycle_status
 
 bounds(l::AbstractCyclic{<:Any,T}) where T = (typemin(T), typemax(T))
-
-# Indexing with `AbstractArray` must rebuild the lookup as
-# `Sampled` as we no longer have the whole cycle.
-for f in (:getindex, :view, :dotview)
-    @eval @propagate_inbounds Base.$f(l::AbstractCyclic, i::AbstractArray) =
-        Sampled(rebuild(l; data=Base.$f(parent(l), i)))
-end
 
 
 no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())

@@ -116,8 +116,8 @@ for f in (:getindex, :view, :dotview)
     # Special case zero dimensional arrays being indexed with missing dims
     if f == :getindex
         # Catch this before the dimension is converted to ()
-        @eval $_dim_f(A::AbstractDimArray{<:Any,0}) = rebuild(A, fill(A[]))
-        @eval function $_dim_f(A::AbstractDimArray{<:Any,0}, d1::Dimension, ds::Dimension...)
+        @eval @propagate_inbounds $_dim_f(A::AbstractDimArray{<:Any,0}) = rebuild(A, fill(A[]))
+        @eval @propagate_inbounds function $_dim_f(A::AbstractDimArray{<:Any,0}, d1::Dimension, ds::Dimension...)
             Dimensions._extradimswarn((d1, ds...))
             return rebuild(A, fill(A[]))
         end

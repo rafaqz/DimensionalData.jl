@@ -39,7 +39,8 @@ using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, Dim
 using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
 import .Lookups: metadata, set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, bounds, intervalbounds,
-    hasselection, units, SelectorOrInterval, Begin, End
+    hasselection, units, SelectorOrInterval, Begin, End,
+    strict_order, strict_order!
 import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
 
 using OrderedCollections: OrderedDict

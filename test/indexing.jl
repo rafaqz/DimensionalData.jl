@@ -266,8 +266,8 @@ end
         @test bounds(a) == ((143.0, 145.0), (-38.0, -36.0))
         @test bounds(a, X) == (143.0, 145.0)
 
-        a = da[X([2, 1]), Y([2, 1])] # Indexing with array works
-        @test a == [4 3; 2 1]
+        # Indexing with array works
+        @test da[X([1, 2]), Y([1, 2])] == [1 2; 3 4]
     end
 
     @testset "dimindices and dimselectors" begin
@@ -806,5 +806,41 @@ end
         @test last(d) == max(End(), 100) - 1
         @test step(d) == -1
         @test Base.checkindex(Bool, 1:10, Begin:2:8)
+    end
+end
+
+@testset "order breaking indexing" begin
+    @testset "on Ordered dimensions" begin
+        A = DimArray(reshape(1:12, 3, 4), (X(Sampled(3:-1:1; order=ReverseOrdered())), Y(10:10:40)))
+        @testset "Sorted Int vectors works" begin
+            @test A[X([1, 3]), Y([2, 4])] == [4 10; 6 12]
+        end
+        @testset "Unsorted Int vector throws ArgumentError" begin
+            @test_throws ArgumentError A[X([1, 3]), Y([4, 2])]
+            @test_throws ArgumentError A[X([3, 1]), Y([2, 4])]
+        end
+        @testset "@inbounds skips order checks" begin
+            f(A, i) = (@inbounds A[i])
+            @test_nowarn f(A, (X([1, 3]), Y([4, 2])))
+            @test_nowarn f(A, (X([3, 1]), Y([2, 4])))
+        end
+        @testset "strict_order!(false) skips order checks" begin
+            DimensionalData.strict_order!(false)
+            @test DimensionalData.strict_order() == false
+            @test_nowarn A[(X([1, 3]), Y([4, 2]))]
+            @test_nowarn A[(X([3, 1]), Y([2, 4]))]
+            DimensionalData.strict_order!(true)
+            @test DimensionalData.strict_order()
+        end
+    end
+
+    @testset "on Unordered dimension" begin
+        A = DimArray(reshape(1:12, 3, 4), (X(Sampled([3, 1, 2]; order=Unordered())), Y(10:10:40)))
+        @testset "Unsorted Int vector on Unordered works" begin
+            @test A[X([3, 1, 2]), Y([2, 4])] == [6 12; 4 10; 5 11]
+        end
+        @testset "Unsorted Int vector on Ordered throws ArgumentError" begin
+            @test_throws ArgumentError A[X([1, 3]), Y([4, 1, 2])]
+        end
     end
 end
