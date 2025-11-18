@@ -87,11 +87,8 @@ function rebuildsliced(f::Function, s::AbstractDimStack, layers::NamedTuple, I)
     dims, refdims = slicedims(f, s, I)
     return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
 end
-function rebuildsliced(f::Function, s::AbstractDimStack{K}, layers::Tuple, I) where K
-    layerdims = NamedTuple{K}(unrolled_map(basedims, layers))
-    dims, refdims = slicedims(f, s, I)
-    return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
-end
+rebuildsliced(f::Function, s::AbstractDimStack{K}, layers::Tuple, I) where K =
+    rebuildsliced(f, s, NamedTuple{K}(layers), I)
 
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
