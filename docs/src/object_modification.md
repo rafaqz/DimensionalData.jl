@@ -76,7 +76,7 @@ dimensions into a single combined dimension with a lookup holding
 `Tuples` of the values of both dimensions.
 
 
-## `rebuild`
+## `rebuild`(@id sec-rebuild)
 
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
 Basically everything uses it somewhere. And you can too, with a few caveats.

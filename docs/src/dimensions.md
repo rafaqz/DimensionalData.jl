@@ -30,7 +30,7 @@ val(X(1))
 DimensionalData.jl uses `Dimensions` everywhere: 
 
 - `Dimension`s are returned from `dims` to specify the names of the dimensions of an object
-- They can wrap [`Lookups`](@ref) to associate the lookups with those names
+- They can wrap [`Dimensions.Lookups`](@ref) to associate the lookups with those names
 - To index into these objects, they can wrap indices like `Int` or a `Selector` 
 
 This symmetry means we can ignore how data is organized, 
