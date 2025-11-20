@@ -138,7 +138,7 @@ export default defineConfig({
         },
     ],
     editLink: {
-      pattern: 'https://github.com/rafaqz/DimensionalData.jl/edit/master/docs/src/:path'
+      pattern: 'https://github.com/rafaqz/DimensionalData.jl/edit/main/docs/src/:path'
     },
 
     socialLinks: [
