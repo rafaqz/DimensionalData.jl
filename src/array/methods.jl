@@ -18,11 +18,11 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # Local dispatch methods
         # - Return a reduced DimArray
         @inline function $_f(A::AbstractDimArray, dims; kw...)
-            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
             rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
         end
         @inline function $_f(f, A::AbstractDimArray, dims; kw...)
-            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
+            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
             rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
         end
         # - Return a scalar

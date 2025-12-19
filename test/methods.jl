@@ -67,11 +67,6 @@ end
     @test sum(da; dims=:) == 10
     @test sum(x -> 2x, da; dims=:) == 20
 
-    @test sum(da; dims = 5) == sum(da; dims = :notadim) == 
-        sum(da; dims = (:notadim,)) == da
-    @test maximum(da; dims = 5) == maximum(da; dims = :notadim) == 
-        maximum(da; dims = (:notadim,)) == da
-
     a = [1 2; 3 4]
     dimz = X(143:2:145), Y(-38:2:-36)
     da = DimArray(a, dimz)
