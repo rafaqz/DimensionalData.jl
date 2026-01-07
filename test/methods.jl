@@ -8,7 +8,7 @@ GPUArrays.allowscalar(false)
 
 xs = (1, X, X(), :X)
 ys = (2, Y, Y(), :Y)
-xys = ((1, 2), (1, 2, 3), (X, Y), (X(), Y()), (X(), Y(), Dim{:notaddim}()), (:X, :Y), (:X, :Y, :notaddim))
+xys = ((1, 2), (X, Y), (X(), Y()), (:X, :Y), (:X, :Y))
 
 @testset "map" begin
     a = [1 2; 3 4]
@@ -117,6 +117,13 @@ end
         @test mapreduce(x -> x > 3, +, da; dims)  == [1]'
         @test extrema(da; dims) == reshape([(1, 4)], 1, 1)
     end
+
+    # Test errors on invalid dimensions. These specific methods are chosen
+    # because they're each defined slightly differently (see
+    # src/array/methods.jl).
+    @test_throws ArgumentError sum(da; dims=Z)
+    @test_throws ArgumentError std(da; dims=Z)
+    @test_throws ArgumentError median(da; dims=Z)
 
     a = [1 2 3; 4 5 6]
     dimz = X(143:2:145), Y(-38:-36)
