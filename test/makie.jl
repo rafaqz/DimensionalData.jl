@@ -1,6 +1,7 @@
 using DimensionalData, Test, Dates
 using AlgebraOfGraphics
 using CairoMakie
+using CairoMakie: ComputePipeline
 using ColorTypes
 using Unitful, Unitful.DefaultSymbols
 import Distributions
@@ -635,8 +636,8 @@ end
     fig, ax, _ = violin(A2r)
     violin!(ax, A2r)
     violin!(A2r)
-    @test_throws ArgumentError violin(A2m)
-    @test_throws ArgumentError violin!(ax, A2m)
+    @test_throws ComputePipeline.ResolveException{ArgumentError} violin(A2m)
+    @test_throws ComputePipeline.ResolveException{ArgumentError} violin!(ax, A2m)
 
     fig, ax, _ = rainclouds(A2)
     rainclouds!(ax, A2)
