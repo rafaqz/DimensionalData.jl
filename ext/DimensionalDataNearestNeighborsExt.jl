@@ -32,7 +32,7 @@ function DD.Dimensions.format_unaligned(
 )
     points = vec(SVector.(zip(map(matrix, lookups)...)))
     idxvec = Vector{Int}(undef, 1)
-    distvec = Vector{NN.get_T(eltype(points))}(undef, 1)
+    distvec = Vector{eltype(eltype(points))}(undef, 1)
     tree = NN.KDTree(points, NN.Euclidean(); reorder=false)
     return map(lookups, dims, axes) do l, d, a
         newl = rebuild(l; 

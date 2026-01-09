@@ -1,5 +1,6 @@
 ENV["JULIA_CONDAPKG_ENV"] = "@dimensionaldata-tests"
 ENV["JULIA_CONDAPKG_BACKEND"] = "MicroMamba"
+ENV["JULIA_CONDAPKG_VERBOSITY"] = -1
 
 # If you've already run the tests once to create the test Python environment,
 # you can comment out the lines above and uncomment the lines below. That will
