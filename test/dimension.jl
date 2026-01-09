@@ -58,12 +58,12 @@ end
                                   Dim{:b}(NoLookup(Base.OneTo(3))))
     @test format(:c, 51:100) == (Dim{:c}(NoLookup(Base.OneTo(50))),)
     @test format((a=[:A, :B], b=(10.0:10.0:30.0)), A) ==
-        (Dim{:a}(Categorical([:A, :B], ForwardOrdered(), NoMetadata())),
+        (Dim{:a}(Categorical([:A, :B], Unordered(), NoMetadata())),
          Dim{:b}(Sampled(10.0:10:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata())))
     @test format((X([:A, :B]; metadata=Metadata(a=5)),
-           Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1)))), A) ==
-          (X(Categorical([:A, :B], ForwardOrdered(), Metadata(a=5))),
-           Y(Categorical(10.0:10.0:30.0, ForwardOrdered(), Metadata("metadata"=>1))))
+           Y(Categorical(10.0:10.0:30.0, Unordered(), Metadata("metadata"=>1)))), A) ==
+          (X(Categorical([:A, :B], Unordered(), Metadata(a=5))),
+           Y(Categorical(10.0:10.0:30.0, Unordered(), Metadata("metadata"=>1))))
     @test format((X(Sampled(Base.OneTo(2); order=ForwardOrdered(), span=Regular(), sampling=Points())), Y), A) == 
         (X(Sampled(Base.OneTo(2), ForwardOrdered(), Regular(1), Points(), NoMetadata())), 
          Y(NoLookup(Base.OneTo(3))))

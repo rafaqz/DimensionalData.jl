@@ -9,18 +9,18 @@ struct Unsortable
 end
 
 @testset "format Lookup" begin
-   @testset "format Categorical from AutoLookup" begin
+    @testset "format Categorical from AutoLookup" begin
         A = [:a, :b]
-        @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, ForwardOrdered(), NoMetadata())
+        @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, Unordered(), NoMetadata())
         A = [:a, :c, :b]
         @test format(AutoLookup(A), X, OneTo(3)) === Categorical(A, Unordered(), NoMetadata())
         A = ["a", "b"]
-        @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, ForwardOrdered(), NoMetadata())
+        @test format(AutoLookup(A), X, OneTo(2)) === Categorical(A, Unordered(), NoMetadata())
         A = ['b', 'a']
-        @test format(A, X, OneTo(2)) === Categorical(A, ReverseOrdered(), NoMetadata())
+        @test format(A, X, OneTo(2)) === Categorical(A, Unordered(), NoMetadata())
         A = ['b', 'a']
         @test format(AutoLookup(A; order=ReverseOrdered()), X, OneTo(2)) ==
-            Categorical(A, ReverseOrdered(), NoMetadata())
+            Categorical(A, Unordered(), NoMetadata())
         # Mixed types are Categorical Unordered
         A = ['b', 2]
         @test format(AutoLookup(A; order=ReverseOrdered()), X, OneTo(2)) ==
@@ -32,7 +32,7 @@ end
         @test format(Categorical(A, order=ForwardOrdered()), X, OneTo(2)) ===
             Categorical(A, ForwardOrdered(), NoMetadata())
         @test format(Categorical(A), X, OneTo(2)) ==
-            Categorical(A, ForwardOrdered(), NoMetadata())
+            Categorical(A, Unordered(), NoMetadata())    
     end
 
     @testset "format Sampled Order, Span and Sampling from AutoLookup" begin

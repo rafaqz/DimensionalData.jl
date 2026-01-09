@@ -79,14 +79,12 @@ function format(m::AutoLookup, D::Type, values::AbstractArray{T}, axis::Abstract
     m = if isconcretetype(T) 
         Sampled(; order=order(m), span=span(m), sampling=sampling(m), metadata=metadata(m))
     else
-        o = order(m) isa AutoOrder ? Unordered() : order(m)
-        Categorical(; order=o, metadata=metadata(m))
+        Categorical(; order=Unordered(), metadata=metadata(m))
     end
     format(m, D, values, axis)
 end
 function format(m::AutoLookup, D::Type, values::AbstractArray{<:CategoricalEltypes}, axis::AbstractRange)
-    o = _format(order(m), D, values)
-    return Categorical(values; order=o, metadata=metadata(m))
+    return Categorical(values; order=Unordered(), metadata=metadata(m))
 end
 function format(m::Categorical, D::Type, values, axis::AbstractRange)
     i = _format(values, axis)
