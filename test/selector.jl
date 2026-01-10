@@ -975,7 +975,7 @@ end
             (At(20), At((2:3)u"s")),
             (Near(13), Near([1.3u"s", 3.3u"s"])),
             (Near([13]), Near([1.3u"s", 3.3u"s"])),
-            (Between(11, 20), At((2:3)u"s"))
+            (Between(11, 20), At((2:3) .* u"s"))
         ]
         locuss =  [
             (1:3, [3, 4]),
@@ -1005,8 +1005,8 @@ end
     @testset "single-arity standard index" begin
         indices = [
             1:3,
+            1:2:4,
             [1, 2, 4],
-            4:-2:1,
         ]
         for idx in indices
             from2d = da[idx]
@@ -1022,8 +1022,8 @@ end
         indices = [
             3,
             1:3,
+            1:2:4,
             [1, 2, 4],
-            4:-2:1,
         ]
         for idx in indices
             from2d = view(da, idx)
@@ -1039,8 +1039,8 @@ end
         indices = [
             3,
             1:3,
+            1:2:4,
             [1, 2, 4],
-            4:-2:1,
         ]
         for idx in indices
             idx = indices[1]
