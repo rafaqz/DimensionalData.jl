@@ -155,3 +155,6 @@ function bounds(l::FacedGridLookup)
     c = l.coords
     (minimum(c), maximum(c))
 end
+
+# When reduced (e.g., sum over this dim), return NoLookup
+@inline reducelookup(l::FacedGridLookup) = NoLookup(Base.OneTo(1))
