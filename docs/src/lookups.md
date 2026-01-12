@@ -209,9 +209,7 @@ To create a new lookup type, extend `Aligned` (for axis-aligned lookups) or `Loo
 
 ### Minimal Example
 
-```julia
-using DimensionalData.Lookups
-
+```@ansi lookups
 # 1. Define your type, extending Aligned (or AbstractSampled/AbstractCategorical)
 struct MyLookup{T,A<:AbstractVector{T},O<:Order,M} <: Aligned{T,O}
     data::A
@@ -264,7 +262,7 @@ Override these to customize behavior:
 
 For lookups with `span` and `sampling`, extend `AbstractSampled`:
 
-```julia
+```@ansi lookups
 struct MySampled{T,A,O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
     data::A
     order::O
@@ -287,7 +285,7 @@ end
 
 To support auto-detection when used in `DimArray` constructors, implement `format`:
 
-```julia
+```@ansi lookups
 using DimensionalData.Dimensions: format
 
 # Format is called during DimArray construction
@@ -301,7 +299,7 @@ end
 
 ### Example: Logarithmic Lookup
 
-```julia
+```@ansi lookups
 """
     LogLookup(data; order=AutoOrder(), base=10, metadata=NoMetadata())
 
@@ -348,11 +346,7 @@ The key additions are:
 - Implement `dims(l)` to return the internal dimensions
 - Implement `hasinternaldimensions(l) = true` trait
 
-```julia
-using DimensionalData
-using DimensionalData.Lookups
-using DimensionalData.Dimensions
-
+```@ansi lookups
 """
     MatrixLookup(data, dims; metadata=NoMetadata())
 
@@ -440,7 +434,7 @@ end
 
 Usage:
 
-```julia
+```@ansi lookups
 # Create coordinates for 4 points in X-Y space
 coords = [0.0 0.0;
           1.0 0.0;
