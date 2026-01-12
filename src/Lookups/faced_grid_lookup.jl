@@ -111,3 +111,40 @@ end
 
 # Internal dimensions - has coordinate dimensions
 hasinternaldimensions(::FacedGridLookup) = true
+
+# Slicing with AbstractArray: slice both data and coords along this position
+@propagate_inbounds function Base.getindex(l::FacedGridLookup, i::AbstractVector)
+    new_data = l.data[i]
+    new_coords = selectdim(l.coords, l.position, i)
+    rebuild(l; data=new_data, coords=new_coords)
+end
+
+# View version
+@propagate_inbounds function Base.view(l::FacedGridLookup, i::AbstractVector)
+    new_data = view(l.data, i)
+    new_coords = selectdim(l.coords, l.position, i)
+    rebuild(l; data=new_data, coords=new_coords)
+end
+
+# Colon - return as-is
+Base.getindex(l::FacedGridLookup, ::Colon) = l
+Base.view(l::FacedGridLookup, ::Colon) = l
+
+"""
+    slice_coords(l::FacedGridLookup, dim_position::Int, idx)
+
+Slice the coordinate matrix along a dimension OTHER than this lookup's position.
+Used when another dimension (e.g., face) is selected.
+
+Returns a new FacedGridLookup with sliced coords (data unchanged since we're
+not slicing along this lookup's axis).
+"""
+function slice_coords(l::FacedGridLookup, dim_position::Int, idx::Int)
+    new_coords = selectdim(l.coords, dim_position, idx)
+    rebuild(l; coords=new_coords)
+end
+
+function slice_coords(l::FacedGridLookup, dim_position::Int, idx::AbstractVector)
+    new_coords = selectdim(l.coords, dim_position, idx)
+    rebuild(l; coords=new_coords)
+end
