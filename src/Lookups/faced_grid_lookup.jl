@@ -148,3 +148,10 @@ function slice_coords(l::FacedGridLookup, dim_position::Int, idx::AbstractVector
     new_coords = selectdim(l.coords, dim_position, idx)
     rebuild(l; coords=new_coords)
 end
+
+# Bounds returns coordinate extent (for hasinternaldimensions interface)
+# Returns (min, max) pair for our coord_dim
+function bounds(l::FacedGridLookup)
+    c = l.coords
+    (minimum(c), maximum(c))
+end
