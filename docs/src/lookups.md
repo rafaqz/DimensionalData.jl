@@ -81,6 +81,32 @@ A = DimArray([1 2; 3 4], (X(Transformed(m)), Y(Transformed(m))))
 A[X=At(2.0), Y=At(2.0)]  # Transformed to index [1,1]
 ```
 
+== FacedGridLookup
+
+[`FacedGridLookup`](@ref) is for multi-face grids (cubed sphere, etc.) where `i, j, face` are array indices and X, Y coordinates are stored as 3D matrices.
+
+```@ansi lookups
+ni, nj, nfaces = 4, 4, 2
+X_coords = rand(ni, nj, nfaces) .* 360 .- 180  # [ni, nj, nfaces]
+Y_coords = rand(ni, nj, nfaces) .* 180 .- 90
+
+# data is 1D axis indices, coords is 3D coordinate matrix
+I_lookup = FacedGridLookup(1:ni, X_coords, X(), 1)
+J_lookup = FacedGridLookup(1:nj, Y_coords, Y(), 2)
+
+A = DimArray(rand(ni, nj, nfaces), (Dim{:I}(I_lookup), Dim{:J}(J_lookup), Dim{:face}(1:nfaces)))
+
+# Access coordinate data
+coords(lookup(A, :I))  # The 3D X coordinate matrix
+bounds(lookup(A, :I))  # Coordinate extent (min, max)
+```
+
+Key points:
+- `data` field (1D) satisfies the `Lookup{T,1}` contract
+- `coords` field holds the 3D coordinate matrix
+- `position` indicates which axis of coords this lookup indexes
+- Internal dimension is the coordinate type (X or Y)
+
 :::
 
 ## Traits
