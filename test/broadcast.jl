@@ -457,6 +457,37 @@ end
     end
 end
 
+@testset "Concise error messages for dimension mismatches" begin
+    # Test that dimension mismatch errors are concise, not verbose
+    x = DimArray(ones(1000), X(1:2:2000))
+    y1 = DimArray(ones(1001), X(1:2:2001))
+    y2 = DimArray(ones(1000), X(2:1001))
+
+    for y in (y1, y2)
+        err = nothing
+        try
+            x .+ y
+        catch e
+            err = e
+        end
+
+        @test err isa DimensionMismatch
+        @test length(string(err)) < 250
+    end
+end
+
+@testset "broadcast over DimStack returns DimArray" begin
+    # 1D case: broadcasting `first` over a stack should return the first layer
+    da1 = DimArray([1, 2, 3], X(1:3); name=:a)
+    da2 = DimArray([10, 20, 30], X(1:3); name=:b)
+    s = DimStack((da1, da2))
+    res = first.(s)
+    res2 = getfield.(s, :a)
+    @test res isa DimArray
+    @test res2 isa DimArray
+    @test res == res2 == da1
+end
+
 # @testset "Competing Wrappers" begin
 #     da = DimArray(ones(4), X)
 #     ta = TrackedArray(5 * ones(4))

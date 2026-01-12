@@ -1,3 +1,7 @@
+```@meta
+Description = "Group dimensional data in Julia using DimensionalData.jl groupby - aggregate by time periods, bins, or custom functions"
+```
+
 # Group By
 
 DimensionalData.jl provides a `groupby` function for dimensional

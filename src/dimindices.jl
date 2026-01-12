@@ -314,8 +314,8 @@ _selector_eltype(dims::Tuple, selectors::Tuple) =
     Tuple{map(_selector_eltype, dims, selectors)...}
 _selector_eltype(d::D, ::S) where {D,S} =
     basetypeof(D){basetypeof(S){eltype(d)}}
-_selector_eltype(d::D, ::At{<:Any,A,R}) where {D,A,R} =
-    basetypeof(D){At{eltype(d),A,R}}
+_selector_eltype(d::D, ::At{<:Any,A}) where {D,A} =
+    basetypeof(D){At{eltype(d),A}}
 
 function show_after(io::IO, mime, A::DimSelectors)
     _, displaywidth = displaysize(io)
@@ -323,6 +323,7 @@ function show_after(io::IO, mime, A::DimSelectors)
     selector_lines = split(sprint(show, mime, A.selectors), "\n")
     new_blockwidth = min(displaywidth-2, max(blockwidth, maximum(length, selector_lines) + 4))
     new_blockwidth = print_block_separator(io, "selectors", blockwidth, new_blockwidth)
+    println(io)
     print(io, "  ")
     show(io, mime, A.selectors)
     println(io)
@@ -342,7 +343,7 @@ end
 @inline _format_selectors(d::Dimension, ::Contains, atol) = Contains(nothing)
 @inline function _format_selectors(d::Dimension, at::At, atol)
     atolx = _atol(eltype(d), Lookups.atol(at), atol)
-    At(nothing, atolx, nothing)
+    At(nothing; atol=atolx)
 end
 
 _atol(::Type, atol1, atol2) = atol1

@@ -36,7 +36,7 @@ end
     @test da[Coord(Z(At(1.0)), Y(Between(1, 3)))] == da[Z(At(1.0)), Y(Between(1, 3))]
 end
 
-@test index(da[Coord(:, Between(1, 2), :)], Coord) == [(1.0,1.0,1.0), (1.0,2.0,2.0)]
+@test lookup(da[Coord(:, Between(1, 2), :)], Coord) == [(1.0,1.0,1.0), (1.0,2.0,2.0)]
 
 @test DimensionalData.bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
 

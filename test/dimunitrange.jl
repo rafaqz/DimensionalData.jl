@@ -1,7 +1,16 @@
 using DimensionalData
-using DimensionalData.Dimensions: Dim, DimUnitRange
+using DimensionalData.Dimensions: Dim, DimUnitRange, basetypeof
 using OffsetArrays
 using Test
+
+struct AxesArrayWrapper{T,N} <: AbstractArray{T,N}
+    data::AbstractArray{T,N}
+    axes
+end
+Base.size(A::AxesArrayWrapper) = size(A.data)
+Base.axes(A::AxesArrayWrapper) = A.axes
+Base.getindex(A::AxesArrayWrapper, i::Int) = A.data[i]
+Base.getindex(A::AxesArrayWrapper, I::Vararg{Int,N}) where {N} = A.data[I...]
 
 axdims = [
     (Base.OneTo(3), X(["x", "y", "z"])),
@@ -14,7 +23,7 @@ axdims = [
     @test parent(r) === ax
     @test dims(r) === r.dim
     @test dims((r, r2)) === (r.dim, r2.dim)
-    @test sprint(show, "text/plain", r) == "$(DimUnitRange)$((r.range, r.dim))"
+    @test sprint(show, "text/plain", r) == "$(basetypeof(r.dim))($(r.range))"
     @test length(r) == length(ax)
     @test !isempty(r)
     @test first(r) == first(ax)
@@ -78,4 +87,32 @@ end
     @test y isa DimArray{Float64,1}
     @test y == sin.(1:3)
     @test dims(y) == (dim,)
+end
+
+@testset "dims for array with DimUnitRange indices" begin
+    xdim = X(["x", "y", "z"])
+    ydim = Y(2.0:6.0)
+    xi = DimUnitRange(Base.OneTo(3), xdim)
+    yi = DimUnitRange(Base.OneTo(5), ydim)
+
+    @testset "dims is not nothing if all indices are DimUnitRange" begin
+        A = AxesArrayWrapper(Array(rand(xdim, ydim)), (xi, yi))
+        @test axes(A) == (xi, yi)
+        @test !isnothing(dims(A))
+        @test Dimensions.comparedims(Bool, dims(A), (xdim, ydim))
+
+        A2 = AxesArrayWrapper(Array(rand(xdim)), (xi,))
+        @test axes(A2) == (xi,)
+        @test !isnothing(dims(A2))
+        @test Dimensions.comparedims(Bool, dims(A2), (xdim,))
+
+    end
+
+    @testset "dims is nothing if any indices are not DimUnitRange" begin
+        A = AxesArrayWrapper(Array(rand(xdim, ydim)), (xi, Base.OneTo(length(ydim))))
+        @test isnothing(dims(A))
+
+        A2 = AxesArrayWrapper(Array(rand(xdim, ydim)), (Base.OneTo(length(xdim)), yi))
+        @test isnothing(dims(A2))
+    end
 end

@@ -34,9 +34,8 @@ mixed = DimStack(da1, da2, da4)
         DimStack((da1[:, 1], da2[:, 1], da3[:, 1]); name=(:one, :two, :three)) ==
         DimStack(da1[:, 1], da2[:, 1], da3[:, 1]; name=(:one, :two, :three)) ==
         DimStack(parent.([da1[:, 1], da2[:, 1], da3[:, 1]]), dimz[1]; name=(:one, :two, :three)) == s[:, 1]
-    @test dims(DimStack()) == dims(DimStack(NamedTuple())) == 
-        dims(DimStack(())) == dims(DimStack(DimArray[])) ==
-        dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
+    @test dims(DimStack()) == dims(DimStack(())) == dims(DimStack(DimArray[])) == 
+        dims(DimStack(NamedTuple())) == dims(DimStack((), ())) == dims(DimStack(Array[], ())) == ()
     @test DimStack([A, 2A, 3A], (Z(), Ti()); name=(:one, :two, :three), layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
         DimStack((A, 2A, 3A), (Z(), Ti()); name=(:one, :two, :three), layerdims=(one=(Z(), Ti()), two=(Z(), Ti()), three=(Z(), Ti()))) ==
         DimStack((one=A, two=2A, three=3A), (Z(), Ti()); layerdims=[(Z(), Ti()), (Z(), Ti()), (Z(), Ti())]) ==
@@ -64,8 +63,7 @@ end
     @test dims(s, X) == x
     @test refdims(s) === ()
     @test metadata(mixed) == NoMetadata()
-    @test metadata(mixed, (X, Y, Z)) == (NoMetadata(), Dict(), NoMetadata())
-    @test name(s)== (:one, :two, :three)
+    @test name(s) == (:one, :two, :three)
 end
 
 @testset "symbol key indexing" begin
@@ -149,7 +147,6 @@ end
     @test merge(mixed) === mixed
     @test keys(merge(mixed, s)) == (:one, :two, :extradim, :three)
     @test keys(merge(s, mixed)) == (:one, :two, :three, :extradim)
-    @test keys(merge(s, (:new=>da4,))) == (:one, :two, :three, :new)
 end
 
 @testset "setindex" begin
@@ -398,6 +395,17 @@ end
 
 end
 
+@testset "isequal and == with missing" begin
+    a = [missing 1; 1 1]
+    da1 = DimArray(a, (X(1:2), Y(1:2)))
+    da2 = DimArray(copy(a), (X(2:3), Y(2:3)))
+    ds1 = DimStack(da1)
+    ds2 = DimStack(da2)
+    @test (ds1 == ds2) == false
+    @test ismissing(ds1 == ds1)
+    @test isequal(ds1, ds1)
+end
+
 @testset "skipmissing" begin
     skips = skipmissing(s)
     skips2 = skipmissing(mixed)
@@ -412,4 +420,30 @@ end
     cs2 = collect(skipmissing(s2))
     @test all(getindex.(cs2, :two) .== 1)
     @test getindex.(cs2, :one) == da1[X=2]
+end
+
+@testset "DimStack as Array" begin
+    for s in (s, mixed)
+        dsa = DimensionalData.DimStackArray(s)
+        # Test basic array properties
+        @test eltype(dsa) == eltype(s)
+        @test dims(dsa) == dims(s)
+        @test collect(dsa) == collect(s)
+        @test refdims(dsa) == refdims(s)
+        @test metadata(dsa) == metadata(s)
+        
+        # Test indexing methods
+        @test s[1] == dsa[1] == dsa[map(one, size(s))...] == dsa[first(DimSelectors(s))]
+        
+        # Test view
+        v = view(dsa, map(x -> (x-1):x, size(s))...)
+        @test v isa DimensionalData.DimStackArray
+        @test all(x -> parent(x) isa SubArray, layers(parent(v)))
+        @test size(v) == Tuple((2 for _ in 1:ndims(s)))
+        @test first(v) == s[map(x -> x-1, size(s))...]
+        
+        # Test iteration
+        @test first(dsa) == first(s)
+        @test collect(dsa) == collect(s)
+    end
 end

@@ -1,3 +1,7 @@
+```@meta
+Description = "Modify DimensionalData.jl objects - rebuild immutable structs, update arrays in-place, use set and modify for transformations"
+```
+
 # Modifying Objects
 
 DimensionalData.jl objects are all `struct` rather than
@@ -72,7 +76,7 @@ dimensions into a single combined dimension with a lookup holding
 `Tuples` of the values of both dimensions.
 
 
-## `rebuild`
+## [`rebuild`](@id sec-rebuild)
 
 [`rebuild`](@ref) is one of the core functions of DimensionalData.jl.
 Basically everything uses it somewhere. And you can too, with a few caveats.

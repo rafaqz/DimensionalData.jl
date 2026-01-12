@@ -25,11 +25,13 @@ To extend `AbstractDimStack`, implement argument and keyword version of
 
 The constructor of an `AbstractDimStack` must accept a `NamedTuple`.
 """
-abstract type AbstractDimStack{K,T,N,L} end
+abstract type AbstractDimStack{K,T,N,L,D} end
 const AbstractVectorDimStack = AbstractDimStack{K,T,1} where {K,T}
 const AbstractMatrixDimStack = AbstractDimStack{K,T,2} where {K,T}
 
-(::Type{T})(st::AbstractDimStack; kw...) where T<:AbstractDimArray =
+DimArray(st::AbstractDimStack; kw...) = dimarray_from_dimstack(DimArray, st; kw...) 
+
+dimarray_from_dimstack(T, st; kw...) =
     T([st[D] for D in DimIndices(st)]; dims=dims(st), metadata=metadata(st), kw...)
 
 data(s::AbstractDimStack) = getfield(s, :data)
@@ -87,11 +89,8 @@ function rebuildsliced(f::Function, s::AbstractDimStack, layers::NamedTuple, I)
     dims, refdims = slicedims(f, s, I)
     return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
 end
-function rebuildsliced(f::Function, s::AbstractDimStack{K}, layers::Tuple, I) where K
-    layerdims = NamedTuple{K}(unrolled_map(basedims, layers))
-    dims, refdims = slicedims(f, s, I)
-    return rebuild(s; data=unrolled_map(parent, layers), dims, refdims, layerdims)
-end
+rebuildsliced(f::Function, s::AbstractDimStack{K}, layers::Tuple, I) where K =
+    rebuildsliced(f, s, NamedTuple{K}(layers), I)
 
 """
     rebuild_from_arrays(s::AbstractDimStack, das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}}; kw...)
@@ -101,7 +100,7 @@ and an existing stack.
 
 # Keywords
 
-Keywords are simply the fields of the stack object:
+Keywords are simply the common fields of an `AbstractDimStack` object:
 
 - `data`
 - `dims`
@@ -109,6 +108,8 @@ Keywords are simply the fields of the stack object:
 - `metadata`
 - `layerdims`
 - `layermetadata`
+
+There is no promise that these keywords will be used in all cases.
 """
 function rebuild_from_arrays(
     s::AbstractDimStack{Keys}, das::Tuple{Vararg{AbstractBasicDimArray}}; kw...
@@ -135,14 +136,16 @@ function rebuild_from_arrays(
 end
 
 # Dispatch on Tuple of Dimension, and map
-for func in (:index, :lookup, :metadata, :sampling, :span, :bounds, :locus, :order)
+for func in INTERFACE_QUERY_FUNCTION_NAMES 
     @eval ($func)(s::AbstractDimStack, args...) = ($func)(dims(s), args...)
 end
 
 Base.parent(s::AbstractDimStack) = data(s)
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(s1::AbstractDimStack, s2::AbstractDimStack) =
-    data(s1) == data(s2) && dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2)
+    dims(s1) == dims(s2) && layerdims(s1) == layerdims(s2) && data(s1) == data(s2)
+Base.isequal(s1::AbstractDimStack, s2::AbstractDimStack) =
+    isequal(dims(s1), dims(s2)) && isequal(layerdims(s1), layerdims(s2)) && isequal(data(s1), data(s2))
 Base.read(s::AbstractDimStack) = maplayers(read, s)
 
 # Array-like
@@ -236,9 +239,6 @@ function Base.merge(
     kw...
 )
     rebuild_from_arrays(x1, merge(map(layers, (x1, x2, xs...))...); kw...)
-end
-function Base.merge(s::AbstractDimStack, pairs; kw...)
-    rebuild_from_arrays(s, merge(layers(s), pairs); refdims=())
 end
 function Base.merge(
     x1::NamedTuple, x2::AbstractDimStack, xs::Union{AbstractDimStack,NamedTuple}...;
@@ -340,6 +340,7 @@ end
 """
     DimStack <: AbstractDimStack
 
+    DimStack(table, [dims]; kw...)
     DimStack(data::AbstractDimArray...; kw...)
     DimStack(data::Union{AbstractArray,Tuple,NamedTuple}, [dims::DimTuple]; kw...)
     DimStack(data::AbstractDimArray; layersfrom, kw...)
@@ -440,7 +441,7 @@ julia> s[X(At(:a))] isa DimStack
 true
 ```
 """
-struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L}
+struct DimStack{K,T,N,L,D<:Tuple,R<:Tuple,LD,M,LM} <: AbstractDimStack{K,T,N,L,D}
     data::L
     dims::D
     refdims::R
@@ -512,7 +513,7 @@ function DimStack(das::NamedTuple{<:Any,<:Tuple{Vararg{AbstractDimArray}}};
 end
 DimStack(data::Union{Tuple,AbstractArray,NamedTuple}, dim::Dimension; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), (dim,); kw...)
-DimStack(data::Union{Tuple,AbstractArray}, dims::Tuple; name=uniquekeys(data), kw...) = 
+DimStack(data::Union{Tuple,AbstractArray{<:AbstractArray}}, dims::Tuple; name=uniquekeys(data), kw...) = 
     DimStack(NamedTuple{Tuple(name)}(data), dims; kw...)
 function DimStack(data::NamedTuple{K}, dims::Tuple;
     refdims=(), 
@@ -520,6 +521,9 @@ function DimStack(data::NamedTuple{K}, dims::Tuple;
     layermetadata=nothing,
     layerdims=nothing
 ) where K
+    if length(data) > 0 && Tables.istable(data) && all(d -> name(d) in keys(data), dims)
+        return dimstack_from_table(DimStack, data, dims; refdims, metadata)
+    end
     layerdims = if isnothing(layerdims) 
         all(map(d -> axes(d) == axes(first(data)), data)) || _stack_size_mismatch()
         map(_ -> basedims(dims), data)
@@ -546,9 +550,106 @@ function DimStack(st::AbstractDimStack;
     DimStack(data, dims, refdims, layerdims, metadata, layermetadata)
 end
 
+# Write each column from a table with one or more coordinate columns to a layer in a DimStack
+function DimStack(data, dims::Tuple; kw...
+)
+    if Tables.istable(data)
+        table = Tables.columns(data)
+        all(map(d -> Dimensions.name(d) in Tables.columnnames(table), dims)) || throw(ArgumentError(
+            "All dimensions in dims must be in the table columns."
+        ))
+        dims = guess_dims(table, dims; kw...)
+        return dimstack_from_table(DimStack, table, dims; kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))
+
+    end
+end
+function DimStack(table; kw...)
+    if Tables.istable(table)
+        table = Tables.columns(table)
+        dimstack_from_table(DimStack, table, guess_dims(table; kw...); kw...)
+    else
+        throw(ArgumentError(
+            """data must be a table with coordinate columns, an AbstractArray, 
+            or a Tuple or NamedTuple of AbstractArrays"""
+        ))    end
+end
+
+function dimstack_from_table(::Type{T}, table, dims; 
+    name=nothing, 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+) where T<:AbstractDimStack
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    data_cols = isnothing(name) ? data_col_names(table, dims) : name
+    dims = guess_dims(table, dims; precision)
+    indices = coords_to_indices(table, dims; selector)
+    layers = map(data_cols) do col
+        d = Tables.getcolumn(table, col)
+        restore_array(d, indices, dims, missingval)
+    end
+    return T(layers, dims; name = data_cols, kw...)
+end
+
 layerdims(s::DimStack{<:Any,<:Any,<:Any,<:Any,<:Any,<:Any,Nothing}, name::Symbol) = dims(s)
 
+### Stack as Array 
+"""
+    DimStackArray <: AbstractDimArrayGenerator
+
+A wrapper that makes a `DimStack` behave like an `AbstractArray`.
+
+Provides array-like access to a `DimStack`, where each element is a `NamedTuple` containing 
+values from all layers at that position.
+
+# Examples
+```julia
+using DimensionalData 
+
+# Create a DimStack
+da1 = DimArray(ones(2,2), (X(1:2), Y(1:2)); name=:temp)
+da2 = DimArray(2ones(2,2), (X(1:2), Y(1:2)); name=:precip) 
+stack = DimStack((da1, da2))
+
+# Wrap as DimStackArray
+arr = DimStackArray(stack)
+
+# Get values from all layers at position [1,1]
+arr[1,1]  # Returns (temp=1.0, precip=2.0)
+
+# Views maintain DimStack structure
+view(arr, 1:2, 1) 
+```
+"""
+struct DimStackArray{T,N,D,S<:AbstractDimStack{<:Any,T,N,<:Any,D}} <: AbstractDimArrayGenerator{T,N,D}
+    stack::S
+end
+
+# Forward key methods to the wrapped stack
+Base.parent(x::DimStackArray) = x.stack
+dims(x::DimStackArray) = dims(parent(x))
+refdims(x::DimStackArray) = refdims(parent(x))
+metadata(x::DimStackArray) = metadata(parent(x))
+Base.size(x::DimStackArray) = size(parent(x))
+
+rebuild(x::DimStackArray; kw...) = 
+    DimStackArray(rebuild(parent(x); kw...))
+
+@propagate_inbounds function Base.getindex(A::DimStackArray, i::Integer...)
+    return parent(A)[i...]
+end
+
+@propagate_inbounds function rebuildsliced(f::Function, A::DimStackArray, I)
+    DimStackArray(f(parent(A), I...))
+end
 ### Skipmissing on DimStacks
+
 """
     skipmissing(itr::AbstractDimStack)
 
@@ -574,3 +675,5 @@ Base.eltype(::Type{Base.SkipMissing{T}}) where {T<:AbstractDimStack{<:Any, NT}} 
 
 @generated _nonmissing_nt(NT::Type{<:NamedTuple{K,V}}) where {K,V} =
     NamedTuple{K, Tuple{map(Base.nonmissingtype, V.parameters)...}}
+
+Base.Broadcast.broadcastable(st::AbstractDimStack) = DimStackArray(st)

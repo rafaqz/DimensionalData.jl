@@ -20,9 +20,6 @@ dims(::Lookup) = nothing
 val(l::Lookup) = parent(l)
 locus(l::Lookup) = Center()
 
-# Deprecated
-index(l::Lookup) = parent(l)
-
 Base.eltype(l::Lookup{T}) where T = T
 Base.parent(l::Lookup) = l.data
 Base.size(l::Lookup) = size(parent(l))

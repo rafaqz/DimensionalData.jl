@@ -1,4 +1,5 @@
 using DimensionalData, Test, Extents
+using DimensionalData.Lookups
 
 xdim, ydim = X(1:10), Y(1:15)
 a = rand(xdim, ydim)
@@ -13,7 +14,8 @@ st = DimStack((; a, b, c))
      @test_throws ArgumentError only(dt.m.n)
      @test DimStack(dt.m.n) === st
      delete!(dt.m.n, :c)
-     @test pop!(dt.m.n, :b) === st.b
+     x = pop!(dt.m.n, :b) 
+     @test x === st.b
      @test only(dt.m.n) === st.a
      @test delete!(dt.m.n) == dt.m
      @test isempty(DimensionalData.branches(dt.m))
@@ -31,6 +33,14 @@ end
      dt = DimTree()
      dt.b1 = st
      @test extent(dt) == extent(st)
+end
+      
+@testset "interface methods" begin
+     dt = DimTree(st)
+     @test lookup(dt, X) == lookup(st, X)
+     @test order(dt, Y) == order(st, Y) == ForwardOrdered()
+     @test span(dt, X) == span(st, X) == Regular(1)
+     @test sampling(dt, (X(), Y())) == sampling(st, (X(), Y()))
 end
 
 @testset "Indexing matches stack indexing" begin
@@ -68,6 +78,63 @@ end
      end
 end
 
+@testset "setindex!" begin
+     xdim, ydim = X(1:10), Y(1:15)
+     a = rand(xdim)
+     b = rand(Float32, xdim, ydim)
+     b2 = rand(X(1:2:10), Y(1:2:15))
+     a2 = rand(X(1:2:10))
+     sub1 = DimTree()
+     sub1[:a] = a
+     sub1[:b] = b
+     @test sub1[:b] == b 
+     @test sub1[:a] == a
+     @test dims(sub1) == (xdim, ydim)
+     @test length(sub1) == 2
+     sub2 = DimTree()
+     sub2[:a] = a2
+     sub2[:b] = b2 
+     dt = DimTree()
+     dt.sub1 = sub1
+     dt.sub2 = sub2
+     @test dt.sub2[:a] == a2
+     dt2 = DimTree()
+     dt2[:a] = rand(xdim, ydim)
+     dt2[:b] = b
+     @test dt2[:b] == b
+end
+
+@testset "prune" begin
+     @testset "prune with leaves" begin
+          b1 = rand(Y(1:15), X(1:10))
+          b2 = rand(Y(1:2:15), X(1:2:10))
+          sub1 = DimTree()
+          sub2 = DimTree()
+          sub1[:b] = b1
+          sub2[:b] = b2 
+          dt = DimTree()
+          dt.sub1 = sub1 
+          dt.sub2 = sub2
+          dp1 = prune(dt, keep=:sub1)
+          @test dp1[:b] == b1
+          @test DimStack(dt, keep=:sub1) == DimStack(sub1[:b])       
+     end
+
+     @testset "prune dt with subbranches" begin
+          b1 = rand(Y(1:15), X(1:10); name=:leaf)
+          b2 = rand(Y(1:2:15), X(1:2:10); name=:leaf)
+          sub1 = DimTree()
+          sub2 = DimTree()
+          sub1.b = b1
+          sub2.b = b2 
+          dt = DimTree()
+          dt.sub1 = sub1 
+          dt.sub2 = sub2
+          dp1 = prune(dt, keep=:sub1=>:b)
+          @test dp1[:leaf] == b1
+          @test DimStack(dt; keep=:sub1=>:b) == DimStack(sub1.b) == DimStack(sub1.b[:leaf])
+     end
+end
 
 # TODO move to doctests, but useful here for now
 

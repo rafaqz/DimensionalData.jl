@@ -1,3 +1,7 @@
+```@meta
+Description = "DimStacks in DimensionalData.jl - collections of arrays sharing dimensions, combining NamedTuple and array-like behavior"
+```
+
 # DimStacks
 
 An `AbstractDimStack` represents a collection of `AbstractDimArray`
@@ -106,6 +110,17 @@ If we index with `:` we get a `Vector{<:NamedTuple}`
 ````@ansi stack
 st[:]
 ````
+
+== broadcasting
+
+Broadcasting over an `AbstractDimStack` behaves as broadcasting over an `AbstractDimArray` with `NamedTuple`
+
+````@ansi stack
+f(x) = (x.a + x.b) * x.c
+f.(st)
+````
+
+Wrapping an `AbstractDimStack` with [DimStackArray](@ref) returns a generator that inherits from `AbstactArray`.
 
 :::
 

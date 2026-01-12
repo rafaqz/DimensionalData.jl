@@ -14,6 +14,11 @@ st = DimStack((a=A, b=A, c=A[X=1]))
     @test first(grps) isa eltype(grps) # false
 end
 
+@testset "groupby name is set" begin
+    da = rand(X(1:10), Y(1:10))
+    grps = groupby(da, X=>isodd, name="isodd")
+    @test name(grps) == "isodd"
+end
 @testset "manual groupby comparisons" begin
     # Group by month and even/odd Y axis values
     months = DateTime(2000):Month(1):DateTime(2000, 12, 31)
@@ -79,6 +84,8 @@ end
     @test mean.(groupby(A, Ti=>Bins(month, intervals(1:3:12)))) == manualmeans
     @test mean.(groupby(A, Ti=>Bins(month, 4))) == manualmeans
     @test combine(mean, groupby(A, Ti=>Bins(month, ranges(1:3:12)))) == manualmeans
+    @test mean.(groupby(A, Ti=>CyclicBins(month; cycle = 12, step = 3))) == manualmeans
+    @test CyclicBins(; step = 3, cycle = 12) === CyclicBins(identity; step = 3, cycle = 12)
 end
 
 @testset "dimension matching groupby" begin
@@ -93,9 +100,9 @@ end
             mean(A[X=x, Ti=d])
         end
     end
-    @test all(collect(mean.(gb)) .=== manualmeans)
-    @test all(mean.(gb) .=== manualmeans)
-    @test all(combine(mean, gb) .=== manualmeans)
+    @test isequal(collect(mean.(gb)), manualmeans)
+    @test isequal(mean.(gb), manualmeans)
+    @test isequal(combine(mean, gb), manualmeans)
 end
 
 @testset "broadcast_dims runs after groupby" begin

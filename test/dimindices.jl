@@ -102,7 +102,7 @@ end
     # the lookups will be vectors and Irregular, 
     # rather than Regular ranges
     @test parent(A[DimSelectors(A)]) == parent(view(A, DimSelectors(A))) == A
-    @test index(A[DimSelectors(A)], 1) == index(view(A, DimSelectors(A)), 1) == index(A, 1)
+    @test lookup(A[DimSelectors(A)], 1) == lookup(view(A, DimSelectors(A)), 1) == parent(lookup(A, 1))
     @test size(ds) == (4, 3)
     @test @inferred ds[4, 3] == (X(At(7.0; atol=eps(Float64))), Y(At(12.0, atol=eps(Float64))))
     @test @inferred ds[2] == (X(At(5.0; atol=eps(Float64))), Y(At(10.0, atol=eps(Float64))))

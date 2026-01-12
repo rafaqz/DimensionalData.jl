@@ -18,12 +18,10 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # Local dispatch methods
         # - Return a reduced DimArray
         @inline function $_f(A::AbstractDimArray, dims; kw...)
-            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
         end
         @inline function $_f(f, A::AbstractDimArray, dims; kw...)
-            ds = _astuple(DD.dims(A, dims)) # Need to remove unused dims before `dimnum`
-            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
         end
         # - Return a scalar
         @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
@@ -421,14 +419,28 @@ function _check_cat_lookups(D, ::Regular, lookups...)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
             return false
         end
-        if !(s isa Dates.AbstractTime) && !(lastval + s ≈ first(l))
-            @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $s ≈ $(first(l)) should hold")
-            return false
-        end
+        _check_cat_step_join(D, lastval, first(l), s) || return false
         lastval = last(l)
         return true
     end |> all
 end
+
+function _check_cat_step_join(D, lastval::Number, firstval::Number, steplen)
+    if !(lastval + steplen ≈ firstval)
+        @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $steplen ≈ $firstval should hold")
+        return false
+    end
+    return true
+end
+
+function _check_cat_step_join(D, lastval, firstval, steplen)
+    if lastval + steplen != firstval
+        @warn _cat_warn_string(D, "`Regular` lookups do not join with the correct step size: $(lastval) + $steplen == $firstval should hold since isapprox is not defined")
+        return false
+    end
+    return true
+end
+
 function _check_cat_lookups(D, ::Explicit, lookups...)
     map(lookups) do l
         span(l) isa Explicit || _mixed_span_warn(D, Explicit, span(l))

@@ -189,6 +189,7 @@ struct CyclicBins{F,C,Sta,Ste,L} <: AbstractBins
     labels::L
 end
 CyclicBins(f; cycle, step, start=1, labels=nothing) = CyclicBins(f, cycle, start, step, labels)
+CyclicBins(; kw...) = CyclicBins(identity; kw...)
 
 Base.show(io::IO, bins::CyclicBins) =
     println(io, nameof(typeof(bins)), "(", bins.f, "; ", join(map(k -> "$k=$(getproperty(bins, k))", (:cycle, :step, :start)), ", "), ")")
@@ -240,8 +241,8 @@ These can wrap around the end of the day.
 hours(step; start=0, labels=nothing) = CyclicBins(hour; cycle=24, step, start, labels)
 
 """
-    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Pair...)
-    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Dimension{<:Callable}...)
+    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Pair...; name=:groupby)
+    groupby(A::Union{AbstractDimArray,AbstractDimStack}, dims::Dimension{<:Callable}...; name=:groupby)
 
 Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 
@@ -251,6 +252,10 @@ Group `A` by grouping functions or [`Bins`](@ref) over multiple dimensions.
 - `dims`: `Pair`s such as `groups = groupby(A, :dimname => groupingfunction)` or wrapped
   [`Dimension`](@ref)s like `groups = groupby(A, DimType(groupingfunction))`. Instead of
   a grouping function [`Bins`](@ref) can be used to specify group bins.
+
+## Keywords
+
+- `name`: name that is applied to the resulting [`DimGroupByArray`](@ref)
 
 ## Return value
 
@@ -342,15 +347,16 @@ julia> groupmeans = mean.(groupby(A, Ti=>month, Y=>isodd))
  12        0.501643     0.499298
 ```
 """
-DataAPI.groupby(A::DimArrayOrStack, x) = groupby(A, dims(x))
-DataAPI.groupby(A::DimArrayOrStack, dimfuncs::Dimension...) = groupby(A, dimfuncs)
+DataAPI.groupby(A::DimArrayOrStack, x; name=:groupby) = groupby(A, dims(x); name)
+DataAPI.groupby(A::DimArrayOrStack, dimfuncs::Dimension...; name=:groupby) = groupby(A, dimfuncs; name)
 function DataAPI.groupby(
     A::DimArrayOrStack, p1::Pair{<:Any,<:Base.Callable}, ps::Pair{<:Any,<:Base.Callable}...;
+    name=:groupby
 )
     dims = map((p1, ps...)) do (d, v)
         rebuild(basedims(d), v)
     end
-    return groupby(A, dims)
+    return groupby(A, dims; name)
 end
 function DataAPI.groupby(A::DimArrayOrStack, dimfuncs::DimTuple; name=:groupby)
     length(otherdims(dimfuncs, dims(A))) > 0 &&
