@@ -51,7 +51,7 @@ export AutoStep, AutoBounds, AutoValues
 export Lookup
 export AutoLookup, AbstractNoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
-export Unaligned, Transformed, ArrayLookup
+export Unaligned, Transformed, ArrayLookup, FacedGridLookup
 
 # Deprecated
 export LookupArray
@@ -62,6 +62,7 @@ rebuild(x; kw...) = ConstructionBase.setproperties(x, (; kw...))
 include("lookup_traits.jl")
 include("metadata.jl")
 include("lookup_arrays.jl")
+include("faced_grid_lookup.jl")
 include("beginend.jl")
 include("predicates.jl")
 include("selector.jl")
