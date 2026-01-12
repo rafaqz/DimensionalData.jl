@@ -113,6 +113,7 @@ export default defineConfig({
         items: [
           { text: 'Dimensions', link: '/dimensions' },
           { text: 'Selectors', link: '/selectors' },
+          { text: 'Lookups', link: '/lookups' },
           { text: 'DimArrays', link: '/dimarrays' },
           { text: 'DimStacks', link: '/stacks' },
           { text: 'GroupBy', link: '/groupby' },
