@@ -305,7 +305,7 @@ end
 
 function Extents.extent(ids::DimTuple, args...)
     ds = _astuple(dims(ids, args...))
-    regulardims = dims(ds, x -> !hasmultipledimensions(lookup(x)))    
+    regulardims = dims(ds, x -> !hasinternaldimensions(lookup(x)))    
     regular_bounds = map(bounds, regulardims)
     regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
     

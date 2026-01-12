@@ -109,15 +109,15 @@ end
     @test_warn "Z" merged[Z(1)]
 end
 
-@testset "hasmultipledimensions trait for PR #991" begin
+@testset "hasinternaldimensions trait" begin
     # Test default behavior for regular lookups
     @testset "Regular lookups return false" begin
-        @test hasmultipledimensions(NoLookup()) == false
-        @test hasmultipledimensions(Sampled(1:10)) == false
-        @test hasmultipledimensions(Categorical([:a, :b, :c])) == false
-        @test hasmultipledimensions(Cyclic(1:12; cycle=12)) == false
-        @test hasmultipledimensions(Sampled(1:10; sampling=Points())) == false
-        @test hasmultipledimensions(Sampled(1:10; sampling=Intervals())) == false
+        @test hasinternaldimensions(NoLookup()) == false
+        @test hasinternaldimensions(Sampled(1:10)) == false
+        @test hasinternaldimensions(Categorical([:a, :b, :c])) == false
+        @test hasinternaldimensions(Cyclic(1:12; cycle=12)) == false
+        @test hasinternaldimensions(Sampled(1:10; sampling=Points())) == false
+        @test hasinternaldimensions(Sampled(1:10; sampling=Intervals())) == false
     end
 
     @testset "MergedLookup returns true" begin
@@ -125,7 +125,7 @@ end
         y_dim = Y(10:10:30)
         merged_data = vec(DimPoints((x_dim, y_dim)))
         merged_lookup = Dimensions.MergedLookup(merged_data, (x_dim, y_dim))
-        @test hasmultipledimensions(merged_lookup) == true
+        @test hasinternaldimensions(merged_lookup) == true
     end
 
     @testset "Extent passthrough for MergedLookup" begin
@@ -193,7 +193,7 @@ end
         @test !haskey(ext_space, :Z)
     end
 
-    @testset "Operations preserve hasmultipledimensions" begin
+    @testset "Operations preserve hasinternaldimensions" begin
         x = X(1:3)
         y = Y(10:10:30)
         data = rand(3, 3)
@@ -203,7 +203,7 @@ end
         
         # Broadcasting preserves trait
         result = merged_da .+ 1
-        @test hasmultipledimensions(lookup(dims(result, :space)))
+        @test hasinternaldimensions(lookup(dims(result, :space)))
         
         # Slicing with additional dimension preserves trait
         z = Z(1:3)
@@ -211,6 +211,6 @@ end
         da3d = DimArray(data3d, (x, y, z))
         merged_da3d = mergedims(da3d, (X, Y) => :space)
         sliced = merged_da3d[Z(At(2))]
-        @test hasmultipledimensions(lookup(dims(sliced, :space)))
+        @test hasinternaldimensions(lookup(dims(sliced, :space)))
     end
 end

@@ -1,5 +1,5 @@
 abstract type MultiDimensionalLookup{T} <: Lookup{T,1} end
-hasmultipledimensions(::MultiDimensionalLookup) = true
+hasinternaldimensions(::MultiDimensionalLookup) = true
 
 """
     MergedLookup <: MultiDimensionalLookup <: Lookup
@@ -64,7 +64,7 @@ struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
 end
 MergedLookup(data, dims; metadata=NoMetadata()) = MergedLookup(data, dims, metadata)
 
-hasmultipledimensions(::MergedLookup) = true
+hasinternaldimensions(::MergedLookup) = true
 order(m::MergedLookup) = Unordered()
 dims(m::MergedLookup) = m.dims
 dims(d::Dimension{<:MergedLookup}) = dims(val(d))

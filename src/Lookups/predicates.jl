@@ -29,8 +29,8 @@ isintervals(::Intervals) = true
 isintervals(::Points) = false
 ispoints(::Points) = true
 ispoints(::Intervals) = false
-hasmultipledimensions(::Lookup) = false
-hasmultipledimensions(::Any) = false  # Fallback for non-Lookup types (e.g., raw arrays)
+hasinternaldimensions(::Lookup) = false
+hasinternaldimensions(::Any) = false  # Fallback for non-Lookup types (e.g., raw arrays)
 
 # Forward them from lookups
 for f in (:isregular, :isexplicit)

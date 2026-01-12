@@ -33,7 +33,7 @@ export hasselection, selectindices
 export reducelookup, shiftlocus, maybeshiftlocus, promote_first
 
 export issampled, iscategorical, iscyclic, isnolookup, isintervals, ispoints, isregular,
-    isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse, hasmultipledimensions
+    isexplicit, isstart, iscenter, isend, isordered, isforward, isreverse, hasinternaldimensions
 
 export Selector
 export At, Between, Touches, Contains, Near, Where, All
