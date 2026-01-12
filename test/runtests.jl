@@ -23,6 +23,7 @@ end
 @time @safetestset "selector" begin include("selector.jl") end
 @time @safetestset "merged" begin include("merged.jl") end
 @time @safetestset "multidimensional_lookups" begin include("multidimensional_lookups.jl") end
+@time @safetestset "faced_grid_lookup" begin include("faced_grid_lookup.jl") end
 @time @safetestset "DimUnitRange" begin include("dimunitrange.jl") end
 @time @safetestset "format" begin include("format.jl") end
 @time @safetestset "array" begin include("array.jl") end
