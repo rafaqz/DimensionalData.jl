@@ -1,112 +1,112 @@
 """
     isregular(l)
 
-Returns `true` if the lookup in `l` has a [`Regular`](@ref) [`Span`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` has a [`Regular`](@ref) [`Span`](@ref), false otherwise.
 """
 function isregular end
 
 """
     isexplicit(l)
 
-Returns `true` if the lookup in `l` has an [`Explicit`](@ref) [`Span`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` has an [`Explicit`](@ref) [`Span`](@ref), false otherwise.
 """
 function isexplicit end
 
 """
     isaligned(l)
 
-Returns `true` if the lookup in `l` is an [`Aligned`](@ref) lookup, false otherwise.
+Predicate that returns `true` if the lookup in `l` is an [`Aligned`](@ref) lookup, false otherwise.
 """
 function isaligned end
 
 """
     issampled(l)
 
-Returns `true` if the lookup in `l` is a [`Sampled`](@ref) lookup, false otherwise.
+Predicate that returns `true` if the lookup in `l` is a [`Sampled`](@ref) lookup, false otherwise.
 """
 function issampled end
 
 """
     iscategorical(l)
 
-Returns `true` if the lookup in `l` is a [`Categorical`](@ref) lookup, false otherwise.
+Predicate that returns `true` if the lookup in `l` is a [`Categorical`](@ref) lookup, false otherwise.
 """
 function iscategorical end
 
 """
     iscyclic(l)
 
-Returns `true` if the lookup in `l` is a [`Cyclic`](@ref) lookup, false otherwise.
+Predicate that returns `true` if the lookup in `l` is a [`Cyclic`](@ref) lookup, false otherwise.
 """
 function iscyclic end
 
 """
     isnolookup(l)
 
-Returns `true` if the lookup in `l` is a [`NoLookup`](@ref) lookup, false otherwise.
+Predicate that returns `true` if the lookup in `l` is a [`NoLookup`](@ref) lookup, false otherwise.
 """
 function isnolookup end
 
 """
     isstart(l)
 
-Returns `true` if the lookup in `l` is has a [`Start`](@ref) locus (it must be `Sampled` to use this), false otherwise.
+Predicate that returns `true` if the lookup in `l` is has a [`Start`](@ref) locus (it must be `Sampled` to use this), false otherwise.
 """
 function isstart end
 
 """
     iscenter(l)
 
-Returns `true` if the lookup in `l` is `Sampled` and has a [`Center`](@ref) locus (it must be `Sampled` to use this)1, false otherwise.
+Predicate that returns `true` if the lookup in `l` is `Sampled` and has a [`Center`](@ref) locus (it must be `Sampled` to use this)1, false otherwise.
 """
 function iscenter end
 
 """
     isend(l)
 
-Returns `true` if the lookup in `l` has an [`End`](@ref) locus (it must be `Sampled` to use this), false otherwise.
+Predicate that returns `true` if the lookup in `l` has an [`End`](@ref) locus (it must be `Sampled` to use this), false otherwise.
 """
 function isend end
 
 """
     isforward(l)
 
-Returns `true` if the lookup in `l` is [`ForwardOrdered`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` is [`ForwardOrdered`](@ref), false otherwise.
 """
 function isforward end
 
 """
     isreverse(l)
 
-Returns `true` if the lookup in `l` is [`ReverseOrdered`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` is [`ReverseOrdered`](@ref), false otherwise.
 """
 function isreverse end
 
 """
     isordered(l)
 
-Returns `true` if the lookup in `l` is [`Ordered`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` is [`Ordered`](@ref), false otherwise.
 """
 function isordered end
 
 """
     isintervals(l)
 
-Returns `true` if the lookup in `l` is [`Intervals`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` is [`Intervals`](@ref), false otherwise.
 """
 function isintervals end
 
 """
     ispoints(l)
 
-Returns `true` if the lookup in `l` is [`Points`](@ref), false otherwise.
+Predicate that returns `true` if the lookup in `l` is [`Points`](@ref), false otherwise.
 """
 function ispoints end
 
 """
     hasinternaldimensions(l)
 
-Returns `true` if the lookup in `l` has internal dimensions, false otherwise.
+Predicate that returns `true` if the lookup in `l` has internal dimensions, false otherwise.
 
 Lookups like [`MergedLookup`](@ref) have internal dimensions, so do things like a GeometryLookup or ArrayLookup.
 
