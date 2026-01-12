@@ -52,6 +52,7 @@ export Lookup
 export AutoLookup, AbstractNoLookup, NoLookup
 export Aligned, AbstractSampled, Sampled, AbstractCyclic, Cyclic, AbstractCategorical, Categorical
 export Unaligned, Transformed, ArrayLookup, FacedGridLookup
+export coords, coord_dim, grid_position
 
 # Deprecated
 export LookupArray

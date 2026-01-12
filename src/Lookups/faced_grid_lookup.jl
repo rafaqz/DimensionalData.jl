@@ -70,3 +70,44 @@ function FacedGridLookup(
     data = Base.OneTo(size(coords, position))
     FacedGridLookup(data, coords, coord_dim, position; order, metadata)
 end
+
+# parent() returns 1D data - satisfies Lookup{T,1} contract
+Base.parent(l::FacedGridLookup) = l.data
+
+# Size/length from 1D data - required for AbstractArray{T,1}
+Base.size(l::FacedGridLookup) = size(l.data)
+Base.length(l::FacedGridLookup) = length(l.data)
+Base.axes(l::FacedGridLookup) = axes(l.data)
+
+Base.firstindex(l::FacedGridLookup) = firstindex(l.data)
+Base.lastindex(l::FacedGridLookup) = lastindex(l.data)
+
+# Indexing returns values from data (the axis indices)
+Base.getindex(l::FacedGridLookup, i::Int) = l.data[i]
+
+# Lookup interface
+order(l::FacedGridLookup) = l.order
+metadata(l::FacedGridLookup) = l.metadata
+span(::FacedGridLookup) = Irregular()
+sampling(::FacedGridLookup) = Points()
+
+# Accessors for our extra fields
+coords(l::FacedGridLookup) = l.coords
+coord_dim(l::FacedGridLookup) = l.coord_dim
+grid_position(l::FacedGridLookup) = l.position
+
+# rebuild accepts data= (standard) plus coords= (our extension)
+function rebuild(l::FacedGridLookup;
+    data=parent(l),
+    coords=l.coords,
+    coord_dim=l.coord_dim,
+    position=l.position,
+    order=order(l),
+    metadata=metadata(l),
+    kw...  # Accept and ignore extra kwargs for compatibility
+)
+    FacedGridLookup(data, coords, coord_dim, position; order, metadata)
+end
+
+# Internal dimensions - has coordinate dimensions
+hasinternaldimensions(::FacedGridLookup) = true
