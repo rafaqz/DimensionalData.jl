@@ -65,6 +65,12 @@ end
     @test IndexStyle(da) == IndexLinear()
 end
 
+@testset "Pointer conversion" begin
+    x = rand(X(10))
+    @test Base.unsafe_convert(Ptr{Float64}, x) == pointer(parent(x)) == pointer(x)
+    @test strides(x) == (1,)
+end
+
 @testset "interface methods" begin
     lx = Sampled(143.0:2.0:145.0, ForwardOrdered(), Regular(2.0), Points(), xmeta) 
     ly = Sampled(-38.0:2.0:-36.0, ForwardOrdered(), Regular(2.0), Points(), ymeta)

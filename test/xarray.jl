@@ -83,3 +83,12 @@ end
     @test_throws ArgumentError pyconvert(DimStack, x)
     @test pyconvert(DimStack, x, 42) == 42
 end
+
+@testset "DimArray to Python conversion" begin
+    # Test __array_interface__ specifically because this is what allows for a
+    # zero-copy conversion.
+    x = rand(X(rand(10)), Y(10))
+    x_lookup = lookup(x, X)
+    @test @pyeval(x => "x.__array_interface__") isa Py
+    @test @pyeval(x_lookup => "x_lookup.__array_interface__") isa Py
+end

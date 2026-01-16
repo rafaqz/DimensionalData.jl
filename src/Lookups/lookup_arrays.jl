@@ -325,6 +325,9 @@ function rebuild(l::Sampled;
     Sampled(data, order, span, sampling, metadata)
 end
 
+Base.unsafe_convert(::Type{Ptr{T}}, x::Sampled) where {T} = Base.unsafe_convert(Ptr{T}, x.data)
+Base.strides(x::Sampled) = strides(x.data)
+
 # These are used to specialise dispatch:
 # When Cycling, we need to modify any `Selector`. After that
 # we switch to `NotCycling` and use `AbstractSampled` fallbacks.
