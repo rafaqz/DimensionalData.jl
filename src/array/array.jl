@@ -108,6 +108,9 @@ Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.vec(A::AbstractDimArray) = vec(parent(A))
+Base.unsafe_convert(::Type{Ptr{T}}, x::AbstractDimArray) where {T} = Base.unsafe_convert(Ptr{T}, parent(x))
+Base.strides(x::AbstractDimArray) = strides(parent(x))
+
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     parent(A1) == parent(A2) && dims(A1) == dims(A2)

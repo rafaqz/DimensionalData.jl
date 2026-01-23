@@ -1,5 +1,6 @@
 ENV["JULIA_CONDAPKG_ENV"] = "@dimensionaldata-tests"
 ENV["JULIA_CONDAPKG_BACKEND"] = "MicroMamba"
+ENV["JULIA_CONDAPKG_VERBOSITY"] = -1
 
 # If you've already run the tests once to create the test Python environment,
 # you can comment out the lines above and uncomment the lines below. That will
@@ -81,4 +82,13 @@ end
 
     @test_throws ArgumentError pyconvert(DimStack, x)
     @test pyconvert(DimStack, x, 42) == 42
+end
+
+@testset "DimArray to Python conversion" begin
+    # Test __array_interface__ specifically because this is what allows for a
+    # zero-copy conversion.
+    x = rand(X(rand(10)), Y(10))
+    x_lookup = lookup(x, X)
+    @test @pyeval(x => "x.__array_interface__") isa Py
+    @test @pyeval(x_lookup => "x_lookup.__array_interface__") isa Py
 end
