@@ -173,8 +173,6 @@ end
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
-Base.similar(A::AbstractDimArray, i::Integer, I::Vararg{Integer}; kw...) =
-    similar(A, eltype(A), (i, I...); kw...)
 Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
     similar(A, eltype(A), I; kw...)
 Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
