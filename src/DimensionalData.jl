@@ -23,11 +23,8 @@ import Adapt,
        IteratorInterfaceExtensions,
        OrderedCollections,
        PrecompileTools,
-       RecipesBase,
        TableTraits,
        Tables
-
-using RecipesBase: @recipe
 
 # using IntervalSets: .., Interval
 
