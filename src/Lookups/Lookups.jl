@@ -19,7 +19,7 @@ using DimensionalData.Lookups
 module Lookups
 
 using Dates, IntervalSets, Extents
-import Adapt, ConstructionBase
+import ConstructionBase
 import InvertedIndices
 
 using InvertedIndices: Not

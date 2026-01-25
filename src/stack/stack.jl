@@ -245,8 +245,6 @@ ConstructionBase.getproperties(s::AbstractDimStack) = layers(s)
 ConstructionBase.setproperties(s::AbstractDimStack, patch::NamedTuple) =
     ConstructionBase.constructorof(typeof(s))(ConstructionBase.setproperties(layers(s), patch))
 
-Adapt.adapt_structure(to, s::AbstractDimStack) = maplayers(A -> Adapt.adapt(to, A), s)
-
 function mergedims(st::AbstractDimStack, dim_pairs::Pair...)
     dim_pairs = map(dim_pairs) do (as, b)
         basedims(as) => b
