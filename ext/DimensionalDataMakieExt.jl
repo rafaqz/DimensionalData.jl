@@ -313,8 +313,8 @@ for p1 in PlotTypes_3D
             error_if_has_content(fig)
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A; xdim = xdim, ydim = ydim, zdim = zdim)
             axis_att = axis_attributes($p1, A; xdim = xdim, ydim = ydim, zdim = zdim)
-            axis_att_for_function = merge(filter_keywords_axis!(ax_type, axis_att), axis)
-            
+            axis_att_for_function = filter_keywords(merge(filter_keywords_axis!(ax_type, axis_att), axis), [:type], !)
+
             ax = ax_type(fig[1,1]; axis_att_for_function...)
             p = $f1!(ax, A; plot_attributes..., xdim = xdim, ydim = ydim, zdim = zdim)
 
