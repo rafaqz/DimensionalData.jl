@@ -12,8 +12,7 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
 using Base: tail, OneTo, Callable, @propagate_inbounds, @assume_effects
       
 # Ecosystem
-import ArrayInterface,
-       ConstructionBase, 
+import ConstructionBase,
        DataAPI,
        Extents,
        Interfaces,

@@ -320,8 +320,6 @@ Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     (copyto!(dst, parent(src)); dst)
 
-ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
-
 # Concrete implementation ######################################################
 
 """
