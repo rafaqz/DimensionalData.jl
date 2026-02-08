@@ -93,6 +93,7 @@ For transforming DimensionalData objects:
 
 ```@docs
 set
+unsafe_set
 rebuild
 modify
 @d

@@ -26,7 +26,8 @@ import .Lookups: rebuild, order, span, sampling, locus, val, set, _set,
     promote_first, _remove
 using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,
     LookupTrait, AllMetadata, LookupSetters, AbstractBeginEndRange,
-    SelectorOrInterval, Interval, Begin, End, LazyMath 
+    SelectorOrInterval, Interval, Begin, End, LazyMath
+import .Lookups: Safety, Safe, Unsafe
 
 using Base: tail, OneTo, @propagate_inbounds
 
