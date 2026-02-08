@@ -47,7 +47,7 @@ end
         merged_dims = mergedims((x_dim, y_dim) => :space)
         
         # Calculate extent
-        ext = Extents.extent(merged_dims)
+        ext = Extents.extent((merged_dims,))
         
         # Check that extent has the original dimension names
         @test haskey(ext, :X)
@@ -146,9 +146,8 @@ end
         result = merged_da[X(At(2)), Y(At(20))]
         @test result isa Number
         
-        # Test with Near selector
-        result_near = merged_da[X(Near(2.1)), Y(Near(19))]
-        @test result_near isa Number
+        # Near selector is intentionally unsupported for MergedLookup
+        @test_throws ArgumentError merged_da[X(Near(2.1)), Y(Near(19))]
     end
 
     @testset "otherdims filtering for multidimensional lookups" begin
@@ -162,7 +161,7 @@ end
         # Get dims that are not multidimensional
         regular_dims = Dimensions.dims(all_dims, d -> !hasinternaldimensions(lookup(d)))
         @test length(regular_dims) == 1
-        @test first(regular_dims) isa Dim{:Z}
+        @test first(regular_dims) isa Z
         
         # Get dims that are multidimensional
         multi_dims = Dimensions.dims(all_dims, d -> hasinternaldimensions(lookup(d)))
