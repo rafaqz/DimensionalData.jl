@@ -57,7 +57,7 @@ end
     @test typeof(dims(s1)) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
     @test layerdims(s1) == (; test2=(Dim{:row2}(), Dim{:column2}()), test3=(Dim{:row2}(), Dim{:column2}()))
     s1 = set(ssame, :Z=>X)
-    @test_broken typeof(dims(s1)) <:  Tuple{<:X,<:Y}
+    @test typeof(dims(s1)) <: Tuple{<:X,<:Y}
     
     @test typeof(dims(set(s, :column => Ti(), :row => Z))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(s, Dim{:row}(Y()), Dim{:column}(X())))) <: Tuple{<:Y,<:X}
@@ -228,8 +228,8 @@ end
     @testset "Unordered does not affect parent" begin
         uda = set(da_o, Unordered())
         uuda = unsafe_set(da_o, Unordered())
-        @test_broken span(uda) == (Regular(2.0), Irregular((nothing, nothing)))
-        @test span(uuda) == (Regular(10.0), NoSpan())
+        # Span is unchanged - it describes spacing, not ordering
+        @test span(uda) == span(uuda) == (Regular(10.0), NoSpan())
         @test order(uda) == order(uuda) == (Unordered(), Unordered())
         @test parent(uda) == parent(uuda) == parent(da_o)
         @test lookup(uda) == (100.0:10.0:120.0, [:a, :b, :c])
@@ -336,3 +336,121 @@ end
 #     @test _set(1, nothing) == 1
 #     @test _set(nothing, 2) == 2
 # end
+
+@testset "set with keyword arguments" begin
+    @testset "set DimArray name" begin
+        da_named = set(da; name=:newname)
+        @test DimensionalData.name(da_named) === :newname
+        @test parent(da_named) === parent(da)
+        @test dims(da_named) === dims(da)
+    end
+    @testset "set DimArray data via keyword" begin
+        newdata = fill(99, size(da))
+        da_new = set(da; data=newdata)
+        @test parent(da_new) === newdata
+        @test dims(da_new) === dims(da)
+    end
+    @testset "set DimArray multiple keywords" begin
+        newdata = fill(99, size(da))
+        da_new = set(da; data=newdata, name=:updated)
+        @test parent(da_new) === newdata
+        @test DimensionalData.name(da_new) === :updated
+    end
+    @testset "set DimStack name" begin
+        # Stacks don't have a single name, but we can test other keywords work
+        s_new = set(s; metadata=Dict(:info => "test"))
+        @test metadata(s_new) == Dict(:info => "test")
+    end
+end
+
+@testset "_detect_step" begin
+    using DimensionalData.Lookups: _detect_step
+    @testset "AbstractRange" begin
+        @test _detect_step(1:10) == 1
+        @test _detect_step(1:2:10) == 2
+        @test _detect_step(10:-1:1) == -1
+        @test _detect_step(1.0:0.5:5.0) == 0.5
+    end
+    @testset "Regular Vector" begin
+        @test _detect_step([1, 2, 3, 4]) == 1.0
+        @test _detect_step([0.0, 0.5, 1.0, 1.5]) == 0.5
+        @test _detect_step([10.0, 8.0, 6.0, 4.0]) == -2.0
+    end
+    @testset "Irregular Vector" begin
+        @test _detect_step([1, 2, 4, 8]) === nothing
+        @test _detect_step([1.0, 2.0, 2.5, 3.0]) === nothing
+    end
+    @testset "AutoValues" begin
+        @test _detect_step(Lookups.AutoValues()) === Lookups.AutoStep()
+    end
+end
+
+@testset "Sampling transitions" begin
+    pts_da = da  # da has Points sampling
+    int_da = interval_da  # interval_da has Intervals sampling
+
+    @testset "Points to Intervals" begin
+        # Setting Intervals on Points should work
+        da_int = set(pts_da, X => Intervals(Center()), Y => Intervals(Start()))
+        @test sampling(da_int) == (Intervals(Center()), Intervals(Start()))
+        @test order(da_int) == order(pts_da)
+    end
+    @testset "Intervals to Points" begin
+        # Setting Points on Intervals should work
+        da_pts = set(int_da, X => Points(), Y => Points())
+        @test sampling(da_pts) == (Points(), Points())
+        @test order(da_pts) == order(int_da)
+    end
+    @testset "Locus shifting with Intervals" begin
+        # Start, Center, End should shift lookup values appropriately
+        start_da = set(int_da, Start())
+        center_da = set(start_da, Center())
+        end_da = set(start_da, End())
+        @test locus(start_da) == (Start(), Start())
+        @test locus(center_da) == (Center(), Center())
+        @test locus(end_da) == (End(), End())
+        # Round-trip should give same result
+        @test set(end_da, Start()) ≈ start_da
+    end
+end
+
+@testset "set with Explicit span" begin
+    # Create a lookup with known bounds
+    sampled = Sampled(1.0:3.0, ForwardOrdered(), Regular(1.0), Intervals(Center()), NoMetadata())
+    dim_explicit = set(X(sampled), Explicit())
+    @test span(dim_explicit) isa Explicit
+    @test sampling(dim_explicit) isa Intervals
+end
+
+@testset "Categorical order detection" begin
+    cat_lookup = Categorical([:z, :a, :m], Unordered(), NoMetadata())
+    # Setting ForwardOrdered should sort the categorical
+    sorted = set(cat_lookup, ForwardOrdered())
+    @test order(sorted) == ForwardOrdered()
+    @test parent(sorted) == [:a, :m, :z]
+
+    # Setting ReverseOrdered should reverse-sort
+    rsorted = set(cat_lookup, ReverseOrdered())
+    @test order(rsorted) == ReverseOrdered()
+    @test parent(rsorted) == [:z, :m, :a]
+end
+
+@testset "checkaxes" begin
+    using DimensionalData.Dimensions: checkaxes
+    d = X(1:5)
+    @test checkaxes((d,), (Base.OneTo(5),)) == true
+    @test_throws DimensionMismatch checkaxes((d,), (Base.OneTo(3),))
+end
+
+@testset "AutoValues handling" begin
+    # AutoValues should be preserved (no-op)
+    @test set(da, Lookups.AutoValues()) === da
+    @test unsafe_set(da, Lookups.AutoValues()) === da
+end
+
+@testset "set dimension then lookup in one call" begin
+    # Setting both dimension type and lookup properties together
+    da_both = set(da, X => Ti(Sampled(sampling=Intervals(Start()))))
+    @test dims(da_both, 1) isa Ti
+    @test sampling(dims(da_both, 1)) == Intervals(Start())
+end
