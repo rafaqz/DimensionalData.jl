@@ -21,10 +21,10 @@ of a [`Lookup`](@ref) to `set` - there is usually no ambiguity.
 
 ## Updating object dimensions
 
-To set swap or alter the `Lookup` of an objects dimensions, you need to specify the dimension. 
-This can be done using `set(obj, X => val)` pairs or `set(obj,, X(val))` wrapped arguments.
+To swap or alter the `Lookup` of an objects dimensions, you need to specify the dimension.
+This can be done using `set(obj, X => val)` pairs or `set(obj, X(val))` wrapped arguments.
 
-You can also updata all dimensions by passing a lookup trait 
+You can also update all dimensions by passing a lookup trait 
 e.g. `set(obj, ForwardOrdered)`. This will be set for all dimensions.
 
 When a `Dimension` or `Lookup` is passed to `set` to replace the
@@ -168,17 +168,17 @@ function _set(s::Safety, A::AbstractDimArray;
     A1 = isnothing(data) ? A : _set_dimarray_data(s, A, data)
     A2 = isnothing(dims) ? A1 : _set(s, A1, dims)
     # Just `rebuild` everything else, it's assumed to have no interactions.
-    # Package developers note: if other fields do interact, implement this 
+    # Package developers note: if other fields do interact, implement this
     # method for your own `AbstractDimArray` type.
-    return rebuild(A1; kw...)
+    return rebuild(A2; kw...)
 end
 function _set(s::Safety, st::AbstractDimStack;
     data=nothing, dims=nothing, kw...
 )
     st1 = isnothing(data) ? st : _set_dimstack_data(s, st, data)
-    st2 = isnothing(dims) ? st1 : _set(s, st, dims)
+    st2 = isnothing(dims) ? st1 : _set(s, st1, dims)
     # Just `rebuild` everything else, it's assumed to have no interactions.
-    # Package developers note: if other fields do interact, implement this 
+    # Package developers note: if other fields do interact, implement this
     # method for your own `AbstractDimStack` type.
     return rebuild(st2; kw...)
 end
@@ -195,7 +195,7 @@ function _set(
     s::Safety, st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...
 )
     newdims = _set(s, dims(st), args...)
-    st = if dimsmatch(newdims, dims(st))
+    if dimsmatch(newdims, dims(st))
         _rebuild_maybe_reorder(s, st, newdims)
     else
         dim_updates = map(rebuild, basedims(st), basedims(newdims))
@@ -204,7 +204,9 @@ function _set(
             # that match the dims of this layer
             map(val, dims(dim_updates, lds))
         end
-        rebuild(_rebuild_maybe_reorder(s, st, newdims); layerdims=lds)
+        # After renaming, deduplicate any dimensions that now have the same type
+        deduped = _dedup_dims(newdims)
+        rebuild(_rebuild_maybe_reorder(s, st, deduped); dims=deduped, layerdims=lds)
     end
 end
 # Single traits are set for all dimensions
@@ -218,12 +220,14 @@ _set(s::Safety, A::AbstractDimStack, x::Lookup) =
 # Arrays are set as data for AbstractDimArray
 _set(s::Safety, A::AbstractDimArray, newdata::AbstractArray) =
     _set_dimarray_data(s, A, newdata)
+# AutoValues means keep existing data
+_set(::Safety, A::AbstractDimArray, ::Lookups.AutoValues) = A
 _set(s::Safety, A::AbstractDimStack, newdata::NamedTuple) =
     _set_dimstack_data(s, A, newdata)
 
 # Check dimensions for Safe
 function _set_dimarray_data(::Safe, A, data)
-    checkaxes(dims(A), axes(data))
+    checkaxis(dims(A), axes(data))
     rebuild(A; data)
 end
 # Just rebuild for Unsafe
@@ -235,13 +239,13 @@ function _set_dimstack_data(::Safe, st, newdata)
     newdata1 = if parent(st) isa NamedTuple && newdata isa NamedTuple
         ConstructionBase.setproperties(parent(st), newdata)
     else
-        keys(st) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
+        keys(st) === keys(newdata) || _keyerr(keys(st), keys(newdata))
         newdata
     end
     # Make sure the data matches the dimensions
     map(layerdims(st), newdata1) do lds, nd
         # TODO a message with the layer name could help here
-        checkaxes(dims(st, lds), axes(nd))
+        checkaxis(dims(st, lds), axes(nd))
     end
     return rebuild(st; data=newdata1)
 end
@@ -254,7 +258,7 @@ _set_dimstack_data(::Unsafe, st, data) = rebuild(st; data)
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))
 
 _rebuild_maybe_reorder(::Unsafe, A, newdims) = A
- # Handle any changes to order
+# Handle any changes to order
 function _rebuild_maybe_reorder(::Safe, A, newdims)
     if map(order, dims(A)) == map(order, newdims)
         rebuild(A; dims=newdims)
@@ -262,4 +266,10 @@ function _rebuild_maybe_reorder(::Safe, A, newdims)
         A1 = reorder(A, map(rebuild, dims(A), order(newdims)))
         rebuild(A; data=parent(A1), dims=newdims)
     end
+end
+
+# Deduplicate dimensions that have the same type (e.g., after renaming Z to X)
+# Keep the first occurrence of each dimension type
+_dedup_dims(dims::Tuple) = foldl(dims; init=()) do acc, d
+    any(x -> basetypeof(x) === basetypeof(d), acc) ? acc : (acc..., d)
 end

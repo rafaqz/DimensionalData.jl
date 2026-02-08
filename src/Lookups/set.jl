@@ -130,9 +130,11 @@ end
 # AutoOrder does nothing for both Safe and Unsafe
 _set_lookup_property(::Safe, lookup::Lookup, ::AutoOrder) = lookup
 _set_lookup_property(::Unsafe, lookup::Lookup, ::AutoOrder) = lookup
-# AbstractNoLookup ignores order changes
-_set_lookup_property(::Safety, lookup::AbstractNoLookup, ::Order) = lookup
-_set_lookup_property(::Safety, lookup::AbstractNoLookup, ::AutoOrder) = lookup
+# AbstractNoLookup ignores order changes (more specific methods to avoid ambiguity)
+_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::Order) = lookup
+_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
+_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::Order) = lookup
+_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
 # Unsafe just sets the order field without reordering data
 _set_lookup_property(s::Unsafe, lookup::Lookup, neworder::Order) =
     rebuild(lookup; order=_set(s, order(lookup), neworder))
@@ -174,16 +176,6 @@ _set_lookup_property(::Safe, lookup::AbstractSampled, ::Explicit, ::Explicit{<:A
     lookup
 function _set_lookup_property(::Safety, lookup::AbstractSampled, ::Span, span::Explicit)
     rebuild(lookup; span, sampling=Intervals(locus(lookup)))
-end
-function _set_lookup_property(
-    ::Safe, lookup::AbstractSampled, ::Span, ::Regular{<:AutoStep}
-)
-    rebuild(lookup; sampling=Intervals(bounds(lookup)))
-end
-function _set_lookup_property(
-    ::Safe, lookup::AbstractSampled, ::Span, ::Irregular{<:AutoBounds}
-)
-    rebuild(lookup; sampling=Intervals(bounds(lookup)))
 end
 _set_lookup_property(::Safety, lookup::AbstractSampled, ::Span, newspan::Span) =
     rebuild(lookup; span=newspan)
@@ -268,5 +260,5 @@ function _detect_step(A::AbstractVector)
     return step
 end
 
-_detect_order(values) = 
+_detect_order(values) =
     first(values) <= last(values) ? ForwardOrdered() : ReverseOrdered()

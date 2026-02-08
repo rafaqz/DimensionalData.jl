@@ -435,11 +435,11 @@ end
     @test parent(rsorted) == [:z, :m, :a]
 end
 
-@testset "checkaxes" begin
-    using DimensionalData.Dimensions: checkaxes
+@testset "checkaxis" begin
+    using DimensionalData.Dimensions: checkaxis
     d = X(1:5)
-    @test checkaxes((d,), (Base.OneTo(5),)) == true
-    @test_throws DimensionMismatch checkaxes((d,), (Base.OneTo(3),))
+    @test checkaxis((d,), (Base.OneTo(5),)) == true
+    @test_throws DimensionMismatch checkaxis((d,), (Base.OneTo(3),))
 end
 
 @testset "AutoValues handling" begin

@@ -109,6 +109,8 @@ _reorder(x::DimensionOrLookup, ::Ordered, ::Ordered) = reverse(x)
 # We need to sort
 _reorder(dim::Dimension, ::Unordered, o::Ordered) =
     rebuild(dim, reorder(lookup(dim), o))
+# For Lookups, delegate to Lookups.reorder which has the full implementation
+_reorder(l::Lookup, ::Unordered, o::Ordered) = reorder(l, o)
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray

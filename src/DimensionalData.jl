@@ -44,7 +44,7 @@ import .Lookups: metadata, reorder, set, unsafe_set, _set, rebuild, basetypeof,
     order, span, sampling, locus, val, bounds, intervalbounds,
     hasselection, units
 import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxes, _astuple
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxis, _astuple
 
 using OrderedCollections: OrderedDict
 

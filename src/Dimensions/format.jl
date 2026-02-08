@@ -157,7 +157,7 @@ _format(locus::Locus, D::Type, values) = locus
 checkaxis(lookup::Union{Dimension,Lookup}, axis::AbstractUnitRange) = 
     first(axes(lookup)) == axis || _checkaxiserror(lookup, axis)
 
-checkaxes(lookups::Tuple, axes::Tuple) = all(map(checkaxis, lookups, axes))
+checkaxis(lookups::Tuple, axes::Tuple) = all(map(checkaxis, lookups, axes))
 
 @noinline _explicitpoints_error() =
     throw(ArgumentError("Cannot use Explicit span with Points sampling"))
