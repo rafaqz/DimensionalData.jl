@@ -80,12 +80,12 @@ julia> set(da, :Z => Ti, :custom => Z)
 Change the dimension lookup values:
 
 ```jldoctest set
-julia> set(da, Z => [:a, :b, :c, :d], :custom => [6, 5, 4])
+julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 ┌ 3×4 DimArray{Float64, 2} ┐
-├──────────────────────────┴────────────────────────────────── dims ┐
-  ↓ custom Sampled{Int64} [4, …, 6] ForwardOrdered Regular Points,
-  → Z Sampled{Symbol} [:a, …, :d] ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────────────────┘
+├──────────────────────────┴──────────────────────────────────── dims ┐
+  ↓ custom Sampled{Int64} [4, …, 6] ForwardOrdered Irregular Points,
+  → Z Sampled{Symbol} [:a, …, :d] ForwardOrdered Irregular Points
+└─────────────────────────────────────────────────────────────────────┘
  ↓ →   :a   :b   :c   :d
  4    0.0  0.0  0.0  0.0
  5    0.0  0.0  0.0  0.0
@@ -95,7 +95,7 @@ julia> set(da, Z => [:a, :b, :c, :d], :custom => [6, 5, 4])
 Change the `Lookup` type:
 
 ```jldoctest set
-julia> set(da; Z => DD.NoLookup(), :custom => DD.Sampled())
+julia> set(da, Z => DD.NoLookup(), :custom => DD.Sampled())
 ┌ 3×4 DimArray{Float64, 2} ┐
 ├──────────────────────────┴───────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
@@ -125,11 +125,11 @@ Set the name of a `DimArray`:
 
 ```jldoctest set
 julia> set(da; name=:newname)
-┌ 3×4 DimArray{Float64, 2} ┐
-├──────────────────────────┴────────────────────────────────────────── dims ┐
+┌ 3×4 DimArray{Float64, 2} newname ┐
+├──────────────────────────────────┴───────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
-  → Z      Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────────────────────────┘
+  → Z Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────┘
   ↓ →  -20.0  -10.0  0.0  10.0
  10.0    0.0    0.0  0.0   0.0
  20.0    0.0    0.0  0.0   0.0
