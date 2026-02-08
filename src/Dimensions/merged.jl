@@ -72,7 +72,7 @@ dims(d::Dimension{<:MergedLookup}) = dims(val(d))
 # Lookup interface methods
 
 Lookups.bounds(d::Dimension{<:MergedLookup}) =
-    ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
+    isempty(val(d)) ? () : ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
 # Return an `Int` or  Vector{Bool}
 Lookups.selectindices(lookup::MergedLookup, sel::DimTuple) =
