@@ -78,7 +78,7 @@ export dims, refdims, metadata, name, lookup, bounds, val, layers
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
+export set, unsafe_set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
     mergedims, unmergedims, maplayers
 
 export groupby, combine, seasons, months, hours, intervals, ranges
