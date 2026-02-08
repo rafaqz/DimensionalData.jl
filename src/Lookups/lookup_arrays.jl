@@ -58,10 +58,6 @@ function Base.searchsortedlast(lookup::Lookup, val; lt=<, kw...)
     searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt, kw...)
 end
 
-function Adapt.adapt_structure(to, l::Lookup)
-    rebuild(l; data=Adapt.adapt(to, parent(l)))
-end
-
 """
     AutoLookup <: Lookup
 
@@ -199,10 +195,6 @@ for f in (:getindex, :view, :dotview)
             rebuild(l; data=Base.$f(parent(l), i1), span=slicespan(l, i1))
         end
     end
-end
-
-function Adapt.adapt_structure(to, l::AbstractSampled)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata(), span=Adapt.adapt(to, span(l)))
 end
 
 # bounds
@@ -472,10 +464,6 @@ order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString}
-
-function Adapt.adapt_structure(to, l::AbstractCategorical)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
-end
 
 
 """

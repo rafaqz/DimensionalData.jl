@@ -320,18 +320,6 @@ Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     (copyto!(dst, parent(src)); dst)
 
-ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
-
-function Adapt.adapt_structure(to, A::AbstractDimArray)
-    rebuild(A,
-        data=Adapt.adapt(to, parent(A)),
-        dims=Adapt.adapt(to, dims(A)),
-        refdims=Adapt.adapt(to, refdims(A)),
-        name=Name(name(A)),
-        metadata=Adapt.adapt(to, metadata(A)),
-    )
-end
-
 # Concrete implementation ######################################################
 
 """

@@ -135,7 +135,6 @@ month, hour, second etc., not the central point as is more common with spatial d
 abstract type TimeDim{T} <: IndependentDim{T} end
 
 ConstructionBase.constructorof(d::Type{<:Dimension}) = basetypeof(d)
-Adapt.adapt_structure(to, dim::Dimension) = rebuild(dim; val=Adapt.adapt(to, val(dim)))
 
 const DimType = Type{<:Dimension}
 const DimTuple = Tuple{Dimension,Vararg{Dimension}}
