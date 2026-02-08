@@ -186,7 +186,7 @@ end
 # below using DimTuple work better anyway.
 Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
     similar(A, eltype(A), I; kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Int, I::Vararg{Int}; kw...) where T =
     similar(A, T, (i, I...); kw...)
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
     similar(parent(A), T, I)
