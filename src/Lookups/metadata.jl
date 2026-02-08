@@ -57,13 +57,6 @@ ConstructionBase.constructorof(::Type{<:Metadata{X}}) where X = Metadata{X}
 
 val(m::Metadata) = m.val
 
-# Metadata nearly always contains strings, which break GPU compat.
-# For now just remove everything, but we could strip all strings
-# and replace Dict with NamedTuple. 
-# This might also be a problem with non-GPU uses of Adapt.jl where keeping
-# the metadata is fine.
-Adapt.adapt_structure(to, m::Metadata) = NoMetadata()
-
 """
     NoMetadata <: AbstractMetadata
 

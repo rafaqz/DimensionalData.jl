@@ -435,6 +435,18 @@ end
     @test plt[3][] == extrema(lookup(to_value(dd_3d), X))
     @test_throws ArgumentError volume(dd_3d; xdim = Y, ydim = Z, zdim = Y)
 
+    # Test that axis attributes filter type keyword (issue #1167)
+    @testset "axis attributes correctly filtered" begin
+        @testset for plt_fn in (volume, volumeslices),
+            (axis_type, axis_att) in (
+                (LScene, (; show_axis=false)),
+                (Axis3, (; title="test title"))
+            )
+            fig, ax, plt = plt_fn(dd_3d; axis = (; type=axis_type, axis_att...))
+            @test ax isa axis_type
+        end
+    end
+
     x = Observable(1:5)
     y = Observable(11:15)
     z = Observable(21:25)

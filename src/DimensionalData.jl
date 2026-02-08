@@ -12,9 +12,7 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
 using Base: tail, OneTo, Callable, @propagate_inbounds, @assume_effects
       
 # Ecosystem
-import Adapt, 
-       ArrayInterface,
-       ConstructionBase, 
+import ConstructionBase,
        DataAPI,
        Extents,
        Interfaces,
@@ -23,11 +21,8 @@ import Adapt,
        IteratorInterfaceExtensions,
        OrderedCollections,
        PrecompileTools,
-       RecipesBase,
        TableTraits,
        Tables
-
-using RecipesBase: @recipe
 
 # using IntervalSets: .., Interval
 

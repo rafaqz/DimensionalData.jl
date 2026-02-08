@@ -289,3 +289,9 @@ end
     tdimz = X(Transformed(identity)), Y(Transformed(identity)), Z(NoLookup(1:1))
     @test dims2indices(tdimz, (X(1), Y(2), Z())) == (1, 2, Colon())
 end
+
+@testset "Pointer conversion" begin
+    x = Sampled(rand(10))
+    @test Base.unsafe_convert(Ptr{Float64}, x) == pointer(parent(x)) == pointer(x)
+    @test strides(x) == (1,)
+end

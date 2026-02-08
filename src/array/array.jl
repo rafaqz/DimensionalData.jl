@@ -127,6 +127,9 @@ Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
 Base.parentindices(A::AbstractDimArray) = parentindices(parent(A))
 Base.vec(A::AbstractDimArray) = vec(parent(A))
+Base.unsafe_convert(::Type{Ptr{T}}, x::AbstractDimArray) where {T} = Base.unsafe_convert(Ptr{T}, parent(x))
+Base.strides(x::AbstractDimArray) = strides(parent(x))
+
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
     dims(A1) == dims(A2) && parent(A1) == parent(A2)
@@ -181,6 +184,12 @@ end
 # An alternative would be to fill missing dims with `Anon`, and keep existing
 # dims but strip the Lookup? It just seems a little complicated when the methods
 # below using DimTuple work better anyway.
+Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
+    similar(A, eltype(A), I; kw...)
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
+    similar(A, T, (i, I...); kw...)
+Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
+    similar(parent(A), T, I)
 
 const MaybeDimUnitRange = Union{Integer,Base.OneTo,Dimensions.DimUnitRange}
 # when all axes are DimUnitRanges we can return an `AbstractDimArray`
@@ -356,18 +365,6 @@ Base.copyto!(dst::AbstractDimArray{T,2} where T, src::LinearAlgebra.AbstractQ) =
     (copyto!(parent(dst), src); dst)
 Base.copyto!(dst::PermutedDimsArray, src::AbstractDimArray) = 
     (copyto!(dst, parent(src)); dst)
-
-ArrayInterface.parent_type(::Type{<:AbstractDimArray{T,N,D,A}}) where {T,N,D,A} = A
-
-function Adapt.adapt_structure(to, A::AbstractDimArray)
-    rebuild(A,
-        data=Adapt.adapt(to, parent(A)),
-        dims=Adapt.adapt(to, dims(A)),
-        refdims=Adapt.adapt(to, refdims(A)),
-        name=Name(name(A)),
-        metadata=Adapt.adapt(to, metadata(A)),
-    )
-end
 
 # Concrete implementation ######################################################
 
