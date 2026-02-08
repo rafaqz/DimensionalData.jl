@@ -12,58 +12,94 @@ using DimensionalData: DimTable, DimExtensionArray
 
 x = X([:a, :b, :c])
 y = Y([10.0, 20.0])
+z = Z([3, 8])
 d = Dim{:test}(1.0:1.0:3.0)
 dimz = x, y, d
-da = DimArray(ones(3, 2, 3), dimz; name=:data)
 da2 = DimArray(fill(2, (3, 2, 3)), dimz; name=:data2)
 
 @testset "DimArray Tables interface" begin
-    ds = DimStack(da)
-    t = Tables.columns(ds)
-    @test t isa DimTable
-    @test dims(t) === dims(da)
-    @test parent(t) === ds
+    @testset for dim_ref in ((), (z,))
+        ref_names = name(dim_ref)
+        ref_num = length(dim_ref)
+        ref_size = prod(length, dim_ref; init=1)
+        da = DimArray(ones(3, 2, 3), dimz; name=:data, refdims=dim_ref)
 
-    @test Tables.columns(t) === t
-    @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == 18
+        nrows = prod(size(da)) * ref_size
+        col_names = (:X, :Y, :test, ref_names..., :data)
+        col_eltypes = (Symbol, Float64, Float64, map(eltype, dim_ref)..., Float64)
+        dim_vals = vec(collect(Iterators.product(dimz..., dim_ref...)))
+        col_vals = [getindex.(dim_vals, i) for i in eachindex(first(dim_vals))]
+        push!(col_vals, ones(nrows))
 
-    @test Tables.istable(typeof(t)) == Tables.istable(t) ==
-          Tables.istable(typeof(da)) == Tables.istable(da) == 
-          Tables.istable(typeof(ds)) == Tables.istable(ds) == true
-    @test Tables.columnaccess(t) == Tables.columnaccess(da) == Tables.columnaccess(ds) == true
-    @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
-    @test Tables.columnnames(t) == Tables.columnnames(da) == Tables.columnnames(ds) == (:X, :Y, :test, :data)
+        ds = DimStack(da)
+        t = DimTable(ds; refdims=dim_ref)
+        @test t isa DimTable
+        @test dims(t) === dims(da)
+        @test parent(t) === ds
+        t2 = Tables.columns(ds)
+        @test t2 isa DimTable
+        if !isempty(dim_ref)
+            @test Tables.columnnames(t2) == Tables.columnnames(t)
+        end
 
-    sa = Tables.schema(da)
-    sds = Tables.schema(ds)
-    st = Tables.schema(t)
-    @test sa.names == sds.names == st.names == (:X, :Y, :test, :data)
-    @test sa.types == sds.types == st.types == (Symbol, Float64, Float64, Float64)
+        @test Tables.columns(t) === t
+        @test length(t[:X]) == length(t[:Y]) == length(t[:test]) == nrows
 
-    @test Tables.getcolumn(t, 1) == Tables.getcolumn(t, :X) == Tables.getcolumn(t, X) ==
-          Tables.getcolumn(ds, 1) == Tables.getcolumn(ds, :X) == Tables.getcolumn(ds, X) ==
-          Tables.getcolumn(da, 1) == Tables.getcolumn(da, :X) == Tables.getcolumn(da, X) ==
-          Tables.getcolumn(da, 1)[:] == repeat([:a, :b, :c], 6)
-    @test Tables.getcolumn(t, 2) == Tables.getcolumn(t, :Y) ==
-          Tables.getcolumn(da, 2) == Tables.getcolumn(da, :Y) ==
-          Tables.getcolumn(ds, 2) == Tables.getcolumn(ds, :Y) ==
-          Tables.getcolumn(ds, 2)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
-    @test Tables.getcolumn(t, 3) == Tables.getcolumn(t, :test) ==
-          Tables.getcolumn(da, 3) == Tables.getcolumn(da, :test) ==
-          Tables.getcolumn(ds, 3) == Tables.getcolumn(ds, :test) ==
-          Tables.getcolumn(ds, 3)[:] == vcat(repeat([1.0], 6), repeat([2.0], 6), repeat([3.0], 6))
-    @test Tables.getcolumn(t, 4) == Tables.getcolumn(t, :data) ==
-          Tables.getcolumn(da, 4) == Tables.getcolumn(da, :data) ==
-          Tables.getcolumn(ds, 4) == Tables.getcolumn(ds, :data) == 
-          Tables.getcolumn(ds, 4)[:] == ones(3 * 2 * 3)
-    @test Tables.getcolumn(t, Float64, 4, :data) == ones(3 * 2 * 3)
-    @test Tables.getcolumn(t, Float64, 2, :Y) == Tables.getcolumn(da, Float64, 2, :Y) ==
-          Tables.getcolumn(ds, Float64, 2, :Y) == 
-          Tables.getcolumn(ds, Float64, 2, :Y)[:] == repeat([10.0, 10.0, 10.0, 20.0, 20.0, 20.0], 3)
-    @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
-    @test_throws BoundsError Tables.getcolumn(t, 5)
+        @test Tables.istable(typeof(t)) == Tables.istable(t) ==
+            Tables.istable(typeof(da)) == Tables.istable(da) ==
+            Tables.istable(typeof(ds)) == Tables.istable(ds) == true
+        @test Tables.columnaccess(t) == Tables.columnaccess(da) ==
+            Tables.columnaccess(ds) == true
+        @test Tables.rowaccess(t) == Tables.rowaccess(ds) == Tables.rowaccess(ds) == false
+        @test Tables.columnnames(t) == col_names
+
+        alldims = combinedims(dims(ds), dim_ref)
+        col_dims = (alldims..., fill(nothing, length(col_names) - length(alldims))...)
+        @testset for (i, (col, dim, col_eltype)) in enumerate(
+            zip(col_names, col_dims, col_eltypes),
+        )
+            col_val = Tables.getcolumn(t, i)
+            @test col_val == Tables.getcolumn(t, col) == col_vals[i]
+
+            if !isnothing(dim)
+                @test col_val == Tables.getcolumn(t, dim)
+            end
+        end
+        @test_throws ArgumentError Tables.getcolumn(t, :NotAColumn)
+        @test_throws BoundsError Tables.getcolumn(t, length(col_names) + 1)
+
+        sa = Tables.schema(da)
+        sds = Tables.schema(ds)
+        st = Tables.schema(t)
+
+        @testset "consistency of DimStack and DimArray Tables interfaces" begin
+            @test Tables.columnnames(da) == Tables.columnnames(ds) == sa.names == sds.names == col_names
+            @test sa.types == sds.types == col_eltypes
+            @test Tables.columntable(da) == Tables.columntable(ds)
+        end
+
+        isempty(dim_ref) && continue
+        @testset "DimTable interface with refdims consistent with DimStack/DimArray Tables interfaces" begin
+            @test sa.names == col_names
+            @test sa.types == col_eltypes
+            @test Tables.columntable(da) == Tables.columntable(t)
+            @testset for (i, (col, dim, col_eltype)) in enumerate(
+                zip(col_names, col_dims, col_eltypes),
+            )
+                @test col_vals[i] == Tables.getcolumn(da, col) == Tables.getcolumn(ds, col) ==
+                    Tables.getcolumn(da, i) == Tables.getcolumn(ds, i)
+
+                if !isnothing(dim)
+                    @test col_vals[i] == Tables.getcolumn(da, dim) ==
+                        Tables.getcolumn(ds, dim) == Tables.getcolumn(da, typeof(dim)) ==
+                        Tables.getcolumn(ds, typeof(dim))
+                end
+            end
+        end
+    end
 end
 
+da = DimArray(ones(3, 2, 3), dimz; name=:data)
 @testset "DimArray TableTraits interface" begin
     ds = DimStack(da)
     t = DimTable(ds)
@@ -233,7 +269,7 @@ end
                 ds_ = DimStack(table)
                 @test keys(ds_) == (:a, :b, :c)
                 @test parent(ds_.a[X = At(100:-1:1), Y = At(-250:5:249)]) == parent(a)
- 
+
             end
         end
 
@@ -282,6 +318,12 @@ end
         @test only(dims(t3)) isa Dim{:geometry}
         @test Tables.getcolumn(t2, :vals)[1] isa DimArray
     end
+    @testset "preservedims with refdims" begin
+        z = Z(2:4)
+        t4 = DimTable(A; preservedims=:band, refdims=(z,))
+        @test comparedims(Bool, getfield(t4, :dims), (x, y, z))
+        @test Tables.getcolumn(t4, :vals)[1] isa DimArray
+    end
 end
 
 @testset "DimTable NamedTuple" begin
@@ -293,6 +335,18 @@ end
         @test s.types == (Int, Float32, Float64)
         @test all(t.a .=== 1.0f0:10.0f0)
         @test all(t.b .=== 2.0:2.0:20.0)
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:X, :Z, :a, :b)
+            @test all(t2.Z .== collect(Iterators.flatten(fill(zi, length(da)) for zi in z)))
+            @testset for col in (:X, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
 
     @testset "Matrix of NamedTuple" begin
@@ -303,6 +357,17 @@ end
         @test s.types == (Int, Int, Float32, Float64)
         @test all(t.a .=== reduce(vcat, [1.0f0y:y:10.0f0y for y in 1:5]))
         @test all(t.b .=== reduce(vcat, [2.0y:2.0y:20.0y for y in 1:5]))
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:X, :Y, :Z, :a, :b)
+            @testset for col in (:X, :Y, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
     @testset "Matrix of NamedTuple with preservedims" begin
         da = [(; a=1.0f0x*y, b=2.0x*y) for x in X(1:10), y in Y(1:5)]
@@ -314,5 +379,16 @@ end
         @test s.types[2] <: DimVector
         @test all(t.a .== [[1.0f0x*y for x in X(1:10)] for y in Y(1:5)])
         @test all(t.b .== [[2.0x*y for x in X(1:10)] for y in Y(1:5)])
+
+        @testset "with refdims" begin
+            z = Z(4:6)
+            t2 = DimTable(da; preservedims=X, refdims=(z,))
+            s2 = Tables.schema(t2)
+            @test s2.names == (:Y, :Z, :a, :b)
+            @testset for col in (:Y, :a, :b)
+                @test all(Tables.getcolumn(t2, col) .==
+                    repeat(Tables.getcolumn(t, col), length(z)))
+            end
+        end
     end
 end

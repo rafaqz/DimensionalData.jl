@@ -72,11 +72,10 @@ end
     @test typeof(dims(set(da, X => Ti(), Y => Z()))) <: Tuple{<:Ti,<:Z}
     @test typeof(dims(set(da2, :column => Ti(), :row => Z()))) <: Tuple{<:Z,<:Ti}
     @test typeof(dims(set(da2, (Dim{:row}(Y), Dim{:column}(X))))) <: Tuple{<:Y,<:X}
-<<<<<<< HEAD
     @test typeof(dims(set(da2, :row=>X, :column=>Z))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, :row=>X(), :column=>Z()))) <: Tuple{<:X,<:Z}
     @test typeof(dims(set(da2, :row=>:row2, :column=>:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
-    @test index(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
+    @test lookup(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
 end
 
 @testset "set Lookup values" begin
@@ -133,10 +132,6 @@ end
         @test span(da_set) == (Regular(1), Regular(-2))
         @test span(da_uset) == (Irregular((nothing, nothing)), Irregular((nothing, nothing)))
     end
-    @test typeof(dims(set(da2, row=X, column=Z))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, row=X(), column=Z()))) <: Tuple{<:X,<:Z}
-    @test typeof(dims(set(da2, row=:row2, column=:column2))) <: Tuple{<:Dim{:row2},<:Dim{:column2}}
-    @test lookup(set(da2, Dim{:row}([:x, :y, :z])), :row) == [:x, :y, :z] 
 end
 
 @testset "Dimension index" begin
@@ -146,7 +141,7 @@ end
     @test step.(span(set(da2, :column => 10:5:20, :row => 4:6))) == (1, 5)
 end
 
-# @testset "set Lookup" begin
+@testset "set Lookup" begin
     @testset "to NoLookup" begin
         @test lookup(set(dims(da2), NoLookup())) == 
             (NoLookup(Base.OneTo(3)), NoLookup(Base.OneTo(4)))
@@ -162,12 +157,12 @@ end
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da2 = set(da2, Categorical)
     cat_da2_sample = set(da2, Sampled)
-    @test_broken cat_da2_sample == da2
+    @test cat_da2_sample == da2
     @test lookup(set(da2, :column => NoLookup(), :row => Sampled())) == 
         (Sampled(10.0:10.0:30.0, ForwardOrdered(), Regular(10.0), Points(), NoMetadata()), NoLookup(Base.OneTo(4)))
     cat_da = set(da, X=>NoLookup(), Y=>Categorical())
-    @test lookup(cat_da) == 
-        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, Unordered(), NoMetadata())) 
+    @test lookup(cat_da) ==
+        (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, ForwardOrdered(), NoMetadata())) 
     # cat_da = set(da, X=NoLookup(), Y=Categorical())
     # @test lookup(cat_da) == 
     #     (NoLookup(Base.OneTo(2)), Categorical(-38.0:2.0:-36.0, ForwardOrdered(), NoMetadata())) 
@@ -176,7 +171,7 @@ end
     @test metadata(cat_da_m) == Dict()
 end
  
-# @testset "set Span" begin
+@testset "set Span" begin
     @test set(Regular(), AutoSpan()) == Regular()
     @test set(Regular(), Irregular()) == Irregular()
     @test set(Irregular(), Regular()) == Regular()
@@ -236,24 +231,25 @@ end
         @test_broken span(uda) == (Regular(2.0), Irregular((nothing, nothing)))
         @test span(uuda) == (Regular(10.0), NoSpan())
         @test order(uda) == order(uuda) == (Unordered(), Unordered())
-        @test parent(uda) == parent(uuda) == parent(da)
+        @test parent(uda) == parent(uuda) == parent(da_o)
         @test lookup(uda) == (100.0:10.0:120.0, [:a, :b, :c])
         @test lookup(uuda) == (100.0:10.0:120.0, [:a, :b, :c])
     end
     @testset "Ordered reverses ordered parent" begin
+        uda = set(da_o, Unordered())  # define uda in this scope
         rda = set(da_o, ReverseOrdered())
         urda = unsafe_set(uda, ReverseOrdered())
         @test order(rda) == (ReverseOrdered(), ReverseOrdered())
         @test lookup(rda) == (120.0:-10.0:100.0, [:c, :b, :a])
-        @test lookup(uroda) == ([110.0, 120.0, 100.0], [:c, :a, :b])
-        @test parent(rda) == parent(reverse(da; dims=(X, Y)))
-        @test parent(urda) == parent(da)
+        @test lookup(urda) == (100.0:10.0:120.0, [:a, :b, :c])  # unsafe_set doesn't change lookup values
+        @test parent(rda) == parent(reverse(da_o; dims=(X, Y)))
+        @test parent(urda) == parent(da_o)
     end
     @testset "Ordered sorts unordered parent" begin
         da_u = set(da_o[X=[2, 3, 1], Y=[3, 1, 2]], Unordered())
         fda = set(da_u, ForwardOrdered())
         ufda = unsafe_set(da_u, ForwardOrdered())
-        rda = set(dau, ReverseOrdered())
+        rda = set(da_u, ReverseOrdered())
         urda = unsafe_set(da_u, ReverseOrdered())
         @test order(fda) == order(ufda) == (ForwardOrdered(), ForwardOrdered())
         @test order(rda) == order(urda) == (ReverseOrdered(), ReverseOrdered())
@@ -266,8 +262,8 @@ end
     end
 end
 
-# # issue #478
-# @testset "tuple dims and/or Symbol/Dim{Colon}/Colon replacement" begin
+# issue #478
+@testset "tuple dims and/or Symbol/Dim{Colon}/Colon replacement" begin
     @test set(Dim{:foo}(), :bar) === Dim{:bar}()
     @test set(Dim{:foo}(2:11), :bar) === Dim{:bar}(2:11)
     @test set(Dim{:foo}(), Dim{:bar}()) === Dim{:bar}()

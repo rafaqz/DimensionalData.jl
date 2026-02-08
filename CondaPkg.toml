@@ -1,6 +1,0 @@
-[deps]
-xarray = ""
-numpy = ""
-openssl = "<=julia"
-# Python 3.14 segfaults something awful
-python = "3.13.*"

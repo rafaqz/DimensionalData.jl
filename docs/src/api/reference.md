@@ -40,6 +40,7 @@ hasdim
 AbstractDimStack
 DimStack
 maplayers
+DimStackArray
 ```
 
 ## DimTree 

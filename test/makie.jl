@@ -1,6 +1,7 @@
 using DimensionalData, Test, Dates
 using AlgebraOfGraphics
 using CairoMakie
+using CairoMakie: ComputePipeline
 using ColorTypes
 using Unitful, Unitful.DefaultSymbols
 import Distributions
@@ -474,6 +475,12 @@ end
         @test_nowarn data(A1c) * mapping(X, :test) * visual(CairoMakie.Lines) |> draw
     end
 
+    @testset "1d with refdims" begin
+        @test_nowarn data(rebuild(A1; refdims=(Y(['a', 'b']),))) * mapping(
+            X, :test; linestyle=Y
+        ) * visual(CairoMakie.Lines) |> draw
+    end
+
     A3 = DimArray(rand(21, 5, 4), (X, Y, Dim{:p}); name = :RandomData)
     
     @testset "3d faceting" begin
@@ -635,8 +642,8 @@ end
     fig, ax, _ = violin(A2r)
     violin!(ax, A2r)
     violin!(A2r)
-    @test_throws ArgumentError violin(A2m)
-    @test_throws ArgumentError violin!(ax, A2m)
+    @test_throws ComputePipeline.ResolveException{ArgumentError} violin(A2m)
+    @test_throws ComputePipeline.ResolveException{ArgumentError} violin!(ax, A2m)
 
     fig, ax, _ = rainclouds(A2)
     rainclouds!(ax, A2)
@@ -744,12 +751,12 @@ end
     volumeslices!(ax, A3abc; zdim=:a)
     volumeslices!(A3abc;zdim=:a)
 
-    "LScene support"
+    #LScene support 
     f, a, p = heatmap(A2ab; axis=(; type=LScene, show_axis=false))
     @test a isa LScene
     @test isnothing(a.scene[OldAxis])
 
-    "Colorbar support"
+    #Colorbar support
     fig, ax, _ = plot(A2ab; colorbar=(; width=50))
     colorbars = filter(x -> x isa Colorbar, fig.content)
     @test length(colorbars) == 1

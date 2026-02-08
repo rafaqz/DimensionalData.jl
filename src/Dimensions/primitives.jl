@@ -185,6 +185,8 @@ function commondims end
 _commondims(f, ds, query) = _dims(f, ds, _dims(_flip_subtype(f), query, ds))
 _commondims(f, ds) = ()
 
+_missingdims(x, query::Tuple) = filter(q -> !hasdim(x, q), query)
+
 """
     dimnum(x, query::Tuple) => NTuple{Int}
     dimnum(x, query) => Int
@@ -214,7 +216,7 @@ julia> dimnum(A, Y)
 """
 function dimnum end
 @inline function dimnum(x, query::Tuple)
-    all(hasdim(x, query)) || _extradimserror(otherdims(x, query))
+    all(hasdim(x, query)) || _extradimserror(_missingdims(x, query))
     _dim_query(_dimnum, MaybeFirst(), x, query...)
 end
 @inline dimnum(x, q1::Union{DimOrDimType,Integer}, query::Union{DimOrDimType,Integer}...) =
@@ -844,7 +846,7 @@ _astuple(x) = (x,)
 # Warnings and Error methods.
 
 _extradimsmsg(::Tuple{}) = "Some dims were not found in object."
-_extradimsmsg(extradims) = "$(map(basetypeof, extradims)) dims were not found in object."
+_extradimsmsg(extradims) = "$(extradims) dims were not found in object."
 _metadatamsg(a, b) = "Metadata $(metadata(a)) and $(metadata(b)) do not match."
 _typemsg(a, b) = "Lookups do not all have the same type: $(order(a)), $(order(b))."
 

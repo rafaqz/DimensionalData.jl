@@ -16,7 +16,7 @@ DiskArrays.eachchunk(da::AbstractBasicDimArray) = DiskArrays.eachchunk(parent(da
 
 # Only define methods if they are available, 
 # to avoid dropping older DiskArrays versions
-# TODO remove these checks
+# TODO remove these checks when we drop DiskArrays below 0.4.8
 @static if isdefined(DiskArrays, :isdisk)
     DiskArrays.isdisk(x::AbstractDimArray) = DiskArrays.isdisk(parent(x))
     DiskArrays.isdisk(x::AbstractDimStack) = any(map(DiskArrays.isdisk, layers(x)))
@@ -95,5 +95,7 @@ end
     DiskArrays.mockchunks(x::AbstractDimArray, chunks) = 
         modify(A -> DiskArrays.mockchunks(A, chunks), x)
 end
+
+DD.can_show_data(A::DiskArrays.AbstractDiskArray) = false
 
 end

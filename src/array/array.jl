@@ -129,8 +129,9 @@ Base.parentindices(A::AbstractDimArray) = parentindices(parent(A))
 Base.vec(A::AbstractDimArray) = vec(parent(A))
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
-    parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
+    dims(A1) == dims(A2) && parent(A1) == parent(A2)
+Base.isequal(A1::AbstractDimArray, A2::AbstractDimArray) =
+    isequal(dims(A1), dims(A2)) && isequal(parent(A1), parent(A2))
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))

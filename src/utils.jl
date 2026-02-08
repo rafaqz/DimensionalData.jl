@@ -64,6 +64,8 @@ reorder(ds::DimTuple, orderdims::Tuple{}) = ds
 reorder(x::Reorderable, orderdim::Dimension{<:Order}) = _reorder(x, dims(x, orderdim), val(orderdim))
 reorder(x::Reorderable, orderdim::Dimension{<:Lookup}) = _reorder(x, dims(x, orderdim), order(orderdim))
 
+# AutoOrder: keep the current order unchanged
+_reorder(x::Reorderable, dim::Dimension, ::AutoOrder) = x
 # Unordered: do nothing, just set the order to Unordered
 _reorder(x::Reorderable, dim::Dimension, o::Unordered) = unsafe_set(x, dim => o)
 # Ordered: leave, reverse or sort
@@ -94,6 +96,8 @@ reorder(x::Dimension, o::Order) = rebuild(x, _reorder(lookup(x), o))
 reorder(x::Dimension, l::Lookup) = _reorder(x, order(l))
 reorder(x::Dimension, d::Dimension) = _reorder(x, order(d))
 
+# AutoOrder: keep the current order unchanged
+_reorder(x::DimensionOrLookup, ::AutoOrder) = x
 # Unordered: do nothing, just set the order to Unordered
 _reorder(x::DimensionOrLookup, o::Unordered) = unsafe_set(x, o)
 # Ordered: leave, reverse or sort

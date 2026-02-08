@@ -1,6 +1,7 @@
 using DimensionalData, Test, Dates
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: LazyLabelledPrintMatrix, ShowWith, showrowlabel, showcollabel, showarrows
+using DiskArrays.TestTypes: AccessCountDiskArray, getindex_count
 
 # define dims with both long name and Type name
 @dim Lon "Longitude"
@@ -261,4 +262,11 @@ end
     @test occursin("mybranch", sc)
     @test occursin(":c", sc)
 
+end
+
+@testset "DiskArray show" begin
+    da = AccessCountDiskArray(rand(10,10))
+    dd = DimArray(da, (X(1:10), Y(1:10)))
+    sc = sprint(show, MIME("text/plain"), dd)
+    @test getindex_count(da) == 0 
 end

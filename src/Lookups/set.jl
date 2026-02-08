@@ -17,10 +17,12 @@ unsafe_set(lookup::Lookup, ::Type{T}) where T =_set(Unsafe(), lookup, T())
 _set(::Safety, x) = x
 _set(s::Safety, lookup::Lookup, newlookup::Lookup) = _set_lookup(s, lookup, newlookup)
 _set(s::Safety, lookup::Lookup, newlookup::AbstractArray) = _set_lookup_parent(s, lookup, newlookup)
+_set(::Safety, lookup::Lookup, ::AutoValues) = lookup  # AutoValues means keep existing
 _set(s::Safety, lookup::Lookup, prop::LookupSetters) = _set_lookup_property(s, lookup, prop)
 # Lookup values
 _set(::Safety, values::AbstractArray, newvalues::AbstractArray) = newvalues
 _set(::Safety, values::AbstractArray, newvalues::Colon) = values
+_set(::Safety, values::AbstractArray, ::AutoValues) = values
 _set(::Safety, values::Colon, newvalues::AbstractArray) = newvalues
 _set(::Safety, values::Colon, newvalues::Colon) = values
 
@@ -55,12 +57,10 @@ _set_lookup(s::Unsafe, lookup::Lookup, newlookup::AbstractCategorical) = begin
 end
 _set_lookup(s::Safe, lookup::Lookup, newlookup::AbstractCategorical) = begin
     # We need to handle the new lookup having unfilled auto fields
-    if parent(newlookup) isa AutoValues
-        o = if order(newlookup) isa AutoLookup
-            _detect_order(parent(l))
-        else
-            order(newlookup)
-        end
+    o = if order(newlookup) isa AutoOrder
+        _detect_order(parent(lookup))
+    else
+        order(newlookup)
     end
     md = _set(s, metadata(lookup), metadata(newlookup))
     # Rebuild the new lookup with updated values
@@ -71,13 +71,28 @@ _set_lookup(s::Unsafe, lookup::Lookup, newlookup::AbstractSampled) =
 _set_lookup(s::Safe, lookup::Lookup, newlookup::AbstractSampled) = begin
     # Update each field separately. The old lookup may not have these fields, or may have
     # a subset with the rest being traits. The new lookup may have some auto fields.
-    data =_set(s, parent(lookup), parent(newlookup) )
-    o = _set(order(newlookup), parent(newlookup))
-    sp = _set(span(newlookup), parent(newlookup))
+    data = _set(s, parent(lookup), parent(newlookup))
+    o = if order(newlookup) isa AutoOrder
+        # Use existing data for order detection (data may still be AutoValues if unchanged)
+        data isa AutoValues ? order(lookup) : _detect_order(data)
+    else
+        order(newlookup)
+    end
+    sp = if span(newlookup) isa AutoSpan
+        if data isa AutoValues
+            span(lookup)
+        elseif data isa AbstractRange
+            Regular(step(data))
+        else
+            Irregular(nothing, nothing)
+        end
+    else
+        span(newlookup)
+    end
     sa = _set(s, sampling(lookup), sampling(newlookup))
     md = _set(s, metadata(lookup), metadata(newlookup))
     # Rebuild the new lookup with the merged fields
-    rebuild(newlookup1; data, order=o, span=sp, sampling=sa, metadata=md)
+    rebuild(newlookup; data, order=o, span=sp, sampling=sa, metadata=md)
 end
 _set_lookup(::Safety, lookup::Lookup, newlookup::NoLookup{<:AutoValues}) = NoLookup(axes(lookup, 1))
 _set_lookup(::Safety, lookup::Lookup, newlookup::AbstractNoLookup) = newlookup
@@ -112,26 +127,18 @@ _set_lookup_parent(s::Safe, lookup::AbstractSampled, values::AbstractVector) = b
 end
 
 # Order
-_set_lookup_property(::Safe, lookup::Lookup, neworder::AutoOrder) = lookup
-_set_lookup_property(::Unsafe, lookup::Lookup, neworder::AutoOrder) = lookup
-_set_lookup_property(::Safe, lookup::AbstractNoLookup, neworder::AutoOrder) = lookup
-_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, neworder::AutoOrder) = lookup
-_set_lookup_property(::Safe, lookup::AbstractNoLookup, neworder::Order) = lookup
-_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, neworder::Order) = lookup
-# Unsafe leaves the lookup values as-is
-_set_lookup_property(s::Unsafe, lookup::Lookup, neworder::Order) = 
+# AutoOrder does nothing for both Safe and Unsafe
+_set_lookup_property(::Safe, lookup::Lookup, ::AutoOrder) = lookup
+_set_lookup_property(::Unsafe, lookup::Lookup, ::AutoOrder) = lookup
+# AbstractNoLookup ignores order changes
+_set_lookup_property(::Safety, lookup::AbstractNoLookup, ::Order) = lookup
+_set_lookup_property(::Safety, lookup::AbstractNoLookup, ::AutoOrder) = lookup
+# Unsafe just sets the order field without reordering data
+_set_lookup_property(s::Unsafe, lookup::Lookup, neworder::Order) =
     rebuild(lookup; order=_set(s, order(lookup), neworder))
-_set_lookup_property(s::Unsafe, lookup::Lookup, neworder::AutoOrder) = lookup
-# For disambiguity
-_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::Order) = lookup
-_set_lookup_property(::Unsafe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
-_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::Order) = lookup
-_set_lookup_property(::Safe, lookup::AbstractNoLookup, ::AutoOrder) = lookup
-# Safe reorders them to match `neworder`
-_set_lookup_property(::Safe, lookup::Lookup, neworder::Order) = 
+# Safe actually reorders the data to match neworder
+_set_lookup_property(::Safe, lookup::Lookup, neworder::Order) =
     reorder(lookup, neworder)
-_set_lookup_property(s::Safe, lookup::Lookup, neworder::AutoOrder) = 
-    lookup
 # Lookup Span
 _set_lookup_property(::Safety, lookup::AbstractSampled, ::Irregular{AutoBounds}) = begin
     bnds = if parent(lookup) isa AutoValues || span(lookup) isa AutoSpan
@@ -181,12 +188,17 @@ end
 _set_lookup_property(::Safety, lookup::AbstractSampled, ::Span, newspan::Span) =
     rebuild(lookup; span=newspan)
 # Lookup Sampling
+_set_lookup_property(::Safe, lookup::AbstractSampled, ::AutoSampling) = lookup
+_set_lookup_property(::Unsafe, lookup::AbstractSampled, ::AutoSampling) = lookup
 function _set_lookup_property(s::Safe, lookup::AbstractSampled, newsampling::Sampling)
-    s = _set(s, sampling(lookup), newsampling)
+    sa = _set(s, sampling(lookup), newsampling)
+    # If sampling is Auto, just set it directly without shifting
+    if sampling(lookup) isa AutoSampling
+        return rebuild(lookup; sampling=sa)
     # If the locus is currently points, make it Center Intervals
-    if sampling(lookup) isa Points
-        if s isa Intervals # Points => Intervals
-            span1 = if span(lookup) isa Irregular 
+    elseif sampling(lookup) isa Points
+        if sa isa Intervals # Points => Intervals
+            span1 = if span(lookup) isa Irregular
                 # We don't know the bounds
                 Irregular(nothing, nothing)
             else
@@ -207,7 +219,7 @@ function _set_lookup_property(s::Safe, lookup::AbstractSampled, newsampling::Sam
     end
     # For Intervals this will shift the locus
     # For Points always convert all loci to Center()
-    return rebuild(shiftlocus(locus(s), lookup1); sampling=s)
+    return rebuild(shiftlocus(locus(sa), lookup1); sampling=sa)
 end
 _set_lookup_property(s::Unsafe, lookup::AbstractSampled, sampling::Sampling) =
     rebuild(lookup; sampling=_set(s, sampling(lookup), sampling))

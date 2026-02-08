@@ -52,12 +52,6 @@ import DataAPI.groupby
 
 export Lookups, Dimensions
 
-# Deprecated
-const LookupArrays = Lookups
-const LookupArray = Lookup
-
-export LookupArrays, LookupArray
-
 # Dimension
 export X, Y, Z, Ti, Dim, Coord
 
@@ -70,7 +64,7 @@ export AbstractDimArray, DimArray
 
 export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, DimMatrix, DimVecOrMat
 
-export AbstractDimStack, DimStack
+export AbstractDimStack, DimStack, DimStackArray
 
 export AbstractDimTable, DimTable
 

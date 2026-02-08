@@ -1,11 +1,17 @@
 ENV["JULIA_CONDAPKG_ENV"] = "@dimensionaldata-tests"
 ENV["JULIA_CONDAPKG_BACKEND"] = "MicroMamba"
+ENV["JULIA_CONDAPKG_VERBOSITY"] = -1
 
 # If you've already run the tests once to create the test Python environment,
 # you can comment out the lines above and uncomment the lines below. That will
 # re-use the environment without re-resolving it, which is a bit faster.
 # ENV["JULIA_PYTHONCALL_EXE"] = joinpath(Base.DEPOT_PATH[1], "conda_environments", "dimensionaldata-tests", "bin", "python")
 # ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
+
+# Copy CondaPkg.toml to the test project so that it gets found by CondaPkg
+# during the tests. If this was instead in the project directory it would also
+# be used by CondaPkg outside of the tests, which we don't want.
+cp(joinpath(@__DIR__, "CondaPkg.toml"), joinpath(dirname(Base.active_project()), "CondaPkg.toml"))
 
 using DimensionalData, Test, PythonCall
 import DimensionalData.Dimensions: NoLookup, NoMetadata

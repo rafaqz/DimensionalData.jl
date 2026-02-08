@@ -618,3 +618,20 @@ end
     @test Base.dataids(a) == Base.dataids(parent(a))
     @test Base.mightalias(a, parent(a))
 end
+
+@testset "isequal and == with missing" begin
+    a = [missing 0; 0 0]
+    ba = [missing 0 0; 0 0 0]
+
+    da = DimArray(a, (X(1:2), Y(1:2)))
+    dba = DimArray(ba, (X(1:2), Y(1:3)))
+
+    @test ismissing(dba[:,1:2] == da)
+    @test (dba == da) == false
+    @test isequal(dba, da) == false
+    @test isequal(dba[:,1:2], da)
+    @test isequal(da, dba[:,2:3]) == false
+    dshift = DimArray(a, (X(10:11), Y(2:3)))
+    @test isequal(da, dshift) == false
+    @test (da == dshift) == false
+end

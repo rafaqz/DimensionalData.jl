@@ -144,3 +144,10 @@ end
     @test typeof(dims(a)[1]) <: X
     @test a.data == cos.(d.val)
 end
+
+@testset "dims(::Array) is nothing" begin
+    sz = ntuple(identity, 4)
+    @testset for ndims in eachindex(sz)
+        @test isnothing(dims(randn(sz[1:ndims])))
+    end
+end
