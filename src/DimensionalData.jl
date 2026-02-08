@@ -57,6 +57,8 @@ export Begin, End
 
 export AbstractDimArray, DimArray
 
+export CoordArray
+
 export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, DimMatrix, DimVecOrMat
 
 export AbstractDimStack, DimStack
@@ -96,6 +98,7 @@ include("array/methods.jl")
 include("array/matmul.jl")
 include("array/broadcast.jl")
 include("array/show.jl")
+include("coordarray/coordarray.jl")
 # Stacks
 include("stack/stack.jl")
 include("stack/indexing.jl")
