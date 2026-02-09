@@ -68,6 +68,12 @@ format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 format(m::Lookups.ArrayLookup, D::Type, ::AutoValues, axis::AbstractRange) =
     rebuild(m; dim=D(), data=axis)
 
+# FacedGridLookup: validate axis length matches data
+function format(l::Lookups.FacedGridLookup, D::Type, index, axis::AbstractRange)
+    length(l) == length(axis) || _checkaxiserror(l, axis)
+    l
+end
+
 # Format Lookups
 # No more identification required for NoLookup
 format(m::Lookups.Length1NoLookup, D::Type, values, axis::AbstractRange) = m

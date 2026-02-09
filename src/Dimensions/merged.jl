@@ -145,3 +145,8 @@ Coord(s1::SelOrStandard, s2::SelOrStandard, sels::SelOrStandard...) = Coord((s1,
 Coord(sel::Selector) = Coord((sel,))
 Coord(d1::Dimension, dims::Dimension...) = Coord((d1, dims...))
 Coord() = Coord(:)
+
+# FacedGridLookup integration
+# Return the coordinate dimension this lookup represents
+dims(l::Lookups.FacedGridLookup) = (l.coord_dim,)
+dims(d::Dimension{<:Lookups.FacedGridLookup}) = dims(val(d))
