@@ -29,6 +29,7 @@ Changelog.generate(
 - Broadcasts improved for all `AbstractBasicDimArray`, like `DimSelectors`.
 - `groupby` accepts name keyword to set the name of the DimGroupbyArray
 - New `hasinternaldimensions` trait function for lookups that contain multiple dimensions - along with tests. ([#991])
+- BREAKING: MergedLookup and other lookups with `hasinternaldimensions` now return `extent`/`bounds` of their "internal" dimensions, not of their indices as they did before.  If you merge an X and Y dimension, the extent of that merged lookup will have X and Y elements.  ([#991])
 
 
 ### Fixed
