@@ -121,6 +121,7 @@ Base methods
 
 ```@docs
 Base.cat
+Base.stack
 Base.copy!
 Base.eachslice
 ```

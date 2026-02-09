@@ -572,6 +572,53 @@ $message on dimension $D.
 To fix for `AbstractDimArray`, pass new lookup values as `cat(As...; dims=$D(newlookupvals))` keyword or `dims=$D()` for empty `NoLookup`.
 """
 
+function check_stack_dims(iter)
+    comparedims(Bool, dims.(iter)...; order=true, val=true, msg=Dimensions.Warn(" Can't `stack` AbstractDimArray, applying to `parent` object."))
+    iter
+end
+
+_maybe_dimnum(x, dim) = hasdim(x, dim) ? dimnum(x, dim) : ndims(x) + 1
+function _maybe_dimnum(x, dim::Integer)
+    if dim < ndims(x) + 2
+        return dim
+    else
+        throw(ArgumentError(LazyString("cannot stack slices ndims(x) = ", ndims(x) + 1, " along dims = ", dim)))
+    end
+end
+_maybe_dimnum(_, ::Colon) = Colon()
+_maybe_dimnum(x, dims::Tuple) = map(d -> _maybe_dimnum(x, d), dims)
+
+"""
+    stack(x::AbstractDimArray; [dims])
+
+Combine a nested `AbstractDimArray` into a single array by arranging the inner arrays
+along one or more new dimensions taken from the outer array.
+The inner `AbstractDimArray`s must all have the same dimensions.
+
+The keyword `dims` specifies where the new dimensions will be placed in the resulting array.
+The index of all existing dimensions equal to or greater than `dims` will be increased to
+accomodate the new dimensions.
+The default `dims` places the new dimensions at the end of the resulting array.
+
+# Examples
+```julia
+using DimensionalData
+a = DimArray([1 2 3; 4 5 6], (X(4.0:5.0), Y(6.0:8.0)))
+b = DimArray([7 8 9; 10 11 12], (X(4.0:5.0), Y(6.0:8.0)))
+x = DimArray([a, b], Z(4.0:5.0)) # Construct a nested DimArray
+y = stack(x; dims=2) # Resulting array has dims (X, *Z*, Y)
+```
+"""
+function Base.stack(iter::AbstractArray{<:AbstractDimArray}; dims=:)
+    Base._stack(_maybe_dimnum(first(iter), dims), check_stack_dims(iter))
+end
+function Base.stack(f, iter::AbstractArray{<:AbstractDimArray}; kwargs...)
+    Base.stack(f(x) for x in check_stack_dims(iter); kwargs...)
+end
+function Base.stack(f, xs::AbstractArray{<:AbstractDimArray}, yzs...; kwargs...)
+    Base.stack(f(xy...) for xy in zip(xs, yzs...); kwargs...)
+end
+
 function Base.inv(A::AbstractDimArray{T,2}) where T
     newdata = inv(parent(A))
     newdims = reverse(dims(A))
