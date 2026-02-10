@@ -97,10 +97,19 @@ end
     @test reo_s == s
     @test dims(reo_s) == dims(s)
 
-
     @testset "reorder handles extra dimensions" begin
         @test reorder(da[X=1], X=>ReverseOrdered(), Y=>ForwardOrdered()) == rev[X=1]
         @test reorder(rev_s[X=1], da) == s[X=1]
+    end
+
+    @testset "unordered are sorted" begin
+        x, y = X([:a, :c, :b]), Y([1, 4, 2, 3])
+        A = rand(x, y)
+        Af = reorder(A, ForwardOrdered())
+        @test parent(Af) == A[X=[1, 3, 2], Y=[1, 3, 4, 2]]
+        @test lookup(Af) == lookup(reorder(dims(A), ForwardOrdered())) ==
+         (Categorical([:a, :b, :c], ForwardOrdered(), NoMetadata()), 
+            Sampled([1, 2, 3, 4], ForwardOrdered(), Irregular(nothing,nothing), Points(), NoMetadata()))
     end
 end
 

@@ -2,38 +2,48 @@ const DimArrayOrStack = Union{AbstractDimArray,AbstractDimStack}
 
 """
     set(x, val)
-    set(x, args::Pairs...) => x with updated field/s
-    set(x, args...; kw...) => x with updated field/s
-    set(x, args::Tuple{Vararg{Dimension}}; kw...) => x with updated field/s
+    set(x, dims::Pairs...)
+    set(x, dims::Tuple{Vararg{Dimension}})
+    set(x; kw...)
 
-    set(dim::Dimension, index::AbstractArray) => Dimension
-    set(dim::Dimension, lookup::Lookup) => Dimension
-    set(dim::Dimension, lookupcomponent::LookupTrait) => Dimension
-    set(dim::Dimension, metadata::AbstractMetadata) => Dimension
+Set the properties of an object, its internal data or the traits 
+of its dimensions and lookup index, returning a new, rebuild object.
 
-Set the properties of an object, its internal data or the traits of its dimensions
-and lookup index.
+Related properties will be updated to match the change, for example,
+changing the order of a lookup from ForwardOrdered to ReverseOrdered will reverse the
+data as well. See [`unsafe_set`](@ref) for a version that makes the specified change.
+
+`x` can be a `AbstractDimArray`, `AbstractDimStack`, `Dimension`, `Lookup` or
+`LookupTrait`.
 
 As DimensionalData is so strongly typed you do not need to specify what field
-of a [`Lookup`](@ref) to `set` - there is no ambiguity.
+of a [`Lookup`](@ref) to `set` - there is usually no ambiguity.
 
-To set fields of a `Lookup` you need to specify the dimension. This can be done
-using `X => val` pairs, `X = val` keyword arguments, or `X(val)` wrapped arguments.
+## Updating object dimensions
 
-You can also set the fields of all dimensions by simply passing a single [`Lookup`](@ref)
-or lookup trait - it will be set for all dimensions.
+To swap or alter the `Lookup` of an objects dimensions, you need to specify the dimension.
+This can be done using `set(obj, X => val)` pairs or `set(obj, X(val))` wrapped arguments.
+
+You can also update all dimensions by passing a lookup trait 
+e.g. `set(obj, ForwardOrdered)`. This will be set for all dimensions.
 
 When a `Dimension` or `Lookup` is passed to `set` to replace the
-existing ones, fields that are not set will keep their original values.
+existing ones, fields that were not set will keep their original values.
 
-## Notes:
+## Updating object data
 
-Changing a lookup index range/vector will also update the step size and order where applicable.
+Passing an `AbstractArray` to `set` will update the data of the object.
 
-Setting the [`Order`](@ref) like `ForwardOrdered` will *not* reverse the array or
-dimension to match. Use `reverse` and [`reorder`](@ref) to do this.
+## Updating object fields
+
+Keywords can be passed to `set` to update the fields of an object,
+working like keyword `rebuild` but updating related fields where needed.
+
+Fields are always the same as keywords for the objects constructor.
 
 ## Examples
+
+Update the data in a `DimArray`:
 
 ```jldoctest set
 julia> using DimensionalData; const DD = DimensionalData;
@@ -67,15 +77,15 @@ julia> set(da, :Z => Ti, :custom => Z)
  30.0    0.0    0.0  0.0   0.0
 ```
 
-Change the lookup `Vector`:
+Change the dimension lookup values:
 
 ```jldoctest set
 julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 ┌ 3×4 DimArray{Float64, 2} ┐
-├──────────────────────────┴────────────────────────────────── dims ┐
-  ↓ custom Sampled{Int64} [4, …, 6] ForwardOrdered Regular Points,
-  → Z Sampled{Symbol} [:a, …, :d] ForwardOrdered Regular Points
-└───────────────────────────────────────────────────────────────────┘
+├──────────────────────────┴──────────────────────────────────── dims ┐
+  ↓ custom Sampled{Int64} [4, …, 6] ForwardOrdered Irregular Points,
+  → Z Sampled{Symbol} [:a, …, :d] ForwardOrdered Irregular Points
+└─────────────────────────────────────────────────────────────────────┘
  ↓ →   :a   :b   :c   :d
  4    0.0  0.0  0.0  0.0
  5    0.0  0.0  0.0  0.0
@@ -85,7 +95,7 @@ julia> set(da, Z => [:a, :b, :c, :d], :custom => [4, 5, 6])
 Change the `Lookup` type:
 
 ```jldoctest set
-julia> set(da, Z=DD.NoLookup(), custom=DD.Sampled())
+julia> set(da, Z => DD.NoLookup(), :custom => DD.Sampled())
 ┌ 3×4 DimArray{Float64, 2} ┐
 ├──────────────────────────┴───────────────────────────────────────── dims ┐
   ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
@@ -110,63 +120,156 @@ julia> set(da, :custom => DD.Irregular(10, 12), Z => DD.Regular(9.9))
  20.0    0.0    0.0  0.0   0.0
  30.0    0.0    0.0  0.0   0.0
 ```
-"""
-function set end
 
-# Types are constructed
-Base.@assume_effects :effect_free set(x::DimArrayOrStack, ::Type{T}) where T = 
-  set(x, T())
-# Dimensions and pairs are set for dimensions 
-Base.@assume_effects :effect_free function set(
-  A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...; kw...
+Set the name of a `DimArray`:
+
+```jldoctest set
+julia> set(da; name=:newname)
+┌ 3×4 DimArray{Float64, 2} newname ┐
+├──────────────────────────────────┴───────────────────────────────── dims ┐
+  ↓ custom Sampled{Float64} 10.0:10.0:30.0 ForwardOrdered Regular Points,
+  → Z Sampled{Float64} -20.0:10.0:10.0 ForwardOrdered Regular Points
+└──────────────────────────────────────────────────────────────────────────┘
+  ↓ →  -20.0  -10.0  0.0  10.0
+ 10.0    0.0    0.0  0.0   0.0
+ 20.0    0.0    0.0  0.0   0.0
+ 30.0    0.0    0.0  0.0   0.0
+```
+"""
+set(x::DimArrayOrStack, args...; kw...) = 
+    _set(Safe(), _set(Safe(), x, args...); kw...)
+set(x::DimArrayOrStack, ::Type{T}) where T = set(x, T())
+
+"""
+    unsafe_set(x, val)
+    unsafe_set(x, dims::Pairs...)
+    unsafe_set(x, dims::Tuple{Vararg{Dimension}})
+    unsafe_set(x; kw...)
+
+Set the properties of an object, its internal data or the traits
+of its dimensions and lookup index, returning a new, rebuild object.
+
+Works the same as [`set`](@ref) but does not update other 
+properties to match any changes.
+
+It is usually type stable and can be faster than `set`,
+but can produce broken objects if used incorrectly.
+
+`unsafe_set` with keywords is identical to `rebuild`.
+"""
+unsafe_set(x::DimArrayOrStack, args...; kw...) = 
+    _set(Unsafe(), _set(Unsafe(), x, args...); kw...)
+unsafe_set(x::DimArrayOrStack, ::Type{T}) where T = unsafe_set(x, T())
+
+# Keywords are passed to rebuild, but with checks
+function _set(s::Safety, A::AbstractDimArray;
+    data=nothing, dims=nothing, kw...
 )
-    rebuild(A; dims=set(dims(A), args...; kw...))
+    A1 = isnothing(data) ? A : _set_dimarray_data(s, A, data)
+    A2 = isnothing(dims) ? A1 : _set(s, A1, dims)
+    # Just `rebuild` everything else, it's assumed to have no interactions.
+    # Package developers note: if other fields do interact, implement this
+    # method for your own `AbstractDimArray` type.
+    return rebuild(A2; kw...)
 end
-Base.@assume_effects :effect_free function set(
-  st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...; kw...
+function _set(s::Safety, st::AbstractDimStack;
+    data=nothing, dims=nothing, kw...
 )
-    ds = set(dims(st), args...; kw...)
-    if dimsmatch(ds, dims(st))
-        rebuild(st; dims=ds) 
+    st1 = isnothing(data) ? st : _set_dimstack_data(s, st, data)
+    st2 = isnothing(dims) ? st1 : _set(s, st1, dims)
+    # Just `rebuild` everything else, it's assumed to have no interactions.
+    # Package developers note: if other fields do interact, implement this
+    # method for your own `AbstractDimStack` type.
+    return rebuild(st2; kw...)
+end
+
+# Dimensions and pairs are set for dimensions 
+# Short circuit here to avoid multiple allocations
+function _set(
+    s::Safety, A::AbstractDimArray, args::Union{Dimension,DimTuple,Pair}...
+)
+    newdims = _set(s, dims(A), args...)
+    return rebuild(_rebuild_maybe_reorder(s, A, newdims); dims=newdims)
+end
+function _set(
+    s::Safety, st::AbstractDimStack, args::Union{Dimension,DimTuple,Pair}...
+)
+    newdims = _set(s, dims(st), args...)
+    if dimsmatch(newdims, dims(st))
+        _rebuild_maybe_reorder(s, st, newdims)
     else
-        dim_updates = map(rebuild, basedims(st), basedims(ds))
+        dim_updates = map(rebuild, basedims(st), basedims(newdims))
         lds = map(layerdims(st)) do lds
             # Swap out the dims with the updated dims
             # that match the dims of this layer
             map(val, dims(dim_updates, lds))
         end
-        rebuild(st; dims=ds, layerdims=lds)
+        # After renaming, deduplicate any dimensions that now have the same type
+        deduped = _dedup_dims(newdims)
+        rebuild(_rebuild_maybe_reorder(s, st, deduped); dims=deduped, layerdims=lds)
     end
 end
 # Single traits are set for all dimensions
-Base.@assume_effects :effect_free set(A::DimArrayOrStack, x::LookupTrait) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
-# Single lookups are set for all dimensions
-# Need both for ambiguity
-Base.@assume_effects :effect_free set(A::AbstractDimArray, x::Lookup) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
-Base.@assume_effects :effect_free set(A::AbstractDimStack, x::Lookup) = 
-    set(A, map(d -> basedims(d) => x, dims(A))...)
+_set(s::Safety, A::DimArrayOrStack, x::LookupTrait) = 
+    _set(s, A, map(d -> basedims(d) => x, dims(A))...)
+# Single lookups are set for all dimensions.
+_set(s::Safety, A::AbstractDimArray, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
+_set(s::Safety, A::AbstractDimStack, x::Lookup) = 
+    _set(s, A, map(d -> rebuild(d, x), dims(A))...)
 # Arrays are set as data for AbstractDimArray
-Base.@assume_effects :effect_free function set(
-    A::AbstractDimArray, newdata::AbstractArray
-)
-    axes(A) == axes(newdata) || _axiserr(A, newdata)
-    rebuild(A; data=newdata)
-end
-# NamedTuples are set as data for AbstractDimStack
-Base.@assume_effects :effect_free function set(
-    s::AbstractDimStack, newdata::NamedTuple
-)
-    dat = data(s)
-    keys(dat) === keys(newdata) || _keyerr(keys(dat), keys(newdata))
-    map(dat, newdata) do d, nd
-        axes(d) == axes(nd) || _axiserr(d, nd)
-    end
-    rebuild(s; data=newdata)
-end
-# Other things error
-Base.@assume_effects :effect_free set(A, x) = Lookups._cantseterror(A, x)
+_set(s::Safety, A::AbstractDimArray, newdata::AbstractArray) =
+    _set_dimarray_data(s, A, newdata)
+# AutoValues means keep existing data
+_set(::Safety, A::AbstractDimArray, ::Lookups.AutoValues) = A
+_set(s::Safety, A::AbstractDimStack, newdata::NamedTuple) =
+    _set_dimstack_data(s, A, newdata)
 
-@noinline _axiserr(a, b) = throw(ArgumentError("passed in axes $(axes(b)) do not match the currect axes $(axes(a))"))
+# Check dimensions for Safe
+function _set_dimarray_data(::Safe, A, data)
+    checkaxis(dims(A), axes(data))
+    rebuild(A; data)
+end
+# Just rebuild for Unsafe
+_set_dimarray_data(::Unsafe, A, data) = rebuild(A; data)
+
+# NamedTuples are set as data for AbstractDimStack
+function _set_dimstack_data(::Safe, st, newdata)
+    # Allow updating subsets of data for NamedTuple
+    newdata1 = if parent(st) isa NamedTuple && newdata isa NamedTuple
+        ConstructionBase.setproperties(parent(st), newdata)
+    else
+        keys(st) === keys(newdata) || _keyerr(keys(st), keys(newdata))
+        newdata
+    end
+    # Make sure the data matches the dimensions
+    map(layerdims(st), newdata1) do lds, nd
+        # TODO a message with the layer name could help here
+        checkaxis(dims(st, lds), axes(nd))
+    end
+    return rebuild(st; data=newdata1)
+end
+# Just rebuild for Unsafe
+_set_dimstack_data(::Unsafe, st, data) = rebuild(st; data)
+
+@noinline _axiserr(a, b) = _axiserr(axes(a), axes(b))
+@noinline _axiserr(a::Tuple, b::Tuple) = 
+    throw(ArgumentError("passed in axes $b do not match the currect axes $a"))
 @noinline _keyerr(ka, kb) = throw(ArgumentError("keys $ka and $kb do not match"))
+
+_rebuild_maybe_reorder(::Unsafe, A, newdims) = A
+# Handle any changes to order
+function _rebuild_maybe_reorder(::Safe, A, newdims)
+    if map(order, dims(A)) == map(order, newdims)
+        rebuild(A; dims=newdims)
+    else
+        A1 = reorder(A, map(rebuild, dims(A), order(newdims)))
+        rebuild(A; data=parent(A1), dims=newdims)
+    end
+end
+
+# Deduplicate dimensions that have the same type (e.g., after renaming Z to X)
+# Keep the first occurrence of each dimension type
+_dedup_dims(dims::Tuple) = foldl(dims; init=()) do acc, d
+    any(x -> basetypeof(x) === basetypeof(d), acc) ? acc : (acc..., d)
+end

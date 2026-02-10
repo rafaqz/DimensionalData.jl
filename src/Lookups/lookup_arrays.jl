@@ -56,10 +56,6 @@ function Base.searchsortedlast(lookup::Lookup, val; lt=<, kw...)
     searchsortedlast(parent(lookup), unwrap(val); order=ordering(order(lookup)), lt=lt, kw...)
 end
 
-function Adapt.adapt_structure(to, l::Lookup)
-    rebuild(l; data=Adapt.adapt(to, parent(l)))
-end
-
 """
     AutoLookup <: Lookup
 
@@ -200,10 +196,6 @@ for f in (:getindex, :view, :dotview)
     end
 end
 
-function Adapt.adapt_structure(to, l::AbstractSampled)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata(), span=Adapt.adapt(to, span(l)))
-end
-
 # bounds
 bounds(l::AbstractSampled) = _bounds(order(l), sampling(l), l)
 
@@ -323,6 +315,9 @@ function rebuild(l::Sampled;
 )
     Sampled(data, order, span, sampling, metadata)
 end
+
+Base.unsafe_convert(::Type{Ptr{T}}, x::Sampled) where {T} = Base.unsafe_convert(Ptr{T}, x.data)
+Base.strides(x::Sampled) = strides(x.data)
 
 # These are used to specialise dispatch:
 # When Cycling, we need to modify any `Selector`. After that
@@ -468,10 +463,6 @@ order(lookup::AbstractCategorical) = lookup.order
 metadata(lookup::AbstractCategorical) = lookup.metadata
 
 const CategoricalEltypes = Union{AbstractChar,Symbol,AbstractString,DataType}
-
-function Adapt.adapt_structure(to, l::AbstractCategorical)
-    rebuild(l; data=Adapt.adapt(to, parent(l)), metadata=NoMetadata())
-end
 
 
 """

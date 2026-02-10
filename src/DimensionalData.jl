@@ -12,9 +12,7 @@ using Base.Broadcast: Broadcasted, BroadcastStyle, DefaultArrayStyle, AbstractAr
 using Base: tail, OneTo, Callable, @propagate_inbounds, @assume_effects
       
 # Ecosystem
-import Adapt, 
-       ArrayInterface,
-       ConstructionBase, 
+import ConstructionBase,
        DataAPI,
        Extents,
        Interfaces,
@@ -23,11 +21,8 @@ import Adapt,
        IteratorInterfaceExtensions,
        OrderedCollections,
        PrecompileTools,
-       RecipesBase,
        TableTraits,
        Tables
-
-using RecipesBase: @recipe
 
 # using IntervalSets: .., Interval
 
@@ -35,12 +30,16 @@ include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.Lookups
+
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
+
+
 using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
-import .Lookups: metadata, set, _set, rebuild, basetypeof, 
+import .Lookups: metadata, reorder, set, unsafe_set, _set, rebuild, basetypeof, 
     order, span, sampling, locus, val, bounds, intervalbounds,
-    hasselection, units, SelectorOrInterval, Begin, End
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
+    hasselection, units
+import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxis, _astuple
 
 using OrderedCollections: OrderedDict
 
@@ -74,7 +73,7 @@ export dims, refdims, metadata, name, lookup, bounds, val, layers
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
+export set, unsafe_set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
     mergedims, unmergedims, maplayers
 
 export groupby, combine, seasons, months, hours, intervals, ranges
