@@ -133,7 +133,7 @@ export default defineConfig({
         { text: 'API Reference', link: '/api/reference',
           items: [
             { text: 'Dimensions Reference', link: '/api/dimensions' },
-            { text: 'LookupArrays Reference', link: '/api/lookuparrays' },
+            { text: 'Lookups Reference', link: '/api/lookups' },
           ],
         },
     ],
