@@ -21,7 +21,7 @@ include("../Lookups/Lookups.jl")
 using .Lookups
 
 import .Lookups: rebuild, order, span, sampling, locus, val, set, _set,
-    metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection,
+    metadata, bounds, intervalbounds, units, basetypeof, unwrap, selectindices, hasselection, hasinternaldimensions,
     shiftlocus, maybeshiftlocus, ordered_first, ordered_last, ordered_firstindex, ordered_lastindex, 
     promote_first, _remove
 using .Lookups: StandardIndices, SelTuple, CategoricalEltypes,

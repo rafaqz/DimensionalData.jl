@@ -1,4 +1,4 @@
-using DimensionalData, Test, Unitful
+using DimensionalData, Test, Unitful, Extents
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using Statistics: mean
 using DimensionalData.Dimensions: SelOrStandard
@@ -38,7 +38,7 @@ end
 
 @test lookup(da[Coord(:, Between(1, 2), :)], Coord) == [(1.0,1.0,1.0), (1.0,2.0,2.0)]
 
-@test bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
+@test DimensionalData.bounds(da) == (((1.0, 3.0), (1.0, 4.0), (1.0, 4.0)),)
 
 @testset "merged named reduction" begin
     m = mean(da2; dims=Coord)
@@ -107,4 +107,110 @@ end
     da = ones(X(1:10), Y(1:10), Dim{:random}(1:10))
     merged = mergedims(da, (X, Y) => :space)
     @test_warn "Z" merged[Z(1)]
+end
+
+@testset "hasinternaldimensions trait" begin
+    # Test default behavior for regular lookups
+    @testset "Regular lookups return false" begin
+        @test hasinternaldimensions(NoLookup()) == false
+        @test hasinternaldimensions(Sampled(1:10)) == false
+        @test hasinternaldimensions(Categorical([:a, :b, :c])) == false
+        @test hasinternaldimensions(Cyclic(1:12; cycle=12)) == false
+        @test hasinternaldimensions(Sampled(1:10; sampling=Points())) == false
+        @test hasinternaldimensions(Sampled(1:10; sampling=Intervals())) == false
+    end
+
+    @testset "MergedLookup returns true" begin
+        x_dim = X(1:3)
+        y_dim = Y(10:10:30)
+        merged_data = vec(DimPoints((x_dim, y_dim)))
+        merged_lookup = Dimensions.MergedLookup(merged_data, (x_dim, y_dim))
+        @test hasinternaldimensions(merged_lookup) == true
+    end
+
+    @testset "Extent passthrough for MergedLookup" begin
+        # Basic extent with MergedLookup
+        x_vals = 1.0:3.0
+        y_vals = 10.0:10.0:30.0
+        x_dim = X(x_vals)
+        y_dim = Y(y_vals)
+        
+        merged_dims = mergedims((x_dim, y_dim) => :space)
+        ext = Extents.extent((merged_dims,))
+        
+        @test haskey(ext, :X)
+        @test haskey(ext, :Y)
+        @test ext.X == (1.0, 3.0)
+        @test ext.Y == (10.0, 30.0)
+
+        # Mixed regular and merged dimensions
+        t_dim = Ti(1:5)
+        z_dim = Z(100:100:300)
+        all_dims = (t_dim, merged_dims, z_dim)
+        ext2 = Extents.extent(all_dims)
+        
+        @test ext2.Ti == (1, 5)
+        @test ext2.Z == (100, 300)
+        @test ext2.X == (1.0, 3.0)
+        @test ext2.Y == (10.0, 30.0)
+    end
+
+    @testset "Multiple merged dimensions extent" begin
+        x1_dim = X(1:3)
+        y1_dim = Y(10:10:30)
+        t_dim = Ti(0.0:0.5:1.0)
+        z_dim = Z(-5:5)
+        
+        merged_space = mergedims((x1_dim, y1_dim) => :space)
+        merged_tz = mergedims((t_dim, z_dim) => :timez)
+        all_dims = (merged_space, merged_tz)
+        
+        ext = Extents.extent(all_dims)
+        @test ext.X == (1, 3)
+        @test ext.Y == (10, 30)
+        @test ext.Ti == (0.0, 1.0)
+        @test ext.Z == (-5, 5)
+    end
+
+    @testset "Extent with subset of dimensions" begin
+        x_dim = X(1:5)
+        y_dim = Y(10:10:50)
+        z_dim = Z(100:100:300)
+        
+        merged = mergedims((x_dim, y_dim) => :space)
+        all_dims = (merged, z_dim)
+        
+        # Get extent for just the Z dimension
+        ext_z = Extents.extent(all_dims, Z)
+        @test ext_z.Z == (100, 300)
+        @test !haskey(ext_z, :X)
+        @test !haskey(ext_z, :Y)
+        
+        # Get extent for merged dimension by name
+        ext_space = Extents.extent(all_dims, :space)
+        @test ext_space.X == (1, 5)
+        @test ext_space.Y == (10, 50)
+        @test !haskey(ext_space, :Z)
+    end
+
+    @testset "Operations preserve hasinternaldimensions" begin
+        x = X(1:3)
+        y = Y(10:10:30)
+        data = rand(3, 3)
+        
+        da = DimArray(data, (x, y))
+        merged_da = mergedims(da, (X, Y) => :space)
+        
+        # Broadcasting preserves trait
+        result = merged_da .+ 1
+        @test hasinternaldimensions(lookup(dims(result, :space)))
+        
+        # Slicing with additional dimension preserves trait
+        z = Z(1:3)
+        data3d = rand(3, 3, 3)
+        da3d = DimArray(data3d, (x, y, z))
+        merged_da3d = mergedims(da3d, (X, Y) => :space)
+        sliced = merged_da3d[Z(At(2))]
+        @test hasinternaldimensions(lookup(dims(sliced, :space)))
+    end
 end

@@ -28,6 +28,8 @@ Changelog.generate(
 - `rebuildsliced` documented and added to the developer interface 
 - Broadcasts improved for all `AbstractBasicDimArray`, like `DimSelectors`.
 - `groupby` accepts name keyword to set the name of the DimGroupbyArray
+- New `hasinternaldimensions` trait function for lookups that contain multiple dimensions - along with tests. ([#991])
+- BREAKING: MergedLookup and other lookups with `hasinternaldimensions` now return `extent`/`bounds` of their "internal" dimensions, not of their indices as they did before.  If you merge an X and Y dimension, the extent of that merged lookup will have X and Y elements.  ([#991])
 
 
 ### Fixed
@@ -75,6 +77,7 @@ Changelog.generate(
 [#876]: https://github.com/rafaqz/DimensionalData.jl/issues/876
 [#903]: https://github.com/rafaqz/DimensionalData.jl/issues/903
 [#917]: https://github.com/rafaqz/DimensionalData.jl/issues/917
+[#991]: https://github.com/rafaqz/DimensionalData.jl/pull/991
 [#926]: https://github.com/rafaqz/DimensionalData.jl/issues/926
 [#1041]: https://github.com/rafaqz/DimensionalData.jl/issues/1041
 [#1071]: https://github.com/rafaqz/DimensionalData.jl/issues/1071

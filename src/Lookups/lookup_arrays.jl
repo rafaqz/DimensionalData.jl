@@ -81,6 +81,8 @@ metadata(lookup::AutoLookup) = hasproperty(lookup.kw, :metadata) ? lookup.kw.met
 Base.step(lookup::AutoLookup) = Base.step(parent(lookup))
 
 bounds(lookup::Lookup) = _bounds(order(lookup), lookup)
+# Fallback for raw arrays (e.g., when lookup returns a raw range)
+bounds(x::AbstractArray) = (first(x), last(x))
 
 _bounds(::ForwardOrdered, l::Lookup) = first(l), last(l)
 _bounds(::ReverseOrdered, l::Lookup) = last(l), first(l)
