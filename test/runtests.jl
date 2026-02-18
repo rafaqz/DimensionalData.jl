@@ -37,6 +37,7 @@ end
 @time @safetestset "tables" begin include("tables.jl") end
 @time @safetestset "utils" begin include("utils.jl") end
 @time @safetestset "groupby" begin include("groupby.jl") end
+@time @safetestset "reindex" begin include("reindex.jl") end
 @time @safetestset "show" begin include("show.jl") end
 @time @safetestset "adapt" begin include("adapt.jl") end
 @time @safetestset "ecosystem" begin include("ecosystem.jl") end
