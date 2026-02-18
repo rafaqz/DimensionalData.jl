@@ -98,7 +98,6 @@ end
                  (dimz, (1, 2)), 
                  (dimz, 1, 2)
         )
-        @test index(args...) == (LinRange(140, 148, 5), LinRange(2, 11, 4))
         @test name(args...) == (:X, :Y)
         @test units(args...) == (nothing, nothing)
         @test label(args...) == ("X", "Y")
@@ -111,7 +110,7 @@ end
                                 Sampled(LinRange(2, 11, 4), ForwardOrdered(), Regular(3.0), Points(), NoMetadata()))
     end
 
-    @test val(dimz, ()) == index(dimz, ()) == ()
+    @test val(dimz, ()) == ()
     @test val(dimz, 1) == val(dimz, X) == val(dimz, X()) == val(dimz[1])
 
     @test dims(dimz, Y) === dimz[2]
@@ -144,4 +143,11 @@ end
     @test length(dims(a)) == 1
     @test typeof(dims(a)[1]) <: X
     @test a.data == cos.(d.val)
+end
+
+@testset "dims(::Array) is nothing" begin
+    sz = ntuple(identity, 4)
+    @testset for ndims in eachindex(sz)
+        @test isnothing(dims(randn(sz[1:ndims])))
+    end
 end

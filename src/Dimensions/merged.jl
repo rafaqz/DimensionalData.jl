@@ -1,4 +1,5 @@
 abstract type MultiDimensionalLookup{T} <: Lookup{T,1} end
+hasinternaldimensions(::MultiDimensionalLookup) = true
 
 """
     MergedLookup <: MultiDimensionalLookup <: Lookup
@@ -63,6 +64,7 @@ struct MergedLookup{T,A<:AbstractVector{T},D,Me} <: MultiDimensionalLookup{T}
 end
 MergedLookup(data, dims; metadata=NoMetadata()) = MergedLookup(data, dims, metadata)
 
+hasinternaldimensions(::MergedLookup) = true
 order(m::MergedLookup) = Unordered()
 dims(m::MergedLookup) = m.dims
 dims(d::Dimension{<:MergedLookup}) = dims(val(d))
@@ -70,7 +72,7 @@ dims(d::Dimension{<:MergedLookup}) = dims(val(d))
 # Lookup interface methods
 
 Lookups.bounds(d::Dimension{<:MergedLookup}) =
-    ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
+    isempty(val(d)) ? () : ntuple(i -> extrema((x[i] for x in val(d))), length(first(d)))
 
 # Return an `Int` or  Vector{Bool}
 Lookups.selectindices(lookup::MergedLookup, sel::DimTuple) =

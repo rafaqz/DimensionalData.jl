@@ -83,7 +83,9 @@ end
         @testset "$T" for T in special_types
             x = T(ones(5,5))
             @test dims(x * da) isa Tuple{<:AnonDim, Dim{:b}}
+            @test lookup(dims(x * da, 1)) == axes(x, 1)
             @test dims(da * x) isa Tuple{Dim{:a}, <:AnonDim}
+            @test lookup(dims(da * x, 2)) == axes(x, 2)
             @test typeof(x * da) <: DimArray
             @test typeof(da * x) <: DimArray
             @test parent(da' * x) == parent(da)' * x
@@ -96,7 +98,9 @@ end
         @testset "$T" for T in special_types
             x = T(ones(5,5))
             @test dims(x * dv) isa Tuple{<:AnonDim}
+            @test lookup(dims(x * dv)[1]) == axes(x, 1)
             @test dims(dv' * x) isa Tuple{<:AnonDim,<:AnonDim}
+            @test lookup(dims(dv' * x)) == (axes(dv, 2), axes(x, 2))
             @test typeof(x * dv) <: DimArray
             @test typeof(dv' * x) <: DimArray
             @test parent(dv' * x) == parent(dv)' * x
@@ -107,9 +111,57 @@ end
             @test x * dv === 15.0
             @test typeof(dv * x) <: DimArray
             @test dims(dv * x) isa Tuple{<:Dim{:vec},AnonDim}
+            @test lookup(dims(dv * x, 2)) === axes(x, 2)
             @test dv * x == vcat(x, x, x, x, x)
         end
 
     end
 
+end
+
+struct ArrayMulWrapper{T,N} <: AbstractArray{T,N}
+    data::AbstractDimArray{T,N}
+end
+VecOrMatMulWrapper{T} = Union{ArrayMulWrapper{T,1},ArrayMulWrapper{T,2}}
+Base.size(x::ArrayMulWrapper) = size(x.data)
+Base.axes(x::ArrayMulWrapper) = axes(x.data)
+Base.getindex(x::ArrayMulWrapper, i::Int) = x.data[i]
+Base.getindex(x::ArrayMulWrapper, I::Vararg{Int, N}) where {N} = x.data[I...]
+Base.:*(A::VecOrMatMulWrapper, B::VecOrMat) = A.data * B
+Base.:*(A::VecOrMat, B::VecOrMatMulWrapper) = A * B.data
+
+@testset "DimArrays constructed with DimUnitRange axes" begin
+    x = X(0f0:2f0)
+    y = Y(5.0:7.0)
+    z = Z(['a', 'b'])
+    t = Ti([:c])
+
+    @testset for ((Adims, Bdims), Cdims) in [
+        ((x, y), (y, z)) => (x, z),
+        ((x, y), (y,)) => (x,),
+        ((x,), (t, z)) => (x, z),
+    ]
+        A = rand(Adims...)
+        B = rand(Bdims...)
+        C = ArrayMulWrapper(A) * B
+        @test C isa DimArray
+        @test C ≈ A * B
+        @test Dimensions.comparedims(Bool, C, Cdims)
+        C2 = A * ArrayMulWrapper(B)
+        @test C2 isa DimArray
+        @test C ≈ A * B
+        @test Dimensions.comparedims(Bool, C2, Cdims)
+    end
+
+    yalt = Y(3.0:5.0)
+    @test length(yalt) == length(y)
+    @testset for (Adims, Bdims) in [
+        ((x, y), (yalt, z)),
+        ((x, y), (yalt,)),
+    ]
+        A = rand(Adims...)
+        B = rand(Bdims...)
+        @test_throws DimensionMismatch ArrayMulWrapper(A) * B
+        @test_throws DimensionMismatch A * ArrayMulWrapper(B)
+    end
 end

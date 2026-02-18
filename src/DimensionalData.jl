@@ -30,22 +30,22 @@ include("Dimensions/Dimensions.jl")
 
 using .Dimensions
 using .Dimensions.Lookups
+
 using .Dimensions: StandardIndices, DimOrDimType, DimTuple, DimTupleOrEmpty, DimType, AllDims
-import .Lookups: metadata, set, _set, rebuild, basetypeof, 
-    order, span, sampling, locus, val, index, bounds, intervalbounds,
-    hasselection, units, SelectorOrInterval, Begin, End
-import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, _astuple
+
+
+using .Dimensions: INTERFACE_QUERY_FUNCTION_NAMES
+import .Lookups: metadata, reorder, set, unsafe_set, _set, rebuild, basetypeof, 
+    order, span, sampling, locus, val, bounds, intervalbounds,
+    hasselection, units
+import .Lookups: Safety, Safe, Unsafe, SelectorOrInterval, Begin, End
+import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkaxis, _astuple
 
 using OrderedCollections: OrderedDict
 
 import DataAPI.groupby
 
 export Lookups, Dimensions
-
-# Deprecated
-const LookupArrays = Lookups
-const LookupArray = Lookup
-export LookupArrays, LookupArray
 
 # Dimension
 export X, Y, Z, Ti, Dim, Coord
@@ -59,14 +59,13 @@ export AbstractDimArray, DimArray
 
 export AbstractDimVector, AbstractDimMatrix, AbstractDimVecOrMat, DimVector, DimMatrix, DimVecOrMat
 
-export AbstractDimStack, DimStack
+export AbstractDimStack, DimStack, DimStackArray
 
 export AbstractDimTable, DimTable
 
 export AbstractDimTree, DimTree, prune
 
-export DimIndices, DimSelectors, DimPoints, #= deprecated =# DimKeys
-
+export DimIndices, DimSelectors, DimPoints
 # getter methods
 export dims, refdims, metadata, name, lookup, bounds, val, layers
 
@@ -74,10 +73,10 @@ export dims, refdims, metadata, name, lookup, bounds, val, layers
 export dimnum, hasdim, hasselection, otherdims
 
 # utils
-export set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
+export set, unsafe_set, rebuild, reorder, modify, broadcast_dims, broadcast_dims!,
     mergedims, unmergedims, maplayers
 
-export groupby, seasons, months, hours, intervals, ranges
+export groupby, combine, seasons, months, hours, intervals, ranges
 
 
 export @d
@@ -87,6 +86,7 @@ const DD = DimensionalData
 # Common
 include("interface.jl")
 include("name.jl")
+include("table_ops.jl")
 
 # Arrays
 include("array/array.jl")
@@ -110,6 +110,7 @@ include("tables.jl")
 include("plotrecipes.jl")
 include("utils.jl")
 include("set.jl")
+include("opaque.jl")
 include("groupby.jl")
 include("precompile.jl")
 include("interface_tests.jl")

@@ -942,10 +942,8 @@ end
 @testset "Selectors on Sampled Points" begin
     da = DimArray(a, (Y(Sampled(10:10:30)), Ti(Sampled((1:4)u"s"))))
 
-    @test At(10.0) == At(10.0, nothing, nothing)
-    @test At(10.0; atol=0.0, rtol=Base.rtoldefault(Float64)) ==
-          At(10.0, 0.0, Base.rtoldefault(Float64))
-    Near([10, 20])
+    @test At(10.0) == At(10.0; atol=nothing)
+    @test At(10.0; atol=0.0).atol == 0.0
 
     @test Between(10, 20) == Between((10, 20))
 
@@ -1109,7 +1107,7 @@ end
         da = DimArray(a, dimz)
         wda = da[Y(Where(x -> x >= 30)), Ti(Where(x -> x in([2u"s", 3u"s"])))]
         @test parent(wda) == [7 8; 11 12]
-        @test index(wda) == ([2u"s", 3u"s"], [30, 40])
+        @test all(lookup(wda) .== ([2u"s", 3u"s"], [30, 40]))
     end
 
     @testset "All" begin

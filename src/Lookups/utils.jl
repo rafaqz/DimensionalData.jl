@@ -10,7 +10,7 @@ function shiftlocus(locus::Locus, lookup::Lookup)
     samp isa Intervals || error("Cannot shift locus of $(nameof(typeof(samp)))")
     newvalues = _shiftlocus(locus, lookup)
     newlookup = rebuild(lookup; data=newvalues)
-    return set(newlookup, locus)
+    return unsafe_set(newlookup, locus)
 end
 
 # Fallback - no shifting
@@ -111,10 +111,31 @@ end
 _order(A) = first(A) <= last(A) ? ForwardOrdered() : ReverseOrdered()
 _order(A::AbstractArray{<:IntervalSets.Interval}) = first(A).left <= last(A).left ? ForwardOrdered() : ReverseOrdered()
 
-@deprecate maybeshiftlocus maybeshiftlocus
-@deprecate shiftlocus shiftlocus
 
 # Remove objects of type T from a 
 Base.@assume_effects :foldable _remove(::Type{T}, x, xs...) where T = (x, _remove(T, xs...)...)
 Base.@assume_effects :foldable _remove(::Type{T}, ::T, xs...) where T = _remove(T, xs...)
 Base.@assume_effects :foldable _remove(::Type) = ()
+
+
+
+reorder(lookup::Lookup, neworder::Order) = _reorder(lookup, neworder)
+
+# Reorder
+_reorder(lookup::Lookup, neworder::Order) =
+    _reorder(lookup, order(lookup), neworder)
+# Same order, do nothing
+_reorder(lookup::Lookup, ::O, ::O) where {O<:Ordered} = lookup
+_reorder(lookup::Lookup, ::O, ::O) where {O<:Unordered} = lookup
+# We can always convert to `Unordered` without changing the lookup
+_reorder(lookup::Lookup, ::Ordered, neworder::Unordered) =
+    rebuild(lookup; order=neworder)
+# Different order, reverse the lookup
+_reorder(lookup::Lookup, ::Ordered, neworder::Ordered) = reverse(lookup)
+# To set to `Ordered` we need to sort
+function _reorder(l::Lookup, ::Unordered, o::Ordered)
+    # We use sortperm then index in case there is a bounds matrix
+    # or similar, rather than just sort on lookup values
+    idxs = sortperm(l; rev=isrev(o))
+    return rebuild(l[idxs]; order=o)
+end

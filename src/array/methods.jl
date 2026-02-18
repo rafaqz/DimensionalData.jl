@@ -18,12 +18,10 @@ for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimu
         # Local dispatch methods
         # - Return a reduced DimArray
         @inline function $_f(A::AbstractDimArray, dims; kw...)
-            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
-            rebuild(A, $m.$f(parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+            rebuild(A, $m.$f(parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
         end
         @inline function $_f(f, A::AbstractDimArray, dims; kw...)
-            ds = DD.dims(A, _astuple(dims)) # Need to remove unused dims before `dimnum`
-            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, ds), kw...), reducedims(A, ds))
+            rebuild(A, $m.$f(f, parent(A); dims=dimnum(A, dims), kw...), reducedims(A, dims))
         end
         # - Return a scalar
         @inline $_f(A::AbstractDimArray, dims::Colon; kw...) = $m.$f(parent(A); dims, kw...)
@@ -90,7 +88,7 @@ end
 function Base.dropdims(A::AbstractDimArray; dims)
     dims = DD.dims(A, dims)
     data = Base.dropdims(parent(A); dims=dimnum(A, dims))
-    rebuildsliced(A, data, _dropinds(A, dims))
+    rebuildsliced(view, A, data, _dropinds(A, dims))
 end
 
 @inline _dropinds(A, dims::Tuple) = dims2indices(A, map(d -> rebuild(d, 1), dims))
@@ -596,7 +594,8 @@ end
     r = axes(A)
     # Copied from Base.diff
     r0 = ntuple(i -> i == dims ? UnitRange(1, last(r[i]) - 1) : UnitRange(r[i]), N)
-    rebuildsliced(A, diff(parent(A); dims=dimnum(A, dims)), r0)
+    data = diff(parent(A); dims=dimnum(A, dims))
+    rebuildsliced(getindex, A, data, r0)
 end
 
 # Forward `replace` to parent objects

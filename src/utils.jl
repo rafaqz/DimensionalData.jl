@@ -1,3 +1,5 @@
+const Reorderable = Union{AbstractBasicDimArray,AbstractDimStack,DimTuple}
+const DimensionOrLookup = Union{Dimension,Lookup}
 
 """
     reorder(A::Union{AbstractDimArray,AbstractDimStack}, order::Pair...)
@@ -33,33 +35,82 @@ true
 """
 function reorder end
 
-reorder(x, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = reorder(x, dims(A))
-reorder(x, ::Nothing) = throw(ArgumentError("object has no dimensions"))
-reorder(x, p::Pair, ps::Vararg{Pair}) = reorder(x, (p, ps...))
-reorder(x, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
-# Reorder specific dims.
-reorder(x, dimwrappers::Tuple) = _reorder(x, dimwrappers)
-# Reorder all dims.
-reorder(x, ot::Order) = reorder(x, typeof(ot))
-reorder(x, ot::Type{<:Order}) = _reorder(x, map(d -> rebuild(d, ot), dims(x)))
-reorder(dim::Dimension, ot::Type{<:Order}) =
-    ot <: basetypeof(order(dim)) ? dim : reverse(dim)
-
-# Recursive reordering. x may be reversed here
-function _reorder(x, orderdims::DimTuple)
-    ods = commondims(orderdims, dims(x))
-    _reorder(reorder(x, ods[1]), tail(ods))
+reorder(x::Reorderable, A::Union{AbstractDimArray,AbstractDimStack,AbstractDimIndices}) = 
+    reorder(x, dims(A))
+reorder(x::Reorderable, ::Nothing) = throw(ArgumentError("object has no dimensions"))
+reorder(x::Reorderable, p::Pair, ps::Pair...) = reorder(x, (p, ps...))
+reorder(x::Reorderable, ps::Tuple{Vararg{Pair}}) = reorder(x, Dimensions.pairs2dims(ps...))
+reorder(x::Reorderable, ::Type{O}) where O<:Order = reorder(x, O())
+function reorder(x::Reorderable, o::Order)
+    ds = dims(x)
+    isnothing(ds) && _dimsnotdefinederror()
+    reorder(x, map(d -> rebuild(d, o), ds))
 end
-_reorder(x, orderdims::Tuple{}) = x
+reorder(x::Reorderable, o::Tuple{Vararg{Order}}) = reorder(x, map(rebuild, dims(x), o))
+# Recursive reordering. x may be reversed here
+function reorder(x::Reorderable, orderdims::DimTuple)
+    ods = commondims(orderdims, dims(x))
+    reorder(reorder(x, ods[1]), tail(ods))
+end
+reorder(x::Reorderable, orderdims::Tuple{}) = x
+function reorder(ds::DimTuple, orderdims::DimTuple)
+    ods = commondims(orderdims, ds)
+    map(ds) do d
+        hasdim(ods, d) ? reorder(d, val(dims(ods, d))) : d
+    end
+end
+reorder(ds::DimTuple, orderdims::Tuple{}) = ds
 
-reorder(x, orderdim::Dimension) = _reorder(val(orderdim), x, dims(x, orderdim))
-reorder(x, orderdim::Dimension{<:Lookup}) = _reorder(order(orderdim), x, dims(x, orderdim))
+reorder(x::Reorderable, orderdim::Dimension{<:Order}) = _reorder(x, dims(x, orderdim), val(orderdim))
+reorder(x::Reorderable, orderdim::Dimension{<:Lookup}) = _reorder(x, dims(x, orderdim), order(orderdim))
 
-_reorder(neworder::Order, x, dim::Dimension) = _reorder(basetypeof(neworder), x, dim)
-# Reverse the dimension index
-_reorder(::Type{O}, x, dim::Dimension) where O<:Ordered =
-    order(dim) isa O ? x : reverse(x; dims=dim)
-_reorder(ot::Type{Unordered}, x, dim::Dimension) = x
+# AutoOrder: keep the current order unchanged
+_reorder(x::Reorderable, dim::Dimension, ::AutoOrder) = x
+# Unordered: do nothing, just set the order to Unordered
+_reorder(x::Reorderable, dim::Dimension, o::Unordered) = unsafe_set(x, dim => o)
+# Ordered: leave, reverse or sort
+_reorder(x::Reorderable, dim::Dimension, o::Ordered) = _reorder(x, dim, order(dim), o)
+# Order matches, nothing to do
+_reorder(x::Reorderable, dim::Dimension, ::O, ::O) where O<:Ordered = x
+# dimensional reverse can handle this
+_reorder(x::Reorderable, dim::Dimension, ::Ordered, ::Ordered) =
+    reverse(x; dims=basedims(dim))
+function _reorder(x::AbstractDimIndices, dim::Dimension, o1::Unordered, o2::Ordered)
+    newdim = _reorder(dims(x, dim), o1, o2)
+    return unsafe_set(x, newdim)
+end
+# We need to sort the data along this dimension
+function _reorder(
+    x::Union{AbstractDimArray,AbstractDimStack}, dim::Dimension, ::Unordered, o::Ordered
+)
+    l = lookup(dim)
+    # Sort forwards or reverse
+    idxs = o isa ForwardOrdered ? sortperm(l) : sortperm(l; rev=true)
+    # Reorder the values by indexing into dimension of dim
+    output = x[rebuild(dim, idxs)]
+    # Set the order
+    return unsafe_set(output, dim => o)
+end
+
+reorder(x::Dimension, o::Order) = rebuild(x, _reorder(lookup(x), o))
+reorder(x::Dimension, l::Lookup) = _reorder(x, order(l))
+reorder(x::Dimension, d::Dimension) = _reorder(x, order(d))
+
+# AutoOrder: keep the current order unchanged
+_reorder(x::DimensionOrLookup, ::AutoOrder) = x
+# Unordered: do nothing, just set the order to Unordered
+_reorder(x::DimensionOrLookup, o::Unordered) = unsafe_set(x, o)
+# Ordered: leave, reverse or sort
+_reorder(x::DimensionOrLookup, o::Ordered) = _reorder(x, order(x), o)
+# Order matches, nothing to do
+_reorder(x::DimensionOrLookup, ::O, ::O) where O<:Ordered = x
+# reverse can handle this
+_reorder(x::DimensionOrLookup, ::Ordered, ::Ordered) = reverse(x)
+# We need to sort
+_reorder(dim::Dimension, ::Unordered, o::Ordered) =
+    rebuild(dim, reorder(lookup(dim), o))
+# For Lookups, delegate to Lookups.reorder which has the full implementation
+_reorder(l::Lookup, ::Unordered, o::Ordered) = reorder(l, o)
 
 """
     modify(f, A::AbstractDimArray) => AbstractDimArray
@@ -162,6 +213,11 @@ function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDi
     od = map(A -> otherdims(dest, dims(A)), As)
     return _broadcast_dims_inner!(f, dest, As, od)
 end
+function broadcast_dims!(f, dest::AbstractDimStack, stacks::AbstractDimStack...)
+    maplayers(dest, stacks...) do d, layers...
+        broadcast_dims!(f, d, layers...)
+    end
+end
 
 # Function barrier
 function _broadcast_dims_inner!(f, dest, As, od)
@@ -178,8 +234,6 @@ function _broadcast_dims_inner!(f, dest, As, od)
     return dest
 end
 
-@deprecate dimwise broadcast_dims
-@deprecate dimwise! broadcast_dims!
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
@@ -195,9 +249,13 @@ function uniquekeys(keys::AbstractVector{Symbol})
     end
 end
 function uniquekeys(keys::Tuple{Symbol,Vararg{Symbol}})
-    ids = ntuple(x -> x, length(keys))
+    ids = ntuple(identity, length(keys))
     map(keys, ids) do k, id
-        count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        if k == Symbol("") 
+            Symbol(:layer, id)
+        else
+            count(k1 -> k == k1, keys) > 1 ? Symbol(:layer, id) : k
+        end
     end
 end
 uniquekeys(t::Tuple) = ntuple(i -> Symbol(:layer, i), length(t))

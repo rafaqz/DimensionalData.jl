@@ -1,4 +1,5 @@
 const IDim = Dimension{<:StandardIndices}
+const MaybeDimTuple = Tuple{Vararg{Dimension}}
 
 """
     AbstractBasicDimArray <: AbstractArray
@@ -8,7 +9,7 @@ returns a `Tuple` of `Dimension`
 
 Only keyword `rebuild` is guaranteed to work with `AbstractBasicDimArray`.
 """
-abstract type AbstractBasicDimArray{T,N,D<:Tuple{Vararg{Dimension}}} <: AbstractArray{T,N} end
+abstract type AbstractBasicDimArray{T,N,D<:MaybeDimTuple} <: AbstractArray{T,N} end
 
 const AbstractBasicDimVector = AbstractBasicDimArray{T,1} where T
 const AbstractBasicDimMatrix = AbstractBasicDimArray{T,2} where T
@@ -20,7 +21,7 @@ metadata(::AbstractBasicDimArray) = NoMetadata()
 
 # DimensionalData.jl interface methods ####################################################
 
-for func in (:val, :index, :lookup, :order, :sampling, :span, :locus, :bounds, :intervalbounds)
+for func in INTERFACE_QUERY_FUNCTION_NAMES  
     @eval ($func)(A::AbstractBasicDimArray, args...) = ($func)(dims(A), args...)
 end
 
@@ -94,10 +95,27 @@ metadata(A::AbstractDimArray) = A.metadata
 
 layerdims(A::AbstractDimArray) = basedims(A)
 
-@inline rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
-@inline function rebuildsliced(f::Function, A::AbstractBasicDimArray, data::AbstractArray, I::Tuple, name=name(A))
+"""
+    rebuildsliced(f::Function, A::AbstractBasicDimArray, I)
+
+Rebuild `AbstractDimArray` where `f` is `getindex` , `view` or `dotview`.
+
+This does not need to be defined for `AbstractDimArray`, as `f`
+is simply called on the parent array, dims and refdims are sliced with `slicedims`, 
+and `rebuild` is called.
+
+However for custom `AbstractBasicDimArray`, `rebuildsliced` methods are needed
+to define slicing behavior, as there not be a parent array.
+"""
+@propagate_inbounds rebuildsliced(A::AbstractBasicDimArray, args...) = rebuildsliced(getindex, A, args...)
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, I::Tuple, name=name(A))
     I1 = to_indices(A, I)
-    rebuild(A, data, slicedims(f, A, I1)..., name)
+    data = f(parent(A), I1...)
+    return rebuildsliced(f, A, data, I1, name)
+end
+@propagate_inbounds function rebuildsliced(f::Function, A::AbstractDimArray, data::AbstractArray, I::Tuple, name=name(A))
+    I1 = to_indices(A, I)
+    return rebuild(A, data, slicedims(f, A, I1)..., name)
 end
 
 # Array interface methods ######################################################
@@ -107,14 +125,16 @@ Base.axes(A::AbstractDimArray) = map(Dimensions.DimUnitRange, axes(parent(A)), d
 Base.iterate(A::AbstractDimArray, args...) = iterate(parent(A), args...)
 Base.IndexStyle(A::AbstractDimArray) = Base.IndexStyle(parent(A))
 Base.parent(A::AbstractDimArray) = data(A)
+Base.parentindices(A::AbstractDimArray) = parentindices(parent(A))
 Base.vec(A::AbstractDimArray) = vec(parent(A))
 Base.unsafe_convert(::Type{Ptr{T}}, x::AbstractDimArray) where {T} = Base.unsafe_convert(Ptr{T}, parent(x))
 Base.strides(x::AbstractDimArray) = strides(parent(x))
 
 # Only compare data and dim - metadata and refdims can be different
 Base.:(==)(A1::AbstractDimArray, A2::AbstractDimArray) =
-    parent(A1) == parent(A2) && dims(A1) == dims(A2)
-
+    dims(A1) == dims(A2) && parent(A1) == parent(A2)
+Base.isequal(A1::AbstractDimArray, A2::AbstractDimArray) =
+    isequal(dims(A1), dims(A2)) && isequal(parent(A1), parent(A2))
 # undef constructor for Array, using dims 
 function Base.Array{T}(x::UndefInitializer, d1::Dimension, dims::Dimension...) where T 
     Base.Array{T}(x, (d1, dims...))
@@ -125,15 +145,6 @@ function Base.NamedTuple(A1::AbstractDimArray, As::AbstractDimArray...)
     arrays = (A1, As...)
     keys = map(Symbol ∘ name, arrays)
     return NamedTuple{keys}(arrays)
-end
-
-# undef constructor for all AbstractDimArray 
-(::Type{A})(x::UndefInitializer, dims::Dimension...; kw...) where {A<:AbstractDimArray{<:Any}} = A(x, dims; kw...)
-function (::Type{A})(x::UndefInitializer, dims::DimTuple; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, size(dims)), dims; kw...)
-end
-function (::Type{A})(x::UndefInitializer, dims::Tuple{}; kw...) where {A<:AbstractDimArray{T}} where T
-    basetypeof(A)(Array{T}(undef, ()), dims; kw...)
 end
 
 # Dummy `read` methods that does nothing.
@@ -175,7 +186,7 @@ end
 # below using DimTuple work better anyway.
 Base.similar(A::AbstractDimArray, I::Tuple{Int,Vararg{Int}}; kw...) = 
     similar(A, eltype(A), I; kw...)
-Base.similar(A::AbstractDimArray, ::Type{T}, i::Integer, I::Vararg{Integer}; kw...) where T =
+Base.similar(A::AbstractDimArray, ::Type{T}, i::Int, I::Vararg{Int}; kw...) where T =
     similar(A, T, (i, I...); kw...)
 Base.similar(A::AbstractDimArray, ::Type{T}, I::Tuple{Int,Vararg{Int}}; kw...) where T =
     similar(parent(A), T, I)
@@ -243,6 +254,14 @@ for s1 in (:(Dimensions.DimUnitRange), :MaybeDimUnitRange)
         end
     end
 end
+
+function _similar(A::AbstractDimArray, T::Type, shape::Tuple; 
+    dims=dims(shape), refdims=(), name=_noname(A), metadata=metadata(A), kw...
+)
+    data = similar(parent(A), T, map(_parent_range, shape))
+    shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
+    rebuild(A; data, dims, refdims, name, metadata, kw...)
+end
 function _similar(A::AbstractArray, T::Type, shape::Tuple; kw...)
     data = similar(parent(A), T, map(_parent_range, shape))
     shape isa Tuple{Vararg{Dimensions.DimUnitRange}} || return data
@@ -257,14 +276,27 @@ function _similar(::Type{T}, shape::Tuple; kw...) where {T<:AbstractArray}
 end
 
 # With Dimensions we can return an `AbstractDimArray`
-Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, D::Dimension...; kw...) = Base.similar(A, eltype(A), D; kw...) 
-Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Dimension...; kw...) where T =
-    Base.similar(A, T, D; kw...) 
+Base.similar(A::AbstractBasicDimArray, d1::Dimension, D::Dimension...; kw...) =
+    Base.similar(A, eltype(A), (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, d1::Dimension, D::Dimension...; kw...) where T =
+    Base.similar(A, T, (d1, D...); kw...)
+Base.similar(A::AbstractBasicDimArray, D::DimTuple; kw...) = 
+    Base.similar(A, eltype(A), D; kw...) 
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::DimTuple; kw...) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, D; kw...)
+end
+function Base.similar(A::AbstractBasicDimArray, ::Type{T}, D::Tuple{};
+    refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
+) where T
+    data = _arraytype(T)(undef, _dimlength(D))
+    dimconstructor(D)(data, (); refdims, name, metadata, kw...)
+end
+
 function Base.similar(A::AbstractDimArray, ::Type{T}, D::DimTuple; 
     refdims=(), name=_noname(A), metadata=NoMetadata(), kw...
 ) where T
-    data = similar(parent(A), T, _dimlength(D))
+    data = _arraytype(T)(undef, _dimlength(D))
     dims = _maybestripval(D)
     return rebuild(A; data, dims, refdims, metadata, name, kw...)
 end
@@ -274,6 +306,20 @@ function Base.similar(A::AbstractDimArray, ::Type{T}, D::Tuple{};
     data = similar(parent(A), T, ())
     rebuild(A; data, dims=(), refdims, metadata, name, kw...)
 end
+
+Base.similar(A::AbstractBasicDimArray, shape::Int...; kw...) =
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, shape::Tuple{Vararg{Int}}; kw...) = 
+    similar(A, eltype(A), shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Int...; kw...) where T =
+    similar(A, T, shape; kw...)
+Base.similar(A::AbstractBasicDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    _arraytype(T)(undef, shape)
+Base.similar(A::AbstractDimArray, ::Type{T}, shape::Tuple{Vararg{Int}}; kw...) where T =
+    similar(parent(A), T, shape)
+
+_arraytype(::Type{T}) where T = Array{T}
+_arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
@@ -337,13 +383,14 @@ moves dimensions to reference dimension `refdims` after reducing operations
 
 ## Arguments
 
-- `data`: An `AbstractArray`.
+- `data`: An `AbstractArray` or a table with coordinate columns corresponding to `dims`.
 - `gen`: A generator expression. Where source iterators are `Dimension`s the dim args or kw is not needed.
 - `dims`: A `Tuple` of `Dimension`
 - `name`: A string name for the array. Shows in plots and tables.
 - `refdims`: refence dimensions. Usually set programmatically to track past
     slices and reductions of dimension for labelling and reconstruction.
 - `metadata`: `Dict` or `Metadata` object, or `NoMetadata()`
+- `selector`: The coordinate selector type to use when materializing from a table.
 
 Indexing can be done with all regular indices, or with [`Dimension`](@ref)s
 and/or [`Selector`](@ref)s. 
@@ -431,6 +478,8 @@ function DimArray(A::AbstractDimArray;
 end
 DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
+DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
+DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;
@@ -439,6 +488,57 @@ function DimArray(A::AbstractBasicDimArray;
     newdata = collect(data)
     DimArray(newdata, format(dims, newdata); refdims, name, metadata)
 end
+# Tables
+# Write a single column from a table with one or more coordinate columns to a DimArray
+function DimArray(table, dims; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`obj` must be an `AbstractArray` or satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    dimarray_from_table(DimArray, table, guess_dims(table, dims); kw...)
+end
+# Same as above, but guess dimension names from scratch
+function DimArray(table; kw...)
+    # Confirm that the Tables interface is implemented
+    Tables.istable(table) || throw(ArgumentError("`table` must satisfy the `Tables.jl` interface."))
+    table = Tables.columnaccess(table) ? table : Tables.columns(table)
+    # Use default dimension 
+    return dimarray_from_table(DimArray, table, guess_dims(table; kw...); kw...)
+end
+# Special-case for AbstractVectors - these might be tables
+function DimArray(data::AbstractVector, dims::Tuple; 
+    refdims=(), name=NoName(), metadata=NoMetadata(), kw...
+)
+    if !(data isa AbstractBasicDimArray) && Tables.istable(data) && 
+        all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
+        table = Tables.columns(data)
+        dims = guess_dims(table, dims; kw...)
+        return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
+    else
+        return DimArray(data, format(dims, data), refdims, name, metadata)
+    end
+end
+
+function dimarray_from_table(::Type{T}, table, dims; 
+    name=NoName(), 
+    selector=nothing, 
+    precision=6, 
+    missingval=missing, 
+    kw...
+) where T <: AbstractDimArray
+    # Determine row indices based on coordinate values
+    indices = coords_to_indices(table, dims; selector, atol=10.0^-precision)
+
+    # Extract the data column correspondong to `name`
+    col = name == NoName() ? data_col_names(table, dims) |> first : Symbol(name)
+    data = Tables.getcolumn(table, col)
+
+    # Restore array data
+    array = restore_array(data, indices, dims, missingval)
+
+    # Return DimArray
+    return T(array, dims, name=col; kw...)
+end
+
 """
     DimArray(f::Function, dim::Dimension; [name])
 
@@ -447,7 +547,7 @@ Apply function `f` across the values of the dimension `dim`
 the given dimension. Optionally provide a name for the result.
 """
 function DimArray(f::Function, dim::Dimension; name=Symbol(nameof(f), "(", name(dim), ")"))
-     DimArray(f.(val(dim)), (dim,); name)
+    DimArray(f.(val(dim)), (dim,); name)
 end
 
 DimArray(itr::Base.Generator; kwargs...) = rebuild(collect(itr); kwargs...)
@@ -743,7 +843,7 @@ Return a dimension `new_dim` whose indices are a [`MergedLookup`](@ref) of the i
 """
 function mergedims((old_dims, new_dim)::Pair)
     data = vec(DimPoints(_astuple(old_dims)))
-    return rebuild(basedims(new_dim), MergedLookup(data, old_dims))
+    return rebuild(basedims(new_dim), MergedLookup(data, _astuple(old_dims)))
 end
 
 """

@@ -37,6 +37,7 @@ Lookup methods:
 ```@docs
 bounds
 hasselection
+hasinternaldimensions
 Lookups.sampling
 Lookups.span
 Lookups.order

@@ -47,7 +47,7 @@ Convert a `Dimension` or `Selector` `I` to indices of `Int`, `AbstractArray` or 
 @inline function dims2indices(dims::DimTuple, I::DimTuple)
     extradims = otherdims(I, dims) # extra dims in the query, I
     # Extract "multi dimensional" lookups like MergedLookup or Rasters' GeometryLookup
-    multidims = Dimensions.dims(otherdims(dims, I), x -> lookup(x) isa MultiDimensionalLookup && !isempty(Dimensions.dims(x, I)))
+    multidims = Dimensions.dims(otherdims(dims, I), x -> hasinternaldimensions(lookup(x)) && !isempty(Dimensions.dims(x, I)))
     # Warn if any dims from I were not picked up by multidims
     actuallyextradims = otherdims(extradims, x -> any(y -> hasdim(y, x), multidims)) # one way setdiff(extradims, multidims) essentially
     length(actuallyextradims) > 0 && _extradimswarn(actuallyextradims)
@@ -138,8 +138,8 @@ _unwrapdim(x) = x
 @inline _dims2indices(dim::Dimension, ::Type{<:Dimension}) = Colon()
 # Nothing means nothing was passed for this dimension
 @inline _dims2indices(dim::Dimension, i::AbstractBeginEndRange) = i
-@inline _dims2indices(dim::Dimension, i::Union{LU.Begin,LU.End,Type{LU.Begin},Type{LU.End},LU.LazyMath}) = 
-    to_indices(parent(dim), LU._construct_types(i))[1]
+@inline _dims2indices(dim::Dimension, i::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = 
+    to_indices(parent(dim), Lookups._construct_types(i))[1]
 @inline _dims2indices(dim::Dimension, ::Nothing) = Colon()
 @inline _dims2indices(dim::Dimension, x) = Lookups.selectindices(val(dim), x)
 

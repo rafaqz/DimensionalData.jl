@@ -29,6 +29,8 @@ isintervals(::Intervals) = true
 isintervals(::Points) = false
 ispoints(::Points) = true
 ispoints(::Intervals) = false
+hasinternaldimensions(::Lookup) = false
+hasinternaldimensions(::Any) = false  # Fallback for non-Lookup types (e.g., raw arrays)
 
 # Forward them from lookups
 for f in (:isregular, :isexplicit)
@@ -47,3 +49,17 @@ iscenter(l::Lookup) = true
 for f in (:isordered, :isforward, :isreverse)
     @eval $f(l::Lookup) = $f(order(l))
 end
+
+
+# Docs
+@doc """
+    hasinternaldimensions(l::Lookup)::Bool
+
+Return `true` if the lookup has internal dimensions, `false` otherwise.
+
+If this is `true` for your lookup, then it must:
+- Implement `DD.dims(lookup)::Tuple{Vararg{Dimension}}`
+- Return a tuple of bounds, one per internal dimension, from `DD.bounds(lookup)`.  
+  This means a length-`n` tuple of 2-tuples, where `n` is the number of internal dimensions.
+"""
+hasinternaldimensions

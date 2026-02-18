@@ -1,3 +1,6 @@
+# These are all the function that you can call on objects and call function(dims(obs, args...))
+const INTERFACE_QUERY_FUNCTION_NAMES = (:lookup, :order, :sampling, :span, :bounds, :intervalbounds, :locus)
+
 """
     Dimension 
 
@@ -167,6 +170,7 @@ dims(dim::Union{Dimension,DimType,Val{<:Dimension}}) = dim
 dims(dims::DimTuple) = dims
 dims(::Tuple{}) = ()
 dims(x) = nothing
+dims(x::AbstractArray) = dims(axes(x))
 
 val(dim::Dimension) = dim.val
 refdims(x) = ()
@@ -177,13 +181,23 @@ lookup(dim::Union{DimType,Val{<:Dimension}}) = NoLookup()
 name(dim::Dimension) = name(typeof(dim))
 name(dim::Val{D}) where D = name(D)
 name(dim::Type{D}) where D<:Dimension = nameof(D)
+name(s::Symbol) = s
 
 label(x) = string(name(x))
 
 # Lookups methods
-Lookups.metadata(dim::Dimension) = metadata(lookup(dim))
-
-Lookups.bounds(dim::Dimension) = bounds(val(dim))
+for func in (:order, :span, :sampling, :locus, :metadata, :bounds)
+    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
+end
+# Dispatch on Tuple{<:Dimension}, and map to single dim methods
+for f in (:val, :metadata, :name, :label, :units, INTERFACE_QUERY_FUNCTION_NAMES...)
+    @eval begin
+        $f(ds::Tuple) = map($f, ds)
+        $f(::Tuple{}) = ()
+        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
+        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
+    end
+end
 Lookups.intervalbounds(dim::Dimension, args...) = intervalbounds(val(dim), args...)
 for f in (:shiftlocus, :maybeshiftlocus)
     @eval function Lookups.$f(locus::Locus, x; dims=Dimensions.dims(x))
@@ -211,21 +225,6 @@ function hasselection(ds::DimTuple, selector::Selector)
 end
 hasselection(dim::Dimension, seldim::Dimension) = hasselection(dim, val(seldim))
 hasselection(dim::Dimension, sel::Selector) = hasselection(lookup(dim), sel)
-
-for func in (:order, :span, :sampling, :locus)
-    @eval ($func)(dim::Dimension) = ($func)(lookup(dim))
-end
-
-# Dispatch on Tuple{<:Dimension}, and map to single dim methods
-for f in (:val, :index, :lookup, :metadata, :order, :sampling, :span, :locus, :bounds, :intervalbounds,
-          :name, :label, :units)
-    @eval begin
-        $f(ds::Tuple) = map($f, ds)
-        $f(::Tuple{}) = ()
-        $f(ds::Tuple, i1, I...) = $f(ds, (i1, I...))
-        $f(ds::Tuple, I) = $f(dims(ds, name2dim(I)))
-    end
-end
 
 @inline function selectindices(x, selectors; kw...)
     if dims(x) isa Nothing
@@ -256,10 +255,6 @@ end
 @inline selectindices(ds::Tuple, sel::Tuple{}; kw...) = () 
 @inline selectindices(dim::Dimension, sel; kw...) = selectindices(val(dim), sel; kw...)
 
-# Deprecated
-Lookups.index(dim::Dimension{<:AbstractArray}) = index(val(dim))
-Lookups.index(dim::Dimension{<:Val}) = unwrap(index(val(dim)))
-
 # Base methods
 const ArrayOrVal = Union{AbstractArray,Val}
 
@@ -272,6 +267,7 @@ Base.axes(d::Dimension, i) = axes(d)[i]
 Base.eachindex(d::Dimension) = eachindex(val(d))
 Base.length(d::Dimension) = length(val(d))
 Base.ndims(d::Dimension) = 0
+Base.parentindices(d::Dimension{<:AbstractArray}) = parentindices(parent(d))
 Base.ndims(d::Dimension{<:AbstractArray}) = ndims(val(d))
 Base.iterate(d::Dimension{<:AbstractArray}, args...) = iterate(lookup(d), args...)
 Base.first(d::Dimension) = val(d)
@@ -289,45 +285,63 @@ function Base.:(==)(d1::Dimension, d2::Dimension)
     basetypeof(d1) == basetypeof(d2) && val(d1) == val(d2)
 end
 
-LookupArrays.ordered_first(d::Dimension{<:AbstractArray}) = ordered_first(lookup(d))
-LookupArrays.ordered_last(d::Dimension{<:AbstractArray}) = ordered_last(lookup(d))
-LookupArrays.ordered_firstindex(d::Dimension{<:AbstractArray}) = ordered_firstindex(lookup(d))
-LookupArrays.ordered_lastindex(d::Dimension{<:AbstractArray}) = ordered_lastindex(lookup(d))
+Lookups.ordered_first(d::Dimension{<:AbstractArray}) = ordered_first(lookup(d))
+Lookups.ordered_last(d::Dimension{<:AbstractArray}) = ordered_last(lookup(d))
+Lookups.ordered_firstindex(d::Dimension{<:AbstractArray}) = ordered_firstindex(lookup(d))
+Lookups.ordered_lastindex(d::Dimension{<:AbstractArray}) = ordered_lastindex(lookup(d))
 
 Base.size(dims::DimTuple) = map(length, dims)
 Base.CartesianIndices(dims::DimTuple) = CartesianIndices(map(d -> axes(d, 1), dims))
 
 # Extents.jl
-function Extents.extent(ds::DimTuple, args...)
-    extent_dims = _astuple(dims(ds, args...))
-    extent_bounds = bounds(extent_dims)
-    return Extents.Extent{name(extent_dims)}(extent_bounds)
-end
-
-function _experimental_extent(ds::DimTuple)
-    regulardims = dims(ds, x -> !(lookup(x) isa MultiDimensionalLookup))    
-    regular_bounds = bounds.(regulardims)
+#=
+The complexity in this function is due to the fact that some lookups
+may have internal dimensions (see [hasinternaldimensions](@ref)).
+=#
+function Extents.extent(ids::DimTuple, args...)
+    ds = _astuple(dims(ids, args...))
+    # Obtain all dims which do _not_ have internal dimensions
+    regulardims = dims(ds, x -> !hasinternaldimensions(lookup(x)))    
+    # Their bounds are simple to obtain from `bounds`
+    regular_bounds = map(bounds, regulardims)
     regular_bounds_nt = NamedTuple{map(name, regulardims)}(regular_bounds)
     
+    # Now, for the dimensions which do have internal dimensions, we need to
+    # obtain the bounds for each of the internal dimensions.
     multidims = otherdims(ds, regulardims)
-    multidim_raw_bounds = bounds.(multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
+    # Then, we get the `bounds` for each of the complex / higher order dimensions.
+    # `bounds` here returns an `ndims`-tuple of 2-tuples, unlike a simple 2-tuple for a regular dimension.
+    multidim_raw_bounds = map(bounds, multidims) # we trust that bounds will give us a tuple of bounds one for each enclosed dimension
+    # This gets us the list of "base dimensions" for each of the lookups.
     multidim_dims = combinedims(map(dims, multidims)...; length = false)
+    # We then determine the "true" bounds for each of the base dimensions in `multidim_dims`,
+    # knowing that some lookups might "overlap" in their internal dimensions.
+    # For each base dimension,
     multidim_bounds = map(multidim_dims) do outdim
-        foldl(zip(multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
+        # loop over the tuples of (multidim, multidim_raw_bounds) and reduce those to a single 2-tuple.
+        foldl(map(tuple, multidims, multidim_raw_bounds); init = (nothing, nothing)) do (minval, maxval), (dim, bounds)
+            # If the current dim "contains" the `outdim` we are interested in, then:
             if hasdim(dim, outdim)
                 if isnothing(minval) && isnothing(maxval)
+                    # Initialize the bounds to the bounds of the current dimension,
+                    # if no previous lookup has contained the `outdim`.
                     bounds[dimnum(dim, outdim)]
                 else
+                    # Otherwise, update the bounds to the minimum and maximum of the current and previous bounds.
                     this_dim_bounds = bounds[dimnum(dim, outdim)]
                     (min(minval, this_dim_bounds[1]), max(maxval, this_dim_bounds[2]))
                 end
             else
+                # Equivalent of a no-op, because the current dim does not contain the `outdim` we are interested in.
                 (minval, maxval)
             end
         end
     end
+    # Finally, create a NamedTuple of the bounds for each of the base dimensions,
+    # as Extents.jl expects.
     multidim_bounds_nt = NamedTuple{map(name, multidim_dims)}(multidim_bounds)
-    return merge(regular_bounds_nt, multidim_bounds_nt)
+    # Return the union of the base dimensions and the multidim dimensions.
+    return Extents.Extent(merge(regular_bounds_nt, multidim_bounds_nt))
 end
 
 dims(extent::Extents.Extent{K}) where K = map(rebuild, name2dim(K), values(extent))
