@@ -1,7 +1,7 @@
 module DimensionalDataRecipesBaseExt
 
 using DimensionalData
-using DimensionalData: Dimension, Lookup, NoLookup, Categorical, ForwardOrdered,
+using DimensionalData: Dimension, Lookup, NoLookup, Categorical, ForwardOrdered, DimensionalPlot,
     refdims_title, label, forward_order_plot_dims, reverse_order_plot_dims
 using RecipesBase: RecipesBase, @recipe
 
@@ -11,8 +11,6 @@ struct WireframeLike <: DimPlotMode seriestype::Symbol end
 struct SeriesLike <: DimPlotMode seriestype::Symbol end
 struct HistogramLike <: DimPlotMode seriestype::Symbol end
 struct ViolinLike <: DimPlotMode seriestype::Symbol end
-
-struct DimensionalPlot end
 
 @recipe function f(A::AbstractDimArray)
     DimensionalPlot(), A
