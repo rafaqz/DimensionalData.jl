@@ -34,3 +34,5 @@ end
 const PLOT_DIMENSION_ORDER = (TimeDim, XDim, IndependentDim, IndependentDim, YDim, ZDim, DependentDim, DependentDim, Dimension, Dimension, Dimension)
 forward_order_plot_dims(x) = dims(dims(x), PLOT_DIMENSION_ORDER)
 reverse_order_plot_dims(x) = reverse(forward_order_plot_dims(reverse(dims(x))))
+
+struct DimensionalPlot end
