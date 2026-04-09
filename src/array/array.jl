@@ -323,7 +323,7 @@ _arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
-_noname(s::String) = ""
+_noname(s::AbstractString) = ""
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
 _noname(name::Name) = name # Keep the name so the type doesn't change

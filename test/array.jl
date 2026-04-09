@@ -641,3 +641,9 @@ end
     @test isequal(da, dshift) == false
     @test (da == dshift) == false
 end
+
+@testset "Substring name broadcast" begin
+  name_str = SubString("test_anme", 1, 4 )  # "test"
+  da = DimArray(rand(5), (X(1:5),); name=name_str)
+  @test_nowarn isfinite.(da)
+end
