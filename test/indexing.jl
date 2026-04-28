@@ -287,6 +287,12 @@ end
         da2[DimSelectors(da)] += da
         @test da == da1
         @test da == da2
+        
+        ## Passing selectors to DimSelectors works
+        da3 = set(da, Y(lookup(da, Y) .+ 0.1))
+        ds = DimSelectors(da; selectors = (At, Near))
+        da3[ds]
+        @test da3[ds[X(1)]] == da3[(X(1))]
     end
     
     @testset "selectors work" begin
