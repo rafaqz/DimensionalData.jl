@@ -6,7 +6,7 @@
 [![Codecov](https://codecov.io/gh/rafaqz/DimensionalData.jl/branch/main/graph/badge.svg)](https://codecov.io/gh/rafaqz/DimensionalData.jl/tree/main)
 [![Aqua.jl Quality Assurance](https://img.shields.io/badge/Aqua.jl-%F0%9F%8C%A2-aqua.svg)](https://github.com/JuliaTesting/Aqua.jl)
 
-<img src="https://rafaqz.github.io/DimensionalData.jl/dev/logo.png" align="right" style="padding-left:10px;" width="180"/>
+<img src="https://private-user-images.githubusercontent.com/32276930/361481134-781ae61d-3316-4c69-a128-6626ea8a3a37.png?jwt=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJnaXRodWIuY29tIiwiYXVkIjoicmF3LmdpdGh1YnVzZXJjb250ZW50LmNvbSIsImtleSI6ImtleTUiLCJleHAiOjE3MjQ2ODUxMTYsIm5iZiI6MTcyNDY4NDgxNiwicGF0aCI6Ii8zMjI3NjkzMC8zNjE0ODExMzQtNzgxYWU2MWQtMzMxNi00YzY5LWExMjgtNjYyNmVhOGEzYTM3LnBuZz9YLUFtei1BbGdvcml0aG09QVdTNC1ITUFDLVNIQTI1NiZYLUFtei1DcmVkZW50aWFsPUFLSUFWQ09EWUxTQTUzUFFLNFpBJTJGMjAyNDA4MjYlMkZ1cy1lYXN0LTElMkZzMyUyRmF3czRfcmVxdWVzdCZYLUFtei1EYXRlPTIwMjQwODI2VDE1MDY1NlomWC1BbXotRXhwaXJlcz0zMDAmWC1BbXotU2lnbmF0dXJlPWExMWMzZmI5YThmZTEwNzNiZGEyZGRiOTNlOTRhOTI0MTc5NTA5ZDlmNmJmODhiMzYzMDg3OTBhYmZmYzVhN2YmWC1BbXotU2lnbmVkSGVhZGVycz1ob3N0JmFjdG9yX2lkPTAma2V5X2lkPTAmcmVwb19pZD0wIn0.X49onLbQxzykz_p8wliGdF063XqX4tzAsBtaxaXagts" align="right" style="padding-left:10px;" width="180"/>
 
 > [!TIP]
 > Visit the latest documentation at https://rafaqz.github.io/DimensionalData.jl/dev/
