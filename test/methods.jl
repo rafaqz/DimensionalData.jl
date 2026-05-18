@@ -946,3 +946,7 @@ end
         @test parent(mapreduce(identity, +, A; dims=(Y, Ti), init)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
     end
 end
+
+@testset "sizeof()" begin
+    @test sizeof(rand(X(100))) == sizeof(rand(100))
+end
