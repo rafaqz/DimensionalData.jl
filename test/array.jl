@@ -22,11 +22,36 @@ val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
 @testset "checkbounds" begin
-    @test @inferred checkbounds(Bool, da, X(2), Y(1)) == true
-    @test @inferred checkbounds(Bool, da, X(10), Y(1)) == false
-    checkbounds(da, X(2), Y(1))
-    @test_throws BoundsError checkbounds(da, X(10), Y(20))
-    @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+    # test on both AbstractDimArray and AbstractBasicDimArray
+    for abda in (da, DimIndices(da))
+        @test @inferred checkbounds(Bool, da, X(2), Y(1)) == true
+        @test @inferred checkbounds(Bool, da, X(10), Y(1)) == false
+        checkbounds(da, X(2), Y(1))
+        @test_throws BoundsError checkbounds(da, X(10), Y(20))
+        @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+    end
+
+    # kwargs
+    for abda in (da2, DimIndices(da2))
+        @test @inferred checkbounds(Bool, abda; row=1, column=1) == true
+        @test @inferred checkbounds(Bool, abda; row=10, column=1) == false
+        @test @inferred checkbounds(Bool, abda; row=10) == false
+        checkbounds(abda; row=1, column=1)
+        @test_throws BoundsError checkbounds(abda; row=10, column=20)
+        @test_throws BoundsError checkbounds(abda; row=1:10, column=1:20)
+        @test_throws BoundsError checkbounds(abda; row=10)
+    end
+
+    # zero arguments
+    single_elem = DimArray([42], (X,))
+    for abda in (single_elem, DimIndices(single_elem))
+        @test @inferred checkbounds(Bool, abda) == true
+        checkbounds(abda)
+    end
+    for abda in (da, DimIndices(da))
+        @test @inferred checkbounds(Bool, da) == false
+        @test_throws BoundsError checkbounds(da)
+    end
 end
 
 @testset "checkdims" begin
