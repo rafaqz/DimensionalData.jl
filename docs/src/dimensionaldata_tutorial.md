@@ -54,11 +54,11 @@ seasonal(la, t) = season_amp(la) * sign(la) *
 temperature_data = [300 - 60 * abs(la / 90) + seasonal(la, t) + 3 * randn()
                     for la in lat, lo in lon, t in time]
 
-# Inject a synthetic July heatwave over Europe (+20 K).
+# Inject a synthetic July heatwave over Europe (+80 K).
 for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
     (k, t) in enumerate(time)
     if 40 <= la <= 55 && 0 <= lo <= 30 && 180 <= t <= 210
-        temperature_data[i, j, k] += 20.0
+        temperature_data[i, j, k] += 80.0
     end
 end
 
@@ -77,7 +77,7 @@ pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
 This creates two arrays, one for temperature and one for pressure, each with (unnamed) dimensions 180×360×365 representing latitude, longitude, and time. Each element is a lat/lon/time pair for the entire globe.
 
 ````@example dimensionaldata_tutorial
-temperature_data
+temperature_data[1:5, 1:5, 1]
 ````
 
 Note that this array does not (and cannot) have names for the latitude/longitude/time axes. It lacks context that makes it impractical to easily refer to specific temperature or pressure observations at some location.
