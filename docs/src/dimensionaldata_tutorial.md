@@ -35,18 +35,15 @@ Random.seed!(42);
 Toy data: A weather satellite records daily surface temperature and surface pressure on a 1° global grid for one year.
 
 ````@example dimensionaldata_tutorial
-# A 1° global grid, daily for a year.
+# 1° global grid, daily for a year.
 lat  = range(-89.5, 89.5,  step = 1)
 lon  = range(-179.5, 179.5, step = 1)
 time = 1:365
 
-# Seasonal amplitude (°C / K) as a function of latitude:
-# tropics barely change, poles swing a lot.
+# Seasonal amplitude (K) as a function of latitude: tropics barely change, poles swing a lot.
 season_amp(la) = 25 * (abs(la) / 90)
 
-# Day-of-year to seasonal phase. Day 1 = Jan 1 (Northern Hemisphere
-# winter), so cos peaks in summer for the NH and winter for the SH.
-# Multiplying by sign(lat) flips the hemispheres.
+# Day 1 = Jan 1 (Northern Hemisphere winter).
 seasonal(la, t) = season_amp(la) * sign(la) *
                   cos(2π * (t - 172) / 365)   # day 172 ≈ June 21
 
@@ -62,10 +59,7 @@ for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
     end
 end
 
-# Toy surface pressure (hPa): latitudinal pattern + inverse coupling
-# to local temperature anomaly + noise. Warm air → lower surface
-# pressure, which is a real (if simplified) atmospheric relationship.
-# We compute pressure from temperature so the coupling is built in.
+# Toy surface pressure (hPa): simplified coupling to temperature
 baseline_temp = [300 - 60 * abs(la / 90) for la in lat, lo in lon, t in time]
 temp_anom     = temperature_data .- baseline_temp
 
