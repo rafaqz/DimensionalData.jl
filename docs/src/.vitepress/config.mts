@@ -119,6 +119,7 @@ export default defineConfig({
           { text: 'Dimension-aware broadcast', link: '/broadcasts.md' },
           { text: 'Getting information', link: '/get_info' },
           { text: 'Object modification', link: '/object_modification' },
+          { text: 'Basic tutorial', link: '/dimensionaldata_tutorial' },
         ]},
         { text: 'Integrations', link: '/integrations',
           items: [
