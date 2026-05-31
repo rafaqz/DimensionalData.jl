@@ -72,6 +72,7 @@ temp_anom     = temperature_data .- baseline_temp
 pressure_baseline = [1013 - 10 * cosd(2 * la) for la in lat, lo in lon, t in time]
 pressure_noise    = 2 .* randn(size(temperature_data))
 pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
+nothing
 ````
 
 This creates two arrays, one for temperature and one for pressure, each with (unnamed) dimensions 180×360×365 representing latitude, longitude, and time. Each element is a lat/lon/time pair for the entire globe.
