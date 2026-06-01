@@ -25,7 +25,9 @@ using Random
 using Dates
 using CairoMakie
 
-Random.seed!(42);
+Random.seed!(42)
+
+nothing
 ````
 
 ---
@@ -66,6 +68,7 @@ temp_anom     = temperature_data .- baseline_temp
 pressure_baseline = [1013 - 10 * cosd(2 * la) for la in lat, lo in lon, t in time]
 pressure_noise    = 2 .* randn(size(temperature_data))
 pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
+
 nothing
 ````
 
@@ -100,7 +103,7 @@ temperature = DimArray(temperature_data, (Y(lat), X(lon), Ti(time)))
 
 DimArray displays metadata about the dimensions, which use the default names X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
 
-In this case, they are ranges for the latitude, longitude, and time. For more context, we can create custom Dimension names:
+In this case, they are ranges for the longitude. latitude, and time. For more context, we can create custom Dimension names:
 
 ````@example dimensionaldata_tutorial
 temperature = DimArray(temperature_data, (Dim{:latitude}(lat), Dim{:longitude}(lon), Dim{:time}(time)))
