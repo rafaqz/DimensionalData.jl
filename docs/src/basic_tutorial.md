@@ -99,7 +99,7 @@ temperature = DimArray(temperature_data, (Y(lat), X(lon), Ti(time)))
 
 DimArray displays metadata about the dimensions, which use the default names X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
 
-In this case, they are ranges for the longitude. latitude, and time. For more context, we can create custom Dimension names:
+In this case, they are ranges for the longitude, latitude, and time. For more context, we can create custom Dimension names:
 
 ````@example dimensionaldata_tutorial
 temperature = DimArray(temperature_data, (Dim{:latitude}(lat), Dim{:longitude}(lon), Dim{:time}(time)))
