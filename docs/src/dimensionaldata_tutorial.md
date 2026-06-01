@@ -1,4 +1,4 @@
-# DimensionalData.jl Tutorial
+# Getting Started
 
 In this tutorial, we're going to:
 
@@ -25,9 +25,7 @@ using Random
 using Dates
 using CairoMakie
 
-Random.seed!(42)
-
-nothing
+Random.seed!(42);
 ````
 
 ---
@@ -38,20 +36,20 @@ Toy data: A weather satellite records daily surface temperature and surface pres
 
 ````@example dimensionaldata_tutorial
 # 1° global grid, daily for a year.
-lat  = range(-89.5, 89.5,  step = 1)
-lon  = range(-179.5, 179.5, step = 1)
-time = 1:365
+lat  = range(-89.5, 89.5,  step = 1);
+lon  = range(-179.5, 179.5, step = 1);
+time = 1:365;
 
 # Seasonal amplitude (K) as a function of latitude: tropics barely change, poles swing a lot.
-season_amp(la) = 25 * (abs(la) / 90)
+season_amp(la) = 25 * (abs(la) / 90);
 
 # Day 1 = Jan 1 (Northern Hemisphere winter).
 seasonal(la, t) = season_amp(la) * sign(la) *
-                  cos(2π * (t - 172) / 365)   # day 172 ≈ June 21
+                  cos(2π * (t - 172) / 365);   # day 172 ≈ June 21
 
 # Toy temperature (K): latitudinal gradient + seasonal cycle + noise.
 temperature_data = [300 - 60 * abs(la / 90) + seasonal(la, t) + 3 * randn()
-                    for la in lat, lo in lon, t in time]
+                    for la in lat, lo in lon, t in time];
 
 # Inject a synthetic July heatwave over Europe (+80 K).
 for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
@@ -62,14 +60,12 @@ for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
 end
 
 # Toy surface pressure (hPa): simplified coupling to temperature
-baseline_temp = [300 - 60 * abs(la / 90) for la in lat, lo in lon, t in time]
-temp_anom     = temperature_data .- baseline_temp
+baseline_temp = [300 - 60 * abs(la / 90) for la in lat, lo in lon, t in time];
+temp_anom     = temperature_data .- baseline_temp;
 
-pressure_baseline = [1013 - 10 * cosd(2 * la) for la in lat, lo in lon, t in time]
-pressure_noise    = 2 .* randn(size(temperature_data))
+pressure_baseline = [1013 - 10 * cosd(2 * la) for la in lat, lo in lon, t in time];
+pressure_noise    = 2 .* randn(size(temperature_data));
 pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
-
-nothing
 ````
 
 This creates two arrays, one for temperature and one for pressure, each with (unnamed) dimensions 180×360×365 representing latitude, longitude, and time. Each element is a lat/lon/time pair for the entire globe.
