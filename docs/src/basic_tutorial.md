@@ -2,21 +2,26 @@
 
 In this tutorial, we're going to:
 
-1. [Generate synthetic satellite data and understand its limitations as a plain array](#generate-synthetic-data)
-2. [Build a `DimArray` with named dimensions and label-based indexing](#building-a-dimarray)
+1. [Create synthetic data](#create-synthetic-data)
+2. [Build a `DimArray` with named dimensions and lookup-based indexing](#building-a-dimarray)
 3. [Subset data using `At`, `Near`, `Touches`, and `Where`](#working-with-dimarrays)
 4. [Combine multiple variables into a `DimStack`](#building-a-dimstack)
-5. [Convert units and time coordinates using broadcasting and `set`](#step-1-temperature-conversion)
-6. [Compute a monthly climatology using `groupby`](#using-groupby)
-7. [Calculate temperature anomalies to identify a heatwave](#step-3-calculating-temperature-anomalies)
-8. [Build a stack with layers that don't share all dimensions](#question-2-how-do-our-weather-stations-compare-to-the-global-mean)
-9. [Compare station observations to the global daily mean using `@d`](#comparing-station-temperatures-to-the-global-daily-mean)
+5. [Convert temperature units and time coordinates using broadcasting and `set`](#convert-temperature-units-and-time-coordinates-using-broadcasting-and-set)
+6. [Compute climatology using `groupby`](#compute-climatology-using-groupby)
+7. [Compute statistics using `map`](#compute-statistics-using-map)
+8. [Build a DimStack of DimArrays with differing shared dimensions](#question-2-how-do-our-weather-stations-compare-to-the-global-mean)
+9. [Dimension-aware operations using `@d`](#comparing-station-temperatures-to-the-global-daily-mean)
 
 ---
 
 ## Setup
 
 First, we have to import DimensionalData and supporting packages:
+
+````julia
+using Pkg
+Pkg.add(["DimensionalData", "Statistics", "Random", "Dates", "CairoMakie"])
+````
 
 ````@example dimensionaldata_tutorial
 using DimensionalData
@@ -25,14 +30,14 @@ using Random
 using Dates
 using CairoMakie
 
-Random.seed!(42);
+Random.seed!(42)
 ````
 
 ---
 
-## Generate Synthetic Data
+## Create Synthetic Data
 
-Toy data: A weather satellite records daily surface temperature and surface pressure on a 1° global grid for one year.
+Synthetic data: One year of daily surface temperature and pressure on a 1° by 1° global grid.
 
 ````@example dimensionaldata_tutorial
 # 1° global grid, daily for a year.
@@ -40,14 +45,14 @@ lat  = range(-89.5, 89.5,  step = 1);
 lon  = range(-179.5, 179.5, step = 1);
 time = 1:365;
 
-# Seasonal amplitude (K) as a function of latitude: tropics barely change, poles swing a lot.
+# Seasonal amplitude (K) as a function of latitude: low seasonal variability near equator, high seasonal variability near poles.
 season_amp(la) = 25 * (abs(la) / 90);
 
 # Day 1 = Jan 1 (Northern Hemisphere winter).
 seasonal(la, t) = season_amp(la) * sign(la) *
                   cos(2π * (t - 172) / 365);   # day 172 ≈ June 21
 
-# Toy temperature (K): latitudinal gradient + seasonal cycle + noise.
+# Synthetic temperature (K): latitudinal gradient + seasonal cycle + noise.
 temperature_data = [300 - 60 * abs(la / 90) + seasonal(la, t) + 3 * randn()
                     for la in lat, lo in lon, t in time];
 
@@ -59,7 +64,7 @@ for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
     end
 end
 
-# Toy surface pressure (hPa): simplified coupling to temperature
+# Synthetic surface pressure (hPa): simplified coupling to temperature
 baseline_temp = [300 - 60 * abs(la / 90) for la in lat, lo in lon, t in time];
 temp_anom     = temperature_data .- baseline_temp;
 
@@ -68,36 +73,34 @@ pressure_noise    = 2 .* randn(size(temperature_data));
 pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
 ````
 
-This creates two arrays, one for temperature and one for pressure, each with (unnamed) dimensions 180×360×365 representing latitude, longitude, and time. Each element is a lat/lon/time pair for the entire globe.
+The above code creates two 3D Arrays, one for temperature and one for pressure, each with dimensions 180×360×365 representing latitude, longitude, and time.
 
 ````@example dimensionaldata_tutorial
 temperature_data[1:5, 1:5, 1]
 ````
 
-Note that this array does not (and cannot) have names for the latitude/longitude/time axes. It lacks context that makes it impractical to easily refer to specific temperature or pressure observations at some location.
+Suppose we ask: *"What was the temperature in Los Angeles (34.2°N, 118.17°W) on day 90?"*
 
-Suppose we ask: *"What was the temperature at JPL (34.2°N, 118.17°W) on day 90?"*
-
-With a plain array, we have to translate coordinates into positional indices ourselves:
+With a plain array, we have to translate dimensional coordinates into positional indices ourselves:
 
 ````@example dimensionaldata_tutorial
 temperature_data[findfirst(==(34.5), lat), findfirst(==(-118.5), lon), 90]
 ````
 
-This works, but it is cumbersome and requires us to refer to the lat/lon/time ranges generated earlier, rather than referring to metadata stored in the array object. In other words, the array does not carry its own context.
+Translating between dimension coordinates and array indices is a common operation when working with dimensional data. Such translations are onerous and can be difficult to track as the complexity of the code increases. DimensionalData provides a high level abstraction for working with such data.
 
 ---
 
 ## Building a DimArray
 
-Now, let's use DimensionalData to create a DimArray. A DimArray wraps the same data as our standard array, but allows us to explicitly name our dimensions, and assign lookup values to these axes. This preserves the context of our data better than a standard array.
+Now, let's use DimensionalData to create a DimArray. A DimArray allows one to assign names and lookup values to the axes of an Array. This facilitates intuitive and persistent mapping between dimension coordinates and array values.
 
 ````@example dimensionaldata_tutorial
-# DimensionalData provides four default dimension types: X, Y, Z, and Ti.
+# DimensionalData provides four predefined dimension types: X, Y, Z, and Ti.
 temperature = DimArray(temperature_data, (Y(lat), X(lon), Ti(time)))
 ````
 
-DimArray displays metadata about the dimensions, which use the default names X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
+DimArray displays metadata about the dimensions, with four predefined types: X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
 
 In this case, they are ranges for the longitude, latitude, and time. For more context, we can create custom Dimension names:
 
@@ -108,7 +111,7 @@ temperature = DimArray(temperature_data, (Dim{:latitude}(lat), Dim{:longitude}(l
 pressure = DimArray(pressure_data, (Dim{:latitude}(lat), Dim{:longitude}(lon), Dim{:time}(time)))
 ````
 
-Note that our dimensions are now named `latitude`, `longitude`, and `time`, rather than the default `Y`, `X`, and `Ti`.
+Note that our dimensions are now named `Latitude`, `Longitude`, and `Time`, rather than the predefined `Y`, `X`, and `Ti`.
 
 ---
 
@@ -116,18 +119,18 @@ Note that our dimensions are now named `latitude`, `longitude`, and `time`, rath
 
 Now we will demonstrate some of the ways to work with DimArrays.
 
-First, we will show standard positional indexing, compared to DimensionalData's label-based indexing.
+First, we will show standard positional indexing, compared to DimensionalData's lookup-based indexing.
 
 ````@example dimensionaldata_tutorial
 temperature[latitude = 1] # standard positional indexing
-temperature[latitude = At(-89.5)] # the same data, using label-based indexing
+temperature[latitude = At(-89.5)] # the same data, using lookup-based indexing
 ````
 
-Label-based indexing simplifies the indexing process because we can use the lookups to refer to specific elements by name, rather than needing to consider the order of our data (its index positions).
+Lookup-based indexing simplifies the indexing process because we can use the lookups to refer to specific elements by name, rather than needing to consider the order of our data (its index positions).
 
-Back to the question, using a DimArray: *What was the temperature at JPL (34.2°N, 118.17°W) on day 90?*
+Back to the question, using a DimArray: *What was the temperature in Los Angeles (34.2°N, 118.17°W) on day 90?*
 
-There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is 33.5, 34.5, 35.5... and 34.2 is not an element in that range.
+There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5.. so 34.5 is an element in the lookup range while 34.2 is not.
 
 `Near` finds the closest entry to the specified coordinates.
 
@@ -188,7 +191,7 @@ fig
 
 ## Building a DimStack
 
-DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our satellite data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
+DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
 
 ````@example dimensionaldata_tutorial
 satellite_data = DimStack((temperature = temperature, pressure = pressure))
@@ -198,7 +201,7 @@ A DimStack is a collection of layers (DimArrays) that share some or all dimensio
 
 Working with our data bundled in a stack means we can index or slice both layers at once.
 
-Suppose we want to view temperature and pressure near JPL on day 90. Instead of indexing temperature and pressure individually, we can index the DimStack:
+Suppose we want to view temperature and pressure in Los Angeles on day 90. Instead of indexing temperature and pressure individually, we can index the DimStack:
 
 ````@example dimensionaldata_tutorial
 satellite_data[latitude = Near(34.2003), longitude = Near(-118.1711), time = At(90)]
@@ -216,13 +219,14 @@ Now we want to demonstrate DimensionalData in the context of some simple real-wo
 
 ## Question 1: Where on Earth was unusually warm in July?
 
-To answer this question, we will need three things:
+To answer this question, we will need several things:
 
 1. Convert temperature units from Kelvin to Celsius
 2. Convert our time lookup from an integer range, `1:365`, to something more meaningful
-3. Calculate temperature anomalies to identify a heatwave
+3. Group our data by month
+4. Calculate temperature anomalies to identify a heatwave
 
-### Step 1: Temperature Conversion
+### Convert temperature units and time coordinates using broadcasting and `set`
 
 Standard broadcasting to the temperature array allows us to convert to Celsius. Note that we can directly mutate the contents of our layers within the stack. 
 
@@ -230,9 +234,9 @@ Standard broadcasting to the temperature array allows us to convert to Celsius. 
 satellite_data.temperature .-= 273.15
 ````
 
-### Step 2: Time Conversion
+#### Time Conversion
 
-Now we want to convert our time dimension so that it has clear dates available to index by.
+Now we want to convert our time dimension from integer days since December 31, 2013 to a human readable date format.
 
 > Note: While we can mutate the *values* inside of a `DimArray`/`DimStack` layer (as we just did converting to Celsius), the *lookups* themselves are immutable (i.e. cannot be changed once the object is built). 
 
@@ -252,7 +256,7 @@ Now we can ask for a specific year/month/day directly:
 satellite_data[time = At(DateTime(2024, 7, 15))]
 ````
 
-#### Using groupby
+### Compute climatology using `groupby`
 
 With our new time lookup, we can now demonstrate the `groupby()` function by grouping by month. For this problem, we want the average temperature for each month of the year.
 
@@ -280,7 +284,7 @@ Here, the `month` function is applied to each time value, extracting the month n
 
 We now have grouped our data by month, by day of the week, and by seasons. Going forward, we will use the monthly grouping.
 
-### Step 3: Calculating temperature anomalies
+### Compute statistics using `map`
 
 We compute the monthly mean temperature for each lat/lon point by using `map` to apply the mean over the time dimension of each monthly group, then concatenate the results into a single 180×360×12 array.
 
