@@ -41,8 +41,8 @@ Synthetic data: One year of daily surface temperature and pressure on a 1° by 1
 
 ````@example dimensionaldata_tutorial
 # 1° global grid, daily for a year.
-lat  = range(-89.5, 89.5,  step = 1);
-lon  = range(-179.5, 179.5, step = 1);
+lat = -89.5:89.5;
+lon = -179.5:179.5;
 time = 1:365;
 
 # Seasonal amplitude (K) as a function of latitude: low seasonal variability near equator, high seasonal variability near poles.
@@ -97,7 +97,11 @@ Now, let's use DimensionalData to create a DimArray. A DimArray allows one to as
 
 ````@example dimensionaldata_tutorial
 # DimensionalData provides four predefined dimension types: X, Y, Z, and Ti.
-temperature = DimArray(temperature_data, (Y(lat), X(lon), Ti(time)))
+y = Y(lat)
+x = X(lon)
+ti = Ti(time)
+
+temperature = DimArray(temperature_data, (y,x,ti))
 ````
 
 DimArray displays metadata about the dimensions, with four predefined types: X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
@@ -105,10 +109,14 @@ DimArray displays metadata about the dimensions, with four predefined types: X, 
 In this case, they are ranges for the longitude, latitude, and time. For more context, we can create custom Dimension names:
 
 ````@example dimensionaldata_tutorial
-temperature = DimArray(temperature_data, (Dim{:latitude}(lat), Dim{:longitude}(lon), Dim{:time}(time)))
+latitude = Dim{:Latitude}(lat)
+longitude = Dim{:Longitude}(lon)
+time = Dim{:Time}(time)
+
+temperature = DimArray(temperature_data, (latitude, longitude, time))
 
 # For our pressure data:
-pressure = DimArray(pressure_data, (Dim{:latitude}(lat), Dim{:longitude}(lon), Dim{:time}(time)))
+pressure = DimArray(pressure_data, (latitude, longitude, time))
 ````
 
 Note that our dimensions are now named `Latitude`, `Longitude`, and `Time`, rather than the predefined `Y`, `X`, and `Ti`.
@@ -135,7 +143,7 @@ There are several Selector functions. For this problem, we would likely use eith
 `Near` finds the closest entry to the specified coordinates.
 
 ````@example dimensionaldata_tutorial
-temperature[latitude = Near(34.2003), longitude = Near(-118.1711), time = At(90)]
+temperature[latitude = Near(34.2), longitude = Near(-118.2), time = At(90)]
 ````
 
 Next, we want to select all temperature data from the western US on day 90.
@@ -194,7 +202,7 @@ fig
 DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
 
 ````@example dimensionaldata_tutorial
-satellite_data = DimStack((temperature = temperature, pressure = pressure))
+climate = DimStack((temperature = temperature, pressure = pressure))
 ````
 
 A DimStack is a collection of layers (DimArrays) that share some or all dimensions. In our example, temperature and pressure share all of the same dimensions, and thus share the same lookups.
@@ -204,13 +212,13 @@ Working with our data bundled in a stack means we can index or slice both layers
 Suppose we want to view temperature and pressure in Los Angeles on day 90. Instead of indexing temperature and pressure individually, we can index the DimStack:
 
 ````@example dimensionaldata_tutorial
-satellite_data[latitude = Near(34.2003), longitude = Near(-118.1711), time = At(90)]
+climate[latitude = Near(34.2003), longitude = Near(-118.1711), time = At(90)]
 ````
 
 And we can access individual layers with dot syntax:
 
 ````@example dimensionaldata_tutorial
-satellite_data.pressure
+climate.pressure
 ````
 
 Now we want to demonstrate DimensionalData in the context of some simple real-world questions.
@@ -231,7 +239,7 @@ To answer this question, we will need several things:
 Standard broadcasting to the temperature array allows us to convert to Celsius. Note that we can directly mutate the contents of our layers within the stack. 
 
 ````@example dimensionaldata_tutorial
-satellite_data.temperature .-= 273.15
+climate.temperature .-= 273.15
 ````
 
 #### Time Conversion
@@ -247,13 +255,13 @@ To change a lookup, we rebuild the object with `set` rather than assigning into 
 new_time_range = range(DateTime(2024), step = Day(1), length = 365)
 
 # We rebuild our DimStack using the set function, which reconstructs the stack and changes the lookup values to DateTime format.
-satellite_data = set(satellite_data, :time => new_time_range)
+climate = set(climate, :time => new_time_range)
 ````
 
 Now we can ask for a specific year/month/day directly:
 
 ````@example dimensionaldata_tutorial
-satellite_data[time = At(DateTime(2024, 7, 15))]
+climate[time = At(DateTime(2024, 7, 15))]
 ````
 
 ### Compute climatology using `groupby`
@@ -262,7 +270,7 @@ With our new time lookup, we can now demonstrate the `groupby()` function by gro
 
 ````@example dimensionaldata_tutorial
 # groupby lets us group along a dimension by its lookup values (the month of each date)
-monthly_groups = groupby(satellite_data.temperature, :time => month)
+monthly_groups = groupby(climate.temperature, :time => month)
 ````
 
 The result is a DimArray of DimArrays, one array per month. Note that the days in each month reflect the month's actual length.
@@ -270,14 +278,14 @@ The result is a DimArray of DimArrays, one array per month. Note that the days i
 **Side note on `groupby`:** We can group by other metrics, such as the day of the week:
 
 ````@example dimensionaldata_tutorial
-day_of_week_groups = groupby(satellite_data.temperature, :time => dayofweek)
+day_of_week_groups = groupby(climate.temperature, :time => dayofweek)
 ````
 
 Or grouping by seasons, where we use the `Bins` function. The `Bins` function maps each lookup value into a named group based on the bin it falls into.
 
 ````@example dimensionaldata_tutorial
 # Group by seasons DJF, MAM, JJA, SON:
-season_groups = groupby(satellite_data.temperature, :time => Bins(month, [[12, 1, 2], 3:5, 6:8, 9:11]))
+season_groups = groupby(climate.temperature, :time => Bins(month, [[12, 1, 2], 3:5, 6:8, 9:11]))
 ````
 
 Here, the `month` function is applied to each time value, extracting the month number. Then, it bins the months into 4 custom bins, each with 3 months, representing seasons.
@@ -313,7 +321,7 @@ climatology_daily = set(climatology_daily, :month => Dim{:time}(new_time_range))
 # The new axis is still named month, so relabel it time with the matching DateTime lookup
 
 # Axes now align and the subtraction is a plain broadcast:
-anomalies = satellite_data.temperature .- climatology_daily
+anomalies = climate.temperature .- climatology_daily
 ````
 
 We now have a DimArray where every lat/lon/day pair is a temperature anomaly, to show us how much the temperature at each day deviates from its respective month's mean temperature. We will visualize one day of temperature anomaly to inspect what we just did.
@@ -344,7 +352,7 @@ station_bias  = [  0.5,    -0.3,       1.2,      -0.8,      0.1  ]
 
 station_matrix = zeros(length(station_names), length(new_time_range))
 for (i, (la, lo, b)) in enumerate(zip(station_lats, station_lons, station_bias))
-    series = satellite_data.temperature[latitude = Near(la), longitude = Near(lo)]
+    series = climate.temperature[latitude = Near(la), longitude = Near(lo)]
     station_matrix[i, :] = parent(series) .+ b .+ 0.5 .* randn(365)
 end
 
@@ -357,8 +365,8 @@ Our five stations' coordinates do not fall on the satellite grid's 1-degree cell
 
 ````@example dimensionaldata_tutorial
 combined = DimStack((
-    temperature = satellite_data.temperature,
-    pressure    = satellite_data.pressure,
+    temperature = climate.temperature,
+    pressure    = climate.pressure,
     station_obs = station_obs
 ))
 ````
@@ -375,7 +383,7 @@ Now we want to compare station temperature to the global daily temperature.
 
 ````@example dimensionaldata_tutorial
 # First we calculate global daily mean:
-global_daily_mean = mean(satellite_data.temperature, dims = (:latitude, :longitude))
+global_daily_mean = mean(climate.temperature, dims = (:latitude, :longitude))
 
 # Drop the latitude and longitude dimensions
 global_daily_mean = dropdims(global_daily_mean, dims = (:latitude, :longitude))
@@ -421,7 +429,7 @@ To tie together the gridded satellite data and the point-based station observati
 
 ````@example dimensionaldata_tutorial
 plot_date = DateTime(2024, 7, 15)
-field     = satellite_data.temperature[time = At(plot_date)]
+field     = climate.temperature[time = At(plot_date)]
 obs_today = station_obs[time = At(plot_date)]
 
 fig = Figure()
