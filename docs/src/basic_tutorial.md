@@ -154,22 +154,10 @@ Next, we want to select all temperature data from the western US on day 90.
 west_us = temperature[latitude = Touches(32, 49), longitude = Touches(-125, -102), time = At(90)]
 ````
 
-Selecting this data is analogous to making a bounding box to subset data. We will visualize this by plotting global surface temperature data, with a bounding box containing the data we selected.
+We can then visualize the selected region by plotting a surface temperature heatmap for day 90.
 
 ````@example dimensionaldata_tutorial
-field = temperature[:, :, 90]
-fig = Figure()
-ax  = Axis(fig[1, 1];
-           title  = "Global surface temperature (day 90) - western US bounding box",
-           xlabel = "Longitude", ylabel = "Latitude")
-hm  = heatmap!(ax, lookup(field, :longitude), lookup(field, :latitude),
-               parent(field)';
-               colormap = :thermal)
-# Overlay the bounding box as a rectangle:
-lines!(ax, [-125, -102, -102, -125, -125], [32, 32, 49, 49, 32];
-       color = :white, linewidth = 2)
-Colorbar(fig[1, 2], hm; label = "Temperature (K)")
-fig
+heatmap(west_us[:, :, 90]'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - Western US",))
 ````
 
 Next, we want to create a bounding box selecting data in the tropical zone (between -23.5 and 23.5).
@@ -181,18 +169,7 @@ tropics = temperature[latitude = Where(la -> abs(la) <= 23.5), time = At(90)]
 ````
 
 ````@example dimensionaldata_tutorial
-fig = Figure()
-field   = temperature[:, :, 90]
-ax  = Axis(fig[1, 1];
-           title  = "Global surface temperature (day 90) — tropics",
-           xlabel = "Longitude", ylabel = "Latitude")
-hm  = heatmap!(ax, lookup(field, :longitude), lookup(field, :latitude),
-               parent(field)';
-               colormap = :thermal)
-# Overlay the tropical band boundaries at ±23.5°:
-hlines!(ax, [-23.5, 23.5]; color = :white, linewidth = 2)
-Colorbar(fig[1, 2], hm; label = "Temperature (K)")
-fig
+heatmap(tropics'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - tropics",))
 ````
 
 ---
@@ -205,20 +182,21 @@ DimArrays are helpful, but only store one variable (i.e. our previous DimArray o
 climate = DimStack((temperature = temperature, pressure = pressure))
 ````
 
-A DimStack is a collection of layers (DimArrays) that share some or all dimensions. In our example, temperature and pressure share all of the same dimensions, and thus share the same lookups.
+A DimStack is a collection of layers (DimArrays) that may share some or all dimensions. Where two layers do share a dimension, that dimension must have the identical lookup. In our example, temperature and pressure share all of the same dimensions, and thus share the same lookups.
 
 Working with our data bundled in a stack means we can index or slice both layers at once.
 
 Suppose we want to view temperature and pressure in Los Angeles on day 90. Instead of indexing temperature and pressure individually, we can index the DimStack:
 
 ````@example dimensionaldata_tutorial
-climate[latitude = Near(34.2003), longitude = Near(-118.1711), time = At(90)]
+climate[latitude = Near(34.2), longitude = Near(-118.2), time = At(90)]
 ````
 
-And we can access individual layers with dot syntax:
+And we can access individual layers with dot syntax or using a Symbol:
 
 ````@example dimensionaldata_tutorial
-climate.pressure
+climate.pressure # dot syntax
+climate[:pressure] # Symbol
 ````
 
 Now we want to demonstrate DimensionalData in the context of some simple real-world questions.
@@ -330,11 +308,9 @@ We now have a DimArray where every lat/lon/day pair is a temperature anomaly, to
 july_day = anomalies[time = At(DateTime(2024, 7, 15))]
 # We choose July 15th "arbitrarily" (the toy data has a heatwave added in the summer).
 
-fig, ax, hm = heatmap(lookup(july_day, :longitude), lookup(july_day, :latitude), parent(july_day)';
-                      colormap = :balance, colorrange = (-15, 15),
-                      axis = (title = "Temperature anomaly, 2024-07-15 (°C)", xlabel = "Longitude", ylabel = "Latitude"))
-Colorbar(fig[1, 2], hm)
-fig
+heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
+        axis = (title = "Temperature anomaly, 2024-07-15 (°C)",
+        xlabel = "Longitude", ylabel = "Latitude"))
 ````
 
 ---
