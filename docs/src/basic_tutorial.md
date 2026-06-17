@@ -41,35 +41,35 @@ Synthetic data: One year of daily surface temperature and pressure on a 1° by 1
 
 ````@example dimensionaldata_tutorial
 # 1° global grid, daily for a year.
-lat = -89.5:89.5;
-lon = -179.5:179.5;
-time = 1:365;
+lats = -89.5:89.5
+lons = -179.5:179.5
+times = 1:365
 
 # Seasonal amplitude (K) as a function of latitude: low seasonal variability near equator, high seasonal variability near poles.
-season_amp(la) = 25 * (abs(la) / 90);
+season_amp(lat) = 25 * (abs(lat) / 90)
 
 # Day 1 = Jan 1 (Northern Hemisphere winter).
-seasonal(la, t) = season_amp(la) * sign(la) *
-                  cos(2π * (t - 172) / 365);   # day 172 ≈ June 21
+seasonal(lat, t) = season_amp(lat) * sign(lat) *
+                  cos(2π * (t - 172) / 365)   # day 172 ≈ June 21
 
 # Synthetic temperature (K): latitudinal gradient + seasonal cycle + noise.
-temperature_data = [300 - 60 * abs(la / 90) + seasonal(la, t) + 3 * randn()
-                    for la in lat, lo in lon, t in time];
+temperature_data = [300 - 60 * abs(lat / 90) + seasonal(lat, t) + 3 * randn()
+                    for lat in lats, lon in lons, t in times]
 
 # Inject a synthetic July heatwave over Europe (+80 K).
-for (i, la) in enumerate(lat), (j, lo) in enumerate(lon),
-    (k, t) in enumerate(time)
-    if 40 <= la <= 55 && 0 <= lo <= 30 && 180 <= t <= 210
+for (i, lat) in enumerate(lats), (j, lon) in enumerate(lons),
+    (k, t) in enumerate(times)
+    if 40 <= lat <= 55 && 0 <= lon <= 30 && 180 <= t <= 210
         temperature_data[i, j, k] += 80.0
     end
 end
 
 # Synthetic surface pressure (hPa): simplified coupling to temperature
-baseline_temp = [300 - 60 * abs(la / 90) for la in lat, lo in lon, t in time];
-temp_anom     = temperature_data .- baseline_temp;
+baseline_temp = [300 - 60 * abs(lat / 90) for lat in lats, lon in lons, t in times]
+temp_anom     = temperature_data .- baseline_temp
 
-pressure_baseline = [1013 - 10 * cosd(2 * la) for la in lat, lo in lon, t in time];
-pressure_noise    = 2 .* randn(size(temperature_data));
+pressure_baseline = [1013 - 10 * cosd(2 * lat) for lat in lats, lon in lons, t in times]
+pressure_noise    = 2 .* randn(size(temperature_data))
 pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
 ````
 
@@ -84,7 +84,10 @@ Suppose we ask: *"What was the temperature in Los Angeles (34.2°N, 118.17°W) o
 With a plain array, we have to translate dimensional coordinates into positional indices ourselves:
 
 ````@example dimensionaldata_tutorial
-temperature_data[findfirst(==(34.5), lat), findfirst(==(-118.5), lon), 90]
+i =  findfirst(==(34.5), lats)  
+j = findfirst(==(-118.5), lons)  
+k = 90  
+temperature_data[i,j,k] 
 ````
 
 Translating between dimension coordinates and array indices is a common operation when working with dimensional data. Such translations are onerous and can be difficult to track as the complexity of the code increases. DimensionalData provides a high level abstraction for working with such data.
@@ -97,9 +100,9 @@ Now, let's use DimensionalData to create a DimArray. A DimArray allows one to as
 
 ````@example dimensionaldata_tutorial
 # DimensionalData provides four predefined dimension types: X, Y, Z, and Ti.
-y = Y(lat)
-x = X(lon)
-ti = Ti(time)
+y = Y(lats)
+x = X(lons)
+ti = Ti(times)
 
 temperature = DimArray(temperature_data, (y,x,ti))
 ````
@@ -109,9 +112,9 @@ DimArray displays metadata about the dimensions, with four predefined types: X, 
 In this case, they are ranges for the longitude, latitude, and time. For more context, we can create custom Dimension names:
 
 ````@example dimensionaldata_tutorial
-latitude = Dim{:Latitude}(lat)
-longitude = Dim{:Longitude}(lon)
-time = Dim{:Time}(time)
+latitude = Dim{:latitude}(lats)
+longitude = Dim{:longitude}(lons)
+time = Dim{:time}(times)
 
 temperature = DimArray(temperature_data, (latitude, longitude, time))
 
@@ -119,7 +122,7 @@ temperature = DimArray(temperature_data, (latitude, longitude, time))
 pressure = DimArray(pressure_data, (latitude, longitude, time))
 ````
 
-Note that our dimensions are now named `Latitude`, `Longitude`, and `Time`, rather than the predefined `Y`, `X`, and `Ti`.
+Note that our dimensions are now named `latitude`, `longitude`, and `time`, rather than the predefined `Y`, `X`, and `Ti`.
 
 ---
 
@@ -130,7 +133,10 @@ Now we will demonstrate some of the ways to work with DimArrays.
 First, we will show standard positional indexing, compared to DimensionalData's lookup-based indexing.
 
 ````@example dimensionaldata_tutorial
-temperature[latitude = 1] # standard positional indexing
+temperature[1, :, :] # standard positional indexing
+````
+
+````@example dimensionaldata_tutorial
 temperature[latitude = At(-89.5)] # the same data, using lookup-based indexing
 ````
 
@@ -157,7 +163,7 @@ west_us = temperature[latitude = Touches(32, 49), longitude = Touches(-125, -102
 We can then visualize the selected region by plotting a surface temperature heatmap for day 90.
 
 ````@example dimensionaldata_tutorial
-heatmap(west_us[:, :, 90]'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - Western US",))
+heatmap(west_us'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - Western US",))
 ````
 
 Next, we want to create a bounding box selecting data in the tropical zone (between -23.5 and 23.5).
@@ -165,7 +171,7 @@ Next, we want to create a bounding box selecting data in the tropical zone (betw
 We use the `Where()` function which filters a dimension by passing each lookup value through a function. We pass an anonymous function that returns true when the absolute value of the latitude is less than or equal to 23.5.
 
 ````@example dimensionaldata_tutorial
-tropics = temperature[latitude = Where(la -> abs(la) <= 23.5), time = At(90)]
+tropics = temperature[latitude = Where(lat -> abs(lat) <= 23.5), time = At(90)]
 ````
 
 ````@example dimensionaldata_tutorial
@@ -309,8 +315,7 @@ july_day = anomalies[time = At(DateTime(2024, 7, 15))]
 # We choose July 15th "arbitrarily" (the toy data has a heatwave added in the summer).
 
 heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
-        axis = (title = "Temperature anomaly, 2024-07-15 (°C)",
-        xlabel = "Longitude", ylabel = "Latitude"))
+        axis = (title = "Temperature anomaly, 2024-07-15 (°C)"))
 ````
 
 ---
@@ -327,8 +332,8 @@ station_lons  = [-118.772,  -155.651,     166.501,      8.494,    -78.514  ]
 station_bias  = [  0.5,    -0.3,       1.2,      -0.8,      0.1  ]
 
 station_matrix = zeros(length(station_names), length(new_time_range))
-for (i, (la, lo, b)) in enumerate(zip(station_lats, station_lons, station_bias))
-    series = climate.temperature[latitude = Near(la), longitude = Near(lo)]
+for (i, (lat, lon, b)) in enumerate(zip(station_lats, station_lons, station_bias))
+    series = climate.temperature[latitude = Near(lat), longitude = Near(lon)]
     station_matrix[i, :] = parent(series) .+ b .+ 0.5 .* randn(365)
 end
 
