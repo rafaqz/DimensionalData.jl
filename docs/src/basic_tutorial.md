@@ -3,14 +3,14 @@
 In this tutorial, we're going to:
 
 1. [Create synthetic data](#create-synthetic-data)
-2. [Build a `DimArray` with named dimensions and lookup-based indexing](#building-a-dimarray)
-3. [Subset data using `At`, `Near`, `Touches`, and `Where`](#working-with-dimarrays)
-4. [Combine multiple variables into a `DimStack`](#building-a-dimstack)
-5. [Convert temperature units and time coordinates using broadcasting and `set`](#convert-temperature-units-and-time-coordinates-using-broadcasting-and-set)
+2. [Build a `DimArray` with named dimensions and lookup-based indexing](#build-a-dimarray-with-named-dimensions-and-lookup-based-indexing)
+3. [Subset data using `At`, `Near`, `Touches`, and `Where`](#subset-data-using-at-near-touches-and-where)
+4. [Combine multiple variables into a `DimStack`](#combine-multiple-variables-into-a-dimstack)
+5. [Rebuild a DimStack using `set` to update metadata](#rebuild-a-dimstack-using-set-to-update-metadata)
 6. [Compute climatology using `groupby`](#compute-climatology-using-groupby)
 7. [Compute statistics using `map`](#compute-statistics-using-map)
-8. [Build a DimStack of DimArrays with differing shared dimensions](#question-2-how-do-our-weather-stations-compare-to-the-global-mean)
-9. [Dimension-aware operations using `@d`](#comparing-station-temperatures-to-the-global-daily-mean)
+8. [Build a DimStack of DimArrays with differing shared dimensions](#build-a-dimstack-of-dimarrays-with-differing-shared-dimensions)
+9. [Dimension-aware operations using `@d`](#dimension-aware-operations-using-d)
 
 ---
 
@@ -53,19 +53,19 @@ seasonal(lat, t) = season_amp(lat) * sign(lat) *
                   cos(2π * (t - 172) / 365)   # day 172 ≈ June 21
 
 # Synthetic temperature (K): latitudinal gradient + seasonal cycle + noise.
-temperature_data = [300 - 60 * abs(lat / 90) + seasonal(lat, t) + 3 * randn()
+temperature_data = [27 - 60 * abs(lat / 90) + seasonal(lat, t) + 3 * randn()
                     for lat in lats, lon in lons, t in times]
 
-# Inject a synthetic July heatwave over Europe (+80 K).
+# Inject a synthetic July heatwave over Europe (+30 C).
 for (i, lat) in enumerate(lats), (j, lon) in enumerate(lons),
     (k, t) in enumerate(times)
     if 40 <= lat <= 55 && 0 <= lon <= 30 && 180 <= t <= 210
-        temperature_data[i, j, k] += 80.0
+        temperature_data[i, j, k] += 30.0
     end
 end
 
 # Synthetic surface pressure (hPa): simplified coupling to temperature
-baseline_temp = [300 - 60 * abs(lat / 90) for lat in lats, lon in lons, t in times]
+baseline_temp = [27 - 60 * abs(lat / 90) for lat in lats, lon in lons, t in times]
 temp_anom     = temperature_data .- baseline_temp
 
 pressure_baseline = [1013 - 10 * cosd(2 * lat) for lat in lats, lon in lons, t in times]
@@ -138,7 +138,7 @@ However, it is generally not necessary to use this macro manually, as IO package
 
 ---
 
-## Working with DimArrays
+## Subset data using `At`, `Near`, `Touches`, and `Where`
 
 Now we will demonstrate some of the ways to work with DimArrays.
 
@@ -192,7 +192,7 @@ heatmap(tropics'; colormap = :thermal, axis = (title = "Surface temperature (day
 
 ---
 
-## Building a DimStack
+## Combine multiple variables into a `DimStack`
 
 DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
 
@@ -223,26 +223,17 @@ Now we want to demonstrate DimensionalData in the context of some simple real-wo
 
 ## Question 1: Where on Earth was unusually warm in July?
 
-To answer this question, we will need several things:
+To answer this question, we will need a few things:
 
-1. Convert temperature units from Kelvin to Celsius
-2. Convert our time lookup from an integer range, `1:365`, to something more meaningful
-3. Group our data by month
-4. Calculate temperature anomalies to identify a heatwave
+1. Convert our time lookup from an integer range, `1:365`, to something more meaningful
+2. Group our data by month
+3. Calculate temperature anomalies to identify a heatwave
 
-### Convert temperature units and time coordinates using broadcasting and `set`
+## Rebuild a DimStack using `set` to update metadata
 
-Standard broadcasting to the temperature array allows us to convert to Celsius. Note that we can directly mutate the contents of our layers within the stack. 
+We want to convert our time dimension from integer days since December 31, 2013 to a human readable date format.
 
-````@example dimensionaldata_tutorial
-climate.temperature .-= 273.15
-````
-
-#### Time Conversion
-
-Now we want to convert our time dimension from integer days since December 31, 2013 to a human readable date format.
-
-> Note: While we can mutate the *values* inside of a `DimArray`/`DimStack` layer (as we just did converting to Celsius), the *lookups* themselves are immutable (i.e. cannot be changed once the object is built). 
+> Note: While we can mutate the *values* inside of a `DimArray`/`DimStack` layer (such as broadcasting to convert the units of temperature), the *lookups* themselves are immutable (i.e. cannot be changed once the object is built). 
 
 To change a lookup, we rebuild the object with `set` rather than assigning into it. 
 
@@ -260,7 +251,7 @@ Now we can ask for a specific year/month/day directly:
 climate[time = At(DateTime(2024, 7, 15))]
 ````
 
-### Compute climatology using `groupby`
+## Compute climatology using `groupby`
 
 With our new time lookup, we can now demonstrate the `groupby()` function by grouping by month. For this problem, we want the average temperature for each month of the year.
 
@@ -288,7 +279,7 @@ Here, the `month` function is applied to each time value, extracting the month n
 
 We now have grouped our data by month, by day of the week, and by seasons. Going forward, we will use the monthly grouping.
 
-### Compute statistics using `map`
+## Compute statistics using `map`
 
 We compute the monthly mean temperature for each lat/lon point by using `map` to apply the mean over the time dimension of each monthly group, then concatenate the results into a single 180×360×12 array.
 
@@ -327,14 +318,15 @@ july_day = anomalies[time = At(DateTime(2024, 7, 15))]
 # We choose July 15th "arbitrarily" (the toy data has a heatwave added in the summer).
 
 heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
-        axis = (title = "Temperature anomaly, 2024-07-15 (°C)"))
+        axis = (title = "Temperature anomaly, 2024-07-15 (°C)",))
 ````
 
 ---
 
-## Question 2: How do our weather stations compare to the global mean?
+TODO: Rework question 2
+## Question 2: How do weather stations compare to the global mean?
 
-Now we want to demonstrate working with DimStacks whose layers have some different dimensions. Remember that the layers in a stack must share some or all dimensions.
+Now we want to demonstrate working with DimStacks whose layers have some different dimensions. We generate data from weather stations whose coordinates do not align on the 
 
 ````@example dimensionaldata_tutorial
 # Data generation:
@@ -351,6 +343,8 @@ end
 
 station_obs = DimArray(station_matrix, (Dim{:station}(station_names), Dim{:time}(new_time_range)))
 ````
+
+## Build a DimStack of DimArrays with differing shared dimensions
 
 Our five stations' coordinates do not fall on the satellite grid's 1-degree cells, meaning we cannot align them using latitude and longitude as shared dimensions. However, both datasets share an identical time lookup, meaning we can combine them in a stack. 
 
@@ -370,9 +364,9 @@ The output confirms that station_obs shares the time dimension with the satellit
 
 Fortunately, our stations record one observation per day. If they made one measurement per hour, while our satellite data takes daily measurements, we would need another solution, as the lookup ranges would not match. 
 
-### Comparing station temperatures to the global daily mean
+### Dimension-aware operations using `@d`
 
-Now we want to compare station temperature to the global daily temperature.
+Now we want to compare station temperature to the global daily mean temperature.
 
 ````@example dimensionaldata_tutorial
 # First we calculate global daily mean:
