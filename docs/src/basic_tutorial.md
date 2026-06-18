@@ -331,119 +331,54 @@ heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
 
 ---
 
-TODO: Rework question 2
-### Question 2: How do weather stations compare to the global mean?
+### Question 2: How does the temperature at each point compare to the global daily mean? 
 
-Now we want to demonstrate working with DimStacks whose layers have some different dimensions. We generate data from weather stations whose coordinates do not align on the 
+Now we want to demonstrate working with DimStacks whose layers have some different dimensions. Our original temperature and pressure data share all of the same dimensions, allowing for default broadcasting to work successfully. To answer our second question, we will be working with arrays of two different shapes: the full temperature field (latitude, longitude, and time) and the global daily mean (time only).
+
+First, we compute the global daily mean. Averaging over latitude and longitude collapses the field to a single value per day:
 
 ````@example dimensionaldata_tutorial
-# Data generation:
-station_names = ["JPL", "Mauna Loa", "McMurdo", "Zurich", "Quito"]
-station_lats  = [ 34.543,    19.273,      -77.412,     47.670,     -0.432  ]
-station_lons  = [-118.772,  -155.651,     166.501,      8.494,    -78.514  ]
-station_bias  = [  0.5,    -0.3,       1.2,      -0.8,      0.1  ]
-
-station_matrix = zeros(length(station_names), length(new_time_range))
-for (i, (lat, lon, b)) in enumerate(zip(station_lats, station_lons, station_bias))
-    series = climate.temperature[latitude = Near(lat), longitude = Near(lon)]
-    station_matrix[i, :] = parent(series) .+ b .+ 0.5 .* randn(365)
-end
-
-station_obs = DimArray(station_matrix, (Dim{:station}(station_names), Dim{:time}(new_time_range)))
+global_daily_mean = dropdims(mean(climate.temperature; dims = (:latitude, :longitude));
+                             dims = (:latitude, :longitude))
 ````
+
+This layer only shares `time` with our previous `climate` data. 
 
 ## Build a DimStack of DimArrays with differing shared dimensions
 
-Our five stations' coordinates do not fall on the satellite grid's 1-degree cells, meaning we cannot align them using latitude and longitude as shared dimensions. However, both datasets share an identical time lookup, meaning we can combine them in a stack. 
-
-`station_obs` lives on `(station, time)` while the satellite layers live on `(latitude, longitude, time)`.
+The flexibility of DimStacks allows us to still organize these arrays into a single stack:
 
 ````@example dimensionaldata_tutorial
 combined = DimStack((
-    temperature = climate.temperature,
-    pressure    = climate.pressure,
-    station_obs = station_obs
+    temperature       = climate.temperature,   # latitude × longitude × time
+    pressure          = climate.pressure,      # latitude × longitude × time
+    global_daily_mean = global_daily_mean,     # time
 ))
 ````
 
-The output confirms that station_obs shares the time dimension with the satellite layers while living on its own station dimension, no latitude or longitude needed. 
-
-> Note: Shared dimensions must share *identical* lookups. Layers in a `DimStack` can live on some different dimensions, but wherever they *do* share a dimension, the lookups must match exactly. Our combined stack assembles only because `station_obs` was built from the same `new_time_range` as the satellite layers, so their `time` lookups are identical. 
-
-Fortunately, our stations record one observation per day. If they made one measurement per hour, while our satellite data takes daily measurements, we would need another solution, as the lookup ranges would not match. 
+> Note: Shared dimensions must share *identical* lookups. Layers in a `DimStack` can exist on completely different dimensions, but wherever they *do* share a dimension, the lookups must match exactly. 
 
 ## Dimension-aware operations using `@d`
 
-Now we want to compare station temperature to the global daily mean temperature.
-
-````@example dimensionaldata_tutorial
-# First we calculate global daily mean:
-global_daily_mean = mean(climate.temperature, dims = (:latitude, :longitude))
-
-# Drop the latitude and longitude dimensions
-global_daily_mean = dropdims(global_daily_mean, dims = (:latitude, :longitude))
-````
-
-Our first instinct might be to subtract using standard broadcasting:
+We want to calculate the departure of temperature from the daily average. Our first instinct might be to subtract via plain broadcasting, but it errors:
 
 ```julia
-combined.station_obs .- global_daily_mean
+combined.temperature .- combined.global_daily_mean
 ```
 
-But this errors: 
+Error: DimensionMismatch: arrays could not be broadcast to a common size: a has axes Dim{:latitude}(Base.OneTo(180)) and b has axes Dim{:time}(Base.OneTo(365))
 
-```julia
-ERROR: DimensionMismatch: arrays could not be broadcast to a common size:
-a has axes Dim{:station}(Base.OneTo(5)) and b has axes Dim{:time}(Base.OneTo(365))
-```
-
-Recall that `station_obs` is a 5×365 array containing daily temperature data per station, and `global_daily_mean` is a 365-element DimArray. Standard Julia aligns dimensions by position, so it matches the first axis of `station_obs` (station, length 5) against the only axis of `global_daily_mean` (time, length 365), resulting in an error.
-
-We want alignment based on the time dimension.
+Recall that `temperature` is latitude × longitude × time, and `global_daily_mean` is just time. Standard broadcasting aligns axes by position, so it tries to match temperature's first axis (latitude, length 180) against the only axis of global_daily_mean (time, length 365), resulting in the error.
 
 The DimensionalData macro `@d` broadcasts by matching shared dimension names rather than position. Since both arrays share `time`, it aligns on that dimension.
 
 ````@example dimensionaldata_tutorial
-station_vs_global = @d combined.station_obs .- global_daily_mean
+departure = @d combined.temperature .- combined.global_daily_mean
 ````
 
 ````@example dimensionaldata_tutorial
-fig = Figure(size = (900, 400))
-ax = Axis(fig[1, 1];
-          title  = "Station departure from daily global mean",
-          xlabel = "Date", ylabel = "Temperature departure (°C)")
-for name in station_names
-    lines!(ax, new_time_range, parent(station_vs_global[station = At(name)]);
-           label = name)
-end
-axislegend(ax; position = :rb)
-fig
+heatmap(departure_day'; colormap = :thermal, colorrange = (-40, 40),
+        axis = (title = "Departure from global daily mean, 2024-07-15 (°C)",))
 ````
 
-To tie together the gridded satellite data and the point-based station observations, we can visualize both on the same map:
-
-````@example dimensionaldata_tutorial
-plot_date = DateTime(2024, 7, 15)
-field     = climate.temperature[time = At(plot_date)]
-obs_today = station_obs[time = At(plot_date)]
-
-fig = Figure()
-ax  = Axis(fig[1, 1];
-           title  = "Surface temperature on $(Date(plot_date)) (°C)",
-           xlabel = "Longitude", ylabel = "Latitude")
-hm  = heatmap!(ax, lookup(field, :longitude),
-                   lookup(field, :latitude),
-                   parent(field)';
-               colormap   = :thermal,
-               colorrange = (-40, 35))
-scatter!(ax, station_lons, station_lats;
-         color       = parent(obs_today),
-         colormap    = :thermal,
-         colorrange  = (-40, 35),
-         strokecolor = :white, strokewidth = 2,
-         markersize  = 18)
-Colorbar(fig[1, 2], hm; label = "Temperature (°C)")
-fig
-````
-
-Working through this toy dataset, you've seen how DimensionalData turns a plain array into an intuitive object that carries its own context. We organized data into `DimArray`s and `DimStack`s with named dimensions and meaningful lookups; subset it by label with `At`, `Near`, `Touches`, and `Where` instead of integer indices; reshaped immutable objects with `set`; summarized along a dimension with `groupby`; and used the `@d` macro to broadcast across arrays that share only some of their dimensions. We used these to help us answer real questions: where it was unusually warm, and how weather stations compare to a global average. For the full API, see the DimensionalData [documentation](https://rafaqz.github.io/DimensionalData.jl/stable/).
+Working through this toy dataset, you've seen how DimensionalData turns a plain array into an intuitive object that carries its own context. We organized data into `DimArray`s and `DimStack`s with named dimensions and meaningful lookups; subset it by label with `At`, `Near`, `Touches`, and `Where` instead of integer indices; reshaped immutable objects with `set`; summarized along a dimension with `groupby`; and used the `@d` macro to broadcast across arrays that share only some of their dimensions.
