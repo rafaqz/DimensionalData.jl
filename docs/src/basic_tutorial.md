@@ -145,8 +145,10 @@ Now we will demonstrate some of the ways to work with DimArrays.
 First, we will show standard positional indexing, compared to DimensionalData's lookup-based indexing.
 
 ````@example dimensionaldata_tutorial
-temperature[1, :, :] # standard positional indexing
+temperature[latitude = 1] # standard positional indexing
 ````
+
+`At` selects elements that match the lookup value exactly:
 
 ````@example dimensionaldata_tutorial
 temperature[latitude = At(-89.5)] # the same data, using lookup-based indexing
@@ -154,7 +156,7 @@ temperature[latitude = At(-89.5)] # the same data, using lookup-based indexing
 
 Lookup-based indexing simplifies the indexing process because we can use the lookups to refer to specific elements by name, rather than needing to consider the order of our data (its index positions).
 
-Back to the question, using a DimArray: *What was the temperature in Los Angeles (34.2°N, 118.17°W) on day 90?*
+Back to the question, using a DimArray: *What was the temperature at a location in Los Angeles (34.2°N, 118.17°W) on day 90?*
 
 There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5.. so 34.5 is an element in the lookup range while 34.2 is not.
 
@@ -164,7 +166,7 @@ There are several Selector functions. For this problem, we would likely use eith
 temperature[latitude = Near(34.2), longitude = Near(-118.2), time = At(90)]
 ````
 
-Next, we want to select all temperature data from the western US on day 90.
+Expanding from looking at a single point observation, our next question is *What was the temperature across the western US on day 90?*
 
 `Touches` selects all intervals that overlap with or share a boundary with the specified range. 
 
@@ -178,16 +180,20 @@ We can then visualize the selected region by plotting a surface temperature heat
 heatmap(west_us'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - Western US",))
 ````
 
-Next, we want to create a bounding box selecting data in the tropical zone (between -23.5 and 23.5).
+Lastly, we may want to ask *What were the surface temperatures in the Northern Hemisphere during winter?*
 
-We use the `Where()` function which filters a dimension by passing each lookup value through a function. We pass an anonymous function that returns true when the absolute value of the latitude is less than or equal to 23.5.
+`Where` filters a dimension by passing each lookup value through a function. It is particularly useful when the selection condition cannot be expressed as a single contiguous range, or contains complex logic. Here, we select temperature observations during the Northern Hemisphere's winter (approx. the months of December, January, February):
 
 ````@example dimensionaldata_tutorial
-tropics = temperature[latitude = Where(lat -> abs(lat) <= 23.5), time = At(90)]
+# We use `Touches` to select the contiguous range of Northern Hemisphere latitudes, and `Where` for selecting winter days
+winter = temperature[latitude = Touches(0, 90), time = Where(t -> t <= 60 || t >= 335)]
 ````
 
+We can now calculate the average winter temperature at each point in the Northern Hemisphere and plot: 
+
 ````@example dimensionaldata_tutorial
-heatmap(tropics'; colormap = :thermal, axis = (title = "Surface temperature (day 90) - tropics",))
+winter_mean = dropdims(mean(winter, dims=:time), dims=:time)
+heatmap(winter_mean'; colormap = :thermal, axis = (title = "Mean surface temperature - Northern Hemisphere winter",))
 ````
 
 ---
