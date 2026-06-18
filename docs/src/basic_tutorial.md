@@ -45,14 +45,14 @@ lats = -89.5:89.5
 lons = -179.5:179.5
 times = 1:365
 
-# Seasonal amplitude (K) as a function of latitude: low seasonal variability near equator, high seasonal variability near poles.
+# Seasonal amplitude as a function of latitude: low seasonal variability near equator, high seasonal variability near poles.
 season_amp(lat) = 25 * (abs(lat) / 90)
 
 # Day 1 = Jan 1 (Northern Hemisphere winter).
 seasonal(lat, t) = season_amp(lat) * sign(lat) *
                   cos(2π * (t - 172) / 365)   # day 172 ≈ June 21
 
-# Synthetic temperature (K): latitudinal gradient + seasonal cycle + noise.
+# Synthetic temperature (C): latitudinal gradient + seasonal cycle + noise.
 temperature_data = [27 - 60 * abs(lat / 90) + seasonal(lat, t) + 3 * randn()
                     for lat in lats, lon in lons, t in times]
 
@@ -70,7 +70,9 @@ temp_anom     = temperature_data .- baseline_temp
 
 pressure_baseline = [1013 - 10 * cosd(2 * lat) for lat in lats, lon in lons, t in times]
 pressure_noise    = 2 .* randn(size(temperature_data))
-pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise;
+pressure_data     = pressure_baseline .- 0.5 .* temp_anom .+ pressure_noise
+
+nothing # hide
 ````
 
 The above code creates two 3D Arrays, one for temperature and one for pressure, each with dimensions 180×360×365 representing latitude, longitude, and time.
@@ -145,7 +147,7 @@ Now we will demonstrate some of the ways to work with DimArrays.
 First, we will show standard positional indexing, compared to DimensionalData's lookup-based indexing.
 
 ````@example dimensionaldata_tutorial
-temperature[latitude = 1] # standard positional indexing
+temperature[1, :, :] # standard positional indexing
 ````
 
 `At` selects elements that match the lookup value exactly:
