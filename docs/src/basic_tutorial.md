@@ -5,7 +5,7 @@ In this tutorial, we're going to:
 1. [Create synthetic data](#create-synthetic-data)
 2. [Build a `DimArray` with named dimensions and lookup-based indexing](#build-a-dimarray-with-named-dimensions-and-lookup-based-indexing)
 3. [Subset data using `At`, `Near`, `Touches`, and `Where`](#subset-data-using-at-near-touches-and-where)
-4. [Combine multiple variables into a `DimStack`](#combine-multiple-variables-into-a-dimstack)
+4. [Build a `DimStack`](#build-a-dimstack)
 5. [Rebuild a DimStack using `set` to update metadata](#rebuild-a-dimstack-using-set-to-update-metadata)
 6. [Compute climatology using `groupby`](#compute-climatology-using-groupby)
 7. [Compute statistics using `map`](#compute-statistics-using-map)
@@ -96,7 +96,7 @@ Translating between dimension coordinates and array indices is a common operatio
 
 ---
 
-## Building a DimArray
+## Build a `DimArray` with named dimensions and lookup-based indexing
 
 Now, let's use DimensionalData to create a DimArray. A DimArray allows one to assign names and lookup values to the axes of an Array. This facilitates intuitive and persistent mapping between dimension coordinates and array values.
 
@@ -200,7 +200,7 @@ heatmap(winter_mean'; colormap = :thermal, axis = (title = "Mean surface tempera
 
 ---
 
-## Combine multiple variables into a `DimStack`
+## Build a `DimStack`
 
 DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
 
@@ -229,7 +229,7 @@ Now we want to demonstrate DimensionalData in the context of some simple real-wo
 
 ---
 
-## Question 1: Where on Earth was unusually warm in July?
+### Question 1: Where on Earth was unusually warm in July?
 
 To answer this question, we will need a few things:
 
@@ -332,7 +332,7 @@ heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
 ---
 
 TODO: Rework question 2
-## Question 2: How do weather stations compare to the global mean?
+### Question 2: How do weather stations compare to the global mean?
 
 Now we want to demonstrate working with DimStacks whose layers have some different dimensions. We generate data from weather stations whose coordinates do not align on the 
 
@@ -372,7 +372,7 @@ The output confirms that station_obs shares the time dimension with the satellit
 
 Fortunately, our stations record one observation per day. If they made one measurement per hour, while our satellite data takes daily measurements, we would need another solution, as the lookup ranges would not match. 
 
-### Dimension-aware operations using `@d`
+## Dimension-aware operations using `@d`
 
 Now we want to compare station temperature to the global daily mean temperature.
 
