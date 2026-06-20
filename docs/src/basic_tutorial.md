@@ -333,7 +333,9 @@ heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
 
 ### Question 2: How does the temperature at each point compare to the global daily mean? 
 
-Now we want to demonstrate working with DimStacks whose layers have some different dimensions. Our original temperature and pressure data share all of the same dimensions, allowing for default broadcasting to work successfully. To answer our second question, we will be working with arrays of two different shapes: the full temperature field (latitude, longitude, and time) and the global daily mean (time only).
+To answer our second question, we will be working with arrays of two different shapes: the full temperature field (latitude, longitude, and time) and the global daily mean (time only). The motivation behind this is to demonstrate working with a DimStack whose layers don't completely match.
+
+## Build a DimStack of DimArrays with differing shared dimensions
 
 First, we compute the global daily mean. Averaging over latitude and longitude collapses the field to a single value per day:
 
@@ -344,29 +346,28 @@ global_daily_mean = dropdims(mean(climate.temperature; dims = (:latitude, :longi
 
 This layer only shares `time` with our previous `climate` data. 
 
-## Build a DimStack of DimArrays with differing shared dimensions
-
 The flexibility of DimStacks allows us to still organize these arrays into a single stack:
 
 ````@example dimensionaldata_tutorial
 combined = DimStack((
-    temperature       = climate.temperature,   # latitude × longitude × time
-    pressure          = climate.pressure,      # latitude × longitude × time
-    global_daily_mean = global_daily_mean,     # time
+    temperature = climate.temperature,   
+    # latitude × longitude × time
+    pressure = climate.pressure,      
+    # latitude × longitude × time
+    global_daily_mean = global_daily_mean,     
+    # time
 ))
 ````
 
-> Note: Shared dimensions must share *identical* lookups. Layers in a `DimStack` can exist on completely different dimensions, but wherever they *do* share a dimension, the lookups must match exactly. 
+> Note: Layers in a `DimStack` do *not* need to share any dimensions. But, when the same dimension name appears in more than one layer, that dimension's lookup must be *identical* across those layers. 
 
 ## Dimension-aware operations using `@d`
 
-We want to calculate the departure of temperature from the daily average. Our first instinct might be to subtract via plain broadcasting, but it errors:
+We want to calculate the departure of temperature from the daily average. Our first instinct might be to subtract via plain broadcasting, but this errors:
 
-```julia
+````@example dimensionaldata_tutorial
 combined.temperature .- combined.global_daily_mean
-```
-
-Error: DimensionMismatch: arrays could not be broadcast to a common size: a has axes Dim{:latitude}(Base.OneTo(180)) and b has axes Dim{:time}(Base.OneTo(365))
+````
 
 Recall that `temperature` is latitude × longitude × time, and `global_daily_mean` is just time. Standard broadcasting aligns axes by position, so it tries to match temperature's first axis (latitude, length 180) against the only axis of global_daily_mean (time, length 365), resulting in the error.
 
