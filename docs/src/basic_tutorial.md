@@ -81,18 +81,18 @@ The above code creates two 3D Arrays, one for temperature and one for pressure, 
 temperature_data[1:5, 1:5, 1]
 ````
 
-Suppose we ask: *"What was the temperature in Los Angeles (34.2°N, 118.17°W) on day 90?"*
+Suppose we ask: *"What was the temperature in Los Angeles (34.2°N, 118.2°W) on day 90?"*
 
 With a plain array, we have to translate dimensional coordinates into positional indices ourselves:
 
 ````@example dimensionaldata_tutorial
-i =  findfirst(==(34.5), lats)  
-j = findfirst(==(-118.5), lons)  
+i = argmin(abs.(lats .- 34.2))
+j = argmin(abs.(lons .- (-118.2))) 
 k = 90  
 temperature_data[i,j,k] 
 ````
 
-Translating between dimension coordinates and array indices is a common operation when working with dimensional data. Such translations are onerous and can be difficult to track as the complexity of the code increases. DimensionalData provides a high level abstraction for working with such data.
+Translating between dimension coordinates and array indices is a common operation when working with dimensional data. Such translations are onerous and can be difficult to track as the complexity of the code increases. DimensionalData provides a high-level abstraction for working with such data.
 
 ---
 
@@ -109,7 +109,7 @@ ti = Ti(times)
 temperature = DimArray(temperature_data, (y,x,ti))
 ````
 
-DimArray displays metadata about the dimensions, with four predefined types: X, Y, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
+DimArray displays metadata about the dimensions, with four predefined types: X, Y, Z, and Ti. It also shows the ranges for the lookups of our data, which are then displayed along our array.
 
 In this case, they are ranges for the longitude, latitude, and time. For more context, we can create custom Dimension names:
 
@@ -156,11 +156,11 @@ temperature[1, :, :] # standard positional indexing
 temperature[latitude = At(-89.5)] # the same data, using lookup-based indexing
 ````
 
-Lookup-based indexing simplifies the indexing process because we can use the lookups to refer to specific elements by name, rather than needing to consider the order of our data (its index positions).
+Lookup-based indexing simplifies things because we can refer to elements by their lookup values rather than tracking their position in the array (i.e., the order of our data).
 
-Back to the question, using a DimArray: *What was the temperature at a location in Los Angeles (34.2°N, 118.17°W) on day 90?*
+Back to the question, using a DimArray: *What was the temperature at a location in Los Angeles (34.2°N, 118.2°W) on day 90?*
 
-There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5.. so 34.5 is an element in the lookup range while 34.2 is not.
+There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5, so 34.5 is an element in the lookup range while 34.2 is not.
 
 `Near` finds the closest entry to the specified coordinates.
 
@@ -229,7 +229,7 @@ Now we want to demonstrate DimensionalData in the context of some simple real-wo
 
 ---
 
-### Question 1: Where on Earth was unusually warm in July?
+**Question 1: Where on Earth was unusually warm in July?**
 
 To answer this question, we will need a few things:
 
@@ -239,7 +239,7 @@ To answer this question, we will need a few things:
 
 ## Rebuild a DimStack using `set` to update metadata
 
-We want to convert our time dimension from integer days since December 31, 2013 to a human readable date format.
+We want to convert our time dimension from an integer day-of-year (1–365) to calendar dates in 2024 (a human-readable date format).
 
 > Note: While we can mutate the *values* inside of a `DimArray`/`DimStack` layer (such as broadcasting to convert the units of temperature), the *lookups* themselves are immutable (i.e. cannot be changed once the object is built). 
 
@@ -268,7 +268,7 @@ With our new time lookup, we can now demonstrate the `groupby()` function by gro
 monthly_groups = groupby(climate.temperature, :time => month)
 ````
 
-The result is a DimArray of DimArrays, one array per month. Note that the days in each month reflect the month's actual length.
+The result is a `DimGroupByArray` (a DimArray of DimArrays), one array per month. Note that the days in each month reflect the month's actual length.
 
 **Side note on `groupby`:** We can group by other metrics, such as the day of the week:
 
@@ -276,7 +276,7 @@ The result is a DimArray of DimArrays, one array per month. Note that the days i
 day_of_week_groups = groupby(climate.temperature, :time => dayofweek)
 ````
 
-Or grouping by seasons, where we use the `Bins` function. The `Bins` function maps each lookup value into a named group based on the bin it falls into.
+Or grouping by seasons, where we use the `Bins` function. The `Bins` function maps each lookup value into the bin it falls into.
 
 ````@example dimensionaldata_tutorial
 # Group by seasons DJF, MAM, JJA, SON:
@@ -331,7 +331,7 @@ heatmap(july_day'; colormap = :balance, colorrange = (-15, 15),
 
 ---
 
-### Question 2: How does the temperature at each point compare to the global daily mean? 
+**Question 2: How does the temperature at each point compare to the global daily mean?**
 
 To answer our second question, we will be working with arrays of two different shapes: the full temperature field (latitude, longitude, and time) and the global daily mean (time only). The motivation behind this is to demonstrate working with a DimStack whose layers don't completely match.
 
@@ -365,20 +365,24 @@ combined = DimStack((
 
 We want to calculate the departure of temperature from the daily average. Our first instinct might be to subtract via plain broadcasting, but this errors:
 
-````@example dimensionaldata_tutorial
+```julia
 combined.temperature .- combined.global_daily_mean
-````
+```
+
+Error: DimensionMismatch: arrays could not be broadcast to a common size: a has axes Dim{:latitude}(Base.OneTo(180)) and b has axes Dim{:time}(Base.OneTo(365))
 
 Recall that `temperature` is latitude × longitude × time, and `global_daily_mean` is just time. Standard broadcasting aligns axes by position, so it tries to match temperature's first axis (latitude, length 180) against the only axis of global_daily_mean (time, length 365), resulting in the error.
 
-The DimensionalData macro `@d` broadcasts by matching shared dimension names rather than position. Since both arrays share `time`, it aligns on that dimension.
+The DimensionalData macro `@d` broadcasts by matching shared dimension names rather than just position. Since both arrays share `time`, it aligns on that dimension.
 
 ````@example dimensionaldata_tutorial
 departure = @d combined.temperature .- combined.global_daily_mean
 ````
 
 ````@example dimensionaldata_tutorial
-heatmap(departure_day'; colormap = :thermal, colorrange = (-40, 40),
+departure_day = departure[time = At(DateTime(2024, 7, 15))]
+
+heatmap(departure_day'; colormap = :balance, colorrange = (-40, 40),
         axis = (title = "Departure from global daily mean, 2024-07-15 (°C)",))
 ````
 
