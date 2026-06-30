@@ -184,7 +184,9 @@ heatmap(west_us'; colormap = :thermal, axis = (title = "Surface temperature (day
 
 Lastly, we may want to ask *What were the surface temperatures in the Northern Hemisphere during winter?*
 
-`Where` filters a dimension by passing each lookup value through a function. It is particularly useful when the selection condition cannot be expressed as a single contiguous range, or contains complex logic. Here, we select temperature observations during the Northern Hemisphere's winter (approx. the months of December, January, February):
+`Where` filters a dimension by passing each lookup value through an arbitrary function. It's particularly useful when the selection condition cannot be expressed as a single contiguous range, or contains complex logic. 
+
+Here, we select temperature observations during the Northern Hemisphere's winter (approx. the months of December, January, February):
 
 ````@example dimensionaldata_tutorial
 # We use `Touches` to select the contiguous range of Northern Hemisphere latitudes, and `Where` for selecting winter days
