@@ -142,7 +142,7 @@ However, it is generally not necessary to use this macro manually, as IO package
 
 ## Subset data using `At`, `Near`, `Touches`, and `Where`
 
-Now we will demonstrate some of the ways to work with DimArrays.
+Now we will demonstrate some of the ways to work with DimArrays using [selectors](@ref "Selectors").
 
 First, we will show standard positional indexing, compared to DimensionalData's lookup-based indexing.
 
