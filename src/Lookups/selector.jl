@@ -1125,7 +1125,7 @@ function select_unalligned_indices(
     throw(ArgumentError("only `Near`, `At` or `Contains` selectors currently work on `Unalligned` lookups"))
 end
 function select_unalligned_indices(
-    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    lookups::Tuple{<:AbstractArrayLookup,<:AbstractArrayLookup,Vararg{AbstractArrayLookup}},
     selectors::Tuple{<:IntSelector,<:IntSelector,Vararg{IntSelector}}
 )
     select_array_lookups(lookups, selectors)
@@ -1134,10 +1134,10 @@ end
 # This implementation is extremely slow,
 # it's expected user will use the NearestNeighbors.jl extension
 function select_array_lookups(
-    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    lookups::Tuple{<:AbstractArrayLookup,<:AbstractArrayLookup,Vararg{AbstractArrayLookup}},
     selectors::Tuple
 )
-    throw(ArgumentError("Load NearestNeighbors.jl to use `At` on `ArrayLookup`s"))
+    throw(ArgumentError("Load NearestNeighbors.jl to use `At` on `AbstractArrayLookup`s"))
 end
 
 _transform2int(lookup::AbstractArray, ::Near, x) = min(max(round(Int, x), firstindex(lookup)), lastindex(lookup))

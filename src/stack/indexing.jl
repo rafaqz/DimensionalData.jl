@@ -121,11 +121,10 @@ for f in (:getindex, :view, :dotview)
             s::AbstractDimStack{K, NT}, d1::Dimension, ds::Dimension...
         ) where {K, NT <: NamedTuple{K, T}} where T
             D = (d1, ds...)
-            extradims = otherdims(D, dims(s))
+            extradims = Dimensions._find_extradims(D, dims(s))
             length(extradims) > 0 && Dimensions._extradimswarn(extradims)
-            function f(A) 
-                layerdims = dims(D, dims(A))
-                I = length(layerdims) > 0 ? layerdims : map(_ -> :, size(A))
+            function f(A)
+                I = dims2indices(dims(A), D)
                 Base.$f(A, I...)
             end
             newlayers = unrolled_map(f, values(s))

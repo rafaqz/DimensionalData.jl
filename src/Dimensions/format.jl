@@ -26,6 +26,7 @@ function format(dims::Tuple{<:Pair,Vararg{Pair}}, A::AbstractArray)
     end
     return format(dims, A)
 end
+format(dims::Tuple{}) = ()
 # Make a dummy array that assumes the dims are the correct length and don't hold `Colon`s
 function format(dims::DimTuple) 
     ax = map(parent ∘ first ∘ axes, dims)
@@ -68,6 +69,8 @@ format(v, D::Type, axis::AbstractRange) = _valformaterror(v, D)
 
 format(m::Lookups.ArrayLookup, D::Type, ::AutoValues, axis::AbstractRange) =
     rebuild(m; dim=D(), data=axis)
+format(m::Lookups.ArrayLookup, D::Type, data::AbstractArray, axis::AbstractRange) =
+    rebuild(m; dim=D(), data)
 
 # Format Lookups
 # No more identification required for NoLookup
@@ -103,6 +106,19 @@ function format(m::AbstractSampled, D::Type, values, axis::AbstractRange)
     x = rebuild(m; data=i, order=o, span=sp, sampling=sa)
     return x
 end
+# Cyclic needs bounds formatting
+function format(m::AbstractCyclic, D::Type, values, axis::AbstractRange)
+    i = _format(values, axis)
+    o = _format(order(m), D, values)
+    sp = _format(span(m), D, values)
+    sa = _format(sampling(m), sp, D, values)
+    b = _format_bounds(bounds(m), i)
+    x = rebuild(m; data=i, order=o, span=sp, sampling=sa, bounds=b)
+    return x
+end
+_format_bounds(::AutoBounds, values) = (first(values), last(values))
+_format_bounds(::NoBounds, values) = NoBounds()
+_format_bounds(b::Tuple, values) = b
 # Transformed
 format(m::Transformed, D::Type, values::AutoValues, axis::AbstractRange) =
     rebuild(m; dim=D(), data=axis)

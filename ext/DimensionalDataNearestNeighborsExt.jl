@@ -6,13 +6,13 @@ using NearestNeighbors.StaticArrays
 using DimensionalData.Lookups
 using DimensionalData.Dimensions
 
-using DimensionalData.Lookups: ArrayLookup, matrix, atol
+using DimensionalData.Lookups: AbstractArrayLookup, matrix, atol
 
 const DD = DimensionalData
 const NN = NearestNeighbors
 
 function DD.Lookups.select_array_lookups(
-    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, 
+    lookups::Tuple{<:AbstractArrayLookup,<:AbstractArrayLookup,Vararg{AbstractArrayLookup}},
     selectors::Tuple{<:Union{At,Near},<:Union{Near,At},Vararg{Union{Near,At}}}
 )
     f1 = first(lookups)
@@ -28,7 +28,7 @@ function DD.Lookups.select_array_lookups(
 end
 
 function DD.Dimensions.format_unaligned(
-    lookups::Tuple{<:ArrayLookup,<:ArrayLookup,Vararg{ArrayLookup}}, dims::DD.DimTuple, axes,
+    lookups::Tuple{<:AbstractArrayLookup,<:AbstractArrayLookup,Vararg{AbstractArrayLookup}}, dims::DD.DimTuple, axes,
 )
     points = vec(SVector.(zip(map(matrix, lookups)...)))
     idxvec = Vector{Int}(undef, 1)

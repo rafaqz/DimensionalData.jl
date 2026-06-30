@@ -31,6 +31,8 @@ ispoints(::Points) = true
 ispoints(::Intervals) = false
 hasinternaldimensions(::Lookup) = false
 hasinternaldimensions(::Any) = false  # Fallback for non-Lookup types (e.g., raw arrays)
+hasinternaldimensions(l::Sampled) = !isnothing(dims(l))
+hasinternaldimensions(l::Categorical) = !isnothing(dims(l))
 
 # Forward them from lookups
 for f in (:isregular, :isexplicit)

@@ -68,6 +68,8 @@ hasinternaldimensions(::MergedLookup) = true
 order(m::MergedLookup) = Unordered()
 dims(m::MergedLookup) = m.dims
 dims(d::Dimension{<:MergedLookup}) = dims(val(d))
+dims(d::Dimension{<:Sampled}) = dims(val(d))
+dims(d::Dimension{<:Categorical}) = dims(val(d))
 
 # Lookup interface methods
 

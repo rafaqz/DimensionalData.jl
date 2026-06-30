@@ -212,6 +212,7 @@ struct AutoSpan <: Span end
 
 struct AutoStep end
 struct AutoBounds end
+struct NoBounds end
 struct AutoDim end
 
 Base.step(::AutoSpan) = AutoStep()

@@ -296,24 +296,29 @@ A = ones(x, y)
   20    1.0  1.0  1.0   1.0
 ```
 """
-struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M} <: AbstractSampled{T,O,Sp,Sa}
+struct Sampled{T,A<:AbstractVector{T},O,Sp,Sa,M,D} <: AbstractSampled{T,O,Sp,Sa}
     data::A
     order::O
     span::Sp
     sampling::Sa
     metadata::M
+    dims::D
 end
+# 5-argument positional constructor for backward compatibility
+Sampled(data::AbstractVector, order, span, sampling, metadata) = Sampled(data, order, span, sampling, metadata, nothing)
 function Sampled(data=AutoValues();
     order=AutoOrder(), span=AutoSpan(),
-    sampling=AutoSampling(), metadata=NoMetadata()
+    sampling=AutoSampling(), metadata=NoMetadata(), dims=nothing
 )
-    Sampled(data, order, span, sampling, metadata)
+    Sampled(data, order, span, sampling, metadata, dims)
 end
 
+dims(l::Sampled) = l.dims
+
 function rebuild(l::Sampled;
-    data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l), kw...
+    data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l), dims=dims(l), kw...
 )
-    Sampled(data, order, span, sampling, metadata)
+    Sampled(data, order, span, sampling, metadata, dims)
 end
 
 Base.unsafe_convert(::Type{Ptr{T}}, x::Sampled) where {T} = Base.unsafe_convert(Ptr{T}, x.data)
@@ -340,7 +345,7 @@ abstract type AbstractCyclic{X,T,O,Sp,Sa} <: AbstractSampled{T,O,Sp,Sa} end
 cycle(l::AbstractCyclic) = l.cycle
 cycle_status(l::AbstractCyclic) = l.cycle_status
 
-bounds(l::AbstractCyclic{<:Any,T}) where T = (typemin(T), typemax(T))
+bounds(l::AbstractCyclic) = l.bounds
 
 # Indexing with `AbstractArray` must rebuild the lookup as
 # `Sampled` as we no longer have the whole cycle.
@@ -353,6 +358,16 @@ end
 no_cycling(l::AbstractCyclic) = rebuild(l; cycle_status=NotCycling())
 
 function cycle_val(l::AbstractCyclic, val)
+    # Check bounds if defined - throw error for values outside bounds
+    # This is needed for CF climatology which cycles within year but is bounded by year range
+    # NoBounds means infinite cycling (no restriction)
+    b = bounds(l)
+    if b isa Tuple
+        lo, hi = b
+        if val < lo || val > hi
+            throw(SelectorError(l, val))
+        end
+    end
     cycle_start = ordered_first(l)
     # This formulation is necessary for dates
     ncycles = (val - cycle_start) ÷ (cycle_start + cycle(l) - cycle_start)
@@ -411,7 +426,7 @@ $SAMPLED_ARGUMENTS_DOC
     leap years breaking correct date cycling of a single year. If you actually need this behaviour, 
     please make a GitHub issue.
 """
-struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,Sa}
+struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C,B<:Union{<:Tuple{T,T},AutoBounds,NoBounds}} <: AbstractCyclic{X,T,O,Sp,Sa}
     data::A
     order::O
     span::Sp
@@ -419,20 +434,22 @@ struct Cyclic{X,T,A<:AbstractVector{T},O,Sp,Sa,M,C} <: AbstractCyclic{X,T,O,Sp,S
     metadata::M
     cycle::C
     cycle_status::X
+    bounds::B
     function Cyclic(
-        data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X
-    ) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X} where T
+        data::A, order::O, span::Sp, sampling::Sa, metadata::M, cycle::C, cycle_status::X, bounds::B
+    ) where {A<:AbstractVector{T},O,Sp,Sa,M,C,X,B} where T
         _check_ordered_cyclic(order)
-        new{X,T,A,O,Sp,Sa,M,C}(data, order, span, sampling, metadata, cycle, cycle_status)
+        new{X,T,A,O,Sp,Sa,M,C,B}(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
     end
 end
 function Cyclic(data=AutoValues();
     order=AutoOrder(), span=AutoSpan(),
     sampling=AutoSampling(), metadata=NoMetadata(),
+    bounds=NoBounds(),
     cycle, # Mandatory keyword, there are too many possible bugs with auto detection
 )
     cycle_status = Cycling()
-    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
 end
 
 _check_ordered_cyclic(::AutoOrder) = nothing
@@ -441,9 +458,9 @@ _check_ordered_cyclic(::Unordered) = throw(ArgumentError("Cyclic lookups must be
 
 function rebuild(l::Cyclic;
     data=parent(l), order=order(l), span=span(l), sampling=sampling(l), metadata=metadata(l),
-    cycle=cycle(l), cycle_status=cycle_status(l), kw...
+    cycle=cycle(l), cycle_status=cycle_status(l), bounds=bounds(l), kw...
 )
-    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status)
+    Cyclic(data, order, span, sampling, metadata, cycle, cycle_status, bounds)
 end
 
 """
@@ -507,19 +524,24 @@ Categorical{String} ["one", …, "three"] Unordered,
 Categorical{Symbol} [:a, …, :d] ForwardOrdered
 ```
 """
-struct Categorical{T,A<:AbstractVector{T},O<:Order,M} <: AbstractCategorical{T,O}
+struct Categorical{T,A<:AbstractVector{T},O<:Order,M,D} <: AbstractCategorical{T,O}
     data::A
     order::O
     metadata::M
+    dims::D
 end
-function Categorical(data=AutoValues(); order=AutoOrder(), metadata=NoMetadata())
-    Categorical(data, order, metadata)
+# 3-argument positional constructor for backward compatibility
+Categorical(data::AbstractVector, order, metadata) = Categorical(data, order, metadata, nothing)
+function Categorical(data=AutoValues(); order=AutoOrder(), metadata=NoMetadata(), dims=nothing)
+    Categorical(data, order, metadata, dims)
 end
 
+dims(l::Categorical) = l.dims
+
 function rebuild(l::Categorical;
-    data=parent(l), order=order(l), metadata=metadata(l), kw...
+    data=parent(l), order=order(l), metadata=metadata(l), dims=dims(l), kw...
 )
-    Categorical(data, order, metadata)
+    Categorical(data, order, metadata, dims)
 end
 
 function Base.:(==)(l1::AbstractCategorical, l2::AbstractCategorical)
@@ -601,7 +623,29 @@ transformfunc(lookup::Transformed) = lookup.f
 Base.:(==)(l1::Transformed, l2::Transformed) = typeof(l1) == typeof(l2) && l1.f == l2.f
 
 # TODO Transformed bounds
-struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
+
+"""
+    AbstractArrayLookup <: Unaligned
+
+Abstract supertype for lookups where the coordinates are stored in a 2D matrix,
+not aligned with the array axes (e.g., curvilinear grids, rotated pole grids).
+
+Concrete subtypes should implement:
+- `matrix(lookup)`: return the coordinate matrix
+- `dim(lookup)`: return the dimension this lookup represents
+- `tree(lookup)`: optional KDTree for nearest neighbor search
+"""
+abstract type AbstractArrayLookup{T,N} <: Unaligned{T,N} end
+
+"""
+    ArrayLookup <: AbstractArrayLookup
+
+A lookup where coordinates are stored in a 2D matrix, typically used for
+curvilinear or unaligned grids where coordinates don't align with array axes.
+
+For CRS-aware array lookups, use `ProjectedArrayLookup` from Rasters.jl.
+"""
+struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: AbstractArrayLookup{T,1}
     data::A
     dim::D
     dims::Ds
@@ -611,11 +655,13 @@ struct ArrayLookup{T,A,D,Ds,Ma<:AbstractArray{T},Tr,IV,DV,Me} <: Unaligned{T,1}
     distvec::DV
     metadata::Me
 end
-ArrayLookup(matrix; metadata=NoMetadata()) =
-    ArrayLookup(AutoValues(), AutoDim(), AutoDim(), matrix, nothing, nothing, nothing, metadata)
-dim(lookup::ArrayLookup) = lookup.dim
-matrix(l::ArrayLookup) = l.matrix
-tree(l::ArrayLookup) = l.tree
+ArrayLookup(matrix; data=AutoValues(), dim=AutoDim(), dims=AutoDim(), metadata=NoMetadata()) =
+    ArrayLookup(data, dim, dims, matrix, nothing, nothing, nothing, metadata)
+dim(lookup::AbstractArrayLookup) = lookup.dim
+matrix(l::AbstractArrayLookup) = l.matrix
+tree(l::AbstractArrayLookup) = l.tree
+# Coordinates live in a 2D matrix - there is no linear ordering on the 1D axis
+order(::AbstractArrayLookup) = Unordered()
 
 # Shared methods
 

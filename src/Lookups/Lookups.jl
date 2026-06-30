@@ -46,7 +46,7 @@ export Sampling, Points, Intervals, AutoSampling, NoSampling
 export Span, Regular, Irregular, Explicit, AutoSpan, NoSpan
 export Position, Locus, Center, Start, End, AutoLocus, AutoPosition
 export Metadata, NoMetadata
-export AutoStep, AutoBounds, AutoValues
+export AutoStep, AutoBounds, NoBounds, AutoValues
 
 export Lookup
 export AutoLookup, AbstractNoLookup, NoLookup

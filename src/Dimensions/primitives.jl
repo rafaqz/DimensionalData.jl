@@ -845,6 +845,22 @@ _astuple(x) = (x,)
 
 # Warnings and Error methods.
 
+"""
+    _find_extradims(querydims, objectdims) -> Tuple
+
+Find query dimensions that aren't in the object's dimensions AND aren't covered
+by multidimensional lookups (like MergedLookup).
+"""
+function _find_extradims(querydims, objectdims)
+    extradims = otherdims(querydims, objectdims)
+    isempty(extradims) && return ()
+    # Extract dims with internal dimensions (MergedLookup, etc) that match some query dims
+    multidims = dims(otherdims(objectdims, querydims),
+        x -> hasinternaldimensions(lookup(x)) && !isempty(dims(x, querydims)))
+    # Filter extradims to only those NOT matched by any multidim
+    otherdims(extradims, x -> any(y -> hasdim(y, x), multidims))
+end
+
 _extradimsmsg(::Tuple{}) = "Some dims were not found in object."
 _extradimsmsg(extradims) = "$(extradims) dims were not found in object."
 _metadatamsg(a, b) = "Metadata $(metadata(a)) and $(metadata(b)) do not match."

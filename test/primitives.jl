@@ -168,8 +168,8 @@ end
     @test dims(dimz, Y) === dimz[2]
     TT = typeof(LinRange(1.0,1.0,1)) # TT is different for Julia 1.6 and 1.7
     @test typeof(dims(da)) ==
-        Tuple{X{Sampled{Int,StepRange{Int,Int},ForwardOrdered,Regular{Int},Points,NoMetadata}},
-              Y{Sampled{Int,UnitRange{Int},ForwardOrdered,Regular{Int},Points,NoMetadata}} }
+        Tuple{X{Sampled{Int,StepRange{Int,Int},ForwardOrdered,Regular{Int},Points,NoMetadata,Nothing}},
+              Y{Sampled{Int,UnitRange{Int},ForwardOrdered,Regular{Int},Points,NoMetadata,Nothing}} }
 end
 
 @testset "commondims" begin
