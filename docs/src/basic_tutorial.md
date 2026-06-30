@@ -160,7 +160,7 @@ Lookup-based indexing simplifies things because we can refer to elements by thei
 
 Back to the question, using a DimArray: *What was the temperature at a location in Los Angeles (34.2°N, 118.2°W) on day 90?*
 
-There are several Selector functions. For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5, so 34.5 is an element in the lookup range while 34.2 is not.
+There are several inbuilt [Selectors](@ref Selectors). For this problem, we would likely use either `At()` or `Near()`. `At()` requires an exact match, and errors if the coordinate we ask for is not an element in the lookup. I.e. our latitude lookup is -89.5:89.5, so 34.5 is an element in the lookup range while 34.2 is not.
 
 `Near` finds the closest entry to the specified coordinates.
 
