@@ -126,7 +126,7 @@ pressure = DimArray(pressure_data, (latitude, longitude, time))
 
 Note that our dimensions are now named `latitude`, `longitude`, and `time`, rather than the predefined `Y`, `X`, and `Ti`.
 
-`Dim{:name}` is generally the simplest way to attach a custom name to an axis. We can also create custom dimensions using the `@dim` macro, which lets our named dimension inherit from an abstract supertype like `XDim` or `YDim` so methods that dispatch on axis type (e.g. plotting) accommodate our custom dimension directly. In other words, this allows us to directly relate a custom dimension like `Lat` to `YDim`, so `Lat` will be treated as the y-axis of our data. 
+`Dim{:name}` is generally the simplest way to attach a custom name to an axis. We can also create custom dimensions using the [`@dim`](@ref) macro, which lets our named dimension inherit from an abstract supertype like `XDim` or `YDim`.  Then, methods that dispatch on axis type (e.g. plotting) will accommodate our custom dimension directly. In other words, this allows us to directly relate a custom dimension like `Lat` to `YDim`, so `Lat` will be treated as the y-axis of our data. 
 
 ````@example dimensionaldata_tutorial
 using DimensionalData: @dim, YDim, XDim
