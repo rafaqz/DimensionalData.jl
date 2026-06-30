@@ -204,7 +204,7 @@ heatmap(winter_mean'; colormap = :thermal, axis = (title = "Mean surface tempera
 
 ## Build a `DimStack`
 
-DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a DimStack that allows us to store our pressure and temperature data within one object.
+DimArrays are helpful, but only store one variable (i.e. our previous DimArray only stores temperature data). However, our data includes both temperature and pressure measurements. We can use a [`DimStack`](@ref "DimStacks"), that allows us to store our pressure and temperature data in a single object.
 
 ````@example dimensionaldata_tutorial
 climate = DimStack((temperature = temperature, pressure = pressure))
