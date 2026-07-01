@@ -38,9 +38,20 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
     Base.checkbounds(Bool, A, dims2indices(A, (d1, dims...))...)
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
+function Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray; kw...)
+    isempty(kw) && return all(x -> x == 1, size(A))
+    Base.checkbounds(Bool, A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+end
+function Base.checkbounds(A::AbstractBasicDimArray; kw...)
+    if isempty(kw)
+        all(x -> x == 1, size(A)) || throw(BoundsError(A, ()))
+    else
+        Base.checkbounds(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+    end
+end
 
 """
-    AbstractDimArray <: AbstractBasicArray
+    AbstractDimArray <: AbstractBasicDimArray
 
 Abstract supertype for all "dim" arrays.
 
