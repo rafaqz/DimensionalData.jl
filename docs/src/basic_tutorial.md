@@ -278,7 +278,7 @@ The result is a `DimGroupByArray` (a DimArray of DimArrays), one array per month
 day_of_week_groups = groupby(climate.temperature, :time => dayofweek)
 ````
 
-Or grouping by seasons, where we use the `Bins` function. The `Bins` function maps each lookup value into the bin it falls into.
+Or grouping by seasons using a `Bins` Type. The `Bins` Type maps each lookup value into the bin it falls into.
 
 ````@example dimensionaldata_tutorial
 # Group by seasons DJF, MAM, JJA, SON:
