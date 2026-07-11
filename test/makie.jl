@@ -139,9 +139,14 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     end
 
 
-    for dd_i in (dd_vec_mis, dd_vec_uni) # These plot do not work with missing and unitful due to Makie limitations
-        for plt_i in ( rainclouds, violin, boxplot)
-            @test plt_i(dd_i) broken = true
+    for plt_i in ( rainclouds, violin, boxplot)
+        # These plots do not work with missing due to Makie limitations
+        @test plt_i(dd_vec_mis) broken = true
+        if pkgversion(Makie) < v"0.25"
+            # Unitful values only work from Makie v0.25 with the expanded dim converts
+            @test plt_i(dd_vec_uni) broken = true
+        else
+            @test plt_i(dd_vec_uni) isa Makie.FigureAxisPlot
         end
     end
 
@@ -535,8 +540,8 @@ end
     plot!(A1v)
     fig, ax, _ = plot(A1num)
     reset_limits!(ax)
-    org = first(ax.finallimits.val.origin)
-    wid = first(widths(ax.finallimits.val))
+    org = first(ax.finallimits[].origin)
+    wid = first(widths(ax.finallimits[]))
     # This tests for #714
     @test org <= -10
     @test org + wid >= 10
@@ -661,7 +666,11 @@ end
     rainclouds!(ax, A2)
     fig, ax, _ = rainclouds(A2u)
     rainclouds!(ax, A2u)
-    @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
+    if pkgversion(Makie) < v"0.25"
+        @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
+    else
+        @test_throws MethodError rainclouds(A2m) # missing values in data not supported by dim converts
+    end
 
     fig, ax, _ = surface(A2)
     surface!(ax, A2)
