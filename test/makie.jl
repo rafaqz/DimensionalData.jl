@@ -1,11 +1,16 @@
 using DimensionalData, Test, Dates
-using AlgebraOfGraphics
 using CairoMakie
 using CairoMakie: ComputePipeline
 using ColorTypes
 using Unitful, Unitful.DefaultSymbols
 import Distributions
 import DimensionalData as DD
+
+# AlgebraOfGraphics does not support Makie v0.25 yet, so only test it on older versions
+const TEST_ALGEBRAOFGRAPHICS = pkgversion(Makie) < v"0.25"
+if TEST_ALGEBRAOFGRAPHICS
+    @eval using AlgebraOfGraphics
+end
 
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
@@ -476,7 +481,7 @@ end
 
 # end
 
-@testset "AlgebraOfGraphics" begin
+TEST_ALGEBRAOFGRAPHICS && @testset "AlgebraOfGraphics" begin
 
     # 1d
     A1 = rand(X(1:5); name=:test)
@@ -507,12 +512,13 @@ end
         @test sum(x -> x isa AlgebraOfGraphics.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
     end
 
-    @testset "DimPoints" begin
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.scatter
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.plot
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.scatter
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
-    end
+end
+
+@testset "DimPoints" begin
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.scatter
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.plot
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.scatter
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
 end
 
 
