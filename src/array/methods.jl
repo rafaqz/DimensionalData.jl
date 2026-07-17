@@ -455,13 +455,23 @@ end
 
 function _check_cat_lookups(D, ::Explicit, lookups...)
     for l in lookups
-        span(l) isa Explicit || (_mixed_span_warn(D, Explicit, span(l)); return :drop)
+        if span(l) isa Explicit
+            continue
+        else
+            _mixed_span_warn(D, Explicit, span(l))
+            return :drop
+        end
     end
     return :ok
 end
 function _check_cat_lookups(D, ::Irregular, lookups...)
     for l in lookups
-        span(l) isa Irregular || (_mixed_span_warn(D, Irregular, span(l)); return :drop)
+        if span(l) isa Irregular
+            continue
+        else
+            _mixed_span_warn(D, Irregular, span(l))
+            return :drop
+        end
     end
     return :ok
 end
