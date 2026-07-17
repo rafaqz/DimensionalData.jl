@@ -301,10 +301,21 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
             else
                 # vcat the index for the catdim in each of Xin
                 joindims = map(A -> dims(A, catdim), Xin)
-                if !check_cat_lookups(joindims...) 
-                    return rebuild(catdim, NoLookup())
+                _status = check_cat_lookups(joindims...)
+                if _status === :ok
+                    _vcat_dims(joindims...)
+                elseif _status === :demote
+                    _vcat_dims_demote(joindims...)
+                elseif _status === :error
+                    D = basetypeof(first(joindims))
+                    intr = intersect(map(l -> Set(val(l)), lookup.(joindims))...)
+                    throw(DimensionMismatch(
+                        "Cannot concatenate along $D: lookups share values $intr. " *
+                        "Pass `dims=$D(newlookupvals)` with explicit lookup values."
+                    ))
+                else
+                    rebuild(catdim, NoLookup())
                 end
-                _vcat_dims(joindims...)
             end
         else
             # Concatenate new dims
@@ -351,7 +362,7 @@ function Base.hcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
         AnonDim(NoLookup())
     else
         joindims = map(last ∘ dims, As)
-        check_cat_lookups(joindims...) || return Base.hcat(map(parent, As)...)
+        check_cat_lookups(joindims...) === :ok || return Base.hcat(map(parent, As)...)
         _vcat_dims(joindims...)
     end
     noncatdim = dims(A1, 1)
@@ -369,7 +380,7 @@ end
 function Base.vcat(As::Union{AbstractDimVector,AbstractDimMatrix}...)
     A1 = first(As)
     firstdims = map(first ∘ dims, As)
-    check_cat_lookups(firstdims...) || return Base.vcat(map(parent, As)...)
+    check_cat_lookups(firstdims...) === :ok || return Base.vcat(map(parent, As)...)
     newdims = if A1 isa AbstractDimVector
         catdim = _vcat_dims(firstdims...)
         (catdim,)
@@ -391,38 +402,39 @@ end
 function Base.vcat(d1::Dimension, ds::Dimension...)
     dims = (d1, ds...)
     comparedims(dims...; length=false)
-    check_cat_lookups(dims...) || return Base.vcat(map(parent, dims)...)
+    check_cat_lookups(dims...) === :ok || return Base.vcat(map(parent, dims)...)
     return _vcat_dims(d1, ds...)
 end
 
 check_cat_lookups(dims::Dimension...) =
-    _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)
+    _check_cat_lookups(basetypeof(first(dims)), lookup(dims)...)::Symbol
 
 # Lookups may need adjustment for `cat`
 _check_cat_lookups(D, lookups::Lookup...) = _check_cat_lookup_order(D, lookups...)
-_check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = true
+_check_cat_lookups(D, l1::NoLookup, lookups::NoLookup...) = :ok
 function _check_cat_lookups(D, l1::AbstractSampled, lookups::AbstractSampled...)
-    length(lookups) > 0 || return true
-    _check_cat_lookup_order(D, l1, lookups...) || return false
+    length(lookups) > 0 || return :ok
+    ostatus = _check_cat_lookup_order(D, l1, lookups...)
+    ostatus === :ok || return ostatus
     _check_cat_lookups(D, span(l1), l1, lookups...)
 end
 function _check_cat_lookups(D, ::Regular, lookups...)
-    length(lookups) > 1 || return true
+    length(lookups) > 1 || return :ok
     lastval = last(first(lookups))
     s = step(first(lookups))
-    map(Base.tail(lookups)) do l
+    for l in Base.tail(lookups)
         if !(span(l) isa Regular)
             _mixed_span_warn(D, Regular, span(l))
-            return false
+            return :drop
         end
         if !(step(span(l)) == s)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
-            return false
+            return :drop
         end
-        _check_cat_step_join(D, lastval, first(l), s) || return false
+        _check_cat_step_join(D, lastval, first(l), s) || return :drop
         lastval = last(l)
-        return true
-    end |> all
+    end
+    return :ok
 end
 
 function _check_cat_step_join(D, lastval::Number, firstval::Number, steplen)
@@ -442,58 +454,70 @@ function _check_cat_step_join(D, lastval, firstval, steplen)
 end
 
 function _check_cat_lookups(D, ::Explicit, lookups...)
-    map(lookups) do l
-        span(l) isa Explicit || _mixed_span_warn(D, Explicit, span(l))
-    end |> all
+    for l in lookups
+        span(l) isa Explicit || (_mixed_span_warn(D, Explicit, span(l)); return :drop)
+    end
+    return :ok
 end
 function _check_cat_lookups(D, ::Irregular, lookups...)
-    map(lookups) do l
-        span(l) isa Irregular || _mixed_span_warn(D, Irregular, span(l))
-    end |> all
+    for l in lookups
+        span(l) isa Irregular || (_mixed_span_warn(D, Irregular, span(l)); return :drop)
+    end
+    return :ok
 end
 
 function _check_cat_lookup_order(D, lookups::Lookup...)
-    length(lookups) > 1 || return true
+    length(lookups) > 1 || return :ok
     l1 = first(lookups)
     length(l1) == 0 && return _check_cat_lookup_order(D, Base.tail(lookups)...)
-    L = basetypeof(l1)
     x = last(l1)
     if isordered(l1)
-        map(Base.tail(lookups)) do lookup
-            length(lookup) > 0 || return true
+        for (i, lookup) in enumerate(Base.tail(lookups))
+            length(lookup) == 0 && continue
             if isforward(lookup)
                 if isreverse(l1)
                     _cat_mixed_ordered_warn(D)
-                    return false
-                elseif length(lookup) == 0 || first(lookup) > x
+                    return :demote
+                elseif first(lookup) > x
                     x = last(lookup)
-                    return true
                 else
                     x = last(lookup)
-                    _cat_lookup_overlap_warn(D, first(lookup), x)
-                    return false
+                    has_overlap = any(j -> !isempty(intersect(val(lookups[j]), val(lookup))), 1:i)
+                    if has_overlap
+                        _cat_lookup_overlap_warn(D, first(lookup), x)
+                        return :error
+                    else
+                        _cat_lookup_overlap_warn(D, first(lookup), x)
+                        return :demote
+                    end
                 end
             else
                 if isforward(l1)
                     _cat_mixed_ordered_warn(D)
-                    return false
-                elseif length(lookup) == 0 || first(lookup) < x
+                    return :demote
+                elseif first(lookup) < x
                     x = last(lookup)
-                    return true
                 else
                     x = last(lookup)
-                    _cat_lookup_overlap_warn(D, first(lookup), x)
-                    return false
+                    has_overlap = any(j -> !isempty(intersect(val(lookups[j]), val(lookup))), 1:i)
+                    if has_overlap
+                        _cat_lookup_overlap_warn(D, first(lookup), x)
+                        return :error
+                    else
+                        _cat_lookup_overlap_warn(D, first(lookup), x)
+                        return :demote
+                    end
                 end
             end
-        end |> all
+        end
+        return :ok
     else
         intr = intersect(lookups...)
         if length(intr) == 0
-            return true
+            return :ok
         else
             _cat_lookup_intersect_warn(D, intr)
-            return false
+            return :error
         end
     end
 end
@@ -501,6 +525,25 @@ end
 function _vcat_dims(d1::Dimension, ds::Dimension...)
     dims = (d1, ds...)
     newlookup = _vcat_lookups(lookup(dims)...)
+    return rebuild(d1, newlookup)
+end
+
+function _vcat_dims_demote(d1::Dimension, ds::Dimension...)
+    dims = (d1, ds...)
+    ls = lookup(dims)
+    newindex = _vcat_index(ls...)
+    newlookup = if first(ls) isa AbstractSampled
+        bnds = map(l -> extrema(val(l)), ls)
+        newbounds = (minimum(map(first, bnds)), maximum(map(last, bnds)))
+        sp = if sampling(first(ls)) isa Intervals
+            Irregular(newbounds)
+        else
+            Irregular(nothing, nothing)
+        end
+        rebuild(first(ls); data=newindex, order=Unordered(), span=sp)
+    else
+        rebuild(first(ls); data=newindex, order=Unordered())
+    end
     return rebuild(d1, newlookup)
 end
 
@@ -555,7 +598,7 @@ end
 
 @noinline _cat_mixed_ordered_warn(D) = @warn _cat_warn_string(D, "`Ordered` lookups are mixed `ForwardOrdered` and `ReverseOrdered`")
 @noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups are misaligned at $x2 and $x1")
-@noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unorderd` lookups share values: $intr")
+@noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unordered` lookups share values: $intr")
 
 @noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(D, S, span)))
 @noinline function _mixed_span_warn(D, S, span)

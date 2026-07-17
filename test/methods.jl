@@ -677,10 +677,28 @@ end
     end
 
     @testset "use lookup from dims" begin
-        @test_warn "lookups are misaligned" cat(da, db; dims=2)
+        @test_throws DimensionMismatch cat(da, db; dims=2)
         @test dims(cat(da, db; dims=X()), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(NoLookup())), X) === X(NoLookup(Base.OneTo(4)))
         @test dims(cat(da, db; dims=X(1.0:4.0)), X) === X(Sampled(1.0:4.0, ForwardOrdered(), Regular(1.0), Points(), NoMetadata()))
+    end
+
+    @testset "misaligned ordered lookups are demoted to Unordered" begin
+        # Non-overlapping but out-of-order → demote to Unordered
+        dd_1 = DimArray(1:3, Ti([Date(2011), Date(2013), Date(2015)]))
+        dd_2 = DimArray(1:3, Ti([Date(2010), Date(2012), Date(2014)]))
+        @test_warn "misaligned" begin
+            result = cat(dd_1, dd_2; dims=Ti)
+            @test order(lookup(result, Ti)) isa Unordered
+            @test val(dims(result, Ti)) == [Date(2011), Date(2013), Date(2015), Date(2010), Date(2012), Date(2014)]
+            @test parent(result) == [1, 2, 3, 1, 2, 3]
+        end
+    end
+
+    @testset "overlap throws DimensionMismatch via cat" begin
+        dd_a = DimArray(1:3, X([1, 2, 3]))
+        dd_b = DimArray(4:6, X([3, 4, 5]))  # shares value 3
+        @test_throws DimensionMismatch cat(dd_a, dd_b; dims=X)
     end
 
     @testset "cat empty dimarrays" begin
