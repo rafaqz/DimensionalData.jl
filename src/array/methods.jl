@@ -304,13 +304,14 @@ function _cat(catdims::Tuple, A1::AbstractDimArray, As::AbstractDimArray...)
                 _status = check_cat_lookups(joindims...)
                 if _status === :ok
                     _vcat_dims(joindims...)
-                elseif _status === :demote
-                    _vcat_dims_demote(joindims...)
-                elseif _status === :error
+                elseif _status === :unordered
+                    _vcat_dims_unordered(joindims...)
+                elseif _status === :intersecting
                     D = basetypeof(first(joindims))
                     intr = intersect(map(l -> Set(val(l)), lookup.(joindims))...)
+                    intr_repr = Dimensions._limit_sprint_array(reshape(collect(intr), :, 1))
                     throw(DimensionMismatch(
-                        "Cannot concatenate along $D: lookups share values $intr. " *
+                        "Cannot concatenate along $D: lookups share values: \nShared:\n$intr_repr \n\n" *
                         "Pass `dims=$D(newlookupvals)` with explicit lookup values."
                     ))
                 else
@@ -425,13 +426,13 @@ function _check_cat_lookups(D, ::Regular, lookups...)
     for l in Base.tail(lookups)
         if !(span(l) isa Regular)
             _mixed_span_warn(D, Regular, span(l))
-            return :drop
+            return :mismatch
         end
         if !(step(span(l)) == s)
             @warn _cat_warn_string(D, "step sizes $(step(span(l))) and $s do not match")
-            return :drop
+            return :mismatch
         end
-        _check_cat_step_join(D, lastval, first(l), s) || return :drop
+        _check_cat_step_join(D, lastval, first(l), s) || return :mismatch
         lastval = last(l)
     end
     return :ok
@@ -459,7 +460,7 @@ function _check_cat_lookups(D, ::Explicit, lookups...)
             continue
         else
             _mixed_span_warn(D, Explicit, span(l))
-            return :drop
+            return :mismatch
         end
     end
     return :ok
@@ -470,7 +471,7 @@ function _check_cat_lookups(D, ::Irregular, lookups...)
             continue
         else
             _mixed_span_warn(D, Irregular, span(l))
-            return :drop
+            return :mismatch
         end
     end
     return :ok
@@ -487,7 +488,7 @@ function _check_cat_lookup_order(D, lookups::Lookup...)
             if isforward(lookup)
                 if isreverse(l1)
                     _cat_mixed_ordered_warn(D)
-                    return :demote
+                    return :unordered
                 elseif first(lookup) > x
                     x = last(lookup)
                 else
@@ -495,16 +496,16 @@ function _check_cat_lookup_order(D, lookups::Lookup...)
                     has_overlap = any(j -> !isempty(intersect(val(lookups[j]), val(lookup))), 1:i)
                     if has_overlap
                         _cat_lookup_overlap_warn(D, first(lookup), x)
-                        return :error
+                        return :intersecting
                     else
                         _cat_lookup_overlap_warn(D, first(lookup), x)
-                        return :demote
+                        return :unordered
                     end
                 end
             else
                 if isforward(l1)
                     _cat_mixed_ordered_warn(D)
-                    return :demote
+                    return :unordered
                 elseif first(lookup) < x
                     x = last(lookup)
                 else
@@ -512,10 +513,10 @@ function _check_cat_lookup_order(D, lookups::Lookup...)
                     has_overlap = any(j -> !isempty(intersect(val(lookups[j]), val(lookup))), 1:i)
                     if has_overlap
                         _cat_lookup_overlap_warn(D, first(lookup), x)
-                        return :error
+                        return :intersecting
                     else
                         _cat_lookup_overlap_warn(D, first(lookup), x)
-                        return :demote
+                        return :unordered
                     end
                 end
             end
@@ -526,8 +527,7 @@ function _check_cat_lookup_order(D, lookups::Lookup...)
         if length(intr) == 0
             return :ok
         else
-            _cat_lookup_intersect_warn(D, intr)
-            return :error
+            return :intersecting
         end
     end
 end
@@ -538,7 +538,7 @@ function _vcat_dims(d1::Dimension, ds::Dimension...)
     return rebuild(d1, newlookup)
 end
 
-function _vcat_dims_demote(d1::Dimension, ds::Dimension...)
+function _vcat_dims_unordered(d1::Dimension, ds::Dimension...)
     dims = (d1, ds...)
     ls = lookup(dims)
     newindex = _vcat_index(ls...)
@@ -608,7 +608,6 @@ end
 
 @noinline _cat_mixed_ordered_warn(D) = @warn _cat_warn_string(D, "`Ordered` lookups are mixed `ForwardOrdered` and `ReverseOrdered`")
 @noinline _cat_lookup_overlap_warn(D, x1, x2) = @warn _cat_warn_string(D, "`Ordered` lookups are misaligned at $x2 and $x1")
-@noinline _cat_lookup_intersect_warn(D, intr) = @warn _cat_warn_string(D, "`Unordered` lookups share values: $intr")
 
 @noinline _mixed_span_error(D, S, span) = throw(DimensionMismatch(_span_string(D, S, span)))
 @noinline function _mixed_span_warn(D, S, span)
