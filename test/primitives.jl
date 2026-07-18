@@ -1,7 +1,7 @@
 using DimensionalData, Dates, Test , BenchmarkTools
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
-using .Dimensions: _dim_query, _wraparg, _reducedims, AlwaysTuple, MaybeFirst, comparedims, promotedims
+using .Dimensions: _dim_query, _wraparg, AlwaysTuple, MaybeFirst, comparedims, promotedims
 
 @dim Tst
 
@@ -497,37 +497,37 @@ end
 end
 
 @testset "reducedims" begin
-    @test _reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
+    @test reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                  Y(Sampled(1:5, ForwardOrdered(), Regular(1), Points(), NoMetadata()))), (X, Y)) ==
                      (X(Sampled(3.5:2:3.5, ForwardOrdered(), Regular(2.0), Points(), NoMetadata())),
                       Y(Sampled(3.0:5.0:3.0, ForwardOrdered(), Regular(5.0), Points(), NoMetadata())))
-    @test _reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())),
+    @test reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Intervals(Start()), NoMetadata())),
                        Y(Sampled(1:5, ForwardOrdered(), Regular(1), Intervals(End()), NoMetadata()))), (X, Y)) ==
         (X(Sampled(3:2:3, ForwardOrdered(), Regular(2), Intervals(Start()), NoMetadata())),
          Y(Sampled(5:5:5, ForwardOrdered(), Regular(5), Intervals(End()), NoMetadata())))
 
-   @test _reducedims((X(Sampled(3:4, ForwardOrdered(), Irregular(2.5, 4.5), Intervals(Center()), NoMetadata())),
+   @test reducedims((X(Sampled(3:4, ForwardOrdered(), Irregular(2.5, 4.5), Intervals(Center()), NoMetadata())),
                       Y(Sampled(1:5, ForwardOrdered(), Irregular(0.5, 5.5), Intervals(Center()), NoMetadata()))), (X, Y))[1] ==
        (X(Sampled([3.5], ForwardOrdered(), Irregular(2.5, 4.5), Intervals(Center()), NoMetadata())),
         Y(Sampled([3.0], ForwardOrdered(), Irregular(0.5, 5.5), Intervals(Center()), NoMetadata())))[1]
-   @test _reducedims((X(Sampled(3:4, ForwardOrdered(), Irregular(3, 5), Intervals(Start()), NoMetadata())),
+   @test reducedims((X(Sampled(3:4, ForwardOrdered(), Irregular(3, 5), Intervals(Start()), NoMetadata())),
                       Y(Sampled(1:5, ForwardOrdered(), Irregular(0, 5), Intervals(End()), NoMetadata()))), (X, Y))[1] ==
       (X(Sampled([3], ForwardOrdered(), Irregular(3, 5), Intervals(Start()), NoMetadata())),
        Y(Sampled([5], ForwardOrdered(), Irregular(0, 5), Intervals(End()), NoMetadata())))[1]
 
     args = ForwardOrdered(), Irregular(), Points(), NoMetadata()
-    @test _reducedims((X(Sampled(3:4, args...)), Y(Sampled(1:5, args...))), (X, Y)) ==
+    @test reducedims((X(Sampled(3:4, args...)), Y(Sampled(1:5, args...))), (X, Y)) ==
         (X(Sampled([3.5], args...)), Y(Sampled([3.0], args...)))
-    @test _reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
+    @test reducedims((X(Sampled(3:4, ForwardOrdered(), Regular(1), Points(), NoMetadata())),
                        Y(Sampled(1:5, ForwardOrdered(), Regular(1), Points(), NoMetadata()))), (X, Y)) ==
                       (X(Sampled(3.5:2.0:3.5, ForwardOrdered(), Regular(2.0), Points(), NoMetadata())),
                        Y(Sampled(3.0:5.0:3.0, ForwardOrdered(), Regular(5.0), Points(), NoMetadata())))
 
-    @test _reducedims((X(Categorical([:a,:b])),
+    @test reducedims((X(Categorical([:a,:b])),
                        Y(Categorical(["1","2","3","4","5"]))), (X, Y)) ==
         (X(Categorical([:combined])), Y(Categorical(["combined"])))
 
-    @test _reducedims((X(NoLookup(Base.OneTo(10))),
+    @test reducedims((X(NoLookup(Base.OneTo(10))),
                  Y(NoLookup(Base.OneTo(10)))), (X(), Y())) ==
         (X(NoLookup(Base.OneTo(1))), Y(NoLookup(Base.OneTo(1))))
 
@@ -536,7 +536,7 @@ end
         timespan = [DateTime(2001, 1), DateTime(2001, 1, 3)]
         teststep = Dates.CompoundPeriod([Month(2), Day(6)])
         testdim = Ti(Sampled([DateTime(2001, 1, 2)], ForwardOrdered(), Regular(teststep), Points(), NoMetadata()))
-        reduceddim = _reducedims((Ti(Sampled(timespan, ForwardOrdered(), Regular(step_), Points(), NoMetadata())),), (Ti,))[1]
+        reduceddim = reducedims((Ti(Sampled(timespan, ForwardOrdered(), Regular(step_), Points(), NoMetadata())),), (Ti,))[1]
         @test typeof(testdim) == typeof(reduceddim)
         @test testdim == reduceddim
         @test step(testdim) == step(reduceddim)
