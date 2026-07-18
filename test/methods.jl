@@ -143,8 +143,7 @@ end
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));
         foo(x) = maximum(x; dims=(X, Y))
-        # TODO: this test recently broke
-        # @inferred foo(x)
+        @inferred foo(x)
     end
 end
 
@@ -255,8 +254,7 @@ end
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));
         foo(x) = maximum(x; dims=(1, 2))
-        # TODO: this test recently broke
-        # @inferred foo(x)
+        @inferred foo(x)
     end
 end
 
