@@ -50,9 +50,11 @@ $(_keyword_heading_doc(f))
     the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
 
-# Only `heatmap` and `contourf` get a colorbar
-function _maybe_colorbar_doc(f) 
-    if f in (:heatmap, :contourf)
+# Plots that get a colorbar
+const COLORBAR_PLOTS = (:heatmap, :contour, :contourf, :surface, :spy)
+
+function _maybe_colorbar_doc(f)
+    if f in COLORBAR_PLOTS
         """
         - `colorbar`: keywords to pass to `Makie.Colorbar`.
         """
@@ -284,7 +286,7 @@ for p1 in PlotTypes_2D
             p = $f1!(ax, A; plot_attributes..., xdim = xdim, ydim = ydim)
             add_labels_to_lscene(ax, axis_att)
 
-            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy)) && T <: Real
+            if colorbar != false && $(f1 in COLORBAR_PLOTS) && T <: Real
                 # T check is to not add if using RGB
                 Colorbar(fig[1, 2], p;
                     label=obs_f(DD.label, A), colorbar...
