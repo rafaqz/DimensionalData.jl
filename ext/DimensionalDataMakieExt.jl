@@ -12,8 +12,10 @@ const DD = DimensionalData
 function Makie_attribute_names(P)
     if isdefined(Makie, :MakieCore) # To work with Makie <0.24
         Makie.MakieCore.attribute_names(P)
-    else
-        Makie.attribute_names(P) # For Makie >=0.24
+    elseif isdefined(Makie, :attribute_names) # For Makie 0.24
+        Makie.attribute_names(P)
+    else # For Makie >=0.25, where `attribute_names` was removed
+        propertynames(P)
     end
 end
 
@@ -48,9 +50,11 @@ $(_keyword_heading_doc(f))
     the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
 
-# Only `heatmap` and `contourf` get a colorbar
-function _maybe_colorbar_doc(f) 
-    if f in (:heatmap, :contourf)
+# Plots that get a colorbar
+const COLORBAR_PLOTS = (:heatmap, :contour, :contourf, :surface, :spy)
+
+function _maybe_colorbar_doc(f)
+    if f in COLORBAR_PLOTS
         """
         - `colorbar`: keywords to pass to `Makie.Colorbar`.
         """
@@ -282,7 +286,7 @@ for p1 in PlotTypes_2D
             p = $f1!(ax, A; plot_attributes..., xdim = xdim, ydim = ydim)
             add_labels_to_lscene(ax, axis_att)
 
-            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy)) && T <: Real
+            if colorbar != false && $(f1 in COLORBAR_PLOTS) && T <: Real
                 # T check is to not add if using RGB
                 Colorbar(fig[1, 2], p;
                     label=obs_f(DD.label, A), colorbar...
@@ -368,13 +372,47 @@ end
 
 function default_axis_type(::Type{P}, dd; kwargs...) where P
     output = Makie.convert_arguments(P, to_value(dd); kwargs...)
-    default_type = Makie.args_preferred_axis(P, output...) 
+    default_type = _preferred_axis_type(P, output...)
     isnothing(default_type) ? Axis : default_type
+end
+
+if isdefined(Makie, :preferred_axis_type)
+    # Makie >= 0.24.11 moved axis type selection from `args_preferred_axis` to
+    # `preferred_axis_type`, which mostly dispatches on plot instances. We only have
+    # a plot type and converted arguments here, so mirror the parts of
+    # `Makie._preferred_axis_type` that work with those.
+    function _preferred_axis_type(P, args...)
+        result = Makie.preferred_axis_type(P, args...)
+        isnothing(result) || return result
+        result = Makie.preferred_axis_type(P)
+        isnothing(result) || return result
+        for arg in args
+            result = Makie.preferred_axis_type(arg)
+            isnothing(result) || return result
+        end
+        return nothing
+    end
+    # These plot types only define instance-based `preferred_axis_type` methods
+    function _preferred_axis_type(
+        ::Type{<:Union{Makie.Wireframe, Surface, Contour3d}},
+        x::AbstractArray, y::AbstractArray, z::AbstractArray
+    )
+        return all(i -> z[1] ≈ i, z) ? Axis : LScene
+    end
+    _preferred_axis_type(::Type{<:Volume}, args...) = LScene
+else
+    _preferred_axis_type(P, args...) = Makie.args_preferred_axis(P, args...)
 end
 
 function add_labels_to_lscene(ax, axis_att)
     if ax isa Makie.LScene && !isnothing(ax.scene[Makie.OldAxis])
-        ax.scene[Makie.OldAxis][:names, :axisnames][] = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "") .|> to_value
+        labels = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "") .|> to_value
+        names = ax.scene[Makie.OldAxis][:names]
+        if to_value(names) isa Makie.Attributes # Makie < 0.25 stores nested attributes as `Attributes`
+            to_value(names)[:axisnames][] = labels
+        else # Makie >= 0.25 uses nested compute graph nodes
+            names[:axisnames][] = labels
+        end
     end
 end
 
