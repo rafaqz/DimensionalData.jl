@@ -1,7 +1,7 @@
 name = "DimensionalData"
 uuid = "0703355e-b756-11e9-17c0-8b28908087d0"
-authors = ["Rafael Schouten <rafaelschouten@gmail.com> and contributors"]
 version = "0.30.1"
+authors = ["Rafael Schouten <rafaelschouten@gmail.com> and contributors"]
 
 [deps]
 ConstructionBase = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -85,7 +85,7 @@ Makie = "0.20, 0.21, 0.22, 0.23, 0.24"
 NearestNeighbors = "0.4"
 OffsetArrays = "1"
 OpenSSL = "1.4.3"
-OrderedCollections = "1"
+OrderedCollections = "1, 2"
 Plots = "1"
 PrecompileTools = "1"
 PythonCall = "0.9"
