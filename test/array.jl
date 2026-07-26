@@ -607,6 +607,15 @@ end
     @test size(A) === size(da)
     @test A isa DimArray
     @test dims(A) === dims(da)
+    A = DimArray{Int,2}(undef, dimz...)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
+    A = DimArray{Int,2}(undef, dimz)
+    @test eltype(A) === Int
+    @test dims(A) === dims(da)
+    @test_throws DimensionMismatch DimArray{Int,3}(undef, dimz...)
 end
 
 @testset "rand constructors" begin

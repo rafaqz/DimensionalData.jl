@@ -491,6 +491,11 @@ DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
 DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
+DimArray{T,N}(x::UndefInitializer, dims::Dimension...; kw...) where {T,N} = DimArray{T,N}(x, dims; kw...)
+function DimArray{T,N}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where {T,N}
+    length(dims) == N || throw(DimensionMismatch("DimArray{$T,$N} constructor was passed $(length(dims)) dimensions"))
+    DimArray{T}(x, dims; kw...)
+end
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;
