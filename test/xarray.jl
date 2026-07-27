@@ -15,6 +15,7 @@ cp(joinpath(@__DIR__, "CondaPkg.toml"), joinpath(dirname(Base.active_project()),
 
 using DimensionalData, Test, PythonCall
 import DimensionalData.Dimensions: NoLookup, NoMetadata
+import DimensionalData.Lookups: Metadata
 
 
 xr = pyimport("xarray")
@@ -84,11 +85,87 @@ end
     @test pyconvert(DimStack, x, 42) == 42
 end
 
-@testset "DimArray to Python conversion" begin
+@testset "DimArray to DataArray" begin
     # Test __array_interface__ specifically because this is what allows for a
     # zero-copy conversion.
-    x = rand(X(rand(10)), Y(10))
+    x = rand(X(rand(10)), Y(5:10); name="foo", metadata=Dict(1 => 3.14, "bar" => "baz"))
     x_lookup = lookup(x, X)
-    @test @pyeval(x => "x.__array_interface__") isa Py
     @test @pyeval(x_lookup => "x_lookup.__array_interface__") isa Py
+
+    # Test zero-copy behaviour
+    x_py = Py(x; xarray=true)
+    @test pyisinstance(x_py, xr.DataArray)
+    x[1, 1] = 42
+    @test pyconvert(Float64, x_py[0, 0].item()) == 42
+
+    # Test copying behaviour
+    x_py = Py(x; copy=true, xarray=true)
+    x[1, 1] = 3.14
+    @test pyconvert(Float64, x_py[0, 0].item()) == 42
+
+    # The dimension order should be flipped
+    @test pyconvert(Tuple, x_py.shape) == reverse(size(x))
+
+    # Test coordinates for arrays and ranges
+    @test parent(lookup(x, X)) isa Vector
+    @test pyconvert(Array, x_py.X.data) == lookup(x, X)
+    @test parent(lookup(x, Y)) isa UnitRange
+    @test pyconvert(Array, x_py.Y.data) == lookup(x, Y)
+
+    # Dimensions without a lookup shouldn't get a coordinate
+    @test pylen(Py(rand(X(10)); xarray=true).coords) == 0
+    @test lookup(pyconvert(DimArray, Py(rand(X(10)); xarray=true)), :X) isa NoLookup
+
+    # The array name should be a string or None
+    @test pyconvert(String, x_py.name) == "foo"
+    @test pyis(Py(rand(X(10)); xarray=true).name, pybuiltins.None)
+
+    # Attributes should be a dict or NamedTuple, anything else will be skipped
+    @test pyconvert(Dict, x_py.attrs) == metadata(x)
+    @test pyconvert(Dict, Py(rand(X(10); metadata=(; a=1)); xarray=true).attrs) == Dict("a" => 1)
+    @test pyconvert(Dict, Py(rand(X(10); metadata=Metadata(; a=1)); xarray=true).attrs) == Dict("a" => 1)
+    @test pylen(Py(rand(X(10)); xarray=true).attrs) == 0
+    @test_logs (:warn, r"must be a dictionary or NamedTuple type") Py(rand(X(10); metadata=42); xarray=true)
+
+    # Without the conversion only the underlying array is passed to Python
+    x_py = Py(x; xarray=false)
+    @test !pyisinstance(x_py, xr.DataArray)
+    @test @pyeval(x_py => "x_py.__array_interface__") isa Py
+    @test pyconvert(Array, np.asarray(x_py)) == parent(x)
+end
+
+@testset "DimStack to Dataset" begin
+    stack = DimStack((a=rand(X(times), Y(1:5)),
+                      b=rand(X(times), Z(1:2); metadata=Dict("unit" => "m"))),
+                     metadata=Dict("foo" => "bar"))
+    stack_py = Py(stack; xarray=true)
+    @test pyisinstance(stack_py, xr.Dataset)
+
+    # Test zero-copy behaviour
+    @test pyconvert(Float64, stack_py.a[0, 0].item()) == stack.a[1, 1]
+    stack.a[1, 1] = 42
+    @test pyconvert(Float64, stack_py.a[0, 0].item()) == 42
+
+    # Test copying behaviour
+    stack_py = Py(stack; copy=true, xarray=true)
+    stack.a[1, 1] = 3.14
+    @test pyconvert(Float64, stack_py.a[0, 0].item()) == 42
+
+    # Layers become variables, keyed by their name in the stack
+    @test pyconvert(Tuple, stack_py.data_vars.keys()) == string.(name(stack))
+
+    # Coordinates shared between layers are merged
+    @test pyconvert(Array, stack_py.X.data) == lookup(stack, X)
+    @test pyconvert(Array, stack_py.Y.data) == lookup(stack, Y)
+    @test pyconvert(Array, stack_py.Z.data) == lookup(stack, Z)
+
+    # Stack and layer metadata are both passed through
+    @test pyconvert(Dict, stack_py.attrs) == metadata(stack)
+    @test pyconvert(Dict, stack_py.b.attrs) == metadata(stack.b)
+    @test_logs (:warn, r"must be a dictionary or NamedTuple type") Py(DimStack((a=rand(X(10)),); metadata=42); xarray=true)
+
+    # Without the conversion the stack is passed as an opaque Julia object
+    stack_py = Py(stack; xarray=false)
+    @test !pyisinstance(stack_py, xr.Dataset)
+    @test_throws ArgumentError pyconvert(DimStack, stack_py)
 end
