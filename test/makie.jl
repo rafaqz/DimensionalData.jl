@@ -5,6 +5,7 @@ using ColorTypes
 using Unitful, Unitful.DefaultSymbols
 import Distributions
 import DimensionalData as DD
+import Pkg
 
 # AlgebraOfGraphics does not support Makie v0.25 yet, so only test it on older versions
 const TEST_ALGEBRAOFGRAPHICS = "AlgebraOfGraphics" in keys(Pkg.project().dependencies)
