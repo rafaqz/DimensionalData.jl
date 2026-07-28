@@ -7,7 +7,7 @@ import Distributions
 import DimensionalData as DD
 
 # AlgebraOfGraphics does not support Makie v0.25 yet, so only test it on older versions
-const TEST_ALGEBRAOFGRAPHICS = pkgversion(Makie) < v"0.25"
+const TEST_ALGEBRAOFGRAPHICS = "AlgebraOfGraphics" in keys(Pkg.project().dependencies)
 if TEST_ALGEBRAOFGRAPHICS
     @eval using AlgebraOfGraphics
 end
