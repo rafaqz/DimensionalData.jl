@@ -50,8 +50,13 @@ $(_keyword_heading_doc(f))
     the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
 
-# Plots that get a colorbar
-const COLORBAR_PLOTS = (:heatmap, :contour, :contourf, :surface, :spy)
+# Plots that get a colorbar. 2D `contour` plots can only drive a `Colorbar` from
+# Makie 0.25, where the colorbar rework gives every plot a default colormap extraction.
+const COLORBAR_PLOTS = if isdefined(Makie, :add_default_colorbar_attributes) # Makie >= 0.25
+    (:heatmap, :contour, :contourf, :surface, :spy)
+else
+    (:heatmap, :contourf, :surface, :spy)
+end
 
 function _maybe_colorbar_doc(f)
     if f in COLORBAR_PLOTS
