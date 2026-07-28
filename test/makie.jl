@@ -10,7 +10,7 @@ import Pkg
 # AlgebraOfGraphics does not support Makie v0.25 yet, so only test it on older versions
 const TEST_ALGEBRAOFGRAPHICS = "AlgebraOfGraphics" in keys(Pkg.project().dependencies)
 if TEST_ALGEBRAOFGRAPHICS
-    @eval using AlgebraOfGraphics
+    using AlgebraOfGraphics
 end
 
 
