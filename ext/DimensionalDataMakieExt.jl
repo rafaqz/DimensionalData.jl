@@ -386,6 +386,7 @@ if isdefined(Makie, :preferred_axis_type)
     # `preferred_axis_type`, which mostly dispatches on plot instances. We only have
     # a plot type and converted arguments here, so mirror the parts of
     # `Makie._preferred_axis_type` that work with those.
+    # see: https://github.com/MakieOrg/Makie.jl/issues/5704
     function _preferred_axis_type(P, args...)
         result = Makie.preferred_axis_type(P, args...)
         isnothing(result) || return result
