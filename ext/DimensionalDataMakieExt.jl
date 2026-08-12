@@ -608,7 +608,7 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
             (; yticks= obs_f(i -> (unique(get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         else
-            (; zticks= obs_f(i -> unique((get_number_version(parent(i))), 
+            (; zticks= obs_f(i -> (unique(get_number_version(parent(i))),
                 unique(string.(parent(lookup(i))))), l))
         end
         dim_attr
