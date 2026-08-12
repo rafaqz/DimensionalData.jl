@@ -495,11 +495,10 @@ function Makie.convert_arguments(P::Type{<:Union{Makie.RainClouds, BoxPlot, Viol
     dd_categoricaldim = _categorical_or_dependent(A, categoricaldim)
     isnothing(dd_categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
     otherdim = only(otherdims(A, dd_categoricaldim))
-    xs = lookup(A, dd_categoricaldim)
-    matrix_xs = repeat(parent(xs), outer = (1, size(A, otherdim)))
-
-    matrix_xs, parent(permutedims(A, (otherdim, dd_categoricaldim) ))
-    return Makie.convert_arguments(P, get_number_version(vec(matrix_xs)), parent(permutedims(A, (otherdim, dd_categoricaldim))) |> vec)
+    # Stack categorical dimensions end-to-end
+    xs = repeat(parent(lookup(A, dd_categoricaldim)); inner=size(A, otherdim))
+    ys = vec(parent(permutedims(A, (otherdim, dd_categoricaldim))))
+    return Makie.convert_arguments(P, get_number_version(xs), ys)
 end
 
 # Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
