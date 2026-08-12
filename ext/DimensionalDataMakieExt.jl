@@ -618,7 +618,8 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
 end
 
 get_number_version(x) = x
-get_number_version(x::AbstractCategorical) = eachindex(x)
+# Preserve order from Lookup
+get_number_version(l::AbstractCategorical) = Int.(indexin(parent(l), unique(parent(l))))
 get_number_version(x::Lookup) = get_number_version(parent(x))
 get_number_version(x::IntervalSets.ClosedInterval{<:AbstractChar}) = IntervalSets.ClosedInterval((Int.(endpoints(x)) .+ (-.5, .5))...) # Needs to add half the step this do give the interval like heatmap
 get_number_version(x::IntervalSets.ClosedInterval) = x
