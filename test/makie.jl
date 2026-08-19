@@ -125,7 +125,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             y = collect(parent(to_value(dd_cat)))
             fig, ax, plt = plot_i(obs(dd_cat))
             @test all(plt[1][] .== repeat(97:98, inner = 6))
-            @test all(plt[2][] .== vec(y'))
+            @test plt[2][] == vec(y')
             @test ax.xlabel[] == "X"
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
@@ -143,7 +143,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     for plot_i in (rainclouds, violin, boxplot)
         fig, ax, plt = plot_i(dd_cat)
         @test all(plt[1][] .== Int.(lookup(dd_cat, X)))
-        @test length.(plot_i(dd_cat).axis.xticks[]) == (2, 2)
+        @test plot_i(dd_cat).axis.xticks[] == ([Int('A'),Int('B')], ["A", "B"])
         @test all(plt[2][] .== Int.(parent(dd_cat)))
         @test_throws ArgumentError plot_i(dd_cat, categoricaldim = Y) 
     end

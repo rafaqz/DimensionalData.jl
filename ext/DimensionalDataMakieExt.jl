@@ -169,7 +169,7 @@ for (p1) in PlotTypes_Cat_1D
     f1! = Symbol(f1, '!')
     
     @eval begin
-        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimArray}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
             error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
@@ -226,7 +226,7 @@ function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeld
     )
 end
 
-function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimArray}; categoricaldim)
+function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimMatrix}; categoricaldim)
     categoricaldim = _categorical_or_dependent(to_value(A), categoricaldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
 
@@ -664,10 +664,8 @@ function _lookup_to_vector(l)
         bs = intervalbounds(l)
         x = first.(bs)
         push!(x, last(last(bs)))
-    elseif iscategorical(l)
+    else # points or categorical
         get_number_version(l)
-    else # ispoints(l) but not categorical
-        collect(parent(l))
     end
 end
 
