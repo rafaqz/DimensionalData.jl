@@ -169,7 +169,7 @@ for (p1) in PlotTypes_Cat_1D
     f1! = Symbol(f1, '!')
     
     @eval begin
-        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
             error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
@@ -185,6 +185,10 @@ for (p1) in PlotTypes_Cat_1D
             add_labels_to_lscene(ax, axis_att)
 
             return Makie.AxisPlot(ax, p)
+        end
+
+        function Makie.$f1(fig::MakieGrids, A::MayObs{<:AbstractDimArray}; kwargs...)
+            throw(ArgumentError("$($f1) needs a 1D or 2D AbstractDimArray, got $(ndims(to_value(A))) dimensions"))
         end
     end
 end
@@ -226,7 +230,7 @@ function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeld
     )
 end
 
-function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimMatrix}; categoricaldim)
+function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim)
     categoricaldim = _categorical_or_dependent(to_value(A), categoricaldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
 
