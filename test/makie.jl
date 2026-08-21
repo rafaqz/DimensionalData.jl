@@ -64,10 +64,10 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
                 @test ax.ylabel[] == "test"
                 @test plt.label[] == "test"
                 @test all(last.(plt[1][]) .== Int.(y))
-                if dd_i isa DimArray{<:AbstractChar}
-                    @test all(first.(plt[1][]) .== Int.(x)) 
+                if eltype(x) <: AbstractChar
+                    @test all(first.(plt[1][]) .== Int.(x))
                 else
-                    @test all(first.(plt[1][]) .== sum.(Int, string.(x)))
+                    @test all(first.(plt[1][]) .== 1:5)
                 end
             end
         end
@@ -83,7 +83,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
             @test all(first.(plt[1][]) .== Int.(x))
-            @test all(last.(plt[1][]) .=== replace(y, missing => NaN)) 
+            @test all(last.(plt[1][]) .=== replace(y, missing => NaN))
         end
     end
 
@@ -124,22 +124,26 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             x = parent(lookup(to_value(dd_cat), Y))
             y = collect(parent(to_value(dd_cat)))
             fig, ax, plt = plot_i(obs(dd_cat))
-            @test all(plt[1][] .== repeat(97:98, outer = 6)) 
-            @test all(plt[2][] .== vec(y'))
+            @test all(plt[1][] .== repeat(97:98, inner = 6))
+            @test plt[2][] == vec(y')
             @test ax.xlabel[] == "X"
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
 
             fig, ax, plt = plot_i(obs(dd_cat), categoricaldim = Y)
-            @test all(plt[1][] .== repeat(1:6, outer = 2))
+            @test all(plt[1][] .== repeat(1:6, inner = 2))
         end
     end
 
+    # multi-character labels are equally spaced, in lookup order
+    dd_cat_multi = DimArray(randn(4, 20), (X([:α, :Cyl, :Disp, :σ]), Y(1:20)), name = :test)
+    @test boxplot(dd_cat_multi).axis.xticks[] == ([1, 2, 3, 4], ["α", "Cyl", "Disp", "σ"])
 
     dd_cat = DimArray((1:6).^2, X(cat(fill('A', 3), fill('B', 3), dims = 1)), name = :test)
     for plot_i in (rainclouds, violin, boxplot)
         fig, ax, plt = plot_i(dd_cat)
         @test all(plt[1][] .== Int.(lookup(dd_cat, X)))
+        @test plot_i(dd_cat).axis.xticks[] == ([Int('A'),Int('B')], ["A", "B"])
         @test all(plt[2][] .== Int.(parent(dd_cat)))
         @test_throws ArgumentError plot_i(dd_cat, categoricaldim = Y) 
     end
@@ -316,7 +320,7 @@ end
 
     dd_mat_sym = DimArray( x.^1/2 .+ 0y'.^1/3, (X(Symbol.('a':'e')), Y(y)), name=:test)
     fig, ax, plt = contourf(dd_mat_sym)
-    @test plt[1][] == Int.(first.(string.(lookup(dd_mat_sym, X))))
+    @test plt[1][] == [1, 2, 3, 4, 5]
     @test plt[2][] == Int.(lookup(dd_mat_sym, Y))
     @test ax.xticks[][2] == string.(lookup(dd_mat_sym, X))
 
