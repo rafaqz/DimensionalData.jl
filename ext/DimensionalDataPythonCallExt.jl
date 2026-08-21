@@ -2,8 +2,8 @@ module DimensionalDataPythonCallExt
 
 using DimensionalData
 import DimensionalData as DD
-import PythonCall
-import PythonCall: Py, PyArray, pyis, pyconvert, pytype, pybuiltins, pylen
+using OrderedCollections: OrderedDict
+using PythonCall: PythonCall, Py, PyArray, pyis, pyconvert, pytype, pybuiltins, pylen, pyimport
 
 
 function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing; copy=false)
@@ -59,6 +59,76 @@ function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing; copy=false)
     metadata = pyconvert(Dict, x.attrs)
 
     return DimStack(NamedTuple(arrays); metadata)
+end
+
+# Convert the metadata of `x` into something that can be passed to xarray as
+# `attrs`, warning and skipping it if it isn't a dictionary or `NamedTuple`
+# type. `AbstractMetadata` wrappers are unwrapped to their underlying contents.
+function _attrs(x)
+    meta = metadata(x)
+    contents = if meta isa DD.Lookups.AbstractMetadata
+        DD.Lookups.val(meta)
+    else
+        meta
+    end
+
+    valid = if contents isa Union{AbstractDict, NamedTuple}
+        contents
+    else
+        @warn "$(nameof(typeof(x))) metadata must be a dictionary or NamedTuple type to pass to xarray, but the passed metadata is a $(typeof(meta)). " *
+              "The metadata will be skipped during the conversion."
+        NamedTuple()
+    end
+
+    return OrderedDict((k isa Symbol ? string(k) : k) => v for (k, v) in pairs(valid))
+end
+
+_maybecopy(x, copy) = copy ? Base.copy(x) : x
+
+# `nothing` means respect the preference, otherwise the argument overrides it
+_use_xarray(xarray) = isnothing(xarray) ? DD._xarray_convert() : xarray
+
+# Implementation based on:
+# https://github.com/arviz-devs/ArviZPythonPlots.jl/blob/70419149d092099f4372b8314bf2cb4119d5573f/src/xarray.jl
+function PythonCall.Py(data::DD.AbstractDimArray; copy=false, xarray=nothing)
+    if !_use_xarray(xarray)
+        return Py(_maybecopy(parent(data), copy))
+    end
+
+    xr = pyimport("xarray")
+
+    var_name = name(data) isa DD.NoName ? pybuiltins.None : string(name(data))
+    data_dims = DD.dims(data)
+    dims = string.(name(data_dims))
+    # Dimensions without a lookup have no coordinates in xarray
+    coords = OrderedDict(string(name(dim)) => _maybecopy(parent(lookup(dim)), copy)
+                         for dim in data_dims if !(lookup(dim) isa DD.AbstractNoLookup))
+    values = parent(data)
+
+    if Missing <: eltype(values)
+        # Passing `missing` to Python causes the array to have a `PythonCall.jlwrap` dtype
+        values = replace(values, missing => NaN)
+    end
+
+    # Note that we reverse the dimensions to keep the fast axis the same in
+    # Julia and Python.
+    return xr.DataArray(Py(values).to_numpy(; copy).T;
+                        dims=reverse(dims), coords, attrs=_attrs(data), name=var_name)
+end
+
+function PythonCall.Py(data::DD.AbstractDimStack; copy=false, xarray=nothing)
+    if !_use_xarray(xarray)
+        return PythonCall.pyjl(data)
+    end
+
+    xr = pyimport("xarray")
+
+    # The coordinates of each layer are merged by xarray, and the layer names
+    # are taken from the keys rather than the name of each DataArray.
+    data_vars = OrderedDict{String, Py}(string(k) => Py(layer; copy, xarray=true)
+                                        for (k, layer) in pairs(DD.layers(data)))
+
+    return xr.Dataset(data_vars; attrs=_attrs(data))
 end
 
 # Precompile main calls to pyconvert(::DimArray) with copy=true and copy=false
