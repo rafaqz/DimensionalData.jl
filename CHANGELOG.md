@@ -26,13 +26,13 @@ Changelog.generate(
 
 - Broadcasting arrays with `SubString` names and indexing sliced `DimSelectors`. ([#1184], [#1190])
 - Type instability in `reducedims` dimension-type queries. ([#1210])
+- Removed a redundant `print` method that caused invalidations. ([#1217])
 
 ### Changed
 
 - `sizeof` for `AbstractDimArray` now reports the underlying storage size. ([#1196])
 - Updated compatibility for AlgebraOfGraphics 0.13 and OrderedCollections 2. ([#1218], [#1200])
 - Added forward-looking Makie 0.25 support. ([#1209])
-- Removed a redundant `print` method that caused invalidations. ([#1217])
 
 ## [0.30.1]
 
