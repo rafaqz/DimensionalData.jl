@@ -125,6 +125,7 @@ DimensionalData.strict_matmul!
 
 ```@docs
 Base.cat
+Base.stack
 Base.copy!
 Base.eachslice
 Base.skipmissing
