@@ -79,7 +79,7 @@ BroadcastStyle(::DimensionalStyle{A}, b::Style{Tuple}) where {A} = DimensionalSt
         isnothing(ds) || _comparedims_broadcast(A, ds, bdims...)
     end
     _comparedims_broadcast(A, bdims...)
-    return Broadcasted(bc.style, bc.f, bc.args, axes)
+    return rebuild(bc; axes)
 end
 # Define copy because the inner style S might override copy (e.g. DiskArrays)
 function Base.copy(bc::Broadcasted{<:DimensionalStyle{S}}) where S
@@ -98,7 +98,7 @@ end
 
 @inline function Base.materialize!(::DimensionalStyle, dest, bc::Broadcasted)
     # check dimensions
-    bci = Broadcast.instantiate(Broadcasted(bc.style, bc.f, bc.args, axes(dest)))
+    bci = Broadcast.instantiate(rebuild(bc; axes = axes(dest)))
     # unwrap before copying
     Base.copyto!(_unwrap_broadcasted(dest), _unwrap_broadcasted(bci))
     return dest

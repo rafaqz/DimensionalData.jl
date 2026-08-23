@@ -132,7 +132,7 @@ end
     end
 
     @testset "mockchunks" begin
-        damockchunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20)))
-        @test size(DiskArrays.eachchunk(damockchunked)) == (5,5)
+        damockchunked = DiskArrays.mockchunks(da, DiskArrays.GridChunks(da, (20,20,2)))
+        @test size(DiskArrays.eachchunk(damockchunked)) == (5,5,1)
     end
 end
