@@ -143,8 +143,7 @@ end
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));
         foo(x) = maximum(x; dims=(X, Y))
-        # TODO: this test recently broke
-        # @inferred foo(x)
+        @inferred foo(x)
     end
 end
 
@@ -255,8 +254,7 @@ end
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));
         foo(x) = maximum(x; dims=(1, 2))
-        # TODO: this test recently broke
-        # @inferred foo(x)
+        @inferred foo(x)
     end
 end
 
@@ -945,4 +943,8 @@ end
         @test parent(mapreduce(identity, +, A; dims=Ti, init)) ≈ mapreduce(identity, +, parent(A); dims=2, init)
         @test parent(mapreduce(identity, +, A; dims=(Y, Ti), init)) ≈ mapreduce(identity, +, parent(A); dims=(1, 2), init)
     end
+end
+
+@testset "sizeof()" begin
+    @test sizeof(rand(X(100))) == sizeof(rand(100))
 end

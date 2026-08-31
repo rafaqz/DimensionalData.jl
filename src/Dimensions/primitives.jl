@@ -491,18 +491,19 @@ but the number of dimensions has not changed.
 cell step, sampling type and order.
 """
 function reducedims end
-@inline reducedims(x, dimstoreduce) = _reducedims(x, name2dim(dimstoreduce))
+@inline reducedims(x, dimstoreduce) = _dim_query(_reducedims, AlwaysTuple(), x, dimstoreduce)
+# The query machinery can't take a single `Dimension` as the object to query
+@inline reducedims(dim::Dimension, dimstoreduce) = first(reducedims((dim,), dimstoreduce))
+@inline reducedims(dim::Dimension) = rebuild(dim, reducelookup(lookup(dim)))
 
-@inline _reducedims(x, dimstoreduce) = _reducedims(x, (dimstoreduce,))
-@inline _reducedims(x, dimstoreduce::Tuple) = _reducedims(dims(x), dimstoreduce)
-@inline _reducedims(dims::DimTuple, dimstoreduce::Tuple) =
-    map(_reducedims, dims, sortdims(dimstoreduce, dims))
-# Map numbers to corresponding dims. Not always type-stable
-@inline _reducedims(dims::DimTuple, dimstoreduce::Tuple{Vararg{Int}}) =
-    map(_reducedims, dims, sortdims(map(i -> dims[i], dimstoreduce), dims))
+@inline _reducedims(f, dims::Tuple, dimstoreduce::Tuple) =
+    map(_reducedims1, dims, _sortdims(f, dimstoreduce, dims))
+# Map integers to corresponding dims. Not always type-stable
+@inline _reducedims(f, dims::Tuple, dimstoreduce::Tuple{Integer,Vararg{Integer}}) =
+    _reducedims(f, dims, map(i -> basedims(dims[i]), dimstoreduce))
 # Reduce matching dims but ignore nothing vals - they are the dims not being reduced
-@inline _reducedims(dim::Dimension, ::Nothing) = dim
-@inline _reducedims(dim::Dimension, ::DimOrDimType) = rebuild(dim, reducelookup(lookup(dim)))
+@inline _reducedims1(dim::Dimension, ::Nothing) = dim
+@inline _reducedims1(dim::Dimension, _) = rebuild(dim, reducelookup(lookup(dim)))
 
 const DimTupleOrEmpty = Union{DimTuple,Tuple{}}
 

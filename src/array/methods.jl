@@ -629,3 +629,5 @@ Base.dataids(A::AbstractDimArray) = Base.dataids(parent(A))
 # We need to override copy_similar because our `similar` doesn't work with size changes
 # Fixed in Base in https://github.com/JuliaLang/julia/pull/53210
 LinearAlgebra.copy_similar(A::AbstractDimArray, ::Type{T}) where {T} = copyto!(similar(A, T), A)
+
+Base.sizeof(A::AbstractDimArray) = sizeof(parent(A))

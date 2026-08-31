@@ -101,9 +101,6 @@ end
 
 # Dimension methods
 
-@inline _reducedims(lookup::MergedLookup, dim::Dimension) =
-    rebuild(dim, [map(x -> zero(x), dim.val[1])])
-
 function _format(dim::Dimension{<:MergedLookup}, axis::AbstractRange)
     checkaxis(dim, axis)
     return dim

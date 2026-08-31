@@ -38,9 +38,20 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
     Base.checkbounds(Bool, A, dims2indices(A, (d1, dims...))...)
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
+function Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray; kw...)
+    isempty(kw) && return all(x -> x == 1, size(A))
+    Base.checkbounds(Bool, A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+end
+function Base.checkbounds(A::AbstractBasicDimArray; kw...)
+    if isempty(kw)
+        all(x -> x == 1, size(A)) || throw(BoundsError(A, ()))
+    else
+        Base.checkbounds(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+    end
+end
 
 """
-    AbstractDimArray <: AbstractBasicArray
+    AbstractDimArray <: AbstractBasicDimArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -480,6 +491,8 @@ DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
 DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
+DimArray{T,N}(x::UndefInitializer, dims::Dimension...; kw...) where {T,N} = DimArray{T,N}(x, dims; kw...)
+DimArray{T,N}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where {T,N} = DimArray(Array{T,N}(undef, map(length, dims)), dims; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;

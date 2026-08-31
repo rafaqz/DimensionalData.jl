@@ -8,10 +8,14 @@ ENV["JULIA_CONDAPKG_VERBOSITY"] = -1
 # ENV["JULIA_PYTHONCALL_EXE"] = joinpath(Base.DEPOT_PATH[1], "conda_environments", "dimensionaldata-tests", "bin", "python")
 # ENV["JULIA_CONDAPKG_BACKEND"] = "Null"
 
-# Copy CondaPkg.toml to the test project so that it gets found by CondaPkg
-# during the tests. If this was instead in the project directory it would also
-# be used by CondaPkg outside of the tests, which we don't want.
-cp(joinpath(@__DIR__, "CondaPkg.toml"), joinpath(dirname(Base.active_project()), "CondaPkg.toml"))
+# CondaPkg only reads CondaPkg.toml from the active project. On Julia 1.12+ the
+# test/ workspace project is activated directly, but older versions sandbox the
+# tests into a temp env so the file has to be copied there.
+let condapkg = joinpath(dirname(Base.active_project()), "CondaPkg.toml")
+    if !isfile(condapkg)
+        cp(joinpath(@__DIR__, "CondaPkg.toml"), condapkg)
+    end
+end
 
 using DimensionalData, Test, PythonCall
 import DimensionalData.Dimensions: NoLookup, NoMetadata

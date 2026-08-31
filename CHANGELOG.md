@@ -15,6 +15,31 @@ Changelog.generate(
 )
 ```
 
+## [0.30.2]
+
+### Added
+
+- `DimArray{T,N}` constructors for uninitialized arrays. ([#1206])
+- `checkbounds` support with no indices or dimension keyword arguments. ([#1183])
+
+### Fixed
+
+- Broadcasting arrays with `SubString` names and indexing sliced `DimSelectors`. ([#1184], [#1190])
+- Type instability in `reducedims` dimension-type queries. ([#1210])
+- Removed a redundant `print` method that caused invalidations. ([#1217])
+
+### Changed
+
+- `sizeof` for `AbstractDimArray` now reports the underlying storage size. ([#1196])
+- Updated compatibility for AlgebraOfGraphics 0.13 and OrderedCollections 2. ([#1218], [#1200])
+- Added forward-looking Makie 0.25 support. ([#1209])
+
+## [0.30.1]
+
+### Fixed
+
+- Restored `DimensionalPlot` to the main package for downstream use without RecipesBase. ([#1178])
+
 ## [0.30.0]
 
 ### Added
@@ -83,5 +108,16 @@ Changelog.generate(
 [#1041]: https://github.com/rafaqz/DimensionalData.jl/issues/1041
 [#1071]: https://github.com/rafaqz/DimensionalData.jl/issues/1071
 [#1128]: https://github.com/rafaqz/DimensionalData.jl/issues/1128
+[#1178]: https://github.com/rafaqz/DimensionalData.jl/pull/1178
+[#1183]: https://github.com/rafaqz/DimensionalData.jl/pull/1183
+[#1184]: https://github.com/rafaqz/DimensionalData.jl/pull/1184
+[#1190]: https://github.com/rafaqz/DimensionalData.jl/pull/1190
+[#1196]: https://github.com/rafaqz/DimensionalData.jl/pull/1196
+[#1200]: https://github.com/rafaqz/DimensionalData.jl/pull/1200
+[#1206]: https://github.com/rafaqz/DimensionalData.jl/pull/1206
+[#1209]: https://github.com/rafaqz/DimensionalData.jl/pull/1209
+[#1210]: https://github.com/rafaqz/DimensionalData.jl/pull/1210
+[#1217]: https://github.com/rafaqz/DimensionalData.jl/pull/1217
+[#1218]: https://github.com/rafaqz/DimensionalData.jl/pull/1218
 [@JoshuaBillson]: https://github.com/JoshuaBillson
 [@tiemvanderdeure]: https://github.com/tiemvanderdeure
