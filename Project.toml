@@ -36,6 +36,7 @@ NearestNeighbors = "b8a86587-4115-5ab1-83bc-aa920d37bbce"
 PythonCall = "6099a3de-0909-46bc-b1f4-468b9a2dfc0d"
 RecipesBase = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+StaticArraysCore = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 StatsBase = "2913bbd2-ae8a-5f71-8c99-4fb6c76f3a91"
 
 [extensions]
@@ -51,6 +52,7 @@ DimensionalDataNearestNeighborsExt = "NearestNeighbors"
 DimensionalDataPythonCallExt = "PythonCall"
 DimensionalDataRecipesBaseExt = "RecipesBase"
 DimensionalDataSparseArraysExt = "SparseArrays"
+DimensionalDataStaticArraysCoreExt = "StaticArraysCore"
 DimensionalDataStatsBaseExt = "StatsBase"
 
 [compat]
@@ -78,6 +80,7 @@ PythonCall = "0.9"
 Random = "1"
 RecipesBase = "0.7, 0.8, 1"
 SparseArrays = "1"
+StaticArraysCore = "1"
 Statistics = "1"
 StatsBase = "0.34"
 TableTraits = "1"
