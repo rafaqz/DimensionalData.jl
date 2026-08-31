@@ -38,7 +38,7 @@ jobs:
         with: # Fetches the last commit only
           fetch-depth: 0
       - name: Setup Julia
-        uses: julia-actions/setup-julia@v1
+        uses: julia-actions/setup-julia@v3
       - name: Pull Julia cache
         uses: julia-actions/cache@v1
       - name: Generate logo
