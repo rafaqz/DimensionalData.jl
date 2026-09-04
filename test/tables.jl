@@ -211,15 +211,17 @@ end
 
     tabletypes = (Tables.rowtable, Tables.columntable, DataFrame)
 
-    for type in tabletypes
-        t = type(t)
-        t1 = type(t1)
-        t2 = type(t2)
-        t3 = type(t3)
+    for T in tabletypes
+        t = T(t)
+        t1 = T(t1)
+        t2 = T(t2)
+        t3 = T(t3)
         @testset "All dimensions passed (using $type)" begin
             # Restore DimArray from shuffled table
-            for table = (t1, t3)
-                @test all(DimArray(table, dims(ds)) .== a)
+            for table in (t1, t3)
+                restored_da = DimArray(table, dims(ds))
+                @test all(restored_da .== a)
+                @test parent(restored_da) isa Array
                 @test all(DimArray(table, dims(ds), name="a") .== a)
                 @test all(DimArray(table, dims(ds), name="b") .== b)
                 @test all(DimArray(table, dims(ds), name="c") .== c)
