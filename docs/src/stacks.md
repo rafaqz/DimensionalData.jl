@@ -120,7 +120,7 @@ f(x) = (x.a + x.b) * x.c
 f.(st)
 ````
 
-Wrapping an `AbstractDimStack` with [DimStackArray](@ref) returns a generator that inherits from `AbstactArray`.
+Wrapping an `AbstractDimStack` with [`DimStackArray`](@ref) returns a generator that inherits from `AbstactArray`.
 
 :::
 
