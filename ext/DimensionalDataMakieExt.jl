@@ -169,7 +169,7 @@ for (p1) in PlotTypes_Cat_1D
     f1! = Symbol(f1, '!')
     
     @eval begin
-        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
             error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
@@ -185,6 +185,10 @@ for (p1) in PlotTypes_Cat_1D
             add_labels_to_lscene(ax, axis_att)
 
             return Makie.AxisPlot(ax, p)
+        end
+
+        function Makie.$f1(fig::MakieGrids, A::MayObs{<:AbstractDimArray}; kwargs...)
+            throw(ArgumentError("$($f1) needs a 1D or 2D AbstractDimArray, got $(ndims(to_value(A))) dimensions"))
         end
     end
 end
@@ -226,7 +230,7 @@ function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeld
     )
 end
 
-function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimMatrix}; categoricaldim)
+function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim)
     categoricaldim = _categorical_or_dependent(to_value(A), categoricaldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
 
@@ -447,7 +451,7 @@ Makie.used_attributes(::Type{<:Union{VolumeSlices, Volume}}, A::DD.AbstractDimAr
 
 function Makie.convert_arguments(P::Type{T}, A::AbstractDimMatrix; xdim = nothing , ydim = nothing) where T<:Union{Contour, Contourf, Surface, Contour3d}
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim))
-    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> get_number_version
     z = parent(permutedims(A, (dims_axes[1], dims_axes[2]))) 
     Makie.convert_arguments(P, xlookup, ylookup, z) 
 end
@@ -456,13 +460,13 @@ function Makie.convert_arguments(P::Type{<:Series}, A::AbstractDimMatrix; labeld
     categoricaldim = _categorical_or_dependent(A, labeldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
     otherdim = only(otherdims(A, categoricaldim))
-    xs = parent(lookup(A, otherdim)) |> get_number_version 
+    xs = lookup(A, otherdim) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(permutedims(A, (categoricaldim, otherdim))))
 end
 
 # PointBased conversions (scatter, lines, poly, etc)
 function Makie.convert_arguments(P::Makie.PointBased, A::AbstractDimVector)
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -479,7 +483,7 @@ function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimVector; cat
     if !isnothing(categoricaldim) 
         dimnum(A, categoricaldim) # Returns an error if dim does not exist
     end
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -487,7 +491,7 @@ function Makie.convert_arguments(P::Type{<:RainClouds}, A::AbstractDimVector; ca
     if !isnothing(categoricaldim) 
         dimnum(A, categoricaldim) # Returns an error if dim does not exist
     end
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -495,11 +499,10 @@ function Makie.convert_arguments(P::Type{<:Union{Makie.RainClouds, BoxPlot, Viol
     dd_categoricaldim = _categorical_or_dependent(A, categoricaldim)
     isnothing(dd_categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
     otherdim = only(otherdims(A, dd_categoricaldim))
-    xs = lookup(A, dd_categoricaldim)
-    matrix_xs = repeat(parent(xs), outer = (1, size(A, otherdim)))
-
-    matrix_xs, parent(permutedims(A, (otherdim, dd_categoricaldim) ))
-    return Makie.convert_arguments(P, get_number_version(vec(matrix_xs)), parent(permutedims(A, (otherdim, dd_categoricaldim))) |> vec)
+    # Stack categorical dimensions end-to-end
+    xs = repeat(get_number_version(lookup(A, dd_categoricaldim)); inner=size(A, otherdim))
+    ys = vec(parent(permutedims(A, (otherdim, dd_categoricaldim))))
+    return Makie.convert_arguments(P, xs, ys)
 end
 
 # Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
@@ -525,7 +528,7 @@ end
 function Makie.convert_arguments(
     P::Type{Heatmap}, A::AbstractDimMatrix; xdim = nothing, ydim = nothing)
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim))
-    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> get_number_version
     z = parent(permutedims(A, (dims_axes[1], dims_axes[2])))
     return Makie.convert_arguments(P, xlookup, ylookup, z)
 end
@@ -540,7 +543,7 @@ end
 
 function Makie.convert_arguments(P::Type{Makie.VolumeSlices}, A::AbstractDimArray{<:Any,3}; xdim = nothing, ydim = nothing, zdim = nothing)
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim, zdim))
-    xs, ys, zs = map(_lookup_to_vector, dims_axes) .|> get_number_version
+    xs, ys, zs = map(d -> _lookup_to_vector(lookup(d)), dims_axes)
     return Makie.convert_arguments(P, xs, ys, zs, parent(permutedims(A, dims_axes)))
 end
 
@@ -609,7 +612,7 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
             (; yticks= obs_f(i -> (unique(get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         else
-            (; zticks= obs_f(i -> unique((get_number_version(parent(i))), 
+            (; zticks= obs_f(i -> (unique(get_number_version(parent(i))),
                 unique(string.(parent(lookup(i))))), l))
         end
         dim_attr
@@ -619,9 +622,11 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
 end
 
 get_number_version(x) = x
+# Char lookups keep their codepoints, other categoricals are numbered in lookup order
 get_number_version(x::AbstractVector{<:AbstractChar}) = Int.(x)
-get_number_version(x::AbstractVector{<:AbstractString}) = sum.(Int, x) # Sum all chars
-get_number_version(x::AbstractVector{<:Symbol}) = get_number_version(string.(x))
+get_number_version(x::AbstractCategorical{<:AbstractChar}) = Int.(parent(x))
+get_number_version(x::AbstractCategorical) = Int.(indexin(parent(x), unique(parent(x))))
+get_number_version(x::Lookup) = get_number_version(parent(x))
 get_number_version(x::IntervalSets.ClosedInterval{<:AbstractChar}) = IntervalSets.ClosedInterval((Int.(endpoints(x)) .+ (-.5, .5))...) # Needs to add half the step this do give the interval like heatmap
 get_number_version(x::IntervalSets.ClosedInterval) = x
 
@@ -663,8 +668,8 @@ function _lookup_to_vector(l)
         bs = intervalbounds(l)
         x = first.(bs)
         push!(x, last(last(bs)))
-    else # ispoints(l)
-        collect(parent(l))
+    else # points or categorical
+        get_number_version(l)
     end
 end
 
