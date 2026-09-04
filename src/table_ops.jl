@@ -10,9 +10,9 @@ Restore a dimensional array from its tabular representation.
 
 An `Array` containing the ordered valued in `data` with the size specified by `dims`.
 =#
-function restore_array(data::AbstractVector, indices::AbstractVector, dims::Tuple, missingval)
+function restore_array(data::AbstractVector{T}, indices::AbstractVector, dims::Tuple, missingval) where T
     # Allocate Destination Array
-    dst = DimArray{eltype(data)}(undef, dims)
+    dst = DimArray{T}(undef, dims)
     for (idx, d) in zip(indices, data)
         dst[idx] = d
     end
@@ -26,7 +26,7 @@ function restore_array(data::AbstractVector, indices::AbstractVector, dims::Tupl
         end
         return ifelse.(missing_rows, _missingval, dst)
     end
-    return dst
+    return parent(dst)
 end
 
 #=
