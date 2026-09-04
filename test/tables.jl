@@ -216,7 +216,7 @@ end
         t1 = T(t1)
         t2 = T(t2)
         t3 = T(t3)
-        @testset "All dimensions passed (using $type)" begin
+        @testset "All dimensions passed (using $T)" begin
             # Restore DimArray from shuffled table
             for table in (t1, t3)
                 restored_da = DimArray(table, dims(ds))
@@ -257,7 +257,7 @@ end
             @test restored_stack.c[Y(2:100)] .|> ismissing .|> (!) |> all
         end
 
-        @testset "Dimensions automatically detected (using $type)" begin
+        @testset "Dimensions automatically detected (using $T)" begin
             da3 = DimArray(t)
             # Awkward test, see https://github.com/rafaqz/DimensionalData.jl/issues/953
             # If Dim{:X} == X then we can just test for equality
@@ -275,7 +275,7 @@ end
             end
         end
 
-        @testset "Dimensions partially specified (using $type)" begin
+        @testset "Dimensions partially specified (using $T)" begin
             for table in (t1, t3)
                 # setting the order returns ordered dimensions
                 da = DimArray(table, (X(Sampled(order = ReverseOrdered())), Y(Sampled(order=ForwardOrdered()))))
@@ -288,7 +288,7 @@ end
             @test parent(DimArray(t, (:X, :Y))) == parent(a)
             # passing in dimensions works for unconventional dimension names
             A = rand(dimz, name = :a)
-            table = type(A)
+            table = T(A)
             @test DimArray(table, (X, Y(Sampled(span = Irregular())), :test)) == A
             # Specifying dimensions types works even if it's illogical.
             dat = DimArray(t, (X(Sampled(span = Irregular(), order = Unordered())), Y(Categorical())))
