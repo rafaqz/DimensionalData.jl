@@ -3,7 +3,7 @@
 *.mem
 .DS_Store
 
-/Manifest.toml
+/Manifest*.toml
 /.vscode/
 tmp
 generated
@@ -17,7 +17,7 @@ docs/docs_site
 docs/build
 docs/var
 deps/build.jl
-Manifest.toml
+Manifest*.toml
 docs/.vitepress/dist
 docs/.vitepress/cache
 docs/src/.vitepress/dist
