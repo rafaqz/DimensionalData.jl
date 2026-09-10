@@ -3,8 +3,8 @@ module DimensionalDataPythonCallExt
 using DimensionalData
 import DimensionalData as DD
 using OrderedCollections: OrderedDict
-using PythonCall: PythonCall, Py, PyArray, pyis, pyconvert, pytype, pybuiltins, pylen, pyimport
-
+using PythonCall: PythonCall, Py, PyArray, pyis, pyconvert, pyconvert_add_rule, pyconvert_return,
+    pytype, pybuiltins, pylen, pyimport
 
 function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing; copy=false)
     x_pytype = string(pytype(x).__name__)
@@ -131,6 +131,19 @@ function PythonCall.Py(data::DD.AbstractDimStack; copy=false, xarray=nothing)
                                         for (k, layer) in pairs(DD.layers(data)))
 
     return xr.Dataset(data_vars; attrs=_attrs(data))
+end
+
+# Registered with `pyconvert_add_rule` (in addition to the `PythonCall.pyconvert`
+# methods above) so that `pyconvert(DimArray/DimStack, x)` also works when called
+# from Python, e.g. `jl.pyconvert(jl.DimArray, data_array)`. Without this, the
+# implicit `pyconvert(Any, x)` that PythonCall applies to arguments crossing from
+# Python loses the `DimArray`/`DimStack` target type before our `pyconvert`
+# methods above ever see it.
+function __init__()
+    pyconvert_add_rule("xarray.core.dataarray:DataArray", DimArray,
+                       (::Type{DimArray}, x::Py) -> pyconvert_return(pyconvert(DimArray, x)))
+    pyconvert_add_rule("xarray.core.dataset:Dataset", DimStack,
+                       (::Type{DimStack}, x::Py) -> pyconvert_return(pyconvert(DimStack, x)))
 end
 
 # Precompile main calls to pyconvert(::DimArray) with copy=true and copy=false
