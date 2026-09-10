@@ -66,6 +66,13 @@ x2 = xr.DataArray(data2,
     @test_throws ArgumentError pyconvert(DimArray, xr)
     @test pyconvert(DimArray, xr, 42) == 42
 
+    # Other target types don't match the `pyconvert(::Type{DimArray})` method so
+    # they go through the conversion rule.
+    @test pyconvert(AbstractDimArray, x) isa DimArray{Float64,2}
+    @test pyconvert(DimArray{Float64,2}, x) isa DimArray{Float64,2}
+    @test_throws ErrorException pyconvert(DimArray{Float32,2}, x)
+    @test_throws ErrorException pyconvert(DimArray{Float64,3}, x)
+
     # Sanity test for higher-dimensional arrays
     x3 = xr.DataArray(np.random.rand(2, 5, 5, 3).astype(np.float32),
                       dims=("w", "x", "y", "z"),
@@ -96,6 +103,12 @@ end
 
     @test_throws ArgumentError pyconvert(DimStack, x)
     @test pyconvert(DimStack, x, 42) == 42
+
+    # Other target types don't match the `pyconvert(::Type{DimStack})` method so
+    # they go through the conversion rule.
+    @test pyconvert(AbstractDimStack, dataset) isa DimStack
+    @test pyconvert(DimStack{(:x2, :x)}, dataset) isa DimStack{(:x2, :x)}
+    @test_throws ErrorException pyconvert(DimStack{(:foo,)}, dataset)
 
     # Test variables "dims" and "attrs", which collide with xr.Dataset attributes.
     dataset2 = xr.Dataset(Dict("dims" => x, "attrs" => x2))
