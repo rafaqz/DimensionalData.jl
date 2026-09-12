@@ -114,7 +114,9 @@ cat(stacks...; keys=(:sea_surface_temp, :humidity), dims=Ti)
 ```
 """
 function Base.cat(s1::AbstractDimStack, stacks::AbstractDimStack...; keys=keys(s1), dims)
-    vals = Tuple(cat((s[k] for s in (s1, stacks...))...; dims) for k in keys)
+    dims = dims isa Tuple ? dims : (dims,)
+    catdims = _catdims(dims, s1, stacks...)
+    vals = Tuple(cat((s[k] for s in (s1, stacks...))...; dims = catdims) for k in keys)
     rebuild_from_arrays(s1, vals)
 end
 
