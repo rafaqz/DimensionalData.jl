@@ -15,6 +15,16 @@ Changelog.generate(
 )
 ```
 
+## [0.30.3]
+
+### Fixed
+
+- DimensionalData now again compiles on Julia 1.9 and works with Makie 0.23. Future releases will require Julia 1.10 and Makie 0.24. ([#1187])
+- `violin`, `raincloud` and `boxplot` plots now correctly bin values for each category. ([#1216])
+- Tables no longer produce nested `DimArray`s when materialized into an `AbstractDimArray`. ([#1228])
+- Fixed an ambiguous dispatch when multiplying a `StaticArray` and a `DimVector`. ([#1197])
+- Removed an unnecessary `eltype()` method. ([#1227])
+
 ## [0.30.2]
 
 ### Added
@@ -119,5 +129,10 @@ Changelog.generate(
 [#1210]: https://github.com/rafaqz/DimensionalData.jl/pull/1210
 [#1217]: https://github.com/rafaqz/DimensionalData.jl/pull/1217
 [#1218]: https://github.com/rafaqz/DimensionalData.jl/pull/1218
+[#1187]: https://github.com/rafaqz/DimensionalData.jl/pull/1187
+[#1197]: https://github.com/rafaqz/DimensionalData.jl/pull/1197
+[#1216]: https://github.com/rafaqz/DimensionalData.jl/pull/1216
+[#1227]: https://github.com/rafaqz/DimensionalData.jl/pull/1227
+[#1228]: https://github.com/rafaqz/DimensionalData.jl/pull/1228
 [@JoshuaBillson]: https://github.com/JoshuaBillson
 [@tiemvanderdeure]: https://github.com/tiemvanderdeure
