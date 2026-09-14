@@ -388,12 +388,22 @@ if isdefined(Makie, :preferred_axis_type)
     # `Makie._preferred_axis_type` that work with those.
     # see: https://github.com/MakieOrg/Makie.jl/issues/5704
     function _preferred_axis_type(P, args...)
-        result = Makie.preferred_axis_type(P, args...)
-        isnothing(result) || return result
-        result = Makie.preferred_axis_type(P)
-        isnothing(result) || return result
+        if applicable(Makie.preferred_axis_type, P, args...)
+            result = Makie.preferred_axis_type(P, args...)
+            isnothing(result) || return result
+        end
+        if applicable(Makie.preferred_axis_type, P)
+            result = Makie.preferred_axis_type(P)
+            isnothing(result) || return result
+        end
         for arg in args
-            result = Makie.preferred_axis_type(arg)
+            if applicable(Makie.preferred_axis_type, arg)
+                result = Makie.preferred_axis_type(arg)
+                isnothing(result) || return result
+            end
+        end
+        if isdefined(Makie, :args_preferred_axis) && applicable(Makie.args_preferred_axis, P, args...)
+            result = Makie.args_preferred_axis(P, args...)
             isnothing(result) || return result
         end
         return nothing

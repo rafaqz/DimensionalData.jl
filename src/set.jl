@@ -263,7 +263,7 @@ function _rebuild_maybe_reorder(::Safe, A, newdims)
     if map(order, dims(A)) == map(order, newdims)
         rebuild(A; dims=newdims)
     else
-        A1 = reorder(A, map(rebuild, dims(A), order(newdims)))
+        A1 = reorder(A, map(rebuild, dims(A, newdims), order(newdims)))
         rebuild(A; data=parent(A1), dims=newdims)
     end
 end
