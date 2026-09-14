@@ -72,6 +72,15 @@ x2 = xr.DataArray(data2,
     y = pyconvert(DimArray, x3)
     @test lookup(y, :w) == [1, 2]
     @test lookup(y, :z) == [1, 2, 3]
+
+    # Dimension names that happen to match DataArray attributes
+    x4 = xr.DataArray(rand(3, 2),
+                      dims=("variable", "var"),
+                      coords=Dict("variable" => [10, 20, 30], "var" => [1, 2]))
+    y = pyconvert(DimArray, x4)
+    @test name.(dims(y)) == (:var, :variable)
+    @test lookup(y, :variable) == [10, 20, 30]
+    @test lookup(y, :var) == [1, 2]
 end
 
 @testset "Dataset to DimStack" begin
@@ -86,6 +95,12 @@ end
 
     @test_throws ArgumentError pyconvert(DimStack, x)
     @test pyconvert(DimStack, x, 42) == 42
+
+    # Test variables "dims" and "attrs", which collide with xr.Dataset attributes.
+    dataset2 = xr.Dataset(Dict("dims" => x, "attrs" => x2))
+    z2 = pyconvert(DimStack, dataset2)
+    @test Set(name(z2)) == Set((:dims, :attrs))
+    @test z2[:dims] == pyconvert(DimArray, x)
 end
 
 @testset "DimArray to Python conversion" begin
