@@ -685,18 +685,41 @@ end
         # Non-overlapping but out-of-order → demote to Unordered
         dd_1 = DimArray(1:3, Ti([Date(2011), Date(2013), Date(2015)]))
         dd_2 = DimArray(1:3, Ti([Date(2010), Date(2012), Date(2014)]))
+        misaligned = [Date(2011), Date(2013), Date(2015), Date(2010), Date(2012), Date(2014)]
         @test_warn "misaligned" begin
             result = cat(dd_1, dd_2; dims=Ti)
             @test order(lookup(result, Ti)) isa Unordered
-            @test val(dims(result, Ti)) == [Date(2011), Date(2013), Date(2015), Date(2010), Date(2012), Date(2014)]
+            @test val(dims(result, Ti)) == misaligned
             @test parent(result) == [1, 2, 3, 1, 2, 3]
+        end
+        # `vcat`, `vcat` on dims and `hcat` demote instead of dropping to `parent`
+        @test_warn "misaligned" begin
+            v = vcat(dd_1, dd_2)
+            @test order(lookup(v, Ti)) isa Unordered
+            @test val(dims(v, Ti)) == misaligned
+            @test lookup(vcat(dims(dd_1, Ti), dims(dd_2, Ti))) == lookup(v, Ti)
+        end
+        hm_1 = DimArray([1 2; 3 4], (X(1.0:2.0), Y([6.0, 8.0])))
+        hm_2 = DimArray([5 6; 7 8], (X(1.0:2.0), Y([7.0, 9.0])))
+        @test_warn "misaligned" begin
+            h = hcat(hm_1, hm_2)
+            @test order(lookup(h, Y)) isa Unordered
+            @test val(dims(h, Y)) == [6.0, 8.0, 7.0, 9.0]
         end
     end
 
-    @testset "overlap throws DimensionMismatch via cat" begin
+    @testset "overlap throws for cat, warns and falls back for hcat/vcat" begin
         dd_a = DimArray(1:3, X([1, 2, 3]))
         dd_b = DimArray(4:6, X([3, 4, 5]))  # shares value 3
         @test_throws DimensionMismatch cat(dd_a, dd_b; dims=X)
+        @test_warn "share values" begin
+            @test vcat(dd_a, dd_b) == vcat(parent(dd_a), parent(dd_b))
+        end
+        hm_a = DimArray([1 2; 3 4], (X(1.0:2.0), Y([6.0, 7.0])))
+        hm_b = DimArray([5 6; 7 8], (X(1.0:2.0), Y([6.0, 7.0])))
+        @test_warn "share values" begin
+            @test hcat(hm_a, hm_b) == hcat(parent(hm_a), parent(hm_b))
+        end
     end
 
     @testset "cat empty dimarrays" begin

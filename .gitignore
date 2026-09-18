@@ -10,6 +10,7 @@ generated
 build
 .vscode
 .DS_Store
+.sublime/
 
 docs/docs
 docs/site
