@@ -30,6 +30,17 @@ Is a Julia package for exploratory analysis of Bayesian models.
 
 An `ArviZ.Dataset` is an `AbstractDimStack`!
 
+## SparseDimArrays.jl
+
+[SparseDimArrays.jl](https://github.com/JaneliaSciComp/SparseDimArrays.jl) wraps
+a long/sparse [Tables.jl](https://github.com/JuliaData/Tables.jl) source — one
+row per non-missing cell — as a dense, N-dimensional array with named-dimension
+indexing, without ever materialising the full cube. It is an example of
+extending DimensionalData by *wrapping*: `sparsedimarray` returns a plain
+`DimArray` (and `sparsedimstack` a `DimStack`) around a small lazy backing
+array, so `At`, `Near`, keyword indexing, `set` and `cat` all work with no
+`AbstractDimArray` subtyping.
+
 ## JuMP.jl
 
 [JuMP.jl](https://jump.dev/) is a powerful optimization DSL. 
