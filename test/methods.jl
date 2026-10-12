@@ -534,7 +534,7 @@ end
 @testset "sort" begin
     v = DimArray([10:-1:1...], X)
     @test sort(v) == sort(parent(v))
-    @test dims(sort(v)) == (X(NoLookup(Base.OneTo(10))),)
+    @test dims(sort(v)) == (X(NoLookup([10:-1:1...])),)
     A = rand((X(5:-1:1), Y(11:15)))
     @test sort(A; dims=X) == sort(parent(A); dims=1)
     @test dims(sort(A; dims=X)) == (X(NoLookup(Base.OneTo(5))), dims(A, Y)) 
