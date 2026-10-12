@@ -43,7 +43,7 @@ import .Dimensions: dims, refdims, name, lookup, kw2dims, hasdim, label, checkax
 
 using OrderedCollections: OrderedDict
 
-import DataAPI.groupby
+import DataAPI: groupby, metadata
 
 export Lookups, Dimensions
 
