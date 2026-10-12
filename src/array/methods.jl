@@ -171,10 +171,10 @@ function _eachslice(x, dims::Tuple)
     return (view(x, d...) for d in DimIndices(slicedims))
 end
 
-# These just return the parent for now
 function Base.sort(A::AbstractDimVector; kw...)
-    newdims = (set(only(dims(A)), NoLookup()),)
-    newdata = sort(parent(A); kw...)
+    perm = sortperm(parent(A); kw...)
+    newdata = parent(A)[perm]
+    newdims = (set(only(dims(A))[perm], Unordered()),)
     return rebuild(A, newdata, newdims)
 end
 function Base.sort(A::AbstractDimArray; dims, kw...)
@@ -192,6 +192,13 @@ function Base.sortslices(A::AbstractDimArray; dims, kw...)
         set(d, NoLookup())
     end
     newdims = setdims(DD.dims(A), replacement_dims)
+    return rebuild(A, newdata, newdims)
+end
+
+function Base.partialsort(A::AbstractDimVector, k::OrdinalRange; kw...)
+    perm = partialsortperm(parent(A), k; kw...)
+    newdata = parent(A)[perm]
+    newdims = (set(only(dims(A))[perm], Unordered()),)
     return rebuild(A, newdata, newdims)
 end
 
