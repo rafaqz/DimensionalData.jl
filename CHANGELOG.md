@@ -24,6 +24,7 @@ Changelog.generate(
 - Tables no longer produce nested `DimArray`s when materialized into an `AbstractDimArray`. ([#1228])
 - Fixed an ambiguous dispatch when multiplying a `StaticArray` and a `DimVector`. ([#1197])
 - Removed an unnecessary `eltype()` method. ([#1227])
+- Converting an xarray object know works when a coord name matches an xarray attribute. ([#1231])
 
 ## [0.30.2]
 
@@ -134,5 +135,6 @@ Changelog.generate(
 [#1216]: https://github.com/rafaqz/DimensionalData.jl/pull/1216
 [#1227]: https://github.com/rafaqz/DimensionalData.jl/pull/1227
 [#1228]: https://github.com/rafaqz/DimensionalData.jl/pull/1228
+[#1231]: https://github.com/rafaqz/DimensionalData.jl/pull/1231
 [@JoshuaBillson]: https://github.com/JoshuaBillson
 [@tiemvanderdeure]: https://github.com/tiemvanderdeure
