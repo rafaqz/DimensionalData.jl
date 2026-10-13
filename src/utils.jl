@@ -227,7 +227,7 @@ function _broadcast_dims_inner!(f, dest, As, od)
     else
         not_shared_dims = combinedims(od...) 
         reshaped = map(As) do A
-            _maybe_insert_length_one_dims(A, dims(dest))
+            BroadcastOptionsDimArray(A, dims(dest), NamedTuple())
         end
         dest .= f.(reshaped...)
     end
