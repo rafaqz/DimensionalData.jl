@@ -25,7 +25,7 @@ function PythonCall.pyconvert(::Type{DimArray}, x::Py, d=nothing; copy=false)
     new_dims = Dim[]
     for dim in reverse(dim_names) # Iterate in reverse order because of row/col major
         if dim in coord_names
-            coord_py = PyArray(getproperty(x, dim).data; copy=false)
+            coord_py = PyArray(x.coords[String(dim)].data; copy=false)
             coord = copy ? pyconvert(Array, coord_py) : coord_py
             push!(new_dims, Dim{dim}(coord))
         else
@@ -53,7 +53,7 @@ function PythonCall.pyconvert(::Type{DimStack}, x::Py, d=nothing; copy=false)
     variable_names = Symbol.(collect(x.data_vars.keys()))
     arrays = Dict{Symbol, DimArray}()
     for name in variable_names
-        arrays[name] = pyconvert(DimArray, getproperty(x, name); copy)
+        arrays[name] = pyconvert(DimArray, x.data_vars[String(name)]; copy)
     end
 
     metadata = pyconvert(Dict, x.attrs)
