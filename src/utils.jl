@@ -206,34 +206,15 @@ which they are found.
 function broadcast_dims!(f, dest::AbstractDimArray{<:Any,N}, As::AbstractBasicDimArray...) where {N}
     As = map(As) do A
         isempty(otherdims(A, dims(dest))) || throw(DimensionMismatch("Cannot broadcast over dimensions not in the dest array"))
-        # comparedims(dest, dims(A, dims(dest)))
-        # Lazily permute B dims to match the order in A, if required
-        _maybe_lazy_permute(A, dims(dest))
+        BroadcastOptionsDimArray(A, dims(dest), NamedTuple())
     end
-    od = map(A -> otherdims(dest, dims(A)), As)
-    return _broadcast_dims_inner!(f, dest, As, od)
+   broadcast!(f, dest, As...)
 end
 function broadcast_dims!(f, dest::AbstractDimStack, stacks::AbstractDimStack...)
     maplayers(dest, stacks...) do d, layers...
         broadcast_dims!(f, d, layers...)
     end
 end
-
-# Function barrier
-function _broadcast_dims_inner!(f, dest, As, od)
-    # Broadcast over b for each combination of dimensional indices D
-    if all(map(isempty, od))
-        dest .= f.(As...)
-    else
-        not_shared_dims = combinedims(od...) 
-        reshaped = map(As) do A
-            _maybe_insert_length_one_dims(A, dims(dest))
-        end
-        dest .= f.(reshaped...)
-    end
-    return dest
-end
-
 
 # Get a tuple of unique keys for DimArrays. If they have the same
 # name we call them layerI.
