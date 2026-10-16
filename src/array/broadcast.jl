@@ -425,8 +425,9 @@ _broadcasted_dims(a::AbstractBasicDimArray) = (dims(a),)
 _broadcasted_dims(a) = ()
 
 # Wrap dimarrays in broadcastdimarray with inserted/reordered dimensions and options
-_maybe_dimensional_broadcast(x, _, _) = x
-function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options)
+function _maybe_dimensional_broadcast(x, dest_dims, options)
+    A = Base.Broadcast.broadcastable(x) # to convert e.g. DimStack and Dimensions
+    A isa AbstractBasicDimArray || return A
     # Skip the wrapper entirely when there's nothing to do
     if isnothing(options) && all(hasdim(A, dest_dims)) &&
         dimsmatch(commondims(dims(A), dest_dims), commondims(dest_dims, dims(A)))
@@ -434,17 +435,14 @@ function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, optio
     end
     return BroadcastOptionsDimArray(A; dest_dims, options)
 end
-_maybe_dimensional_broadcast(d::Dimension, dims, options) =
-    _maybe_dimensional_broadcast(DimArray(parent(d), d), dims, options)
-
 
 # Find dimensions in the list of brodcast arguments
 # The returned dimension order is taken from the order dimensions 
 # are found, but this algorithm could be improved 
-@inline function _find_dims((A, args...)::Tuple{<:AbstractBasicDimArray,Vararg})::DimTupleOrEmpty
+@inline function _find_dims((A, args...)::Tuple)::DimTupleOrEmpty
     expanded = _find_dims(args)
-    if expanded === ()
-        dims(A)
+    if isnothing(dims(A))
+        expanded
     else
         (dims(A)..., otherdims(expanded, dims(A))...)
     end
@@ -452,4 +450,3 @@ end
 @inline _find_dims((d, args...)::Tuple{<:Dimension,Vararg}) =
     (d, otherdims(_find_dims(args), (d,))...)
 @inline _find_dims(::Tuple{}) = ()
-@inline _find_dims((_, args...)::Tuple) = _find_dims(args)
