@@ -579,7 +579,7 @@ end
 # Forward to the parent so its specialised methods are used,
 # e.g. for `Symmetric` or `Diagonal` matrices
 for fname in (:det, :logdet, :logabsdet, :eigmin, :eigmax)
-    @eval LinearAlgebra.$fname(A::AbstractDimMatrix = LinearAlgebra.$fname(parent(A))
+    @eval LinearAlgebra.$fname(A::AbstractDimMatrix) = LinearAlgebra.$fname(parent(A))
 end
 # Eigenvalues do not correspond to either dimension, so we return the parent result
 LinearAlgebra.eigvals(A::AbstractDimMatrix; kws...) = LinearAlgebra.eigvals(parent(A); kws...)
