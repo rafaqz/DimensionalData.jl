@@ -153,7 +153,7 @@ function at(lookup::NoLookup, sel::At; err=_True(), kw...)
         atol(sel) >= 0.5 && error("atol must be small than 0.5 for NoLookup")
         isapprox(v, r; atol=atol(sel)) || _selnotfound_or_nothing(err, lookup, v)
     end
-    if r in lookup 
+    if r in axes(lookup, 1)
         return r
     else
         if err isa _False
@@ -389,7 +389,7 @@ end
 function contains(l::NoLookup, sel::Contains; err=_True(), kw...)
     if isinteger(val(sel))
         i = Int(val(sel))
-        i in l && return i
+        i in axes(l, 1) && return i
     end
     if err isa _False
         return nothing
