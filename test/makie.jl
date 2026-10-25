@@ -687,7 +687,13 @@ end
     fig, ax, _ = rainclouds(A2u)
     rainclouds!(ax, A2u)
     if pkgversion(Makie) < v"0.25"
-        @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
+        # Later Makie 0.24 releases wrap the error in a ComputePipeline.ResolveException
+        rainclouds_err = if pkgversion(CairoMakie) >= v"0.15"
+            Union{ErrorException,ComputePipeline.ResolveException{ErrorException}}
+        else
+            ErrorException
+        end
+        @test_throws rainclouds_err rainclouds(A2m) # MethodError ? missing values in data not supported
     else
         @test_throws MethodError rainclouds(A2m) # missing values in data not supported by dim converts
     end
