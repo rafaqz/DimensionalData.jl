@@ -497,7 +497,7 @@ function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimVector; cat
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
-function Makie.convert_arguments(P::Type{<:RainClouds}, A::AbstractDimVector; categoricaldim = nothing)
+function Makie.convert_arguments(P::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::AbstractDimVector; categoricaldim = nothing)
     if !isnothing(categoricaldim) 
         dimnum(A, categoricaldim) # Returns an error if dim does not exist
     end
