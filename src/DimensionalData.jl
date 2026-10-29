@@ -24,6 +24,8 @@ import ConstructionBase,
        TableTraits,
        Tables
 
+using Preferences: @load_preference, @set_preferences!
+
 # using IntervalSets: .., Interval
 
 include("Dimensions/Dimensions.jl")
@@ -84,6 +86,7 @@ export @d
 const DD = DimensionalData
 
 # Common
+include("preferences.jl")
 include("interface.jl")
 include("name.jl")
 include("table_ops.jl")
