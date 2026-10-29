@@ -765,10 +765,10 @@ for f in (:zeros, :ones, :rand)
         Base.$f(dims::DimTuple; kw...) = $f(Float64, dims; kw...)
     end
 end
-for f in (:trues, :falses)
+for (m, f) in ((:Base, :trues), (:Base, :falses), (:Random, :bitrand))
     @eval begin
-        Base.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
-        function Base.$f(dims::DimTuple; kw...)
+        $m.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
+        function $m.$f(dims::DimTuple; kw...)
             C = dimconstructor(dims)
             C($f(_dimlength(dims)), _maybestripval(dims); kw...)
         end
@@ -796,6 +796,8 @@ for f in (:fill, :rand)
         end
     end
 end
+Base.fill!(A::AbstractDimArray, x) = (Base.fill!(parent(A), x); return A)
+
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = 
     rand(r, x, (d1, dims...); kw...)
