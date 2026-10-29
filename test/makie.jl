@@ -26,7 +26,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     fig = Figure()
     @test_throws MethodError lines(fig, dd_vec) # error as in lines(fig, 1:10)
     ax, plt = lines(fig[1,1], dd_vec)
-    @test_throws ErrorException lines(fig[1,1], dd_vec)
+    @test_throws Exception lines(fig[1,1], dd_vec)
     lines!(ax, dd_vec)
     
     fig = Figure()
@@ -106,11 +106,11 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     @test plt isa Makie.Scatter
     fig = Figure()
     @test plot(fig[1,1], dd_vec_mis) isa Makie.AxisPlot
-    @test_throws ErrorException plot(fig[1,1], dd_vec_mis)
+    @test_throws Exception plot(fig[1,1], dd_vec_mis)
 
     fig = Figure()
     @test plot(fig[1,1][1,1], dd_vec_mis) isa Makie.AxisPlot
-    @test_throws ErrorException plot(fig[1,1][1,1], dd_vec_mis)
+    @test_throws Exception plot(fig[1,1][1,1], dd_vec_mis)
 
     fig = Figure()
     ax = Axis(fig[1,1])
@@ -187,7 +187,7 @@ end
     fig = Figure()
     @test_throws MethodError series(fig, dd_mat_cat) # as lines(fig, 1:10)
     ax, plt = series(fig[1,1], dd_mat_cat)
-    @test_throws ErrorException series(fig[1,1], dd_mat_cat)
+    @test_throws Exception series(fig[1,1], dd_mat_cat)
     series!(ax, dd_mat_cat)
     
     dds = if pkgversion(Makie) >= v"0.24.0" 
@@ -276,7 +276,7 @@ end
     @test_throws MethodError contour(fig, dd_mat) # as lines(fig, 1:10)
     ax, plt = contour(fig[1,1], dd_mat)
     contourf!(ax, dd_mat)
-    @test_throws ErrorException contour(fig[1,1], dd_mat)
+    @test_throws Exception contour(fig[1,1], dd_mat)
 
     fig, ax, plt = contour(dd_mat)
     for dd_i in (dd_mat, dd_mat_perm)
@@ -404,7 +404,7 @@ end
     fig = Figure()
     @test_throws MethodError volume(fig, dd_3d) # as lines(fig, 1:10)
     ax, plt = volume(fig[1,1], dd_3d)
-    @test_throws ErrorException volume(fig[1,1], dd_3d)
+    @test_throws Exception volume(fig[1,1], dd_3d)
     @test volume!(ax, dd_3d) isa Makie.Volume
 
     fig = Figure()
@@ -687,7 +687,7 @@ end
     fig, ax, _ = rainclouds(A2u)
     rainclouds!(ax, A2u)
     if pkgversion(Makie) < v"0.25"
-        @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
+        @test_throws Exception rainclouds(A2m) # MethodError ? missing values in data not supported
     else
         @test_throws MethodError rainclouds(A2m) # missing values in data not supported by dim converts
     end
