@@ -823,6 +823,47 @@ end
     end
 end
 
+@testset "Base.stack" begin
+    a = [1 2 3; 4 5 6]
+    da = DimArray(a, (X(4.0:5.0), Y(6.0:8.0)))
+    b = [7 8 9; 10 11 12]
+    ca = DimArray(b, (X(4.0:5.0), Y(6.0:8.0)))
+    db = DimArray(b, (X(6.0:7.0), Y(6.0:8.0)))
+
+    x = DimArray([da, db], (Z(4.0:5.0)))
+    @test_warn "Lookup values" stack(x)
+
+    x = DimArray(fill(da, 2, 2), (Dim{:a}(4.0:5.0), Dim{:b}(6.0:7.0)))
+    sx = stack(x)
+    @test sx isa AbstractDimArray
+    @test dims(sx) == (dims(first(x))..., dims(x)...)
+
+    @test_throws "ArgumentError" stack(x; dims=4)
+
+    x = DimArray([da, ca], (Dim{:a}(1:2),))
+    sx = stack(x; dims=1)
+    sy = @test_nowarn stack(x; dims=:)
+    sz = @test_nowarn stack(x; dims=X)
+    @test sx == sz
+    @test sx == stack([parent(da), parent(ca)], dims=1)
+    @test sx isa AbstractDimArray
+    @test dims(sx) == (dims(x)..., dims(first(x))...)
+
+    for d = 1:3
+        x = DimArray([da, ca], (AnonDim(),))
+        dc = stack(x, dims=d)
+        @test dims(dc, d) isa AnonDim
+        @test parent(dc) == stack([da, db], dims=d)
+
+        dc = stack(x -> x .^ 2, x; dims=d)
+        @test dims(dc, d) isa AnonDim
+        @test dc == stack(parent(x); dims=d) .^ 2
+        dc = stack(+, x, x, x; dims=d)
+        @test dims(dc, d) isa AnonDim
+        @test dc == stack(x + x + x; dims=d)
+    end
+end
+
 @testset "unique" begin
     a = [1 1 6; 1 1 6]
     xs = (X, X(), :X)
