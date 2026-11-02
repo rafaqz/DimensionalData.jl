@@ -581,21 +581,15 @@ end
     @test eltype(da) <: Int32
     @test all(==(1), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
-    da = trues(ti)
-    @test size(da) == (4,)
-    @test eltype(da) <: Bool
-    @test all(==(true), da) 
-    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
-    da = falses(ti)
-    @test size(da) == (4,)
-    @test eltype(da) <: Bool
-    @test all(==(false), da)
-    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
-    da = bitrand(ti)
-    @test size(da) == (4,)
-    @test eltype(da) <: Bool
-    @test parent(da) isa BitVector
-    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+
+    for (f, f2) in zip((trues, falses, bitrand), (all, !any, any))
+        da = f(ti)
+        @test size(da) == (4,)
+        @test eltype(da) <: Bool
+        @test parent(da) isa BitVector
+        @test f2(da)
+        @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+    end
 
     for f in (ones, zeros, trues, falses, bitrand)
         da = f(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
