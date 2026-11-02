@@ -74,6 +74,9 @@ end
     @test reduce(+, da) == reduce(+, a)
     @test mapreduce(x -> x > 3, +, da; dims=:) == 1
     @test std(da) === std(a)
+    
+    @test count(iseven, da; dims=:) == 2
+    @test count(iseven, da) == 2
 
     for dims in xs
         @test prod(da; dims) == [3 8]
@@ -84,11 +87,13 @@ end
         @test var(da; dims) == [2.0 2.0]
         @test std(da; dims) == [1.4142135623730951 1.4142135623730951]
         @test extrema(da; dims) == [(1, 3) (2, 4)]
+        @test count(iseven, da; dims) == [0 2]
         resultdimz =
             (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
              Y(Sampled(-38:2:-36, ForwardOrdered(), Regular(2), Points(), NoMetadata())))
         @test typeof(DimensionalData.dims(prod(da; dims))) == typeof(resultdimz)
         @test bounds(DimensionalData.dims(prod(da; dims))) == bounds(resultdimz)
+        @test typeof(DimensionalData.dims(count(iseven, da; dims))) == typeof(resultdimz)
     end
     for dims in ys
         @test prod(da; dims=2) == [2 12]'
@@ -109,6 +114,7 @@ end
             (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
              Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
         @test extrema(da; dims) == permutedims([(1, 2) (3, 4)])
+        @test count(iseven, da; dims) == [1 1]'
     end
     for dims in xys
         @test mean(da; dims) == [2.5]'
@@ -116,6 +122,7 @@ end
         @test reduce(+, da; dims) == [10]'
         @test mapreduce(x -> x > 3, +, da; dims)  == [1]'
         @test extrema(da; dims) == reshape([(1, 4)], 1, 1)
+        @test count(iseven, da; dims) == [2]'
     end
 
     # Test errors on invalid dimensions. These specific methods are chosen
@@ -139,6 +146,9 @@ end
     @test all(da) === false
     @test all(da; dims=Y) == reshape([false, false], 2, 1)
     @test all(da; dims=(X, Y)) == reshape([false], 1, 1)
+    @test count(da) == 2
+    @test count(da; dims=Y) == reshape([2, 0], 2, 1)
+    @test count(da; dims=(X, Y)) == reshape([2], 1, 1)
 
     @testset "inference" begin
         x = DimArray(randn(2, 3, 4), (X, Y, Z));
@@ -201,6 +211,7 @@ end
         @test Array(var(da; dims)) == [2.0 2.0]
         @test Array(std(da; dims)) == [1.4142135623730951 1.4142135623730951]
         @test Array(extrema(da; dims)) == [(1, 3) (2, 4)]
+        @test Array(count(iseven, da; dims)) == [0 2]
         resultdimz =
             (X(Sampled(144.0:2.0:144.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())),
              Y(Sampled(-38:2:-36, ForwardOrdered(), Regular(2), Points(), NoMetadata())))
@@ -226,6 +237,7 @@ end
             (X(Sampled(143:2:145, ForwardOrdered(), Regular(2), Points(), NoMetadata())),
              Y(Sampled(-37.0:4.0:-37.0, ForwardOrdered(), Regular(4.0), Points(), NoMetadata())))
         @test Array(extrema(da; dims)) == permutedims([(1, 2) (3, 4)])
+        @test Array(count(iseven, da; dims)) == [1 1]'
     end
     for dims in xys
         @test Array(mean(da; dims=dims)) == [2.5]'
@@ -233,6 +245,7 @@ end
         @test Array(reduce(+, da; dims)) == [10]'
         @test Array(mapreduce(x -> x > 3, +, da; dims))  == [1]'
         @test Array(extrema(da; dims)) == reshape([(1, 4)], 1, 1)
+        @test Array(count(iseven, da; dims)) == [2]'
     end
 
     a = JLArray([1 2 3; 4 5 6])

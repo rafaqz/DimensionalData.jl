@@ -520,6 +520,17 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
+@testset "fill!" begin
+    da = fill(5.0, X(4), Y(40.0:10.0:80.0))
+    @test fill!(da, 1.0) === da
+    @test all(==(1.0), da)
+
+    # BitArray-backed DimArrays get the fast `fill!` path (JuliaGeo/DimensionalData.jl#1244)
+    da = bitrand(X(4), Y(3))
+    @test fill!(da, true) === da
+    @test parent(da) isa BitMatrix
+    @test all(da)
+end
 
 @testset "generator constructor" begin
     Xs = X(10:10:50)
@@ -559,7 +570,7 @@ end
     @test A.name == name
 end
 
-@testset "ones, zeros, trues, falses constructors" begin
+@testset "ones, zeros, trues, falses, bitrand constructors" begin
     da = @inferred zeros(X(4), Y(40.0:10.0:80.0; order=ForwardOrdered()); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
     @test metadata(da) == (a=1, b=2)
@@ -578,10 +589,15 @@ end
     da = falses(ti)
     @test size(da) == (4,)
     @test eltype(da) <: Bool
-    @test all(==(false), da) 
+    @test all(==(false), da)
+    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+    da = bitrand(ti)
+    @test size(da) == (4,)
+    @test eltype(da) <: Bool
+    @test parent(da) isa BitVector
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 
-    for f in (ones, zeros, trues, falses)
+    for f in (ones, zeros, trues, falses, bitrand)
         da = f(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
         @test size(da) == (4, 5)
         @test metadata(da) == (a=1, b=2)
