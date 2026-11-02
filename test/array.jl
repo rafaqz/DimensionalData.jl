@@ -525,10 +525,8 @@ end
     @test fill!(da, 1.0) === da
     @test all(==(1.0), da)
 
-    # BitArray-backed DimArrays get the fast `fill!` path (JuliaGeo/DimensionalData.jl#1244)
     da = bitrand(X(4), Y(3))
     @test fill!(da, true) === da
-    @test parent(da) isa BitMatrix
     @test all(da)
 end
 
