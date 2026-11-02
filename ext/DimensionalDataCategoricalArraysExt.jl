@@ -19,7 +19,7 @@ CAs.recode(x::DD.AbstractDimArray, pairs::Pair...) = CAs.recode(x, nothing, pair
 CAs.recode(x::DD.AbstractDimArray, default::Any, pairs::Pair...) = DD.rebuild(x; data = CAs.recode(Base.parent(x),default, pairs...))
 
 # function that mutate in-place
-for f in [:levels!, :droplevels!, :fill!, :ordered!]
+for f in [:levels!, :droplevels!, :ordered!]
     @eval function CAs.$f(x::CategoricalDimArray, args...; kw...)
         CAs.$f(Base.parent(x), args...; kw...)
         return x
