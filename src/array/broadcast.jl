@@ -104,6 +104,9 @@ end
     return dest
 end
 
+# Override the default collect(d) to avoid allocations
+Base.Broadcast.broadcastable(d::Dimension) = DimArray(val(parent(d)), d)
+
 """
     @d broadcast_expression options
 
@@ -309,31 +312,51 @@ function _find_broadcast_vars(expr::Expr)::Tuple{Expr,Vector{Pair{Symbol,Any}}}
     end
 end
 
-# A wrapper AbstractDimArray only to be used in @d broadcasts. 
-# It should never escape
-# options are both for broadcast tweaks and for keywords to the new DimArray
-struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractBasicDimArray{T,N,D},O} <: AbstractDimArray{T,N,D,A}
+# A wrapper around any `AbstractBasicDimArray`, @d broadcasts.
+struct BroadcastOptionsDimArray{T,N,D<:Tuple,A<:AbstractBasicDimArray{T},O} <: AbstractDimArray{T,N,D,A}
     data::A
+    dims::D
     options::O
     function BroadcastOptionsDimArray(
-        data::A, options::O
-    ) where {A<:AbstractDimArray{T,N,D},O} where {T,N,D}
-        new{T,N,D,A,O}(data, options)
+        data::A, dims::D, options::O
+    ) where {A<:AbstractBasicDimArray{T},D<:Tuple,O} where T
+        new{T,length(dims),D,A,O}(data, dims, options)
     end
+end
+function BroadcastOptionsDimArray(A::AbstractBasicDimArray; dest_dims, options)
+    newdims = map(dest_dims) do d
+        hasdim(A, d) ? dims(A, d) : rebuild(d, Lookups.Length1NoLookup())
+    end
+    BroadcastOptionsDimArray(A, newdims, something(options, NamedTuple()))
 end
 
 # Get keywords from options
 _rebuild_kw(A::BroadcastOptionsDimArray) = _rebuild_kw(; broadcast_options(A)...)
 _rebuild_kw(; dims=nothing, strict=nothing, kw...) = kw
 
-# Forward DD methods to the parent array
-dims(A::BroadcastOptionsDimArray) = dims(parent(A))
+# `dims` is our own field - everything else forwards to the wrapped array
+dims(A::BroadcastOptionsDimArray) = getfield(A, :dims)
 refdims(A::BroadcastOptionsDimArray) = refdims(parent(A))
 name(A::BroadcastOptionsDimArray) = name(parent(A))
 metadata(A::BroadcastOptionsDimArray) = metadata(parent(A))
+# overrule size so it follows the dims (including insertd 1-length dims), not the parent
+Base.size(A::BroadcastOptionsDimArray) = map(length, dims(A))
+Base.axes(A::BroadcastOptionsDimArray) = map(dims(A)) do d
+    hasdim(parent(A), d) ? axes(parent(A), d) : Base.OneTo(1)
+end
 
-# Rebuild returns the parent AbstractDimArray rebuilt with options keywords. 
-# Dimensions are updated with `set` if there is a dims keyword
+# Forward indexing to the wrapped array's own dims and order
+@inline function _broadcastoptions_getindex(A::BroadcastOptionsDimArray, I::Tuple)
+    D = map(rebuild, dims(A), I)
+    getindex(parent(A), dims(D, dims(parent(A)))...)
+end
+@inline Base.getindex(A::BroadcastOptionsDimArray, i1::Integer, i2::Integer, Is::Integer...) =
+    _broadcastoptions_getindex(A, (i1, i2, Is...))
+@inline Base.getindex(A::BroadcastOptionsDimArray{<:Any,1}, i::Integer) =
+    _broadcastoptions_getindex(A, (i,))
+@inline Base.getindex(A::BroadcastOptionsDimArray{<:Any,0}) =
+    _broadcastoptions_getindex(A, ())
+
 function rebuild(A::BroadcastOptionsDimArray; kw...) 
     A1 = rebuild(parent(A); kw..., _rebuild_kw(A)...) 
     D = get(broadcast_options(A), :dims, nothing)
@@ -343,13 +366,6 @@ function rebuild(A::BroadcastOptionsDimArray; kw...)
         return A1
     end
 end
-rebuild(A::BroadcastOptionsDimArray, args...) = rebuild(parent(A), args...) 
-@inline function rebuild(
-    A::BroadcastOptionsDimArray, data, dims::Tuple=dims(A), refdims=refdims(A), name=name(A), metadata=metadata(A),
-)
-    rebuild(A; data, dims, refdims, name, metadata, _rebuild_kw(A)...)
-end
-
 # Get the options NamedTuple from BroadcastOptionsDimArray
 broadcast_options(_) = NamedTuple()
 broadcast_options(A::BroadcastOptionsDimArray) = A.options
@@ -387,7 +403,7 @@ end
 _unwrap_broadcasted(x) = x
 _unwrap_broadcasted(nda::AbstractDimArray) = parent(nda)
 _unwrap_broadcasted(bda::AbstractBasicDimArray) = OpaqueArray(bda)
-_unwrap_broadcasted(boda::BroadcastOptionsDimArray) = _unwrap_broadcasted(parent(boda))
+_unwrap_broadcasted(boda::BroadcastOptionsDimArray) = OpaqueArray(boda)
 _unwrap_broadcasted(t::Tuple) = map(_unwrap_broadcasted, t)
 _unwrap_broadcasted(du::Dimensions.DimUnitRange) = parent(du)
 # Get the first dimensional array in the broadcast
@@ -411,69 +427,25 @@ _broadcasted_dims(a, bs...) = (_broadcasted_dims(a)..., _broadcasted_dims(bs...)
 _broadcasted_dims(a::AbstractBasicDimArray) = (dims(a),)
 _broadcasted_dims(a) = ()
 
-# If an object is an AbstractBasicDimArray or a Dimension, reshape and permute 
-# its dimensions to match the rest of the @d broadcast, otherwise do nothing.
-_maybe_dimensional_broadcast(x, _, _) = x
-function _maybe_dimensional_broadcast(A::AbstractBasicDimArray, dest_dims, options) 
-    # Reshape first to avoid a ReshapedArray wrapper if possible
-    A1 = _maybe_insert_length_one_dims(A, dest_dims)
-    # Then permute and reorder
-    A2 = _maybe_lazy_permute(A1, dest_dims)
-    # Then rebuild with the new data and dims
-    data = parent(A2)
-    A3 = rebuild(A; data, dims=format(dims(A2), data))
-    if isnothing(options)
-        return A3
-    else
-        return BroadcastOptionsDimArray(A3, options)
+# Wrap dimarrays in broadcastdimarray with inserted/reordered dimensions and options
+function _maybe_dimensional_broadcast(x, dest_dims, options)
+    A = Base.Broadcast.broadcastable(x) # to convert e.g. DimStack and Dimensions
+    A isa AbstractBasicDimArray || return A
+    # Skip the wrapper entirely when there's nothing to do
+    if isnothing(options) && all(hasdim(A, dest_dims)) &&
+        dimsmatch(commondims(dims(A), dest_dims), commondims(dest_dims, dims(A)))
+        return A
     end
-end
-_maybe_dimensional_broadcast(d::Dimension, dims, options) = 
-    _maybe_dimensional_broadcast(DimArray(parent(d), d), dims, options)
-
-# Permute lazily if we need to
-function _maybe_lazy_permute(A::AbstractBasicDimArray, dest)
-    if dimsmatch(commondims(dims(A), dims(dest)), commondims(dims(dest), dims(A)))
-        A
-    else
-        PermutedDimsArray(A, commondims(dims(dest), dims(A)))
-    end
-end
-
-function _maybe_insert_length_one_dims(A::AbstractBasicDimArray, dims)
-    if all(hasdim(A, dims)) 
-        A 
-    else
-        _insert_length_one_dims(A, dims)
-    end
-end
-# Insert `Length1NoLookup` and reshape the array where needed so 
-# that missing dimensions are not a problem.
-function _insert_length_one_dims(A::AbstractBasicDimArray, alldims)
-    if basedims(dims(A)) == basedims(dims(A), alldims)
-        lengths = map(alldims) do d 
-            hasdim(A, d) ? size(A, d) : 1
-        end
-        newdims = map(alldims) do d 
-            hasdim(A, d) ? dims(A, d) : rebuild(d, Lookups.Length1NoLookup())
-        end
-    else
-        odims = otherdims(alldims, DD.dims(A))
-        lengths = (size(A)..., map(_ -> 1, odims)...) 
-        newdims = (dims(A)..., map(d -> rebuild(d, Lookups.Length1NoLookup()), odims)...)
-    end
-    newdata = reshape(parent(A), lengths)
-    A1 = rebuild(A; data=newdata, dims=format(newdims, newdata))
-    return A1
+    return BroadcastOptionsDimArray(A; dest_dims, options)
 end
 
 # Find dimensions in the list of brodcast arguments
 # The returned dimension order is taken from the order dimensions 
 # are found, but this algorithm could be improved 
-@inline function _find_dims((A, args...)::Tuple{<:AbstractBasicDimArray,Vararg})::DimTupleOrEmpty
+@inline function _find_dims((A, args...)::Tuple)::DimTupleOrEmpty
     expanded = _find_dims(args)
-    if expanded === ()
-        dims(A)
+    if isnothing(dims(A))
+        expanded
     else
         (dims(A)..., otherdims(expanded, dims(A))...)
     end
@@ -481,4 +453,3 @@ end
 @inline _find_dims((d, args...)::Tuple{<:Dimension,Vararg}) =
     (d, otherdims(_find_dims(args), (d,))...)
 @inline _find_dims(::Tuple{}) = ()
-@inline _find_dims((_, args...)::Tuple) = _find_dims(args)
