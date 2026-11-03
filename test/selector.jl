@@ -1409,6 +1409,15 @@ end
     @test_throws SelectorError selectindices(l, Contains(0)) 
     @test_throws SelectorError selectindices(l, Contains(200)) 
     @test selectindices(l, 20.1..40) == 21:40
+    # a slice keeps parent indices as data, but selection stays positional
+    sl = l[51:100]
+    @test selectindices(sl, At(1)) == 1
+    @test selectindices(sl, At(50)) == 50
+    @test_throws SelectorError selectindices(sl, At(51))
+    @test selectindices(sl, Contains(1)) == 1
+    @test_throws SelectorError selectindices(sl, Contains(51))
+    @test selectindices(sl, Near(51.0)) == 50
+    @test selectindices(sl, 1..2) == 1:2
 end
 
 @testset "selectindices" begin
