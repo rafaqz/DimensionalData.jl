@@ -805,15 +805,19 @@ function Base.rand(r::AbstractRNG, x, dims::DimTuple; kw...)
     C = dimconstructor(dims)
     C(rand(r, x, _dimlength(dims)), _maybestripval(dims); kw...)
 end
-function Base.rand(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
-    rand(r, (d1, dims...); kw...)
+for (m, f) in ((:Base, :rand), (:Random, :bitrand))
+    @eval begin
+        function $m.$f(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
+            $f(r, (d1, dims...); kw...)
+        end
+        function $m.$f(r::AbstractRNG, dims::DimTuple; kw...)
+            C = dimconstructor(dims)
+            C($f(r, _dimlength(dims)...), _maybestripval(dims); kw...)
+        end
+    end
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T
     rand(r, T, (d1, dims...); kw...)
-end
-function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
-    C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)
