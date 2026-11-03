@@ -765,10 +765,10 @@ for f in (:zeros, :ones, :rand)
         Base.$f(dims::DimTuple; kw...) = $f(Float64, dims; kw...)
     end
 end
-for f in (:trues, :falses)
+for (m, f) in ((:Base, :trues), (:Base, :falses), (:Random, :bitrand))
     @eval begin
-        Base.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
-        function Base.$f(dims::DimTuple; kw...)
+        $m.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
+        function $m.$f(dims::DimTuple; kw...)
             C = dimconstructor(dims)
             C($f(_dimlength(dims)), _maybestripval(dims); kw...)
         end
@@ -796,6 +796,8 @@ for f in (:fill, :rand)
         end
     end
 end
+Base.fill!(A::AbstractDimArray, x) = (Base.fill!(parent(A), x); return A)
+
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = 
     rand(r, x, (d1, dims...); kw...)
@@ -803,15 +805,19 @@ function Base.rand(r::AbstractRNG, x, dims::DimTuple; kw...)
     C = dimconstructor(dims)
     C(rand(r, x, _dimlength(dims)), _maybestripval(dims); kw...)
 end
-function Base.rand(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
-    rand(r, (d1, dims...); kw...)
+for (m, f) in ((:Base, :rand), (:Random, :bitrand))
+    @eval begin
+        function $m.$f(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
+            $f(r, (d1, dims...); kw...)
+        end
+        function $m.$f(r::AbstractRNG, dims::DimTuple; kw...)
+            C = dimconstructor(dims)
+            C($f(r, _dimlength(dims)...), _maybestripval(dims); kw...)
+        end
+    end
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T
     rand(r, T, (d1, dims...); kw...)
-end
-function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
-    C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)

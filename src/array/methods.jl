@@ -9,7 +9,7 @@ end
 
 # With a function arg version
 for (m, f) in ((:Base, :sum), (:Base, :prod), (:Base, :maximum), (:Base, :minimum),
-               (:Base, :extrema), (:Statistics, :mean))
+               (:Base, :extrema), (:Base, :count), (:Statistics, :mean))
     _f = Symbol('_', f)
     @eval begin
         # Base methods
