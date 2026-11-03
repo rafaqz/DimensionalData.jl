@@ -1,6 +1,7 @@
 using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
+using BenchmarkTools
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
@@ -480,6 +481,38 @@ end
     cp = LinearAlgebra.copy_similar(A, Float64)
     @test cp isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
     @test A == cp
+    S = DimArray(Symmetric([2.0 1.0; 1.0 2.0]), (X(1:2), Y(1:2)))
+    cpS = LinearAlgebra.copy_similar(S, Float64)
+    @test cpS isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
+    @test parent(cpS) isa Matrix{Float64}
+    @test cpS == S
+end
+
+@testset "LinearAlgebra on wrapped structured matrices" begin
+    b = [1.0, 2.0]
+    for M in (Symmetric([2.0 1.0; 1.0 2.0]), [2.0 1.0; 1.0 2.0], Diagonal([2.0, 3.0]))
+        A = DimArray(M, (X(1:2), Y(1:2)))
+        @test det(A) == det(M)
+        @test logdet(A) == logdet(M)
+        @test logabsdet(A) == logabsdet(M)
+        @test eigvals(A) isa Vector
+        @test eigvals(A) == eigvals(M)
+        @test eigmin(A) == eigmin(M)
+        @test eigmax(A) == eigmax(M)
+        # These copy with `copy_similar` and factorize the copy
+        @test cholesky(A).L ≈ cholesky(M).L
+        @test A \ b ≈ M \ b
+    end
+    S = Symmetric([2.0 1.0; 1.0 2.0])
+    A = DimArray(S, (X(1:2), Y(1:2)))
+    @test eigvals(A; sortby=x -> -x) == eigvals(S; sortby=x -> -x)
+    # The specialised methods of the parent are used rather than an LU factorization of a copy
+    T = SymTridiagonal([2.0, 3.0, 4.0], [1.0, 1.0])
+    B = DimArray(T, (X(1:3), Y(1:3)))
+    for f in (det, logdet, logabsdet)
+        @test f(B) == f(T)
+        @test (@ballocated $f($B)) == (@ballocated $f($T))
+    end
 end
 
 @testset "constructor" begin
