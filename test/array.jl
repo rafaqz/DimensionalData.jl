@@ -568,7 +568,7 @@ end
     @test A.name == name
 end
 
-@testset "ones, zeros, trues, falses, bitrand constructors" begin
+@testset "ones, zeros, trues, falses constructors" begin
     da = @inferred zeros(X(4), Y(40.0:10.0:80.0; order=ForwardOrdered()); metadata=(a=1, b=2))
     @test eltype(da) <: Float64
     @test metadata(da) == (a=1, b=2)
@@ -580,7 +580,7 @@ end
     @test all(==(1), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
 
-    for (f, f2) in zip((trues, falses, bitrand), (all, !any, any))
+    for (f, f2) in zip((trues, falses), (all, !any))
         da = f(ti)
         @test size(da) == (4,)
         @test eltype(da) <: Bool
@@ -589,7 +589,7 @@ end
         @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
     end
 
-    for f in (ones, zeros, trues, falses, bitrand)
+    for f in (ones, zeros, trues, falses)
         da = f(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
         @test size(da) == (4, 5)
         @test metadata(da) == (a=1, b=2)
@@ -627,7 +627,7 @@ end
     @test dims(A) === dims(da)
 end
 
-@testset "rand constructors" begin
+@testset "rand, bitrand constructors" begin
     da = @inferred rand(1:10, X(8), Y(11:20); metadata=(a=1, b=2))
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
@@ -648,11 +648,20 @@ end
     da = rand(MersenneTwister(), 1:2, X([:a, :b]), Y(3))
     @test eltype(da) <: Int
     @test size(da) == (2, 3)
-    @test maximum(da) in (1, 2)
-    @test minimum(da) in (1, 2)
+    @test all(in((1,2)), da)
     da = rand(MersenneTwister(), X([:a, :b]), Y(3))
     @test size(da) == (2, 3)
     @test eltype(da) <: Float64
+
+    da = @inferred bitrand(X([:a, :b]; order=ForwardOrdered()), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Bool
+    @test parent(da) isa BitArray
+
+    da = bitrand(MersenneTwister(), X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Bool
+    @test parent(da) isa BitArray
 end
 
 @testset "NamedTuple" begin
