@@ -7,7 +7,7 @@ Base.show(io::IO, l::LazyMath{T}) where T = print(io, _print_f(T, l.f))
 const BeginEndRangeVals = Union{Begin,End,LazyMath,Int}
 
 # Ranges
-abstract type AbstractBeginEndRange <: Function end
+abstract type AbstractBeginEndRange end
 struct BeginEndRange{A<:BeginEndRangeVals,B<:BeginEndRangeVals} <: AbstractBeginEndRange
     start::A
     stop::B
@@ -21,6 +21,7 @@ end
 Base.first(r::AbstractBeginEndRange) = r.start
 Base.last(r::AbstractBeginEndRange) = r.stop
 Base.step(r::BeginEndStepRange) = r.step
+Base.broadcastable(r::AbstractBeginEndRange) = Ref(r)
 
 (::Colon)(a::Int, b::Union{Begin,End,Type{Begin},Type{End},LazyMath}) = BeginEndRange(a, _x(b))
 (::Colon)(a::Union{Begin,End,Type{Begin},Type{End},LazyMath}, b::Int) = BeginEndRange(_x(a), b)
