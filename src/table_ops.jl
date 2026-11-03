@@ -24,7 +24,7 @@ function restore_array(data::AbstractVector{T}, indices::AbstractVector, dims::T
         for idx in indices # looping is faster than broadcasting
             missing_rows[idx] = false 
         end
-        return ifelse.(missing_rows, _missingval, dst)
+        dst = ifelse.(missing_rows, _missingval, dst)
     end
     return parent(dst)
 end
@@ -180,13 +180,16 @@ _unique_vals(coords::AbstractVector{<:Real}, precision::Int) = round.(coords, di
 _unique_vals(coords::AbstractVector{<:Integer}, ::Int) = unique(coords)
 
 # Estimate the span between consecutive coordinates
-_maybe_as_range(A::AbstractVector, precision) = A # for non-numeric types
-function _maybe_as_range(A::AbstractVector{<:Real}, precision::Int)
+# A single value has no step to estimate, so there's nothing to gain from a range
+_maybe_as_range(A::AbstractVector, precision) = length(A) < 2 ? A : _as_range(A, precision)
+
+_as_range(A::AbstractVector, precision) = A # for non-numeric types
+function _as_range(A::AbstractVector{<:Real}, precision::Int)
     A_r = range(first(A), last(A), length(A))
     atol = 10.0^(-precision)
     return all(i -> isapprox(A_r[i], A[i]; atol), eachindex(A)) ? A_r : A
 end
-function _maybe_as_range(A::AbstractVector{<:Integer}, precision::Int)
+function _as_range(A::AbstractVector{<:Integer}, precision::Int)
     idx1, idxrest = Iterators.peel(eachindex(A))
     step = A[idx1+1] - A[idx1]
     for idx in idxrest
@@ -194,7 +197,7 @@ function _maybe_as_range(A::AbstractVector{<:Integer}, precision::Int)
     end
     return first(A):step:last(A)
 end
-function _maybe_as_range(A::AbstractVector{<:Dates.AbstractTime}, precision::Int)
+function _as_range(A::AbstractVector{<:Dates.AbstractTime}, precision::Int)
     steps = (@view A[2:end]) .- (@view A[1:end-1])
     span = argmin(abs, steps)
     isregular = all(isinteger, round.(steps ./ span, digits=precision))
