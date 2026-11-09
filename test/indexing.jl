@@ -795,6 +795,7 @@ end
         d = Begin()+2:End()
         @test first(d) == Begin+2
         @test Base.checkindex(Bool, 1:10, Begin-1:End) == false
+        @test getindex.([10:13, 20:25], Begin+1:End) == [11:13, 21:25]
     end
     @testset "BeginEndStepRange" begin
         a = Begin:2:End
