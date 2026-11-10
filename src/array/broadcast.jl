@@ -105,7 +105,7 @@ end
 end
 
 # Override the default collect(d) to avoid allocations
-Base.Broadcast.broadcastable(d::Dimension) = DimArray(val(parent(d)), d)
+Base.Broadcast.broadcastable(d::Dimension) = DimArray(val(d), d)
 
 """
     @d broadcast_expression options
