@@ -27,3 +27,4 @@ docs/package-lock.json
 *.png
 *.svg
 *.ico
+LocalPreferences.toml
