@@ -98,7 +98,7 @@ DataFrame(DimTable(st; mergedims=(:X, :Y)=>:XY))
 
 We can also write arrays and stacks directly to CSV.jl, or any other data type supporting the Tables.jl interface.
 
-````@example dataframe
+````@ansi dataframe
 using CSV
 CSV.write("dimstack.csv", st)
 readlines("dimstack.csv")
