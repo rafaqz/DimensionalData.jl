@@ -1,4 +1,5 @@
 using DimensionalData, Statistics, Test, Unitful, SparseArrays, Dates, LinearAlgebra
+using StaticArrays: @SMatrix
 
 using DimensionalData: AnonDim
 using Combinatorics: combinations
@@ -164,4 +165,13 @@ Base.:*(A::VecOrMat, B::VecOrMatMulWrapper) = A * B.data
         @test_throws DimensionMismatch ArrayMulWrapper(A) * B
         @test_throws DimensionMismatch A * ArrayMulWrapper(B)
     end
+end
+
+@testset "StaticArrays * AbstractDimVector disambiguation" begin
+    dv = DimArray(ones(3), :x)
+    sm = @SMatrix ones(4, 3)
+    result = sm * dv
+    @test result isa DimArray
+    @test size(result) == (4,)
+    @test all(result .== 3.0)
 end

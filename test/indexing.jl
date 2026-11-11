@@ -287,6 +287,12 @@ end
         da2[DimSelectors(da)] += da
         @test da == da1
         @test da == da2
+        
+        ## Passing selectors to DimSelectors works
+        da3 = set(da, Y(lookup(da, Y) .+ 0.1))
+        ds = DimSelectors(da; selectors = (At, Near))
+        da3[ds]
+        @test da3[ds[X(1)]] == da3[(X(1))]
     end
     
     @testset "selectors work" begin
@@ -789,6 +795,7 @@ end
         d = Begin()+2:End()
         @test first(d) == Begin+2
         @test Base.checkindex(Bool, 1:10, Begin-1:End) == false
+        @test getindex.([10:13, 20:25], Begin+1:End) == [11:13, 21:25]
     end
     @testset "BeginEndStepRange" begin
         a = Begin:2:End

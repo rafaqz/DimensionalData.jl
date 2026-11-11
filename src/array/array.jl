@@ -38,9 +38,20 @@ Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray, d1::IDim, dims::IDim...
     Base.checkbounds(Bool, A, dims2indices(A, (d1, dims...))...)
 Base.checkbounds(A::AbstractBasicDimArray, d1::IDim, dims::IDim...) =
     Base.checkbounds(A, dims2indices(A, (d1, dims...))...)
+function Base.checkbounds(::Type{Bool}, A::AbstractBasicDimArray; kw...)
+    isempty(kw) && return all(x -> x == 1, size(A))
+    Base.checkbounds(Bool, A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+end
+function Base.checkbounds(A::AbstractBasicDimArray; kw...)
+    if isempty(kw)
+        all(x -> x == 1, size(A)) || throw(BoundsError(A, ()))
+    else
+        Base.checkbounds(A, _simplify_dim_indices(kw2dims(values(kw))...,)...)
+    end
+end
 
 """
-    AbstractDimArray <: AbstractBasicArray
+    AbstractDimArray <: AbstractBasicDimArray
 
 Abstract supertype for all "dim" arrays.
 
@@ -323,7 +334,7 @@ _arraytype(::Type{Bool}) = BitArray
 
 # Keep the same type in `similar`
 _noname(A::AbstractBasicDimArray) = _noname(name(A))
-_noname(s::String) = ""
+_noname(s::AbstractString) = ""
 _noname(::NoName) = NoName()
 _noname(::Symbol) = Symbol("")
 _noname(name::Name) = name # Keep the name so the type doesn't change
@@ -480,6 +491,8 @@ DimArray{T}(A::AbstractDimArray; kw...) where T = DimArray(convert.(T, A))
 DimArray{T}(A::AbstractDimArray{T}; kw...) where T = DimArray(A; kw...)
 DimArray{T}(x::UndefInitializer, dims::Dimension...; kw...) where T = DimArray{T}(x, dims; kw...)
 DimArray{T}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where T = DimArray(Array{T}(undef, map(length, dims)), dims; kw...)
+DimArray{T,N}(x::UndefInitializer, dims::Dimension...; kw...) where {T,N} = DimArray{T,N}(x, dims; kw...)
+DimArray{T,N}(x::UndefInitializer, dims::MaybeDimTuple; kw...) where {T,N} = DimArray(Array{T,N}(undef, map(length, dims)), dims; kw...)
 # We collect other kinds of AbstractBasicDimArray 
 # to avoid complicated nesting of dims
 function DimArray(A::AbstractBasicDimArray;
@@ -752,10 +765,10 @@ for f in (:zeros, :ones, :rand)
         Base.$f(dims::DimTuple; kw...) = $f(Float64, dims; kw...)
     end
 end
-for f in (:trues, :falses)
+for (m, f) in ((:Base, :trues), (:Base, :falses), (:Random, :bitrand))
     @eval begin
-        Base.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
-        function Base.$f(dims::DimTuple; kw...)
+        $m.$f(dim1::Dimension, dims::Dimension...; kw...) = $f((dim1, dims...); kw...)
+        function $m.$f(dims::DimTuple; kw...)
             C = dimconstructor(dims)
             C($f(_dimlength(dims)), _maybestripval(dims); kw...)
         end
@@ -783,6 +796,8 @@ for f in (:fill, :rand)
         end
     end
 end
+Base.fill!(A::AbstractDimArray, x) = (Base.fill!(parent(A), x); return A)
+
 # AbstractRNG rand DimArray creation methods
 Base.rand(r::AbstractRNG, x, d1::Dimension, dims::Dimension...; kw...) = 
     rand(r, x, (d1, dims...); kw...)
@@ -790,15 +805,19 @@ function Base.rand(r::AbstractRNG, x, dims::DimTuple; kw...)
     C = dimconstructor(dims)
     C(rand(r, x, _dimlength(dims)), _maybestripval(dims); kw...)
 end
-function Base.rand(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
-    rand(r, (d1, dims...); kw...)
+for (m, f) in ((:Base, :rand), (:Random, :bitrand))
+    @eval begin
+        function $m.$f(r::AbstractRNG, d1::Dimension, dims::Dimension...; kw...)
+            $f(r, (d1, dims...); kw...)
+        end
+        function $m.$f(r::AbstractRNG, dims::DimTuple; kw...)
+            C = dimconstructor(dims)
+            C($f(r, _dimlength(dims)...), _maybestripval(dims); kw...)
+        end
+    end
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, d1::Dimension, dims::Dimension...; kw...) where T
     rand(r, T, (d1, dims...); kw...)
-end
-function Base.rand(r::AbstractRNG, dims::DimTuple; kw...)
-    C = dimconstructor(dims)
-    C(rand(r, _dimlength(dims)...), _maybestripval(dims); kw...)
 end
 function Base.rand(r::AbstractRNG, ::Type{T}, dims::DimTuple; kw...) where T
     C = dimconstructor(dims)

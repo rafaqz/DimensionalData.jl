@@ -12,8 +12,10 @@ const DD = DimensionalData
 function Makie_attribute_names(P)
     if isdefined(Makie, :MakieCore) # To work with Makie <0.24
         Makie.MakieCore.attribute_names(P)
-    else
-        Makie.attribute_names(P) # For Makie >=0.24
+    elseif isdefined(Makie, :attribute_names) # For Makie 0.24
+        Makie.attribute_names(P)
+    else # For Makie >=0.25, where `attribute_names` was removed
+        propertynames(P)
     end
 end
 
@@ -48,9 +50,16 @@ $(_keyword_heading_doc(f))
     the `labels` attribute from. Can be a `Dimension`, `Type`, `Symbol` or `Int`.
 """
 
-# Only `heatmap` and `contourf` get a colorbar
-function _maybe_colorbar_doc(f) 
-    if f in (:heatmap, :contourf)
+# Plots that get a colorbar. 2D `contour` plots can only drive a `Colorbar` from
+# Makie 0.25, where the colorbar rework gives every plot a default colormap extraction.
+const COLORBAR_PLOTS = if isdefined(Makie, :add_default_colorbar_attributes) # Makie >= 0.25
+    (:heatmap, :contour, :contourf, :surface, :spy)
+else
+    (:heatmap, :contourf, :surface, :spy)
+end
+
+function _maybe_colorbar_doc(f)
+    if f in COLORBAR_PLOTS
         """
         - `colorbar`: keywords to pass to `Makie.Colorbar`.
         """
@@ -160,7 +169,7 @@ for (p1) in PlotTypes_Cat_1D
     f1! = Symbol(f1, '!')
     
     @eval begin
-        function Makie.$f1(fig::MakieGrids, A::MayObs{AbstractDimMatrix}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
+        function Makie.$f1(fig::MakieGrids, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim = nothing, axis = (;), plot_user_attributes...)
             error_if_has_content(fig)
 
             ax_type = haskey(axis, :type) ? axis[:type] : default_axis_type($p1, A)
@@ -176,6 +185,10 @@ for (p1) in PlotTypes_Cat_1D
             add_labels_to_lscene(ax, axis_att)
 
             return Makie.AxisPlot(ax, p)
+        end
+
+        function Makie.$f1(fig::MakieGrids, A::MayObs{<:AbstractDimArray}; kwargs...)
+            throw(ArgumentError("$($f1) needs a 1D or 2D AbstractDimArray, got $(ndims(to_value(A))) dimensions"))
         end
     end
 end
@@ -217,7 +230,7 @@ function axis_attributes(::Type{Series}, A::MayObs{DD.AbstractDimMatrix}; labeld
     )
 end
 
-function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimMatrix}; categoricaldim)
+function axis_attributes(::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::MayObs{DD.AbstractDimVecOrMat}; categoricaldim)
     categoricaldim = _categorical_or_dependent(to_value(A), categoricaldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups"))
 
@@ -282,7 +295,7 @@ for p1 in PlotTypes_2D
             p = $f1!(ax, A; plot_attributes..., xdim = xdim, ydim = ydim)
             add_labels_to_lscene(ax, axis_att)
 
-            if colorbar != false && $(f1 in (:heatmap, :contourf, :surface, :spy)) && T <: Real
+            if colorbar != false && $(f1 in COLORBAR_PLOTS) && T <: Real
                 # T check is to not add if using RGB
                 Colorbar(fig[1, 2], p;
                     label=obs_f(DD.label, A), colorbar...
@@ -368,13 +381,58 @@ end
 
 function default_axis_type(::Type{P}, dd; kwargs...) where P
     output = Makie.convert_arguments(P, to_value(dd); kwargs...)
-    default_type = Makie.args_preferred_axis(P, output...) 
+    default_type = _preferred_axis_type(P, output...)
     isnothing(default_type) ? Axis : default_type
+end
+
+if isdefined(Makie, :preferred_axis_type)
+    # Makie >= 0.24.11 moved axis type selection from `args_preferred_axis` to
+    # `preferred_axis_type`, which mostly dispatches on plot instances. We only have
+    # a plot type and converted arguments here, so mirror the parts of
+    # `Makie._preferred_axis_type` that work with those.
+    # see: https://github.com/MakieOrg/Makie.jl/issues/5704
+    function _preferred_axis_type(P, args...)
+        if applicable(Makie.preferred_axis_type, P, args...)
+            result = Makie.preferred_axis_type(P, args...)
+            isnothing(result) || return result
+        end
+        if applicable(Makie.preferred_axis_type, P)
+            result = Makie.preferred_axis_type(P)
+            isnothing(result) || return result
+        end
+        for arg in args
+            if applicable(Makie.preferred_axis_type, arg)
+                result = Makie.preferred_axis_type(arg)
+                isnothing(result) || return result
+            end
+        end
+        if isdefined(Makie, :args_preferred_axis) && applicable(Makie.args_preferred_axis, P, args...)
+            result = Makie.args_preferred_axis(P, args...)
+            isnothing(result) || return result
+        end
+        return nothing
+    end
+    # These plot types only define instance-based `preferred_axis_type` methods
+    function _preferred_axis_type(
+        ::Type{<:Union{Makie.Wireframe, Surface, Contour3d}},
+        x::AbstractArray, y::AbstractArray, z::AbstractArray
+    )
+        return all(i -> z[1] ≈ i, z) ? Axis : LScene
+    end
+    _preferred_axis_type(::Type{<:Volume}, args...) = LScene
+else
+    _preferred_axis_type(P, args...) = Makie.args_preferred_axis(P, args...)
 end
 
 function add_labels_to_lscene(ax, axis_att)
     if ax isa Makie.LScene && !isnothing(ax.scene[Makie.OldAxis])
-        ax.scene[Makie.OldAxis][:names, :axisnames][] = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "") .|> to_value
+        labels = (axis_att[:xlabel], axis_att[:ylabel], haskey(axis_att, :zlabel) ? axis_att[:zlabel] : "") .|> to_value
+        names = ax.scene[Makie.OldAxis][:names]
+        if to_value(names) isa Makie.Attributes # Makie < 0.25 stores nested attributes as `Attributes`
+            to_value(names)[:axisnames][] = labels
+        else # Makie >= 0.25 uses nested compute graph nodes
+            names[:axisnames][] = labels
+        end
     end
 end
 
@@ -403,7 +461,7 @@ Makie.used_attributes(::Type{<:Union{VolumeSlices, Volume}}, A::DD.AbstractDimAr
 
 function Makie.convert_arguments(P::Type{T}, A::AbstractDimMatrix; xdim = nothing , ydim = nothing) where T<:Union{Contour, Contourf, Surface, Contour3d}
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim))
-    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> get_number_version
     z = parent(permutedims(A, (dims_axes[1], dims_axes[2]))) 
     Makie.convert_arguments(P, xlookup, ylookup, z) 
 end
@@ -412,13 +470,13 @@ function Makie.convert_arguments(P::Type{<:Series}, A::AbstractDimMatrix; labeld
     categoricaldim = _categorical_or_dependent(A, labeldim)
     isnothing(categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
     otherdim = only(otherdims(A, categoricaldim))
-    xs = parent(lookup(A, otherdim)) |> get_number_version 
+    xs = lookup(A, otherdim) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(permutedims(A, (categoricaldim, otherdim))))
 end
 
 # PointBased conversions (scatter, lines, poly, etc)
 function Makie.convert_arguments(P::Makie.PointBased, A::AbstractDimVector)
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -435,15 +493,15 @@ function Makie.convert_arguments(P::Makie.SampleBased, A::AbstractDimVector; cat
     if !isnothing(categoricaldim) 
         dimnum(A, categoricaldim) # Returns an error if dim does not exist
     end
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
-function Makie.convert_arguments(P::Type{<:RainClouds}, A::AbstractDimVector; categoricaldim = nothing)
+function Makie.convert_arguments(P::Type{<:Union{RainClouds, BoxPlot, Violin}}, A::AbstractDimVector; categoricaldim = nothing)
     if !isnothing(categoricaldim) 
         dimnum(A, categoricaldim) # Returns an error if dim does not exist
     end
-    xs = parent(lookup(A, 1)) |> get_number_version
+    xs = lookup(A, 1) |> get_number_version
     return Makie.convert_arguments(P, xs, parent(A))
 end
 
@@ -451,11 +509,10 @@ function Makie.convert_arguments(P::Type{<:Union{Makie.RainClouds, BoxPlot, Viol
     dd_categoricaldim = _categorical_or_dependent(A, categoricaldim)
     isnothing(dd_categoricaldim) && throw(ArgumentError("No dimensions have Categorical lookups")) # This should never happen
     otherdim = only(otherdims(A, dd_categoricaldim))
-    xs = lookup(A, dd_categoricaldim)
-    matrix_xs = repeat(parent(xs), outer = (1, size(A, otherdim)))
-
-    matrix_xs, parent(permutedims(A, (otherdim, dd_categoricaldim) ))
-    return Makie.convert_arguments(P, get_number_version(vec(matrix_xs)), parent(permutedims(A, (otherdim, dd_categoricaldim))) |> vec)
+    # Stack categorical dimensions end-to-end
+    xs = repeat(get_number_version(lookup(A, dd_categoricaldim)); inner=size(A, otherdim))
+    ys = vec(parent(permutedims(A, (otherdim, dd_categoricaldim))))
+    return Makie.convert_arguments(P, xs, ys)
 end
 
 # Grid based conversions (surface, image, heatmap, contour, meshimage, etc)
@@ -481,7 +538,7 @@ end
 function Makie.convert_arguments(
     P::Type{Heatmap}, A::AbstractDimMatrix; xdim = nothing, ydim = nothing)
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim))
-    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> parent .|> get_number_version
+    xlookup, ylookup = (lookup(dims_axes[1]), lookup(dims_axes[2])) .|> get_number_version
     z = parent(permutedims(A, (dims_axes[1], dims_axes[2])))
     return Makie.convert_arguments(P, xlookup, ylookup, z)
 end
@@ -496,7 +553,7 @@ end
 
 function Makie.convert_arguments(P::Type{Makie.VolumeSlices}, A::AbstractDimArray{<:Any,3}; xdim = nothing, ydim = nothing, zdim = nothing)
     dims_axes = get_dimensions_of_makie_axis(A, (xdim, ydim, zdim))
-    xs, ys, zs = map(_lookup_to_vector, dims_axes) .|> get_number_version
+    xs, ys, zs = map(d -> _lookup_to_vector(lookup(d)), dims_axes)
     return Makie.convert_arguments(P, xs, ys, zs, parent(permutedims(A, dims_axes)))
 end
 
@@ -565,7 +622,7 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
             (; yticks= obs_f(i -> (unique(get_number_version(parent(i))), 
                 unique(string.(parent(lookup(i))))), l))
         else
-            (; zticks= obs_f(i -> unique((get_number_version(parent(i))), 
+            (; zticks= obs_f(i -> (unique(get_number_version(parent(i))),
                 unique(string.(parent(lookup(i))))), l))
         end
         dim_attr
@@ -575,9 +632,11 @@ function get_axis_ticks(l::MayObs{D}, axis) where D<:DD.Dimension
 end
 
 get_number_version(x) = x
+# Char lookups keep their codepoints, other categoricals are numbered in lookup order
 get_number_version(x::AbstractVector{<:AbstractChar}) = Int.(x)
-get_number_version(x::AbstractVector{<:AbstractString}) = sum.(Int, x) # Sum all chars
-get_number_version(x::AbstractVector{<:Symbol}) = get_number_version(string.(x))
+get_number_version(x::AbstractCategorical{<:AbstractChar}) = Int.(parent(x))
+get_number_version(x::AbstractCategorical) = Int.(indexin(parent(x), unique(parent(x))))
+get_number_version(x::Lookup) = get_number_version(parent(x))
 get_number_version(x::IntervalSets.ClosedInterval{<:AbstractChar}) = IntervalSets.ClosedInterval((Int.(endpoints(x)) .+ (-.5, .5))...) # Needs to add half the step this do give the interval like heatmap
 get_number_version(x::IntervalSets.ClosedInterval) = x
 
@@ -619,8 +678,8 @@ function _lookup_to_vector(l)
         bs = intervalbounds(l)
         x = first.(bs)
         push!(x, last(last(bs)))
-    else # ispoints(l)
-        collect(parent(l))
+    else # points or categorical
+        get_number_version(l)
     end
 end
 

@@ -15,6 +15,42 @@ Changelog.generate(
 )
 ```
 
+## [0.30.3]
+
+### Fixed
+
+- DimensionalData now again compiles on Julia 1.9 and works with Makie 0.23. Future releases will require Julia 1.10 and Makie 0.24. ([#1187])
+- `violin`, `raincloud` and `boxplot` plots now correctly bin values for each category. ([#1216])
+- Tables no longer produce nested `DimArray`s when materialized into an `AbstractDimArray`. ([#1228])
+- Fixed an ambiguous dispatch when multiplying a `StaticArray` and a `DimVector`. ([#1197])
+- Removed an unnecessary `eltype()` method. ([#1227])
+- Converting an xarray object know works when a coord name matches an xarray attribute. ([#1231])
+
+## [0.30.2]
+
+### Added
+
+- `DimArray{T,N}` constructors for uninitialized arrays. ([#1206])
+- `checkbounds` support with no indices or dimension keyword arguments. ([#1183])
+
+### Fixed
+
+- Broadcasting arrays with `SubString` names and indexing sliced `DimSelectors`. ([#1184], [#1190])
+- Type instability in `reducedims` dimension-type queries. ([#1210])
+- Removed a redundant `print` method that caused invalidations. ([#1217])
+
+### Changed
+
+- `sizeof` for `AbstractDimArray` now reports the underlying storage size. ([#1196])
+- Updated compatibility for AlgebraOfGraphics 0.13 and OrderedCollections 2. ([#1218], [#1200])
+- Added forward-looking Makie 0.25 support. ([#1209])
+
+## [0.30.1]
+
+### Fixed
+
+- Restored `DimensionalPlot` to the main package for downstream use without RecipesBase. ([#1178])
+
 ## [0.30.0]
 
 ### Added
@@ -83,5 +119,22 @@ Changelog.generate(
 [#1041]: https://github.com/rafaqz/DimensionalData.jl/issues/1041
 [#1071]: https://github.com/rafaqz/DimensionalData.jl/issues/1071
 [#1128]: https://github.com/rafaqz/DimensionalData.jl/issues/1128
+[#1178]: https://github.com/rafaqz/DimensionalData.jl/pull/1178
+[#1183]: https://github.com/rafaqz/DimensionalData.jl/pull/1183
+[#1184]: https://github.com/rafaqz/DimensionalData.jl/pull/1184
+[#1190]: https://github.com/rafaqz/DimensionalData.jl/pull/1190
+[#1196]: https://github.com/rafaqz/DimensionalData.jl/pull/1196
+[#1200]: https://github.com/rafaqz/DimensionalData.jl/pull/1200
+[#1206]: https://github.com/rafaqz/DimensionalData.jl/pull/1206
+[#1209]: https://github.com/rafaqz/DimensionalData.jl/pull/1209
+[#1210]: https://github.com/rafaqz/DimensionalData.jl/pull/1210
+[#1217]: https://github.com/rafaqz/DimensionalData.jl/pull/1217
+[#1218]: https://github.com/rafaqz/DimensionalData.jl/pull/1218
+[#1187]: https://github.com/rafaqz/DimensionalData.jl/pull/1187
+[#1197]: https://github.com/rafaqz/DimensionalData.jl/pull/1197
+[#1216]: https://github.com/rafaqz/DimensionalData.jl/pull/1216
+[#1227]: https://github.com/rafaqz/DimensionalData.jl/pull/1227
+[#1228]: https://github.com/rafaqz/DimensionalData.jl/pull/1228
+[#1231]: https://github.com/rafaqz/DimensionalData.jl/pull/1231
 [@JoshuaBillson]: https://github.com/JoshuaBillson
 [@tiemvanderdeure]: https://github.com/tiemvanderdeure

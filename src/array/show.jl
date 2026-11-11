@@ -302,9 +302,6 @@ function Base.alignment(io::IO, x::ShowWith)
         Base.alignment(io, x.val)
     end
 end
-function Base.print(io::IO, x::ShowWith)
-    printstyled(io, string(x.val); color = x.color, hidden = x.mode == :hide)
-end
 
 Base.iterate(x::ShowWith) = iterate(string(x.val))
 Base.iterate(x::ShowWith, i::Int) = iterate(string(x.val), i::Int)

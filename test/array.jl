@@ -1,6 +1,7 @@
 using DimensionalData, Test , Unitful, SparseArrays, Dates, Random
 using DimensionalData: layerdims, checkdims
 using LinearAlgebra
+using BenchmarkTools
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 
@@ -22,11 +23,36 @@ val(dims(da, 1)) |> typeof
 da2 = DimArray(a2, dimz2; refdims=refdimz, name=:test2)
 
 @testset "checkbounds" begin
-    @test @inferred checkbounds(Bool, da, X(2), Y(1)) == true
-    @test @inferred checkbounds(Bool, da, X(10), Y(1)) == false
-    checkbounds(da, X(2), Y(1))
-    @test_throws BoundsError checkbounds(da, X(10), Y(20))
-    @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+    # test on both AbstractDimArray and AbstractBasicDimArray
+    for abda in (da, DimIndices(da))
+        @test @inferred checkbounds(Bool, da, X(2), Y(1)) == true
+        @test @inferred checkbounds(Bool, da, X(10), Y(1)) == false
+        checkbounds(da, X(2), Y(1))
+        @test_throws BoundsError checkbounds(da, X(10), Y(20))
+        @test_throws BoundsError checkbounds(da, X(1:10), Y(2:20))
+    end
+
+    # kwargs
+    for abda in (da2, DimIndices(da2))
+        @test @inferred checkbounds(Bool, abda; row=1, column=1) == true
+        @test @inferred checkbounds(Bool, abda; row=10, column=1) == false
+        @test @inferred checkbounds(Bool, abda; row=10) == false
+        checkbounds(abda; row=1, column=1)
+        @test_throws BoundsError checkbounds(abda; row=10, column=20)
+        @test_throws BoundsError checkbounds(abda; row=1:10, column=1:20)
+        @test_throws BoundsError checkbounds(abda; row=10)
+    end
+
+    # zero arguments
+    single_elem = DimArray([42], (X,))
+    for abda in (single_elem, DimIndices(single_elem))
+        @test @inferred checkbounds(Bool, abda) == true
+        checkbounds(abda)
+    end
+    for abda in (da, DimIndices(da))
+        @test @inferred checkbounds(Bool, da) == false
+        @test_throws BoundsError checkbounds(da)
+    end
 end
 
 @testset "checkdims" begin
@@ -455,6 +481,38 @@ end
     cp = LinearAlgebra.copy_similar(A, Float64)
     @test cp isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
     @test A == cp
+    S = DimArray(Symmetric([2.0 1.0; 1.0 2.0]), (X(1:2), Y(1:2)))
+    cpS = LinearAlgebra.copy_similar(S, Float64)
+    @test cpS isa DimMatrix{Float64,<:Tuple{<:X,<:Y}}
+    @test parent(cpS) isa Matrix{Float64}
+    @test cpS == S
+end
+
+@testset "LinearAlgebra on wrapped structured matrices" begin
+    b = [1.0, 2.0]
+    for M in (Symmetric([2.0 1.0; 1.0 2.0]), [2.0 1.0; 1.0 2.0], Diagonal([2.0, 3.0]))
+        A = DimArray(M, (X(1:2), Y(1:2)))
+        @test det(A) == det(M)
+        @test logdet(A) == logdet(M)
+        @test logabsdet(A) == logabsdet(M)
+        @test eigvals(A) isa Vector
+        @test eigvals(A) == eigvals(M)
+        @test eigmin(A) == eigmin(M)
+        @test eigmax(A) == eigmax(M)
+        # These copy with `copy_similar` and factorize the copy
+        @test cholesky(A).L ≈ cholesky(M).L
+        @test A \ b ≈ M \ b
+    end
+    S = Symmetric([2.0 1.0; 1.0 2.0])
+    A = DimArray(S, (X(1:2), Y(1:2)))
+    @test eigvals(A; sortby=x -> -x) == eigvals(S; sortby=x -> -x)
+    # The specialised methods of the parent are used rather than an LU factorization of a copy
+    T = SymTridiagonal([2.0, 3.0, 4.0], [1.0, 1.0])
+    B = DimArray(T, (X(1:3), Y(1:3)))
+    for f in (det, logdet, logabsdet)
+        @test f(B) == f(T)
+        @test (@ballocated $f($B)) == (@ballocated $f($T))
+    end
 end
 
 @testset "constructor" begin
@@ -495,6 +553,15 @@ end
     @test_throws ArgumentError fill(5.0, (X(:e), Y(8)))
 end
 
+@testset "fill!" begin
+    da = fill(5.0, X(4), Y(40.0:10.0:80.0))
+    @test fill!(da, 1.0) === da
+    @test all(==(1.0), da)
+
+    da = bitrand(X(4), Y(3))
+    @test fill!(da, true) === da
+    @test all(da)
+end
 
 @testset "generator constructor" begin
     Xs = X(10:10:50)
@@ -545,16 +612,15 @@ end
     @test eltype(da) <: Int32
     @test all(==(1), da) 
     @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
-    da = trues(ti)
-    @test size(da) == (4,)
-    @test eltype(da) <: Bool
-    @test all(==(true), da) 
-    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
-    da = falses(ti)
-    @test size(da) == (4,)
-    @test eltype(da) <: Bool
-    @test all(==(false), da) 
-    @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+
+    for (f, f2) in zip((trues, falses), (all, !any))
+        da = f(ti)
+        @test size(da) == (4,)
+        @test eltype(da) <: Bool
+        @test parent(da) isa BitVector
+        @test f2(da)
+        @test dims(da) == (Ti(Sampled(Date(2001):Year(1):Date(2004), ForwardOrdered(), Regular(Year(1)), Points(), NoMetadata())),)
+    end
 
     for f in (ones, zeros, trues, falses)
         da = f(X(4), Y(40.0:10.0:80.0); metadata=(a=1, b=2))
@@ -582,9 +648,19 @@ end
     @test size(A) === size(da)
     @test A isa DimArray
     @test dims(A) === dims(da)
+    A = DimArray{Int,2}(undef, dimz...)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
+    A = DimArray{Int,2}(undef, dimz)
+    @test eltype(A) === Int
+    @test size(A) === size(da)
+    @test A isa DimArray
+    @test dims(A) === dims(da)
 end
 
-@testset "rand constructors" begin
+@testset "rand, bitrand constructors" begin
     da = @inferred rand(1:10, X(8), Y(11:20); metadata=(a=1, b=2))
     @test size(da) == (8, 10)
     @test eltype(da) <: Int
@@ -605,11 +681,20 @@ end
     da = rand(MersenneTwister(), 1:2, X([:a, :b]), Y(3))
     @test eltype(da) <: Int
     @test size(da) == (2, 3)
-    @test maximum(da) in (1, 2)
-    @test minimum(da) in (1, 2)
+    @test all(in((1,2)), da)
     da = rand(MersenneTwister(), X([:a, :b]), Y(3))
     @test size(da) == (2, 3)
     @test eltype(da) <: Float64
+
+    da = @inferred bitrand(X([:a, :b]; order=ForwardOrdered()), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Bool
+    @test parent(da) isa BitArray
+
+    da = bitrand(MersenneTwister(), X([:a, :b]), Y(3))
+    @test size(da) == (2, 3)
+    @test eltype(da) <: Bool
+    @test parent(da) isa BitArray
 end
 
 @testset "NamedTuple" begin
@@ -640,4 +725,10 @@ end
     dshift = DimArray(a, (X(10:11), Y(2:3)))
     @test isequal(da, dshift) == false
     @test (da == dshift) == false
+end
+
+@testset "Substring name broadcast" begin
+  name_str = SubString("test_anme", 1, 4 )  # "test"
+  da = DimArray(rand(5), (X(1:5),); name=name_str)
+  @test_nowarn isfinite.(da)
 end

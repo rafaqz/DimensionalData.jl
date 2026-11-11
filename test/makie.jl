@@ -1,11 +1,16 @@
 using DimensionalData, Test, Dates
-using AlgebraOfGraphics
 using CairoMakie
-using CairoMakie: ComputePipeline
 using ColorTypes
 using Unitful, Unitful.DefaultSymbols
 import Distributions
 import DimensionalData as DD
+import Pkg
+
+# AlgebraOfGraphics does not support Makie v0.25 yet, so only test it on older versions
+const TEST_ALGEBRAOFGRAPHICS = "AlgebraOfGraphics" in keys(Pkg.project().dependencies)
+if TEST_ALGEBRAOFGRAPHICS
+    using AlgebraOfGraphics
+end
 
 
 using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Unordered,
@@ -21,7 +26,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     fig = Figure()
     @test_throws MethodError lines(fig, dd_vec) # error as in lines(fig, 1:10)
     ax, plt = lines(fig[1,1], dd_vec)
-    @test_throws ErrorException lines(fig[1,1], dd_vec)
+    @test_throws Exception lines(fig[1,1], dd_vec)
     lines!(ax, dd_vec)
     
     fig = Figure()
@@ -58,10 +63,10 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
                 @test ax.ylabel[] == "test"
                 @test plt.label[] == "test"
                 @test all(last.(plt[1][]) .== Int.(y))
-                if dd_i isa DimArray{<:AbstractChar}
-                    @test all(first.(plt[1][]) .== Int.(x)) 
+                if eltype(x) <: AbstractChar
+                    @test all(first.(plt[1][]) .== Int.(x))
                 else
-                    @test all(first.(plt[1][]) .== sum.(Int, string.(x)))
+                    @test all(first.(plt[1][]) .== 1:5)
                 end
             end
         end
@@ -77,7 +82,7 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
             @test all(first.(plt[1][]) .== Int.(x))
-            @test all(last.(plt[1][]) .=== replace(y, missing => NaN)) 
+            @test all(last.(plt[1][]) .=== replace(y, missing => NaN))
         end
     end
 
@@ -101,11 +106,11 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
     @test plt isa Makie.Scatter
     fig = Figure()
     @test plot(fig[1,1], dd_vec_mis) isa Makie.AxisPlot
-    @test_throws ErrorException plot(fig[1,1], dd_vec_mis)
+    @test_throws Exception plot(fig[1,1], dd_vec_mis)
 
     fig = Figure()
     @test plot(fig[1,1][1,1], dd_vec_mis) isa Makie.AxisPlot
-    @test_throws ErrorException plot(fig[1,1][1,1], dd_vec_mis)
+    @test_throws Exception plot(fig[1,1][1,1], dd_vec_mis)
 
     fig = Figure()
     ax = Axis(fig[1,1])
@@ -118,30 +123,39 @@ using DimensionalData: Metadata, NoMetadata, ForwardOrdered, ReverseOrdered, Uno
             x = parent(lookup(to_value(dd_cat), Y))
             y = collect(parent(to_value(dd_cat)))
             fig, ax, plt = plot_i(obs(dd_cat))
-            @test all(plt[1][] .== repeat(97:98, outer = 6)) 
-            @test all(plt[2][] .== vec(y'))
+            @test all(plt[1][] .== repeat(97:98, inner = 6))
+            @test plt[2][] == vec(y')
             @test ax.xlabel[] == "X"
             @test ax.ylabel[] == "test"
             @test plt.label[] == "test"
 
             fig, ax, plt = plot_i(obs(dd_cat), categoricaldim = Y)
-            @test all(plt[1][] .== repeat(1:6, outer = 2))
+            @test all(plt[1][] .== repeat(1:6, inner = 2))
         end
     end
 
+    # multi-character labels are equally spaced, in lookup order
+    dd_cat_multi = DimArray(randn(4, 20), (X([:α, :Cyl, :Disp, :σ]), Y(1:20)), name = :test)
+    @test boxplot(dd_cat_multi).axis.xticks[] == ([1, 2, 3, 4], ["α", "Cyl", "Disp", "σ"])
 
     dd_cat = DimArray((1:6).^2, X(cat(fill('A', 3), fill('B', 3), dims = 1)), name = :test)
     for plot_i in (rainclouds, violin, boxplot)
         fig, ax, plt = plot_i(dd_cat)
         @test all(plt[1][] .== Int.(lookup(dd_cat, X)))
+        @test plot_i(dd_cat).axis.xticks[] == ([Int('A'),Int('B')], ["A", "B"])
         @test all(plt[2][] .== Int.(parent(dd_cat)))
         @test_throws ArgumentError plot_i(dd_cat, categoricaldim = Y) 
     end
 
 
-    for dd_i in (dd_vec_mis, dd_vec_uni) # These plot do not work with missing and unitful due to Makie limitations
-        for plt_i in ( rainclouds, violin, boxplot)
-            @test plt_i(dd_i) broken = true
+    for plt_i in ( rainclouds, violin, boxplot)
+        # These plots do not work with missing due to Makie limitations
+        @test plt_i(dd_vec_mis) broken = true
+        if pkgversion(Makie) < v"0.25"
+            # Unitful values only work from Makie v0.25 with the expanded dim converts
+            @test plt_i(dd_vec_uni) broken = true
+        else
+            @test plt_i(dd_vec_uni) isa Makie.FigureAxisPlot
         end
     end
 
@@ -173,10 +187,15 @@ end
     fig = Figure()
     @test_throws MethodError series(fig, dd_mat_cat) # as lines(fig, 1:10)
     ax, plt = series(fig[1,1], dd_mat_cat)
-    @test_throws ErrorException series(fig[1,1], dd_mat_cat)
+    @test_throws Exception series(fig[1,1], dd_mat_cat)
     series!(ax, dd_mat_cat)
     
-    for dd_i in (dd_mat_cat, dd_mat_num, dd_mat_sym, dd_mat_uni) 
+    dds = if pkgversion(Makie) >= v"0.24.0" 
+        (dd_mat_cat, dd_mat_num, dd_mat_sym, dd_mat_uni) 
+    else
+        (dd_mat_cat, dd_mat_num, dd_mat_sym)
+    end
+    for dd_i in dds
         fig, ax, plt = series(dd_i)
         @test ax.ylabel[] == "test"
         @test ax.xlabel[] == "X"
@@ -257,7 +276,7 @@ end
     @test_throws MethodError contour(fig, dd_mat) # as lines(fig, 1:10)
     ax, plt = contour(fig[1,1], dd_mat)
     contourf!(ax, dd_mat)
-    @test_throws ErrorException contour(fig[1,1], dd_mat)
+    @test_throws Exception contour(fig[1,1], dd_mat)
 
     fig, ax, plt = contour(dd_mat)
     for dd_i in (dd_mat, dd_mat_perm)
@@ -305,7 +324,7 @@ end
 
     dd_mat_sym = DimArray( x.^1/2 .+ 0y'.^1/3, (X(Symbol.('a':'e')), Y(y)), name=:test)
     fig, ax, plt = contourf(dd_mat_sym)
-    @test plt[1][] == Int.(first.(string.(lookup(dd_mat_sym, X))))
+    @test plt[1][] == [1, 2, 3, 4, 5]
     @test plt[2][] == Int.(lookup(dd_mat_sym, Y))
     @test ax.xticks[][2] == string.(lookup(dd_mat_sym, X))
 
@@ -343,7 +362,9 @@ end
     fig, ax, plt = heatmap(dd_mat; axis = (;type = PolarAxis))
     @test ax isa Makie.PolarAxis
 
-    @test_throws Makie.InvalidAttributeError surface(dd_mat; axis = (;xlabel = "new")) # Throws an error as normal makie would
+    if pkgversion(Makie) >= v"0.24.0"
+        @test_throws Makie.InvalidAttributeError surface(dd_mat; axis = (;xlabel = "new")) # Throws an error as normal makie would
+    end
 
     dd_rgb = rand(RGB, X(1:10), Y(1:5))
     fig, ax, plt = heatmap(dd_rgb)
@@ -383,7 +404,7 @@ end
     fig = Figure()
     @test_throws MethodError volume(fig, dd_3d) # as lines(fig, 1:10)
     ax, plt = volume(fig[1,1], dd_3d)
-    @test_throws ErrorException volume(fig[1,1], dd_3d)
+    @test_throws Exception volume(fig[1,1], dd_3d)
     @test volume!(ax, dd_3d) isa Makie.Volume
 
     fig = Figure()
@@ -471,7 +492,7 @@ end
 
 # end
 
-@testset "AlgebraOfGraphics" begin
+TEST_ALGEBRAOFGRAPHICS && @testset "AlgebraOfGraphics" begin
 
     # 1d
     A1 = rand(X(1:5); name=:test)
@@ -502,12 +523,13 @@ end
         @test sum(x -> x isa AlgebraOfGraphics.Makie.Axis, AlgebraOfGraphics.Makie.contents(fg.figure.layout)) == size(A3, Y)
     end
 
-    @testset "DimPoints" begin
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.scatter
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.plot
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.scatter
-        DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
-    end
+end
+
+@testset "DimPoints" begin
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.scatter
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0))) |> Makie.plot
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.scatter
+    DimPoints(rand(X(10), Y(1.0:0.1:2.0), Z(10:10:40))) |> Makie.plot
 end
 
 
@@ -535,8 +557,8 @@ end
     plot!(A1v)
     fig, ax, _ = plot(A1num)
     reset_limits!(ax)
-    org = first(ax.finallimits.val.origin)
-    wid = first(widths(ax.finallimits.val))
+    org = first(ax.finallimits[].origin)
+    wid = first(widths(ax.finallimits[]))
     # This tests for #714
     @test org <= -10
     @test org + wid >= 10
@@ -654,14 +676,21 @@ end
     fig, ax, _ = violin(A2r)
     violin!(ax, A2r)
     violin!(A2r)
-    @test_throws ComputePipeline.ResolveException{ArgumentError} violin(A2m)
-    @test_throws ComputePipeline.ResolveException{ArgumentError} violin!(ax, A2m)
+    if pkgversion(CairoMakie) >= v"0.15"
+        using CairoMakie: ComputePipeline
+        @test_throws ComputePipeline.ResolveException{ArgumentError} violin(A2m)
+        @test_throws ComputePipeline.ResolveException{ArgumentError} violin!(ax, A2m)
+    end
 
     fig, ax, _ = rainclouds(A2)
     rainclouds!(ax, A2)
     fig, ax, _ = rainclouds(A2u)
     rainclouds!(ax, A2u)
-    @test_throws ErrorException rainclouds(A2m) # MethodError ? missing values in data not supported
+    if pkgversion(Makie) < v"0.25"
+        @test_throws Exception rainclouds(A2m) # MethodError ? missing values in data not supported
+    else
+        @test_throws MethodError rainclouds(A2m) # missing values in data not supported by dim converts
+    end
 
     fig, ax, _ = surface(A2)
     surface!(ax, A2)
@@ -675,9 +704,11 @@ end
     # TODO: method series! is incomplete, we need to include the colors logic, as in series. There should not be any issue if the correct amount of colours is provided.
     fig, ax, _ = series(A2)
     series!(ax, A2)
-    fig, ax, _ = series(A2u)
-    # series!(ax, A2u) # Does not work due to Makie limitation related with missing
-    fig, ax, _ = series(A2ui)
+    if pkgversion(Makie) >= v"0.24" # untilful does not work for older Makie
+        fig, ax, _ = series(A2u)
+        # series!(ax, A2u) # Does not work due to Makie limitation related with missing
+        fig, ax, _ = series(A2ui)
+    end
     # series!(ax, A2u)
     fig, ax, _ = series(A2r)
     # series!(ax, A2r)

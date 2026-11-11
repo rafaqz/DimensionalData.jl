@@ -260,7 +260,7 @@ const ArrayOrVal = Union{AbstractArray,Val}
 
 Base.parent(d::Dimension) = val(d)
 Base.eltype(d::Type{<:Dimension{T}}) where T = T
-Base.eltype(d::Type{<:Dimension{A}}) where A<:AbstractArray{T} where T = T
+Base.eltype(d::Type{<:Dimension{<:AbstractArray{T}}}) where T = T
 Base.size(d::Dimension, args...) = size(val(d), args...)
 Base.axes(d::Dimension) = (val(d) isa DimUnitRange ? val(d) : DimUnitRange(axes(val(d), 1), d),)
 Base.axes(d::Dimension, i) = axes(d)[i]

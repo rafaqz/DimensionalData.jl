@@ -198,7 +198,8 @@ Base.@assume_effects :foldable @inline _simplify_dim_indices(::Tuple{}) = ()
 Base.@assume_effects :foldable @inline _simplify_dim_indices(d::DimIndices, ds...) =
     (dims(d)..., _simplify_dim_indices(ds)...)
 Base.@assume_effects :foldable @inline function _simplify_dim_indices(d::DimSelectors, ds...)
-    seldims = map(dims(d), d.selectors) do d, s
+    sorteddims = dims((dims(d)..., _refdims_firsts(d)...), orderdims(d))
+    seldims = map(sorteddims, d.selectors) do d, s
         # But the dimension values inside selectors
         rebuild(d, rebuild(s; val=val(d)))
     end
