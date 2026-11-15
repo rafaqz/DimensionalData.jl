@@ -1,5 +1,6 @@
 using DimensionalData
 using DataStructures
+using Test
 
 @testset "Dict" begin
     d = Dict{Int, Float64}(
