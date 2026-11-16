@@ -24,7 +24,7 @@ function restore_array(data::AbstractVector{T}, indices::AbstractVector, dims::T
         for idx in indices # looping is faster than broadcasting
             missing_rows[idx] = false 
         end
-        return ifelse.(missing_rows, _missingval, dst)
+        dst = ifelse.(missing_rows, _missingval, dst)
     end
     return parent(dst)
 end
