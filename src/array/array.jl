@@ -522,7 +522,7 @@ function DimArray(data::AbstractVector, dims::Tuple;
     refdims=(), name=NoName(), metadata=NoMetadata(), kw...
 )
     if !(data isa AbstractBasicDimArray) && Tables.istable(data) && 
-        all(map(d -> Dimensions.name(d) in Tables.schema(data).names, dims))
+        all(map(d -> Dimensions.name(d) in _columnnames(data), dims))
         table = Tables.columns(data)
         dims = guess_dims(table, dims; kw...)
         return dimarray_from_table(DimArray, table, dims; refdims, name, metadata, kw...)
@@ -550,6 +550,12 @@ function dimarray_from_table(::Type{T}, table, dims;
 
     # Return DimArray
     return T(array, dims, name=col; kw...)
+end
+
+function _columnnames(x)
+    sc = Tables.schema(x)
+    isnothing(sc) || return sc.names
+    return Tables.columnnames(Tables.columns(x))
 end
 
 """
