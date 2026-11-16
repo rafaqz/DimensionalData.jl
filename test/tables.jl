@@ -199,9 +199,9 @@ end
 end
 
 @testset "Materialize from table" begin
-    a = DimArray(rand(UInt8, 100, 100), (X(100:-1:1), Y(-250:5:249)))
-    b = DimArray(rand(Float32, 100, 100), (X(100:-1:1), Y(-250:5:249)))
-    c = DimArray(rand(Float64, 100, 100), (X(100:-1:1), Y(-250:5:249)))
+    a = rand(UInt8, X(100:-1:1), Y(-250:5:249), Z([1]))
+    b = rand(Float32,X(100:-1:1), Y(-250:5:249))
+    c = rand(Float64,X(100:-1:1), Y(-250:5:249))
     ds = DimStack((a=a, b=b, c=c))
     t = DataFrame(ds)
     t1 = Random.shuffle(t)
@@ -283,9 +283,9 @@ end
                 @test dims(da, Y) == dims(a, Y)
             end
             # passing in dimension types works
-            @test DimArray(t, (X, Y)) == a
-            @test parent(DimArray(t, (:X, Y))) == parent(a)
-            @test parent(DimArray(t, (:X, :Y))) == parent(a)
+            @test DimArray(t, (X, Y, Z)) == a
+            @test parent(DimArray(t, (:X, Y, Z))) == parent(a)
+            @test parent(DimArray(t, (:X, :Y, :Z))) == parent(a)
             # passing in dimensions works for unconventional dimension names
             A = rand(dimz, name = :a)
             table = T(A)
