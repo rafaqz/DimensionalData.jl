@@ -6,6 +6,7 @@ using Random
 using TableTraits
 using Tables
 using Test
+import JSON
 
 using DimensionalData.Lookups, DimensionalData.Dimensions
 using DimensionalData: DimTable, DimExtensionArray
