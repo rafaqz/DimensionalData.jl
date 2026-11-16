@@ -210,7 +210,7 @@ end
     t3 = copy(t1)
     t3.X .+= rand(nrow(t1)) .* 1e-7 # add some random noise to check if precision works
 
-    to_json(x) = pairs.(x) .|> JSON.Object
+    to_json(x) = JSON.Object.(pairs.(Tables.rowtable(x)))
     tabletypes = (Tables.columntable, DataFrame, Tables.rowtable, to_json)
 
     for T in tabletypes
